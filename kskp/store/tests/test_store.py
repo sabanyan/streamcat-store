@@ -7,5 +7,5 @@ class StoreTestCase(unittest.TestCase):
         """
         特定のディレクトリ用のsourceに関するテスト
         """
-        source = PathFileSource('frames')
+        source = PathFileSource('kskp/store/tests/frames')
         self.assertEqual(source.data(), [])
