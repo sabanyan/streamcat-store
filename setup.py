@@ -1,0 +1,6 @@
+from setuptools import setup
+
+setup(
+    name='kskp.store',
+    packages=['kskp.store']
+)
