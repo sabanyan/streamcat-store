@@ -1,0 +1,93 @@
+{
+    "id": "mvcat",
+    "params": [
+        {
+            "name": "vf",
+            "type": "string",
+            "label": "併合するベクトル列名"
+        },
+        {
+            "name": "a",
+            "type": "string",
+            "label": "併合後の列名"
+        },
+        {
+            "name": "A",
+            "type": "boolean",
+            "label": "新しい項目として追加する。このオプションを指定しなければ、併合元の項目 (vf=) は削除される。",
+            "optional": true
+        },
+        {
+            "name": "delim",
+            "type": "string",
+            "label": "ベクトル要素の区切り文字を指定",
+            "optional": true
+        },
+        {
+            "name": "assert_diffSize",
+            "type": "boolean",
+            "label": "入力、出力件数比較を行う",
+            "optional": true
+        },
+        {
+            "name": "assert_nullin",
+            "type": "boolean",
+            "label": "入力項目のf=またはvf=で指定された項目のNULL値チェックを行う",
+            "optional": true
+        },
+        {
+            "name": "assert_nullout",
+            "type": "boolean",
+            "label": "出力項目のNULL値チェックを行う",
+            "optional": true
+        },
+        {
+            "name": "nfn",
+            "type": "boolean",
+            "label": "入力データの1行目を項目名行とみなさない。",
+            "optional": true
+        },
+        {
+            "name": "nfno",
+            "type": "boolean",
+            "label": "出力データに項目名行を出力しない。",
+            "optional": true
+        },
+        {
+            "name": "x",
+            "type": "boolean",
+            "label": "項目番号による指定",
+            "optional": true
+        },
+        {
+            "name": "q",
+            "type": "boolean",
+            "label": "自動並べ替えの無効化",
+            "optional": true
+        },
+        {
+            "name": "tmpPath",
+            "type": "string",
+            "label": "作業ファイル格納パス名",
+            "optional": true
+        }
+    ],
+    "ports": [
+        [
+            {
+                "name": "i",
+                "type": "frame"
+            }
+        ],
+        [
+            {
+                "name": "o",
+                "type": "frame"
+            }
+        ]
+    ],
+    "version": "0.7.0",
+    "label": "ベクトルの併合",
+    "classification": "col_edit",
+    "description": "./static/pdf/mcmd/col_edit/mvcat.pdf"
+}

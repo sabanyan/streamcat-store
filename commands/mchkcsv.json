@@ -1,0 +1,78 @@
+{
+    "id": "mchkcsv",
+    "params": [
+        {
+            "name": "a",
+            "type": "string",
+            "label": "入力データの項目名を無視し、ここで指定した項目名を出力",
+            "optional": true
+        },
+        {
+            "name": "diag",
+            "type": "boolean",
+            "label": "チェックのみ実行する。",
+            "optional": true
+        },
+        {
+            "name": "r",
+            "type": "boolean",
+            "label": "制御文字を無視",
+            "optional": true
+        },
+        {
+            "name": "assert_nullout",
+            "type": "boolean",
+            "label": "出力項目の NULL 値チェックを行う",
+            "optional": true
+        },
+        {
+            "name": "nfn",
+            "type": "boolean",
+            "label": "入力データの 1 行目を項目名行とみなさない。",
+            "optional": true
+        },
+        {
+            "name": "nfno",
+            "type": "boolean",
+            "label": "出力データに項目名行を出力しない。",
+            "optional": true
+        },
+        {
+            "name": "x",
+            "type": "boolean",
+            "label": "項目番号による指定",
+            "optional": true
+        },
+        {
+            "name": "q",
+            "type": "boolean",
+            "label": "自動並べ替えの無効化",
+            "optional": true
+        },
+        {
+            "name": "tmpPath",
+            "type": "string",
+            "label": "作業ファイル格納パス名",
+            "optional": true
+        }
+    ],
+    "ports": [
+        [
+            {
+                "name": "i",
+                "label": "入力ファイル",
+                "type": "frame"
+            }
+        ],
+        [
+            {
+                "name": "o",
+                "type": "frame"
+            }
+        ]
+    ],
+    "version": "0.7.0",
+    "label": "CSV検査",
+    "classification": "validation",
+    "description": "./static/pdf/mcmd/validation/mchkcsv.pdf"
+}

@@ -1,0 +1,123 @@
+{
+    "id": "msim",
+    "params": [
+        {
+            "name": "c",
+            "type": "string",
+            "label": "類似度（距離）名リスト"
+        },
+        {
+            "name": "f",
+            "type": "string",
+            "label": "二列間の類似度を求める列名(必須)"
+        },
+        {
+            "name": "a",
+            "type": "string",
+            "label": "二変数の名前の指定",
+            "optional": true
+        },
+        {
+            "name": "k",
+            "type": "string",
+            "label": "単位とする列名",
+            "optional": true
+        },
+        {
+            "name": "n",
+            "type": "string",
+            "label": "Null データの場合は NULL にするフラグ",
+            "optional": true
+        },
+        {
+            "name": "d",
+            "type": "boolean",
+            "label": "対角行列、上三角行列を出力する。",
+            "optional": true
+        },
+        {
+            "name": "bufcount",
+            "type": "string",
+            "label": "バッファの数",
+            "optional": true
+        },
+        {
+            "name": "assert_diffSize",
+            "type": "boolean",
+            "label": "入力、出力件数比較を行う",
+            "optional": true
+        },
+        {
+            "name": "assert_nullkey",
+            "type": "boolean",
+            "label": "キー項目にNULL値が含まれているかどうかのチェックを行う",
+            "optional": true
+        },
+        {
+            "name": "assert_nullin",
+            "type": "boolean",
+            "label": "入力項目のf=またはvf=で指定された項目のNULL値チェックを行う",
+            "optional": true
+        },
+        {
+            "name": "assert_nullout",
+            "type": "boolean",
+            "label": "出力項目のNULL値チェックを行う",
+            "optional": true
+        },
+        {
+            "name": "nfn",
+            "type": "boolean",
+            "label": "入力データの1行目を項目名行とみなさない。",
+            "optional": true
+        },
+        {
+            "name": "nfno",
+            "type": "boolean",
+            "label": "出力データに項目名行を出力しない。",
+            "optional": true
+        },
+        {
+            "name": "x",
+            "type": "boolean",
+            "label": "項目番号による指定",
+            "optional": true
+        },
+        {
+            "name": "q",
+            "type": "boolean",
+            "label": "自動並べ替えの無効化",
+            "optional": true
+        },
+        {
+            "name": "tmpPath",
+            "type": "string",
+            "label": "作業ファイル格納パス名",
+            "optional": true
+        },
+        {
+            "name": "precision",
+            "type": "string",
+            "label": "有効桁数",
+            "optional": true
+        }
+    ],
+    "ports": [
+        [
+            {
+                "name": "i",
+                "type": "frame"
+            }
+        ],
+        [
+            {
+                "name": "o",
+                "type": "frame"
+            }
+        ]
+    ],
+    "version": "0.7.0",
+    "label": "二変数間の類似度の計算",
+    "classification": "table_grouping",
+    "description": "./static/pdf/mcmd/table_grouping/msim.pdf"
+}

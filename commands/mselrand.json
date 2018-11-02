@@ -1,0 +1,97 @@
+{
+    "id": "mselrand",
+    "params": [
+        {
+            "name": "c",
+            "type": "string",
+            "label": "各キーの値毎に選択する行数(pとどちらか必須)"
+        },
+        {
+            "name": "p",
+            "type": "string",
+            "label": "各キーを選択する割合をパーセンテージで指定(cとどちらか必須)"
+        },
+        {
+            "name": "k",
+            "type": "string",
+            "label": "選択単位となるキー列",
+            "optional": true
+        },
+        {
+            "name": "S",
+            "type": "string",
+            "label": "乱数の種",
+            "optional": true
+        },
+        {
+            "name": "B",
+            "type": "boolean",
+            "label": "キー単位選択",
+            "optional": true
+        },
+        {
+            "name": "assert_diffSize",
+            "type": "boolean",
+            "label": "入力、出力件数比較を行う",
+            "optional": true
+        },
+        {
+            "name": "assert_nullkey",
+            "type": "boolean",
+            "label": "キー項目にNULL値が含まれているかどうかのチェックを行う",
+            "optional": true
+        },
+        {
+            "name": "nfn",
+            "type": "boolean",
+            "label": "入力データの1行目を項目名行とみなさない。",
+            "optional": true
+        },
+        {
+            "name": "nfno",
+            "type": "boolean",
+            "label": "出力データに項目名行を出力しない。",
+            "optional": true
+        },
+        {
+            "name": "x",
+            "type": "boolean",
+            "label": "項目番号による指定",
+            "optional": true
+        },
+        {
+            "name": "q",
+            "type": "boolean",
+            "label": "自動並べ替えの無効化",
+            "optional": true
+        },
+        {
+            "name": "tmpPath",
+            "type": "string",
+            "label": "作業ファイル格納パス名",
+            "optional": true
+        }
+    ],
+    "ports": [
+        [
+            {
+                "name": "i",
+                "type": "frame"
+            }
+        ],
+        [
+            {
+                "name": "o",
+                "type": "frame"
+            },
+            {
+                "name": "u",
+                "type": "frame"
+            }
+        ]
+    ],
+    "version": "0.7.0",
+    "label": "ランダムな行選択",
+    "classification": "row_edit",
+    "description": "./static/pdf/mcmd/row_edit/mselrand.pdf"
+}

@@ -1,0 +1,75 @@
+{
+    "id": "msplit",
+    "params": [
+        {
+            "name": "f",
+            "type": "string",
+            "label": "対象列名"
+        },
+        {
+            "name": "a",
+            "type": "string",
+            "label": "新項目名"
+        },
+        {
+            "name": "r",
+            "type": "boolean",
+            "label": "f=で指定した項目を取り除く",
+            "optional": true
+        },
+        {
+            "name": "delim",
+            "type": "string",
+            "label": "新しい区切り文字",
+            "optional": true
+        },
+        {
+            "name": "nfn",
+            "type": "boolean",
+            "label": "入力データの1行目を項目名行とみなさない。",
+            "optional": true
+        },
+        {
+            "name": "nfno",
+            "type": "boolean",
+            "label": "出力データに項目名行を出力しない。",
+            "optional": true
+        },
+        {
+            "name": "x",
+            "type": "boolean",
+            "label": "項目番号による指定",
+            "optional": true
+        },
+        {
+            "name": "q",
+            "type": "boolean",
+            "label": "自動並べ替えの無効化",
+            "optional": true
+        },
+        {
+            "name": "tmpPath",
+            "type": "string",
+            "label": "作業ファイル格納パス名",
+            "optional": true
+        }
+    ],
+    "ports": [
+        [
+            {
+                "name": "i",
+                "type": "frame"
+            }
+        ],
+        [
+            {
+                "name": "o",
+                "type": "frame"
+            }
+        ]
+    ],
+    "version": "0.7.0",
+    "label": "区切り文字による項目分割",
+    "classification": "col_edit",
+    "description": "./static/pdf/mcmd/col_edit/msplit.pdf"
+}

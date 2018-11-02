@@ -1,0 +1,115 @@
+{
+    "id": "mselnum",
+    "params": [
+        {
+            "name": "f",
+            "type": "string",
+            "label": "検索列名(必須)"
+        },
+        {
+            "name": "c",
+            "type": "string",
+            "label": "検索文字列(必須)"
+        },
+        {
+            "name": "k",
+            "type": "string",
+            "label": "選択単位となるキー列名",
+            "optional": true
+        },
+        {
+            "name": "F",
+            "type": "boolean",
+            "label": "f=パラメータで複数項目を指定した場合、その全ての値がマッチする行を撰択する。",
+            "optional": true
+        },
+        {
+            "name": "r",
+            "type": "boolean",
+            "label": "選択ではなく削除する。",
+            "optional": true
+        },
+        {
+            "name": "R",
+            "type": "boolean",
+            "label": "k=パラメータを指定した場合、その全ての行がマッチすれば行を撰択する。",
+            "optional": true
+        },
+        {
+            "name": "bufcount",
+            "type": "string",
+            "label": "バッファの数",
+            "optional": true
+        },
+        {
+            "name": "assert_diffSize",
+            "type": "boolean",
+            "label": "入力、出力件数比較を行う",
+            "optional": true
+        },
+        {
+            "name": "assert_nullkey",
+            "type": "boolean",
+            "label": "キー項目にNULL値が含まれているかどうかのチェックを行う",
+            "optional": true
+        },
+        {
+            "name": "assert_nullin",
+            "type": "boolean",
+            "label": "入力項目のf=またはvf=で指定された項目のNULL値チェックを行う",
+            "optional": true
+        },
+        {
+            "name": "nfn",
+            "type": "boolean",
+            "label": "入力データの1行目を項目名行とみなさない。",
+            "optional": true
+        },
+        {
+            "name": "nfno",
+            "type": "boolean",
+            "label": "出力データに項目名行を出力しない。",
+            "optional": true
+        },
+        {
+            "name": "x",
+            "type": "boolean",
+            "label": "項目番号による指定",
+            "optional": true
+        },
+        {
+            "name": "q",
+            "type": "boolean",
+            "label": "自動並べ替えの無効化",
+            "optional": true
+        },
+        {
+            "name": "tmpPath",
+            "type": "string",
+            "label": "作業ファイル格納パス名",
+            "optional": true
+        }
+    ],
+    "ports": [
+        [
+            {
+                "name": "i",
+                "type": "frame"
+            }
+        ],
+        [
+            {
+                "name": "o",
+                "type": "frame"
+            },
+            {
+                "name": "u",
+                "type": "frame"
+            }
+        ]
+    ],
+    "version": "0.7.0",
+    "label": "数値範囲による行選択",
+    "classification": "row_edit",
+    "description": "./static/pdf/mcmd/row_edit/mselnum.pdf"
+}
