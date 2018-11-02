@@ -1,0 +1,123 @@
+{
+    "id": "mbucket",
+    "params": [
+        {
+            "name": "f",
+            "type": "string",
+            "label": "対象列名(必須)"
+        },
+        {
+            "name": "n",
+            "type": "string",
+            "label": "行数(必須)"
+        },
+        {
+            "name": "rng",
+            "type": "boolean",
+            "label": "バケットの範囲均等指定",
+            "optional": true
+        },
+        {
+            "name": "r",
+            "type": "boolean",
+            "label": "バケットの番号を逆順に出力",
+            "optional": true
+        },
+        {
+            "name": "F",
+            "type": "string",
+            "label": "出力形式",
+            "optional": true
+        },
+        {
+            "name": "k",
+            "type": "string",
+            "label": "バケット分割を行う単位となる列名",
+            "optional": true
+        },
+        {
+            "name": "O",
+            "type": "string",
+            "label": "バケット範囲出力ファイル",
+            "optional": true
+        },
+        {
+            "name": "bufcount",
+            "type": "string",
+            "label": "バッファの数",
+            "optional": true
+        },
+        {
+            "name": "assert_diffSize",
+            "type": "boolean",
+            "label": "入力、出力件数比較を行う",
+            "optional": true
+        },
+        {
+            "name": "assert_nullkey",
+            "type": "boolean",
+            "label": "キー項目に NULL 値が含まれているかどうかのチェックを行う",
+            "optional": true
+        },
+        {
+            "name": "assert_nullout",
+            "type": "boolean",
+            "label": "出力項目の NULL 値チェックを行う",
+            "optional": true
+        },
+        {
+            "name": "nfn",
+            "type": "boolean",
+            "label": "入力データの 1 行目を項目名行とみなさない。",
+            "optional": true
+        },
+        {
+            "name": "nfno",
+            "type": "boolean",
+            "label": "出力データに項目名行を出力しない。",
+            "optional": true
+        },
+        {
+            "name": "x",
+            "type": "boolean",
+            "label": "項目番号による指定",
+            "optional": true
+        },
+        {
+            "name": "q",
+            "type": "boolean",
+            "label": "自動並べ替えの無効化",
+            "optional": true
+        },
+        {
+            "name": "tmpPath",
+            "type": "string",
+            "label": "作業ファイル格納パス名",
+            "optional": true
+        },
+        {
+            "name": "precision",
+            "type": "string",
+            "label": "有効桁数",
+            "optional": true
+        }
+    ],
+    "ports": [
+        [
+            {
+                "name": "i",
+                "type": "frame"
+            }
+        ],
+        [
+            {
+                "name": "o",
+                "type": "frame"
+            }
+        ]
+    ],
+    "version": "0.7.0",
+    "label": "行分割",
+    "classification": "table_split",
+    "description": "./static/pdf/mcmd/table_split/mbucket.pdf"
+}

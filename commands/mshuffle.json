@@ -1,0 +1,75 @@
+{
+    "id": "mshuffle",
+    "params": [
+        {
+            "name": "n",
+            "type": "string",
+            "label": "分割ファイル数(vとどちらか必須)",
+            "optional": true
+        },
+        {
+            "name": "v",
+            "type": "string",
+            "label": "分割するファイルごとのデータ量の重み(nとどちらか必須)"
+        },
+        {
+            "name": "d",
+            "type": "string",
+            "label": "出力ファイル名の接頭辞(必須)"
+        },
+        {
+            "name": "f",
+            "type": "string",
+            "label": "キー指定",
+            "optional": true
+        },
+        {
+            "name": "nfn",
+            "type": "boolean",
+            "label": "入力データの1行目を項目名行とみなさない。",
+            "optional": true
+        },
+        {
+            "name": "nfno",
+            "type": "boolean",
+            "label": "出力データに項目名行を出力しない。",
+            "optional": true
+        },
+        {
+            "name": "x",
+            "type": "boolean",
+            "label": "項目番号による指定",
+            "optional": true
+        },
+        {
+            "name": "q",
+            "type": "boolean",
+            "label": "自動並べ替えの無効化",
+            "optional": true
+        },
+        {
+            "name": "tmpPath",
+            "type": "string",
+            "label": "作業ファイル格納パス名",
+            "optional": true
+        }
+    ],
+    "ports": [
+        [
+            {
+                "name": "i",
+                "type": "frame"
+            }
+        ],
+        [
+            {
+                "name": "o",
+                "type": "frame"
+            }
+        ]
+    ],
+    "version": "0.7.0",
+    "label": "レコード分割(mshuffle)",
+    "classification": "table_split",
+    "description": "./static/pdf/mcmd/table_split/mshuffle.pdf"
+}

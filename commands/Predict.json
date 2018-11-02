@@ -1,0 +1,33 @@
+{
+    "version": "0.7.0",
+    "id": "predict",
+    "label": "推定",
+    "classification": "postprocess",
+    "description": "Predict",
+    "ports": [
+        [
+            {
+                "name": "i",
+                "type": "frame"
+            },
+            {
+                "name": "d",
+                "type": "string",
+                "label": "test_data"
+            }
+        ],
+        [
+            {
+                "name": "o",
+                "type": "frame"
+            }
+        ]
+    ],
+    "params": [
+        {
+            "name": "p",
+            "type": "string",
+            "label": "set probability on"
+        }
+    ]
+}

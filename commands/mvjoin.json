@@ -1,0 +1,108 @@
+{
+    "id": "mvjoin",
+    "params": [
+        {
+            "name": "vf",
+            "type": "string",
+            "label": "結合キーとなるベクトル列名(必須)"
+        },
+        {
+            "name": "K",
+            "type": "string",
+            "label": "参照ファイル上の結合キーとなるベクトル要素の列名(必須)"
+        },
+        {
+            "name": "f",
+            "type": "string",
+            "label": "結合ベクトル列名(必須)"
+        },
+        {
+            "name": "A",
+            "type": "boolean",
+            "label": "vf=で:(コロン) に続けて指定した項目名で、新たな項目が追加される。",
+            "optional": true
+        },
+        {
+            "name": "n",
+            "type": "string",
+            "label": "vf=とk=がマッチしなかった場合に結合する文字列",
+            "optional": true
+        },
+        {
+            "name": "delim",
+            "type": "string",
+            "label": "ベクトル要素の区切り文字を指定",
+            "optional": true
+        },
+        {
+            "name": "assert_diffSize",
+            "type": "boolean",
+            "label": "入力、出力件数比較を行う",
+            "optional": true
+        },
+        {
+            "name": "assert_nullin",
+            "type": "boolean",
+            "label": "入力項目のf=またはvf=で指定された項目のNULL値チェックを行う",
+            "optional": true
+        },
+        {
+            "name": "assert_nullout",
+            "type": "boolean",
+            "label": "出力項目のNULL値チェックを行う",
+            "optional": true
+        },
+        {
+            "name": "nfn",
+            "type": "boolean",
+            "label": "入力データの1行目を項目名行とみなさない。",
+            "optional": true
+        },
+        {
+            "name": "nfno",
+            "type": "boolean",
+            "label": "出力データに項目名行を出力しない。",
+            "optional": true
+        },
+        {
+            "name": "x",
+            "type": "boolean",
+            "label": "項目番号による指定",
+            "optional": true
+        },
+        {
+            "name": "q",
+            "type": "boolean",
+            "label": "自動並べ替えの無効化",
+            "optional": true
+        },
+        {
+            "name": "tmpPath",
+            "type": "string",
+            "label": "作業ファイル格納パス名",
+            "optional": true
+        }
+    ],
+    "ports": [
+        [
+            {
+                "name": "i",
+                "type": "frame"
+            },
+            {
+                "name": "m",
+                "type": "frame"
+            }
+        ],
+        [
+            {
+                "name": "o",
+                "type": "frame"
+            }
+        ]
+    ],
+    "version": "0.7.0",
+    "label": "ベクトル要素の参照結合",
+    "classification": "table_join",
+    "description": "./static/pdf/mcmd/table_join/mvjoin.pdf"
+}
