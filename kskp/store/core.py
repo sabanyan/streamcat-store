@@ -23,6 +23,9 @@ class Port:
         self.name = name
         self.type = port_type
 
+    def __repr__(self):
+        return f'<Port({self.name})>'
+
 class Parameter:
     """
     パラメータ定義1つを表す
