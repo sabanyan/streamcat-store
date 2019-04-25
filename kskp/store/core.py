@@ -1,4 +1,4 @@
-
+from kskp.core import Command
 
 class Store:
     pass
