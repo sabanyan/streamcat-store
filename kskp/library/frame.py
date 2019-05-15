@@ -1,7 +1,8 @@
 from .datum import Datum
-from . import db
 import os
 import json
+
+from . import session
 
 class Frame(Datum):
     
@@ -26,7 +27,7 @@ class Frame(Datum):
         """
         指定されたuuidを持つFrameを取得する
         """
-        datum = db.session.query(Datum).filter(Datum.uuid==uuid)\
+        datum = session.query(Datum).filter(Datum.uuid==uuid)\
                                        .filter(Datum.type==Datum.FRAME_TYPE).one_or_none()
         if datum is None:
             # FIXIT : fetch_frame()の現在の実装ではデータの無い場合はエラーにしていない為
@@ -39,7 +40,7 @@ class Frame(Datum):
         """
         指定されたuuidを持つFrameが存在する場合はTrueを返す
         """
-        result = db.session.query(Datum).filter(Datum.uuid==uuid)\
+        result = session.query(Datum).filter(Datum.uuid==uuid)\
                                         .filter(Datum.type==Datum.FRAME_TYPE).count()
         return result > 0
 
@@ -71,13 +72,13 @@ class Frame(Datum):
             # 親フォルダの存在を確認する
 
             # Dataテーブルにレコードを新規追加する
-            db.session.add(self)
+            session.add(self)
         except Exception as e:
-            db.session.rollback()
+            session.rollback()
             raise e
         finally:
             # 親フォルダのロックを解除する
-            db.session.commit()
+            session.commit()
 
     def add_entry_from_path(self, file_path):
         """
@@ -89,12 +90,12 @@ class Frame(Datum):
         self.path = file_path
         try:
             # Dataテーブルにレコードを新規追加する
-            db.session.add(self)
+            session.add(self)
         except Exception as e:
-            db.session.rollback()
+            session.rollback()
             raise e
         finally:
-            db.session.commit()
+            session.commit()
 
     @staticmethod
     def update_data(uuid, label, modifier):
@@ -102,7 +103,7 @@ class Frame(Datum):
         Frameのdata列を更新する
         """
         # レコードを取得する
-        datum = db.session.query(Datum).filter(Datum.uuid==uuid)\
+        datum = session.query(Datum).filter(Datum.uuid==uuid)\
                                        .filter(Datum.type==Datum.FRAME_TYPE).one_or_none()
         if datum is None:
             raise Exception('no frame is found by designated id.')
@@ -114,19 +115,19 @@ class Frame(Datum):
         
         try:
             # 同じファイルに対応するドキュメントのpath列を、ファイル名の移動に合わせて変更する
-            db.session.query(Datum).filter(Datum.path==old_path).update({'path'       :new_path,
+            session.query(Datum).filter(Datum.path==old_path).update({'path'       :new_path,
                                                                          'modifier'   :modifier,
                                                                          'modified_at':Datum.get_current_time_str()})
             # レコードを更新する
             data = json.dumps({'label' : label})
-            db.session.query(Datum).filter(Datum.uuid==uuid).update({'data'       :data,
+            session.query(Datum).filter(Datum.uuid==uuid).update({'data'       :data,
                                                                      'modifier'   :modifier,
                                                                      'modified_at':Datum.get_current_time_str()})
         except Exception as e:
-            db.session.rollback()
+            session.rollback()
             raise e
         finally:
-            db.session.commit()
+            session.commit()
 
         return Frame.convert_to_frame(datum)
     
@@ -136,15 +137,15 @@ class Frame(Datum):
         """
         try:
             # フレームレコードを削除する
-            db.session.query(Datum).filter(Datum.id==self.id)\
+            session.query(Datum).filter(Datum.id==self.id)\
                                    .filter(Datum.type==Datum.FRAME_TYPE).delete()
             # ファイルを削除する
             self._remove_file() 
         except Exception as e:
-            db.session.rollback()
+            session.rollback()
             raise e
         finally:
-            db.session.commit()
+            session.commit()
 
     def remove_reference_only(self):
         """
@@ -153,13 +154,13 @@ class Frame(Datum):
         """
         try:
             # フレームレコードを削除する
-            db.session.query(Datum).filter(Datum.id==self.id)\
+            session.query(Datum).filter(Datum.id==self.id)\
                                    .filter(Datum.type==Datum.FRAME_TYPE).delete()
         except Exception as e:
-            db.session.rollback()
+            session.rollback()
             raise e
         finally:
-            db.session.commit()
+            session.commit()
 
     def _make_file(self):
         """
