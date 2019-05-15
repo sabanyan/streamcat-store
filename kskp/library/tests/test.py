@@ -11,11 +11,11 @@ from kskp.library.from_engine.core import Folder, Frame, Cache
 class LibraryTest(unittest.TestCase):
 
     def test_save_and_load(self):
-        frame_file_path = Path('kskp/library/tests/' + str(uuid.uuid4()))
+        frame_file_path = Path('kskp/data/library/' + str(uuid.uuid4()))
         self.save(frame_file_path)
         new_frame = Library.save_frame(FRAME_FOLDER_UUID, 'テストフレーム', frame_file_path)
         saved_frame = Library.load_frame(new_frame.uuid)
-        saved_frame.delete()
+        Library.delete_frame(saved_frame.uuid)
 
     def test_Folder_save(self):
         folder = Folder(Path('kskp/data/library'))
@@ -31,13 +31,13 @@ class LibraryTest(unittest.TestCase):
     def test_Frame(self):
         frame = Frame()
         frame.set_uuid = str(uuid.uuid4())
-        frame.set_cache_info = {'dir_path':'kskp/library/tests/'}
+        frame.set_cache_info = {'dir_path':'kskp/data/library/'}
         frame.save()
         
     def test_Cache(self):
         cache = Cache()
         cache.set_uuid = str(uuid.uuid4())
-        cache.set_cache_info = {'dir_path':'kskp/library/tests/'}
+        cache.set_cache_info = {'dir_path':'kskp/data/library/'}
         cache.save()
         
     def save(self, file_path):

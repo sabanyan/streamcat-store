@@ -1,8 +1,9 @@
 from .datum import Datum
-from . import db
 import os
 import re
 import json
+
+from . import session
 
 class Folder(Datum):
 
@@ -20,7 +21,7 @@ class Folder(Datum):
         """
         指定されたuuidを持つFolderを取得する
         """
-        datum = db.session.query(Datum).filter(Datum.uuid==uuid)\
+        datum = session.query(Datum).filter(Datum.uuid==uuid)\
                                        .filter(Datum.type==Datum.FOLDER_TYPE).one_or_none()
         if datum is None:
             raise Exception('no folder is found by designated id.')
@@ -31,7 +32,7 @@ class Folder(Datum):
         """
         指定されたuuidを持つFolderが存在する場合はTrueを返す
         """
-        result = db.session.query(Datum).filter(Datum.uuid==uuid)\
+        result = session.query(Datum).filter(Datum.uuid==uuid)\
                                          .filter(Datum.type==Datum.FOLDER_TYPE).count()
         return result > 0
 
@@ -59,12 +60,12 @@ class Folder(Datum):
         self.path = path
         try:
             # Dataテーブルにレコードを新規追加する
-            db.session.add(self)
+            session.add(self)
         except Exception as e:
-            db.session.rollback()
+            session.rollback()
             raise e
         finally:
-            db.session.commit()
+            session.commit()
 
     @staticmethod
     def update_data(uuid, label, modifier):
@@ -72,7 +73,7 @@ class Folder(Datum):
         Folderのdata列を更新する
         """
         # レコードを取得する
-        datum = db.session.query(Datum).filter(Datum.uuid==uuid)\
+        datum = session.query(Datum).filter(Datum.uuid==uuid)\
                                        .filter(Datum.type==Datum.FOLDER_TYPE).one_or_none()
         if datum is None:
             raise Exception('no folder is found by designated id.')
@@ -84,24 +85,24 @@ class Folder(Datum):
 
         try:
             # 同じディレクトリに対応するフォルダのpath列を、ディレクトリ名の移動に合わせて変更する
-            db.session.query(Datum).filter(Datum.path==old_path).update({'path': new_path})
+            session.query(Datum).filter(Datum.path==old_path).update({'path': new_path})
             # 同じディレクトリを含むpath列を、ディレクトリの移動に合わせて変更する
-            results = db.session.query(Datum.id, Datum.path).filter(Datum.path.like(old_path+'/%')).all()
+            results = session.query(Datum.id, Datum.path).filter(Datum.path.like(old_path+'/%')).all()
             for result in results:
                 replaced_path = re.sub('^'+old_path, new_path, result.path)
-                db.session.query(Datum).filter(Datum.id==result.id).update({'path'       :replaced_path
+                session.query(Datum).filter(Datum.id==result.id).update({'path'       :replaced_path
                                                                           , 'modifier'   :modifier
                                                                           , 'modified_at':Datum.get_current_time_str()})
             # レコードを更新する
             data = json.dumps({'label' : label})
-            db.session.query(Datum).filter(Datum.uuid==uuid).update({'data'       :data
+            session.query(Datum).filter(Datum.uuid==uuid).update({'data'       :data
                                                                    , 'modifier'   :modifier
                                                                    , 'modified_at':Datum.get_current_time_str()})
         except Exception as e:
-            db.session.rollback()
+            session.rollback()
             raise e
         finally:
-            db.session.commit()
+            session.commit()
 
         return Folder.convert_to_folder(datum)
 
@@ -114,22 +115,22 @@ class Folder(Datum):
             raise Exception('Can not delete folder that has child file or folder.')
         try:
             # フォルダレコードを削除する
-            db.session.query(Datum).filter(Datum.id==self.id)\
+            session.query(Datum).filter(Datum.id==self.id)\
                                    .filter(Datum.type==Datum.FOLDER_TYPE).delete()
             # ディレクトリを削除する
             self._remove_dir()
         except Exception as e:
-            db.session.rollback()
+            session.rollback()
             raise e
         finally:
-            db.session.commit()
+            session.commit()
 
     def get_folder_path(self):
         """
         現在のフォルダ階層パスをリスト型で返す(APIのFolderPath属性の作成で用いる)
         """
         # 指定されたUUIDのfolerレコードを取得する
-        result = db.session.query(Datum.uuid, Datum.parent_id, Datum.data)\
+        result = session.query(Datum.uuid, Datum.parent_id, Datum.data)\
                            .filter(Datum.uuid==self.uuid)\
                            .filter(Datum.type==Datum.FOLDER_TYPE).one_or_none()
 
@@ -137,7 +138,7 @@ class Folder(Datum):
         path_to_root = [{'uuid':result.uuid, 'label':json.loads(result.data, encoding='utf-8')['label']}]
         # 取得したレコードから外部キー’parent_id’をたどり、途中のfolderレコードをリストに順に保存する
         while parent_id != None:
-            result = db.session.query(Datum.uuid, Datum.parent_id, Datum.data).filter(Datum.id==parent_id).one_or_none()
+            result = session.query(Datum.uuid, Datum.parent_id, Datum.data).filter(Datum.id==parent_id).one_or_none()
             path_to_root.append({'uuid':result.uuid, 'label':json.loads(result.data, encoding='utf-8')['label']})
             parent_id = result.parent_id
         # 保存したリストの並びを逆にする
@@ -180,7 +181,7 @@ class Folder(Datum):
 
     @staticmethod
     def _dir_path_exists(dir_path, except_id):
-        results = db.session.query(Datum.path).filter(Datum.path.like(dir_path + '%'))\
+        results = session.query(Datum.path).filter(Datum.path.like(dir_path + '%'))\
                                               .filter(Datum.id != except_id).all()
         for result in results:
             if result.path == dir_path:

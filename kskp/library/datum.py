@@ -3,26 +3,27 @@ import uuid
 import random
 import platform
 import datetime
-from . import db
+from . import BaseModel, session
 from pathlib import Path
 from sqlalchemy.orm import aliased
+from sqlalchemy import Column, Integer, String, text
 
-class Datum(db.Model):
+class Datum(BaseModel):
     
     # テーブル名の定義
     __tablename__ = 'data'
 
     # 列名と列のデータ型等の定義
-    id          = db.Column(db.String, primary_key=True)
-    parent_id   = db.Column(db.String)
-    uuid        = db.Column(db.String, nullable=False, unique=True)
-    path        = db.Column(db.String, nullable=False)
-    type        = db.Column(db.String, nullable=False)
-    data        = db.Column(db.String, nullable=False)
-    creator     = db.Column(db.Integer)
-    modifier    = db.Column(db.Integer)
-    created_at  = db.Column(db.String, default=db.text('CURRENT_TIMESTAMP'))
-    modified_at = db.Column(db.String, default=db.text('CURRENT_TIMESTAMP'))
+    id          = Column(String, primary_key=True)
+    parent_id   = Column(String)
+    uuid        = Column(String, nullable=False, unique=True)
+    path        = Column(String, nullable=False)
+    type        = Column(String, nullable=False)
+    data        = Column(String, nullable=False)
+    creator     = Column(Integer)
+    modifier    = Column(Integer)
+    created_at  = Column(String, default=text('CURRENT_TIMESTAMP'))
+    modified_at = Column(String, default=text('CURRENT_TIMESTAMP'))
 
     MAX_DATUM_ID = 9000000000000000000
     DEFAULT_LIBRARY_PATH = 'kskp/data/library'
@@ -40,7 +41,7 @@ class Datum(db.Model):
         if parent_uuid is None:
             parent = None
         else:
-            parent = db.session.query(Datum.id, Datum.path)\
+            parent = session.query(Datum.id, Datum.path)\
                                .filter(Datum.uuid==parent_uuid).one_or_none()
             if parent is None:
                 raise Exception('No parent folder is found!')
@@ -82,7 +83,7 @@ class Datum(db.Model):
         """
         親を持たないfolderレコードを全て取得する
         """
-        roots = db.session.query(Datum).filter(Datum.parent_id == None).all()
+        roots = session.query(Datum).filter(Datum.parent_id == None).all()
 
         if len(roots) == 0 :
             # ルートフォルダがない場合はNoneを返す
@@ -94,7 +95,7 @@ class Datum(db.Model):
 
     @staticmethod
     def count_root():
-        return db.session.query(Datum).filter(Datum.parent_id == None).count()
+        return session.query(Datum).filter(Datum.parent_id == None).count()
 
     @staticmethod
     def find_by_parent_uuid(parent_uuid):
@@ -102,8 +103,8 @@ class Datum(db.Model):
         指定されたuuidの親をもつDatumレコードを全て取得する
         """
         f2 = aliased(Datum)
-        sub_query = db.session.query(f2)
-        datum = db.session.query(Datum) \
+        sub_query = session.query(f2)
+        datum = session.query(Datum) \
                           .filter(sub_query.filter(f2.id==Datum.parent_id)
                                            .filter(f2.uuid==parent_uuid).exists()).all()
         return datum
@@ -128,11 +129,11 @@ class Datum(db.Model):
 
     # @staticmethod
     # def lock():
-    #     db.session.execute("PRAGMA main.locking_mode = EXCLUSIVE")
+    #     session.execute("PRAGMA main.locking_mode = EXCLUSIVE")
 
     # @staticmethod
     # def unlock():
-    #     db.session.execute("PRAGMA main.locking_mode = NORMAL")
+    #     session.execute("PRAGMA main.locking_mode = NORMAL")
 
     @staticmethod
     def escape_filename(filename):
@@ -184,7 +185,7 @@ class Datum(db.Model):
     
     @staticmethod
     def get_uuid_by_id(id):
-        result = db.session.query(Datum.uuid).filter(Datum.id==id).one_or_none()
+        result = session.query(Datum.uuid).filter(Datum.id==id).one_or_none()
         if result is None:
             Exception('No datum is found by designated id')
         else:

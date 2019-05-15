@@ -1,8 +1,10 @@
 # from sqlalchemy.dialects.postgresql import TIMESTAMP, JSONB, ENUM
 import json
-from . import db
 
-class Store(db.Model):
+from sqlalchemy import Column, Integer, String, text
+from . import BaseModel, session
+
+class Store(BaseModel):
     """
     Storeモデル
     """
@@ -11,16 +13,16 @@ class Store(db.Model):
     __tablename__ = 'stores'
     
     # カラム
-    # id          = db.Column(ENUM('Directory', 'PostgreSQL', 'MySql', 'ORACLE', name='server_type') ,primary_key=True)
-    # data        = db.Column(JSONB)
-    # create_at   = db.Column(TIMESTAMP, default=db.text('CURRENT_TIMESTAMP'))
-    # modified_at = db.Column(TIMESTAMP, default=db.text('CURRENT_TIMESTAMP'))
-    id          = db.Column(db.String, primary_key=True)
-    data        = db.Column(db.String)
-    create_at   = db.Column(db.String, default=db.text('CURRENT_TIMESTAMP'))
-    modified_at = db.Column(db.String, default=db.text('CURRENT_TIMESTAMP'))
-    creator     = db.Column(db.Integer)
-    modifier    = db.Column(db.Integer)
+    # id          = Column(ENUM('Directory', 'PostgreSQL', 'MySql', 'ORACLE', name='server_type') ,primary_key=True)
+    # data        = Column(JSONB)
+    # create_at   = Column(TIMESTAMP, default=text('CURRENT_TIMESTAMP'))
+    # modified_at = Column(TIMESTAMP, default=text('CURRENT_TIMESTAMP'))
+    id          = Column(String, primary_key=True)
+    data        = Column(String)
+    create_at   = Column(String, default=text('CURRENT_TIMESTAMP'))
+    modified_at = Column(String, default=text('CURRENT_TIMESTAMP'))
+    creator     = Column(Integer)
+    modifier    = Column(Integer)
 
     def __init__(self, id=None, data=None, creator=None):
         self.id = id
@@ -39,7 +41,7 @@ class Store(db.Model):
 
     @classmethod
     def find_all(cls):
-        results = db.session.query(Store.id,
+        results = session.query(Store.id,
                                    Store.data,
                                    Store.create_at,
                                    Store.modified_at,
@@ -49,7 +51,7 @@ class Store(db.Model):
 
     @classmethod
     def find_by_id(cls, id):
-        result = db.session.query(Store.id,
+        result = session.query(Store.id,
                                   Store.data,
                                   Store.create_at,
                                   Store.modified_at,
@@ -60,12 +62,12 @@ class Store(db.Model):
         return Store(result.id, result.data, result.creator)
 
     def save(self):
-        db.session.add(self)
-        db.session.commit()
+        session.add(self)
+        session.commit()
 
     def delete(self):
-        db.session.query(Store).filter(Store.id==self.id).delete()
-        db.session.commit()
+        session.query(Store).filter(Store.id==self.id).delete()
+        session.commit()
 
     def __str__(self):
         return self.id
