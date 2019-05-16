@@ -1,3 +1,4 @@
+import os
 import unittest
 import json
 import uuid
@@ -5,7 +6,10 @@ import pprint
 
 from pathlib import Path
 
-from kskp.library import Library, FRAME_FOLDER_UUID, CACHE_FOLDER_LABEL
+# from kskp.library import Library, FRAME_FOLDER_UUID, CACHE_FOLDER_LABEL
+# from kskp.library.from_engine.core import Folder, Frame, Cache
+
+from kskp.store import Library, FRAME_FOLDER_UUID, CACHE_FOLDER_LABEL
 from kskp.library.from_engine.core import Folder, Frame, Cache
 
 class LibraryTest(unittest.TestCase):
@@ -43,3 +47,57 @@ class LibraryTest(unittest.TestCase):
     def save(self, file_path):
         with open(file_path, "w") as f:
             f.write("AAAA")
+
+
+    # def test_get_root(self):
+    #     """
+    #     ルートフォルダを取得する
+    #     """
+    #     root = Library.load_root()
+    #     self.assertIsNotNone(root.id)
+    #     self.assertIsNotNone(root.parent_id)
+    #     self.assertIsNotNone(root.uuid)
+    #     self.assertIsNotNone(root.path)
+    #     self.assertEqual(root.type, 'folder')
+    #     self.assertIsNotNone(root.label, 'ROOT_FOLDER')
+    #     self.assertIsNotNone(root.creator)
+    #     self.assertIsNotNone(root.modifier)
+    #     self.assertIsNotNone(root.created_at)
+    #     self.assertIsNotNone(root.modified_at)
+        
+    # def test_get_folder(self):
+    #     root = Library.load_root()
+
+    #     folder = Library.load_folder(root.uuid)
+
+    #     self.assertIsNotNone(folder.id)
+    #     self.assertIsNotNone(folder.parent_id)
+    #     self.assertIsNotNone(folder.uuid)
+    #     self.assertIsNotNone(folder.path)
+    #     self.assertEqual(folder.type, 'folder')
+    #     self.assertIsNotNone(folder.label, 'ROOT_FOLDER')
+    #     self.assertIsNotNone(folder.creator)
+    #     self.assertIsNotNone(folder.modifier)
+    #     self.assertIsNotNone(folder.created_at)
+    #     self.assertIsNotNone(folder.modified_at)
+
+    # def test_get_no_folder(self):
+    #     with self.asser
+
+    # def test_save_folder(self):
+    #     root = Library.load_root()
+
+    #     folder = Library.save_folder(root.uuid, 'フォルダ')
+
+    #     self.assertIsNotNone(folder.id)
+    #     self.assertIsNotNone(folder.parent_id)
+    #     self.assertIsNotNone(folder.uuid)
+    #     self.assertEqual(folder.path, os.path.join(root.path, folder.label))
+    #     self.assertEqual(folder.type, 'folder')
+    #     self.assertIsNotNone(folder.label, 'フォルダ')
+    #     self.assertIsNotNone(folder.creator)
+    #     self.assertIsNotNone(folder.modifier)
+    #     self.assertIsNotNone(folder.created_at)
+    #     self.assertIsNotNone(folder.modified_at)
+
+    

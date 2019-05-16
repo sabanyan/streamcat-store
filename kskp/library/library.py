@@ -12,16 +12,15 @@ class Library:
     @staticmethod
     def save_frame(parent_uuid, label, path, creator=None, modifier=None):
         """
-        フレームを保存する
+        フレームを追加する
 
         parent_uuid : 親フォルダのUUID
         label       : ラベル名
         path        : フレームファイルのパス
         戻り値       : Frameオブジェクト
-        """
-        # フレームを格納するフォルダがなければ作成する
-        Library._init_library_folders()
 
+        Fix it : add_frameに改名した方が良いか？
+        """
         new_frame = Frame(parent_uuid,
                           label,
                           None,
@@ -32,6 +31,20 @@ class Library:
         return new_frame
 
     @staticmethod
+    def save2_frame(parent_uuid, label, stream, creator=None, modifier=None):
+        """
+        フレームを作成する
+        """
+        new_frame = Frame(parent_uuid,
+                          label,
+                          stream,
+                          creator,
+                          modifier)
+        # documentレコードをDBに格納する
+        new_frame.save()
+        return new_frame
+
+    @staticmethod
     def load_frame(frame_uuid):
         """
         フレームを取得する
@@ -39,10 +52,14 @@ class Library:
         frame_uuid : フレームのUUID
         戻り値      : Frameオブジェクト
         """
-        # フレームを格納するフォルダがなければ作成する
-        Library._init_library_folders()
-
         return Frame.find_by_uuid(frame_uuid)
+
+    @staticmethod
+    def update_frame_data(frame_uuid, label, modifier):
+        """
+        フレームのラベル名を変更する
+        """
+        return Frame.update_data(frame_uuid, label, modifier)
 
     @staticmethod
     def delete_frame(frame_uuid):
@@ -52,15 +69,55 @@ class Library:
         frame_uuid : フレームのUUID
         戻り値      : なし
         """
-        # フレームを格納するフォルダがなければ作成する
-        Library._init_library_folders()
-
         frame = Frame.find_by_uuid(frame_uuid)
         if frame is None:
             raise Exception('no frame exists.')
 
         # フレームを削除する
         frame.delete()
+
+    @staticmethod
+    def load_root():
+        """
+        ルートデータストアを取得する
+        """
+        return Library._convert_type(Datum.find_root())
+
+    @staticmethod
+    def load_folder(folder_uuid):
+        """
+        フォルダを取得する
+        """
+        return Folder.find_by_uuid(folder_uuid)
+
+    @staticmethod
+    def update_folder_data(folder_uuid, label, modifier):
+        """
+        フォルダのラベル名を変更する
+        """
+        return Folder.update_data(folder_uuid, label, modifier)
+
+    @staticmethod
+    def save_folder(parent_uuid, label, creator=None, modifier=None):
+        """
+        フォルダを作成する
+        """
+        new_folder = Folder(parent_uuid,
+                            label,
+                            creator,
+                            modifier)
+        new_folder.save()
+        return new_folder
+
+    @staticmethod
+    def delete_folder(folder_uuid):
+        """
+        フォルダを削除する
+        """
+        folder = Folder.find_by_uuid(folder_uuid)
+        folder.delete()
+
+    
 
     @staticmethod
     def _init_library_folders():
