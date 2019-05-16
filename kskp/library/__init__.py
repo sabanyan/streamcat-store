@@ -44,6 +44,9 @@ BaseModel.metadata.create_all(bind=engine, checkfirst=True)
 
 # from sqlalchemy.dialects.postgresql import TIMESTAMP, UUID, JSONB, ENUM
 
+# フレームを格納するフォルダがなければ作成する
+Library._init_library_folders()
+
 
 
 # # 最初にアクセスが発生した時にのみ実行される
