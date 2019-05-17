@@ -1,82 +1,88 @@
-# from sqlalchemy.dialects.postgresql import TIMESTAMP, JSONB, ENUM
-import json
+import uuid
 
-from sqlalchemy import Column, Integer, String, text
-from . import BaseModel, session
+from kskp.core import Datum
 
-class Store(BaseModel):
+# 
+# StoreはFolderとFrameStoreが継承している
+# そのうちFolderについては、キャッシュと結果データは決め打ちのUUIDの指定でLibrary.save_frame()で保存できないか
+# また、それ以外のフォルダがエンジン側で必要な場合は、Library.save_folder()で任意に作成できる
+# -> Libraryに移管できないか？
+#  
+# TODO: kskp-data-storeに移す
+class Store(Datum):
     """
-    Storeモデル
+    できたdatumを入れておく場所
     """
+    def __init__(self):
+        super().__init__()
+        self.data = {} # dict keyはUUID、valはdatum？
 
-    # テーブル名
-    __tablename__ = 'stores'
-    
-    # カラム
-    # id          = Column(ENUM('Directory', 'PostgreSQL', 'MySql', 'ORACLE', name='server_type') ,primary_key=True)
-    # data        = Column(JSONB)
-    # create_at   = Column(TIMESTAMP, default=text('CURRENT_TIMESTAMP'))
-    # modified_at = Column(TIMESTAMP, default=text('CURRENT_TIMESTAMP'))
-    id          = Column(String, primary_key=True)
-    data        = Column(String)
-    create_at   = Column(String, default=text('CURRENT_TIMESTAMP'))
-    modified_at = Column(String, default=text('CURRENT_TIMESTAMP'))
-    creator     = Column(Integer)
-    modifier    = Column(Integer)
+    def issue_uuid(self):
+        """
+        uuidを発行する
+        """
+        new_uuid = str(uuid.uuid4())
+        self.data[new_uuid] = None
+        return new_uuid
 
-    def __init__(self, id=None, data=None, creator=None):
-        self.id = id
-        self.data = data
-        self.creator = creator
-        self.modifier = creator
+    def set_datum(self, datum, uuid):
+        """
+        指定したuuidとdatumを対応づけて保存しておく
+        """
+        if self.data[uuid] is None:
+            self.data[uuid] = datum
+        else:
+            # 上書きするか、Falseを返すかどうしよう？
+            pass
 
-    @classmethod
-    def create(cls, id, version=None, label=None, description=None, url=None, params=None, creator=None):
-        data = json.dumps({'version'    : version,
-                           'label'      : label,
-                           'description': description,
-                           'url'        : url,
-                           'params'     : params})
-        return Store(id, data, creator)
+        return True
 
-    @classmethod
-    def find_all(cls):
-        results = session.query(Store.id,
-                                   Store.data,
-                                   Store.create_at,
-                                   Store.modified_at,
-                                   Store.creator,
-                                   Store.modifier).all()
-        return [Store(result.id, result.data, result.creator) for result in results]
+    def save(self, datum):
+        """
+        override用
+        """
+        pass
 
-    @classmethod
-    def find_by_id(cls, id):
-        result = session.query(Store.id,
-                                  Store.data,
-                                  Store.create_at,
-                                  Store.modified_at,
-                                  Store.creator,
-                                  Store.modifier).filter(Store.id==id).one_or_none()
-        if result is None:
-            raise Exception('No store is found by designated store id')
-        return Store(result.id, result.data, result.creator)
+    def load(self, uuid):
+        """
+        override用
+        """
+        pass
+
+# 
+# FrameStoreはFrameとCacheの保存に用いているので
+# FrameStoreを消滅させて、Library.save_frame()にその機能を移管できないか？
+# 
+class FrameStore(Store):
+    """
+    Frameを置いておくStore
+    """
+    def __init__(self):
+        super().__init__()
+        self.datum_list = []
 
     def save(self):
-        session.add(self)
-        session.commit()
+        for cache in self.datum_list:
+            cache.save()
 
-    def delete(self):
-        session.query(Store).filter(Store.id==self.id).delete()
-        session.commit()
+    def append(self, cache_point):
+        self.datum_list.append(cache_point)
 
-    def __str__(self):
-        return self.id
 
-    def to_json(self):
-        return {'id'          : self.id,
-                'version'     : json.loads(self.data)['version'],
-                'label'       : json.loads(self.data)['label'],
-                'description' : json.loads(self.data)['description'],
-                'url'         : json.loads(self.data)['url'],
-                'params'      : json.loads(self.data)['params']
-                }
+class NysolModule(Datum):
+    """
+    NysolModule1をラップするクラス
+    """
+    def __init__(self):
+        super().__init__()
+        self._content = None
+
+    def set_uuid(self, uuid):
+        self.uuid = uuid
+
+    def set_content(self, module):
+        self._content = module
+
+    @property
+    def content(self):
+        return self._content
