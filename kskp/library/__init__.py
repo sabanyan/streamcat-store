@@ -32,7 +32,10 @@ from sqlalchemy.orm import sessionmaker
 Session = sessionmaker(bind=engine)
 session = Session()
 
-from .store import Store
+# エンジン側のStoreと名称が衝突しないよう一時的にコメントアウト
+# from .store import Store
+from .store import Store, FrameStore, NysolModule
+
 from .datum import Datum
 from .folder import Folder
 from .frame import Frame
@@ -45,6 +48,8 @@ BaseModel.metadata.create_all(bind=engine, checkfirst=True)
 # from sqlalchemy.dialects.postgresql import TIMESTAMP, UUID, JSONB, ENUM
 
 # フレームを格納するフォルダがなければ作成する
+import pprint
+pprint.pprint('Init library folder')
 Library._init_library_folders()
 
 

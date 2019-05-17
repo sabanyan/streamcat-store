@@ -55,7 +55,7 @@ class Library:
         return Frame.find_by_uuid(frame_uuid)
 
     @staticmethod
-    def update_frame_data(frame_uuid, label, modifier):
+    def update_frame_data(frame_uuid, label, modifier=None):
         """
         フレームのラベル名を変更する
         """
@@ -91,7 +91,7 @@ class Library:
         return Folder.find_by_uuid(folder_uuid)
 
     @staticmethod
-    def update_folder_data(folder_uuid, label, modifier):
+    def update_folder_data(folder_uuid, label, modifier=None):
         """
         フォルダのラベル名を変更する
         """
