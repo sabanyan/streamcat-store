@@ -1,9 +1,12 @@
 # 独自コマンド
 
 import nysol.mcmd as nm
+from pathlib import Path
 
 from kskp.library import NysolModule
 from kskp.core import Command, Port
+
+PCMD_SCRIPT_DIR = Path(__file__).resolve().parent / Path('src')
 
 # ※ sml_modelingコマンドはKコマンドを使う関係上、importで場所を指定している
 #   今はテストで動かしている部分があるため、ローカルで動く様なパス設定をしてある
@@ -21,10 +24,10 @@ class SmlModelingCommand(Command):
         f = None
         f <<= inputs['i']
 
-        args_string = 'kskp/engine/tmp_script_store/sml_modeling.sh'
-        args_string += ' kcmd_path=kskp/engine/commands/kcmd'
-        args_string += ' temp_path=../../tmp_script_store/tmp'
-        args_string += ' model_data_path=../../tmp_script_store/model'
+        args_string = '.src/sml_modeling.sh'
+        args_string += ' kcmd_path=../kcmd/src'
+        args_string += ' temp_path=.tmp'
+        args_string += ' model_data_path=.model'
 
         for key,value in args.items():
             if isinstance(value, bool):
@@ -52,7 +55,8 @@ class ColumnlistCommand(Command):
         f = None
         f <<= inputs['i']
 
-        args_string = 'kskp/engine/tmp_script_store/column_list.sh'
+        args_string = (PCMD_SCRIPT_DIR / 'column_list.sh').as_posix()
+
         for key,value in args.items():
             if isinstance(value, bool):
                 if value == True:
@@ -79,7 +83,8 @@ class GroupbyCommand(Command):
         f = None
         f <<= inputs['i']
 
-        args_string = 'kskp/engine/tmp_script_store/groupby.sh'
+        args_string = (PCMD_SCRIPT_DIR / 'groupby.sh').as_posix()
+
         for key,value in args.items():
             if isinstance(value, bool):
                 if value == True:
@@ -106,7 +111,8 @@ class ColumnUniqueNameCommand(Command):
         f = None
         f <<= inputs['i']
 
-        args_string = 'kskp/engine/tmp_script_store/column_unique_name.sh'
+        args_string = (PCMD_SCRIPT_DIR / 'column_unique_name.sh').as_posix()
+
         for key,value in args.items():
             if isinstance(value, bool):
                 if value == True:
@@ -133,7 +139,8 @@ class ColumnNameCommand(Command):
         f = None
         f <<= inputs['i']
 
-        args_string = 'kskp/engine/tmp_script_store/column_name.sh'
+        args_string = (PCMD_SCRIPT_DIR / 'column_name.sh').as_posix()
+
         for key,value in args.items():
             if isinstance(value, bool):
                 if value == True:
