@@ -238,7 +238,8 @@ done
 #==========================================================
 readonly default_metrics_regresion="mae,mse"           # 回帰のデフォルト精度評価指標
 readonly default_metrics_classification="accuracy"     # 分類の 〃
-tmp_input_file="/Users/ygt1qa/dev/KSKP/kskp-flow-engine/_tmp_stdin_"   # 標準入力のファイル出力名
+SCRIPT_DIR=$(cd $(dirname $0)/..; pwd)
+tmp_input_file="${SCRIPT_DIR}/tmp/_tmp_stdin_"   # 標準入力のファイル出力名
 input_file_header=""
 
 # 標準入力のファイル化
