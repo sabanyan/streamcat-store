@@ -19,11 +19,12 @@ class CommandLink:
         from kskp.engine.tests.test_main import Square
 
         table = {
+            # テスト用コマンド
             'square': Square(),
+            # mコマンド
             'mcut': McutCommand(),
             'mselstr': MselstrCommand(),
             "mjoin": MjoinCommand(),
-            "store": SaverCommand(),
             "mtee": MteeCommand(),
             "mcat": McatCommand(),
             "msetstr": MsetstrCommand(),
@@ -35,16 +36,21 @@ class CommandLink:
             "m2cross": M2crossCommand(),
             "mcal": McalCommand(),
             "mchkcsv": MchkcsvCommand(),
-            "column_list": ColumnlistCommand(),
             "mdformat": MdformatCommand(),
             "mshare": MshareCommand(),
             "mchgnum": MchgnumCommand(),
-            "groupby": GroupbyCommand(),
             "mfldname": MfldnameCommand(),
             "mcount": McountCommand(),
+            # 独自コマンド
+            "column_list": ColumnlistCommand(),
+            "groupby": GroupbyCommand(),
             "column_unique_name": ColumnUniqueNameCommand(),
             "column_name": ColumnNameCommand(),
-            "sml_modeling": SmlModelingCommand()
+            "sml_modeling": SmlModelingCommand(),
+            # Storeコマンド
+            "saver": SaverCommand(),
+            "cachesaver": CacheSaverCommand(),
+            "loader": LoaderCommand()
         }
 
         if runnable_id not in table:
