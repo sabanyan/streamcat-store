@@ -1,5 +1,6 @@
-# from .core import *
-# from .default import *
+from .core import *
+from .default import *
+from .links import CommandLink
 
 from kskp.library import (
     Library,
@@ -14,9 +15,3 @@ from kskp.library import (
     FrameStore,
     NysolModule
 )
-
-# from kskp.library.from_engine import (
-#     Store,
-#     FrameStore,
-#     NysolModule
-# )
