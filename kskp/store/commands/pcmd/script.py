@@ -52,9 +52,6 @@ class PCommand(Command):
 
 
 class SmlModelingCommand(PCommand):
-    """
-    独自コマンドのsml_modelingコマンド
-    """
     def __init__(self):
         super().__init__()
 
@@ -70,10 +67,7 @@ class SmlModelingCommand(PCommand):
 
         return {'o': self.module(f, args_string)}
 
-class ColumnlistCommand(PCommand):
-    """
-    独自コマンドのColumnlistコマンド
-    """
+class ColumnListCommand(PCommand):
     def __init__(self):
         super().__init__()
 
@@ -86,10 +80,7 @@ class ColumnlistCommand(PCommand):
 
         return {'o': self.module(f, args_string)}
 
-class GroupbyCommand(PCommand):
-    """
-    独自コマンドのGroupbyコマンド
-    """
+class ColumnGroupingNameCommand(PCommand):
     def __init__(self):
         super().__init__()
 
@@ -97,15 +88,40 @@ class GroupbyCommand(PCommand):
         f = None
         f <<= inputs['i']
 
-        args_string = (PCMD_DIR / 'src/groupby.sh').as_posix()
+        args_string = (PCMD_DIR / 'src/column_grouping_name.sh').as_posix()
+        args_string += self.command_args(args)
+
+        return {'o': self.module(f, args_string)}
+
+
+class ColumnBlankNameCommand(PCommand):
+    def __init__(self):
+        super().__init__()
+
+    def run(self, args, inputs):
+        f = None
+        f <<= inputs['i']
+
+        args_string = (PCMD_DIR / 'src/column_blank_name.sh').as_posix()
+        args_string += self.command_args(args)
+
+        return {'o': self.module(f, args_string)}
+
+
+class ColumnsToRowsCommand(PCommand):
+    def __init__(self):
+        super().__init__()
+
+    def run(self, args, inputs):
+        f = None
+        f <<= inputs['i']
+
+        args_string = (PCMD_DIR / 'src/columns_to_rows.sh').as_posix()
         args_string += self.command_args(args)
 
         return {'o': self.module(f, args_string)}
 
 class ColumnUniqueNameCommand(PCommand):
-    """
-    独自コマンドのcolumn_unique_nameコマンド
-    """
     def __init__(self):
         super().__init__()
 
@@ -119,9 +135,6 @@ class ColumnUniqueNameCommand(PCommand):
         return {'o': self.module(f, args_string)}
 
 class ColumnNameCommand(PCommand):
-    """
-    独自コマンドのcolumn_nameコマンド
-    """
     def __init__(self):
         super().__init__()
 
@@ -130,6 +143,101 @@ class ColumnNameCommand(PCommand):
         f <<= inputs['i']
 
         args_string = (PCMD_DIR / 'src/column_name.sh').as_posix()
+        args_string += self.command_args(args)
+
+        return {'o': self.module(f, args_string)}
+
+class GroupbyColumnsCommand(PCommand):
+    def __init__(self):
+        super().__init__()
+
+    def run(self, args, inputs):
+        f = None
+        f <<= inputs['i']
+
+        args_string = (PCMD_DIR / 'src/groupby_columns.sh').as_posix()
+        args_string += self.command_args(args)
+
+        return {'o': self.module(f, args_string)}
+
+class GroupbyCommand(PCommand):
+    def __init__(self):
+        super().__init__()
+
+    def run(self, args, inputs):
+        f = None
+        f <<= inputs['i']
+
+        args_string = (PCMD_DIR / 'src/groupby.sh').as_posix()
+        args_string += self.command_args(args)
+
+        return {'o': self.module(f, args_string)}
+
+class CheckDuplicateRowsCommand(PCommand):
+    def __init__(self):
+        super().__init__()
+
+    def run(self, args, inputs):
+        f = None
+        f <<= inputs['i']
+
+        args_string = (PCMD_DIR / 'src/check_duplicate_rows.sh').as_posix()
+        args_string += self.command_args(args)
+
+        return {'o': self.module(f, args_string)}
+
+
+class MergeFSCommand(PCommand):
+    def __init__(self):
+        super().__init__()
+
+    def run(self, args, inputs):
+        f = None
+        f <<= inputs['i']
+
+        args_string = (PCMD_DIR / 'src/merge_FS.sh').as_posix()
+        args_string += self.command_args(args)
+
+        return {'o': self.module(f, args_string)}
+
+
+class MergeIbutsuCommand(PCommand):
+    def __init__(self):
+        super().__init__()
+
+    def run(self, args, inputs):
+        f = None
+        f <<= inputs['i']
+
+        args_string = (PCMD_DIR / 'src/merge_ibutsu.sh').as_posix()
+        args_string += self.command_args(args)
+
+        return {'o': self.module(f, args_string)}
+
+
+class WinCp932ReadCommand(PCommand):
+    def __init__(self):
+        super().__init__()
+
+    def run(self, args, inputs):
+        f = None
+        f <<= inputs['i']
+
+        args_string = (PCMD_DIR / 'src/windows_cp932_csv_read.sh').as_posix()
+        args_string += self.command_args(args)
+
+        return {'o': self.module(f, args_string)}
+
+
+class Utf8ToCp932Command(PCommand):
+    def __init__(self):
+        super().__init__()
+
+    def run(self, args, inputs):
+        f = None
+        f <<= inputs['i']
+
+        args_string = (PCMD_DIR / 'src/utf8_to_cp932.sh').as_posix()
         args_string += self.command_args(args)
 
         return {'o': self.module(f, args_string)}
