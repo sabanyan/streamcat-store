@@ -8,6 +8,10 @@ from pathlib import Path
 from sqlalchemy.orm import aliased
 from sqlalchemy import Column, Integer, String, text
 
+# 
+# DatumModelに名称変更したい
+# あと、Datumを継承した方が良いか？
+# 
 class Datum(BaseModel):
     
     # テーブル名の定義

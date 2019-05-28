@@ -25,7 +25,7 @@ class Library:
                           label,
                           None,
                           creator,
-                          modifier)
+                          creator)
         # documentレコードをDBに格納する
         new_frame.add_entry_from_path(path.as_posix())
         return new_frame
@@ -39,7 +39,7 @@ class Library:
                           label,
                           stream,
                           creator,
-                          modifier)
+                          creator)
         # documentレコードをDBに格納する
         new_frame.save()
         return new_frame
@@ -105,7 +105,7 @@ class Library:
         new_folder = Folder(parent_uuid,
                             label,
                             creator,
-                            modifier)
+                            creator)
         new_folder.save()
         return new_folder
 

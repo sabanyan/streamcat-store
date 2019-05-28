@@ -5,6 +5,9 @@ import json
 
 from . import session
 
+# 
+# ライブラリ側のDatumからの継承をやめて、Core側のDatum継承に変更したい
+# 
 class Folder(Datum):
 
     def __init__(self, parent_uuid, label, creator=None, modifier=None):
@@ -116,7 +119,7 @@ class Folder(Datum):
         try:
             # フォルダレコードを削除する
             session.query(Datum).filter(Datum.id==self.id)\
-                                   .filter(Datum.type==Datum.FOLDER_TYPE).delete()
+                                .filter(Datum.type==Datum.FOLDER_TYPE).delete()
             # ディレクトリを削除する
             self._remove_dir()
         except Exception as e:

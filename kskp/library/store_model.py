@@ -4,6 +4,9 @@ import json
 from sqlalchemy import Column, Integer, String, text
 from . import BaseModel, session
 
+# 
+# StoreModelにクラス名を変更したい
+# 
 class Store(BaseModel):
     """
     Storeモデル

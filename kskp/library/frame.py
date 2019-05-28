@@ -4,6 +4,9 @@ import json
 
 from . import session
 
+# 
+# ライブラリ側のDatumからの継承をやめて、Core側のDatum継承に変更したい
+# 
 class Frame(Datum):
     
     # 64MB
@@ -138,7 +141,7 @@ class Frame(Datum):
         try:
             # フレームレコードを削除する
             session.query(Datum).filter(Datum.id==self.id)\
-                                   .filter(Datum.type==Datum.FRAME_TYPE).delete()
+                                .filter(Datum.type==Datum.FRAME_TYPE).delete()
             # ファイルを削除する
             self._remove_file() 
         except Exception as e:
@@ -184,11 +187,16 @@ class Frame(Datum):
         Frameに対応するファイルを削除する
         """
         try:
-            if os.path.exists(self.path):
-                if not os.path.isfile(self.path):
-                    raise Exception('Can not delete %s, because it is not reguler file.' % self.path)
-                # ファイルを物理削除する
-                os.remove(self.path)
+            # ファイルが存在しなければ削除処理はしない
+            if not os.path.exists(self.path):
+                return
+            # 自分以外で同じファイルを使用しているFrameがあれば削除しない
+            if Frame._frame_path_exists(self.path, except_id=self.id):
+                return
+            if not os.path.isfile(self.path):
+                raise Exception('Can not delete %s, because it is not reguler file.' % self.path)
+            # ファイルを物理削除する
+            os.remove(self.path)
         except PermissionError as e:
             # ファイルに対する権限がない場合
             raise e
@@ -200,6 +208,13 @@ class Frame(Datum):
                 f.write(buff)
                 if buff is None or len(buff)==0:
                     break
+
+    @staticmethod
+    def _frame_path_exists(path, except_id):
+        result = session.query(Datum.path).filter(Datum.path == path)\
+                                          .filter(Datum.type == Datum.FRAME_TYPE)\
+                                          .filter(Datum.id != except_id).count()
+        return result > 0
 
     def to_json(self):
         return {'uuid'      : self.uuid,
