@@ -1,0 +1,49 @@
+{
+  "version": "0.7.0",
+  "id": "kkmeans",
+  "label": "k-means法によるクラスタ分析",
+  "classification": "clustering",
+  "description": "各データにランダムなクラスタを割り振り、それぞれの重心をとり、各データのクラスタを自身から一番近い重心に割り振ることを繰り返す。",
+  "ports": [
+    [
+      {
+        "name": "i",
+        "type": "frame"
+      }
+    ],
+    [
+      {
+        "name": "o",
+        "type": "frame"
+      }
+    ]
+  ],
+  "params": [
+    {
+      "name": "n_clusters",
+      "type": "string",
+      "label": "クラスタ数（デフォルト：8）"
+    },
+    {
+      "name": "n_init",
+      "type": "string",
+      "label": "初期値選択において、初期の重心を異なる乱数シードを用いて選ぶ回数（デフォルト：10）"
+    },
+    {
+      "name": "max_iter",
+      "type": "string",
+      "label": "アルゴリズムの繰り返しの最大回数（デフォルト：300）"
+    },
+    {
+      "name": "precompute_distances",
+      "type": "string",
+      "label": "距離をあらかじめ計算する（高速ですが、メモリを大量に使用します）（デフォルト：auto）"
+    },
+    {
+      "name": "tol",
+      "type": "string",
+      "label": "学習の収束を判定するための基準値（デフォルト：1e-4）"
+    }
+  ],
+  "url": ""
+}

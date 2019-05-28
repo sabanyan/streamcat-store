@@ -1,0 +1,59 @@
+{
+  "version": "0.7.0",
+  "id": "ckgb",
+  "label": "勾配ブースティングによる分類",
+  "classification": "classification",
+  "description": "複数の弱い分類器を生成、残渣誤差にフィットするように修正することを繰り返して強い分類器を作り、その分類器を用いて分類を行う。",
+  "ports": [
+    [
+      {
+        "name": "i",
+        "type": "frame"
+      }
+    ],
+    [
+      {
+        "name": "o",
+        "type": "frame"
+      }
+    ]
+  ],
+  "params": [
+    {
+      "name": "l",
+      "type": "string",
+      "label": "各ノードに必要なサンプル数の下限（デフォルト：1）"
+    },
+    {
+      "name": "min_samples_split",
+      "type": "string",
+      "label": "一定数以上のサンプルを持つノードを分割する、その基準値（デフォルト：2）"
+    },
+    {
+      "name": "d",
+      "type": "string",
+      "label": "木の深さの最大値（デフォルト：3）"
+    },
+    {
+      "name": "c",
+      "type": "string",
+      "label": "データの分割基準（デフォルト：friedman_mse）"
+    },
+    {
+      "name": "r",
+      "type": "string",
+      "label": "乱数のシード値"
+    },
+    {
+      "name": "n_estimators",
+      "type": "string",
+      "label": "弱い学習器の数（デフォルト：100）"
+    },
+    {
+      "name": "loss",
+      "type": "string",
+      "label": "損失関数（デフォルト：deviance）"
+    }
+  ],
+  "url": ""
+}

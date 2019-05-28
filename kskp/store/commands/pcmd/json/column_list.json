@@ -1,0 +1,39 @@
+{
+  "version": "0.7.0",
+  "id": "column_list",
+  "label": "項目名リストの取得",
+  "classification": "col_edit",
+  "description": "ヘッダー行と先頭の1行 を縦型に変形したリストを出力する",
+  "ports": [
+    [
+      {
+        "name": "i",
+        "type": "frame"
+      }
+    ],
+    [
+      {
+        "name": "o",
+        "type": "frame"
+      }
+    ]
+  ],
+  "params": [
+    {
+      "name": "n",
+      "type": "string",
+      "label": "出力したいデータの行数を指定する。最大100行まで出力可能、デフォルトは0件で先頭行のみ。100行以上を指定した場合、100行までを出力"
+    },
+    {
+      "name": "no",
+      "type": "boolean",
+      "label": "出力データの先頭列に連番を出力する"
+    },
+    {
+      "name": "-nfno",
+      "type": "boolean",
+      "label": "出力データの項目名行を出力しない(No Field Names for Outputの略)"
+    }
+  ],
+  "url": ""
+}

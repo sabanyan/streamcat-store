@@ -1,0 +1,29 @@
+{
+  "version": "0.7.0",
+  "id": "kgaussianNb",
+  "label": "ナイーブベイズによる分類",
+  "classification": "classification",
+  "description": "データが与えられた時のすべての推定の確率を計算し、最も確率の高いのもを推定結果として出力する。",
+  "ports": [
+    [
+      {
+        "name": "i",
+        "type": "frame"
+      }
+    ],
+    [
+      {
+        "name": "o",
+        "type": "frame"
+      }
+    ]
+  ],
+  "params": [
+    {
+      "name": "priors",
+      "type": "string",
+      "label": "事前確率"
+    }
+  ],
+  "url": ""
+}

@@ -1,0 +1,76 @@
+{
+  "id": "mfldname",
+  "params": [
+    {
+      "name": "f",
+      "type": "string",
+      "label": "旧項目→新項目へ変更する列名（旧項目名:旧項目名）"
+    },
+    {
+      "name": "n",
+      "type": "string",
+      "label": "新項目名置換（データ項目数と同じ数の項目名を指定する必要がある）"
+    },
+    {
+      "name": "nfni",
+      "type": "boolean",
+      "label": "入力データの1行目を項目名行とみなさない。このオプションが指定された場合は f=は利用できない。",
+      "optional": true
+    },
+    {
+      "name": "assert_diffSize",
+      "type": "boolean",
+      "label": "入力、出力件数比較を行う",
+      "optional": true
+    },
+    {
+      "name": "nfn",
+      "type": "boolean",
+      "label": "入力データの 1 行目を項目名行とみなさない。",
+      "optional": true
+    },
+    {
+      "name": "nfno",
+      "type": "boolean",
+      "label": "出力データに項目名行を出力しない。",
+      "optional": true
+    },
+    {
+      "name": "x",
+      "type": "boolean",
+      "label": "項目番号による指定",
+      "optional": true
+    },
+    {
+      "name": "q",
+      "type": "boolean",
+      "label": "自動並べ替えの無効化",
+      "optional": true
+    },
+    {
+      "name": "tmpPath",
+      "type": "string",
+      "label": "作業ファイル格納パス名",
+      "optional": true
+    }
+  ],
+  "ports": [
+    [
+      {
+        "name": "i",
+        "type": "frame"
+      }
+    ],
+    [
+      {
+        "name": "o",
+        "type": "frame"
+      }
+    ]
+  ],
+  "version": "0.7.0",
+  "label": "列名の変更",
+  "classification": "col_edit",
+  "description": "",
+  "url": "./static/pdf/mcmd/col_edit/mfldname.pdf"
+}

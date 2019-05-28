@@ -1,0 +1,39 @@
+{
+  "version": "0.7.0",
+  "id": "columns_to_rows",
+  "label": "列項目の行展開",
+  "classification": "col_edit",
+  "description": "f=で指定した複数の列項目に対して、各項目の行を連結した新たな項目をa=で指定した名前で作成する",
+  "ports": [
+    [
+      {
+        "name": "i",
+        "type": "frame"
+      }
+    ],
+    [
+      {
+        "name": "o",
+        "type": "frame"
+      }
+    ]
+  ],
+  "params": [
+    {
+      "name": "f",
+      "type": "string",
+      "label": "複数の列項目を、カンマ区切りで指定する"
+    },
+    {
+      "name": "a",
+      "type": "string",
+      "label": "1つの新規項目名を指定する"
+    },
+    {
+      "name": "k",
+      "type": "string",
+      "label": "入力項目よりf=指定以外の項目を出力に含めたい場合に、カンマ区切りで指定する"
+    }
+  ],
+  "url": ""
+}

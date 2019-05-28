@@ -1,0 +1,43 @@
+{
+  "version": "0.7.0",
+  "id": "merge_FS",
+  "label": "不整CSVファイルのクレンジングと集約",
+  "classification": "import",
+  "description": "リストとして与えられたCSVファイル中のレコードの行末に元ファイル名を追加し、1つのファイルに集約して出力する。",
+  "ports": [[
+      {
+        "name": "i",
+        "type": "frame"
+      }
+    ],
+    [
+      {
+        "name": "o",
+        "type": "frame"
+      }
+    ]
+  ],
+  "params": [
+    {
+      "name": "f",
+      "type": "string",
+      "label": "対象となるファイルのパスが、改行区切りで書かれたテキストファイル"
+    },
+    {
+      "name": "p",
+      "type": "string",
+      "label": "作業ファイル格納パス名"
+    },
+    {
+      "name": "e",
+      "type": "string",
+      "label": "列数が不適正と判断されたレコードを集約したファイル名"
+    },
+    {
+      "name": "s",
+      "type": "string",
+      "label": "適正な列数を判断すために参照するレコード数"
+    }
+  ],
+  "url": ""
+}

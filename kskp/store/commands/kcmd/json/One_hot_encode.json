@@ -1,0 +1,29 @@
+{
+  "version": "0.7.0",
+  "id": "one_hot_encode",
+  "label": "One_hot_encode",
+  "classification": "preprocess",
+  "description": "データをワンホット表現に変換する。",
+  "ports": [
+    [
+      {
+        "name": "i",
+        "type": "frame"
+      }
+    ],
+    [
+      {
+        "name": "o",
+        "type": "frame"
+      }
+    ]
+  ],
+  "params": [
+    {
+      "name": "c",
+      "type": "string",
+      "label": "標準化を行う行を選択"
+    }
+  ],
+  "url": ""
+}

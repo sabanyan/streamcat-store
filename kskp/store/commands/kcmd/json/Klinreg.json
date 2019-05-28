@@ -1,0 +1,29 @@
+{
+  "version": "0.7.0",
+  "id": "klinreg",
+  "label": "線形回帰",
+  "classification": "regression",
+  "description": "データの相関に沿う（残差が最小）線形関数を求め、それを用いて回帰分析を行う。",
+  "ports": [
+    [
+      {
+        "name": "i",
+        "type": "frame"
+      }
+    ],
+    [
+      {
+        "name": "o",
+        "type": "frame"
+      }
+    ]
+  ],
+  "params": [
+    {
+      "name": "normalize",
+      "type": "string",
+      "label": "正規化を行うかどうか（デフォルト」：False）"
+    }
+  ],
+  "url": ""
+}

@@ -1,0 +1,49 @@
+{
+  "version": "0.7.0",
+  "id": "rkdt",
+  "label": "決定木による回帰",
+  "classification": "regression",
+  "description": "データに対していくつもの条件を定義し、その条件分岐に沿って回帰を行う",
+  "ports": [
+    [
+      {
+        "name": "i",
+        "type": "frame"
+      }
+    ],
+    [
+      {
+        "name": "o",
+        "type": "frame"
+      }
+    ]
+  ],
+  "params": [
+    {
+      "name": "l",
+      "type": "string",
+      "label": "各ノードに必要なサンプル数の下限（デフォルト：1）"
+    },
+    {
+      "name": "min_samples_split",
+      "type": "string",
+      "label": "一定数以上のサンプルを持つノードを分割する、その基準値（デフォルト：2）"
+    },
+    {
+      "name": "d",
+      "type": "string",
+      "label": "木の深さの最大値"
+    },
+    {
+      "name": "c",
+      "type": "string",
+      "label": "データの分割基準（デフォルト：gini）"
+    },
+    {
+      "name": "r",
+      "type": "string",
+      "label": "乱数のシード値"
+    }
+  ],
+  "url": ""
+}
