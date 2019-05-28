@@ -1,0 +1,34 @@
+{
+  "version": "0.7.0",
+  "id": "windows_cp932_csv_read",
+  "label": "Windowsファイル読込(Shift-JIS拡張)",
+  "classification": "import",
+  "description": "Windowsファイル（Shift-JIS拡張 CP932）を、サーバ上のローカルファイルより読込む。",
+  "ports": [
+    [
+      {
+        "name": "i",
+        "type": "frame"
+      }
+    ],
+    [
+      {
+        "name": "o",
+        "type": "frame"
+      }
+    ]
+  ],
+  "params": [
+    {
+      "name": "f",
+      "type": "string",
+      "label": "入力ファイル名を指定する。"
+    },
+    {
+      "name": "p",
+      "type": "string",
+      "label": "入力ファイル名のサーバのローカルパス名を指定する"
+    }
+  ],
+  "url": ""
+}

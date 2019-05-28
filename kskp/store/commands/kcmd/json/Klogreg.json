@@ -1,0 +1,54 @@
+{
+  "version": "0.7.0",
+  "id": "klogreg",
+  "label": "ロジスティック回帰",
+  "classification": "classification",
+  "description": "複数の因子の組み合わせ、その度合いからロジスティック関数を作成、ある現象について発生確率を出す。",
+  "ports": [
+    [
+      {
+        "name": "i",
+        "type": "frame"
+      }
+    ],
+    [
+      {
+        "name": "o",
+        "type": "frame"
+      }
+    ]
+  ],
+  "params": [
+    {
+      "name": "C",
+      "type": "string",
+      "label": "正則化強度の逆数（デフォルト：1）"
+    },
+    {
+      "name": "p",
+      "type": "string",
+      "label": "正則化を行う地点（デフォルト：l2）"
+    },
+    {
+      "name": "b",
+      "type": "string",
+      "label": "バイアスをかけるかどうか（デフォルト：True）"
+    },
+    {
+      "name": "r",
+      "type": "string",
+      "label": "乱数のシード値"
+    },
+    {
+      "name": "tol",
+      "type": "string",
+      "label": "学習の収束を判定するための基準値（デフォルト：1e-4）"
+    },
+    {
+      "name": "c",
+      "type": "string",
+      "label": "クラスに対する重み"
+    }
+  ],
+  "url": ""
+}

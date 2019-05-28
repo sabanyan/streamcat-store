@@ -8,19 +8,57 @@ from kskp.core import Command, Port
 
 PCMD_DIR = Path(__file__).resolve().parent
 
-# ※ sml_modelingコマンドはKコマンドを使う関係上、importで場所を指定している
-#   今はテストで動かしている部分があるため、ローカルで動く様なパス設定をしてある
-class SmlModelingCommand(Command):
+class PCommand(Command):
     """
-    独自コマンドのsml_modelingコマンド
+    独自コマンドのスーパークラス
+    TODO: そういえばいつから独自コマンドはpcmdに。。。？
     """
     def __init__(self):
         super().__init__()
         self.i_ports = [Port('i', 'frame')]
         self.o_ports = [Port('o', 'mcmd')]
 
-    def run(self, args, inputs):
+    def command_args(self, args):
+        """
+        nm.cmdで実行可能なargsに変換（文字列にして並べる）
+        """
+        args_string = ''
+        for key, value in args.items():
+            if isinstance(value, bool):
+                if value == True:
+                    args_string +=  ' -' + key
+            else:
+                args_string += ' %s=%s' % (key, value)
+
+        return args_string
+
+    def module(self, flow_obj, args):
+        """
+        moduleでラップする
+        """
         import nysol.mcmd as nm
+        flow_obj <<= nm.cmd(args)
+
+        nysol_module = NysolModule()
+        nysol_module.set_content(flow_obj)
+
+        return nysol_module
+
+    def run(self, args, inputs):
+        """
+        実際実行(for override)
+        """
+        pass
+
+
+class SmlModelingCommand(PCommand):
+    """
+    独自コマンドのsml_modelingコマンド
+    """
+    def __init__(self):
+        super().__init__()
+
+    def run(self, args, inputs):
         f = None
         f <<= inputs['i']
 
@@ -28,127 +66,70 @@ class SmlModelingCommand(Command):
         args_string += ' kcmd_path=' + (PCMD_DIR.parent / 'kcmd/src').as_posix()
         args_string += ' temp_path=' + (PCMD_DIR / 'tmp').as_posix()
         args_string += ' model_data_path=' + (PCMD_DIR / 'model').as_posix()
+        args_string += self.command_args(args)
 
-        for key,value in args.items():
-            if isinstance(value, bool):
-                if value == True:
-                    args_string +=  ' -' + key
-            else:
-                args_string += ' %s=%s' % (key, value)
+        return {'o': self.module(f, args_string)}
 
-        f <<= nm.cmd(args_string)
-        nysol_module = NysolModule()
-        nysol_module.set_content(f)
-        return {'o': nysol_module}
-
-class ColumnlistCommand(Command):
+class ColumnlistCommand(PCommand):
     """
     独自コマンドのColumnlistコマンド
     """
     def __init__(self):
         super().__init__()
-        self.i_ports = [Port('i', 'frame')]
-        self.o_ports = [Port('o', 'mcmd')]
 
     def run(self, args, inputs):
-        import nysol.mcmd as nm
         f = None
         f <<= inputs['i']
 
         args_string = (PCMD_DIR / 'src/column_list.sh').as_posix()
+        args_string += self.command_args(args)
 
-        for key,value in args.items():
-            if isinstance(value, bool):
-                if value == True:
-                    args_string +=  ' -' + key
-            else:
-                args_string += ' %s=%s' % (key, value)
+        return {'o': self.module(f, args_string)}
 
-        f <<= nm.cmd(args_string)
-        nysol_module = NysolModule()
-        nysol_module.set_content(f)
-        return {'o': nysol_module}
-
-class GroupbyCommand(Command):
+class GroupbyCommand(PCommand):
     """
     独自コマンドのGroupbyコマンド
     """
     def __init__(self):
         super().__init__()
-        self.i_ports = [Port('i', 'frame')]
-        self.o_ports = [Port('o', 'mcmd')]
 
     def run(self, args, inputs):
-        import nysol.mcmd as nm
         f = None
         f <<= inputs['i']
 
         args_string = (PCMD_DIR / 'src/groupby.sh').as_posix()
+        args_string += self.command_args(args)
 
-        for key,value in args.items():
-            if isinstance(value, bool):
-                if value == True:
-                    args_string +=  ' -' + key
-            else:
-                args_string += ' %s=%s' % (key, value)
+        return {'o': self.module(f, args_string)}
 
-        f <<= nm.cmd(args_string)
-        nysol_module = NysolModule()
-        nysol_module.set_content(f)
-        return {'o': nysol_module}
-
-class ColumnUniqueNameCommand(Command):
+class ColumnUniqueNameCommand(PCommand):
     """
     独自コマンドのcolumn_unique_nameコマンド
     """
     def __init__(self):
         super().__init__()
-        self.i_ports = [Port('i', 'frame')]
-        self.o_ports = [Port('o', 'mcmd')]
 
     def run(self, args, inputs):
-        import nysol.mcmd as nm
         f = None
         f <<= inputs['i']
 
         args_string = (PCMD_DIR / 'src/column_unique_name.sh').as_posix()
+        args_string += self.command_args(args)
 
-        for key,value in args.items():
-            if isinstance(value, bool):
-                if value == True:
-                    args_string +=  ' -' + key
-            else:
-                args_string += ' %s=%s' % (key, value)
+        return {'o': self.module(f, args_string)}
 
-        f <<= nm.cmd(args_string)
-        nysol_module = NysolModule()
-        nysol_module.set_content(f)
-        return {'o': nysol_module}
-
-class ColumnNameCommand(Command):
+class ColumnNameCommand(PCommand):
     """
     独自コマンドのcolumn_nameコマンド
     """
     def __init__(self):
         super().__init__()
-        self.i_ports = [Port('i', 'frame')]
-        self.o_ports = [Port('o', 'mcmd')]
 
     def run(self, args, inputs):
-        import nysol.mcmd as nm
         f = None
         f <<= inputs['i']
 
         args_string = (PCMD_DIR / 'src/column_name.sh').as_posix()
+        args_string += self.command_args(args)
 
-        for key,value in args.items():
-            if isinstance(value, bool):
-                if value == True:
-                    args_string +=  ' -' + key
-            else:
-                args_string += ' %s=%s' % (key, value)
-
-        f <<= nm.cmd(args_string)
-        nysol_module = NysolModule()
-        nysol_module.set_content(f)
-        return {'o': nysol_module}
+        return {'o': self.module(f, args_string)}

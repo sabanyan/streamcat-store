@@ -40,8 +40,6 @@ class CacheSaverCommand(SaverCommand):
     """
     def __init__(self):
         super().__init__()
-        self.i_ports = [Port('i', 'frame'), Port('store', 'store')]
-        self.o_ports = [Port('o', 'mcmd')]
 
     def run(self, args, inputs):
         # 1. storeにsaveする(runはしない)

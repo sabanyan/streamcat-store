@@ -1,0 +1,34 @@
+{
+  "version": "0.7.0",
+  "id": "predict",
+  "label": "予測",
+  "classification": "postprocess",
+  "description": "Predict",
+  "ports": [
+    [
+      {
+        "name": "i",
+        "type": "frame"
+      },
+      {
+        "name": "d",
+        "type": "string",
+        "label": "test_data"
+      }
+    ],
+    [
+      {
+        "name": "o",
+        "type": "frame"
+      }
+    ]
+  ],
+  "params": [
+    {
+      "name": "p",
+      "type": "boolean",
+      "label": "それぞれのクラスに属する確率を返すか、属する可能性が最も高いクラスのラベルを返すか（デフォルト：クラスのラベルを返す）、分類のみ有効"
+    }
+  ],
+  "url": ""
+}

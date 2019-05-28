@@ -1,0 +1,29 @@
+{
+  "version": "0.7.0",
+  "id": "label_encode",
+  "label": "Label_encode",
+  "classification": "preprocess",
+  "description": "文字データを離散数値に変換する。",
+  "ports": [
+    [
+      {
+        "name": "i",
+        "type": "frame"
+      }
+    ],
+    [
+      {
+        "name": "o",
+        "type": "frame"
+      }
+    ]
+  ],
+  "params": [
+    {
+      "name": "c",
+      "type": "string",
+      "label": "標準化を行う行を選択"
+    }
+  ],
+  "url": ""
+}

@@ -1,0 +1,49 @@
+{
+  "version": "0.7.0",
+  "id": "column_grouping_name",
+  "label": "グループ化列名",
+  "classification": "col_edit",
+  "description": "項目群に対して、グループに属する項目名に接頭語を付与する。",
+  "ports": [
+    [
+      {
+        "name": "i",
+        "type": "frame"
+      }
+    ],
+    [
+      {
+        "name": "o",
+        "type": "frame"
+      }
+    ]
+  ],
+  "params": [
+    {
+      "name": "f",
+      "type": "string",
+      "label": "項目グループの開始項目名：列グループ名 のリストを、カンマ区切りで指定する(必須)"
+    },
+    {
+      "name": "O",
+      "type": "string",
+      "label": "項目グループの終了項目名リストを、カンマ区切りで指定する。省略時は、次の項目グループの開始項目の前項目を終わりとする"
+    },
+    {
+      "name": "d",
+      "type": "string",
+      "label": "修辞句と元の項目名との区切り文字を指定する。デフォルトは _ 区切り"
+    },
+    {
+      "name": "r",
+      "type": "boolean",
+      "label": "項目グループ名を、接頭語でなく、接尾語として与える"
+    },
+    {
+      "name": "R",
+      "type": "boolean",
+      "label": "項目グループの開始項目へも 修辞句 を付与する"
+    }
+  ],
+  "url": ""
+}

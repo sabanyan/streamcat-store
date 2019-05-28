@@ -1,0 +1,89 @@
+{
+  "id": "mkeybreak",
+  "params": [
+    {
+      "name": "k",
+      "type": "string",
+      "label": "集計キー列名(必須)"
+    },
+    {
+      "name": "s",
+      "type": "string",
+      "label": "並べ替えの後、先端、終端に印をつける列名",
+      "optional": true
+    },
+    {
+      "name": "a",
+      "type": "string",
+      "label": "先端と終端の印を出力する列名",
+      "optional": true
+    },
+    {
+      "name": "assert_diffSize",
+      "type": "boolean",
+      "label": "入力、出力件数比較を行う",
+      "optional": true
+    },
+    {
+      "name": "assert_nullkey",
+      "type": "boolean",
+      "label": "キー項目に NULL 値が含まれているかどうかのチェックを行う",
+      "optional": true
+    },
+    {
+      "name": "assert_nullout",
+      "type": "boolean",
+      "label": "出力項目の NULL 値チェックを行う",
+      "optional": true
+    },
+    {
+      "name": "nfn",
+      "type": "boolean",
+      "label": "入力データの 1 行目を項目名行とみなさない。",
+      "optional": true
+    },
+    {
+      "name": "nfno",
+      "type": "boolean",
+      "label": "出力データに項目名行を出力しない。",
+      "optional": true
+    },
+    {
+      "name": "x",
+      "type": "boolean",
+      "label": "項目番号による指定",
+      "optional": true
+    },
+    {
+      "name": "q",
+      "type": "boolean",
+      "label": "自動並べ替えの無効化",
+      "optional": true
+    },
+    {
+      "name": "tmpPath",
+      "type": "string",
+      "label": "作業ファイル格納パス名",
+      "optional": true
+    }
+  ],
+  "ports": [
+    [
+      {
+        "name": "i",
+        "type": "frame"
+      }
+    ],
+    [
+      {
+        "name": "o",
+        "type": "frame"
+      }
+    ]
+  ],
+  "version": "0.7.0",
+  "label": "キーブレイク箇所",
+  "classification": "table_grouping",
+  "description": "",
+  "url": "./static/pdf/mcmd/table_grouping/mkeybreak.pdf"
+}
