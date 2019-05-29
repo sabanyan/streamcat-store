@@ -119,11 +119,13 @@ class CommandLink:
             'groupby_columns': GroupbyColumnsCommand(),
             'groupby': GroupbyCommand(),
             'utf8_to_cp932': Utf8ToCp932Command(),
-            "sml_modeling": SmlModelingCommand(),
+            'sml_modeling': SmlModelingCommand(),
+            # ビジュアライズ
+            'csvtohtmltable': CsvToTableCommand(),
             # Storeコマンド
-            "saver": SaverCommand(),
-            "cachesaver": CacheSaverCommand(),
-            "loader": LoaderCommand()
+            'saver': SaverCommand(),
+            'cachesaver': CacheSaverCommand(),
+            'loader': LoaderCommand()
         }
 
         if runnable_id not in table:
