@@ -1,8 +1,4 @@
 # ビジュアライズコマンド
-# ただbetaから移動させただけなので、
-# 実行もできないし、テストも書けていない
-# ただの置物状態
-# kskp.store.commandsでimportもしてないよ！
 
 from kskp.core import Command, Port
 
@@ -54,16 +50,19 @@ class CsvToTableCommand(VisualizersHtml):
         # テーブル構造
         with open(file_path, 'r') as f:
             n = 0
+
             result['reader'] = []
             for line in f:
-                if limit is not None and n > limit:
+                # 指定されたlimitの数だけ要素が達していたら終了
+                if limit is not None and len(result['reader']) == limit:
                     break
 
                 if n == 0:
                     # 一行目はヘッダとみなす
                     result['header'] = line.split(',')
                 else:
-                    result['reader'].append(line.split(','))
+                    if offset < n:
+                        result['reader'].append(line.split(','))
 
                 n += 1
 
