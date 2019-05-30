@@ -1,6 +1,7 @@
 # from .core import *
 # from .default import *
 from .links import CommandLink
+from .model import *
 
 from kskp.core import (
     Datum,
