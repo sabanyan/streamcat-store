@@ -4,8 +4,8 @@ from kskp.library import FRAME_FOLDER_UUID, FRAME_FOLDER_LABEL
 from kskp.library import CACHE_FOLDER_UUID, CACHE_FOLDER_LABEL
 
 from kskp.library import Datum
-from kskp.library import Frame
-from kskp.library import Folder
+from kskp.library import FrameModel
+from kskp.library import FolderModel
 
 class Library:
 
@@ -21,7 +21,7 @@ class Library:
 
         Fix it : add_frameに改名した方が良いか？
         """
-        new_frame = Frame(parent_uuid,
+        new_frame = FrameModel(parent_uuid,
                           label,
                           None,
                           creator,
@@ -35,7 +35,7 @@ class Library:
         """
         フレームを作成する
         """
-        new_frame = Frame(parent_uuid,
+        new_frame = FrameModel(parent_uuid,
                           label,
                           stream,
                           creator,
@@ -52,14 +52,14 @@ class Library:
         frame_uuid : フレームのUUID
         戻り値      : Frameオブジェクト
         """
-        return Frame.find_by_uuid(frame_uuid)
+        return FrameModel.find_by_uuid(frame_uuid)
 
     @staticmethod
     def update_frame_data(frame_uuid, label, modifier=None):
         """
         フレームのラベル名を変更する
         """
-        return Frame.update_data(frame_uuid, label, modifier)
+        return FrameModel.update_data(frame_uuid, label, modifier)
 
     @staticmethod
     def delete_frame(frame_uuid):
@@ -69,7 +69,7 @@ class Library:
         frame_uuid : フレームのUUID
         戻り値      : なし
         """
-        frame = Frame.find_by_uuid(frame_uuid)
+        frame = FrameModel.find_by_uuid(frame_uuid)
         if frame is None:
             raise Exception('no frame exists.')
 
@@ -88,7 +88,7 @@ class Library:
         """
         フォルダを取得する
         """
-        return Folder.find_by_uuid(folder_uuid)
+        return FolderModel.find_by_uuid(folder_uuid)
 
     @staticmethod
     def update_folder_data(folder_uuid, label, modifier=None):
@@ -102,7 +102,7 @@ class Library:
         """
         フォルダを作成する
         """
-        new_folder = Folder(parent_uuid,
+        new_folder = FolderModel(parent_uuid,
                             label,
                             creator,
                             modifier)
@@ -117,7 +117,7 @@ class Library:
         folder = Folder.find_by_uuid(folder_uuid)
         folder.delete()
 
-    
+
 
     @staticmethod
     def _init_library_folders():
@@ -138,12 +138,12 @@ class Library:
     def _get_or_make_dir_path(uuid, label, user_id=None):
 
         # 特定用途のフォルダのUUIDは決め打ちである
-        if Folder.exists(uuid):
-            folder = Folder.find_by_uuid(uuid)
+        if FolderModel.exists(uuid):
+            folder = FolderModel.find_by_uuid(uuid)
         else:
             # フォルダが無い場合は作成する
             root = Library._get_library(user_id)
-            folder = Folder(root.uuid,
+            folder = FolderModel(root.uuid,
                             label,
                             user_id,
                             user_id)
@@ -161,7 +161,7 @@ class Library:
         # ルートフォルダが存在しない場合はルートフォルダを作成する
         # (最初にライブラリ画面にアクセスする時はルートフォルダ自身も存在しません)
         if root is None:
-            new_root = Folder(parent_uuid=None,
+            new_root = FolderModel(parent_uuid=None,
                               label='ROOT_FOLDER',
                               creator=user_id,
                               modifier=user_id)

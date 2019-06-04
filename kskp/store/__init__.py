@@ -11,8 +11,8 @@ from kskp.core import (
 
 from kskp.library import (
     Library,
-    Frame,
-    Folder,
+    FrameModel,
+    FolderModel,
     Datum as DatumModel,
     FRAME_FOLDER_UUID,
     FRAME_FOLDER_LABEL,
@@ -20,5 +20,8 @@ from kskp.library import (
     CACHE_FOLDER_LABEL,
     Store,
     FrameStore,
-    NysolModule
+    NysolModule,
+    Cache,
+    Frame,
+    Folder
 )
