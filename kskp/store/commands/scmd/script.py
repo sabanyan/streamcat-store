@@ -4,6 +4,8 @@ import nysol.mcmd as nm
 
 from kskp.library import NysolModule
 from kskp.core import Command, Port
+from kskp.web import app
+
 
 class SaverCommand(Command):
     """
@@ -17,11 +19,23 @@ class SaverCommand(Command):
 
     def run(self, args, inputs):
         # 1. storeにsaveする
-        datum_module = inputs['store'].save(args, inputs['i'])
+        datum_module = inputs['store'].save(self, args, inputs['i'])
         # 2. lasts用なのでコマンド実行のrunをする（繋げる必要はない）
         result = datum_module.run(msg='on')
 
         return {'o': self.wrap_datum(result, args)}
+
+    def module(self, args, input):
+        if app.config['FRAME_CHARACTER_CODE'] == 'shift-jis':
+            from kskp.store import CommandLink
+            sjis_command = CommandLink('utf8_to_cp932').resolve()
+            # sオプションをつけると標準出力にも流す、このsaverは最後のFrameを出力するものなので、オプションはつけない
+            return sjis_command.run({'o': args['frame_path']}, {'i': input})['o'].content
+        else:
+            command_args = {}
+            command_args['i'] = input
+            command_args['o'] = args['frame_path'].as_posix()
+            return nm.m2tee(command_args)
 
     def get_datum_obj(self):
         from kskp.engine import Frame
@@ -43,8 +57,21 @@ class CacheSaverCommand(SaverCommand):
 
     def run(self, args, inputs):
         # 1. storeにsaveする(runはしない)
-        datum_module = inputs['store'].save(args, inputs['i'])
+        datum_module = inputs['store'].save(self, args, inputs['i'])
         return {'o': self.wrap_datum(datum_module, args)}
+
+    def module(self, args, input):
+        if app.config['FRAME_CHARACTER_CODE'] == 'shift-jis':
+            from kskp.store import CommandLink
+            sjis_command = CommandLink('utf8_to_cp932').resolve()
+            # sオプションをつけると標準出力にも流す
+            # FIXIT: sオプションをつけるためにcommand_argsをオーバーライドしているのダサい。。。
+            return sjis_command.run({'o': args['frame_path'], 's': True}, {'i': input})['o'].content
+        else:
+            command_args = {}
+            command_args['i'] = input
+            command_args['o'] = args['frame_path'].as_posix()
+            return nm.m2tee(command_args)
 
     def get_datum_obj(self):
         # 書いて気づいたけどコンストラクタで決め打ちで設定でいいのかな。。。？

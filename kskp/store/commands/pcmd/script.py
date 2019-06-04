@@ -18,7 +18,7 @@ class PCommand(Command):
         self.i_ports = [Port('i', 'frame')]
         self.o_ports = [Port('o', 'mcmd')]
 
-    def command_args(self, args):
+    def replace_args(self, args):
         """
         nm.cmdで実行可能なargsに変換（文字列にして並べる）
         """
@@ -63,7 +63,7 @@ class SmlModelingCommand(PCommand):
         args_string += ' kcmd_path=' + (PCMD_DIR.parent / 'kcmd/src').as_posix()
         args_string += ' temp_path=' + (PCMD_DIR / 'tmp').as_posix()
         args_string += ' model_data_path=' + (PCMD_DIR / 'model').as_posix()
-        args_string += self.command_args(args)
+        args_string += self.replace_args(args)
 
         return {'o': self.module(f, args_string)}
 
@@ -76,7 +76,7 @@ class ColumnListCommand(PCommand):
         f <<= inputs['i']
 
         args_string = (PCMD_DIR / 'src/column_list.sh').as_posix()
-        args_string += self.command_args(args)
+        args_string += self.replace_args(args)
 
         return {'o': self.module(f, args_string)}
 
@@ -89,7 +89,7 @@ class ColumnGroupingNameCommand(PCommand):
         f <<= inputs['i']
 
         args_string = (PCMD_DIR / 'src/column_grouping_name.sh').as_posix()
-        args_string += self.command_args(args)
+        args_string += self.replace_args(args)
 
         return {'o': self.module(f, args_string)}
 
@@ -103,7 +103,7 @@ class ColumnBlankNameCommand(PCommand):
         f <<= inputs['i']
 
         args_string = (PCMD_DIR / 'src/column_blank_name.sh').as_posix()
-        args_string += self.command_args(args)
+        args_string += self.replace_args(args)
 
         return {'o': self.module(f, args_string)}
 
@@ -117,7 +117,7 @@ class ColumnsToRowsCommand(PCommand):
         f <<= inputs['i']
 
         args_string = (PCMD_DIR / 'src/columns_to_rows.sh').as_posix()
-        args_string += self.command_args(args)
+        args_string += self.replace_args(args)
 
         return {'o': self.module(f, args_string)}
 
@@ -130,7 +130,7 @@ class ColumnUniqueNameCommand(PCommand):
         f <<= inputs['i']
 
         args_string = (PCMD_DIR / 'src/column_unique_name.sh').as_posix()
-        args_string += self.command_args(args)
+        args_string += self.replace_args(args)
 
         return {'o': self.module(f, args_string)}
 
@@ -143,7 +143,7 @@ class ColumnNameCommand(PCommand):
         f <<= inputs['i']
 
         args_string = (PCMD_DIR / 'src/column_name.sh').as_posix()
-        args_string += self.command_args(args)
+        args_string += self.replace_args(args)
 
         return {'o': self.module(f, args_string)}
 
@@ -156,7 +156,7 @@ class GroupbyColumnsCommand(PCommand):
         f <<= inputs['i']
 
         args_string = (PCMD_DIR / 'src/groupby_columns.sh').as_posix()
-        args_string += self.command_args(args)
+        args_string += self.replace_args(args)
 
         return {'o': self.module(f, args_string)}
 
@@ -169,7 +169,7 @@ class GroupbyCommand(PCommand):
         f <<= inputs['i']
 
         args_string = (PCMD_DIR / 'src/groupby.sh').as_posix()
-        args_string += self.command_args(args)
+        args_string += self.replace_args(args)
 
         return {'o': self.module(f, args_string)}
 
@@ -182,7 +182,7 @@ class CheckDuplicateRowsCommand(PCommand):
         f <<= inputs['i']
 
         args_string = (PCMD_DIR / 'src/check_duplicate_rows.sh').as_posix()
-        args_string += self.command_args(args)
+        args_string += self.replace_args(args)
 
         return {'o': self.module(f, args_string)}
 
@@ -196,7 +196,7 @@ class MergeFSCommand(PCommand):
         f <<= inputs['i']
 
         args_string = (PCMD_DIR / 'src/merge_FS.sh').as_posix()
-        args_string += self.command_args(args)
+        args_string += self.replace_args(args)
 
         return {'o': self.module(f, args_string)}
 
@@ -210,7 +210,7 @@ class MergeIbutsuCommand(PCommand):
         f <<= inputs['i']
 
         args_string = (PCMD_DIR / 'src/merge_ibutsu.sh').as_posix()
-        args_string += self.command_args(args)
+        args_string += self.replace_args(args)
 
         return {'o': self.module(f, args_string)}
 
@@ -224,7 +224,7 @@ class WinCp932ReadCommand(PCommand):
         f <<= inputs['i']
 
         args_string = (PCMD_DIR / 'src/windows_cp932_csv_read.sh').as_posix()
-        args_string += self.command_args(args)
+        args_string += self.replace_args(args)
 
         return {'o': self.module(f, args_string)}
 
@@ -238,6 +238,6 @@ class Utf8ToCp932Command(PCommand):
         f <<= inputs['i']
 
         args_string = (PCMD_DIR / 'src/utf8_to_cp932.sh').as_posix()
-        args_string += self.command_args(args)
+        args_string += self.replace_args(args)
 
         return {'o': self.module(f, args_string)}

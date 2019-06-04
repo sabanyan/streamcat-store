@@ -18,7 +18,8 @@ function usage() {
     echo
     echo " i= 入力ファイル名を指定する。省略時は、標準入力を処理する"
     echo " o= 出力ファイル名を指定する。省略時は、標準出力へ書き込む"
-    echo
+    echo " "
+    echo " -s 標準出力を出すか出さないかのフラグ　デフォルトはFalse（出さない）"
     echo "書式"
     echo "------"
     echo "${PROGNAME} [i=] [o=] [--help] [--version]"
@@ -39,6 +40,7 @@ trap error ERR
 # 引数格納用変数
 input_file=""   # i=
 output_file=""  # o=
+stdout_flg=false
 
 # 参考 引数処理： https://qiita.com/b4b4r07/items/dcd6be0bb9c9185475bb
 for OPT in "$@"
@@ -69,6 +71,10 @@ do
                 exit 1
             fi
             output_file=${p_value}
+            shift 1
+            ;;
+        '-s' )
+            stdout_flg=true
             shift 1
             ;;
         '--'|'-' )
@@ -106,6 +112,12 @@ fi
 
 # データ処理
 # -Lw : windows形式(CRLF)
-nkf -s -Lw --cp932 "${input_file}" > "${output_file}"
+
+if "${stdout_flg}"; then
+  tee >(nkf -s -Lw --cp932 > "${output_file}"  ) < "${input_file}" > '/dev/stdout'
+else
+  nkf -s -Lw --cp932 "${input_file}" > "${output_file}"
+fi
+
 
 exit 0
