@@ -34,11 +34,18 @@ session = Session()
 
 # エンジン側のStoreと名称が衝突しないよう一時的にコメントアウト
 # from .store import Store
-from .store import Store, FrameStore, NysolModule
+from .store import (
+    Store,
+    FrameStore,
+    NysolModule,
+    Frame,
+    Cache,
+    Folder
+)
 
 from .datum import Datum
-from .folder import Folder
-from .frame import Frame
+from .folder import Folder as FolderModel
+from .frame import Frame as FrameModel
 from .library import Library
 
 

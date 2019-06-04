@@ -2,7 +2,7 @@
 
 import nysol.mcmd as nm
 
-from kskp.library import NysolModule
+from kskp.library import NysolModule, Cache, Frame
 from kskp.core import Command, Port
 from kskp.web import app
 
@@ -38,7 +38,6 @@ class SaverCommand(Command):
             return nm.m2tee(command_args)
 
     def get_datum_obj(self):
-        from kskp.engine import Frame
         return Frame()
 
     def wrap_datum(self, datum_module, args):
@@ -74,8 +73,6 @@ class CacheSaverCommand(SaverCommand):
             return nm.m2tee(command_args)
 
     def get_datum_obj(self):
-        # 書いて気づいたけどコンストラクタで決め打ちで設定でいいのかな。。。？
-        from kskp.engine import Cache
         return Cache()
 
 class LoaderCommand(Command):
