@@ -4,7 +4,7 @@ import nysol.mcmd as nm
 
 from kskp.library import NysolModule, Cache, Frame
 from kskp.core import Command, Port
-from kskp.web import app
+
 
 
 class SaverCommand(Command):
@@ -26,6 +26,7 @@ class SaverCommand(Command):
         return {'o': self.wrap_datum(result, args)}
 
     def module(self, args, input):
+        from kskp.web import app
         if app.config['FRAME_CHARACTER_CODE'] == 'shift-jis':
             from kskp.store import CommandLink
             sjis_command = CommandLink('utf8_to_cp932').resolve()
@@ -60,6 +61,7 @@ class CacheSaverCommand(SaverCommand):
         return {'o': self.wrap_datum(datum_module, args)}
 
     def module(self, args, input):
+        from kskp.web import app
         if app.config['FRAME_CHARACTER_CODE'] == 'shift-jis':
             from kskp.store import CommandLink
             sjis_command = CommandLink('utf8_to_cp932').resolve()
