@@ -10,7 +10,6 @@ from pathlib import Path
 from flask import g
 from threading import Lock
 
-from kskp.web import app
 from kskp.library import (
     FRAME_FOLDER_UUID,
     FRAME_FOLDER_LABEL,
@@ -21,9 +20,7 @@ from kskp.library import (
 lock = Lock()
 
 # app.config['DATABASE'] = app.root_path + '/data/kskp.db'
-app.config['DATABASE'] = 'kskp/data/kskp.db'
 # app.config.from_pyfile(app.root_path + '/settings.cfg')
-app.config['FLOW_PATH'] = 'kskp/data/flows'
 
 def create_user(email, password, name, creator):
     """
@@ -302,6 +299,8 @@ def copy_flow_by_uuid(original_flow_uuid, user_id, data_source_name=None):
     指定したフローのuuidを元に
     コピーしたフローを作成し、その内容を返す
     """
+    from kskp.web import app
+
     new_flow_uuid = str(uuid.uuid4()) if data_source_name is None else data_source_name
     new_flow_path = Path(app.config['FLOW_PATH']) / (new_flow_uuid + '.json')
     original_flow_path = get_flow_path_by_uuid(original_flow_uuid)
@@ -329,6 +328,7 @@ def generate_flow_name(project_id, flow_name, serial_number=1):
     """
     multi_flag = False
     new_flow_name = ''
+    from kskp.web import app
 
     if serial_number == 1:
         # 引数で「のコピー」付きのflow_nameを渡してもいいかなと思ったけど、
@@ -373,6 +373,8 @@ def fetch_subflows_all_projects(request_args):
     """
     指定したプロジェクトの持つサブフロー一覧の内容リストをuuidを付け加えて返す
     """
+    from kskp.web import app
+
     subflow_list = []
     for path in Path(app.config['FLOW_PATH']).iterdir():
         try:
@@ -449,6 +451,7 @@ def get_flow_path_by_uuid(flow_uuid):
     """
     指定したUUIDをファイル名にもつフローファイルのパスを返すヘルパー
     """
+    from kskp.web import app
     for flow_path in Path(app.config['FLOW_PATH']).iterdir():
         if not flow_path.suffix == '.json':
             continue
@@ -511,6 +514,7 @@ def get_flow_paths_by_project_uuid(project_uuid):
                     return True
             return False
 
+    from kskp.web import app
     for flow_path in Path(app.config['FLOW_PATH']).iterdir():
         try:
             if not flow_path.suffix == '.json':
@@ -530,6 +534,7 @@ def make_flow_path(file_name):
     """
     フローファイルのパス作成用ヘルパー
     """
+    from kskp.web import app
     return Path(app.config['FLOW_PATH']) / Path('%s.json' % file_name)
 #
 # def get_frame_dir_path(user_id):
@@ -613,6 +618,7 @@ def get_connection():
     現在のappcontext内のコネクションを取得する
     存在しなければDBを開いてから取得する
     """
+    from kskp.web import app
     conn = getattr(g, '_database', None)
     if conn is None:
         is_first_use = not Path(app.config['DATABASE']).exists()
@@ -625,6 +631,8 @@ def get_connection():
     return conn
 #
 def init_db():
+    from kskp.web import app
+    
     conn = get_connection()
     sql_path = Path(__file__).resolve().parent / 'sql/schema.sql'
     with app.open_resource(sql_path.as_posix(), mode='r') as f:
