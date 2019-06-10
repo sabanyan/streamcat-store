@@ -18,6 +18,7 @@ from kskp.library import (
     FRAME_FOLDER_LABEL,
     CACHE_FOLDER_UUID,
     CACHE_FOLDER_LABEL,
+    FLOW_PATH,
     Store,
     FrameStore,
     NysolModule,

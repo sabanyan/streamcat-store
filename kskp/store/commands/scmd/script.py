@@ -1,5 +1,5 @@
 # Store用コマンド
-
+import os
 import nysol.mcmd as nm
 
 from kskp.library import NysolModule, Cache, Frame
@@ -26,8 +26,7 @@ class SaverCommand(Command):
         return {'o': self.wrap_datum(result, args)}
 
     def module(self, args, input):
-        from kskp.web import app
-        if app.config['FRAME_CHARACTER_CODE'] == 'shift-jis':
+        if os.environ['FRAME_CHARACTER_CODE'] == 'shift-jis':
             from kskp.store import CommandLink
             sjis_command = CommandLink('utf8_to_cp932').resolve()
             # sオプションをつけると標準出力にも流す、このsaverは最後のFrameを出力するものなので、オプションはつけない
@@ -61,8 +60,7 @@ class CacheSaverCommand(SaverCommand):
         return {'o': self.wrap_datum(datum_module, args)}
 
     def module(self, args, input):
-        from kskp.web import app
-        if app.config['FRAME_CHARACTER_CODE'] == 'shift-jis':
+        if os.environ['FRAME_CHARACTER_CODE'] == 'shift-jis':
             from kskp.store import CommandLink
             sjis_command = CommandLink('utf8_to_cp932').resolve()
             # sオプションをつけると標準出力にも流す

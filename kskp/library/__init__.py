@@ -14,16 +14,28 @@
 # 起動時のWarningを抑制するため以下の設定値をTrueにする
 # app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
 # db = SQLAlchemy(app)
+import os
 
 FRAME_FOLDER_UUID = 'fffffd73-75d7-440f-b459-b49b3449d655'
 FRAME_FOLDER_LABEL = 'フロー実行結果'
 CACHE_FOLDER_UUID = 'ccd66c48-f69a-4a7d-8855-9faec4eafccf'
 CACHE_FOLDER_LABEL = 'フロー実行キャッシュ'
 
+# フローがDBに保存されるようになるまでは下記のパスをstoreが持っておく
+FLOW_PATH = 'kskp/data/flows'
+
 # データベースへの接続
 # echo=TrueでSQLログがコンソールに出力される
 from sqlalchemy import create_engine
-engine = create_engine("sqlite:///kskp/data/kskp.db", echo=False)
+# SQLite用
+os.environ['SQLITE_PATH'] = os.getenv('SQLITE_PATH', 'kskp/data/kskp.db')
+os.environ['DATABASE_URI'] = "sqlite:///" + os.environ['SQLITE_PATH']
+engine = create_engine(os.environ['DATABASE_URI'], echo=False)
+
+# 文字コード
+os.environ['FRAME_CHARACTER_CODE'] = os.getenv('FRAME_CHARACTER_CODE', 'utf-8')
+# os.environ['FRAME_CHARACTER_CODE'] = os.getenv('FRAME_CHARACTER_CODE', 'shift-jis')
+
 # ベースクラスをつくる
 from sqlalchemy.ext.declarative import declarative_base
 BaseModel = declarative_base()

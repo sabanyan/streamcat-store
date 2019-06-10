@@ -63,14 +63,14 @@ class FrameStore(Store):
     """
     def __init__(self):
         super().__init__()
-        self.datum_list = []
+        self.data = {}
 
     def save(self):
-        for cache in self.datum_list:
-            cache.save()
+        for frame in self.data.values():
+            frame.save()
 
-    def append(self, cache_point):
-        self.datum_list.append(cache_point)
+    def append(self, point_id, cache_point):
+        self.data[point_id] = cache_point
 
 class Folder(Store):
     """
@@ -188,7 +188,9 @@ class Cache(Frame):
         if self.info.get('flow_uuid') is None:
             return
 
-        flow_path = [path for path in Path('kskp/flows').iterdir() if path.stem == self.info.get('flow_uuid')][0]
+        from kskp.store import FLOW_PATH
+
+        flow_path = [path for path in Path(FLOW_PATH).iterdir() if path.stem == self.info.get('flow_uuid')][0]
         flow_json = json.loads(flow_path.read_text())
         for node in flow_json['nodes']:
             if node['id'] == self.info.get('datum_id'):
