@@ -175,8 +175,8 @@ class Library:
         if datum is None:
             return None
         elif datum.type == Datum.FOLDER_TYPE:
-            return Folder.convert_to_folder(datum)
+            return FolderModel.convert_to_folder(datum)
         elif datum.type == Datum.FRAME_TYPE:
-            return Frame.convert_to_frame(datum)
+            return FrameModel.convert_to_frame(datum)
         else:
             raise Exception('Undefined type of datum is found!')
