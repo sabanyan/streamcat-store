@@ -1,0 +1,31 @@
+import os
+import uuid
+import random
+import platform
+import datetime
+from kskp.library import BaseModel
+from pathlib import Path
+from sqlalchemy.orm import aliased
+from sqlalchemy import Column, Integer, String, text, PrimaryKeyConstraint
+
+class Auth(BaseModel):
+    # テーブル名の定義
+    __tablename__ = 'auths'
+
+    # テーブルの制約
+    __table_args__ = (
+        PrimaryKeyConstraint('group_id', 'data_id'),
+    )
+
+    # 列名と列のデータ型等の定義
+    group_id    = Column(String, primary_key=True)
+    data_id     = Column(String, primary_key=True)
+    read        = Column(Integer, default=0, nullable=False)
+    write       = Column(Integer, default=0, nullable=False)
+    exec        = Column(Integer, default=0, nullable=False)
+    own         = Column(Integer, default=0, nullable=False)
+    creator     = Column(Integer)
+    modifier    = Column(Integer)
+    created_at  = Column(String, default=text('CURRENT_TIMESTAMP'))
+    modified_at = Column(String, default=text('CURRENT_TIMESTAMP'))
+    
