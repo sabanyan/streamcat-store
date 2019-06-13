@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(
-    name='kskp.store',
-    packages=['kskp.store'],
+    name='kskps.store',
+    packages=['kskps.store'],
     install_requires=[],
 )
