@@ -30,7 +30,7 @@ from sqlalchemy import create_engine
 # SQLite用
 os.environ['SQLITE_PATH'] = os.getenv('SQLITE_PATH', 'kskp/data/kskp.db')
 os.environ['DATABASE_URI'] = "sqlite:///" + os.environ['SQLITE_PATH']
-engine = create_engine(os.environ['DATABASE_URI'], echo=False)
+engine = create_engine(os.environ['DATABASE_URI'], connect_args={'check_same_thread': False}, echo=False)
 
 # 文字コード
 os.environ['FRAME_CHARACTER_CODE'] = os.getenv('FRAME_CHARACTER_CODE', 'utf-8')
