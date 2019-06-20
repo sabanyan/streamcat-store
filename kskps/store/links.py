@@ -124,6 +124,10 @@ class CommandLink:
             'sml_modeling': SmlModelingCommand(),
             # ビジュアライズ
             'csvtohtmltable': CsvToTableCommand(),
+            'csvtolinegraph': CsvToLineGraphCommand(),
+            'csvtohistogram': CsvToHistogramCommand(),
+            'csvtoscatter': CsvToScatterCommand(),
+            'csvtoboxplot': CsvToBoxplotCommand(),
             # Storeコマンド
             'saver': SaverCommand(),
             'cachesaver': CacheSaverCommand(),
