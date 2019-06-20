@@ -21,9 +21,9 @@ class SaverCommand(Command):
         # 1. storeにsaveする
         datum_module = inputs['store'].save(self, args, inputs['i'])
         # 2. lasts用なのでコマンド実行のrunをする（繋げる必要はない）
-        result = datum_module.run(msg='on')
+        # result = datum_module.run(msg='on')
 
-        return {'o': self.wrap_datum(result, args)}
+        return {'o': self.wrap_datum(datum_module, args)}
 
     def module(self, args, input):
         if os.environ['FRAME_CHARACTER_CODE'] == 'shift-jis':
