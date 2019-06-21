@@ -1,4 +1,5 @@
 # ビジュアライズコマンド
+import os
 
 from kskp.core import Command, Port
 
@@ -75,7 +76,6 @@ class CsvToTableCommand(VisualizersHtml):
         offset = int(args.get('offset')) if args.get('offset') else 0
         limit = int(args.get('limit')) if args.get('limit') else None
 
-        import os
         # ブロック句
         if not os.path.exists(file_path):
             return ''
