@@ -83,7 +83,7 @@ class CsvToTableCommand(VisualizersHtml):
         result = {}
 
         # テーブル構造
-        with open(file_path, 'r') as f:
+        with open(file_path, 'r', errors = 'ignore') as f:
             n = 0
 
             result['reader'] = []

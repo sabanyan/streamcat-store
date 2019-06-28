@@ -26,16 +26,10 @@ class SaverCommand(Command):
         return {'o': self.wrap_datum(datum_module, args)}
 
     def module(self, args, input):
-        if os.environ['FRAME_CHARACTER_CODE'] == 'shift-jis':
-            from kskps.store import CommandLink
-            sjis_command = CommandLink('utf8_to_cp932').resolve()
-            # sオプションをつけると標準出力にも流す、このsaverは最後のFrameを出力するものなので、オプションはつけない
-            return sjis_command.run({'o': args['frame_path']}, {'i': input})['o'].content
-        else:
-            command_args = {}
-            command_args['i'] = input
-            command_args['o'] = args['frame_path'].as_posix()
-            return nm.m2tee(command_args)
+        command_args = {}
+        command_args['i'] = input
+        command_args['o'] = args['frame_path'].as_posix()
+        return nm.m2tee(command_args)
 
     def get_datum_obj(self):
         return Frame()
@@ -60,21 +54,60 @@ class CacheSaverCommand(SaverCommand):
         return {'o': self.wrap_datum(datum_module, args)}
 
     def module(self, args, input):
-        if os.environ['FRAME_CHARACTER_CODE'] == 'shift-jis':
-            from kskps.store import CommandLink
-            sjis_command = CommandLink('utf8_to_cp932').resolve()
-            # sオプションをつけると標準出力にも流す
-            # FIXIT: sオプションをつけるためにcommand_argsをオーバーライドしているのダサい。。。
-            return sjis_command.run({'o': args['frame_path'], 's': True}, {'i': input})['o'].content
-        else:
-            command_args = {}
-            command_args['i'] = input
-            command_args['o'] = args['frame_path'].as_posix()
-            return nm.m2tee(command_args)
+        command_args = {}
+        command_args['i'] = input
+        command_args['o'] = args['frame_path'].as_posix()
+        return nm.m2tee(command_args)
 
     def get_datum_obj(self):
         return Cache()
 
+class RunsSaver(Command):
+    """
+    nm.runsを行うSaverコマンド
+    """
+    def __init__(self):
+        super().__init__()
+        self.i_ports = [Port('*', 'nm')]
+        self.o_ports = [Port('?', '?')]
+
+    def run(self, args, inputs):
+        result = {}
+        import nysol.mcmd as nm
+        nm_list = []
+        for nysol_module in inputs.values():
+            nm_list.append(nysol_module)
+
+        nm.runs(nm_list, msg='on')
+        return {'o': result}
+
+class Frame2DBSaver(Command):
+    """
+    frameをdbへの保存を行うsaver
+    """
+    def __init__(self):
+        super().__init__()
+        self.i_ports = [Port('i', 'result')]
+        self.o_ports = [Port('o', 'result')]
+
+    def run(self, args, inputs):
+        result = {}
+        from kskp.store import Library
+
+        for value in inputs['i'].values():
+            save_datum_args = args.get(value)
+            frame = Library.save_frame(save_datum_args.get('folder_uuid'),
+                                       save_datum_args.get('label'),
+                                       save_datum_args.get('frame_path'))
+
+            if save_datum_args.get('type') == 'cache':
+                # キャッシュ保存処理
+                pass
+
+        return {'o': result}
+
+# 1つ保存のsaverはどうなる？
+# 普通なら、inputsできたものをargs情報を使って保存か
 class LoaderCommand(Command):
     """
     指定したstoreからデータを取ってくる（テスト用）
