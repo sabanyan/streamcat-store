@@ -48,23 +48,13 @@ class CacheSaverCommand(SaverCommand):
     def __init__(self):
         super().__init__()
 
-    def run(self, args, inputs):
-        # 1. storeにsaveする(runはしない)
-        datum_module = inputs['store'].save(self, args, inputs['i'])
-        return {'o': self.wrap_datum(datum_module, args)}
-
-    def module(self, args, input):
-        command_args = {}
-        command_args['i'] = input
-        command_args['o'] = args['frame_path'].as_posix()
-        return nm.m2tee(command_args)
-
     def get_datum_obj(self):
         return Cache()
 
 class RunsSaver(Command):
     """
     nm.runsを行うSaverコマンド
+    ※未完成
     """
     def __init__(self):
         super().__init__()
@@ -84,6 +74,7 @@ class RunsSaver(Command):
 class Frame2DBSaver(Command):
     """
     frameをdbへの保存を行うsaver
+    ※未完成
     """
     def __init__(self):
         super().__init__()

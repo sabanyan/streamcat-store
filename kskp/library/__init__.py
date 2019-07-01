@@ -32,10 +32,6 @@ os.environ['SQLITE_PATH'] = os.getenv('SQLITE_PATH', 'kskp/data/kskp.db')
 os.environ['DATABASE_URI'] = "sqlite:///" + os.environ['SQLITE_PATH']
 engine = create_engine(os.environ['DATABASE_URI'], connect_args={'check_same_thread': False}, echo=False)
 
-# 文字コード
-os.environ['FRAME_CHARACTER_CODE'] = os.getenv('FRAME_CHARACTER_CODE', 'utf-8')
-# os.environ['FRAME_CHARACTER_CODE'] = os.getenv('FRAME_CHARACTER_CODE', 'shift-jis')
-
 # ベースクラスをつくる
 from sqlalchemy.ext.declarative import declarative_base
 BaseModel = declarative_base()
