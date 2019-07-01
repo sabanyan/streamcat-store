@@ -1,5 +1,5 @@
 # 独自コマンド
-
+import sys
 import nysol.mcmd as nm
 from pathlib import Path
 
@@ -224,7 +224,6 @@ class WinCp932ReadCommand(PCommand):
             """
             ストリームでcp932→utf8に変換するコマンド
             """
-            import sys
             import traceback
             import io
 
@@ -239,6 +238,8 @@ class WinCp932ReadCommand(PCommand):
                 with open('/dev/stderr', 'w') as fpe:
                     traceback.print_exc(file=fpe)
 
+        # flushをしないと、デバッグ用のprintなども入ってしまう
+        sys.stdout.flush()
         f = None
         f <<= inputs['i']
         f <<= nm.runfunc(Cp932_to_utf8)
@@ -257,12 +258,10 @@ class Utf8ToCp932Command(PCommand):
             """
             ストリームでutf-8→cp932に変換するコマンド
             """
-            import sys
             import traceback
             import io
 
             try:
-                sys.stdout.flush()
                 sys.stdout = open(sys.stdout.fileno(), 'w', encoding='cp932', closefd=False)
                 for line in sys.stdin:
                     # 改行コードは変えてくれなさそうなのでここで変える
@@ -271,6 +270,7 @@ class Utf8ToCp932Command(PCommand):
                 with open('/dev/stderr', 'w') as fpe:
                     traceback.print_exc(file=fpe)
 
+        sys.stdout.flush()
         f = None
         f <<= inputs['i']
         f <<= nm.runfunc(utf8_to_Cp932)
