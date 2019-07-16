@@ -1,0 +1,29 @@
+{
+  "version": "0.7.0",
+  "id": "pca",
+  "label": "主成分分析",
+  "classification": "preprocess",
+  "description": "データの要約を行う。（データの次元削減）",
+  "ports": [
+    [
+      {
+        "name": "i",
+        "type": "frame"
+      }
+    ],
+    [
+      {
+        "name": "o",
+        "type": "frame"
+      }
+    ]
+  ],
+  "params": [
+    {
+      "name": "n_components",
+      "type": "string",
+      "label": "保持するコンポーネント数（デフォルト：2）"
+    }
+  ],
+  "url": ""
+}

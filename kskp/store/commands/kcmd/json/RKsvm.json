@@ -1,0 +1,39 @@
+{
+  "version": "0.7.0",
+  "id": "rksvm",
+  "label": "サポートベクターマシンによる回帰",
+  "classification": "regression",
+  "description": "与えられたデータからサポートベクトル、マージンを作り出し、それらを用いて回帰を行う。",
+  "ports": [
+    [
+      {
+        "name": "i",
+        "type": "frame"
+      }
+    ],
+    [
+      {
+        "name": "o",
+        "type": "frame"
+      }
+    ]
+  ],
+  "params": [
+    {
+      "name": "c",
+      "type": "string",
+      "label": "マージンの大きさ（デフォルト：1.0）"
+    },
+    {
+      "name": "k",
+      "type": "string",
+      "label": "アルゴリズムで使用するカーネルの種類（デフォルト：rbf）"
+    },
+    {
+      "name": "g",
+      "type": "string",
+      "label": "カーネル係数（デフォルト：-1）"
+    }
+  ],
+  "url": ""
+}

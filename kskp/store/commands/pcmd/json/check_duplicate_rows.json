@@ -1,0 +1,34 @@
+{
+  "version": "0.7.0",
+  "id": "check_duplicate_rows",
+  "label": "重複行の抽出",
+  "classification": "validation",
+  "description": "重複行の抽出を行う",
+  "ports": [
+    [
+      {
+        "name": "i",
+        "type": "frame"
+      }
+    ],
+    [
+      {
+        "name": "o",
+        "type": "frame"
+      }
+    ]
+  ],
+  "params": [
+    {
+      "name": "k",
+      "type": "string",
+      "label": "キー項目名(必須)"
+    },
+    {
+      "name": "tmpPath",
+      "type": "string",
+      "label": "作業用のフォルダパス名を指定する。省略時は、カレントフォルダへ書き込む"
+    }
+  ],
+  "url": ""
+}

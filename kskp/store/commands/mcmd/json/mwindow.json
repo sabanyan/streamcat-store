@@ -1,0 +1,94 @@
+{
+  "id": "mwindow",
+  "params": [
+    {
+      "name": "wk",
+      "type": "string",
+      "label": "出力データにおける、窓を識別する値となる入力データの列名(必須)"
+    },
+    {
+      "name": "t",
+      "type": "string",
+      "label": "窓の行数指定(必須)"
+    },
+    {
+      "name": "k",
+      "type": "string",
+      "label": "窓を生成する単位となる列名",
+      "optional": true
+    },
+    {
+      "name": "r",
+      "type": "boolean",
+      "label": "窓における基準行を先頭行とする。指定がなければ最終行となる。",
+      "optional": true
+    },
+    {
+      "name": "n",
+      "type": "boolean",
+      "label": "窓のサイズが t=で指定した行数に満たなくても出力する。",
+      "optional": true
+    },
+    {
+      "name": "assert_diffSize",
+      "type": "boolean",
+      "label": "入力、出力件数比較を行う",
+      "optional": true
+    },
+    {
+      "name": "assert_nullkey",
+      "type": "boolean",
+      "label": "キー項目にNULL値が含まれているかどうかのチェックを行う",
+      "optional": true
+    },
+    {
+      "name": "nfn",
+      "type": "boolean",
+      "label": "入力データの1行目を項目名行とみなさない。",
+      "optional": true
+    },
+    {
+      "name": "nfno",
+      "type": "boolean",
+      "label": "出力データに項目名行を出力しない。",
+      "optional": true
+    },
+    {
+      "name": "x",
+      "type": "boolean",
+      "label": "項目番号による指定",
+      "optional": true
+    },
+    {
+      "name": "q",
+      "type": "boolean",
+      "label": "自動並べ替えの無効化",
+      "optional": true
+    },
+    {
+      "name": "tmpPath",
+      "type": "string",
+      "label": "作業ファイル格納パス名",
+      "optional": true
+    }
+  ],
+  "ports": [
+    [
+      {
+        "name": "i",
+        "type": "frame"
+      }
+    ],
+    [
+      {
+        "name": "o",
+        "type": "frame"
+      }
+    ]
+  ],
+  "version": "0.7.0",
+  "label": "スライド窓の生成",
+  "classification": "table_grouping",
+  "description": "",
+  "url": "./static/pdf/mcmd/table_grouping/mwindow.pdf"
+}

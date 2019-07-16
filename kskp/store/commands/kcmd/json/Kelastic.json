@@ -1,0 +1,54 @@
+{
+  "version": "0.7.0",
+  "id": "kelastic",
+  "label": "elastic net回帰",
+  "classification": "regression",
+  "description": "コスト関数に、L1、L2正則化項を加えたものを使用して回帰分析を行うもの。",
+  "ports": [
+    [
+      {
+        "name": "i",
+        "type": "frame"
+      }
+    ],
+    [
+      {
+        "name": "o",
+        "type": "frame"
+      }
+    ]
+  ],
+  "params": [
+    {
+      "name": "a",
+      "type": "string",
+      "label": "モデルの正則化強度（デフォルト：1）"
+    },
+    {
+      "name": "normalize",
+      "type": "string",
+      "label": "正規化を行うかどうか（デフォルト」：False）"
+    },
+    {
+      "name": "b",
+      "type": "string",
+      "label": "バイアスをかけるかどうか"
+    },
+    {
+      "name": "r",
+      "type": "string",
+      "label": "乱数のシード値"
+    },
+    {
+      "name": "tol",
+      "type": "string",
+      "label": "学習の収束を判定するための基準値（デフォルト：1e-4）"
+    },
+    {
+      "name": "l1_ratio",
+      "type": "string",
+      "label": "L1、L2に与えるペナルティのうち、L1の比率"
+    }
+  ],
+  "url": ""
+}

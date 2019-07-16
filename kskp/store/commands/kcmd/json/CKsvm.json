@@ -1,0 +1,39 @@
+{
+  "version": "0.7.0",
+  "id": "cksvm",
+  "label": "サポートベクターマシンによる分類",
+  "classification": "classification",
+  "description": "与えられたデータからサポートベクトル、マージンを作り出し、それらを用いて未知のデータを分類する。",
+  "ports": [
+    [
+      {
+        "name": "i",
+        "type": "frame"
+      }
+    ],
+    [
+      {
+        "name": "o",
+        "type": "frame"
+      }
+    ]
+  ],
+  "params": [
+    {
+      "name": "c",
+      "type": "string",
+      "label": "マージンの大きさ（デフォルト：1.0）"
+    },
+    {
+      "name": "k",
+      "type": "string",
+      "label": "アルゴリズムで使用するカーネルの種類（デフォルト：rbf）"
+    },
+    {
+      "name": "g",
+      "type": "string",
+      "label": "カーネル係数（デフォルト：-1）"
+    }
+  ],
+  "url": ""
+}

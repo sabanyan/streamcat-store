@@ -1,0 +1,63 @@
+{
+  "id": "groupby",
+  "params": [
+    {
+      "name": "k",
+      "type": "string",
+      "label": "集計キー項目をカンマ区切りで与える（必須）"
+    },
+    {
+      "name": "f",
+      "type": "string",
+      "label": "同じ統計量計算を行う対象とする列範囲の指定、入力データの列名をカンマ区切りで与える（必須）"
+    },
+    {
+      "name": "c",
+      "type": "string",
+      "label": "統計量の指定と算出結果の列名の指定、演算の指定:作成列名 をカンマ区切りで与える（必須）"
+    },
+    {
+      "name": "delimiter",
+      "type": "string",
+      "label": "センサー名と特徴量名との区切り文字、省略時は _",
+      "optional": true
+    },
+    {
+      "name": "q",
+      "type": "boolean",
+      "label": "集計キー項目でソートをしない",
+      "optional": true
+    },
+    {
+      "name": "nfno",
+      "type": "boolean",
+      "label": "項目名行を出力しない",
+      "optional": true
+    },
+    {
+      "name": "prefix",
+      "type": "boolean",
+      "label": "センサー名と特徴量名との連結方法を接頭辞型にする。 省略時は接尾型",
+      "optional": true
+    }
+  ],
+  "ports": [
+    [
+      {
+        "name": "i",
+        "type": "frame"
+      }
+    ],
+    [
+      {
+        "name": "o",
+        "type": "frame"
+      }
+    ]
+  ],
+  "version": "0.7.0",
+  "label": "GroupBy処理",
+  "classification": "col_edit",
+  "description": "groupby処理を行う",
+  "url": ""
+}

@@ -1,0 +1,79 @@
+{
+  "id": "mnewrand",
+  "params": [
+    {
+      "name": "a",
+      "type": "string",
+      "label": "新規作成する連番行の項目名(必須)"
+    },
+    {
+      "name": "max",
+      "type": "string",
+      "label": "乱数の最大値",
+      "optional": true
+    },
+    {
+      "name": "min",
+      "type": "string",
+      "label": "乱数の最小値",
+      "optional": true
+    },
+    {
+      "name": "S",
+      "type": "string",
+      "label": "乱数の種を指定する",
+      "optional": true
+    },
+    {
+      "name": "l",
+      "type": "string",
+      "label": "作成するデータ行数",
+      "optional": true,
+      "default": 10
+    },
+    {
+      "name": "int",
+      "type": "boolean",
+      "label": "整数乱数を生成する",
+      "optional": true
+    },
+    {
+      "name": "nfn",
+      "type": "boolean",
+      "label": "入力データの1行目を項目名行とみなさない。",
+      "optional": true
+    },
+    {
+      "name": "nfno",
+      "type": "boolean",
+      "label": "出力データに項目名行を出力しない。",
+      "optional": true
+    },
+    {
+      "name": "x",
+      "type": "boolean",
+      "label": "項目番号による指定",
+      "optional": true
+    },
+    {
+      "name": "tmpPath",
+      "type": "string",
+      "label": "作業ファイル格納パス名",
+      "optional": true
+    }
+  ],
+  "ports": [
+    [],
+    [
+      {
+        "name": "o",
+        "type": "frame"
+      }
+    ]
+  ],
+  "version": "0.7.0",
+  "label": "乱数データの新規作成",
+  "classification": "data_source",
+  "description": "",
+  "url": ""
+}

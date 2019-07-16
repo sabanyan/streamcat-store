@@ -1,0 +1,58 @@
+{
+  "id": "groupby_columns",
+  "params": [
+    {
+      "name": "f",
+      "type": "string",
+      "label": "新規追加列名:カンマ区切りの複数項目名リストをバックスラッシュ区切りで指定する（必須）"
+    },
+    {
+      "name": "c",
+      "type": "string",
+      "label": "適用する統計量と、対象項目名へ付加する接辞語を指定する（必須）"
+    },
+    {
+      "name": "k",
+      "type": "string",
+      "label": "集計のキー項目がある場合、項目名をカンマ区切りで指定する",
+      "optional": true
+    },
+    {
+      "name": "delimiter",
+      "type": "string",
+      "label": "項目名と接辞語との区切り文字を指定する、省略時は _",
+      "optional": true
+    },
+    {
+      "name": "prefix",
+      "type": "boolean",
+      "label": "接辞語を、項目名の末尾ではなく、先頭に付加する。 省略時は接尾型",
+      "optional": true
+    },
+    {
+      "name": "cmd_path",
+      "type": "string",
+      "label": "外部参照コマンドのパス",
+      "optional": true
+    }
+  ],
+  "ports": [
+    [
+      {
+        "name": "i",
+        "type": "frame"
+      }
+    ],
+    [
+      {
+        "name": "o",
+        "type": "frame"
+      }
+    ]
+  ],
+  "version": "0.7.0",
+  "label": "列項目を行展開してgroupby処理する",
+  "classification": "col_edit",
+  "description": "複数の列項目を、指定した新規列名で、行データへ展開し、複数の統計量を適用した結果を、新規列名と統計量からなる列名として出力する。",
+  "url": ""
+}

@@ -1,0 +1,54 @@
+{
+  "version": "0.7.0",
+  "id": "ckbag",
+  "label": "バギングによる分類",
+  "classification": "classification",
+  "description": "ブートストラップサンプリングで得られた学習データを用いて、分類器を複数作り、それらの分類器の多数決を取って、性能の高いモデルを作り,分類を行う。",
+  "ports": [
+    [
+      {
+        "name": "i",
+        "type": "frame"
+      }
+    ],
+    [
+      {
+        "name": "o",
+        "type": "frame"
+      }
+    ]
+  ],
+  "params": [
+    {
+      "name": "r",
+      "type": "string",
+      "label": "乱数のシード値"
+    },
+    {
+      "name": "n_estimators",
+      "type": "string",
+      "label": "決定木の数（デフォルト値：50）"
+    },
+    {
+      "name": "max_samples",
+      "type": "string",
+      "label": "それぞれの決定木を訓練するために使用するサンプルの数"
+    },
+    {
+      "name": "unuse_bootstrap",
+      "type": "string",
+      "label": "ブートストラップサンプルを使用するかどうか（デフォルト：True）"
+    },
+    {
+      "name": "max_features",
+      "type": "string",
+      "label": "それぞれの決定木を訓練するために使用するサンプルから抽出する特徴量の数（デフォルト：1.0）"
+    },
+    {
+      "name": "unuse_bootstrap_features",
+      "type": "string",
+      "label": "ブートストラップサンプルの特徴量を使用するかどうか（デフォルト：False）"
+    }
+  ],
+  "url": ""
+}

@@ -1,0 +1,69 @@
+{
+  "version": "0.7.0",
+  "id": "ckneuralnet",
+  "label": "ニューラルネットワークによる分類",
+  "classification": "classification",
+  "description": "人の脳内構造を模したモデルを用いて学習を行い、分類を行う。",
+  "ports": [
+    [
+      {
+        "name": "i",
+        "type": "frame"
+      }
+    ],
+    [
+      {
+        "name": "o",
+        "type": "frame"
+      }
+    ]
+  ],
+  "params": [
+    {
+      "name": "hidden_layer_sizes",
+      "type": "string",
+      "label": "隠れ層の層の数と各層に配置するニューロンの数（デフォルト：100,）"
+    },
+    {
+      "name": "a",
+      "type": "string",
+      "label": "活性化関数（デフォルト：relu）"
+    },
+    {
+      "name": "solver",
+      "type": "string",
+      "label": "最適化手法（デフォルト：adam）"
+    },
+    {
+      "name": "alpha",
+      "type": "string",
+      "label": "L2正則化の係数（デフォルト：1e-4）"
+    },
+    {
+      "name": "tol",
+      "type": "string",
+      "label": "学習の収束と判断するための、損失もしくはスコアの変動値の基準値（デフォルト：1e-4）"
+    },
+    {
+      "name": "learning_rate_init",
+      "type": "string",
+      "label": "重みの学習値の初期値（デフォルト：1e-3）"
+    },
+    {
+      "name": "early_stopping",
+      "type": "string",
+      "label": "トレーニングデータの内、10％をテストデータとして使用、スコアが２連続でtolより低いと学習を停止する。（デフォルト：False）"
+    },
+    {
+      "name": "momentum",
+      "type": "string",
+      "label": "SGDの収束性能を向上するための学習係数(デフォルト：0.9)"
+    },
+    {
+      "name": "epsilon",
+      "type": "string",
+      "label": "solverがadamの際の、数式εの値（デフォルト：1e-8）"
+    }
+  ],
+  "url": ""
+}

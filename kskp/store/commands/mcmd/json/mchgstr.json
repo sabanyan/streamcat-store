@@ -1,0 +1,112 @@
+{
+  "id": "mchgstr",
+  "params": [
+    {
+      "name": "c",
+      "type": "string",
+      "label": "置換対象となる文字列と対応する置換文字列(必須)"
+    },
+    {
+      "name": "f",
+      "type": "string",
+      "label": "置換対象列(必須)"
+    },
+    {
+      "name": "O",
+      "type": "string",
+      "label": "c=に無い文字列を置換する場合の文字列",
+      "optional": true
+    },
+    {
+      "name": "A",
+      "type": "boolean",
+      "label": "指定した項目を置き換えるのではなく、新たに項目が追加される",
+      "optional": true
+    },
+    {
+      "name": "F",
+      "type": "boolean",
+      "label": "c=パラメータで指定した置換条件リストのいずれとも合致しない値は、その項目の値のまま出力",
+      "optional": true
+    },
+    {
+      "name": "sub",
+      "type": "boolean",
+      "label": "検索を完全一致ではなく部分文字列マッチで比較する",
+      "optional": true
+    },
+    {
+      "name": "W",
+      "type": "boolean",
+      "label": "sub オプションが指定されているときにワイド文字として部分文字列マッチをおこなう",
+      "optional": true
+    },
+    {
+      "name": "assert_diffSize",
+      "type": "boolean",
+      "label": "入力、出力件数比較を行う",
+      "optional": true
+    },
+    {
+      "name": "assert_nullin",
+      "type": "boolean",
+      "label": "入力項目の f=または vf=で指定された項目の NULL 値チェックを行う",
+      "optional": true
+    },
+    {
+      "name": "assert_nullout",
+      "type": "boolean",
+      "label": "出力項目の NULL 値チェックを行う",
+      "optional": true
+    },
+    {
+      "name": "nfn",
+      "type": "boolean",
+      "label": "入力データの 1 行目を項目名行とみなさない。",
+      "optional": true
+    },
+    {
+      "name": "nfno",
+      "type": "boolean",
+      "label": "出力データに項目名行を出力しない。",
+      "optional": true
+    },
+    {
+      "name": "x",
+      "type": "boolean",
+      "label": "項目番号による指定",
+      "optional": true
+    },
+    {
+      "name": "q",
+      "type": "boolean",
+      "label": "自動並べ替えの無効化",
+      "optional": true
+    },
+    {
+      "name": "tmpPath",
+      "type": "string",
+      "label": "作業ファイル格納パス名",
+      "optional": true
+    }
+  ],
+  "ports": [
+    [
+      {
+        "name": "i",
+        "type": "frame"
+      }
+    ],
+    [
+      {
+        "name": "o",
+        "type": "frame"
+      }
+    ]
+  ],
+  "version": "0.7.0",
+  "label": "文字列の置換",
+  "classification": "value_transform",
+  "description": "",
+  "url": "./static/pdf/mcmd/value_transform/mchgstr.pdf"
+}

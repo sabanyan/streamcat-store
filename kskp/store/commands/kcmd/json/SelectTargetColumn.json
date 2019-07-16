@@ -1,0 +1,29 @@
+{
+  "version": "0.7.0",
+  "id": "select_target_column",
+  "label": "列選択",
+  "classification": "preprocess",
+  "description": "対象の列を選択",
+  "ports": [
+    [
+      {
+        "name": "i",
+        "type": "frame"
+      }
+    ],
+    [
+      {
+        "name": "o",
+        "type": "frame"
+      }
+    ]
+  ],
+  "params": [
+    {
+      "name": "t",
+      "type": "string",
+      "label": "対象の列を選択"
+    }
+  ],
+  "url": ""
+}
