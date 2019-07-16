@@ -95,7 +95,7 @@ class Library:
         """
         フォルダのラベル名を変更する
         """
-        return Folder.update_data(folder_uuid, label, modifier)
+        return FolderModel.update_data(folder_uuid, label, modifier)
 
     @staticmethod
     def save_folder(parent_uuid, label, creator=None, modifier=None):
@@ -114,7 +114,7 @@ class Library:
         """
         フォルダを削除する
         """
-        folder = Folder.find_by_uuid(folder_uuid)
+        folder = FolderModel.find_by_uuid(folder_uuid)
         folder.delete()
 
 
