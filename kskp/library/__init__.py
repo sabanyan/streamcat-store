@@ -55,7 +55,7 @@ from .datum import Datum
 from .folder import Folder as FolderModel
 from .frame import Frame as FrameModel
 from .library import Library
-
+from .store_model import Store as StoreModel
 
 # テーブルを作成する
 BaseModel.metadata.create_all(bind=engine, checkfirst=True)

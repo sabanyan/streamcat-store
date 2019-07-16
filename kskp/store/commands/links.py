@@ -1,6 +1,8 @@
 import json
-from kskp.store.commands import *
-from . import PathLink
+import os
+from . import *
+from pathlib import Path
+from kskp.core import Command
 
 class CommandLink:
     """
@@ -139,6 +141,25 @@ class CommandLink:
 
         return table[runnable_id]
 
+class Source:
+    pass
+
+class PathFileSource(Source):
+    def __init__(self, path):
+        self.path = path
+
+    def data(self):
+        from pathlib import Path
+        return [PathLink(p) for p in Path(self.path).iterdir()]
+
+class PathLink(Command):
+    def __init__(self, source: PathFileSource):
+        super().__init__()
+        self.context.update({'source': source})
+
+    def __repr__(self):
+        return f"PathLink({repr(self.context['source'].path.as_posix())})"
+
 class CommandsPathLink(PathLink):
     def __init__(self, source):
         super().__init__(source)
@@ -166,3 +187,14 @@ class CommandsPathLink(PathLink):
         意味的にlink.resolveの方がわかりやすいかと
         """
         return self.run(args, inputs)
+
+class CommandsPathFileSource(PathFileSource):
+    """
+    コマンドJSONの一覧が入ったパスを持つsource
+    """
+
+    def __init__(self, visible_command):
+        path = Path(__file__).resolve()
+        commands_path = path.parent / visible_command / 'json'
+        if commands_path.exists():
+            super().__init__(commands_path)
