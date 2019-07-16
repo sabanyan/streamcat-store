@@ -1,0 +1,49 @@
+{
+  "version": "0.7.0",
+  "id": "column_unique_name",
+  "label": "項目名ユニーク化",
+  "classification": "col_edit",
+  "description": "全ての項目名がユニークになるように、項目名を変更する。",
+  "ports": [
+    [
+      {
+        "name": "i",
+        "type": "frame"
+      }
+    ],
+    [
+      {
+        "name": "o",
+        "type": "frame"
+      }
+    ]
+  ],
+  "params": [
+    {
+      "name": "b",
+      "type": "string",
+      "label": "空白の項目名であったことを識別するための文字列を指定する。デフォルトは ブランク"
+    },
+    {
+      "name": "d",
+      "type": "string",
+      "label": "修辞句と元の項目名との区切り文字を指定する。デフォルトは ^^ 区切り"
+    },
+    {
+      "name": "r",
+      "type": "boolean",
+      "label": "重複の識別子を、設備語でなく、接頭語として与える"
+    },
+    {
+      "name": "n",
+      "type": "boolean",
+      "label": "重複の識別子を、重複した項目名別の連番でなく、項目名の先頭1始まりの順番とする"
+    },
+    {
+      "name": "e",
+      "type": "boolean",
+      "label": "指定した方法で項目名変更した結果、新たな重複が発生する場合でも、エラーとしない"
+    }
+  ],
+  "url": ""
+}

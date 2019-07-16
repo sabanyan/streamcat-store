@@ -1,0 +1,29 @@
+{
+  "version": "0.7.0",
+  "id": "column_name",
+  "label": "項目順の変更",
+  "classification": "col_edit",
+  "description": "先頭と末尾に、指定した項目名の順番に列を並び替える。",
+  "ports": [
+    [
+      {
+        "name": "i",
+        "type": "frame"
+      }
+    ],
+    [
+      {
+        "name": "o",
+        "type": "frame"
+      }
+    ]
+  ],
+  "params": [
+    {
+      "name": "f",
+      "type": "string",
+      "label": "先頭、末尾に配置したい項目名を指定する(必須) 例）f=a,b,*,c,d ワイルドカードは、明示的に指定した項目名を除いた残りの項目名を、元の項目名の順序で展開する"
+    }
+  ],
+  "url": ""
+}

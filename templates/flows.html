@@ -1,0 +1,50 @@
+{% extends 'layout.html' %}
+{% block content %}
+  <script>
+  function submitAction(url, FormName) {
+    document.forms[FormName].action = url;
+    document.forms[FormName].submit();
+  }
+  function getParam(name, url) {
+    if (!url) url = window.location.href;
+    name = name.replace(/[\[\]]/g, "\\$&");
+    var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
+        results = regex.exec(url);
+    if (!results) return null;
+    if (!results[2]) return '';
+    return decodeURIComponent(results[2].replace(/\+/g, " "));
+  }
+  </script>
+  <h1>{{user.name}}</h1>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>フロー名</th>
+          <th>削除</th>
+        </tr>
+      </thead>
+      <tbody>
+        <form method='POST' name='flow_list'>
+          {% for flow in flows['flow'] %}
+            <tr>
+              <td>
+                <a href="/frames?uuid={{flow.uuid}}">{{flow['json']['label']}}</a>
+              </td>
+              <td>
+                <button type="submit" onclick="submitAction('/flow/{{flow['uuid']}}', 'flow_list')" {% if not flows['edit_permission']['deletable_flows'] %}disabled{% endif %}>削除</button>
+              </td>
+            </tr>
+          {% endfor %}
+        </form>
+      </tbody>
+      </table>
+    <form action='/flows' method='POST'>
+      <input type="text" name="flow_name" size="20" maxlength="10">
+      <input id="puuid" type="hidden" name="project_uuid" value="">
+      <script type="text/javascript">
+      uuid = getParam('project');
+      document.getElementById('puuid').value = uuid;
+      </script>
+      <button type="submit" {% if not flows['edit_permission']['creatable_flows'] %}disabled{% endif %}>登録</button>
+    </form>
+{% endblock %}

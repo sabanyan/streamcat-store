@@ -1,0 +1,49 @@
+{
+  "version": "0.7.0",
+  "id": "rknearest_neighbors",
+  "label": "最近傍法による回帰",
+  "classification": "regression",
+  "description": "学習データを蓄積、未知のデータを与えた道のデータを与えた際に、そのデータから距離が近い学習データを用いて、回帰を行う。",
+  "ports": [
+    [
+      {
+        "name": "i",
+        "type": "frame"
+      }
+    ],
+    [
+      {
+        "name": "o",
+        "type": "frame"
+      }
+    ]
+  ],
+  "params": [
+    {
+      "name": "radius",
+      "type": "string",
+      "label": "set the range of parameter space"
+    },
+    {
+      "name": "weights",
+      "type": "string",
+      "label": "重み付けを行うかどうか（デフォルト：uniform）"
+    },
+    {
+      "name": "a",
+      "type": "string",
+      "label": "アルゴリズム（デフォルト：auto)"
+    },
+    {
+      "name": "leaf_size",
+      "type": "string",
+      "label": "BallTreeまたはKDTreeに渡される葉の大きさ（デフォルト：30）"
+    },
+    {
+      "name": "p",
+      "type": "string",
+      "label": "ミンコフスキー距離を用いた距離計算でのパラメータの値（デフォルト：2）"
+    }
+  ],
+  "url": ""
+}

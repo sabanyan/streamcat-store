@@ -1,0 +1,44 @@
+{
+  "version": "0.7.0",
+  "id": "evaluate",
+  "label": "評価",
+  "classification": "postprocess",
+  "description": "Evaluate",
+  "ports": [
+    [
+      {
+        "name": "i",
+        "type": "frame"
+      },
+      {
+        "name": "d",
+        "type": "string",
+        "label": "test_data"
+      }
+    ],
+    [
+      {
+        "name": "o",
+        "type": "frame"
+      }
+    ]
+  ],
+  "params": [
+    {
+      "name": "m",
+      "type": "string",
+      "label": "select metrics appling model"
+    },
+    {
+      "name": "p",
+      "type": "boolean",
+      "label": "それぞれのクラスに属する確率を返すか、属する可能性が最も高いクラスのラベルを返すか（デフォルト：クラスのラベルを返す）、分類のみ有効"
+    },
+    {
+      "name": "metrics_file_name",
+      "type": "string",
+      "label": "metrics_file_name"
+    }
+  ],
+  "url": ""
+}

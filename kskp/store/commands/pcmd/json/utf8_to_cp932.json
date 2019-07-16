@@ -1,0 +1,23 @@
+{
+  "id": "utf8_to_cp932",
+  "params": [],
+  "ports": [
+    [
+      {
+        "name": "i",
+        "type": "frame"
+      }
+    ],
+    [
+      {
+        "name": "o",
+        "type": "frame"
+      }
+    ]
+  ],
+  "version": "0.7.0",
+  "label": "Windowsファイル形式へ変換(Shift-JIS拡張)",
+  "classification": "data_format",
+  "description": "Windowsファイル（Shift-JIS拡張 CP932、CRLF改行コード）へ変換したデータを出力する。",
+  "url": ""
+}

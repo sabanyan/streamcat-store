@@ -1,0 +1,77 @@
+{
+  "id": "mcal",
+  "params": [
+    {
+      "name": "a",
+      "type": "string",
+      "label": "結果列名(必須)"
+    },
+    {
+      "name": "c",
+      "type": "string",
+      "label": "計算式(必須)"
+    },
+    {
+      "name": "assert_diffSize",
+      "type": "boolean",
+      "label": "入力、出力件数比較を行う",
+      "optional": true
+    },
+    {
+      "name": "assert_nullout",
+      "type": "boolean",
+      "label": "出力項目の NULL 値チェックを行う",
+      "optional": true
+    },
+    {
+      "name": "nfn",
+      "type": "boolean",
+      "label": "入力データの 1 行目を項目名行とみなさない。",
+      "optional": true
+    },
+    {
+      "name": "nfno",
+      "type": "boolean",
+      "label": "出力データに項目名行を出力しない。",
+      "optional": true
+    },
+    {
+      "name": "x",
+      "type": "boolean",
+      "label": "項目番号による指定",
+      "optional": true
+    },
+    {
+      "name": "tmpPath",
+      "type": "string",
+      "label": "作業ファイル格納パス名",
+      "optional": true
+    },
+    {
+      "name": "precision",
+      "type": "string",
+      "label": "有効桁数",
+      "optional": true,
+      "default": 10
+    }
+  ],
+  "ports": [
+    [
+      {
+        "name": "i",
+        "type": "frame"
+      }
+    ],
+    [
+      {
+        "name": "o",
+        "type": "frame"
+      }
+    ]
+  ],
+  "version": "0.7.0",
+  "label": "計算",
+  "classification": "calculation",
+  "description": "",
+  "url": "./static/pdf/mcmd/calculation/mcal.pdf"
+}

@@ -1,0 +1,44 @@
+{
+  "version": "0.7.0",
+  "id": "rkrf",
+  "label": "ランダムフォレストによる回帰",
+  "classification": "regression",
+  "description": "複数の決定木を作り、それらにアンサンブル学習を適用してより良い決定木を作り、それを用いて回帰を行う。",
+  "ports": [
+    [
+      {
+        "name": "i",
+        "type": "frame"
+      }
+    ],
+    [
+      {
+        "name": "o",
+        "type": "frame"
+      }
+    ]
+  ],
+  "params": [
+    {
+      "name": "l",
+      "type": "string",
+      "label": "各ノードに必要なサンプル数の下限（デフォルト：1）"
+    },
+    {
+      "name": "d",
+      "type": "string",
+      "label": "木の深さの最大値"
+    },
+    {
+      "name": "r",
+      "type": "string",
+      "label": "乱数のシード値"
+    },
+    {
+      "name": "b",
+      "type": "string",
+      "label": "ブートストラップサンプルを使用するかどうか（デフォルト：True）"
+    }
+  ],
+  "url": ""
+}

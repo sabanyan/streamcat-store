@@ -1,0 +1,44 @@
+{
+  "version": "0.7.0",
+  "id": "ckab",
+  "label": "アダブーストによる分類",
+  "classification": "classification",
+  "description": "複数の弱い分類器を生成、重みの更新による選別を繰り返して強い分類器を作り、その分類器を用いて分類を行う。",
+  "ports": [
+    [
+      {
+        "name": "i",
+        "type": "frame"
+      }
+    ],
+    [
+      {
+        "name": "o",
+        "type": "frame"
+      }
+    ]
+  ],
+  "params": [
+    {
+      "name": "l",
+      "type": "string",
+      "label": "学習率"
+    },
+    {
+      "name": "r",
+      "type": "string",
+      "label": "乱数のシード値"
+    },
+    {
+      "name": "a",
+      "type": "string",
+      "label": "アルゴリズム（デフォルト：SAMME.R）"
+    },
+    {
+      "name": "n_estimators",
+      "type": "string",
+      "label": "弱い学習器の数（デフォルト値：50）"
+    }
+  ],
+  "url": ""
+}
