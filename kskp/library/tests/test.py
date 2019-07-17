@@ -34,7 +34,7 @@ class LibraryTest(unittest.TestCase):
     #     folder = Folder(Path('kskp/data/library'))
     #     my_uuid = folder.issue_uuid()
     #     folder.save({}, None, str(my_uuid))
-        
+
     # def test_Folder_load(self):
     #     folder = Folder(Path('kskp/data/library'))
     #     my_uuid = folder.issue_uuid()
@@ -46,13 +46,13 @@ class LibraryTest(unittest.TestCase):
     #     frame.set_uuid = str(uuid.uuid4())
     #     frame.set_cache_info = {'dir_path':'kskp/data/library/'}
     #     frame.save()
-        
+
     # def test_Cache(self):
     #     cache = Cache()
     #     cache.set_uuid = str(uuid.uuid4())
     #     cache.set_cache_info = {'dir_path':'kskp/data/library/'}
     #     cache.save()
-        
+
     def save(self, file_path):
         with open(file_path, "w") as f:
             f.write("AAAA")
@@ -75,7 +75,7 @@ class LibraryTest(unittest.TestCase):
         self.assertIsNotNone(root.modified_at)
 
 
-        
+
     def test_get_folder(self):
         root = Library.load_root()
 
@@ -133,7 +133,7 @@ class LibraryTest(unittest.TestCase):
 
     def test_get_frame(self):
         root = Library.load_root()
-        self.save('kskp/data/library/aaaa.csv')
+        self.save('kskp/store/frames/csv/aaaa.csv')
 
         frame = Library.save_frame(root.uuid, 'フレームデータ', Path('kskp/data/library/aaaa.csv'))
 
@@ -158,8 +158,7 @@ class LibraryTest(unittest.TestCase):
     #     Library.save2_frame()
 
     def test_get_no_frame(self):
-        with self.assertRaises(Exception) as e:
-            Library.load_frame('00000000-0000-0000-0000-000000000000')
+        self.assertIsNone(Library.load_frame('00000000-0000-0000-0000-000000000000'))
 
     def test_delete_no_frame(self):
         with self.assertRaises(Exception) as e:
@@ -168,5 +167,3 @@ class LibraryTest(unittest.TestCase):
     def test_update_no_frame(self):
         with self.assertRaises(Exception) as e:
             Library.update_frame_data('00000000-0000-0000-0000-000000000000', '新しいラベル')
-
-    

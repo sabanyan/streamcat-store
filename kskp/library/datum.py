@@ -3,13 +3,13 @@ import uuid
 import random
 import platform
 import datetime
-from . import BaseModel, session
+from . import BaseModel, session, STORE_DIR
 from pathlib import Path
 from sqlalchemy.orm import aliased
 from sqlalchemy import Column, Integer, String, text
 
 class Datum(BaseModel):
-    
+
     # テーブル名の定義
     __tablename__ = 'data'
 
@@ -26,7 +26,9 @@ class Datum(BaseModel):
     modified_at = Column(String, default=text('CURRENT_TIMESTAMP'))
 
     MAX_DATUM_ID = 9000000000000000000
-    DEFAULT_LIBRARY_PATH = 'kskp/data/library'
+    # TODO: とりあえずFrameだけ
+    # csv以外も出た時は改めて考えねば
+    DEFAULT_LIBRARY_PATH = (STORE_DIR / 'frames/csv').as_posix()
     FRAME_TYPE = 'frame'
     FOLDER_TYPE = 'folder'
 
@@ -36,7 +38,7 @@ class Datum(BaseModel):
         """
         # SQLiteではidは乱数で採番する
         self.id = random.randint(0, self.MAX_DATUM_ID)
-        
+
         # parent_uuidからparent_idを取得する
         if parent_uuid is None:
             parent = None
@@ -182,7 +184,7 @@ class Datum(BaseModel):
             return bodylist[0] + '_' + str(nextNumber) + ext
         else:
             return body + '_1' + ext
-    
+
     @staticmethod
     def get_uuid_by_id(id):
         result = session.query(Datum.uuid).filter(Datum.id==id).one_or_none()
