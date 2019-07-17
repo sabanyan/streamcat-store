@@ -18,7 +18,6 @@ class CommandLink:
     def select_runnable(self, runnable_id):
         """
         idとなる文字列を受け取ってrunnableのインスタンスを返却する
-        TODO: 下記の対応表をなくす様に実装する
         """
         from kskp.engine.tests.test_main import Square
 

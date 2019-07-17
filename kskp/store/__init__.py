@@ -1,3 +1,4 @@
+from .flows import FlowLink
 from .commands import CommandLink, CommandsPathLink, CommandsPathFileSource
 from .model import *
 
