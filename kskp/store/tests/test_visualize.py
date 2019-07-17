@@ -9,9 +9,9 @@ class ExecuteViualizeTestCase(unittest.TestCase):
     """
     visualize用コマンドの実行テスト
     """
-    RESULT_DIR = 'kskp/data/library/フロー実行結果/'
-    CACHE_DIR = 'kskp/data/library/フロー実行キャッシュ/'
-    TESTDATA_DIR = 'kskp/data/'
+    RESULT_DIR = 'kskp/store/frames/csv/フロー実行結果/'
+    CACHE_DIR = 'kskp/store/frames/csv/フロー実行キャッシュ/'
+    TESTDATA_DIR = 'kskp/store/frames'
 
     def setUp(self):
         pass

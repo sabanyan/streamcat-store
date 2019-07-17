@@ -8,6 +8,8 @@ from kskp.core import (
 )
 
 from kskp.library import (
+    session as ss,
+    STORE_DIR,
     StoreModel,
     Library,
     FrameModel,

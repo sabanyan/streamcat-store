@@ -1,3 +1,5 @@
+import os
+from pathlib import Path
 # import sqlalchemy
 # from flask import Flask, session, jsonify
 # from flask_sqlalchemy import SQLAlchemy
@@ -14,7 +16,6 @@
 # 起動時のWarningを抑制するため以下の設定値をTrueにする
 # app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
 # db = SQLAlchemy(app)
-import os
 
 FRAME_FOLDER_UUID = 'fffffd73-75d7-440f-b459-b49b3449d655'
 FRAME_FOLDER_LABEL = 'フロー実行結果'
@@ -24,12 +25,15 @@ CACHE_FOLDER_LABEL = 'フロー実行キャッシュ'
 # フローがDBに保存されるようになるまでは下記のパスをstoreが持っておく
 FLOW_PATH = 'kskp/data/flows'
 
+STORE_DIR = Path(__file__).parent.parent / 'store'
+
 # データベースへの接続
 # echo=TrueでSQLログがコンソールに出力される
 from sqlalchemy import create_engine
 # SQLite用
-os.environ['SQLITE_PATH'] = os.getenv('SQLITE_PATH', 'kskp/data/kskp.db')
+os.environ['SQLITE_PATH'] = os.getenv('SQLITE_PATH', (STORE_DIR / 'kskp.db').as_posix())
 os.environ['DATABASE_URI'] = "sqlite:///" + os.environ['SQLITE_PATH']
+# check_same_threadをFalseにすることで、sessionをスレッドをまたいで使うことができるようになる（デフォルトはTrue）
 engine = create_engine(os.environ['DATABASE_URI'], connect_args={'check_same_thread': False}, echo=False)
 
 # ベースクラスをつくる
