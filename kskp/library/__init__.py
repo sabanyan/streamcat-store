@@ -23,9 +23,9 @@ CACHE_FOLDER_UUID = 'ccd66c48-f69a-4a7d-8855-9faec4eafccf'
 CACHE_FOLDER_LABEL = 'フロー実行キャッシュ'
 
 # フローがDBに保存されるようになるまでは下記のパスをstoreが持っておく
-FLOW_PATH = 'kskp/data/flows'
-
 STORE_DIR = Path(__file__).parent.parent / 'store'
+FLOW_PATH = (STORE_DIR / 'flows').as_posix()
+
 
 # データベースへの接続
 # echo=TrueでSQLログがコンソールに出力される
