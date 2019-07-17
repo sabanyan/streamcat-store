@@ -290,8 +290,8 @@ def fetch_flow_by_uuid(flow_uuid):
     """
     指定したフローの内容を返す
     """
-    path = get_flow_path_by_uuid(flow_uuid)
-    return json.loads(path.read_text())
+    from kskp.store import FlowLink
+    return FlowLink(flow_uuid).resolve()
 #
 def copy_flow_by_uuid(original_flow_uuid, user_id, data_source_name=None):
     """
