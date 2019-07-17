@@ -24,7 +24,7 @@ CACHE_FOLDER_LABEL = 'フロー実行キャッシュ'
 
 # フローがDBに保存されるようになるまでは下記のパスをstoreが持っておく
 STORE_DIR = Path(__file__).parent.parent / 'store'
-FLOW_PATH = (STORE_DIR / 'flows').as_posix()
+FLOW_PATH = (STORE_DIR / 'flows/json').as_posix()
 
 
 # データベースへの接続
