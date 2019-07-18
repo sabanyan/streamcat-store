@@ -18,7 +18,7 @@ class Store(Datum):
     できたdatumを入れておく場所
     """
     def __init__(self):
-        super().__init__()
+        super().__init__(None, 'store', None)
         self.data = {} # dict keyはUUID、valはdatum？
 
     def issue_uuid(self):
@@ -113,7 +113,7 @@ class Frame(Datum):
     それを取り出して保存するのも手間が増えてるだけなので、今はstoreのsaveでこのクラスのsaveを呼び出すことにしている。
     """
     def __init__(self):
-        super().__init__()
+        super().__init__(None, 'frame', None)
         self.info = {}
 
     def set_uuid(self, uuid):
@@ -203,7 +203,7 @@ class NysolModule(Datum):
     NysolModule1をラップするクラス
     """
     def __init__(self):
-        super().__init__()
+        super().__init__(None, 'nm', None)
         self._content = None
 
     def set_uuid(self, uuid):

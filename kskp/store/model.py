@@ -26,7 +26,7 @@ def create_user(email, password, name, creator):
     新しいユーザを登録する
     パスワードはハッシュ化する
     """
-    from kskp.web.api import auth
+    from kskp.web.backend.api import auth
     sql = '''
     INSERT INTO users (email, password, name, creator) VALUES (?, ?, ?, ?)
     '''
