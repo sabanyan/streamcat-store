@@ -15,7 +15,6 @@ from kskp.library import (
     Library,
     FrameModel,
     FolderModel,
-    Datum as DatumModel,
     FRAME_FOLDER_UUID,
     FRAME_FOLDER_LABEL,
     CACHE_FOLDER_UUID,

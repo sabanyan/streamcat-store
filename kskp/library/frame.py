@@ -1,11 +1,11 @@
-from .datum import Datum
+from kskp.core import Datum
 import os
 import json
 
 from . import session
 
 class Frame(Datum):
-    
+
     # 64MB
     READ_BUFFER_SIZE = 64 * 1024 * 1024
 
@@ -112,7 +112,7 @@ class Frame(Datum):
         old_path = datum.path
         new_path = os.path.join(os.path.dirname(old_path), Datum.escape_filename(label))
         new_path = Datum.move_file(old_path, new_path)
-        
+
         try:
             # 同じファイルに対応するドキュメントのpath列を、ファイル名の移動に合わせて変更する
             session.query(Datum).filter(Datum.path==old_path).update({'path'       :new_path,
@@ -130,7 +130,7 @@ class Frame(Datum):
             session.commit()
 
         return Frame.convert_to_frame(datum)
-    
+
     def delete(self):
         """
         Frameを削除する
@@ -140,7 +140,7 @@ class Frame(Datum):
             session.query(Datum).filter(Datum.id==self.id)\
                                    .filter(Datum.type==Datum.FRAME_TYPE).delete()
             # ファイルを削除する
-            self._remove_file() 
+            self._remove_file()
         except Exception as e:
             session.rollback()
             raise e

@@ -55,7 +55,6 @@ from .store import (
     Folder
 )
 
-from .datum import Datum
 from .folder import Folder as FolderModel
 from .frame import Frame as FrameModel
 from .library import Library

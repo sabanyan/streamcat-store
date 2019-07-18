@@ -3,7 +3,7 @@ from pathlib import Path
 from kskp.library import FRAME_FOLDER_UUID, FRAME_FOLDER_LABEL
 from kskp.library import CACHE_FOLDER_UUID, CACHE_FOLDER_LABEL
 
-from kskp.library import Datum
+from kskp.core import Datum
 from kskp.library import FrameModel
 from kskp.library import FolderModel
 

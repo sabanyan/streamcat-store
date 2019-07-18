@@ -12,7 +12,7 @@ class Command(Datum):
     """
 
     def __init__(self):
-        super().__init__()
+        super().__init__(None, 'command', None)
         self.i_ports = []
         self.o_ports = []
         self.params = []
@@ -31,7 +31,7 @@ class Port:
     runnableなクラス(CommandやFlow)にそれぞれ、
     入力はi_ports属性・出力はo_ports属性として使われる
     """
-    
+
     def __init__(self, name, port_type):
         self.name = name
         self.type = port_type
@@ -71,4 +71,3 @@ class Parameter:
 
         # self.default = None
         # self.validation = None
-

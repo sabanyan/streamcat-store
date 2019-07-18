@@ -1,4 +1,4 @@
-from .datum import Datum
+from kskp.core import Datum
 import os
 import re
 import json
