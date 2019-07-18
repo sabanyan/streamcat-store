@@ -5,7 +5,7 @@ from kskp.library import CACHE_FOLDER_UUID, CACHE_FOLDER_LABEL
 
 from kskp.core import Datum
 from kskp.library import Frame
-from kskp.library import FolderModel
+from kskp.library import Folder
 
 class Library:
 
@@ -88,21 +88,21 @@ class Library:
         """
         フォルダを取得する
         """
-        return FolderModel.find_by_uuid(folder_uuid)
+        return Folder.find_by_uuid(folder_uuid)
 
     @staticmethod
     def update_folder_data(folder_uuid, label, modifier=None):
         """
         フォルダのラベル名を変更する
         """
-        return FolderModel.update_data(folder_uuid, label, modifier)
+        return Folder.update_data(folder_uuid, label, modifier)
 
     @staticmethod
     def save_folder(parent_uuid, label, creator=None, modifier=None):
         """
         フォルダを作成する
         """
-        new_folder = FolderModel(parent_uuid,
+        new_folder = Folder(parent_uuid,
                             label,
                             creator,
                             modifier)
@@ -114,7 +114,7 @@ class Library:
         """
         フォルダを削除する
         """
-        folder = FolderModel.find_by_uuid(folder_uuid)
+        folder = Folder.find_by_uuid(folder_uuid)
         folder.delete()
 
 
@@ -138,12 +138,12 @@ class Library:
     def _get_or_make_dir_path(uuid, label, user_id=None):
 
         # 特定用途のフォルダのUUIDは決め打ちである
-        if FolderModel.exists(uuid):
-            folder = FolderModel.find_by_uuid(uuid)
+        if Folder.exists(uuid):
+            folder = Folder.find_by_uuid(uuid)
         else:
             # フォルダが無い場合は作成する
             root = Library._get_library(user_id)
-            folder = FolderModel(root.uuid,
+            folder = Folder(root.uuid,
                             label,
                             user_id,
                             user_id)
@@ -161,7 +161,7 @@ class Library:
         # ルートフォルダが存在しない場合はルートフォルダを作成する
         # (最初にライブラリ画面にアクセスする時はルートフォルダ自身も存在しません)
         if root is None:
-            new_root = FolderModel(parent_uuid=None,
+            new_root = Folder(parent_uuid=None,
                               label='ROOT_FOLDER',
                               creator=user_id,
                               modifier=user_id)
@@ -175,7 +175,7 @@ class Library:
         if datum is None:
             return None
         elif datum.type == Datum.FOLDER_TYPE:
-            return FolderModel.convert_to_folder(datum)
+            return Folder.convert_to_folder(datum)
         elif datum.type == Datum.FRAME_TYPE:
             return Frame.convert_to_frame(datum)
         else:
