@@ -1,8 +1,10 @@
-from kskp.core import Datum
 import os
 import json
+from pathlib import Path
+from datetime import datetime, timedelta, timezone
 
 from . import session
+from kskp.core import Datum
 
 class Frame(Datum):
 
@@ -207,3 +209,69 @@ class Frame(Datum):
                 'label'     : json.loads(self.data, encoding='utf-8')['label'],
                 'creator'   : Datum.get_user_name_by_user_id(self.creator),
                 'createdAt' : self.created_at}
+
+    # for engine
+    def set_centext(self, params):
+        self.context = params
+
+    def save_result(self):
+        # フレームが作成されているか確認(run後なので作成されているはず、作成されていないと作れない)
+        if not self.created:
+            # とりあえずfalseを返す
+            return False
+
+        # dbに保存
+        self.save_to_db()
+
+    def save_to_db(self):
+        self.data = json.dumps({'label' : self.context.get('label')})
+        self.add_entry_from_path(self.context.get('frame_path').as_posix())
+
+    def set_content(self, module):
+        self._content = module
+
+    @property
+    def content(self):
+        return self._content
+
+    @property
+    def created(self):
+        if self.context.get('frame_path') is not None:
+            return self.context.get('frame_path').exists()
+        else:
+            return False
+
+class Cache(Frame):
+    """
+    FrameもCacheもどちらも実ファイルを生成するdatumであり、
+    違いはflowのjsonを書き換えるか書き換えないか（今の所）
+    ということでFrameを継承したものにしてみた。
+    """
+    def __init__(self, parent_uuid, label, stream, creator=None, modifier=None):
+        super().__init__(parent_uuid, label, stream, creator, modifier)
+
+    def save_result(self):
+        # キャッシュが作成されているか確認
+        if not self.created:
+            # とりあえずfalseを返す
+            return False
+
+        # dbに保存
+        self.save_to_db()
+
+        # jsonのnodeのuuidを変更
+        self.update_json_node()
+
+    def update_json_node(self):
+        if self.context.get('flow_uuid') is None:
+            return
+
+        from kskp.store import FLOW_PATH
+
+        flow_path = [path for path in Path(FLOW_PATH).iterdir() if path.stem == self.context.get('flow_uuid')][0]
+        flow_json = json.loads(flow_path.read_text())
+        for node in flow_json['nodes']:
+            if node['id'] == self.context.get('datum_id'):
+                node['uuid'] = self.uuid
+                node['cacheCreatedAt'] = datetime.now(timezone(timedelta(hours=+9), 'JST')).strftime('%Y-%m-%d %H:%M:%S')
+        flow_path.write_text(json.dumps(flow_json, ensure_ascii=False, indent=2), encoding='utf-8')

@@ -4,7 +4,7 @@ from kskp.library import FRAME_FOLDER_UUID, FRAME_FOLDER_LABEL
 from kskp.library import CACHE_FOLDER_UUID, CACHE_FOLDER_LABEL
 
 from kskp.core import Datum
-from kskp.library import FrameModel
+from kskp.library import Frame
 from kskp.library import FolderModel
 
 class Library:
@@ -21,7 +21,7 @@ class Library:
 
         Fix it : add_frameに改名した方が良いか？
         """
-        new_frame = FrameModel(parent_uuid,
+        new_frame = Frame(parent_uuid,
                           label,
                           None,
                           creator,
@@ -35,7 +35,7 @@ class Library:
         """
         フレームを作成する
         """
-        new_frame = FrameModel(parent_uuid,
+        new_frame = Frame(parent_uuid,
                           label,
                           stream,
                           creator,
@@ -52,14 +52,14 @@ class Library:
         frame_uuid : フレームのUUID
         戻り値      : Frameオブジェクト
         """
-        return FrameModel.find_by_uuid(frame_uuid)
+        return Frame.find_by_uuid(frame_uuid)
 
     @staticmethod
     def update_frame_data(frame_uuid, label, modifier=None):
         """
         フレームのラベル名を変更する
         """
-        return FrameModel.update_data(frame_uuid, label, modifier)
+        return Frame.update_data(frame_uuid, label, modifier)
 
     @staticmethod
     def delete_frame(frame_uuid):
@@ -69,7 +69,7 @@ class Library:
         frame_uuid : フレームのUUID
         戻り値      : なし
         """
-        frame = FrameModel.find_by_uuid(frame_uuid)
+        frame = Frame.find_by_uuid(frame_uuid)
         if frame is None:
             raise Exception('no frame exists.')
 
@@ -177,6 +177,6 @@ class Library:
         elif datum.type == Datum.FOLDER_TYPE:
             return FolderModel.convert_to_folder(datum)
         elif datum.type == Datum.FRAME_TYPE:
-            return FrameModel.convert_to_frame(datum)
+            return Frame.convert_to_frame(datum)
         else:
             raise Exception('Undefined type of datum is found!')

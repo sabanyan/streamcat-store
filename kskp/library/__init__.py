@@ -50,13 +50,11 @@ from .store import (
     Store,
     FrameStore,
     NysolModule,
-    Frame,
-    Cache,
     Folder
 )
 
 from .folder import Folder as FolderModel
-from .frame import Frame as FrameModel
+from .frame import Frame, Cache
 from .library import Library
 from .store_model import Store as StoreModel
 

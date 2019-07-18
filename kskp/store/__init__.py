@@ -13,7 +13,6 @@ from kskp.library import (
     STORE_DIR,
     StoreModel,
     Library,
-    FrameModel,
     FolderModel,
     FRAME_FOLDER_UUID,
     FRAME_FOLDER_LABEL,
