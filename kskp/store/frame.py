@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 from datetime import datetime, timedelta, timezone
 
-from . import session
+from . import ss as session
 from kskp.core import Datum
 
 class Frame(Datum):

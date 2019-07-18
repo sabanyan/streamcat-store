@@ -5,10 +5,10 @@ import uuid
 
 from pathlib import Path
 
-from . import session
+from . import ss as session
 
 from kskp.core import Datum
-from kskp.library import Store
+from kskp.store import Store
 
 class Folder(Store):
 

@@ -2,7 +2,7 @@
 import os
 import nysol.mcmd as nm
 
-from kskp.library import NysolModule, Cache, Frame
+from kskp.store import NysolModule, Cache, Frame
 from kskp.core import Command, Port
 
 
