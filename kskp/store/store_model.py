@@ -2,7 +2,7 @@
 import json
 
 from sqlalchemy import Column, Integer, String, text
-from . import BaseModel, session
+from kskp.store import BaseModel, ss as session
 
 class Store(BaseModel):
     """
@@ -11,7 +11,7 @@ class Store(BaseModel):
 
     # テーブル名
     __tablename__ = 'stores'
-    
+
     # カラム
     # id          = Column(ENUM('Directory', 'PostgreSQL', 'MySql', 'ORACLE', name='server_type') ,primary_key=True)
     # data        = Column(JSONB)

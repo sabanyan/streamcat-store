@@ -6,7 +6,7 @@ import uuid
 import random
 import platform
 import datetime
-from kskp.library import BaseModel, session, STORE_DIR
+from kskp.store import BaseModel, ss as session, STORE_DIR
 from pathlib import Path
 from sqlalchemy.orm import aliased
 from sqlalchemy import Column, Integer, String, text

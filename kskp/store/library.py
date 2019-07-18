@@ -1,11 +1,11 @@
 from pathlib import Path
 
-from kskp.library import FRAME_FOLDER_UUID, FRAME_FOLDER_LABEL
-from kskp.library import CACHE_FOLDER_UUID, CACHE_FOLDER_LABEL
+from kskp.store import FRAME_FOLDER_UUID, FRAME_FOLDER_LABEL
+from kskp.store import CACHE_FOLDER_UUID, CACHE_FOLDER_LABEL
 
 from kskp.core import Datum
-from kskp.library import Frame
-from kskp.library import Folder
+from kskp.store import Frame
+from kskp.store import Folder
 
 class Library:
 

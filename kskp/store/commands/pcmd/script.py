@@ -3,7 +3,7 @@ import sys
 import nysol.mcmd as nm
 from pathlib import Path
 
-from kskp.library import NysolModule
+from kskp.store import NysolModule
 from kskp.core import Command, Port
 
 PCMD_DIR = Path(__file__).resolve().parent
