@@ -1,11 +1,16 @@
-from kskp.core import Datum
 import os
 import re
 import json
+import uuid
+
+from pathlib import Path
 
 from . import session
 
-class Folder(Datum):
+from kskp.core import Datum
+from kskp.library import Store
+
+class Folder(Store):
 
     def __init__(self, parent_uuid, label, creator=None, modifier=None):
         """
@@ -196,3 +201,30 @@ class Folder(Datum):
                 'label'     : json.loads(self.data, encoding='utf-8')['label'],
                 'creator'   : Datum.get_user_name_by_user_id(self.creator),
                 'createdAt' : self.created_at}
+
+    def save_frame(self, command, args, datum):
+        """
+        engine用
+        保存するframeへのパスを作成する
+        """
+        args['frame_path'] = (Path(self.path) / (str(uuid.uuid4()) + '.csv'))
+        return command.module(args, datum)
+
+    @staticmethod
+    def load_frame(uuid):
+        """
+        指定したuuidのframeを取得する
+        """
+        import nysol.mcmd as nm
+        from kskp.store import Library
+
+        frame = Library.load_frame(uuid)
+        if frame is None:
+            raise Exception('No frame(%s) is found !' % uuid)
+        path = frame.path_obj
+
+        return nm.m2tee({'i':path.as_posix()})
+
+    @property
+    def content(self):
+        return self

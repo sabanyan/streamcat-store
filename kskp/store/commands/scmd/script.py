@@ -19,7 +19,7 @@ class SaverCommand(Command):
 
     def run(self, args, inputs):
         # 1. storeにsaveする
-        datum_module = inputs['store'].save(self, args, inputs['i'])
+        datum_module = inputs['store'].save_frame(self, args, inputs['i'])
         # 2. lasts用なのでコマンド実行のrunをする（繋げる必要はない）
         # result = datum_module.run(msg='on')
 
@@ -112,5 +112,5 @@ class LoaderCommand(Command):
 
     def run(self, args, inputs):
         nysol_module = NysolModule()
-        nysol_module.set_content(inputs['store'].load(args['uuid']))
+        nysol_module.set_content(inputs['store'].load_frame(args['uuid']))
         return {'o': nysol_module}

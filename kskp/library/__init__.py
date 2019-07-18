@@ -49,11 +49,10 @@ session = Session()
 from .store import (
     Store,
     FrameStore,
-    NysolModule,
-    Folder
+    NysolModule
 )
 
-from .folder import Folder as FolderModel
+from .folder import Folder
 from .frame import Frame, Cache
 from .library import Library
 from .store_model import Store as StoreModel
