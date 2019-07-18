@@ -32,11 +32,12 @@ class SaverCommand(Command):
         return nm.m2tee(command_args)
 
     def get_datum_obj(self):
-        return Frame()
+        from kskp.store import FRAME_FOLDER_UUID
+        return Frame(FRAME_FOLDER_UUID, 'frame', None)
 
     def wrap_datum(self, datum_module, args):
         datum = self.get_datum_obj()
-        datum.set_cache_info(args)
+        datum.set_centext(args)
         datum.set_content(datum_module)
         return datum
 
@@ -49,7 +50,8 @@ class CacheSaverCommand(SaverCommand):
         super().__init__()
 
     def get_datum_obj(self):
-        return Cache()
+        from kskp.store import CACHE_FOLDER_UUID
+        return Cache(CACHE_FOLDER_UUID, 'cache', None)
 
 class RunsSaver(Command):
     """
