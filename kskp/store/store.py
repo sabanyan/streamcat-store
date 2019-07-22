@@ -39,6 +39,28 @@ class FrameStore(Store):
     def append(self, point_id, cache_point):
         self.data[point_id] = cache_point
 
+class ModuleStore(Store):
+    """
+    Moduleを置いておくStore
+    今は二又以上の独自コマンドを実行する際に、
+    使わない方のoutput_moduleを保存しておくために使っている
+
+    フローを実行するrunsに入れる（入れないと実行できない）
+    """
+    def __init__(self):
+        super().__init__(None, 'modulestore', None)
+        self.data = []
+
+    def append(self, module):
+        self.data.append(module)
+
+    def extend(self, module_list):
+        self.data.extend(module_list)
+
+    @property
+    def module_list(self):
+        return self.data
+
 class NysolModule(Datum):
     """
     NysolModuleをラップするクラス
