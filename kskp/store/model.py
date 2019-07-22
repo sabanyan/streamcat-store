@@ -347,15 +347,15 @@ def generate_flow_name(project_id, flow_name, serial_number=1):
             # JSONのフォーマットに則していないファイルは無視
             continue
 
-        # プロジェクトが存在するかのチェック
-        project = fecth_project(project_id)
-        if project is None:
-            continue
+        # # プロジェクトが存在するかのチェック
+        # project = fecth_project(project_id)
+        # if project is None:
+        #     continue
 
-        # プロジェクトが同じかどうかのチェック
-        # 別プロジェクトのフローとは名前が重複してもいいので。
-        if data['projectId'] != project_id:
-            continue
+        # # プロジェクトが同じかどうかのチェック
+        # # 別プロジェクトのフローとは名前が重複してもいいので。
+        # if data['projectId'] != project_id:
+        #     continue
 
         if data['label'] == new_flow_name:
             multi_flag = True
@@ -370,8 +370,6 @@ def fetch_subflows_all_projects(request_args):
     """
     指定したプロジェクトの持つサブフロー一覧の内容リストをuuidを付け加えて返す
     """
-
-
     subflow_list = []
     for path in Path(FLOW_PATH).iterdir():
         try:
@@ -460,7 +458,7 @@ def get_flow_paths_by_project_uuid(project_uuid):
     指定したプロジェクトのUUIDを持つフローファイルのパス群を返すヘルパー
     """
     flow_path_list = []
-    project_id = get_project_by_uuid(project_uuid)['id']
+    # project_id = get_project_id_by_uuid(project_uuid)
 
     def validate_flow_json(data):
         """
@@ -472,47 +470,47 @@ def get_flow_paths_by_project_uuid(project_uuid):
         # flowチェック（flow一覧表示時）
         # 1. flowがprojectに所属しているか（projectIdがついているか）
         # 2. flowのプロジェクトが指定したプロジェクトと同じかどうか
-        if data.get('projectId') == project_id:
-            # 3. flowのキーチェック
-            # 中身のチェックについて、2つのチェックが必要だと考えている。
-            # 最低限必要なものが存在しているか、必要でないものが存在していないかの2つである
+        # if data.get('projectId') == project_id:
 
-            # 最低限必要なものはフロー作成時に生成されるキーのことだと考えて問題なさそう。
-            # 必要でないものは、上記のフロー作成時に生成されるものに
-            # 3つのキー（params, ports, nodes)を加えたもの以外のキー
+        # 3. flowのキーチェック
+        # 中身のチェックについて、2つのチェックが必要だと考えている。
+        # 最低限必要なものが存在しているか、必要でないものが存在していないかの2つである
 
-            # ひとまず中身のチェックとしてはその2つについて考慮すればいいとする
+        # 最低限必要なものはフロー作成時に生成されるキーのことだと考えて問題なさそう。
+        # 必要でないものは、上記のフロー作成時に生成されるものに
+        # 3つのキー（params, ports, nodes)を加えたもの以外のキー
 
-            def contain_require_keys(json_data, requires_key_list):
-                """
-                最低限必要なものが存在しているかのチェック
-                """
-                def has_arribute(data, attribute):
-                    return attribute in data and data[attribute] is not None
+        # ひとまず中身のチェックとしてはその2つについて考慮すればいいとする
 
-                for json_key in required_key_list:
-                    if not has_arribute(json_data, json_key):
-                        return False
-                return True
+        def contain_require_keys(json_data, requires_key_list):
+            """
+            最低限必要なものが存在しているかのチェック
+            """
+            def has_arribute(data, attribute):
+                return attribute in data and data[attribute] is not None
 
-            def has_disallow_key_in_json(json_data, list):
-                """
-                必要でないものが存在していないかのチェック
-                """
-                for data_key in json_data.keys():
-                    if not data_key in list:
-                        return True
-                return False
+            for json_key in required_key_list:
+                if not has_arribute(json_data, json_key):
+                    return False
+            return True
 
-            # 2つのメソッドの形が似ているので、もう少し綺麗になりそうかもと思いながら
-            # 思い浮かんでいないので、綺麗にできる方いたらして下さいm(_ _)m
-            if contain_require_keys(data, required_key_list):
-                if not has_disallow_key_in_json(data, required_key_list + additional_key_list):
+        def has_disallow_key_in_json(json_data, list):
+            """
+            必要でないものが存在していないかのチェック
+            """
+            for data_key in json_data.keys():
+                if not data_key in list:
                     return True
             return False
 
+        # 2つのメソッドの形が似ているので、もう少し綺麗になりそうかもと思いながら
+        # 思い浮かんでいないので、綺麗にできる方いたらして下さいm(_ _)m
+        if contain_require_keys(data, required_key_list):
+            if not has_disallow_key_in_json(data, required_key_list + additional_key_list):
+                return True
+        return False
 
-    for flow_path in Path(FLOW_PATH).iterdir():
+    for flow_path in Path(app.config['FLOW_PATH']).iterdir():
         try:
             if not flow_path.suffix == '.json':
                 continue
@@ -525,8 +523,8 @@ def get_flow_paths_by_project_uuid(project_uuid):
             flow_path_list.append(flow_path)
 
     return flow_path_list
-#
-#
+
+
 def make_flow_path(file_name):
     """
     フローファイルのパス作成用ヘルパー

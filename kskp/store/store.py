@@ -8,20 +8,20 @@ class Store(Datum):
     """
     datumを入れておく場所
     """
-    def __init__(self, parent_uuid, type, label, creator=None, modifier=None):
-        super().__init__(parent_uuid, type, label, creator=None, modifier=None)
+    def __init__(self, parent_uuid, type, label, creator=None):
+        super().__init__(parent_uuid, type, label, creator)
 
-    def save(self, datum):
-        """
-        override用
-        """
-        pass
+    # def save(self, datum):
+    #     """
+    #     override用
+    #     """
+    #     pass
 
-    def load(self, uuid):
-        """
-        override用
-        """
-        pass
+    # def load(self, uuid):
+    #     """
+    #     override用
+    #     """
+    #     pass
 
 class FrameStore(Store):
     """
