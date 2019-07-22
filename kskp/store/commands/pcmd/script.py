@@ -316,9 +316,13 @@ class SelRowCommand(RunfuncCommand):
         f2 = None
 
         f <<= nm.runfunc(mod, FIFO)
+        # runfuncの後にm2teeをしないと、f（ここでのport名はo)を使わなかった時にコンソール上に表示されてしまう
+        f <<= nm.m2tee()
         f2 <<= nm.m2tee(i=FIFO)
 
-        nysol_module_o = f
-        nysol_module_u = f2
+        nysol_module_o= NysolModule()
+        nysol_module_o.set_content(f)
+        nysol_module_u= NysolModule()
+        nysol_module_u.set_content(f2)
 
         return {'o': nysol_module_o, 'u': nysol_module_u}
