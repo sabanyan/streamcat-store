@@ -279,3 +279,50 @@ class Utf8ToCp932Command(PCommand):
         nysol_module_o.set_content(f)
 
         return {'o': nysol_module_o}
+
+class RunfuncCommand(Command):
+    def __init__(self):
+        super().__init__()
+        self.i_ports = [Port('i', 'frame')]
+        self.o_ports = [Port('o', 'mcmd')]
+
+    def run(self, args, inputs):
+        """
+        実際実行(for override)
+        """
+        pass
+
+class SelRowCommand(RunfuncCommand):
+    def __init__(self):
+        super().__init__()
+        self.i_ports = [Port('i', 'frame')]
+        self.o_ports = [Port('o', 'mcmd'), Port('u', 'mcmd')]
+
+    def run(self, args, inputs):
+        from .src import mod
+
+        import uuid
+        import os
+        import errno
+
+        FIFO = str(uuid.uuid4())
+        try:
+            os.mkfifo(FIFO)
+        except OSError as oe:
+            if oe.errno != errno.EEXIST:
+                raise
+
+        f = inputs['i']
+        f2 = None
+
+        f <<= nm.runfunc(mod, FIFO)
+        # runfuncの後にm2teeをしないと、f（ここでのport名はo)を使わなかった時にコンソール上に表示されてしまう
+        f <<= nm.m2tee()
+        f2 <<= nm.m2tee(i=FIFO)
+
+        nysol_module_o= NysolModule()
+        nysol_module_o.set_content(f)
+        nysol_module_u= NysolModule()
+        nysol_module_u.set_content(f2)
+
+        return {'o': nysol_module_o, 'u': nysol_module_u}

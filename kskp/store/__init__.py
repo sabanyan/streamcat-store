@@ -85,7 +85,7 @@ ss = Session()
 
 from kskp.core import Datum, Port, Command
 
-from .store import Store, FrameStore, NysolModule
+from .store import Store, FrameStore, NysolModule, ModuleStore
 from .frame import Frame, Cache
 from .flow import Flow
 from .folder import Folder
@@ -94,7 +94,7 @@ from .awss3 import AwsS3
 from .library import Library
 from .store_model import Store as StoreModel
 from .flows import FlowLink
-from .commands import CommandLink, CommandsPathLink, CommandsPathFileSource
+from .commands import CommandLink, CommandsPathLink, CommandsPathFileSource, RunfuncCommand
 from .model import *
 
 # テーブルを作成する
