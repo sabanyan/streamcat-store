@@ -6,10 +6,6 @@ FRAME_FOLDER_UUID = 'fffffd73-75d7-440f-b459-b49b3449d655'
 FRAME_FOLDER_LABEL = 'フロー実行結果'
 CACHE_FOLDER_UUID = 'ccd66c48-f69a-4a7d-8855-9faec4eafccf'
 CACHE_FOLDER_LABEL = 'フロー実行キャッシュ'
-DEFAULT_FLOW_FOLDE_UUID = '32b859c1-5268-4075-9b28-8514d180a508'
-DEFAULT_FLOW_FOLDE_LABEL = '新しいフローフォルダ'
-RESQUE_FLOW_FOLDER_UUID = '4e946b0d-90ab-4a14-aa29-e77e37d126ad'
-RESQUE_FLOW_FOLDER_LABEL = '御救いフローフォルダ'
 
 # フローがDBに保存されるようになるまでは下記のパスをstoreが持っておく
 STORE_DIR = Path(__file__).parent.parent / 'store'

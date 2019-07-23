@@ -7,8 +7,6 @@ from pathlib import Path
 from datetime import datetime
 
 from kskp.store import Library
-from kskp.store import FRAME_FOLDER_UUID
-from kskp.store import CACHE_FOLDER_UUID
 
 class LibraryTest(unittest.TestCase):
     # テスト用ユーザID
@@ -47,7 +45,7 @@ class LibraryTest(unittest.TestCase):
         frame_file_path = Path(root.path + str(uuid.uuid4()))
         self.save(frame_file_path)
         # 指定したファイルをフレームとしてライブラリに登録する
-        new_frame = Library.save_frame(FRAME_FOLDER_UUID, 'テストフレーム', frame_file_path, self.USER_ID1)
+        new_frame = Library.save_frame(root.uuid, 'テストフレーム', frame_file_path, self.USER_ID1)
         # 登録したフレームを取得する
         saved_frame = Library.load_frame(new_frame.uuid)
         # 作成したフレームを削除する

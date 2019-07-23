@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from kskp.store import FRAME_FOLDER_UUID, FRAME_FOLDER_LABEL
-from kskp.store import CACHE_FOLDER_UUID, CACHE_FOLDER_LABEL
+# from kskp.store import FRAME_FOLDER_UUID, FRAME_FOLDER_LABEL
+# from kskp.store import CACHE_FOLDER_UUID, CACHE_FOLDER_LABEL
 
 from kskp.core  import Datum
 from kskp.store import Folder
@@ -204,35 +204,36 @@ class Library:
 
     @staticmethod
     def _init_library_folders():
-        Library._get_frame_dir_path()
-        Library._get_cache_dir_path()
+        # Library._get_frame_dir_path()
+        # Library._get_cache_dir_path()
+        Library._get_library(user_id=None)
 
-    @staticmethod
-    def _get_frame_dir_path(user_id=None):
-        # フレーム格納フォルダを取得する
-        return Library._get_or_make_dir_path(FRAME_FOLDER_UUID, FRAME_FOLDER_LABEL, user_id)
+    # @staticmethod
+    # def _get_frame_dir_path(user_id=None):
+    #     # フレーム格納フォルダを取得する
+    #     return Library._get_or_make_dir_path(FRAME_FOLDER_UUID, FRAME_FOLDER_LABEL, user_id)
 
-    @staticmethod
-    def _get_cache_dir_path(user_id=None):
-        # キャッシュ格納フォルダを取得する
-        return Library._get_or_make_dir_path(CACHE_FOLDER_UUID, CACHE_FOLDER_LABEL, user_id)
+    # @staticmethod
+    # def _get_cache_dir_path(user_id=None):
+    #     # キャッシュ格納フォルダを取得する
+    #     return Library._get_or_make_dir_path(CACHE_FOLDER_UUID, CACHE_FOLDER_LABEL, user_id)
 
-    @staticmethod
-    def _get_or_make_dir_path(uuid, label, user_id=None):
+    # @staticmethod
+    # def _get_or_make_dir_path(uuid, label, user_id=None):
 
-        # 特定用途のフォルダのUUIDは決め打ちである
-        if Folder.exists(uuid):
-            folder = Folder.find_by_uuid(uuid)
-        else:
-            # フォルダが無い場合は作成する
-            root = Library._get_library(user_id)
-            folder = Folder(root.uuid,
-                            label,
-                            user_id)
-            # Folderのコンストラクタで付番したUUIDを捨てて、特定用途のフォルダのUUIDを格納する
-            folder.uuid = uuid
-            folder.save()
-        return folder
+    #     # 特定用途のフォルダのUUIDは決め打ちである
+    #     if Folder.exists(uuid):
+    #         folder = Folder.find_by_uuid(uuid)
+    #     else:
+    #         # フォルダが無い場合は作成する
+    #         root = Library._get_library(user_id)
+    #         folder = Folder(root.uuid,
+    #                         label,
+    #                         user_id)
+    #         # Folderのコンストラクタで付番したUUIDを捨てて、特定用途のフォルダのUUIDを格納する
+    #         folder.uuid = uuid
+    #         folder.save()
+    #     return folder
 
     @staticmethod
     def _get_library(user_id):
