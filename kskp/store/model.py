@@ -12,10 +12,6 @@ from flask import g
 from threading import Lock
 
 from kskp.store import (
-    FRAME_FOLDER_UUID,
-    FRAME_FOLDER_LABEL,
-    CACHE_FOLDER_UUID,
-    CACHE_FOLDER_LABEL,
     FLOW_PATH
 )
 
