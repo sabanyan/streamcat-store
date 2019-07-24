@@ -303,8 +303,9 @@ class Cache(Frame):
             return
         flow = Flow.find_by_uuid(self.context.get('flow_uuid'))
         flow_json = json.loads(flow.data, encoding='utf-8')['flow']
-        self._update_node(flow_json)
-        Flow.update_data(flow.uuid, flow.label, flow_json, modifier)
+        f = json.loads(flow_json)
+        self._update_node(f)
+        Flow.update_data(flow.uuid, flow.label, json.dumps(f), modifier)
 
     def _update_node(self, flow_json):
         for node in flow_json['nodes']:
