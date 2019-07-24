@@ -3,7 +3,7 @@ import nysol.mcmd as nm
 import uuid
 
 from pathlib import Path
-from kskp.store import Library, FRAME_FOLDER_UUID, CommandLink
+from kskp.store import Library, CommandLink
 
 class ExecuteViualizeTestCase(unittest.TestCase):
     """
@@ -394,7 +394,8 @@ def create_data(file_path_obj, data=None):
     テストデータ作成用
     frameのuuidが返る
     """
+    root = Library.load_root()
     if data is not None:
         nm.mread(i=data, o=file_path_obj.as_posix()).run()
-    frame = Library.save_frame(FRAME_FOLDER_UUID, str(uuid.uuid4()), file_path_obj)
+    frame = Library.save_frame(root.uuid, str(uuid.uuid4()), file_path_obj)
     return frame.uuid

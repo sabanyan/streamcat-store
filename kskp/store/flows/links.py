@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from kskp.store import Library
 
 class FlowLink:
     def __init__(self, flow_uuid):
@@ -13,13 +14,5 @@ class FlowLink:
         uuidを受け取って、json文字列を返す
         TODO: flowのjsonをdbに入れたら変更すること
         """
-        from kskp.store import FLOW_PATH
-
-        # 実ファイルの場合は、ファイル名がuuidとなっている
-        flow_path = Path(FLOW_PATH) / (flow_uuid + '.json')
-
-        if not flow_path.exists():
-            raise Exception(f"存在しないflow_uuid'{flow_uuid}'が指定されています")
-
-        with open(flow_path) as f:
-            return json.load(f)
+        flow = Library.load_flow(flow_uuid)
+        return json.loads(json.loads(flow.data)['flow'])

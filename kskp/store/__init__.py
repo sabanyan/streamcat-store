@@ -2,10 +2,10 @@ import os
 from pathlib import Path
 
 
-FRAME_FOLDER_UUID = 'fffffd73-75d7-440f-b459-b49b3449d655'
-FRAME_FOLDER_LABEL = 'フロー実行結果'
-CACHE_FOLDER_UUID = 'ccd66c48-f69a-4a7d-8855-9faec4eafccf'
-CACHE_FOLDER_LABEL = 'フロー実行キャッシュ'
+# FRAME_FOLDER_UUID = 'fffffd73-75d7-440f-b459-b49b3449d655'
+# FRAME_FOLDER_LABEL = 'フロー実行結果'
+# CACHE_FOLDER_UUID = 'ccd66c48-f69a-4a7d-8855-9faec4eafccf'
+# CACHE_FOLDER_LABEL = 'フロー実行キャッシュ'
 
 # フローがDBに保存されるようになるまでは下記のパスをstoreが持っておく
 STORE_DIR = Path(__file__).parent.parent / 'store'
