@@ -351,7 +351,7 @@ class Datum(BaseModel):
             mount_point_dir = result[1]
             if not Datum.is_mount(Path(mount_point_dir)):
                 uuid = str(result[0])
-                from kskp.library import AwsS3
+                from kskp.store import AwsS3
                 awss3 = AwsS3.find_by_uuid(uuid)
                 awss3.mount()
 
