@@ -206,7 +206,13 @@ class Library:
     def _init_library_folders():
         # Library._get_frame_dir_path()
         # Library._get_cache_dir_path()
-        Library._get_library(user_id=None)
+        Library._get_flow_dir_path()
+
+    @staticmethod
+    def _get_flow_dir_path(user_id=None):
+        # フロー格納フォルダを取得する
+        from kskp.store import FLOW_FOLDER_UUID, FLOW_FOLDER_LABEL
+        return Library._get_or_make_dir_path(FLOW_FOLDER_UUID, FLOW_FOLDER_LABEL, user_id)
 
     # @staticmethod
     # def _get_frame_dir_path(user_id=None):
@@ -218,22 +224,22 @@ class Library:
     #     # キャッシュ格納フォルダを取得する
     #     return Library._get_or_make_dir_path(CACHE_FOLDER_UUID, CACHE_FOLDER_LABEL, user_id)
 
-    # @staticmethod
-    # def _get_or_make_dir_path(uuid, label, user_id=None):
+    @staticmethod
+    def _get_or_make_dir_path(uuid, label, user_id=None):
 
-    #     # 特定用途のフォルダのUUIDは決め打ちである
-    #     if Folder.exists(uuid):
-    #         folder = Folder.find_by_uuid(uuid)
-    #     else:
-    #         # フォルダが無い場合は作成する
-    #         root = Library._get_library(user_id)
-    #         folder = Folder(root.uuid,
-    #                         label,
-    #                         user_id)
-    #         # Folderのコンストラクタで付番したUUIDを捨てて、特定用途のフォルダのUUIDを格納する
-    #         folder.uuid = uuid
-    #         folder.save()
-    #     return folder
+        # 特定用途のフォルダのUUIDは決め打ちである
+        if Folder.exists(uuid):
+            folder = Folder.find_by_uuid(uuid)
+        else:
+            # フォルダが無い場合は作成する
+            root = Library._get_library(user_id)
+            folder = Folder(root.uuid,
+                            label,
+                            user_id)
+            # Folderのコンストラクタで付番したUUIDを捨てて、特定用途のフォルダのUUIDを格納する
+            folder.uuid = uuid
+            folder.save()
+        return folder
 
     @staticmethod
     def _get_library(user_id):

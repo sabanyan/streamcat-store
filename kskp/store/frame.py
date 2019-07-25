@@ -302,7 +302,7 @@ class Cache(Frame):
         if self.context.get('flow_uuid') is None:
             return
         flow = Flow.find_by_uuid(self.context.get('flow_uuid'))
-        flow_json = json.loads(flow.data, encoding='utf-8')['flow']
+        flow_json = flow.flow_data
         self._update_node(flow_json)
         Flow.update_data(flow.uuid, flow.label, flow_json, modifier)
 

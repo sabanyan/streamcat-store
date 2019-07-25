@@ -1,11 +1,8 @@
 import os
 from pathlib import Path
 
-
-FRAME_FOLDER_UUID = 'fffffd73-75d7-440f-b459-b49b3449d655'
-FRAME_FOLDER_LABEL = 'フロー実行結果'
-CACHE_FOLDER_UUID = 'ccd66c48-f69a-4a7d-8855-9faec4eafccf'
-CACHE_FOLDER_LABEL = 'フロー実行キャッシュ'
+FLOW_FOLDER_UUID   = 'ff37fe34-9c25-4Ad0-b74A-affda3712a45'
+FLOW_FOLDER_LABEL  = 'フロー'
 
 # フローがDBに保存されるようになるまでは下記のパスをstoreが持っておく
 STORE_DIR = Path(__file__).parent.parent / 'store'
@@ -52,7 +49,7 @@ else:
 # echo=TrueでSQLログがコンソールに出力される
 from sqlalchemy import create_engine
 # SQLite用
-# os.environ['SQLITE_PATH'] = os.getenv('SQLITE_PATH', (STORE_DIR / 'kskp.db').as_posix())
+os.environ['SQLITE_PATH'] = os.getenv('SQLITE_PATH', (STORE_DIR / 'kskp.db').as_posix())
 # os.environ['DATABASE_URI'] = "sqlite:///" + os.environ['SQLITE_PATH']
 # check_same_threadをFalseにすることで、sessionをスレッドをまたいで使うことができるようになる（デフォルトはTrue）
 # -> PostgreSQLにはこのオプションはない
@@ -86,6 +83,7 @@ from .frame import Frame, Cache
 from .flow import Flow
 from .folder import Folder
 from .awss3 import AwsS3
+from .children_getter import ChildrenGetter
 
 from .library import Library
 from .store_model import Store as StoreModel

@@ -45,7 +45,7 @@ class Store(BaseModel):
     def find_all(cls):
         results = session.query(Store.id,
                                    Store.data,
-                                   Store.create_at,
+                                   Store.created_at,
                                    Store.modified_at,
                                    Store.creator,
                                    Store.modifier).all()
@@ -55,7 +55,7 @@ class Store(BaseModel):
     def find_by_id(cls, id):
         result = session.query(Store.id,
                                   Store.data,
-                                  Store.create_at,
+                                  Store.created_at,
                                   Store.modified_at,
                                   Store.creator,
                                   Store.modifier).filter(Store.id==id).one_or_none()

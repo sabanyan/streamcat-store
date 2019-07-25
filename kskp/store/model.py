@@ -267,7 +267,7 @@ def create_flow(request_json, user_id, data_source_name=None):
     @add_activity_to_flow(user_id)
     def make_flow_json():
         data = {
-            'projectId': get_project_by_uuid(request_json.get('project_uuid'))['id'],
+            'projectId': get_project_by_uuid(request_json.get('project_uuid')),
             'label': request_json.get('name'),
             'ports': [[],[]],
             'params': [],
@@ -536,24 +536,29 @@ def make_flow_path(file_name):
 #     # キャッシュ格納フォルダを取得する
 #     return _get_or_make_dir_path(CACHE_FOLDER_UUID, CACHE_FOLDER_LABEL, user_id)
 #
-# def _get_or_make_dir_path(uuid, label, user_id):
-#     from .library import Folder
-#     from .lib import get_library
-#     # 特定用途のフォルダのUUIDは決め打ちである
-#     if Folder.exists(uuid):
-#         folder = Folder.find_by_uuid(uuid)
-#     else:
-#         # フォルダが無い場合は作成する
-#         root = get_library(user_id)
-#         folder = Folder(root.uuid,
-#                         label,
-#                         user_id,
-#                         user_id)
-#         # Folderのコンストラクタで付番したUUIDを捨てて、特定用途のフォルダのUUIDを格納する
-#         folder.uuid = uuid
-#         folder.save()
-#     return folder
-#
+
+def get_flow_dir_path(user_id):
+    # フロー格納フォルダを取得する
+    from kskp.store import FLOW_FOLDER_UUID, FLOW_FOLDER_LABEL
+    return _get_or_make_dir_path(FLOW_FOLDER_UUID, FLOW_FOLDER_LABEL, user_id)
+
+def _get_or_make_dir_path(uuid, label, user_id):
+    from kskp.store import Folder
+    from kskp.store import Library
+    # 特定用途のフォルダのUUIDは決め打ちである
+    if Folder.exists(uuid):
+        folder = Folder.find_by_uuid(uuid)
+    else:
+        # フォルダが無い場合は作成する
+        root = Library.load_root()
+        folder = Folder(root.uuid,
+                        label,
+                        user_id)
+        # Folderのコンストラクタで付番したUUIDを捨てて、特定用途のフォルダのUUIDを格納する
+        folder.uuid = uuid
+        folder.save()
+    return folder
+
 def get_all_frame_uuid_in_frame(flow_uuid):
     """
     指定するフローのJSONファイルにおいて、フレームノードで参照するフレームUUIDを全て取得する
