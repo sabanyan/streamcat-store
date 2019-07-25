@@ -7,6 +7,7 @@ import random
 import platform
 import datetime
 from kskp.store import BaseModel, ss as session
+from kskp.store import STORE_DIR
 from pathlib import Path
 from sqlalchemy.orm import aliased
 from sqlalchemy import Column, Integer, String, text
@@ -18,7 +19,7 @@ class Datum(BaseModel):
     """
     # TODO: とりあえずFrameだけ
     # csv以外も出た時は改めて考えねば
-    DEFAULT_LIBRARY_PATH = 'kskp/store/frames/csv'
+    DEFAULT_LIBRARY_PATH = (STORE_DIR / 'frames/csv').as_posix()
     AWSS3_TYPE  = 'awss3'
     FOLDER_TYPE = 'folder'
     FLOW_TYPE   = 'flow'
@@ -85,7 +86,7 @@ class Datum(BaseModel):
 
 
     @property
-    def path(self):  
+    def path(self):
         path_obj = self.path_obj
         if path_obj.exists():
             # ここで_pathがマウントポイントで、かつUnmount状態のとき、そのまま_pathを返してしまうと、
@@ -308,7 +309,7 @@ class Datum(BaseModel):
     def is_valid_uuid(uuid):
         """
         uuidの形式チェック
-        """ 
+        """
         if uuid is None:
             return False
         import re
@@ -346,7 +347,7 @@ class Datum(BaseModel):
             raise e
         finally:
             session.commit()
-        
+
         for result in results:
             mount_point_dir = result[1]
             if not Datum.is_mount(Path(mount_point_dir)):
