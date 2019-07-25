@@ -8,7 +8,7 @@ from pathlib import Path
 from . import ss as session
 
 from kskp.core import Datum
-from kskp.store import Store
+from kskp.store import Store, STORE_DIR
 
 class Folder(Store):
 
@@ -204,7 +204,7 @@ class Folder(Store):
         try:
             # 全てのフォルダから紐づかないディレクトリは物理削除する
             dir_path = self._path.rstrip(os.pathsep)
-            while dir_path != '' and dir_path != '/' and dir_path != 'kskp/data':
+            while dir_path != '' and dir_path != '/' and dir_path != (STORE_DIR / 'frames').as_posix():
                 # 自分以外で同じディレクトリパスを使用しているフォルダの有無を確認する
                 if Folder._dir_path_exists(dir_path, except_id=self.id):
                     break
