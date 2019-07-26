@@ -19,8 +19,8 @@ class Datum(BaseModel):
     """
     # TODO: とりあえずFrameだけ
     # csv以外も出た時は改めて考えねば
-    # DEFAULT_LIBRARY_PATH = (STORE_DIR / 'frames/csv').as_posix()
-    DEFAULT_LIBRARY_PATH = (STORE_DIR / 'frames/csv').relative_to(STORE_DIR.parent.parent).as_posix()
+    DEFAULT_LIBRARY_PATH = (STORE_DIR / 'frames/csv').as_posix()
+    # DEFAULT_LIBRARY_PATH = (STORE_DIR / 'frames/csv').relative_to(STORE_DIR.parent.parent).as_posix()
     AWSS3_TYPE  = 'awss3'
     FOLDER_TYPE = 'folder'
     FLOW_TYPE   = 'flow'
