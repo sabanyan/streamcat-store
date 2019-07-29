@@ -41,11 +41,11 @@ elif _is_unittest():
     os.environ["SQLALCHEMY_DATABASE_URI"] = database_uri
 else:
     # ローカル環境用の設定
-    # os.environ["SQLALCHEMY_DATABASE_URI"] = "postgresql://postgres:@db/kskp"
+    os.environ["SQLALCHEMY_DATABASE_URI"] = "postgresql://postgres:@db/kskp"
 
     # ローカルでpostgres専用コンテナを立ち上げる時のコマンド
-    # docker run --name postgres -p 5432:5432 -e POSTGRES_USER=dev -e POSTGRES_DB=kskp -e POSTGRES_PASSWORD=secret -d postgres:9.6
-    os.environ["SQLALCHEMY_DATABASE_URI"] = 'postgresql://dev:secret@0.0.0.0:5432/kskp'
+    # docker run --name postgres -p 5432:5432 -e POSTGRES_USER=dev -e POSTGRES_DB=kskp -e POSTGRES_PASSWORD=secret -d postgres:11.1
+    # os.environ["SQLALCHEMY_DATABASE_URI"] = 'postgresql://dev:secret@0.0.0.0:5432/kskp'
 
 
 # データベースへの接続
