@@ -30,5 +30,4 @@ class FlowLink:
         """
         from kskp.store import Flow
         flow = Flow.find_by_uuid(flow_uuid)
-        f = json.loads(flow.flow_data)
-        return f
+        return flow.flow_data

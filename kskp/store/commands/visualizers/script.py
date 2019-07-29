@@ -70,9 +70,9 @@ class CsvToTableCommand(VisualizersHtml):
         csvのファイルパスから、
         HTMLのテーブル形式にして返す
         """
-
+        from kskp.store import Library
         # inputsにはパスが来て欲しい
-        file_path = inputs.get('i')
+        file_path = Library.load_frame(inputs.get('i')).path
         offset = int(args.get('offset')) if args.get('offset') else 0
         limit = int(args.get('limit')) if args.get('limit') else None
 
