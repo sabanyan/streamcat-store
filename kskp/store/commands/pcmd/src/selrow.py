@@ -3,9 +3,10 @@ import errno
 import sys
 import traceback
 
-def mod(FIFO):
+def mod(FIFO, args):
     header = True
     count = 0
+    row_count = args['f'] if args.get('f') else 0
     try:
         with open(FIFO, "w") as fifo:
             for line in sys.stdin:
@@ -20,13 +21,13 @@ def mod(FIFO):
                     fifo.write(datum_str)
                     continue
 
-                if count < 2:
+                if count < args.get('f'):
                     print(datum_str, end='')
                 else:
                     fifo.write(datum_str)
 
                 count = count + 1
-                
+
     except Exception as e:
         with open('/dev/stderr', 'w') as fpe:
           traceback.print_exc(file=fpe)

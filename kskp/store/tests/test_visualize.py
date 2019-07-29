@@ -37,7 +37,7 @@ class ExecuteViualizeTestCase(unittest.TestCase):
         args = {}
 
         inputs = {
-            'i': frame_path.as_posix()
+            'i': frame_uuid
         }
 
         result = table_command.run(args, inputs)
@@ -79,7 +79,7 @@ class ExecuteViualizeTestCase(unittest.TestCase):
         }
 
         inputs = {
-            'i': frame_path.as_posix()
+            'i': frame_uuid
         }
 
         result = table_command.run(args, inputs)
@@ -120,7 +120,7 @@ class ExecuteViualizeTestCase(unittest.TestCase):
         }
 
         inputs = {
-            'i': frame_path.as_posix()
+            'i': frame_uuid
         }
 
         result = table_command.run(args, inputs)
@@ -162,7 +162,7 @@ class ExecuteViualizeTestCase(unittest.TestCase):
         }
 
         inputs = {
-            'i': frame_path.as_posix()
+            'i': frame_uuid
         }
 
         result = table_command.run(args, inputs)
@@ -196,7 +196,7 @@ class ExecuteViualizeTestCase(unittest.TestCase):
         }
 
         inputs = {
-            'i': frame_path.as_posix()
+            'i': frame_uuid
         }
 
         result = table_command.run(args, inputs)
@@ -248,7 +248,7 @@ class ExecuteViualizeTestCase(unittest.TestCase):
         }
 
         inputs = {
-            'i': frame_path.as_posix()
+            'i': frame_uuid
         }
 
         result = table_command.run(args, inputs)
@@ -293,7 +293,7 @@ class ExecuteViualizeTestCase(unittest.TestCase):
         }
 
         inputs = {
-            'i': frame_path.as_posix()
+            'i': frame_uuid
         }
 
         result = table_command.run(args, inputs)
@@ -336,7 +336,7 @@ class ExecuteViualizeTestCase(unittest.TestCase):
         }
 
         inputs = {
-            'i': frame_path.as_posix()
+            'i': frame_uuid
         }
 
         result = table_command.run(args, inputs)
@@ -378,7 +378,7 @@ class ExecuteViualizeTestCase(unittest.TestCase):
         }
 
         inputs = {
-            'i': frame_path.as_posix()
+            'i': frame_uuid
         }
 
         result = table_command.run(args, inputs)

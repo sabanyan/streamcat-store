@@ -315,7 +315,7 @@ class SelRowCommand(RunfuncCommand):
         f = inputs['i']
         f2 = None
 
-        f <<= nm.runfunc(mod, FIFO)
+        f <<= nm.runfunc(mod, FIFO, args)
         # runfuncの後にm2teeをしないと、f（ここでのport名はo)を使わなかった時にコンソール上に表示されてしまう
         f <<= nm.m2tee()
         f2 <<= nm.m2tee(i=FIFO)
