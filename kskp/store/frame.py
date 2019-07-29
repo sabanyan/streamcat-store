@@ -25,7 +25,7 @@ class Frame(Datum):
         self.stream = stream
 
         self._content = None
-        
+
     @staticmethod
     def find_by_uuid(uuid):
         """
@@ -140,11 +140,16 @@ class Frame(Datum):
         Frameを削除する
         """
         # 削除しようとするframeが、DBに格納されているフローで使用されている場合は例外を送出する
-        using_flow_uuids = Datum.get_flow_uuids_using_other_datum(self.uuid)
-        if len(using_flow_uuids) > 0:
-            from kskp.store import Flow
-            using_flow_label= Flow.find_by_uuid(using_flow_uuids[0]).label
-            raise Exception('このCSVファイルはフロー(%s)で使用しているため削除できません' % using_flow_label)
+        # 2019/07/29現在、以下の理由により一旦コメントアウト
+        # 1. キャッシュ削除にもこのdeleteメソッドを使っており、キャッシュはどこかのフローで使用されているものなので、
+        # 　　いつまで経っても削除できない
+        # 2. frame削除APIでもframeを使っているかいないかをチェックしているので、こっちでしなくてもとりあえず大丈夫
+
+        # using_flow_uuids = Datum.get_flow_uuids_using_other_datum(self.uuid)
+        # if len(using_flow_uuids) > 0:
+        #     from kskp.store import Flow
+        #     using_flow_label= Flow.find_by_uuid(using_flow_uuids[0]).label
+        #     raise Exception('このCSVファイルはフロー(%s)で使用しているため削除できません' % using_flow_label)
 
         try:
             # フレームレコードを削除する

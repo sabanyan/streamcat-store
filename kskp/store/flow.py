@@ -6,7 +6,7 @@ from . import ss as session
 from kskp.core import Datum
 
 class Flow(Datum):
-    
+
     def __init__(self, parent_uuid, label, flow_data, creator=None):
         """
         コンストラクタ
@@ -19,6 +19,14 @@ class Flow(Datum):
 
         # data列の値を作成する
         self.data = json.dumps({'label' : label, 'flow' : flow_data})
+
+    @staticmethod
+    def find_all_flows():
+        """
+        全てのフローを取得する
+        """
+        data = session.query(Datum).filter(Datum.type==Datum.FLOW_TYPE).all()
+        return data
 
     @staticmethod
     def find_by_uuid(uuid):
@@ -58,7 +66,7 @@ class Flow(Datum):
 
             if len(datum_data['ports'][0]) > 0 or len(datum_data['ports'][1]) > 0:
                 subflows.append(datum)
-        
+
         return subflows
 
     @staticmethod
@@ -115,7 +123,7 @@ class Flow(Datum):
                                     .filter(Datum.type==Datum.FLOW_TYPE).one_or_none()
         if datum is None:
             raise Exception('no flow is found by designated id.')
-        
+
         try:
             # レコードを更新する
             data = json.dumps({'label' : label, 'flow' : flow_data})
@@ -128,12 +136,13 @@ class Flow(Datum):
             session.commit()
 
         return Flow.convert_to_flow(datum)
-    
+
     def delete(self):
         """
         Flowを削除する
         """
         # 削除しようとするFlowが、DBに格納されているフローで使用されている場合は例外を送出する
+        # 2019/07/29現在下記のコードはpostgres9.6では動かない、postgres11.1では動作確認している
         using_flow_uuids = Datum.get_flow_uuids_using_other_datum(self.uuid)
         if len(using_flow_uuids) > 0:
             using_flow_label= Flow.find_by_uuid(using_flow_uuids[0]).label
@@ -148,7 +157,7 @@ class Flow(Datum):
             raise e
         finally:
             session.commit()
-        
+
     @property
     def label(self):
         return json.loads(self.data, encoding='utf-8')['label']

@@ -71,7 +71,7 @@ class CsvToTableCommand(VisualizersHtml):
         HTMLのテーブル形式にして返す
         """
         from kskp.store import Library
-        # inputsにはパスが来て欲しい
+        # inputsにはuuidが来る
         file_path = Library.load_frame(inputs.get('i')).path
         offset = int(args.get('offset')) if args.get('offset') else 0
         limit = int(args.get('limit')) if args.get('limit') else None
@@ -125,6 +125,9 @@ class CsvToLineGraphCommand(VisualizersBokehPlot):
         """
         ビジュアライズを描画、保存する。
         """
+        from kskp.store import Library
+        # inputsにはuuidが来る
+        file_path = Library.load_frame(inputs.get('i')).path
 
         # offset対応
         offset = int(args.get('offset')) if args.get('offset') else 0
@@ -133,7 +136,7 @@ class CsvToLineGraphCommand(VisualizersBokehPlot):
         # dfの作成
         # index_colで指定しているものがx軸になる
         time_series_column = args.get('time_series_column') if args.get('time_series_column') else False
-        df = pd.read_csv(inputs.get('i'), parse_dates=time_series_column, nrows=limit, skiprows=range(1, offset))
+        df = pd.read_csv(file_path, parse_dates=time_series_column, nrows=limit, skiprows=range(1, offset))
         df[args.get('data_column')] = df[args.get('data_column')].astype(str)
 
         # start = offset
@@ -217,12 +220,14 @@ class CsvToHistogramCommand(VisualizersBokehPlot):
         csvのファイルパスから、
         plotのヒストグラムを作成する
         """
+        from kskp.store import Library
+        # inputsにはuuidが来る
+        file_path = Library.load_frame(inputs.get('i')).path
 
         # offset対応
         offset = int(args.get('offset')) if args.get('offset') else 0
         limit = int(args.get('limit')) if args.get('limit') else None
 
-        file_path = inputs.get('i')
         df = pd.read_csv(file_path, nrows=limit, skiprows=range(1, offset))
         df[args.get('data_column')] = df[args.get('data_column')].astype(str)
 
@@ -280,11 +285,14 @@ class CsvToScatterCommand(VisualizersBokehPlot):
         csvのファイルパスから、
         plotの散布図を作成する
         """
+        from kskp.store import Library
+        # inputsにはuuidが来る
+        file_path = Library.load_frame(inputs.get('i')).path
+
         # offset対応
         offset = int(args.get('offset')) if args.get('offset') else 0
         limit = int(args.get('limit')) if args.get('limit') else None
 
-        file_path = inputs.get('i')
         df = pd.read_csv(file_path, nrows=limit, skiprows=range(1, offset))
         # df[args.get('data_column')] = df[args.get('data_column')].astype(str)
         #
@@ -351,11 +359,13 @@ class CsvToBoxplotCommand(VisualizersBokehPlot):
         csvのファイルパスから、
         plotの箱ひげ図を作成する
         """
+        from kskp.store import Library
+        # inputsにはuuidが来る
+        file_path = Library.load_frame(inputs.get('i')).path
 
         offset = int(args.get('offset')) if args.get('offset') else 0
         limit = int(args.get('limit')) if args.get('limit') else None
 
-        file_path = inputs.get('i')
         df = pd.read_csv(file_path, nrows=limit, skiprows=range(1, offset))
 
         # ブロック句
