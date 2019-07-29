@@ -24,6 +24,8 @@ class Frame(Datum):
         # ファイルストリームを保持する
         self.stream = stream
 
+        self._content = None
+        
     @staticmethod
     def find_by_uuid(uuid):
         """
@@ -302,10 +304,9 @@ class Cache(Frame):
         if self.context.get('flow_uuid') is None:
             return
         flow = Flow.find_by_uuid(self.context.get('flow_uuid'))
-        flow_json = flow.flow_data
-        f = json.loads(flow_json)
+        f = flow.flow_data
         self._update_node(f)
-        Flow.update_data(flow.uuid, flow.label, json.dumps(f), modifier)
+        Flow.update_data(flow.uuid, flow.label, f, modifier)
 
     def _update_node(self, flow_json):
         for node in flow_json['nodes']:

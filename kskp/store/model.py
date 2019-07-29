@@ -506,7 +506,7 @@ def get_flow_paths_by_project_uuid(project_uuid):
                 return True
         return False
 
-    for flow_path in Path(app.config['FLOW_PATH']).iterdir():
+    for flow_path in Path(FLOW_PATH).iterdir():
         try:
             if not flow_path.suffix == '.json':
                 continue
