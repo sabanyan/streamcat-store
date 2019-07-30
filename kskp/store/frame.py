@@ -293,17 +293,6 @@ class Cache(Frame):
         # self.update_json_flow()
         self.update_flow(self.creator)
 
-    # def update_json_flow(self):
-    #     if self.context.get('flow_uuid') is None:
-    #         return
-
-    #     from kskp.store import FLOW_PATH
-
-    #     flow_path = [path for path in Path(FLOW_PATH).iterdir() if path.stem == self.context.get('flow_uuid')][0]
-    #     flow_json = json.loads(flow_path.read_text())
-    #     self._update_node(flow_json)
-    #     flow_path.write_text(json.dumps(flow_json, ensure_ascii=False, indent=2), encoding='utf-8')
-
     def update_flow(self, modifier):
         from kskp.store import Flow
         if self.context.get('flow_uuid') is None:
