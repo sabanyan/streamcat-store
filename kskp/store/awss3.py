@@ -99,7 +99,7 @@ class AwsS3(Folder):
                                     .filter(Datum.type==Datum.AWSS3_TYPE).one_or_none()
         if datum is None:
             raise Exception('no bucket is found by designated id.')
-        
+
         # ファイルを移動する
         old_path = datum.path
         new_path = Folder._move_dir(old_path, label)
@@ -184,7 +184,7 @@ class AwsS3(Folder):
         path = Path(self._path)
         if not path.exists():
             raise Exception('sudo mount point(%s) does not exist' % self._path)
-        
+
         # python3.7でis_mount()は追加される
         if not Datum.is_mount(path):
             return
@@ -195,7 +195,7 @@ class AwsS3(Folder):
             #  を追加するとテスト実行時にはパスワードを聞かれない)
             umount_cmd = 'sudo umount %s' % self._path
             umount_ret= AwsS3._exec_command(umount_cmd)
-        
+
             # 念のためWAITを入れています
             sleep(1)
         except subprocess.CalledProcessError as e:
@@ -232,28 +232,28 @@ class AwsS3(Folder):
         finally:
             session.commit()
 
-    def _remove_reference_only_recursively(self):
-        """
-        エントリを削除するが、対応するファイルは削除しない
-        この処理は自身と自身のエントリ以下の全てのエントリが対象である
-        """
-        sql="""
-        WITH RECURSIVE R AS (
-            SELECT id FROM data WHERE id = {id}
-            UNION ALL
-            SELECT data.id FROM data JOIN R ON data.parent_id = R.id
-        )
-        DELETE FROM data D
-        WHERE EXISTS (SELECT * FROM R
-                      WHERE R.id = D.id);
-        """.format(id=self.id)
-        try:
-            session.execute(sql)
-        except Exception as e:
-            session.rollback()
-            raise e
-        finally:
-            session.commit()
+    # def _remove_reference_only_recursively(self):
+    #     """
+    #     エントリを削除するが、対応するファイルは削除しない
+    #     この処理は自身と自身のエントリ以下の全てのエントリが対象である
+    #     """
+    #     sql="""
+    #     WITH RECURSIVE R AS (
+    #         SELECT id FROM data WHERE id = {id}
+    #         UNION ALL
+    #         SELECT data.id FROM data JOIN R ON data.parent_id = R.id
+    #     )
+    #     DELETE FROM data D
+    #     WHERE EXISTS (SELECT * FROM R
+    #                   WHERE R.id = D.id);
+    #     """.format(id=self.id)
+    #     try:
+    #         session.execute(sql)
+    #     except Exception as e:
+    #         session.rollback()
+    #         raise e
+    #     finally:
+    #         session.commit()
 
     @staticmethod
     def _exec_command(command_line):
@@ -272,7 +272,7 @@ class AwsS3(Folder):
 
     # import boto3
     # import botocore.exceptions
-    #  
+    #
     # def _get(self, key):
     #     # 自オブジェクトに紐づくバケットオブジェクトを取得する
     #     bucket = self._s3.Bucket(self.bucket_name)
@@ -287,8 +287,8 @@ class AwsS3(Folder):
     #         else:
     #             raise e
     #     return response['Body'].read()
-    # 
-    # 
+    #
+    #
     # def _put(self, key, stream):
     #     # 自オブジェクトに紐づくバケットオブジェクトを取得する
     #     bucket = self._s3.Bucket(self.bucket_name)
@@ -296,7 +296,7 @@ class AwsS3(Folder):
     #     obj = bucket.Object(key)
     #     # オブジェクトの内容を送信する
     #     obj.put(stream)
-    # 
+    #
     # def _exists(self, key):
     #     s3client = boto3.Session().client('s3')
     #     contents = s3client.list_objects(Prefix=key, Bucket=self.bucket_name).get("Contents")
@@ -305,7 +305,7 @@ class AwsS3(Folder):
     #             if content.get("Key") == key:
     #                 return True
     #     return False
-    # 
+    #
     # def get_another_key(self, key):
     #     """
     #     同じ名称のKeyが既に存在する場合、末尾に数字を付加したKey名を作成する
@@ -322,4 +322,3 @@ class AwsS3(Folder):
                 'bucket'    : self.bucket_name,
                 'creator'   : Datum.get_user_name_by_user_id(self.creator),
                 'createdAt' : self.created_at_str}
-

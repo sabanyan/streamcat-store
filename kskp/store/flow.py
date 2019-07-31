@@ -157,6 +157,12 @@ class Flow(Datum):
             raise e
         finally:
             session.commit()
+            
+    def remove_reference_only(self):
+        """
+        念の為Flowは削除しない
+        """
+        pass
 
     @property
     def label(self):

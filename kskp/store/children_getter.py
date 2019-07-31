@@ -26,8 +26,8 @@ class ChildrenGetter:
             folder_child_path = folder_child.path
             if folder_child_path is not None and folder_child_path != '' and not os.path.exists(folder_child_path):
                 # フォルダ直下のデータについて、pathに値が設定されており、かつ対応するファイルが存在しない場合は、DBエントリから削除する
-                ChildrenGetter._convert_type(folder_child).delete()
-        
+                ChildrenGetter._convert_type(folder_child).remove_reference_only()
+
         # ファイル --> ドキュメント/フォルダ
         folder_children_path = [child.path for child in folder_children]
         for child_file in os.listdir(dir_path):
@@ -50,7 +50,7 @@ class ChildrenGetter:
                     with open(child_path) as f:
                         flow_data = f.read()
                     new_child = Flow(folder.uuid, os.path.basename(child_path), flow_data, user)
-                    new_child.save()                
+                    new_child.save()
 
     @staticmethod
     def _convert_type(datum):

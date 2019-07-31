@@ -147,12 +147,31 @@ class Folder(Store):
 
     def remove_reference_only(self):
         """
-        フォルダを削除するが、対応するディレクトリは削除しない
+        _remove_reference_only_recursivelyのエイリアスです
         """
+        self._remove_reference_only_recursively()
+
+    def _remove_reference_only_recursively(self):
+        """
+        エントリを削除するが、対応するファイルは削除しない
+        この処理は自身と自身のエントリ以下の全てのエントリが対象である
+        """
+        sql="""
+        WITH RECURSIVE R AS (
+            SELECT id FROM data WHERE id = {id}
+            UNION ALL
+            SELECT data.id FROM data JOIN R ON data.parent_id = R.id
+        )
+        DELETE FROM data D
+        WHERE EXISTS (SELECT * FROM R
+                      WHERE R.id = D.id);
+        """.format(id=self.id)
+
         try:
             # フォルダレコードを削除する
             session.query(Datum).filter(Datum.id==self.id)\
-                               .filter(Datum.type==Datum.FOLDER_TYPE).delete()
+                                .filter(Datum.type==Datum.FOLDER_TYPE).delete()
+            session.execute(sql)
         except Exception as e:
             session.rollback()
             raise e
