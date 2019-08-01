@@ -1,0 +1,25 @@
+{
+  "version": "0.7.0",
+  "id": "demo_csvtoheatmap",
+  "order": 700,
+  "label": "ヒートマップデモ",
+  "classification": "visualize",
+  "description": "ヒートマップ出力テスト",
+  "ports": [
+    [
+      {
+        "name": "i",
+        "type": "frame"
+      }
+    ],
+    [
+      {
+        "name": "o",
+        "type": "frame"
+      }
+    ]
+  ],
+  "params": [
+  ],
+  "url": ""
+}
