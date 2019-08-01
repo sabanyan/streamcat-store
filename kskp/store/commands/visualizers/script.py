@@ -391,3 +391,188 @@ class CsvToBoxplotCommand(VisualizersBokehPlot):
         plot=renderer.get_plot(boxwhisker).state
 
         return plot
+
+class CsvToHeatmap(VisualizersBokehPlot):
+    """
+    ヒートマップ（まだデモ用で完全ではない）
+    """
+    def __init__(self):
+        super().__init__()
+
+    def plot(self, args, inputs):
+        """
+        ヒートマップ作成
+        """
+        from holoviews import opts
+        from bokeh.models import CustomJS
+        hv.extension('bokeh')
+
+        #  xticksが適用されない（holoviewsのissueにも上がっていてcloseされていない）ので使用
+        #  pscriptをpip installする必要あり
+        def change_formatter(p, o):
+            fig = p.handles["plot"]
+            fig.renderers.append(p.handles['xaxis'])
+
+            def callback(fig=fig):
+                def do_format(t, e):
+                    return [label if i % 10 == 0 else "" for i, label in enumerate(t)]
+
+                fig.renderers[1].formatter.doFormat = do_format
+            fig.js_on_change("inner_width", CustomJS.from_py_func(callback))
+
+        df = pd.read_csv('kskp/data/frame_for_demo/heatmap.csv')
+        data = []
+        for index, row in df.iterrows():
+            data.append((row['TIME'], 'S1', row['S1']))
+
+        heat = hv.HeatMap(data).opts(colorbar=True,width=600).opts(height=600, width=1040, finalize_hooks=[change_formatter])
+
+        heat.relabel('テスト')
+        # boxplot = hv.BoxWhisker(df['S1'], vdims='S1')
+
+        # boxplot + heat
+
+        # renderer.get_plot(heat).handlesは下記の通り
+        # {
+        #     'xaxis': CategoricalAxis(id='1058', ...),
+        #     'x_range': FactorRange(id='1047', ...),
+        #     'yaxis': CategoricalAxis(id='1062', ...),
+        #     'y_range': FactorRange(id='1048', ...),
+        #     'plot': Figure(id='1049', ...),
+        #     'color_mapper': LinearColorMapper(id='1077', ...),
+        #     'color_dim': Dimension('z'),
+        #     'previous_id': 140145480499608,
+        #     'source': ColumnDataSource(id='1078', ...),
+        #     'cds': ColumnDataSource(id='1078', ...),
+        #     'selected': Selection(id='1079', ...),
+        #     'colorbar': ColorBar(id='1086', ...),
+        #     'glyph': Rect(id='1081', ...),
+        #     'glyph_renderer': GlyphRenderer(id='1083', ...)
+        # }
+
+        yaxis = renderer.get_plot(heat).handles['yaxis']
+        yaxis.axis_label = '縦'
+        plot.renderers.append(yaxis)
+
+        renderer = hv.renderer('bokeh')
+        plot=renderer.get_plot(heat).state
+
+        return plot
+
+
+class CsvToHatching(VisualizersBokehPlot):
+    """
+    ハッチングデモ用
+    """
+    def __init__(self):
+        super().__init__()
+
+    def plot(self, args, inputs):
+        """
+        ハッチングのテスト
+        """
+
+        hv.extension('bokeh')
+
+        df = pd.read_csv('kskp/data/frame_for_demo/ハッチ用.csv')
+
+        X  = df['TIME']
+        Y = df['min']
+        Y2 = df['max']
+        layout = hv.Curve(df, 'TIME', 'avg').opts(color='red', xticks=2, height=600, width=1040) * hv.Area((X, Y, Y2), vdims=['y', 'y2']).opts(alpha=0.1, color='gray', height=600, width=1040)
+
+        renderer = hv.renderer('bokeh')
+        plot=renderer.get_plot(layout).state
+
+        return plot
+
+
+class CsvToWaveForm(VisualizersBokehPlot):
+    """
+    波形比較図ver0.1
+    """
+    def __init__(self):
+        super().__init__()
+
+    def plot(self, args, inputs):
+        hv.extension('bokeh')
+
+        graph_muted_alpha = 0.05
+        start = 0
+        end = 3
+
+        plots = {}
+        events_plot = {}
+        spike_plot = None
+
+        def select_data(df, start, end):
+            """
+            指定したstartとendを満たすrowsを持ったdfを返す
+            """
+            return df.query(f'{start}<= TIME <= {end}')
+
+        #  正規化グラフ
+        # chunkの実験
+        normalize_reader = pd.read_csv('kskp/data/frame_for_demo/正規化.csv', chunksize=1000)
+        normalize  = pd.concat((select_data(df, start, end) for df in normalize_reader), ignore_index = True)
+
+        for column in normalize.columns:
+            if column == 'TIME':
+                continue
+
+            curve = hv.Curve(normalize, 'TIME', column)
+            plots[column] = curve.opts(muted_alpha=graph_muted_alpha) * hv.Scatter(curve).opts(size=5, muted_alpha=graph_muted_alpha)
+
+        #  イベント
+        event_reader = pd.read_csv('kskp/data/frame_for_demo/イベント0.csv', chunksize=1000)
+        event = pd.concat((select_data(df, start, end) for df in event_reader), ignore_index = True)
+        for column in event.columns:
+            if column == 'TIME':
+                spike_plot = hv.Spikes(event['TIME'].tolist()).opts(line_alpha=0.3, spike_length=1)
+                continue
+
+            events_plot[column] = hv.Scatter(event, 'TIME', column).opts(size=10, muted_alpha=0)
+
+        #  Overlay
+        plot =  hv.NdOverlay(plots).opts(legend_position='bottom', show_grid=True, width=1040, height=440, xlabel='観測時刻', ylabel='')
+        event = hv.NdOverlay(events_plot).opts(legend_position='top', xaxis='top', show_grid=True, yaxis=None, height=130, width=1040, xlabel='')
+
+        #  Layout
+        layout = hv.Layout(event + plot).cols(1)
+        # layout.relabel("波形比較図")
+
+        renderer = hv.renderer('bokeh')
+        plot=renderer.get_plot(layout).state
+
+        return plot
+
+
+class RangeTool(VisualizersBokehPlot):
+    """
+    RangeToolテスト用
+    """
+    def __init__(self):
+        super().__init__()
+
+    def plot(self, args, inputs):
+        from holoviews.plotting.links import RangeToolLink
+        from holoviews import opts
+
+        hv.extension('bokeh')
+
+        normalize_reader = pd.read_csv('kskp/data/frame_for_demo/for_rangetool.csv', chunksize=1000)
+        normalize  = pd.concat((df for df in normalize_reader), ignore_index = True)
+
+        c = hv.Curve(normalize, 'TIME', 'S1')
+        tgt = c.relabel('時間分割図').opts(width=1040, height=490, labelled=['y'], toolbar='disable', show_grid=True)
+        src = c.opts(width=1040, height=120, yaxis=None, default_tools=[])
+
+        RangeToolLink(src, tgt)
+
+        layout = (tgt + src).cols(1)
+        layout.opts(opts.Layout(shared_axes=False, merge_tools=False))
+
+        renderer = hv.renderer('bokeh')
+        plot=renderer.get_plot(layout).state
+
+        return plot
