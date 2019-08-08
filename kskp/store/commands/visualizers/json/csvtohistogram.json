@@ -21,20 +21,20 @@
   ],
   "params": [
     {
+      "name": "data_column",
+      "type": "column",
+      "options":{
+        "multiple": true
+      },
+      "label": "キー項目列名"
+    },
+    {
       "name": "x_axis",
       "type": "column",
       "options":{
         "multiple": false
       },
-      "label": "x軸に表示する項目"
-    },
-    {
-      "name": "data_column",
-      "type": "column",
-      "options":{
-        "multiple": false
-      },
-      "label": "キー項目列名"
+      "label": "データ列"
     },
     {
       "name": "bins",
@@ -66,11 +66,6 @@
       "default": 600
     },
     {
-      "name": "graph_title",
-      "type": "string",
-      "label": "ビジュアライズのタイトル"
-    },
-    {
       "name": "x_label",
       "type": "string",
       "label": "x軸のラベル"
@@ -79,12 +74,6 @@
       "name": "y_label",
       "type": "string",
       "label": "y軸のラベル"
-    },
-    {
-      "name": "alpha",
-      "type": "number",
-      "label": "透明度",
-      "default": 1
     }
   ],
   "url": ""

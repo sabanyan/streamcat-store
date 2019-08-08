@@ -130,10 +130,7 @@ class CommandLink:
             'csvtohistogram': CsvToHistogramCommand(),
             'csvtoscatter': CsvToScatterCommand(),
             'csvtoboxplot': CsvToBoxplotCommand(),
-            'demo_csvtohatching': CsvToHatching(),
-            'demo_csvtoheatmap': CsvToHeatmap(),
-            'demo_csvtowaveform': CsvToWaveForm(),
-            'demo_rangetool': RangeTool(),
+            'csvtolinegraph_largescale': CsvToLineGraphForLargeScaleCommand(),
             # Storeコマンド
             'saver': SaverCommand(),
             'cachesaver': CacheSaverCommand(),

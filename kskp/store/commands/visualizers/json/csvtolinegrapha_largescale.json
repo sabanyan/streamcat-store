@@ -1,10 +1,10 @@
 {
   "version": "0.7.0",
-  "id": "csvtoscatter",
-  "order": 500,
-  "label": "散布図",
+  "id": "csvtolinegraph_largescale",
+  "order": 600,
+  "label": "折れ線グラフ（大規模時系列データ用）",
   "classification": "visualize",
-  "description": "csvファイルから散布図を作成する",
+  "description": "大規模時系列データ用",
   "ports": [
     [
       {
@@ -21,45 +21,37 @@
   ],
   "params": [
     {
+      "name": "time_series_column",
+      "type": "column",
+      "options":{
+        "multiple": false
+      },
+      "label": "時系列データ列"
+    },
+    {
       "name": "data_column",
       "type": "column",
       "options":{
-        "multiple": true
-      },
-      "label": "キー項目列名"
-    },
-    {
-      "name": "x_axis",
-      "type": "column",
-      "options":{
         "multiple": false
       },
-      "label": "x軸列"
+      "label": "データ列"
     },
     {
-      "name": "y_axis",
-      "type": "column",
-      "options":{
-        "multiple": false
-      },
-      "label": "y軸列"
-    },
-    {
-      "name": "b",
+      "name": "datashade",
       "type": "boolean",
-      "label": "等高線を表示しない",
+      "label": "datashade表示にする（操作が重いときに使うと軽くなる、目安のデータ件数は10万件以上）",
       "optional": false
     },
     {
       "name": "offset",
       "type": "number",
-      "label": "開始行"
+      "label": "ビジュアライズを行う開始行"
     },
     {
       "name": "limit",
       "type": "number",
-      "label": "行数",
-      "default": 100
+      "label": "ビジュアライズ対象のデータ数",
+      "default": 1000
     },
     {
       "name": "x_size",
@@ -71,7 +63,7 @@
       "name": "y_size",
       "type": "number",
       "label": "ビジュアライズの縦サイズ",
-      "default": 600
+      "default": 500
     },
     {
       "name": "x_label",
