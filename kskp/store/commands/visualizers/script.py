@@ -50,18 +50,6 @@ class VisualizersBokehPlot(VisualizersCommand):
 
         return result
 
-    def generate_random_color(self):
-        """
-        ランダムに色を出力
-        bokehは色を指定しないといけないので（デフォルトだと全て同じ色になってしまう）
-        """
-        return '#{:X}{:X}{:X}'.format(*[random.randint(0, 255) for _ in range(3)])
-
-    def color_gen(self):
-        from bokeh.palettes import Category10
-        import itertools
-        yield from itertools.cycle(Category10[10])
-
     def direct_product_by_keys(self, df, keys):
         """
         キー項目の直積を求める
@@ -316,43 +304,5 @@ class CsvToBoxplotCommand(VisualizersBokehPlot):
 
         renderer = hv.renderer('bokeh')
         plot=renderer.get_plot(boxwhisker).state
-
-        return plot
-
-class CsvToLineGraphForLargeScaleCommand(VisualizersBokehPlot):
-    def __init__(self):
-        super().__init__()
-
-    def plot(self, args, inputs):
-        """
-        大規模時系列データ用の折れ線グラフを作成する
-        """
-        from holoviews.operation.datashader import datashade
-        from holoviews.plotting.links import RangeToolLink
-        from holoviews import opts
-        #
-        hv.extension('bokeh')
-        #
-        offset = int(args.get('offset')) if args.get('offset') else 0
-        limit = int(args.get('limit')) if args.get('limit') else None
-        #
-        file_path = Library.load_frame(inputs.get('i')).path
-        df = pd.read_csv(file_path, nrows=limit, skiprows=range(1, offset))
-
-        if args.get('datashade'):
-            c = datashade(hv.Curve(df, args.get('time_series_column'), args.get('data_column')))
-        else:
-            c = hv.Curve(df, args.get('time_series_column'), args.get('data_column'))
-
-        tgt = c.relabel('').opts(width=args.get('x_size'), height=args.get('y_size'), labelled=['y'], toolbar='disable', show_grid=True)
-        src = c.opts(width=args.get('x_size'), height=120, yaxis=None, default_tools=[])
-
-        RangeToolLink(src, tgt)
-
-        layout = (tgt + src).cols(1)
-        layout.opts(opts.Layout(shared_axes=False, merge_tools=False))
-
-        renderer = hv.renderer('bokeh')
-        plot = renderer.get_plot(layout).state
 
         return plot

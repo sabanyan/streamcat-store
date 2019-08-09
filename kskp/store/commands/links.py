@@ -130,7 +130,6 @@ class CommandLink:
             'csvtohistogram': CsvToHistogramCommand(),
             'csvtoscatter': CsvToScatterCommand(),
             'csvtoboxplot': CsvToBoxplotCommand(),
-            'csvtolinegraph_largescale': CsvToLineGraphForLargeScaleCommand(),
             # Storeコマンド
             'saver': SaverCommand(),
             'cachesaver': CacheSaverCommand(),
