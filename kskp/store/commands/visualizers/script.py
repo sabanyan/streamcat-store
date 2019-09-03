@@ -87,36 +87,16 @@ class CsvToTableCommand(VisualizersHtml):
         HTMLのテーブル形式にして返す
         """
         # inputsにはuuidが来る
-        file_path = Library.load_frame(inputs.get('i')).path
+        frame = Library.load_frame(inputs.get('i'))
         offset = int(args.get('offset')) if args.get('offset') else 0
         limit = int(args.get('limit')) if args.get('limit') else None
 
         # ブロック句
-        if not os.path.exists(file_path):
+        if not frame.file_exists():
             return ''
 
-        result = {}
-
         # テーブル構造
-        with open(file_path, 'r', errors = 'ignore') as f:
-            n = 0
-
-            result['reader'] = []
-            for line in f:
-                # 指定されたlimitの数だけ要素が達していたら終了
-                if limit is not None and len(result['reader']) == limit:
-                    break
-
-                if n == 0:
-                    # 一行目はヘッダとみなす
-                    result['header'] = line.split(',')
-                else:
-                    if offset < n:
-                        result['reader'].append(line.split(','))
-
-                n += 1
-
-        return result
+        return frame.get_table(limit, offset)
 
 # グラフ化に必要なものの準備
 import matplotlib.pyplot as plt
@@ -141,14 +121,15 @@ class CsvToLineGraphCommand(VisualizersBokehPlot):
         ビジュアライズを描画、保存する。
         """
         # offset対応
-        file_path = Library.load_frame(inputs.get('i')).path
+        frame = Library.load_frame(inputs.get('i'))
         offset = int(args.get('offset')) if args.get('offset') else 0
         limit = int(args.get('limit')) if args.get('limit') else None
 
         # dfの作成
         # TODO:愚直にdfを加工しており、高速化・メモリ管理等の工夫は何もしていない
         time_series_column = args.get('time_series_column') if args.get('time_series_column') else False
-        df = pd.read_csv(file_path, parse_dates=[time_series_column], nrows=limit, skiprows=range(1, offset))
+        # df = pd.read_csv(file_path, parse_dates=[time_series_column], nrows=limit, skiprows=range(1, offset))
+        df = frame.get_dataframe(limit, offset, [time_series_column])
         df[args.get('data_column')] = df[args.get('data_column')].astype(str)
 
         # ここstartがdfの最大行数を越えるとエラーが出る
@@ -192,8 +173,9 @@ class CsvToHistogramCommand(VisualizersBokehPlot):
         offset = int(args.get('offset')) if args.get('offset') else 0
         limit = int(args.get('limit')) if args.get('limit') else None
 
-        file_path = Library.load_frame(inputs.get('i')).path
-        df = pd.read_csv(file_path, nrows=limit, skiprows=range(1, offset))
+        frame = Library.load_frame(inputs.get('i'))
+        # df = pd.read_csv(file_path, nrows=limit, skiprows=range(1, offset))
+        df = frame.get_dataframe(limit, offset)
         df[args.get('data_column')] = df[args.get('data_column')].astype(str)
 
         # ここstartがdfの最大行数を越えるとエラーが出る
@@ -237,11 +219,12 @@ class CsvToScatterCommand(VisualizersBokehPlot):
         offset = int(args.get('offset')) if args.get('offset') else 0
         limit = int(args.get('limit')) if args.get('limit') else None
 
-        file_path = Library.load_frame(inputs.get('i')).path
-        df = pd.read_csv(file_path, nrows=limit, skiprows=range(1, offset))
+        frame = Library.load_frame(inputs.get('i'))
+        # df = pd.read_csv(file_path, nrows=limit, skiprows=range(1, offset))
+        df = frame.get_dataframe(limit, offset)
 
         # ブロック句
-        if not os.path.exists(file_path):
+        if not frame.file_exists():
             return ''
 
         # ここstartがdfの最大行数を越えるとエラーが出る
@@ -286,8 +269,9 @@ class CsvToBoxplotCommand(VisualizersBokehPlot):
         offset = int(args.get('offset')) if args.get('offset') else 0
         limit = int(args.get('limit')) if args.get('limit') else None
 
-        file_path = Library.load_frame(inputs.get('i')).path
-        df = pd.read_csv(file_path, nrows=limit, skiprows=range(1, offset))
+        frame = Library.load_frame(inputs.get('i'))
+        # df = pd.read_csv(file_path, nrows=limit, skiprows=range(1, offset))
+        df = frame.get_dataframe(limit, offset)
 
         # ここstartがdfの最大行数を越えるとエラーが出る
         # if len(df) < start:
