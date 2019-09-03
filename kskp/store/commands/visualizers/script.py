@@ -155,6 +155,7 @@ class CsvToLineGraphCommand(VisualizersBokehPlot):
         # if len(df) < start:
             # なんかする
             # pass
+        hv.extension('bokeh')
 
         keys = args.get('data_column')
 
