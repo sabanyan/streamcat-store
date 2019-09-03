@@ -5,10 +5,11 @@ FLOW_FOLDER_UUID   = 'ff37fe34-9c25-4Ad0-b74A-affda3712a45'
 FLOW_FOLDER_LABEL  = 'フロー'
 
 # フローがDBに保存されるようになるまでは下記のパスをstoreが持っておく
-STORE_DIR = Path(__file__).parent.parent / 'store'
+# STORE_DIR = Path(__file__).parent.parent / 'store'
+STORE_DIR = Path(__file__).parent.parent.parent / 'store'
 FLOW_PATH = (STORE_DIR / 'flows/json').as_posix()
 if not os.path.exists(FLOW_PATH):
-    os.mkdir(FLOW_PATH)
+    os.makedirs(FLOW_PATH)
 
 def _is_unittest():
     # python3 -m unittestで実行した場合は、is_unittest=Trueとなる

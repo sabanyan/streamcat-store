@@ -182,6 +182,19 @@ class Frame(Datum):
     def label(self):
         return json.loads(self.data, encoding='utf-8')['label']
 
+    @property
+    def file_size(self):
+        return os.path.getsize(Datum._to_abs_path(self._path))
+
+    def file_exists(self):
+        return os.path.exists(self._to_abs_path(self._path))
+
+    @property
+    def modified_at_str(self):
+        import time
+        wk = time.localtime(os.path.getmtime(Datum._to_abs_path(self._path)))
+        return time.strftime('%Y/%m/%d %H:%M', wk)
+
     def _make_file(self):
         """
         Frameに対応するファイルを作成する
@@ -190,8 +203,8 @@ class Frame(Datum):
             # 同じ名称のファイルが既に存在する場合、末尾に数字を付加したファイル名で作成する
             path = Datum.get_another_file_path(self._path)
             # ドキュメントに紐付くファイル(path列で指定されるファイル)がなければ作成する
-            dir_name = os.path.dirname(path)
-            os.makedirs(dir_name, exist_ok=True)
+            abs_dir_name = os.path.dirname(Datum._to_abs_path(path))
+            os.makedirs(abs_dir_name, exist_ok=True)
             # ファイルを作成する
             self._save_file(path)
             return path
@@ -205,21 +218,21 @@ class Frame(Datum):
         """
         try:
             # ファイルが存在しなければ削除処理はしない
-            if not os.path.exists(self._path):
+            if not os.path.exists(Datum._to_abs_path(self._path)):
                 return
             # 自分以外で同じファイルを使用しているFrameがあれば削除しない
             if Frame._frame_path_exists(self._path, except_id=self.id):
                 return
-            if not os.path.isfile(self._path):
+            if not os.path.isfile(Datum._to_abs_path(self._path)):
                 raise Exception('Can not delete %s, because it is not reguler file.' % self._path)
             # ファイルを物理削除する
-            os.remove(self._path)
+            os.remove(Datum._to_abs_path(self._path))
         except PermissionError as e:
             # ファイルに対する権限がない場合
             raise e
 
     def _save_file(self, path):
-        with open(path, mode='wb') as f:
+        with open(Datum._to_abs_path(path), mode='wb') as f:
             while True:
                 buff = self.stream.read(self.READ_BUFFER_SIZE)
                 f.write(buff)
@@ -255,7 +268,8 @@ class Frame(Datum):
 
     def save_to_db(self):
         self.data = json.dumps({'label' : self.context.get('label')})
-        self.add_entry_from_path(self.context.get('frame_path').as_posix())
+        relative_path = Datum._to_rel_path(self.context.get('frame_path').as_posix())
+        self.add_entry_from_path(relative_path)
 
     def set_content(self, module):
         self._content = module
@@ -270,6 +284,116 @@ class Frame(Datum):
             return self.context.get('frame_path').exists()
         else:
             return False
+
+    def get_dataframe(self, limit, offset, time_series_columns=False):
+        import pandas as pd
+        return pd.read_csv(self._to_abs_path(self._path), 
+                           nrows=limit,
+                           skiprows=range(1, offset),
+                           parse_dates=time_series_columns)
+
+    def get_table(self, limit, offset):
+        result = {}
+
+        # テーブル構造
+        with open(self._to_abs_path(self._path), 'r', errors = 'ignore') as f:
+            n = 0
+
+            result['reader'] = []
+            for line in f:
+                # 指定されたlimitの数だけ要素が達していたら終了
+                if limit is not None and len(result['reader']) == limit:
+                    break
+
+                if n == 0:
+                    # 一行目はヘッダとみなす
+                    result['header'] = line.split(',')
+                else:
+                    if offset < n:
+                        result['reader'].append(line.split(','))
+
+                n += 1
+
+        return result
+
+
+    def load_as_data_frame(self, offset, limit):
+        """
+        CSVの文字列を受け取り、
+        いわゆるデータフレームの形式にして返す
+        TODO: offsetはつかってない
+        """
+        result_text = ''
+        result_data = {}
+        column_list = []
+        abs_path = Path(Datum._to_abs_path(self._path))
+        with abs_path.open(encoding='utf-8') as f:
+            n = 0
+            limit_count = 0
+
+            for line in f:
+                if limit is not None and limit_count == limit:
+                    break
+
+                if n == 0:
+                    # 一行目はヘッダとみなす
+                    # 重複文字があればインデックスをつける
+                    column_list = Frame._replace_column_name(line.split(','))
+                    for column_name in column_list:
+                        result_data[column_name] = []
+                else:
+                    if offset < n:
+                        for idx, column_data in enumerate(line.split(',')):
+                            result_data[column_list[idx]].append(column_data)
+                        limit_count += 1
+                n += 1
+
+        if n == 0:
+            raise Exception('空のCSVを読み込みました。コマンド実行時にエラーが発生した可能性があります。')
+
+        result_len = n
+
+        # 行数も返すように変更
+        return result_data, result_len
+
+    @staticmethod
+    def _replace_column_name(column_list):
+        """
+        受け取ったカラム名リストに重複している列名があれば
+        連番をつける
+        """
+        def check_column_overlap(column_list):
+            """
+            受け取ったカラム名リストを走査する
+            """
+            index_dict = {}
+            column_name_overlap = False
+
+            for index, column_name in enumerate(column_list):
+                if not column_name in index_dict:
+                    index_dict[column_name] = []
+                else:
+                    column_name_overlap = True
+                index_dict[column_name].append((index, len(index_dict[column_name])))
+
+            return index_dict, column_name_overlap
+
+        index_dict, column_name_overlap = check_column_overlap(column_list)
+
+        if not column_name_overlap:
+            return column_list
+
+        for column_name, tuple_list in index_dict.items():
+            if len(tuple_list) < 2:
+                continue
+
+            for tuple in tuple_list:
+                # tuple[0]　インデックス（column_listの）
+                # tuple[1]　連番
+                if tuple[1] > 0:
+                    column_list[tuple[0]] = column_name + '.' + str(tuple[1])
+
+        return column_list
 
 class Cache(Frame):
     """
