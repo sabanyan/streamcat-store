@@ -1,0 +1,84 @@
+{
+    "id": "plc_loader",
+    "rules" : {
+      "source_dir_path" : {
+        "presence": {"allowEmpty": true}
+      },     
+      "start" : {
+        "format" : {
+          "pattern": "^([0-9]{14}|)$",
+          "message": "年月日時分秒を14桁の数字で入力してください"
+        }
+      },
+      "end" : {
+        "format" : {
+          "pattern": "^([0-9]{14}|)$",
+          "message": "年月日時分秒を14桁の数字で入力してください"
+        }
+      },
+      "file_name_regx" : {
+        "presence": {"allowEmpty": true}
+      }
+    },
+    "params": [
+      {
+        "name": "source_dir_path",
+        "type": "string",
+        "label": "取得ディレクトリパス",
+        "default": "kskp/data/frames/PLC"
+      },
+      {
+        "name": "get_directly_from_source_dir_path",
+        "type": "boolean",
+        "label": "取得ディレクトリパスの直下からCSVを取得する"
+      },
+      {
+        "name": "get_latest_file",
+        "type": "boolean",
+        "label": "ディレクトリ内で最新の更新日のファイルだけを取得する"
+      },
+      {
+        "name": "start",
+        "type": "string",
+        "label": "着手日時 (YYYYMMDDHHmmSS)",
+        "default": "20190601000000"
+      },
+      {
+        "name": "end",
+        "type": "string",
+        "label": "完了日時 (YYYYMMDDHHmmSS)",
+        "default": "20190630235959"
+      },
+      {
+        "name": "file_name_regx",
+        "type": "string",
+        "label": "取得ファイルの正規表現指定",
+        "default": "(%Y)_(%m)_(%d)"
+      },
+      {
+        "name": "cut_line1",
+        "type": "boolean",
+        "label": "取得ファイルにタイトル行が含まれる"
+      }
+    ],
+    "ports": [
+      [
+        {
+          "name": "i",
+          "type": "frame"
+        }
+      ],
+      [
+        {
+          "name": "o",
+          "type": "frame"
+        }
+      ]
+    ],
+    "version": "0.0.0",
+    "label": "CSVファイルの読み込み",
+    "classification": "data_source",
+    "description": "指定された取得条件でCSVファイルを取得し1つに結合して返す",
+    "url": ""
+  }
+  

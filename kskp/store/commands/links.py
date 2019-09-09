@@ -124,6 +124,7 @@ class CommandLink:
             'utf8_to_cp932': Utf8ToCp932Command(),
             'sml_modeling': SmlModelingCommand(),
             'selrow': SelRowCommand(),
+            'plc_loader' : PlcLoaderCommand(),
             # ビジュアライズ
             'csvtohtmltable': CsvToTableCommand(),
             'csvtolinegraph': CsvToLineGraphCommand(),
