@@ -3,7 +3,7 @@ import sys
 import nysol.mcmd as nm
 from pathlib import Path
 
-from kskp.library import NysolModule
+from kskp.store import NysolModule
 from kskp.core import Command, Port
 
 PCMD_DIR = Path(__file__).resolve().parent
@@ -220,62 +220,130 @@ class WinCp932ReadCommand(PCommand):
         super().__init__()
 
     def run(self, args, inputs):
-        def Cp932_to_utf8():
-            """
-            ストリームでcp932→utf8に変換するコマンド
-            """
-            import traceback
-            import io
-
-            try:
-                # stdinのencodingがデフォルトでutf-8なので、設定し直す。
-                input_stream = io.TextIOWrapper(sys.stdin.buffer, encoding='cp932')
-                with open('result.csv', 'w') as f:
-                    for line in input_stream:
-                        # 標準出力するときも自動でutf-8に変換されるので、printだけでいい
-                        print(line, end='')
-            except Exception as e:
-                with open('/dev/stderr', 'w') as fpe:
-                    traceback.print_exc(file=fpe)
-
-        # flushをしないと、デバッグ用のprintなども入ってしまう
-        sys.stdout.flush()
         f = None
         f <<= inputs['i']
-        f <<= nm.runfunc(Cp932_to_utf8)
 
-        nysol_module_o= NysolModule()
-        nysol_module_o.set_content(f)
+        args_string = (PCMD_DIR / 'src/windows_cp932_csv_read.sh').as_posix()
+        args_string += self.replace_args(args)
 
-        return {'o': nysol_module_o}
+        return {'o': self.module(f, args_string)}
+
+        # pythonによる変換
+        # 不安定なので無効化しておく
+
+        # def Cp932_to_utf8():
+        #     """
+        #     ストリームでcp932→utf8に変換するコマンド
+        #     """
+        #     import traceback
+        #     import io
+        #
+        #     try:
+        #         # stdinのencodingがデフォルトでutf-8なので、設定し直す。
+        #         input_stream = io.TextIOWrapper(sys.stdin.buffer, encoding='cp932')
+        #         for line in input_stream:
+        #             # 標準出力するときも自動でutf-8に変換されるので、printだけでいい
+        #             print(line, end='')
+        #     except Exception as e:
+        #         with open('/dev/stderr', 'w') as fpe:
+        #             traceback.print_exc(file=fpe)
+        #
+        # # flushをしないと、デバッグ用のprintなども入ってしまう
+        # sys.stdout.flush()
+        # f = None
+        # f <<= inputs['i']
+        # f <<= nm.runfunc(Cp932_to_utf8)
+        #
+        # nysol_module_o= NysolModule()
+        # nysol_module_o.set_content(f)
+        #
+        # return {'o': nysol_module_o}
 
 class Utf8ToCp932Command(PCommand):
     def __init__(self):
         super().__init__()
 
     def run(self, args, inputs):
-        def utf8_to_Cp932():
-            """
-            ストリームでutf-8→cp932に変換するコマンド
-            """
-            import traceback
-            import io
-
-            try:
-                sys.stdout = open(sys.stdout.fileno(), 'w', encoding='cp932', closefd=False)
-                for line in sys.stdin:
-                    # 改行コードは変えてくれなさそうなのでここで変える
-                    print(line.strip() + '\r\n', end='')
-            except Exception as e:
-                with open('/dev/stderr', 'w') as fpe:
-                    traceback.print_exc(file=fpe)
-
-        sys.stdout.flush()
         f = None
         f <<= inputs['i']
-        f <<= nm.runfunc(utf8_to_Cp932)
+
+        args_string = (PCMD_DIR / 'src/utf8_to_cp932.sh').as_posix()
+        args_string += self.replace_args(args)
+
+        return {'o': self.module(f, args_string)}
+
+        # pythonによる変換
+        # 不安定なので無効化しておく
+
+        # def utf8_to_Cp932():
+        #     """
+        #     ストリームでutf-8→cp932に変換するコマンド
+        #     """
+        #     import traceback
+        #     import io
+        #
+        #     try:
+        #         sys.stdout = open(sys.stdout.fileno(), 'w', encoding='cp932', closefd=False)
+        #         for line in sys.stdin:
+        #             # 改行コードは変えてくれなさそうなのでここで変える
+        #             print(line.strip() + '\r\n', end='')
+        #     except Exception as e:
+        #         with open('/dev/stderr', 'w') as fpe:
+        #             traceback.print_exc(file=fpe)
+        #
+        # sys.stdout.flush()
+        # f = None
+        # f <<= inputs['i']
+        # f <<= nm.runfunc(utf8_to_Cp932)
+        #
+        # nysol_module_o= NysolModule()
+        # nysol_module_o.set_content(f)
+        #
+        # return {'o': nysol_module_o}
+
+class RunfuncCommand(Command):
+    def __init__(self):
+        super().__init__()
+        self.i_ports = [Port('i', 'frame')]
+        self.o_ports = [Port('o', 'mcmd')]
+
+    def run(self, args, inputs):
+        """
+        実際実行(for override)
+        """
+        pass
+
+class SelRowCommand(RunfuncCommand):
+    def __init__(self):
+        super().__init__()
+        self.i_ports = [Port('i', 'frame')]
+        self.o_ports = [Port('o', 'mcmd'), Port('u', 'mcmd')]
+
+    def run(self, args, inputs):
+        from .src import mod
+
+        import uuid
+        import os
+        import errno
+
+        FIFO = str(uuid.uuid4())
+        try:
+            os.mkfifo(FIFO)
+        except OSError as oe:
+            if oe.errno != errno.EEXIST:
+                raise
+
+        f = inputs['i']
+        f2 = None
+
+        f <<= nm.runfunc(mod, FIFO, args)
+        # runfuncの後にm2teeをしないと、f（ここでのport名はo)を使わなかった時にコンソール上に表示されてしまう
+        f <<= nm.m2tee()
+        f2 <<= nm.m2tee(i=FIFO)
 
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(f)
+        nysol_module_u= NysolModule()
+        nysol_module_u.set_content(f2)
 
-        return {'o': nysol_module_o}
+        return {'o': nysol_module_o, 'u': nysol_module_u}

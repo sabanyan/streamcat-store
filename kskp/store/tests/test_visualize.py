@@ -3,15 +3,15 @@ import nysol.mcmd as nm
 import uuid
 
 from pathlib import Path
-from kskp.store import Library, FRAME_FOLDER_UUID, CommandLink
+from kskp.store import Library, CommandLink
 
 class ExecuteViualizeTestCase(unittest.TestCase):
     """
     visualize用コマンドの実行テスト
     """
-    RESULT_DIR = 'kskp/data/library/フロー実行結果/'
-    CACHE_DIR = 'kskp/data/library/フロー実行キャッシュ/'
-    TESTDATA_DIR = 'kskp/data/'
+    RESULT_DIR = 'kskp/store/frames/csv/フロー実行結果/'
+    CACHE_DIR = 'kskp/store/frames/csv/フロー実行キャッシュ/'
+    TESTDATA_DIR = 'kskp/store/frames'
 
     def setUp(self):
         pass
@@ -37,7 +37,7 @@ class ExecuteViualizeTestCase(unittest.TestCase):
         args = {}
 
         inputs = {
-            'i': frame_path.as_posix()
+            'i': frame_uuid
         }
 
         result = table_command.run(args, inputs)
@@ -79,7 +79,7 @@ class ExecuteViualizeTestCase(unittest.TestCase):
         }
 
         inputs = {
-            'i': frame_path.as_posix()
+            'i': frame_uuid
         }
 
         result = table_command.run(args, inputs)
@@ -120,7 +120,7 @@ class ExecuteViualizeTestCase(unittest.TestCase):
         }
 
         inputs = {
-            'i': frame_path.as_posix()
+            'i': frame_uuid
         }
 
         result = table_command.run(args, inputs)
@@ -162,7 +162,7 @@ class ExecuteViualizeTestCase(unittest.TestCase):
         }
 
         inputs = {
-            'i': frame_path.as_posix()
+            'i': frame_uuid
         }
 
         result = table_command.run(args, inputs)
@@ -196,7 +196,7 @@ class ExecuteViualizeTestCase(unittest.TestCase):
         }
 
         inputs = {
-            'i': frame_path.as_posix()
+            'i': frame_uuid
         }
 
         result = table_command.run(args, inputs)
@@ -248,7 +248,7 @@ class ExecuteViualizeTestCase(unittest.TestCase):
         }
 
         inputs = {
-            'i': frame_path.as_posix()
+            'i': frame_uuid
         }
 
         result = table_command.run(args, inputs)
@@ -293,7 +293,7 @@ class ExecuteViualizeTestCase(unittest.TestCase):
         }
 
         inputs = {
-            'i': frame_path.as_posix()
+            'i': frame_uuid
         }
 
         result = table_command.run(args, inputs)
@@ -336,7 +336,7 @@ class ExecuteViualizeTestCase(unittest.TestCase):
         }
 
         inputs = {
-            'i': frame_path.as_posix()
+            'i': frame_uuid
         }
 
         result = table_command.run(args, inputs)
@@ -378,7 +378,7 @@ class ExecuteViualizeTestCase(unittest.TestCase):
         }
 
         inputs = {
-            'i': frame_path.as_posix()
+            'i': frame_uuid
         }
 
         result = table_command.run(args, inputs)
@@ -394,7 +394,8 @@ def create_data(file_path_obj, data=None):
     テストデータ作成用
     frameのuuidが返る
     """
+    root = Library.load_root()
     if data is not None:
         nm.mread(i=data, o=file_path_obj.as_posix()).run()
-    frame = Library.save_frame(FRAME_FOLDER_UUID, str(uuid.uuid4()), file_path_obj)
+    frame = Library.save_frame(root.uuid, str(uuid.uuid4()), file_path_obj)
     return frame.uuid

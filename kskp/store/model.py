@@ -11,11 +11,7 @@ from pathlib import Path
 from flask import g
 from threading import Lock
 
-from kskp.library import (
-    FRAME_FOLDER_UUID,
-    FRAME_FOLDER_LABEL,
-    CACHE_FOLDER_UUID,
-    CACHE_FOLDER_LABEL,
+from kskp.store import (
     FLOW_PATH
 )
 
@@ -26,7 +22,7 @@ def create_user(email, password, name, creator):
     新しいユーザを登録する
     パスワードはハッシュ化する
     """
-    from kskp.web.api import auth
+    from kskp.web.backend.api import auth
     sql = '''
     INSERT INTO users (email, password, name, creator) VALUES (?, ?, ?, ?)
     '''
@@ -271,7 +267,7 @@ def create_flow(request_json, user_id, data_source_name=None):
     @add_activity_to_flow(user_id)
     def make_flow_json():
         data = {
-            'projectId': get_project_by_uuid(request_json.get('project_uuid'))['id'],
+            'projectId': get_project_by_uuid(request_json.get('project_uuid')),
             'label': request_json.get('name'),
             'ports': [[],[]],
             'params': [],
@@ -290,243 +286,9 @@ def fetch_flow_by_uuid(flow_uuid):
     """
     指定したフローの内容を返す
     """
-    path = get_flow_path_by_uuid(flow_uuid)
-    return json.loads(path.read_text())
-#
-def copy_flow_by_uuid(original_flow_uuid, user_id, data_source_name=None):
-    """
-    指定したフローのuuidを元に
-    コピーしたフローを作成し、その内容を返す
-    """
-    new_flow_uuid = str(uuid.uuid4()) if data_source_name is None else data_source_name
-    new_flow_path = Path(FLOW_PATH) / (new_flow_uuid + '.json')
-    original_flow_path = get_flow_path_by_uuid(original_flow_uuid)
+    from kskp.store import FlowLink
+    return FlowLink(flow_uuid).resolve()
 
-    # 中身の読み込み
-    with open(original_flow_path) as original_f:
-        flow_json = json.load(original_f)
-
-    # 中身の書き換え
-    with open(new_flow_path, 'w') as new_f:
-        flow_json['label'] = generate_flow_name(flow_json.get('projectId'), flow_json.get('label'))
-        flow_json['creator'] = get_user_by_id(user_id)['name']
-        JST = timezone(timedelta(hours=+9), 'JST')
-        flow_json['createdAt'] = datetime.now(JST).strftime('%Y-%m-%d %H:%M:%S')
-        json.dump(flow_json, new_f, indent=2, ensure_ascii=False)
-
-    return flow_json
-
-def generate_flow_name(project_id, flow_name, serial_number=1):
-    """
-    コピーしたフローの名前（label）を生成する
-    コピーフローの名前ルール
-    ・基本的にはコピー元のフローの名前の後ろに「のコピー」をつける
-    ・「のコピー」をつけた名前がそのプロジェクト内で重複していた場合、後ろに連番（２〜）をつける
-    """
-    multi_flag = False
-    new_flow_name = ''
-
-
-    if serial_number == 1:
-        # 引数で「のコピー」付きのflow_nameを渡してもいいかなと思ったけど、
-        # それも含めてここでやったほうが纏まってていいかなと思ったので、ここで行なっている
-
-        # 引数で、後ろに付ける文字列（ここでは「のコピー」）を渡せるようにした方が柔軟性は上がるが、
-        # 今はいいや、その時が来たらそうする。
-        flow_name = flow_name + ' のコピー'
-        new_flow_name = flow_name
-    elif serial_number > 1:
-        new_flow_name = flow_name + str(serial_number)
-
-    for path in Path(FLOW_PATH).iterdir():
-        try:
-            if not path.suffix == '.json':
-                continue
-            data = json.loads(path.read_text())
-        except json.JSONDecodeError as e:
-            # JSONのフォーマットに則していないファイルは無視
-            continue
-
-        # プロジェクトが存在するかのチェック
-        project = fecth_project(project_id)
-        if project is None:
-            continue
-
-        # プロジェクトが同じかどうかのチェック
-        # 別プロジェクトのフローとは名前が重複してもいいので。
-        if data['projectId'] != project_id:
-            continue
-
-        if data['label'] == new_flow_name:
-            multi_flag = True
-            break
-
-    if multi_flag:
-        return generate_flow_name(project_id, flow_name, serial_number + 1)
-    else:
-        return new_flow_name
-#
-def fetch_subflows_all_projects(request_args):
-    """
-    指定したプロジェクトの持つサブフロー一覧の内容リストをuuidを付け加えて返す
-    """
-
-
-    subflow_list = []
-    for path in Path(FLOW_PATH).iterdir():
-        try:
-            if not path.suffix == '.json':
-                continue
-            data = json.loads(path.read_text())
-        except json.JSONDecodeError as e:
-            # JSONのフォーマットに則していない場合
-            continue
-
-        project = fecth_project(data['projectId'])
-        if project is None:
-            continue
-
-        # 現在フローのuuidがファイル名になっているからできること
-        data['uuid'] = path.stem
-        data['projectName'] = project['name']
-        # onの時にno_inputs（＝inputsがない）のサブフローは出さない
-        if request_args.get('no_inputs') == 'on':
-            if len(data['ports'][0]) == 0:
-                continue
-
-        # onの時にno_outputs（＝outputsがない）のサブフローは出さない
-        if request_args.get('no_outputs') == 'on':
-            if len(data['ports'][1]) == 0:
-                continue
-
-        if len(data['ports'][0]) > 0 or len(data['ports'][1]) > 0:
-            subflow_list.append(data)
-
-    return subflow_list
-#
-def fetch_flows_by_project_uuid(project_uuid):
-    """
-    指定したプロジェクトの持つフロー一覧の内容リストをuuidを付け加えて返す
-    """
-    paths = get_flow_paths_by_project_uuid(project_uuid)
-
-    flow_list = []
-    for path in paths:
-        try:
-            data = json.loads(path.read_text())
-        except json.JSONDecodeError as e:
-            # JSONのフォーマットに則していない場合
-            continue
-
-        data['uuid'] = path.stem
-        flow_list.append(data)
-    return flow_list
-
-#
-def delete_flow_by_uuid(flow_uuid):
-    """
-    フローを削除する
-    """
-    get_flow_path_by_uuid(flow_uuid).unlink()
-#
-#
-def update_flow_by_uuid(flow_uuid, data):
-    """
-    指定したフローの内容を渡されたdataの内容と結合する
-    同じキーが含まれる場合は新しいもので上書きされる
-    """
-    path = get_flow_path_by_uuid(flow_uuid)
-    current = json.loads(path.read_text())
-    current.update(data)
-
-    write_data_to_json(path, current)
-
-    return current
-#
-#
-def get_flow_path_by_uuid(flow_uuid):
-    """
-    指定したUUIDをファイル名にもつフローファイルのパスを返すヘルパー
-    """
-
-    for flow_path in Path(FLOW_PATH).iterdir():
-        if not flow_path.suffix == '.json':
-            continue
-        if flow_path.stem == flow_uuid:
-            return flow_path
-#
-def get_flow_paths_by_project_uuid(project_uuid):
-    """
-    指定したプロジェクトのUUIDを持つフローファイルのパス群を返すヘルパー
-    """
-    flow_path_list = []
-    project_id = get_project_by_uuid(project_uuid)['id']
-
-    def validate_flow_json(data):
-        """
-        flowのjsonが正しい形式かを確かめるメソッド
-        """
-        required_key_list = ['label', 'creator', 'createdAt', 'projectId', 'description']
-        additional_key_list = ['params', 'ports', 'nodes']
-
-        # flowチェック（flow一覧表示時）
-        # 1. flowがprojectに所属しているか（projectIdがついているか）
-        # 2. flowのプロジェクトが指定したプロジェクトと同じかどうか
-        if data.get('projectId') == project_id:
-            # 3. flowのキーチェック
-            # 中身のチェックについて、2つのチェックが必要だと考えている。
-            # 最低限必要なものが存在しているか、必要でないものが存在していないかの2つである
-
-            # 最低限必要なものはフロー作成時に生成されるキーのことだと考えて問題なさそう。
-            # 必要でないものは、上記のフロー作成時に生成されるものに
-            # 3つのキー（params, ports, nodes)を加えたもの以外のキー
-
-            # ひとまず中身のチェックとしてはその2つについて考慮すればいいとする
-
-            def contain_require_keys(json_data, requires_key_list):
-                """
-                最低限必要なものが存在しているかのチェック
-                """
-                def has_arribute(data, attribute):
-                    return attribute in data and data[attribute] is not None
-
-                for json_key in required_key_list:
-                    if not has_arribute(json_data, json_key):
-                        return False
-                return True
-
-            def has_disallow_key_in_json(json_data, list):
-                """
-                必要でないものが存在していないかのチェック
-                """
-                for data_key in json_data.keys():
-                    if not data_key in list:
-                        return True
-                return False
-
-            # 2つのメソッドの形が似ているので、もう少し綺麗になりそうかもと思いながら
-            # 思い浮かんでいないので、綺麗にできる方いたらして下さいm(_ _)m
-            if contain_require_keys(data, required_key_list):
-                if not has_disallow_key_in_json(data, required_key_list + additional_key_list):
-                    return True
-            return False
-
-
-    for flow_path in Path(FLOW_PATH).iterdir():
-        try:
-            if not flow_path.suffix == '.json':
-                continue
-            data = json.loads(flow_path.read_text(encoding='utf-8'))
-        except json.JSONDecodeError as e:
-            # JSONのフォーマットに則していない場合は飛ばす
-            continue
-
-        if validate_flow_json(data):
-            flow_path_list.append(flow_path)
-
-    return flow_path_list
-#
-#
 def make_flow_path(file_name):
     """
     フローファイルのパス作成用ヘルパー
@@ -542,24 +304,29 @@ def make_flow_path(file_name):
 #     # キャッシュ格納フォルダを取得する
 #     return _get_or_make_dir_path(CACHE_FOLDER_UUID, CACHE_FOLDER_LABEL, user_id)
 #
-# def _get_or_make_dir_path(uuid, label, user_id):
-#     from .library import Folder
-#     from .lib import get_library
-#     # 特定用途のフォルダのUUIDは決め打ちである
-#     if Folder.exists(uuid):
-#         folder = Folder.find_by_uuid(uuid)
-#     else:
-#         # フォルダが無い場合は作成する
-#         root = get_library(user_id)
-#         folder = Folder(root.uuid,
-#                         label,
-#                         user_id,
-#                         user_id)
-#         # Folderのコンストラクタで付番したUUIDを捨てて、特定用途のフォルダのUUIDを格納する
-#         folder.uuid = uuid
-#         folder.save()
-#     return folder
-#
+
+def get_flow_dir_path(user_id):
+    # フロー格納フォルダを取得する
+    from kskp.store import FLOW_FOLDER_UUID, FLOW_FOLDER_LABEL
+    return _get_or_make_dir_path(FLOW_FOLDER_UUID, FLOW_FOLDER_LABEL, user_id)
+
+def _get_or_make_dir_path(uuid, label, user_id):
+    from kskp.store import Folder
+    from kskp.store import Library
+    # 特定用途のフォルダのUUIDは決め打ちである
+    if Folder.exists(uuid):
+        folder = Folder.find_by_uuid(uuid)
+    else:
+        # フォルダが無い場合は作成する
+        root = Library.load_root()
+        folder = Folder(root.uuid,
+                        label,
+                        user_id)
+        # Folderのコンストラクタで付番したUUIDを捨てて、特定用途のフォルダのUUIDを格納する
+        folder.uuid = uuid
+        folder.save()
+    return folder
+
 def get_all_frame_uuid_in_frame(flow_uuid):
     """
     指定するフローのJSONファイルにおいて、フレームノードで参照するフレームUUIDを全て取得する

@@ -26,7 +26,7 @@
       "options":{
         "multiple": true
       },
-      "label": "x軸に表示する項目"
+      "label": "キー項目列"
     },
     {
       "name": "y_axis",
@@ -34,7 +34,7 @@
       "options":{
         "multiple": false
       },
-      "label": "y軸に表示する項目"
+      "label": "データ列"
     },
     {
       "name": "offset",
