@@ -2,7 +2,7 @@
 import os
 import nysol.mcmd as nm
 
-from kskp.library import NysolModule, Cache, Frame
+from kskp.store import NysolModule, Cache, Frame
 from kskp.core import Command, Port
 
 
@@ -19,7 +19,7 @@ class SaverCommand(Command):
 
     def run(self, args, inputs):
         # 1. storeにsaveする
-        datum_module = inputs['store'].save(self, args, inputs['i'])
+        datum_module = inputs['store'].save_frame(self, args, inputs['i'])
         # 2. lasts用なのでコマンド実行のrunをする（繋げる必要はない）
         # result = datum_module.run(msg='on')
 
@@ -32,11 +32,13 @@ class SaverCommand(Command):
         return nm.m2tee(command_args)
 
     def get_datum_obj(self):
-        return Frame()
+        from kskp.store import Library
+        root = Library.load_root()
+        return Frame(root.uuid, 'frame', None)
 
     def wrap_datum(self, datum_module, args):
         datum = self.get_datum_obj()
-        datum.set_cache_info(args)
+        datum.set_centext(args)
         datum.set_content(datum_module)
         return datum
 
@@ -49,7 +51,9 @@ class CacheSaverCommand(SaverCommand):
         super().__init__()
 
     def get_datum_obj(self):
-        return Cache()
+        from kskp.store import Library
+        root = Library.load_root()
+        return Cache(root.uuid, 'cache', None)
 
 class RunsSaver(Command):
     """
@@ -110,5 +114,5 @@ class LoaderCommand(Command):
 
     def run(self, args, inputs):
         nysol_module = NysolModule()
-        nysol_module.set_content(inputs['store'].load(args['uuid']))
+        nysol_module.set_content(inputs['store'].load_frame(args['uuid']))
         return {'o': nysol_module}

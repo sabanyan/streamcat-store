@@ -21,20 +21,20 @@
   ],
   "params": [
     {
-      "name": "time_series_column",
+      "name": "data_column",
       "type": "column",
       "options":{
         "multiple": true
       },
-      "label": "時系列データの列を指定する。"
+      "label": "キー項目列名"
     },
     {
-      "name": "x_axis_column",
+      "name": "time_series_column",
       "type": "column",
       "options":{
         "multiple": false
       },
-      "label": "x軸に表示する項目"
+      "label": "時系列データ列"
     },
     {
       "name": "y_axis_column",
@@ -42,26 +42,12 @@
       "options":{
         "multiple": false
       },
-      "label": "y軸に表示する項目"
-    },
-    {
-      "name": "data_column",
-      "type": "column",
-      "options":{
-        "multiple": false
-      },
-      "label": "キー項目列名"
+      "label": "データ列"
     },
     {
       "name": "offset",
       "type": "number",
       "label": "ビジュアライズを行う開始行"
-    },
-    {
-      "name": "alpha",
-      "type": "number",
-      "label": "透明度",
-      "default": 1
     },
     {
       "name": "limit",
@@ -80,11 +66,6 @@
       "type": "number",
       "label": "ビジュアライズの縦サイズ",
       "default": 600
-    },
-    {
-      "name": "graph_title",
-      "type": "string",
-      "label": "ビジュアライズのタイトル"
     },
     {
       "name": "x_label",

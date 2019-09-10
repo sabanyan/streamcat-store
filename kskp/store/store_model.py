@@ -1,8 +1,9 @@
-# from sqlalchemy.dialects.postgresql import TIMESTAMP, JSONB, ENUM
+import os
 import json
 
-from sqlalchemy import Column, Integer, String, text
-from . import BaseModel, session
+from sqlalchemy import Column, text
+from sqlalchemy.dialects.postgresql import INTEGER, TIMESTAMP, JSONB, ENUM
+from kskp.store import BaseModel, ss as session
 
 class Store(BaseModel):
     """
@@ -12,17 +13,18 @@ class Store(BaseModel):
     # テーブル名
     __tablename__ = 'stores'
     
+    # 定義先スキーマ
+    if 'KSKP_POSTGRESQL_SCHEMA_NAME' in os.environ:
+        # テスト環境用のスキーマ
+        __table_args__ = {'schema': os.environ['KSKP_POSTGRESQL_SCHEMA_NAME']}
+
     # カラム
-    # id          = Column(ENUM('Directory', 'PostgreSQL', 'MySql', 'ORACLE', name='server_type') ,primary_key=True)
-    # data        = Column(JSONB)
-    # create_at   = Column(TIMESTAMP, default=text('CURRENT_TIMESTAMP'))
-    # modified_at = Column(TIMESTAMP, default=text('CURRENT_TIMESTAMP'))
-    id          = Column(String, primary_key=True)
-    data        = Column(String)
-    create_at   = Column(String, default=text('CURRENT_TIMESTAMP'))
-    modified_at = Column(String, default=text('CURRENT_TIMESTAMP'))
-    creator     = Column(Integer)
-    modifier    = Column(Integer)
+    id          = Column(ENUM('Directory', 'PostgreSQL', 'MySql', 'ORACLE', name='store_type') ,primary_key=True)
+    data        = Column(JSONB)
+    creator     = Column(INTEGER)
+    modifier    = Column(INTEGER)
+    created_at  = Column(TIMESTAMP, default=text('CURRENT_TIMESTAMP'))
+    modified_at = Column(TIMESTAMP, default=text('CURRENT_TIMESTAMP'), onupdate=text('CURRENT_TIMESTAMP'))
 
     def __init__(self, id=None, data=None, creator=None):
         self.id = id
@@ -43,7 +45,7 @@ class Store(BaseModel):
     def find_all(cls):
         results = session.query(Store.id,
                                    Store.data,
-                                   Store.create_at,
+                                   Store.created_at,
                                    Store.modified_at,
                                    Store.creator,
                                    Store.modifier).all()
@@ -53,7 +55,7 @@ class Store(BaseModel):
     def find_by_id(cls, id):
         result = session.query(Store.id,
                                   Store.data,
-                                  Store.create_at,
+                                  Store.created_at,
                                   Store.modified_at,
                                   Store.creator,
                                   Store.modifier).filter(Store.id==id).one_or_none()

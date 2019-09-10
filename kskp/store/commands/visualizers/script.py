@@ -2,6 +2,7 @@
 import os
 
 from kskp.core import Command, Port
+from kskp.store import Library
 
 class VisualizersCommand(Command):
     def __init__(self):
@@ -49,17 +50,32 @@ class VisualizersBokehPlot(VisualizersCommand):
 
         return result
 
-    def generate_random_color(self):
+    def direct_product_by_keys(self, df, keys):
         """
-        ランダムに色を出力
-        bokehは色を指定しないといけないので（デフォルトだと全て同じ色になってしまう）
+        キー項目の直積を求める
         """
-        return '#{:X}{:X}{:X}'.format(*[random.randint(0, 255) for _ in range(3)])
-
-    def color_gen(self):
-        from bokeh.palettes import Category10
         import itertools
-        yield from itertools.cycle(Category10[10])
+        args = {key: df[key].unique().tolist() for key in keys}
+        direct_product = list(itertools.product(*list(args.values())))
+
+        results = []
+        for seki in direct_product:
+            results.append(dict(zip(keys, seki)))
+
+        return results
+
+    def process_df(self, df, direct_product):
+        """
+        直積で絞り込んだdf群を返す
+        """
+        df_dict = {}
+        for result in direct_product:
+            _df = df
+            for key, value in result.items():
+                _df = _df[_df[key]==value]
+            df_dict['-'.join(map(str, list(result.values())))] = _df
+        return df_dict
+
 
 class CsvToTableCommand(VisualizersHtml):
     def __init__(self):
@@ -70,9 +86,8 @@ class CsvToTableCommand(VisualizersHtml):
         csvのファイルパスから、
         HTMLのテーブル形式にして返す
         """
-
-        # inputsにはパスが来て欲しい
-        file_path = inputs.get('i')
+        # inputsにはuuidが来る
+        file_path = Library.load_frame(inputs.get('i')).path
         offset = int(args.get('offset')) if args.get('offset') else 0
         limit = int(args.get('limit')) if args.get('limit') else None
 
@@ -116,6 +131,7 @@ from bokeh.embed import file_html,components
 from bokeh.models import HoverTool
 from bokeh.io import output_file, show
 from numpy import histogram
+hv.extension('bokeh')
 
 class CsvToLineGraphCommand(VisualizersBokehPlot):
     def __init__(self):
@@ -125,86 +141,42 @@ class CsvToLineGraphCommand(VisualizersBokehPlot):
         """
         ビジュアライズを描画、保存する。
         """
-
         # offset対応
+        file_path = Library.load_frame(inputs.get('i')).path
         offset = int(args.get('offset')) if args.get('offset') else 0
         limit = int(args.get('limit')) if args.get('limit') else None
 
         # dfの作成
-        # index_colで指定しているものがx軸になる
+        # TODO:愚直にdfを加工しており、高速化・メモリ管理等の工夫は何もしていない
         time_series_column = args.get('time_series_column') if args.get('time_series_column') else False
-        df = pd.read_csv(inputs.get('i'), parse_dates=time_series_column, nrows=limit, skiprows=range(1, offset))
+        df = pd.read_csv(file_path, parse_dates=[time_series_column], nrows=limit, skiprows=range(1, offset))
         df[args.get('data_column')] = df[args.get('data_column')].astype(str)
-
-        # start = offset
-        # end = start + (limit if limit is not None else len(df))
 
         # ここstartがdfの最大行数を越えるとエラーが出る
         # if len(df) < start:
             # なんかする
             # pass
+        hv.extension('bokeh')
 
-        df = df.sort_values(args.get('x_axis_column'))
+        keys = args.get('data_column')
 
-        # 時系列表示設定
-        tooltip = '@' + args.get('x_axis_column')
-        tooltip_format = 'numeral'
-        type = 'auto'
-        if time_series_column:
-            # そのままHTMLに出力されるので{%F}だけだと、jinja2が勘違いをする
-            # それを防ぐために{%raw%}{%endraw%}で区切っている
-            tooltip = '@' + args.get('x_axis_column') + '{%F}'
-            tooltip_format = 'datetime'
-            type = 'datetime'
+        if len(keys) > 0:
+            results = self.direct_product_by_keys(df, keys)
+            named_dfs = self.process_df(df, results)
+        else:
+            named_dfs = {}
+            named_dfs['all'] = df
 
-        # tooltipの設定
-        hover = HoverTool()
+        line_list = {}
+        for label, df in named_dfs.items():
+            line_list[label] = hv.Curve(df, args.get('time_series_column'), args.get('y_axis_column')).opts(width=1040, height=600)
 
-        hover.tooltips = [
-            (args.get('x_axis_column'), tooltip),
-            (args.get('y_axis_column'), '@' + args.get('y_axis_column'))
-        ]
-        hover.formatters = {
-            args.get('x_axis_column'): tooltip_format
-        }
-        hover.mode='vline'
+        ndoverlay = hv.NdOverlay(line_list).opts(legend_position='top',
+                                                 width=int(args.get('x_size')), height=int(args.get('y_size')),
+                                                 xlabel=args.get('x_label'), ylabel=args.get('y_label'))
 
-        plot = figure(x_axis_type=type,
-                      x_axis_label=args.get('x_label'),
-                      y_axis_label=args.get('y_label'),
-                      output_backend="webgl",
-                      title=args.get('graph_title'),
-                      plot_width=args.get('x_size'),
-                      plot_height=args.get('y_size'))
-
-        color = self.color_gen()
-        unique_data = df[args.get('data_column')].unique().tolist()
-
-        # クエリ
-        # if len(args.get('data')) > 0:
-        #     unique_data = args.get('data')
-
-        # データ名が入っている列が存在する場合（縦持ち）
-        for datum in unique_data:
-            source = ColumnDataSource(df[df[args.get('data_column')]==datum])
-            plot.line(x=args.get('x_axis_column'), y=args.get('y_axis_column'),
-                      legend=datum, alpha=args.get('alpha'), color=color.__next__(),
-                      source=source)
-
-        # データが列ごとに分かれている場合（横持ち）
-        # for datum in args.get('data'):
-        #     source = ColumnDataSource(data={
-        #         args.get('x_axis_column'): df[args.get('x_axis_column')],
-        #         args.get('y_axis_column'): df[datum.get('name')]
-        #     })
-        #     plot.line(x=args.get('x_axis_column'), y=args.get('y_axis_column'), legend=datum.get('legend_name'),
-        #               color=datum.get('color'), source=source)
-
-        # plot.add_tools(hover)
-        plot.legend.location = "top_right"
-        plot.legend.click_policy="hide"
-
-        # html = file_html(plot, CDN, 'myplot')
+        renderer = hv.renderer('bokeh')
+        plot = renderer.get_plot(ndoverlay).state
 
         return plot
 
@@ -222,52 +194,35 @@ class CsvToHistogramCommand(VisualizersBokehPlot):
         offset = int(args.get('offset')) if args.get('offset') else 0
         limit = int(args.get('limit')) if args.get('limit') else None
 
-        file_path = inputs.get('i')
+        file_path = Library.load_frame(inputs.get('i')).path
         df = pd.read_csv(file_path, nrows=limit, skiprows=range(1, offset))
         df[args.get('data_column')] = df[args.get('data_column')].astype(str)
-
-        # start = offset
-        # end = start + (limit if limit is not None else len(df))
-
-        # ブロック句
-        # if not os.path.exists(file_path):
-        #     return ''
 
         # ここstartがdfの最大行数を越えるとエラーが出る
         # if len(df) < start:
             # なんかする
             # pass
 
-        hover = HoverTool()
-        hover.tooltips = [
-            ('度数', '@top')
-        ]
-        hover.mode='vline'
+        keys = args.get('data_column')
 
-        plot = figure(plot_width=args.get('x_size'),
-                      plot_height=args.get('y_size'),
-                      x_axis_label=args.get('x_label'),
-                      y_axis_label=args.get('y_label'),
-                      output_backend="webgl",
-                      title=args.get('graph_title'))
+        if len(keys) > 0:
+            results = self.direct_product_by_keys(df, keys)
+            named_dfs = self.process_df(df, results)
+        else:
+            named_dfs = {}
+            named_dfs['all'] = df
 
-        color = self.color_gen()
-        unique_data = df[args.get('data_column')].unique().tolist()
+        hist_list = {}
+        for label, df in named_dfs.items():
+            hist, edges = np.histogram(df[args.get('x_axis')].tolist(), bins=args.get('bins'))
+            hist_list[label] = hv.Histogram((edges, hist)).opts(muted_alpha=0.1)
 
-        # if len(args.get('data')) > 0:
-        #     unique_data = args.get('data')
+        ndoverlay = hv.NdOverlay(hist_list).opts(legend_position='top',
+                                                 width=int(args.get('x_size')), height=int(args.get('y_size')),
+                                                 xlabel=args.get('x_label'), ylabel=args.get('y_label'))
 
-        for datum in unique_data:
-            hist, edges = histogram(df[df[args.get('data_column')]==datum][args.get('x_axis')].tolist(),
-                                    bins=args.get('bins'), density=args.get('density'))
-            source = ColumnDataSource({'top':hist, 'left': edges[:-1], 'right': edges[1:]})
-            plot.quad(top='top', bottom=0, left='left', right='right',
-                      fill_alpha=args.get('alpha'), color=color.__next__(), legend=datum,
-                      source=source)
-
-        plot.add_tools(hover)
-        plot.legend.location = "top_right"
-        plot.legend.click_policy="hide"
+        renderer = hv.renderer('bokeh')
+        plot = renderer.get_plot(ndoverlay).state
 
         return plot
 
@@ -284,12 +239,8 @@ class CsvToScatterCommand(VisualizersBokehPlot):
         offset = int(args.get('offset')) if args.get('offset') else 0
         limit = int(args.get('limit')) if args.get('limit') else None
 
-        file_path = inputs.get('i')
+        file_path = Library.load_frame(inputs.get('i')).path
         df = pd.read_csv(file_path, nrows=limit, skiprows=range(1, offset))
-        # df[args.get('data_column')] = df[args.get('data_column')].astype(str)
-        #
-        # start = offset
-        # end = start + (limit if limit is not None else len(df))
 
         # ブロック句
         if not os.path.exists(file_path):
@@ -300,49 +251,32 @@ class CsvToScatterCommand(VisualizersBokehPlot):
             # なんかする
             # pass
 
-        # y軸の設定はここ
-        # y軸はリスト型。インデックスでも列名でも大丈夫。
-        # csvで同名の列名があることがあるので、基本インデックスでいい気がする
+        keys = args.get('data_column')
 
-        hover = HoverTool()
-        hover.tooltips = [
-            (args.get('x_axis'), '@x'),
-            (args.get('y_axis'), '@y')
-        ]
+        if len(keys) > 0:
+            results = self.direct_product_by_keys(df, keys)
+            named_dfs = self.process_df(df, results)
+        else:
+            named_dfs = {}
+            named_dfs['all'] = df
 
-        plot = figure(plot_width=args.get('x_size'),
-                      plot_height=args.get('y_size'),
-                      x_axis_label=args.get('x_label') if args.get('x_label') is not None else args.get('x_axis'),
-                      y_axis_label=args.get('y_label') if args.get('y_label') is not None else args.get('y_axis'),
-                      output_backend="webgl",
-                      title=args.get('graph_title'))
+        scatter_list = {}
+        for label, _df in named_dfs.items():
+            scatter_list[label] = hv.Scatter(_df, args.get('x_axis'), vdims=[args.get('y_axis')]).opts(muted_alpha=0.1)
 
-        color = self.color_gen()
-        # unique_data = df[args.get('data_column')].unique().tolist()
+        ndoverlay = hv.NdOverlay(scatter_list).opts(legend_position='top',
+                                                 width=int(args.get('x_size')), height=int(args.get('y_size')),
+                                                 xlabel=args.get('x_label'), ylabel=args.get('y_label'))
+        if not args.get('b'):
+            b = hv.Bivariate(df[[args.get('x_axis'), args.get('y_axis')]]).opts(show_legend=False, bandwidth=0.5, axiswise=True, line_width=2, colorbar=True)
+            ndoverlay = ndoverlay * b
 
-        # if len(args.get('data')) > 0:
-        #     unique_data = args.get('data')
-
-        # for datum in unique_data:
-        df_select_datum = df
-        source = ColumnDataSource({'x': df_select_datum[args.get('x_axis')], 'y': df_select_datum[args.get('y_axis')]})
-        plot.scatter(x='x', y='y', fill_alpha=args.get('alpha'),
-                     color=color.__next__(), alpha=args.get('alpha'),
-                     source=source)
-
-        plot.add_tools(hover)
-        plot.legend.location = "top_right"
-        plot.legend.click_policy="hide"
+        renderer = hv.renderer('bokeh')
+        plot = renderer.get_plot(ndoverlay).state
 
         return plot
 
 class CsvToBoxplotCommand(VisualizersBokehPlot):
-    """
-    厳密にはbokehを直接は使っていない
-    holoviewsというbokehやmatplotlibをラップしたライブラリを使用している
-    bokehをラップしているので、bokehのメソッドを使える。
-    なので、VisualizersBokehPlotをオーバーライドしている
-    """
     def __init__(self):
         super().__init__()
 
@@ -351,24 +285,17 @@ class CsvToBoxplotCommand(VisualizersBokehPlot):
         csvのファイルパスから、
         plotの箱ひげ図を作成する
         """
-
         offset = int(args.get('offset')) if args.get('offset') else 0
         limit = int(args.get('limit')) if args.get('limit') else None
 
-        file_path = inputs.get('i')
+        file_path = Library.load_frame(inputs.get('i')).path
         df = pd.read_csv(file_path, nrows=limit, skiprows=range(1, offset))
-
-        # ブロック句
-        # if not os.path.exists(file_path):
-        #     return ''
 
         # ここstartがdfの最大行数を越えるとエラーが出る
         # if len(df) < start:
             # なんかする
             # pass
 
-        # ここはbokehをラップしているライブラリのholoviewsを使っている
-        # bokehは書き方がめんどくさいため
         hv.extension('bokeh')
         x_label = args.get('x_label') if args.get('x_label') else ','.join(args.get('x_axis'))
         y_label = args.get('y_label') if args.get('y_label') else args.get('y_axis')
