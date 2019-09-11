@@ -365,10 +365,60 @@ class PlcLoaderCommand(Command):
         # self.description = '条件に適合したフレームファイルを抽出し、それらを1つのフレームへ結合する'
 
     def run(self, args, inputs):
-        from datetime import datetime
-        
-        # 処理開始
+         # 処理開始
         self._write_current_time('START')
+
+        all_file_paths = self._select_file_paths(args, inputs)
+
+        # 抽出対象ファイルのログ出力
+        self._write_file_paths(all_file_paths)
+
+        # 抽出対象ファイルを連結する
+        cmd_o = nm.m2cat(i=all_file_paths)
+        # cmd.run()
+
+        # UTF-8へ文字コード返還する
+        # tmp_file_utf8 = self._convert_to_utf8(tmp_file_path)
+        # cmd_o = nm.m2tee(i=tmp_file_utf8)
+        
+        # args =(PCMD_DIR / 'src/windows_cp932_csv_read.sh').as_posix()
+        # cmd_o <<= nm.cmd(args)
+
+        def cp932_to_utf8():
+            """
+            ストリームでcp932→utf8に変換するコマンド
+            """
+            import traceback
+            import io
+
+            try:
+                # stdinのencodingがデフォルトでutf-8なので、設定し直す。
+                for line in io.TextIOWrapper(sys.stdin.buffer, encoding='cp932'):
+                    # 標準出力するときも自動でutf-8に変換されるので、printだけでいい
+                    print(line, end='')
+
+                # flushをする
+                sys.stdout.flush()
+            except Exception as e:
+                with open('/dev/stderr', 'w') as fpe:
+                    traceback.print_exc(file=fpe)
+
+        # flushをしないと、デバッグ用のprintなども入ってしまう
+        # sys.stdout.flush()
+        # cmd_o <<= nm.runfunc(cp932_to_utf8)
+
+        # nysol_module_o = NysolModule()
+        # nysol_module_o.set_content(cmd_o)
+
+        # 処理終了
+        self._write_current_time('END')
+
+        return WinCp932ReadCommand().run({}, {'i': cmd_o})
+
+        # return {'o': nysol_module_o}
+
+    def _select_file_paths(self, args, inputs):
+        from datetime import datetime
 
         import os
         import re
@@ -476,52 +526,7 @@ class PlcLoaderCommand(Command):
         if len(all_file_paths) == 0:
             raise Exception('CSVファイルが見つかりませんでした')
 
-        # 抽出対象ファイルのログ出力
-        self._write_file_paths(all_file_paths)
-
-        # 抽出対象ファイルを連結する
-        cmd_o = nm.m2cat(i=all_file_paths)
-        # cmd.run()
-
-        # UTF-8へ文字コード返還する
-        # tmp_file_utf8 = self._convert_to_utf8(tmp_file_path)
-        # cmd_o = nm.m2tee(i=tmp_file_utf8)
-        
-        # args =(PCMD_DIR / 'src/windows_cp932_csv_read.sh').as_posix()
-        # cmd_o <<= nm.cmd(args)
-
-        def cp932_to_utf8():
-            """
-            ストリームでcp932→utf8に変換するコマンド
-            """
-            import traceback
-            import io
-
-            try:
-                # stdinのencodingがデフォルトでutf-8なので、設定し直す。
-                for line in io.TextIOWrapper(sys.stdin.buffer, encoding='cp932'):
-                    # 標準出力するときも自動でutf-8に変換されるので、printだけでいい
-                    print(line, end='')
-
-                # flushをする
-                sys.stdout.flush()
-            except Exception as e:
-                with open('/dev/stderr', 'w') as fpe:
-                    traceback.print_exc(file=fpe)
-
-        # flushをしないと、デバッグ用のprintなども入ってしまう
-        # sys.stdout.flush()
-        # cmd_o <<= nm.runfunc(cp932_to_utf8)
-
-        # nysol_module_o = NysolModule()
-        # nysol_module_o.set_content(cmd_o)
-
-        # 処理終了
-        self._write_current_time('END')
-
-        return WinCp932ReadCommand().run({}, {'i': cmd_o})
-
-        # return {'o': nysol_module_o}
+        return all_file_paths
 
     def _get_term_date_from_frame(self, frame):
         import os
@@ -636,3 +641,295 @@ class PlcLoaderCommand(Command):
         current = datetime.now(JST).strftime('%Y-%m-%d %H:%M:%S')
         sys.__stderr__.write(indent + '  ' + message + ': ' + current + '\n')
         sys.__stderr__.write(indent + '>\n')       
+
+
+class DaifukuLoaderCommand(PlcLoaderCommand):
+    """
+    ダイフク様用に急遽作成したローダ
+    (ストリーム対応)
+    """
+    def __init__(self):
+        super().__init__()
+        self.i_ports = [Port('i', 'frame')]
+        self.o_ports = [Port('o', 'frame')]
+        self.name = 'daifuku_loader'
+
+    def run_bkup(self, args, inputs):
+        all_file_paths = self._select_file_paths(args, inputs)
+
+        # 抽出対象ファイルのログ出力
+        self._write_file_paths(all_file_paths)
+
+        # in_file = all_file_paths[0]
+
+        def filter_line():
+            '''
+            CSVをフィルタリングする
+            '''
+            import csv
+            import traceback
+
+            try:
+                # # reader = csv.reader('/home/kskp/PLC/daifuku/0000-0300_output.csv', delimiter=',', quotechar='"', strict=True)
+                # reader = csv.reader('/home/kskp/PLC/daifuku/0000-0300_output.csv', delimiter=',')
+                # # writer = csv.writer(sys.stdout)
+                # for line in reader:
+                #     # writer.writerows(line)
+                #     print('aaa')
+
+                print('aaaaabbbbbb,111' + '\n')
+
+                # flushをする
+                sys.stdout.flush()
+            except Exception as e:
+                with open('/dev/stderr', 'w') as fpe:
+                    traceback.print_exc(file=fpe)
+
+        # 処理終了
+        self._write_current_time('END')
+
+        # flushをしないと、デバッグ用のprintなども入ってしまう
+        sys.stdout.flush()
+
+        cmd = nm.runfunc(filter_line)
+
+        nysol_module_o = NysolModule()
+        nysol_module_o.set_content = cmd
+        # return {'o': nysol_module_o}
+
+        self._results = {'o': nysol_module_o}
+
+        return {'o': nysol_module_o}
+
+
+    def run(self, args, inputs):
+        all_file_paths = self._select_file_paths(args, inputs)
+
+        # 抽出対象ファイルのログ出力
+        self._write_file_paths(all_file_paths)
+
+        def filter(file_paths):
+            """
+            CSVの各値を空白Trimして、先頭以外のヘッダ行を除外して、複数ファイルを連結する
+            """
+            import csv
+            import traceback
+        
+            try:
+                # 最初のファイルの先頭のヘッダ行は除外しない
+                skip_count = 4
+
+                for file_path in file_paths:
+
+                    # 入力ファイルの改行コードはCRLF
+                    with open(file_path, 'r', newline=None) as csv_file:
+                        reader = csv.reader(csv_file, delimiter=',')
+
+                        for values in reader:
+                            
+                            if len(values) == 0 or (0 < skip_count and skip_count < 3):
+                                # 改行コードのみの行の場合、
+                                # 改行コードのみの行から2行目までのヘッダ行を除外する
+                                skip_count += 1
+                                continue
+                            else:
+                                # 普通の行
+                                skip_count = 0
+
+                            first_loop = True
+                            for value in values:
+                                if first_loop:
+                                    print(value.strip(), end='')
+                                    first_loop = False
+                                print(',' + value.strip(), end='')
+                            print('') # 改行(LF)
+
+                # flushをする
+                sys.stdout.flush()
+            except Exception as e:
+                with open('/dev/stderr', 'w') as fpe:
+                    traceback.print_exc(file=fpe)
+        
+        # flushをしないと、デバッグ用のprintなども入ってしまう
+        sys.stdout.flush()
+
+        f = None
+        f <<= nm.runfunc(filter, file_paths=all_file_paths)
+        # runfuncの引数には引数名が必ず必要！！
+
+        nysol_module_o= NysolModule()
+        nysol_module_o.set_content(f)
+        
+         # 処理終了
+        self._write_current_time('END')
+
+        return {'o': nysol_module_o}
+
+class NmRunfunc(Command):
+    """
+    hex2bin
+    """
+    def __init__(self, func, in_keys=None):
+        super().__init__()
+        self.i_ports = [Port('i', 'frame'), Port('m', 'frame')]
+        self.o_ports = [Port('o', 'frame')]
+        self.name = 'hex2bin'
+        self.func = self.make_wrapped_func(func, in_keys)
+
+    def run(self, args, inputs):
+
+        def filter():
+            import traceback
+            try:
+                for line in sys.stdin:
+                    print(line, end='')
+                # flushをする
+                sys.stdout.flush()
+            except Exception as e:
+                with open('/dev/stderr', 'w') as fpe:
+                    traceback.print_exc(file=fpe)
+        
+        # flushをしないと、デバッグ用のprintなども入ってしまう
+        sys.stdout.flush()
+
+        f = inputs['i']
+        # f <<= nm.runfunc(filter)
+        f <<= nm.runfunc(self.func, args=args)
+
+        nysol_module_o= NysolModule()
+        nysol_module_o.set_content(f)  
+        return {'o': nysol_module_o}
+
+    def make_wrapped_func(self, func, in_keys):
+        """
+        渡されてきた関数をKSKP独自コマンドとして使えるように、
+        ラップして新しい関数を作って返す
+
+        渡されてくる関数は(args, in_fd, out_fd)という引数の形式である必要がある
+        argsは画面から渡されるオプション情報のdict
+        in_fd/out_fdはそれぞれ、読込先/書込先のファイルディスクリプタ
+        """
+
+        # def wrapped_func(args):
+        #     """
+        #     β版の仕様として、NysolPythonSourceにキーワード引数として渡すために、
+        #     本来はinputsとして入っている読込元(=入力元)情報をargsにコピーしている。
+
+        #     つまり、この関数が呼ばれた時のargsの中身は、
+        #     {
+        #         'i': <<入力先のパス(ない場合もある)>>,
+        #         'o': <<出力先のパス(ない場合もある)>>,
+        #         <<その他、'f'とか'c'とか、通常のnysol_pythonに渡すオプションたち>>
+        #     }
+        #     という感じになっている。
+
+        #     したがって、args['i']/args['o']があれば、それをパスとしてopenしてfdとする。
+        #     なければ、それぞれsys.stdin/sys.stdoutをfdとして使う。
+        #     """
+
+        #     raise Exception('!!')
+        #     sys.__stderr__.write('wrapped_func: start ' + repr(args) + '\n')
+        #     try:
+        #         if in_keys is None:
+        #             if 'i' in args:
+        #                 in_fd = open(args['i'], 'r')
+        #             else:
+        #                 in_fd = sys.stdin
+        #         else:
+        #             sys.__stderr__.write('wrapped_func: preparing in_keys: ' + str(in_keys) + '\n')
+        #             # ひとまず、inが2つ場合だけを想定している
+        #             # しかもiとmという限定された場合
+        #             if len(in_keys) == 2:
+        #                 sys.__stderr__.write('wrapped_func: preparing 2 inputs\n')
+        #                 if in_keys[0] in args:
+        #                     in_fd1 = open(args[in_keys[0]], 'r')
+        #                 else:
+        #                     in_fd1 = sys.stdin
+        #                 sys.__stderr__.write('wrapped_func: preparing: ' + str(args) + '\n')
+        #                 if in_keys[1] in args:
+        #                     sys.__stderr__.write('wrapped_func: preparing for in_fd2 ' + str(in_keys[1]) + '\n')
+        #                     if isinstance(args[in_keys[1]], str):
+        #                         sys.__stderr__.write('wrapped_func: preparing for in_fd2 (str): ' + args[in_keys[1]] + '\n')
+        #                         # 文字列がきたら、パスだと思って開いてみる
+        #                         in_fd2 = open(args[in_keys[1]], 'r')
+        #                     else:
+        #                         # そうでない場合は、nysol_moduleがくるはず
+        #                         sys.__stderr__.write('wrapped_func: preparing for in_fd2 (nysol_module) ' + str(in_keys[1]) + '\n')
+        #                         # import uuid
+        #                         # temp_path = 'tmp/' + str(uuid.uuid4())
+        #                         # in_keys[1].args['o'] = temp_path
+        #                         # in_keys[1].nysol_module.run()
+
+        #                         # # 作ったtmpのファイルを消してなくてごめんなさい
+
+        #                         # in_fd2 = open(temp_path, 'r')
+
+        #                         # nysol_moduleをそのまま渡してみる
+        #                         in_fd2 = args[in_keys[1]]
+
+        #         if 'o' in args:
+        #             out_fd = open(args['o'], 'w')
+        #         else:
+        #             out_fd = sys.stdout
+
+        #         if in_keys is not None and len(in_keys) == 2:
+        #             sys.__stderr__.write('wrapped_func: running 2 inputs: ' + repr(func) + '\n')
+        #             # func(args, in_fd1, in_fd2, out_fd)
+                    
+        #             input_m = open('/home/kskp/kskp-data-store/store_1/CSVデータ/バイナリ項目名_DO.csv', 'r')
+
+        #             func(args, sys.stdin, input_m, sys.stdout)
+        #         else:
+        #             sys.__stderr__.write('wrapped_func: running 1 input\n')
+        #             func(args, in_fd, out_fd)
+        #     except Exception as e:
+        #         sys.__stderr__.write('wrapped_func: exception ' + str(e) + '\n')
+
+        def wrapped_func(args):
+            input_m = open('/home/kskp/kskp-data-store/store_1/CSVデータ/バイナリ項目名_DO.csv', 'r')
+            func(args, sys.stdin, input_m, sys.stdout)
+
+        return wrapped_func
+
+
+    def run_(self, args, inputs):
+
+        # 抽出対象ファイルを連結する
+        cmd_o = nm.m2tee(i='/home/kskp/PLC/daifuku/0000-0300_output_mini.csv')
+
+
+        return self.wincp932ReadCommand_run({}, {'i': cmd_o})
+
+
+    def wincp932ReadCommand_run(self, args, inputs):
+
+
+        def Cp932_to_utf8():
+            """
+            ストリームでcp932→utf8に変換するコマンド
+            """
+            import traceback
+            import io
+        
+            try:
+                # stdinのencodingがデフォルトでutf-8なので、設定し直す。
+                input_stream = io.TextIOWrapper(sys.stdin.buffer, encoding='cp932')
+                for line in sys.stdin:
+                    # 標準出力するときも自動でutf-8に変換されるので、printだけでいい
+                    print(line) 
+                # flushをする
+                sys.stdout.flush()
+            except Exception as e:
+                with open('/dev/stderr', 'w') as fpe:
+                    traceback.print_exc(file=fpe)
+        
+        # flushをしないと、デバッグ用のprintなども入ってしまう
+        sys.stdout.flush()
+        f = None
+        # f <<= inputs['i']
+        f <<= nm.runfunc(Cp932_to_utf8)
+        
+        nysol_module_o= NysolModule()
+        nysol_module_o.set_content(f)
+        
+        return {'o': nysol_module_o}
