@@ -672,39 +672,42 @@ class DaifukuLoaderCommand(PlcLoaderCommand):
                 is_first_file = True
 
                 for file_path in file_paths:
+                    from ctypes import cdll, c_char_p
+                    lib = cdll.LoadLibrary("/home/kskp/kskp-data-store/kskp/store/commands/pcmd/libdaifuku.dylib")
+                    lib.daifuku_loader.argtypes = (c_char_p,)
+                    lib.daifuku_loader(bytes(file_path, encoding='utf-8'))
+                    # # 入力ファイルの改行コードはCRLF
+                    # with open(file_path, 'r', newline=None) as csv_file:
+                    #     reader = csv.reader(csv_file, delimiter=',')
 
-                    # 入力ファイルの改行コードはCRLF
-                    with open(file_path, 'r', newline=None) as csv_file:
-                        reader = csv.reader(csv_file, delimiter=',')
-
-                        for values in reader:
+                    #     for values in reader:
                             
-                            if len(values) == 0 or (0 < skip_count and skip_count < 3):
-                                # 改行コードのみの行の場合、
-                                # 改行コードのみの行から2行目までのヘッダ行を除外する
-                                skip_count += 1
-                                if is_first_file and skip_count==2:
-                                    # 先頭ファイルのヘッダ行は除外しない
-                                    pass
-                                else:
-                                    continue
-                            else:
-                                # 普通の行
-                                skip_count = 0
+                    #         if len(values) == 0 or (0 < skip_count and skip_count < 3):
+                    #             # 改行コードのみの行の場合、
+                    #             # 改行コードのみの行から2行目までのヘッダ行を除外する
+                    #             skip_count += 1
+                    #             if is_first_file and skip_count==2:
+                    #                 # 先頭ファイルのヘッダ行は除外しない
+                    #                 pass
+                    #             else:
+                    #                 continue
+                    #         else:
+                    #             # 普通の行
+                    #             skip_count = 0
 
-                            first_loop = True
-                            for value in values:
-                                if first_loop:
-                                    print(value.strip(), end='')
-                                    first_loop = False
-                                else:
-                                    print(',' + value.strip(), end='')
-                            print('') # 改行(LF)
+                    #         first_loop = True
+                    #         for value in values:
+                    #             if first_loop:
+                    #                 print(value.strip(), end='')
+                    #                 first_loop = False
+                    #             else:
+                    #                 print(',' + value.strip(), end='')
+                    #         print('') # 改行(LF)
 
                 is_first_file = False
 
                 # flushをする
-                sys.stdout.flush()
+                # sys.stdout.flush()
             except Exception as e:
                 with open('/dev/stderr', 'w') as fpe:
                     traceback.print_exc(file=fpe)
