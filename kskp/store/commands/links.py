@@ -21,6 +21,11 @@ class CommandLink:
         """
         from kskp.engine.tests.test_main import Square
 
+        # runfunc用の関数のimport
+        from kskp.store.commands.pcmd.src import (
+            hex2bin
+        )
+
         table = {
             # テスト用コマンド
             'square': Square(),
@@ -125,6 +130,8 @@ class CommandLink:
             'sml_modeling': SmlModelingCommand(),
             'selrow': SelRowCommand(),
             'plc_loader' : PlcLoaderCommand(),
+            'daifuku_loader' : DaifukuLoaderCommand(),
+            'hex2bin': NmRunfunc(hex2bin.main, ['i', 'm']),
             # ビジュアライズ
             'csvtohtmltable': CsvToTableCommand(),
             'csvtolinegraph': CsvToLineGraphCommand(),

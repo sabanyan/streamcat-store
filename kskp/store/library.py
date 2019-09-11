@@ -10,6 +10,9 @@ from kskp.store import Frame
 from kskp.store import Flow
 
 class Library:
+    """
+    ライブラリ機能のFacadeパターン
+    """
 
     @staticmethod
     def load_root():
@@ -17,6 +20,21 @@ class Library:
         ルートデータストアを取得する
         """
         return Library._convert_type(Datum.find_root())
+
+    @staticmethod
+    def load_result_folder():
+        """
+        出力結果フォルダを取得する
+        TO DO: 未完成
+        """
+        ROOT_RESULT_FOLDER_UUID = ''
+
+        result_folder = Folder.find_by_uuid(ROOT_RESULT_FOLDER_UUID)
+        if result_folder is None:
+            # 出力結果フォルダを作成する
+            pass
+            
+        return result_folder
 
     @staticmethod
     def load_frame(frame_uuid):
