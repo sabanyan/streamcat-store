@@ -654,54 +654,6 @@ class DaifukuLoaderCommand(PlcLoaderCommand):
         self.o_ports = [Port('o', 'frame')]
         self.name = 'daifuku_loader'
 
-    def run_bkup(self, args, inputs):
-        all_file_paths = self._select_file_paths(args, inputs)
-
-        # 抽出対象ファイルのログ出力
-        self._write_file_paths(all_file_paths)
-
-        # in_file = all_file_paths[0]
-
-        def filter_line():
-            '''
-            CSVをフィルタリングする
-            '''
-            import csv
-            import traceback
-
-            try:
-                # # reader = csv.reader('/home/kskp/PLC/daifuku/0000-0300_output.csv', delimiter=',', quotechar='"', strict=True)
-                # reader = csv.reader('/home/kskp/PLC/daifuku/0000-0300_output.csv', delimiter=',')
-                # # writer = csv.writer(sys.stdout)
-                # for line in reader:
-                #     # writer.writerows(line)
-                #     print('aaa')
-
-                print('aaaaabbbbbb,111' + '\n')
-
-                # flushをする
-                sys.stdout.flush()
-            except Exception as e:
-                with open('/dev/stderr', 'w') as fpe:
-                    traceback.print_exc(file=fpe)
-
-        # 処理終了
-        self._write_current_time('END')
-
-        # flushをしないと、デバッグ用のprintなども入ってしまう
-        sys.stdout.flush()
-
-        cmd = nm.runfunc(filter_line)
-
-        nysol_module_o = NysolModule()
-        nysol_module_o.set_content = cmd
-        # return {'o': nysol_module_o}
-
-        self._results = {'o': nysol_module_o}
-
-        return {'o': nysol_module_o}
-
-
     def run(self, args, inputs):
         all_file_paths = self._select_file_paths(args, inputs)
 
@@ -716,8 +668,8 @@ class DaifukuLoaderCommand(PlcLoaderCommand):
             import traceback
         
             try:
-                # 最初のファイルの先頭のヘッダ行は除外しない
-                skip_count = 4
+                skip_count = 0
+                is_first_file = True
 
                 for file_path in file_paths:
 
@@ -731,7 +683,11 @@ class DaifukuLoaderCommand(PlcLoaderCommand):
                                 # 改行コードのみの行の場合、
                                 # 改行コードのみの行から2行目までのヘッダ行を除外する
                                 skip_count += 1
-                                continue
+                                if is_first_file and skip_count==2:
+                                    # 先頭ファイルのヘッダ行は除外しない
+                                    pass
+                                else:
+                                    continue
                             else:
                                 # 普通の行
                                 skip_count = 0
@@ -741,8 +697,11 @@ class DaifukuLoaderCommand(PlcLoaderCommand):
                                 if first_loop:
                                     print(value.strip(), end='')
                                     first_loop = False
-                                print(',' + value.strip(), end='')
+                                else:
+                                    print(',' + value.strip(), end='')
                             print('') # 改行(LF)
+
+                is_first_file = False
 
                 # flushをする
                 sys.stdout.flush()
@@ -793,8 +752,8 @@ class NmRunfunc(Command):
         sys.stdout.flush()
 
         f = inputs['i']
-        # f <<= nm.runfunc(filter)
-        f <<= nm.runfunc(self.func, args=args)
+        f <<= nm.runfunc(filter)
+        # f <<= nm.runfunc(self.func, args=args)
 
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(f)  
@@ -891,45 +850,3 @@ class NmRunfunc(Command):
 
         return wrapped_func
 
-
-    def run_(self, args, inputs):
-
-        # 抽出対象ファイルを連結する
-        cmd_o = nm.m2tee(i='/home/kskp/PLC/daifuku/0000-0300_output_mini.csv')
-
-
-        return self.wincp932ReadCommand_run({}, {'i': cmd_o})
-
-
-    def wincp932ReadCommand_run(self, args, inputs):
-
-
-        def Cp932_to_utf8():
-            """
-            ストリームでcp932→utf8に変換するコマンド
-            """
-            import traceback
-            import io
-        
-            try:
-                # stdinのencodingがデフォルトでutf-8なので、設定し直す。
-                input_stream = io.TextIOWrapper(sys.stdin.buffer, encoding='cp932')
-                for line in sys.stdin:
-                    # 標準出力するときも自動でutf-8に変換されるので、printだけでいい
-                    print(line) 
-                # flushをする
-                sys.stdout.flush()
-            except Exception as e:
-                with open('/dev/stderr', 'w') as fpe:
-                    traceback.print_exc(file=fpe)
-        
-        # flushをしないと、デバッグ用のprintなども入ってしまう
-        sys.stdout.flush()
-        f = None
-        # f <<= inputs['i']
-        f <<= nm.runfunc(Cp932_to_utf8)
-        
-        nysol_module_o= NysolModule()
-        nysol_module_o.set_content(f)
-        
-        return {'o': nysol_module_o}
