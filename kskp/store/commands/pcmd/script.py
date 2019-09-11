@@ -673,7 +673,7 @@ class DaifukuLoaderCommand(PlcLoaderCommand):
 
                 for file_path in file_paths:
                     from ctypes import cdll, c_char_p
-                    lib = cdll.LoadLibrary("/home/kskp/kskp-data-store/kskp/store/commands/pcmd/libdaifuku.dylib")
+                    lib = cdll.LoadLibrary("/home/kskp/kskp-data-store/kskp/store/commands/pcmd/libdaifuku.so")
                     lib.daifuku_loader.argtypes = (c_char_p,)
                     lib.daifuku_loader(bytes(file_path, encoding='utf-8'))
                     # # 入力ファイルの改行コードはCRLF
