@@ -727,129 +727,37 @@ class DaifukuLoaderCommand(PlcLoaderCommand):
 
         return {'o': nysol_module_o}
 
-class NmRunfunc(Command):
+class Hex2binCommand(Command):
     """
-    hex2bin
+    16進数バイナリフラグ項目の列展開コマンド
+    (ダイフク様用)
     """
-    def __init__(self, func, in_keys=None):
+    def __init__(self):
         super().__init__()
-        self.i_ports = [Port('i', 'frame'), Port('m', 'frame')]
+        self.i_ports = [Port('i', 'frame')]
         self.o_ports = [Port('o', 'frame')]
         self.name = 'hex2bin'
-        self.func = self.make_wrapped_func(func, in_keys)
 
     def run(self, args, inputs):
+        # 取得ディレクトリパス
+        source_dir_path = args['file_path'] if 'file_path' in args else ''
+        if source_dir_path is None:
+            raise Exception('バイナリ項目名取得パスを設定してください')
 
-        def filter():
-            import traceback
-            try:
-                for line in sys.stdin:
-                    print(line, end='')
+        def hex2bin(source_dir_path, args):
+            # runfunc用の関数のimport
+            from kskp.store.commands.pcmd.src import hex2bin
+            with open(source_dir_path, 'r') as b:
+                hex2bin.main(args, sys.stdin, b, sys.stdout)
                 # flushをする
-                sys.stdout.flush()
-            except Exception as e:
-                with open('/dev/stderr', 'w') as fpe:
-                    traceback.print_exc(file=fpe)
+                sys.stdout.flush() 
         
         # flushをしないと、デバッグ用のprintなども入ってしまう
         sys.stdout.flush()
 
         f = inputs['i']
-        f <<= nm.runfunc(filter)
-        # f <<= nm.runfunc(self.func, args=args)
+        f <<= nm.runfunc(hex2bin, source_dir_path=source_dir_path, args=args)
 
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(f)  
         return {'o': nysol_module_o}
-
-    def make_wrapped_func(self, func, in_keys):
-        """
-        渡されてきた関数をKSKP独自コマンドとして使えるように、
-        ラップして新しい関数を作って返す
-
-        渡されてくる関数は(args, in_fd, out_fd)という引数の形式である必要がある
-        argsは画面から渡されるオプション情報のdict
-        in_fd/out_fdはそれぞれ、読込先/書込先のファイルディスクリプタ
-        """
-
-        # def wrapped_func(args):
-        #     """
-        #     β版の仕様として、NysolPythonSourceにキーワード引数として渡すために、
-        #     本来はinputsとして入っている読込元(=入力元)情報をargsにコピーしている。
-
-        #     つまり、この関数が呼ばれた時のargsの中身は、
-        #     {
-        #         'i': <<入力先のパス(ない場合もある)>>,
-        #         'o': <<出力先のパス(ない場合もある)>>,
-        #         <<その他、'f'とか'c'とか、通常のnysol_pythonに渡すオプションたち>>
-        #     }
-        #     という感じになっている。
-
-        #     したがって、args['i']/args['o']があれば、それをパスとしてopenしてfdとする。
-        #     なければ、それぞれsys.stdin/sys.stdoutをfdとして使う。
-        #     """
-
-        #     raise Exception('!!')
-        #     sys.__stderr__.write('wrapped_func: start ' + repr(args) + '\n')
-        #     try:
-        #         if in_keys is None:
-        #             if 'i' in args:
-        #                 in_fd = open(args['i'], 'r')
-        #             else:
-        #                 in_fd = sys.stdin
-        #         else:
-        #             sys.__stderr__.write('wrapped_func: preparing in_keys: ' + str(in_keys) + '\n')
-        #             # ひとまず、inが2つ場合だけを想定している
-        #             # しかもiとmという限定された場合
-        #             if len(in_keys) == 2:
-        #                 sys.__stderr__.write('wrapped_func: preparing 2 inputs\n')
-        #                 if in_keys[0] in args:
-        #                     in_fd1 = open(args[in_keys[0]], 'r')
-        #                 else:
-        #                     in_fd1 = sys.stdin
-        #                 sys.__stderr__.write('wrapped_func: preparing: ' + str(args) + '\n')
-        #                 if in_keys[1] in args:
-        #                     sys.__stderr__.write('wrapped_func: preparing for in_fd2 ' + str(in_keys[1]) + '\n')
-        #                     if isinstance(args[in_keys[1]], str):
-        #                         sys.__stderr__.write('wrapped_func: preparing for in_fd2 (str): ' + args[in_keys[1]] + '\n')
-        #                         # 文字列がきたら、パスだと思って開いてみる
-        #                         in_fd2 = open(args[in_keys[1]], 'r')
-        #                     else:
-        #                         # そうでない場合は、nysol_moduleがくるはず
-        #                         sys.__stderr__.write('wrapped_func: preparing for in_fd2 (nysol_module) ' + str(in_keys[1]) + '\n')
-        #                         # import uuid
-        #                         # temp_path = 'tmp/' + str(uuid.uuid4())
-        #                         # in_keys[1].args['o'] = temp_path
-        #                         # in_keys[1].nysol_module.run()
-
-        #                         # # 作ったtmpのファイルを消してなくてごめんなさい
-
-        #                         # in_fd2 = open(temp_path, 'r')
-
-        #                         # nysol_moduleをそのまま渡してみる
-        #                         in_fd2 = args[in_keys[1]]
-
-        #         if 'o' in args:
-        #             out_fd = open(args['o'], 'w')
-        #         else:
-        #             out_fd = sys.stdout
-
-        #         if in_keys is not None and len(in_keys) == 2:
-        #             sys.__stderr__.write('wrapped_func: running 2 inputs: ' + repr(func) + '\n')
-        #             # func(args, in_fd1, in_fd2, out_fd)
-                    
-        #             input_m = open('/home/kskp/kskp-data-store/store_1/CSVデータ/バイナリ項目名_DO.csv', 'r')
-
-        #             func(args, sys.stdin, input_m, sys.stdout)
-        #         else:
-        #             sys.__stderr__.write('wrapped_func: running 1 input\n')
-        #             func(args, in_fd, out_fd)
-        #     except Exception as e:
-        #         sys.__stderr__.write('wrapped_func: exception ' + str(e) + '\n')
-
-        def wrapped_func(args):
-            input_m = open('/home/kskp/kskp-data-store/store_1/CSVデータ/バイナリ項目名_DO.csv', 'r')
-            func(args, sys.stdin, input_m, sys.stdout)
-
-        return wrapped_func
-

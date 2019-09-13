@@ -131,7 +131,7 @@ class CommandLink:
             'selrow': SelRowCommand(),
             'plc_loader' : PlcLoaderCommand(),
             'daifuku_loader' : DaifukuLoaderCommand(),
-            'hex2bin': NmRunfunc(hex2bin.main, ['i', 'm']),
+            'hex2bin': Hex2binCommand(),
             # ビジュアライズ
             'csvtohtmltable': CsvToTableCommand(),
             'csvtolinegraph': CsvToLineGraphCommand(),
