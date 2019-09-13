@@ -1,6 +1,9 @@
 {
   "id": "hex2bin",
   "rules" : {
+    "file_path" : {
+      "presence": {"allowEmpty": false}
+    },
     "hex": {
       "presence": {"allowEmpty": false},
       "checkSeveralSpecifiedFormats" : {
@@ -8,7 +11,7 @@
           "pattern" : "^[^,]+$|^$",
           "message" : "1項目のみ入力してください"
         }
-    }
+      }
     },
     "f" : {
       "presence": {"allowEmpty": false},
@@ -21,6 +24,11 @@
     }
   },
   "params": [
+    {
+      "name": "file_path",
+      "type": "string",
+      "label": "バイナリ項目名取得パス"
+    },  
     {
       "name": "hex",
       "type": "string",
@@ -42,10 +50,6 @@
     [
       {
         "name": "i",
-        "type": "frame"
-      },
-      {
-        "name": "m",
         "type": "frame"
       }
     ],
