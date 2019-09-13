@@ -739,10 +739,14 @@ class Hex2binCommand(Command):
         self.name = 'hex2bin'
 
     def run(self, args, inputs):
+        import os
+
         # 取得ディレクトリパス
         source_dir_path = args['file_path'] if 'file_path' in args else ''
         if source_dir_path is None:
             raise Exception('バイナリ項目名取得パスを設定してください')
+        if not os.path.exists(source_dir_path):
+            raise Exception('%s が見つかりませんでした' % source_dir_path)
 
         def hex2bin(source_dir_path, args):
             # runfunc用の関数のimport
