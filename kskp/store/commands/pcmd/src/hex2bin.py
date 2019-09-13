@@ -1,6 +1,6 @@
 """
 KSKP独自コマンド雛形  1入力１出力型
-ver 0.3.0
+ver 0.4.0
 
 16進数バイナリフラグ項目の列展開コマンド
 指定された列を２進数変換して、参照データの列並びと照合し、指定にある列の値を抽出する。
@@ -212,6 +212,16 @@ def ny_wildcard(wc_str):
 
     return re_str
 
+def is_hex(val):
+    '''
+    値が16進数文字列として正しいことを判断する関数
+    '''
+    import re
+    regex = '^[0-9A-Fa-f]+$'
+    match = re.fullmatch(regex,val)
+    
+    return match
+
 
 def processAndwriteline(gen_reader_i, gen_reader_m, args, out_file):
     """
@@ -302,7 +312,7 @@ def processAndwriteline(gen_reader_i, gen_reader_m, args, out_file):
                     if fld in line:
                         # 部分一致指定で、参照列名に重複があった場合は、先に取った列が優先される
                         # 完全一致指定の場合は、重複解消されずに、出力列名重複エラーになる
-                        if m_name in fld and m_name not in sel_flds:
+                        if m_name == fld and m_name not in sel_flds:
                             sel_flds.append(m_name)
                             sel_dgts.append(m_idx)
 
@@ -359,23 +369,40 @@ def processAndwriteline(gen_reader_i, gen_reader_m, args, out_file):
 
             # 入力から対象値取得
             val = line[hex_idx]
-
             bit_val = []  # 0/1文字列のリスト
 
-            # 全体一致指定時のNull置換条件
-            if comp and len(val) * 4 != m_cols:
-                bit_val = ' ' * len(line)
+            #16進数文字列に含まれない値は
+            if is_hex(val):
+                # 全体一致指定時は、桁数が合わない場合はNullにする
+                if comp and len(val) * 4 != m_cols:
+                    bit_val = ' ' * len(line)
+
+                else:
+                    bit_val = format(int(val, 16), '0{}b'.format(len(val)*4))
+ 
             else:
-                for hex_val in val:  # 1文字単位で変換
-                    try:
-                        B = format(int(hex_val, 16), '04b')
-                        # bit_val.append(B)
-                    except ValueError:
-                        B = ' ' * 4  # 変換できない値はnull置換して出す
+                bit_val = ' ' * len(val) * 4 # 変換できない値はnull置換して出す
 
-                    bit_val.append(B)
 
-                bit_val = ''.join(bit_val)  # 文字列として結合してビット列にする
+            # debug_msg("ビット列 ",bit_val)
+                # bit_val.append(B)
+
+                # bit_val = ''.join(bit_val)  # 文字列として結合してビット列にする
+
+
+
+                # for hex_val in val:  # 1文字単位で変換
+                #     try:
+                #         B = format(int(hex_val, 16), '04b')
+                #         # bit_val.append(B)
+                #     except ValueError:
+                #         B = ' ' * 4  # 変換できない値はnull置換して出す
+
+                #     bit_val.append(B)
+
+                # bit_val = ''.join(bit_val)  # 文字列として結合してビット列にする
+
+
 
             # 出力するビットを選ぶ
             sel_vals = []
