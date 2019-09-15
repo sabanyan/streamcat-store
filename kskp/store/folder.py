@@ -224,10 +224,10 @@ class Folder(Store):
             # 全てのフォルダから紐づかないディレクトリは物理削除する
             dir_path = self._path.rstrip(os.pathsep)
             abs_dir_path = Datum._to_abs_path(dir_path)
-            abs_root_dir = Datum._to_abs_path(Datum.find_root()._path)
-            while abs_dir_path != '' and abs_dir_path != '/' and abs_dir_path != abs_root_dir:
+            # abs_root_dir = Datum._to_abs_path(Datum.find_root()._path)
+            while abs_dir_path != '' and abs_dir_path != '/' and abs_dir_path != STORE_DIR.parent.as_posix():
                 # 自分以外で同じディレクトリパスを使用しているフォルダの有無を確認する
-                if Folder._dir_path_exists(dir_path, except_id=self.id):
+                if Folder._dir_path_exists(abs_dir_path, except_id=self.id):
                     break
                 else:
                     if os.path.isdir(abs_dir_path):
