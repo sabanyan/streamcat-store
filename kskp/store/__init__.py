@@ -1,8 +1,12 @@
 import os
 from pathlib import Path
 
-FLOW_FOLDER_UUID   = 'ff37fe34-9c25-4Ad0-b74A-affda3712a45'
-FLOW_FOLDER_LABEL  = 'フロー'
+FLOW_FOLDER_UUID    = 'ff37fe34-9c25-4Ad0-b74A-affda3712a45'
+FLOW_FOLDER_LABEL   = 'フロー'
+RESULT_FOLDER_UUID  = 'aacb4914-0695-40fc-b14b-95b7f1f81707'
+RESULT_FOLDER_LABEL = '実行結果'
+CACHE_FOLDER_UUID   = 'cc9f050d-b007-414e-a6e0-6d31a9c13395'
+CACHE_FOLDER_LABEL  = 'キャッシュ'
 
 # フローがDBに保存されるようになるまでは下記のパスをstoreが持っておく
 STORE_DIR = Path(__file__).parent.parent / 'store'
@@ -95,8 +99,20 @@ from .flows import FlowLink
 from .commands import CommandLink, CommandsPathLink, CommandsPathFileSource, RunfuncCommand
 from .model import *
 
+# label列の新規追加(後方互換)
+sql = """
+ALTER TABLE data 
+ADD COLUMN label VARCHAR;
+"""
+try:
+    engine.execute(sql)
+except Exception as e:
+    pass
+
 # テーブルを作成する
 BaseModel.metadata.create_all(bind=engine, checkfirst=True)
+
+
 
 # フレームを格納するフォルダがなければ作成する
 import pprint

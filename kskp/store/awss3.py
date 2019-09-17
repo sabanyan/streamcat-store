@@ -56,9 +56,9 @@ class AwsS3(Folder):
     @staticmethod
     def convert_to_awss3(datum):
         parent_uuid = Datum.get_uuid_by_id(datum.parent_id)
-        label = json.loads(datum.data, encoding='utf-8')['label']
+        # label = json.loads(datum.data, encoding='utf-8')['label']
         bucket_name = json.loads(datum.data, encoding='utf-8')['bucket']
-        awss3 = AwsS3(parent_uuid, label, bucket_name, datum.creator)
+        awss3 = AwsS3(parent_uuid, datum.label, bucket_name, datum.creator)
         awss3.id = datum.id
         awss3.uuid = datum.uuid
         awss3._path = datum._path
@@ -100,17 +100,21 @@ class AwsS3(Folder):
         if datum is None:
             raise Exception('no bucket is found by designated id.')
 
+        # ラベルに'\0'が含まれていれば取り除く
+        new_label = Datum.escape_label(label)
+
         # ファイルを移動する
         old_path = datum.path
-        new_path = Folder._move_dir(old_path, label)
+        new_path = Folder._move_dir(old_path, new_label)
 
         try:
             # ディレクトリ名の移動によって他のDatumのpathが変更が必要であれば変更する
             Folder._update_other_data(old_path, new_path, modifier)
 
             # レコードを更新する
-            data = json.dumps({'label' : label, 'bucket' : bucket_name})
-            session.query(Datum).filter(Datum.uuid==uuid).update({'data'    :data
+            data = json.dumps({'label' : new_label, 'bucket' : bucket_name})
+            session.query(Datum).filter(Datum.uuid==uuid).update({'_label'   :new_label
+                                                                 ,'data'    :data
                                                                  ,'modifier':modifier})
         except Exception as e:
             session.rollback()
