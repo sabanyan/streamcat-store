@@ -111,6 +111,7 @@ from bokeh.embed import file_html,components
 from bokeh.models import HoverTool
 from bokeh.io import output_file, show
 from numpy import histogram
+hv.extension('bokeh')
 
 class CsvToLineGraphCommand(VisualizersBokehPlot):
     def __init__(self):
@@ -136,6 +137,7 @@ class CsvToLineGraphCommand(VisualizersBokehPlot):
         # if len(df) < start:
             # なんかする
             # pass
+        hv.extension('bokeh')
 
         keys = args.get('data_column')
 
