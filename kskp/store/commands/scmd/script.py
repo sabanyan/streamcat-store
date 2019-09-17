@@ -18,12 +18,17 @@ class SaverCommand(Command):
         self.o_ports = [Port('o', 'mcmd')]
 
     def run(self, args, inputs):
+        # Frameを作成する
+        store = inputs['store']
+        label = args['label']
+        frame = self.get_datum_obj(store, label)
+
         # 1. storeにsaveする
-        datum_module = inputs['store'].save_frame(self, args, inputs['i'])
+        datum_module = store.save_frame(self, args, inputs['i'], frame.uuid + '.csv') 
         # 2. lasts用なのでコマンド実行のrunをする（繋げる必要はない）
         # result = datum_module.run(msg='on')
 
-        return {'o': self.wrap_datum(datum_module, args)}
+        return {'o': self.wrap_with_frame(frame, datum_module, args)}
 
     def module(self, args, input):
         command_args = {}
@@ -31,16 +36,14 @@ class SaverCommand(Command):
         command_args['o'] = args['frame_path'].as_posix()
         return nm.m2tee(command_args)
 
-    def get_datum_obj(self):
+    def get_datum_obj(self, store, label):
         from kskp.store import Library
-        root = Library.load_root()
-        return Frame(root.uuid, 'frame', None)
+        return Frame(store.uuid, label, None)
 
-    def wrap_datum(self, datum_module, args):
-        datum = self.get_datum_obj()
-        datum.set_centext(args)
-        datum.set_content(datum_module)
-        return datum
+    def wrap_with_frame(self, frame, datum_module, args):
+        frame.set_centext(args)
+        frame.set_content(datum_module)
+        return frame
 
 class CacheSaverCommand(SaverCommand):
     """
@@ -50,10 +53,9 @@ class CacheSaverCommand(SaverCommand):
     def __init__(self):
         super().__init__()
 
-    def get_datum_obj(self):
+    def get_datum_obj(self, store, label):
         from kskp.store import Library
-        root = Library.load_root()
-        return Cache(root.uuid, 'cache', None)
+        return Cache(store.uuid, label, None)
 
 class RunsSaver(Command):
     """

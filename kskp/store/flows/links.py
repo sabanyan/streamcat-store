@@ -14,4 +14,4 @@ class FlowLink:
         """
         from kskp.store import Flow
         flow = Flow.find_by_uuid(flow_uuid)
-        return flow.flow_data
+        return flow.label, flow.flow_data

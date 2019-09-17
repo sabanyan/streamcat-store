@@ -580,7 +580,8 @@ class LibraryTest(unittest.TestCase):
         updated_folder = Library.update_folder_data(folder.uuid, '/新しい\0フォルダ/', self.USER_ID2)
         # ラベルとディレクトリパスでは'/'や'\0'は使われない
         self.assertEqual(updated_folder.path, os.path.join(root.path, '／新しいフォルダ／'))
-        self.assertEqual(json.loads(updated_folder.data, encoding='utf-8')['label'], '/新しい\0フォルダ/')
+        self.assertEqual(updated_folder.label, '/新しいフォルダ/')
+        self.assertEqual(json.loads(updated_folder.data, encoding='utf-8')['label'], '/新しいフォルダ/')
         # 作成したフォルダを削除する
         Library.delete_folder(folder.uuid)
 

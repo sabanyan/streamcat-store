@@ -92,7 +92,7 @@ class CsvToTableCommand(VisualizersHtml):
         limit = int(args.get('limit')) if args.get('limit') else None
 
         # ブロック句
-        if not frame.file_exists():
+        if not frame.file_exists:
             return ''
 
         # テーブル構造
@@ -224,7 +224,7 @@ class CsvToScatterCommand(VisualizersBokehPlot):
         df = frame.get_dataframe(limit, offset)
 
         # ブロック句
-        if not frame.file_exists():
+        if not frame.file_exists:
             return ''
 
         # ここstartがdfの最大行数を越えるとエラーが出る

@@ -56,8 +56,8 @@ class Frame(Datum):
     @staticmethod
     def convert_to_frame(datum):
         parent_uuid = Datum.get_uuid_by_id(datum.parent_id)
-        label = json.loads(datum.data, encoding='utf-8')['label']
-        frame = Frame(parent_uuid, label, None, datum.creator)
+        # label = json.loads(datum.data, encoding='utf-8')['label']
+        frame = Frame(parent_uuid, datum.label, None, datum.creator)
         frame.id = datum.id
         frame.uuid = datum.uuid
         frame._path = datum._path
@@ -114,9 +114,12 @@ class Frame(Datum):
         if datum is None:
             raise Exception('no frame is found by designated id.')
 
+        # ラベルに'\0'が含まれていれば取り除く
+        new_label = Datum.escape_label(label)
+
         # ファイルを移動する
         old_path = datum.path
-        new_path = os.path.join(os.path.dirname(old_path), Datum.escape_filename(label))
+        new_path = os.path.join(os.path.dirname(old_path), Datum.escape_filename(new_label))
         new_path = Datum.move_file(old_path, new_path)
 
         try:
@@ -124,8 +127,9 @@ class Frame(Datum):
             session.query(Datum).filter(Datum._path==old_path).update({'_path'   :new_path,
                                                                        'modifier':modifier})
             # レコードを更新する
-            data = json.dumps({'label' : label})
-            session.query(Datum).filter(Datum.uuid==uuid).update({'data'    :data,
+            data = json.dumps({'label' : new_label})
+            session.query(Datum).filter(Datum.uuid==uuid).update({'_label'  :new_label,
+                                                                  'data'    :data,
                                                                   'modifier':modifier})
         except Exception as e:
             session.rollback()
@@ -179,13 +183,10 @@ class Frame(Datum):
             session.commit()
 
     @property
-    def label(self):
-        return json.loads(self.data, encoding='utf-8')['label']
-
-    @property
     def file_size(self):
         return os.path.getsize(Datum._to_abs_path(self._path))
 
+    @property
     def file_exists(self):
         return os.path.exists(self._to_abs_path(self._path))
 
@@ -249,7 +250,7 @@ class Frame(Datum):
     def to_json(self):
         return {'uuid'      : self.uuid,
                 'type'      : Datum.FRAME_TYPE,
-                'label'     : json.loads(self.data, encoding='utf-8')['label'],
+                'label'     : self.label,
                 'creator'   : Datum.get_user_name_by_user_id(self.creator),
                 'createdAt' : self.created_at_str}
 
