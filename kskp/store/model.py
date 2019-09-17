@@ -286,8 +286,10 @@ def fetch_flow_by_uuid(flow_uuid):
     """
     指定したフローの内容を返す
     """
-    from kskp.store import FlowLink
-    return FlowLink(flow_uuid).resolve()
+    # from kskp.store import FlowLink
+    # return FlowLink(flow_uuid).resolve()
+    from kskp.store import Flow
+    return Flow.find_by_uuid(flow_uuid).flow_data
 
 def make_flow_path(file_name):
     """

@@ -39,6 +39,7 @@ class Datum(BaseModel):
     parent_id   = Column(INTEGER)
     uuid        = Column(UUID, nullable=False, unique=True)
     _path       = Column('path', String, nullable=False)
+    _label      = Column('label', String)
     # PostgreSQLのENUM型の要素を変更してもSQLAlchemyから自動的に変更がかからないので手動で変更する必要がある
     type        = Column(ENUM(AWSS3_TYPE, FOLDER_TYPE, FLOW_TYPE, FRAME_TYPE, name='data_type'), nullable=False)
     data        = Column(JSONB, nullable=False)
@@ -75,6 +76,9 @@ class Datum(BaseModel):
         else:
             dir_name = Datum.escape_filename(label)
             self._path = os.path.join(parent._path, dir_name)
+
+        # label
+        self._label = Datum.escape_label(label)
 
         # type
         self.type = datum_type
@@ -133,6 +137,14 @@ class Datum(BaseModel):
         self._path = value.as_posix()
 
     @property
+    def label(self):
+        if self._label is None or self._label == '':
+            import json
+            return json.loads(self.data, encoding='utf-8')['label']
+        else:
+            return self._label
+
+    @property
     def created_at_str(self):
         created_at_utc = self.created_at.astimezone(datetime.timezone.utc)
         created_at_local = created_at_utc.astimezone()
@@ -172,7 +184,7 @@ class Datum(BaseModel):
         datum = session.query(Datum)\
                         .filter(sub_query.filter(f2.id==Datum.parent_id)
                                          .filter(f2.uuid==parent_uuid).exists())\
-                        .order_by(Datum.type,desc(Datum.created_at)).all()
+                        .order_by(Datum.type, desc(Datum.created_at)).all()
         return datum
 
     @staticmethod
@@ -188,6 +200,25 @@ class Datum(BaseModel):
         return session.query(Datum)\
                       .filter(sub_query.filter(f2.parent_id==Datum.id)
                                        .filter(f2.uuid==uuid).exists()).one_or_none()
+
+    @staticmethod
+    def find_by_parent_uuid_and_label(parent_uuid, label):
+        """
+        指定したuuidの親と指定したラベル名のレコードを全て取得する
+        """
+        from sqlalchemy import desc
+
+        # UUID値の形式チェックをする
+        Datum.valid_uuid_or_raise(parent_uuid)
+
+        f2 = aliased(Datum)
+        sub_query = session.query(f2)
+        datum = session.query(Datum)\
+                        .filter(sub_query.filter(f2.id==Datum.parent_id)
+                                         .filter(f2.uuid==parent_uuid).exists())\
+                        .filter(Datum._label==label)\
+                        .order_by(Datum.type, desc(Datum.created_at)).all()
+        return datum
 
     @staticmethod
     def get_flow_uuids_using_other_datum(datum_uuid):
@@ -227,6 +258,14 @@ class Datum(BaseModel):
         # '/'と'\0'はunixとmacOSではファイル名に使用できない
         trans_table = str.maketrans({'/' : '／', '\0' : ''})
         return filename.translate(trans_table)
+
+    @staticmethod
+    def escape_label(label):
+        if label is None:
+            return label
+        # '\0'は少なくともPostgreSQLのVARCHARに格納できない
+        trans_table = str.maketrans({'\0' : ''})
+        return label.translate(trans_table)
 
     @staticmethod
     def get_user_name_by_user_id(user_id):

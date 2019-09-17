@@ -47,8 +47,8 @@ class Folder(Store):
     @staticmethod
     def convert_to_folder(datum):
         parent_uuid = Datum.get_uuid_by_id(datum.parent_id)
-        label = json.loads(datum.data, encoding='utf-8')['label']
-        folder = Folder(parent_uuid, label, datum.creator)
+        # label = json.loads(datum.data, encoding='utf-8')['label']
+        folder = Folder(parent_uuid, datum.label, datum.creator)
         folder.id = datum.id
         folder.uuid = datum.uuid
         folder._path = datum._path
@@ -106,17 +106,21 @@ class Folder(Store):
         if datum is None:
             raise Exception('no folder is found by designated id.')
 
+        # ラベルに'\0'が含まれていれば取り除く
+        new_label = Datum.escape_label(label)
+
         # ファイルを移動する
         old_path = datum.path
-        new_path = Folder._move_dir(old_path, label)
+        new_path = Folder._move_dir(old_path, new_label)
 
         try:
             # ディレクトリ名の移動によって他のDatumのpathが変更が必要であれば変更する
             Folder._update_other_data(old_path, new_path, modifier)
 
             # レコードを更新する
-            data = json.dumps({'label' : label})
-            session.query(Datum).filter(Datum.uuid==uuid).update({'data'    :data
+            data = json.dumps({'label' : new_label})
+            session.query(Datum).filter(Datum.uuid==uuid).update({'_label'  :new_label
+                                                                 ,'data'    :data
                                                                  ,'modifier':modifier})
         except Exception as e:
             session.rollback()
@@ -197,10 +201,6 @@ class Folder(Store):
         path_to_root.reverse()
         return path_to_root
 
-    @property
-    def label(self):
-        return json.loads(self.data, encoding='utf-8')['label']
-
     def _make_dir(self):
         """
         Folderに対応するディレクトリを作成する
@@ -231,6 +231,7 @@ class Folder(Store):
                     if os.path.isdir(dir_path):
                         os.rmdir(dir_path)
                     dir_path = os.path.dirname(dir_path)
+
         except PermissionError as e:
             # ファイルに対する権限がない場合
             raise e
@@ -271,11 +272,11 @@ class Folder(Store):
     def to_json(self):
         return {'uuid'      : self.uuid,
                 'type'      : Datum.FOLDER_TYPE,
-                'label'     : json.loads(self.data, encoding='utf-8')['label'],
+                'label'     : self.label,
                 'creator'   : Datum.get_user_name_by_user_id(self.creator),
                 'createdAt' : self.created_at_str}
 
-    def save_frame(self, command, args, datum):
+    def save_frame(self, command, args, datum, file_name):
         """
         engine用
         保存するframeへのパスを作成する
