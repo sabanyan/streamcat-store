@@ -84,9 +84,9 @@ class Flow(Datum):
     @staticmethod
     def convert_to_flow(datum):
         parent_uuid = Datum.get_uuid_by_id(datum.parent_id)
-        label = json.loads(datum.data, encoding='utf-8')['label']
+        # label = json.loads(datum.data, encoding='utf-8')['label']
         flow_data = json.loads(datum.data, encoding='utf-8')['flow']
-        flow = Flow(parent_uuid, label, flow_data, datum.creator)
+        flow = Flow(parent_uuid, datum.label, flow_data, datum.creator)
         flow.id = datum.id
         flow.uuid = datum.uuid
         flow._path = datum._path
@@ -124,10 +124,14 @@ class Flow(Datum):
         if datum is None:
             raise Exception('no flow is found by designated id.')
 
+        # ラベルに'\0'が含まれていれば取り除く
+        new_label = Datum.escape_label(label)
+
         try:
             # レコードを更新する
-            data = json.dumps({'label' : label, 'flow' : flow_data})
-            session.query(Datum).filter(Datum.uuid==uuid).update({'data'     :data,
+            data = json.dumps({'label' : new_label, 'flow' : flow_data})
+            session.query(Datum).filter(Datum.uuid==uuid).update({'_label'    :new_label,
+                                                                  'data'     :data,
                                                                   'modifier' :modifier})
         except Exception as e:
             session.rollback()
@@ -163,10 +167,6 @@ class Flow(Datum):
         念の為Flowは削除しない
         """
         pass
-
-    @property
-    def label(self):
-        return json.loads(self.data, encoding='utf-8')['label']
 
     @property
     def flow_data(self):
