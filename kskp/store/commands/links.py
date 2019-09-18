@@ -131,6 +131,7 @@ class CommandLink:
             'selrow': SelRowCommand(),
             'plc_loader' : PlcLoaderCommand(),
             'daifuku_loader' : DaifukuLoaderCommand(),
+            'rdb_loader' : RdbLoaderCommand(),
             'hex2bin': Hex2binCommand(),
             # ビジュアライズ
             'csvtohtmltable': CsvToTableCommand(),
