@@ -6,7 +6,7 @@ class FlowLink:
         self.flow_uuid = flow_uuid
 
     def resolve(self):
-        return self.select_json(self.flow_uuid)
+        return self.select_json(self.flow_uuid)[1]
 
     def select_json(self, flow_uuid):
         """
