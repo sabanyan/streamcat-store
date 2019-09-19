@@ -1,4 +1,4 @@
-#!usr/bin/bash -eu
+#!/usr/bin/bash -eu
 #UTF-8, LF
 #2019.02.04 Ryo Taniguchi
 readonly  PROGNAME=$(basename $0 .sh)   # フォルダ名、拡張子を除いたファイル名
