@@ -19,8 +19,9 @@ class Datum(BaseModel):
     """
     # TODO: とりあえずFrameだけ
     # csv以外も出た時は改めて考えねば
-    DEFAULT_LIBRARY_PATH = (STORE_DIR / 'frames/csv').as_posix()
     # DEFAULT_LIBRARY_PATH = (STORE_DIR / 'frames/csv').relative_to(STORE_DIR.parent.parent).as_posix()
+    # DEFAULT_LIBRARY_PATH = (STORE_DIR / 'frames/csv').as_posix()
+    DEFAULT_LIBRARY_PATH = 'store'
     AWSS3_TYPE  = 'awss3'
     FOLDER_TYPE = 'folder'
     FLOW_TYPE   = 'flow'
@@ -151,6 +152,14 @@ class Datum(BaseModel):
         return created_at_local.strftime('%Y-%m-%d %H:%M:%S')
 
     @staticmethod
+    def _to_abs_path(path):
+        return (STORE_DIR.parent / path).as_posix()
+
+    @staticmethod
+    def _to_rel_path(path):
+        return Path(path).relative_to(STORE_DIR.parent).as_posix()
+
+    @staticmethod
     def find_root():
         """
         親を持たないfolderレコードを全て取得する
@@ -244,8 +253,8 @@ class Datum(BaseModel):
             # 同じ名称のファイルが既に存在する場合、末尾に数字を付加したファイル名で作成する
             new_path = Datum.get_another_file_path(new_path, except_path=old_path)
             # ファイルを移動する
-            if os.path.exists(old_path):
-                os.rename(old_path, new_path)
+            if os.path.exists(Datum._to_abs_path(old_path)):
+                os.rename(Datum._to_abs_path(old_path), Datum._to_abs_path(new_path))
                 return new_path
             else:
                 return old_path
@@ -286,7 +295,7 @@ class Datum(BaseModel):
         同じ名称のファイルが既に存在する場合、末尾に数字を付加したファイル名で作成する
         except_path : 存在チェックを除外するファイル名
         """
-        while os.path.exists(path) and path != except_path:
+        while os.path.exists(Datum._to_abs_path(path)) and path != except_path:
             filename = os.path.basename(path)
             dirname = os.path.dirname(path)
             new_filename = Datum._get_another_file_name(filename)
@@ -401,19 +410,21 @@ class Datum(BaseModel):
         """
         Check if this path is a POSIX mount point
         """
+        abs_path_obj = Path(Datum._to_abs_path(path_obj))
+
         # Need to exist and be a dir
-        if not path_obj.exists() or not path_obj.is_dir():
+        if not abs_path_obj.exists() or not abs_path_obj.is_dir():
             return False
 
-        parent = Path(path_obj.parent)
+        parent = abs_path_obj.parent
         try:
             parent_dev = parent.stat().st_dev
         except OSError:
             return False
 
-        dev = path_obj.stat().st_dev
+        dev = abs_path_obj.stat().st_dev
         if dev != parent_dev:
             return True
-        ino = path_obj.stat().st_ino
+        ino = abs_path_obj.stat().st_ino
         parent_ino = parent.stat().st_ino
         return ino == parent_ino

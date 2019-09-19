@@ -10,6 +10,9 @@ from kskp.store import Frame
 from kskp.store import Flow
 
 class Library:
+    """
+    ライブラリ機能のFacadeパターン
+    """
 
     @staticmethod
     def load_root():
