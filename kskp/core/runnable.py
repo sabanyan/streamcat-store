@@ -24,6 +24,9 @@ class Command(Datum):
         self.lasts = result
         return result
 
+    def dtor(self):
+        pass
+
 
 class Port:
     """

@@ -468,6 +468,11 @@ class RdbLoaderCommand(Command):
         from sqlalchemy import DDL, exc
         try:
             engine.execute('BEGIN')
+        except exc.SQLAlchemyError as e:
+            engine.execute('ROLLBACK')
+            raise Exception('トランザクションの開始に失敗しました')
+
+        try:
             results = engine.execute(sql)
         except exc.SQLAlchemyError as e:
             engine.execute('ROLLBACK')
