@@ -104,13 +104,12 @@ class CommandTest(unittest.TestCase):
 
     def test_rdb_loader_command(self):
         """
-        RDBローダーコマンドの検証
+        RDBローダーコマンドが正しくデータを取得できること
         """
         flow_link = FlowJsonLink(self.flow_data['label'], json.dumps(self.flow_data))
         lasts = execute(flow_link, {}, {})
 
         correct = {'d': [['1', 'a   ', 'b', '1900-12-31', '1900-12-31 01:01:01.123456', '1:10:00']]}
-        # テスト
         # DBにframeデータが生成されているか
         self.assertIsNotNone(Library.load_frame(lasts['d'].uuid))
         # 実ファイルが指定ディレクトリに存在するか
@@ -119,6 +118,65 @@ class CommandTest(unittest.TestCase):
 
         # 後片付け
         Library.delete_frame(lasts['d'].uuid)
+
+    flow_data2 = {
+        "projectId": None, 
+        "label": "abc", 
+        "ports": [
+        [], 
+        []
+        ], 
+        "params": [], 
+        "description": "", 
+        "creator": "開発用", 
+        "createdAt": "2019-09-18 15:04:24", 
+        "nodes": [
+            {
+                "invalid": {}, 
+                "error": {}, 
+                "id": "d", 
+                "type": "frame", 
+                "label": "d", 
+                "uuid": None, 
+                "makeCache": False, 
+                "cacheCreatedAt": None, 
+                "dataSource": "csv"
+            }, 
+            {
+                "invalid": {}, 
+                "error": {}, 
+                "id": "c", 
+                "type": "command", 
+                "label": "RDBからの読み込み", 
+                "srcs": {}, 
+                "srcsOrder": [], 
+                "dsts": {
+                "o": "d"
+                }, 
+                "args": {
+                "dbms": "postgresql", 
+                "hostname": "aaa.bbb.ccc.ddd", 
+                "port": "5432", 
+                "database": "kskp",
+                "user_id": "kskp", 
+                "password": "J2-pH|%B",
+                "schema_name" : os.environ['KSKP_POSTGRESQL_SCHEMA_NAME'],
+                "table_name": "test"
+                }, 
+                "commandId": "rdb_loader"
+            }
+        ]
+    }
+
+    def test_not_connected_to_rdb(self):
+        """
+        RDBに接続できない場合は例外を送出すること
+        """
+        flow_link = FlowJsonLink(self.flow_data2['label'], json.dumps(self.flow_data2))
+
+        from sqlalchemy import exc
+        with self.assertRaises(exc.OperationalError):
+            lasts = execute(flow_link, {}, {})
 
 # Helpler
 def get_frame_by_uuid(uuid, header=True):
