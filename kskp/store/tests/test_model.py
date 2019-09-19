@@ -6,7 +6,7 @@ import pprint
 from pathlib import Path
 from datetime import datetime
 
-from kskp.store import Library
+from kskp.store import Library, STORE_DIR
 
 class LibraryTest(unittest.TestCase):
     # テスト用ユーザID
@@ -23,7 +23,7 @@ class LibraryTest(unittest.TestCase):
     def tearDownClass(cls):
         # ライブラリフォルダを削除する
         from kskp.core import Datum
-        library_path = Path(__file__).parent.parent.parent.parent / Datum.find_root().path
+        library_path = STORE_DIR.parent / Datum.find_root().path
         import shutil
         shutil.rmtree(library_path.as_posix())
         # Sessionを閉じる
@@ -37,6 +37,10 @@ class LibraryTest(unittest.TestCase):
     def save(self, file_path):
         with open(file_path, "w") as f:
             f.write("I am a frame data for test cases.")
+
+    def delete(self, file_path):
+        if os.path.exists(file_path):
+            os.unlink(file_path)
 
     def test_save_and_load(self):
         # ルートデータストアを取得する
@@ -97,7 +101,7 @@ class LibraryTest(unittest.TestCase):
         # ルートデータストアを取得する
         root = Library.load_root()
         # ルートデータストアの直下にフォルダを作成する
-        folder = Library.save_folder(root.uuid, 'フォルダ', self.USER_ID1)
+        folder = Library.save_folder(root.uuid, 'フォルダ0', self.USER_ID1)
         # 作成したフォルダのラベルを変更する
         updated_folder = Library.update_folder_data(folder.uuid, '新しいフォルダ', self.USER_ID2)
         # ラベルとディレクトリパスのみが変更されることを検証する
@@ -225,16 +229,16 @@ class LibraryTest(unittest.TestCase):
         # ルートデータストアを取得する
         root = Library.load_root()
         # フレームデータを格納するファイルを作成する
-        self.save('kskp/store/frames/csv/aaaa.csv')
+        self.save('store/aaaa.csv')
         # ルートデータストアの直下にフレームを作成する
-        frame = Library.save_frame(root.uuid, 'フレームデータ', Path('kskp/store/frames/csv/aaaa.csv'), self.USER_ID1)
+        frame = Library.save_frame(root.uuid, 'フレームデータ', Path('store/aaaa.csv'), self.USER_ID1)
         # 作成したフレームを取得する
         frame = Library.load_frame(frame.uuid)
         # 作成したフレームの値を検証する
         self.assertIsNotNone(frame.id)
         self.assertEqual(frame.parent_id, root.id)
         self.assertIsNotNone(frame.uuid)
-        self.assertEqual(frame.path, 'kskp/store/frames/csv/aaaa.csv')
+        self.assertEqual(frame.path, 'store/aaaa.csv')
         self.assertEqual(frame.type, 'frame')
         self.assertEqual(json.loads(frame.data, encoding='utf-8')['label'], 'フレームデータ')
         self.assertEqual(frame.creator, self.USER_ID1)
@@ -253,9 +257,9 @@ class LibraryTest(unittest.TestCase):
         # ルートデータストアを取得する
         root = Library.load_root()
         # フレームデータを格納するファイルを作成する
-        self.save('kskp/store/frames/csv/aaaa.csv')
+        self.save('store/aaaa1.csv')
         # ルートデータストアの直下にフレームを作成する
-        frame = Library.save_frame(root.uuid, 'フレームデータ', Path('kskp/store/frames/csv/aaaa.csv'), self.USER_ID1)
+        frame = Library.save_frame(root.uuid, 'フレームデータ', Path('store/aaaa1.csv'), self.USER_ID1)
         # 作成したフレームのラベルを変更する
         updated_frame = Library.update_frame_data(frame.uuid, '新しいフレームデータ', self.USER_ID2)
         # ラベルとディレクトリパスのみが変更されることを検証する
@@ -279,14 +283,14 @@ class LibraryTest(unittest.TestCase):
         # ルートデータストアを取得する
         root = Library.load_root()
         # フレームデータを格納するファイルを作成する
-        self.save('kskp/store/frames/csv/aaaa.csv')
+        self.save('store/aaaa2.csv')
         # ルートデータストアの直下にフレームを作成する
-        frame = Library.save_frame(root.uuid, 'フレームデータ', Path('kskp/store/frames/csv/aaaa.csv'), self.USER_ID1)
+        frame = Library.save_frame(root.uuid, 'フレームデータ', Path('store/aaaa2.csv'), self.USER_ID1)
         # 作成したフレームの値を検証する
         self.assertIsNotNone(frame.id)
         self.assertEqual(frame.parent_id, root.id)
         self.assertIsNotNone(frame.uuid)
-        self.assertEqual(frame.path, 'kskp/store/frames/csv/aaaa.csv')
+        self.assertEqual(frame.path, 'store/aaaa2.csv')
         self.assertEqual(frame.type, 'frame')
         self.assertEqual(json.loads(frame.data, encoding='utf-8')['label'], 'フレームデータ')
         self.assertEqual(frame.creator, self.USER_ID1)
@@ -305,8 +309,8 @@ class LibraryTest(unittest.TestCase):
         # ルートデータストアを取得する
         root = Library.load_root()
         # フレームデータを格納するファイルを作成する
-        self.save('kskp/store/frames/csv/aaaa.csv')
-        with open('kskp/store/frames/csv/aaaa.csv', mode='rb') as stream:
+        self.save('store/aaaa3.csv')
+        with open('store/aaaa3.csv', mode='rb') as stream:
             # ルートデータストアの直下にフレームを作成する
             frame = Library.save2_frame(root.uuid, 'フレームデータ', stream, self.USER_ID1)
         # 作成したフレームの値を検証する
@@ -324,6 +328,8 @@ class LibraryTest(unittest.TestCase):
         self.assertEqual(frame.created_at, frame.modified_at)
         # 作成したフレームを削除する
         Library.delete_frame(frame.uuid)
+        # 作成したファイルを削除する
+        self.delete('store/aaaa3.csv')
 
 
     def test_get_flow(self):
@@ -333,9 +339,9 @@ class LibraryTest(unittest.TestCase):
         # ルートデータストアを取得する
         root = Library.load_root()
         # フレームデータを格納するファイルを作成する
-        self.save('kskp/store/frames/csv/frame_for_flow.csv')
+        self.save('store/frame_for_flow.csv')
         # ルートデータストアの直下にフレームを作成する
-        frame = Library.save_frame(root.uuid, 'フレームデータ', Path('kskp/store/frames/csv/frame_for_flow.csv'), self.USER_ID1)
+        frame = Library.save_frame(root.uuid, 'フレームデータ', Path('store/frame_for_flow.csv'), self.USER_ID1)
         # フローデータを作成する
         flow_data = {
             'projectId': 1,
@@ -375,6 +381,8 @@ class LibraryTest(unittest.TestCase):
         self.assertEqual(flow.created_at, flow.modified_at)
         # 作成したフローを削除する
         Library.delete_flow(flow.uuid)
+        # 作成したファイルを削除する
+        self.delete('store/frame_for_flow.csv')
 
     def test_update_flow(self):
         """
@@ -383,9 +391,9 @@ class LibraryTest(unittest.TestCase):
         # ルートデータストアを取得する
         root = Library.load_root()
         # フレームデータを格納するファイルを作成する
-        self.save('kskp/store/frames/csv/frame_for_flow2.csv')
+        self.save('store/frame_for_flow2.csv')
         # ルートデータストアの直下にフレームを作成する
-        frame = Library.save_frame(root.uuid, 'フレームデータ', Path('kskp/store/frames/csv/frame_for_flow2.csv'), self.USER_ID1)
+        frame = Library.save_frame(root.uuid, 'フレームデータ', Path('store/frame_for_flow2.csv'), self.USER_ID1)
         # フローデータを作成する
         flow_data = {
             'projectId': 1,
@@ -435,6 +443,8 @@ class LibraryTest(unittest.TestCase):
         self.assertIsNotNone(updated_flow.modified_at)
         # 作成したフレームを削除する
         Library.delete_flow(updated_flow.uuid)
+        # 作成したファイルを削除する
+        self.delete('store/frame_for_flow2.csv')
 
     def test_save_flow(self):
         """
@@ -545,11 +555,11 @@ class LibraryTest(unittest.TestCase):
         # ルートデータストアを取得する
         root = Library.load_root()
         # ルートデータストアの直下にフォルダを作成する
-        folder = Library.save_folder(root.uuid, 'フォルダ', self.USER_ID1)
+        folder = Library.save_folder(root.uuid, 'フォルダA', self.USER_ID1)
         # フレームデータを格納するファイルを作成する
-        self.save('kskp/store/frames/csv/aaaa.csv')
+        self.save('store/aaaa.csv')
         # ルートデータストアの直下にフレームを作成する
-        frame = Library.save_frame(folder.uuid, 'フレームデータ', Path('kskp/store/frames/csv/aaaa.csv'), self.USER_ID1)
+        frame = Library.save_frame(folder.uuid, 'フレームデータ', Path('store/aaaa.csv'), self.USER_ID1)
         # フレームを内包するフォルダを削除しようとする
         with self.assertRaises(Exception) as e:
             Library.delete_folder(folder.uuid)
@@ -565,7 +575,7 @@ class LibraryTest(unittest.TestCase):
         # ルートデータストアを取得する
         root = Library.load_root()
         # ルートデータストアの直下にフォルダを作成する
-        folder = Library.save_folder(root.uuid, 'フォルダ', self.USER_ID1)
+        folder = Library.save_folder(root.uuid, 'フォルダB', self.USER_ID1)
         # 作成したフォルダのラベルを変更する
         updated_folder = Library.update_folder_data(folder.uuid, '/新しい\0フォルダ/', self.USER_ID2)
         # ラベルとディレクトリパスでは'/'や'\0'は使われない
@@ -597,19 +607,19 @@ class LibraryTest(unittest.TestCase):
         # ルートデータストアを取得する
         root = Library.load_root()
         # フレームデータを格納するファイルを作成する
-        self.save('kskp/store/frames/csv/foo.csv')
+        self.save('store/foo.csv')
         # ルートデータストアの直下にフレーム1を作成する
-        frame1 = Library.save_frame(root.uuid, 'フレームデータ', Path('kskp/store/frames/csv/foo.csv'), self.USER_ID1)
+        frame1 = Library.save_frame(root.uuid, 'フレームデータ', Path('store/foo.csv'), self.USER_ID1)
         # ルートデータストアの直下にフレーム2を作成する
-        frame2 = Library.save_frame(root.uuid, 'フレームデータ', Path('kskp/store/frames/csv/foo.csv'), self.USER_ID1)
+        frame2 = Library.save_frame(root.uuid, 'フレームデータ', Path('store/foo.csv'), self.USER_ID1)
         # フレーム1を削除する
         Library.delete_frame(frame1.uuid)
         # フレーム1,2に対応するCSVファイルが存在することを検証する
-        self.assertTrue(os.path.isfile('kskp/store/frames/csv/foo.csv'))
+        self.assertTrue(os.path.isfile('store/foo.csv'))
         # フレーム2を削除する
         Library.delete_frame(frame2.uuid)
         # フレーム1,2に対応するCSVファイルが存在しないことを検証する
-        self.assertFalse(os.path.isfile('kskp/store/frames/csv/foo.csv'))
+        self.assertFalse(os.path.isfile('store/foo.csv'))
 
     def test_update_frame_refer_to_file_other_frame_refering(self):
         """
@@ -619,18 +629,18 @@ class LibraryTest(unittest.TestCase):
         # ルートデータストアを取得する
         root = Library.load_root()
         # フレームデータを格納するファイルを作成する
-        self.save('kskp/store/frames/csv/abc.csv')
+        self.save('store/abc.csv')
         # ルートデータストアの直下にフレーム1を作成する
-        frame1 = Library.save_frame(root.uuid, 'フレームデータ', Path('kskp/store/frames/csv/abc.csv'), self.USER_ID1)
+        frame1 = Library.save_frame(root.uuid, 'フレームデータ', Path('store/abc.csv'), self.USER_ID1)
         # ルートデータストアの直下にフレーム2を作成する
-        frame2 = Library.save_frame(root.uuid, 'フレームデータ', Path('kskp/store/frames/csv/abc.csv'), self.USER_ID1)
+        frame2 = Library.save_frame(root.uuid, 'フレームデータ', Path('store/abc.csv'), self.USER_ID1)
         # フレーム1のラベル名を変更する
         Library.update_frame_data(frame1.uuid, '新しいフレームデータ1', self.USER_ID2)
         # フレーム1のラベル名の変更に従って、CSVファイル名が変更されていることを検証する
-        self.assertEqual(frame1.path, 'kskp/store/frames/csv/新しいフレームデータ1')
-        self.assertEqual(frame2.path, 'kskp/store/frames/csv/新しいフレームデータ1')
-        self.assertTrue(os.path.isfile('kskp/store/frames/csv/新しいフレームデータ1'))
-        self.assertFalse(os.path.isfile('kskp/store/frames/csv/abc.csv'))
+        self.assertEqual(frame1.path, 'store/新しいフレームデータ1')
+        self.assertEqual(frame2.path, 'store/新しいフレームデータ1')
+        self.assertTrue(os.path.isfile('store/新しいフレームデータ1'))
+        self.assertFalse(os.path.isfile('store/abc.csv'))
         # フレーム1を削除する
         Library.delete_frame(frame1.uuid)
         # フレーム2を削除する
@@ -643,8 +653,8 @@ class LibraryTest(unittest.TestCase):
         # ルートデータストアを取得する
         root = Library.load_root()
         # フレームデータを格納するファイルを作成する
-        self.save('kskp/store/frames/csv/bar.csv')
-        with open('kskp/store/frames/csv/bar.csv', mode='rb') as stream:
+        self.save('store/bar.csv')
+        with open('store/bar.csv', mode='rb') as stream:
             # ルートデータストアの直下にフレーム1を作成する
             frame1 = Library.save2_frame(root.uuid, 'フレームデータ', stream, self.USER_ID1)
             # ルートデータストアの直下にフレーム2を作成する
@@ -652,16 +662,17 @@ class LibraryTest(unittest.TestCase):
             # ルートデータストアの直下にフレーム3を作成する
             frame3 = Library.save2_frame(root.uuid, 'フレームデータ', stream, self.USER_ID1)
         # フレーム2に対応するファイルパスはフレームデータ_1であることを検証する
-        # self.assertEqual(frame1.path, 'kskp/store/frames/csv/フレームデータ')
-        # self.assertEqual(frame2.path, 'kskp/store/frames/csv/フレームデータ_1')
-        # self.assertEqual(frame3.path, 'kskp/store/frames/csv/フレームデータ_2')
+        # self.assertEqual(frame1.path, 'store/フレームデータ')
+        # self.assertEqual(frame2.path, 'store/フレームデータ_1')
+        # self.assertEqual(frame3.path, 'store/フレームデータ_2')
         # フレーム1を削除する
         Library.delete_frame(frame1.uuid)
         # フレーム2を削除する
         Library.delete_frame(frame2.uuid)
         # フレーム3を削除する
         Library.delete_frame(frame3.uuid)
-
+        # 作成したファイルを削除する
+        self.delete('store/bar.csv')
 
 
 
@@ -679,11 +690,11 @@ class LibraryTest(unittest.TestCase):
     # def test_Frame(self):
     #     frame = Frame()
     #     frame.set_uuid = str(uuid.uuid4())
-    #     frame.set_cache_info = {'dir_path':'kskp/store/frames/csv/'}
+    #     frame.set_cache_info = {'dir_path':'store/'}
     #     frame.save()
 
     # def test_Cache(self):
     #     cache = Cache()
     #     cache.set_uuid = str(uuid.uuid4())
-    #     cache.set_cache_info = {'dir_path':'kskp/store/frames/csv/'}
+    #     cache.set_cache_info = {'dir_path':'store/'}
     #     cache.save()

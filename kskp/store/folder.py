@@ -209,8 +209,8 @@ class Folder(Store):
             # 同じ名称のファイルが既に存在する場合、末尾に数字を付加したディレクトリ名で作成する
             path = Folder.get_another_file_path(self._path)
             # フォルダに紐付くディレクトリ(path列で指定されるディレクトリ)がなければ作成する
-            if not os.path.isdir(path):
-                os.makedirs(path, exist_ok=True)
+            if not os.path.isdir(Datum._to_abs_path(path)):
+                os.makedirs(Datum._to_abs_path(path), exist_ok=True)
             return path
         except PermissionError as e:
             # ファイルに対する権限がない場合
@@ -223,15 +223,19 @@ class Folder(Store):
         try:
             # 全てのフォルダから紐づかないディレクトリは物理削除する
             dir_path = self._path.rstrip(os.pathsep)
-            while dir_path != '' and dir_path != '/' and dir_path != (STORE_DIR / 'frames').as_posix():
-                # 自分以外で同じディレクトリパスを使用しているフォルダの有無を確認する
+            abs_dir_path = Datum._to_abs_path(dir_path)
+            while dir_path != '' and dir_path != '/':
+                # 自分以外で同じディレクトリパス(相対パス)を使用しているフォルダの有無を確認する
                 if Folder._dir_path_exists(dir_path, except_id=self.id):
                     break
+                elif Datum.is_mount(dir_path):
+                    # マウント中のフォルダは削除しない
+                    break
                 else:
-                    if os.path.isdir(dir_path):
-                        os.rmdir(dir_path)
+                    if os.path.isdir(abs_dir_path):
+                        os.rmdir(abs_dir_path)
                     dir_path = os.path.dirname(dir_path)
-
+                    abs_dir_path = os.path.dirname(abs_dir_path)
         except PermissionError as e:
             # ファイルに対する権限がない場合
             raise e
@@ -281,7 +285,8 @@ class Folder(Store):
         engine用
         保存するframeへのパスを作成する
         """
-        args['frame_path'] = (Path(self.path) / (str(uuid.uuid4()) + '.csv'))
+        # args['frame_path'] = (Path(Datum._to_abs_path(self.path)) / (str(uuid.uuid4()) + '.csv'))
+        args['frame_path'] = Path(Datum._to_abs_path(self.path)) / file_name
         return command.module(args, datum)
 
     @staticmethod
@@ -295,9 +300,9 @@ class Folder(Store):
         frame = Library.load_frame(uuid)
         if frame is None:
             raise Exception('No frame(%s) is found !' % uuid)
-        path = frame.path_obj
+        path = Datum._to_abs_path(frame.path_obj)
 
-        return nm.m2tee({'i':path.as_posix()})
+        return nm.m2tee({'i':path})
 
     @property
     def content(self):
