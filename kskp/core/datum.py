@@ -151,6 +151,53 @@ class Datum(BaseModel):
         created_at_local = created_at_utc.astimezone()
         return created_at_local.strftime('%Y-%m-%d %H:%M:%S')
 
+    def move(self, parent_uuid, modifier):
+        """
+        指定されたStoreの直下に移動する
+        """
+        # UUID値の形式チェックをする
+        Datum.valid_uuid_or_raise(parent_uuid)
+
+        try:
+            from kskp.store import Folder
+            to_folder = Folder.find_by_uuid(parent_uuid)
+        except Exception as e:
+            raise Exception('移動先の指定はフォルダのUUIDしか許可していません')
+
+        # 移動対象がAWS S3フォルダの場合は、path列を変更することはマウントポイントを変更することになるので
+        # とりあえずエラーとする
+        if self.type == Datum.AWSS3_TYPE:
+            raise Exception('AWS S3フォルダを移動することはできません')
+
+        if parent_uuid == self.uuid:
+            raise Exception('移動先と移動元の指定が同じです')
+
+        # 移動先が移動元フォルダの配下になる場合は例外を送出する
+        if self.type == Datum.FOLDER_TYPE:
+            pass
+
+        # ファイルを移動する
+        old_path = self.path
+        new_path = to_folder.path_obj / self.path_obj.name
+        new_path = Datum.move_file(old_path, new_path)
+        new_label = new_path.name
+
+        try:
+            # ディレクトリ名の移動によって他のDatumのpathが変更が必要であれば変更する
+            Datum.update_all_path(old_path, new_path.as_posix(), modifier)
+            # レコードを更新する
+            session.query(Datum).filter(Datum.id==self.id).update({'parent_id': to_folder.id
+                                                                  ,'_path'    : new_path.as_posix()
+                                                                  ,'_label'   : new_label
+                                                                  ,'modifier' : modifier})
+        except Exception as e:
+            session.rollback()
+            raise e
+        finally:
+            session.commit()
+
+        return self
+
     @staticmethod
     def _to_abs_path(path):
         return (STORE_DIR.parent / path).as_posix()
@@ -249,6 +296,11 @@ class Datum(BaseModel):
         """
         ドキュメントまたはフォルダに対応するファイルまたはディレクトリを移動する
         """
+        if old_path is None or old_path == '':
+            raise Exception('move_file(): 移動元のファイルパスが指定されていません')
+        if new_path is None or new_path == '':
+            raise Exception('move_file(): 移動先のファイルパスが指定されていません')
+        
         try:
             # 同じ名称のファイルが既に存在する場合、末尾に数字を付加したファイル名で作成する
             new_path = Datum.get_another_file_path(new_path, except_path=old_path)
@@ -261,6 +313,20 @@ class Datum(BaseModel):
         except PermissionError as e:
             # ファイルに対する権限がない場合
             raise e
+
+    @staticmethod
+    def update_all_path(old_path, new_path, modifier):
+        # 同じディレクトリに対応するフォルダのpath列を、ディレクトリ名の移動に合わせて変更する
+        session.query(Datum).filter(Datum._path==old_path).update({'_path'   : new_path
+                                                                 , 'modifier': modifier})
+        # 同じディレクトリを含むpath列を、ディレクトリの移動に合わせて変更する
+        results = session.query(Datum.id, Datum._path).filter(Datum.type.in_([Datum.FOLDER_TYPE, Datum.AWSS3_TYPE]))\
+                                                      .filter(Datum._path.like(old_path+'/%')).all()
+        import re
+        for result in results:
+            replaced_path = re.sub('^'+old_path, new_path, result._path)
+            session.query(Datum).filter(Datum.id==result.id).update({'_path'   : replaced_path
+                                                                    ,'modifier': modifier})
 
     @staticmethod
     def escape_filename(filename):

@@ -130,7 +130,7 @@ class Flow(Datum):
         try:
             # レコードを更新する
             data = json.dumps({'label' : new_label, 'flow' : flow_data})
-            session.query(Datum).filter(Datum.uuid==uuid).update({'_label'    :new_label,
+            session.query(Datum).filter(Datum.uuid==uuid).update({'_label'   :new_label,
                                                                   'data'     :data,
                                                                   'modifier' :modifier})
         except Exception as e:
@@ -141,6 +141,34 @@ class Flow(Datum):
 
         return Flow.convert_to_flow(datum)
 
+    def move(self, parent_uuid, modifier):
+        """
+        指定されたStoreの直下に移動する
+        """
+        # UUID値の形式チェックをする
+        Datum.valid_uuid_or_raise(parent_uuid)
+
+        try:
+            from kskp.store import Folder
+            to_folder = Folder.find_by_uuid(parent_uuid)
+        except Exception as e:
+            raise Exception('移動先の指定はフォルダのUUIDしか許可していません')
+
+        if parent_uuid == self.uuid:
+            raise Exception('移動先と移動元の指定が同じです')
+
+        try:
+            # レコードを更新する
+            session.query(Datum).filter(Datum.id==self.id).update({'parent_id': to_folder.id
+                                                                  ,'modifier' : modifier})
+        except Exception as e:
+            session.rollback()
+            raise e
+        finally:
+            session.commit()
+
+        return self
+        
     def delete(self):
         """
         Flowを削除する
