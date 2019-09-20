@@ -124,8 +124,8 @@ class Frame(Datum):
 
         try:
             # 同じファイルに対応するドキュメントのpath列を、ファイル名の移動に合わせて変更する
-            session.query(Datum).filter(Datum._path==old_path).update({'_path'   :new_path,
-                                                                       'modifier':modifier})
+            Datum.update_all_path(old_path, new_path, modifier)
+            
             # レコードを更新する
             data = json.dumps({'label' : new_label})
             session.query(Datum).filter(Datum.uuid==uuid).update({'_label'  :new_label,

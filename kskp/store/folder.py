@@ -115,7 +115,7 @@ class Folder(Store):
 
         try:
             # ディレクトリ名の移動によって他のDatumのpathが変更が必要であれば変更する
-            Folder._update_other_data(old_path, new_path, modifier)
+            Datum.update_all_path(old_path, new_path, modifier)
 
             # レコードを更新する
             data = json.dumps({'label' : new_label})
@@ -249,18 +249,6 @@ class Folder(Store):
         new_path = os.path.join(os.path.dirname(old_path), Datum.escape_filename(new_label))
         new_path = Datum.move_file(old_path, new_path)
         return new_path
-
-    @staticmethod
-    def _update_other_data(old_path, new_path, modifier):
-        # 同じディレクトリに対応するフォルダのpath列を、ディレクトリ名の移動に合わせて変更する
-        session.query(Datum).filter(Datum._path==old_path).update({'_path'   : new_path
-                                                                 , 'modifier': modifier})
-        # 同じディレクトリを含むpath列を、ディレクトリの移動に合わせて変更する
-        results = session.query(Datum.id, Datum._path).filter(Datum._path.like(old_path+'/%')).all()
-        for result in results:
-            replaced_path = re.sub('^'+old_path, new_path, result._path)
-            session.query(Datum).filter(Datum.id==result.id).update({'_path'   : replaced_path
-                                                                    ,'modifier': modifier})
 
     @staticmethod
     def _dir_path_exists(dir_path, except_id):

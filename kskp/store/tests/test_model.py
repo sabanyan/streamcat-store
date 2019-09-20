@@ -118,6 +118,33 @@ class LibraryTest(unittest.TestCase):
         # 作成したフォルダを削除する
         Library.delete_folder(folder.uuid)
 
+    def test_move_folder(self):
+        """
+        フォルダを移動する
+        """
+        # ルートデータストアを取得する
+        root = Library.load_root()
+        # ルートデータストアの直下にフォルダを作成する
+        folder_src = Library.save_folder(root.uuid, 'フォルダSRC', self.USER_ID1)
+        # ルートデータストアの直下にフォルダを作成する
+        folder_dst = Library.save_folder(root.uuid, 'フォルダDST', self.USER_ID1)
+        # フォルダSRCをフォルダDSTへ移動する
+        updated_folder = folder_src.move(folder_dst.uuid, self.USER_ID2)
+        # parent_id, path, modifierが変更されることを検証する
+        self.assertEqual(updated_folder.id, folder_src.id)
+        self.assertEqual(updated_folder.parent_id, folder_dst.id)
+        self.assertEqual(updated_folder.uuid, folder_src.uuid)
+        self.assertEqual(updated_folder.path, os.path.join(root.path, 'フォルダDST/フォルダSRC'))
+        self.assertEqual(updated_folder.type, folder_src.type)
+        self.assertEqual(json.loads(updated_folder.data, encoding='utf-8')['label'], 'フォルダSRC')
+        self.assertEqual(updated_folder.creator, self.USER_ID1)
+        self.assertEqual(updated_folder.modifier, self.USER_ID2)
+        self.assertEqual(updated_folder.created_at, folder_src.created_at)
+        self.assertIsNotNone(updated_folder.modified_at)
+        # 作成したフォルダを削除する
+        Library.delete_folder(updated_folder.uuid)
+        Library.delete_folder(folder_dst.uuid)
+
     def test_save_folder(self):
         """
         フォルダを作成する
@@ -275,6 +302,33 @@ class LibraryTest(unittest.TestCase):
         self.assertIsNotNone(updated_frame.modified_at)
         # 作成したフレームを削除する
         Library.delete_frame(updated_frame.uuid)
+
+    def test_move_frame(self):
+        """
+        フレームを移動する
+        """
+        # ルートデータストアを取得する
+        root = Library.load_root()
+        # ルートデータストアの直下にフレームを作成する
+        frame_src = Library.save_folder(root.uuid, 'フレームSRC', self.USER_ID1)
+        # ルートデータストアの直下にフォルダを作成する
+        folder_dst = Library.save_folder(root.uuid, 'フォルダDST_A', self.USER_ID1)
+        # フレームSRCをフォルダDSTへ移動する
+        updated_frame = frame_src.move(folder_dst.uuid, self.USER_ID2)
+        # parent_id, path, modifierが変更されることを検証する
+        self.assertEqual(updated_frame.id, frame_src.id)
+        self.assertEqual(updated_frame.parent_id, folder_dst.id)
+        self.assertEqual(updated_frame.uuid, frame_src.uuid)
+        self.assertEqual(updated_frame.path, os.path.join(root.path, 'フォルダDST_A/フレームSRC'))
+        self.assertEqual(updated_frame.type, frame_src.type)
+        self.assertEqual(json.loads(updated_frame.data, encoding='utf-8')['label'], 'フレームSRC')
+        self.assertEqual(updated_frame.creator, self.USER_ID1)
+        self.assertEqual(updated_frame.modifier, self.USER_ID2)
+        self.assertEqual(updated_frame.created_at, frame_src.created_at)
+        self.assertIsNotNone(updated_frame.modified_at)
+        # 作成したフォルダを削除する
+        Library.delete_folder(updated_frame.uuid)
+        Library.delete_folder(folder_dst.uuid)
 
     def test_save_frame(self):
         """
@@ -445,6 +499,42 @@ class LibraryTest(unittest.TestCase):
         Library.delete_flow(updated_flow.uuid)
         # 作成したファイルを削除する
         self.delete('store/frame_for_flow2.csv')
+
+    def test_move_flow(self):
+        """
+        フローを移動する
+        """
+        # ルートデータストアを取得する
+        root = Library.load_root()
+        # ルートデータストアの直下にフローを作成する
+        flow_data = {
+            'projectId': 1,
+            'label': 'フローSRC',
+            'ports': [[],[]],
+            'params': [],
+            'description': "",
+            'nodes' : [],
+            'creator': '足利義教',
+            'createdAt': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        }
+        flow_src = Library.save_flow(root.uuid, 'フローSRC', flow_data, self.USER_ID1)
+        # ルートデータストアの直下にフォルダを作成する
+        folder_dst = Library.save_folder(root.uuid, 'フォルダDST_B', self.USER_ID1)
+        # フローSRCをフォルダDSTへ移動する
+        updated_flow = flow_src.move(folder_dst.uuid, self.USER_ID2)
+        # parent_id, path, modifierが変更されることを検証する
+        self.assertEqual(updated_flow.id, flow_src.id)
+        self.assertEqual(updated_flow.parent_id, folder_dst.id)
+        self.assertEqual(updated_flow.uuid, flow_src.uuid)
+        self.assertEqual(updated_flow.type, flow_src.type)
+        self.assertEqual(json.loads(updated_flow.data, encoding='utf-8')['label'], 'フローSRC')
+        self.assertEqual(updated_flow.creator, self.USER_ID1)
+        self.assertEqual(updated_flow.modifier, self.USER_ID2)
+        self.assertEqual(updated_flow.created_at, flow_src.created_at)
+        self.assertIsNotNone(updated_flow.modified_at)
+        # 作成したフォルダを削除する
+        Library.delete_flow(updated_flow.uuid)
+        Library.delete_folder(folder_dst.uuid)
 
     def test_save_flow(self):
         """

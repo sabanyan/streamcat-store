@@ -109,7 +109,7 @@ class AwsS3(Folder):
 
         try:
             # ディレクトリ名の移動によって他のDatumのpathが変更が必要であれば変更する
-            Folder._update_other_data(old_path, new_path, modifier)
+            Datum.update_all_path(old_path, new_path, modifier)
 
             # レコードを更新する
             data = json.dumps({'label' : new_label, 'bucket' : bucket_name})
