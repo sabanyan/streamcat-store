@@ -1,5 +1,29 @@
 {
   "id": "mcount",
+  "rules" : {
+    "a" : {
+      "presencesIfTargetIsNotInput" : "nfn",
+      "format" : {
+        "pattern" : "^[^,]+|^$",
+        "message" : "一項目のみ入力してください"
+      }
+    },
+    "k" : {
+      "checkSeveralSpecifiedFormats" : {
+        "defaultRule" : {
+          "pattern" : "^[^,]+(,[^,]+)*$|^$",
+          "message" : "入力値が正しくありません。"
+        },
+        "specialRules" : [
+          {
+            "target" : ["x", "nfn"],
+            "pattern" : "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$|^$",
+            "message" : "項目の指定は数値のみ可能です。"
+          }
+        ]
+      }
+    }
+  },
   "params": [
     {
       "name": "a",
@@ -72,6 +96,6 @@
   "version": "0.7.0",
   "label": "行数カウント",
   "classification": "table_grouping",
-  "description": "",
+  "description": "k=指定時には集計キー毎の件数、指定しなければ全件数をカウントし、a=で指定した項目名で出力する。",
   "url": "./static/pdf/mcmd/table_grouping/mcount.pdf"
 }

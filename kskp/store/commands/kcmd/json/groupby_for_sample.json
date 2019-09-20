@@ -1,0 +1,36 @@
+{
+    "id": "groupby_for_sample",
+    "params": [
+        {
+            "name": "vmiodf",
+            "type": "string",
+            "label": "cvmdfeiopv",
+            "optional": true
+        },
+        {
+            "name": "ml;'",
+            "type": "boolean",
+            "label": "fjdeklsa",
+            "optional": true
+        }
+    ],
+    "ports": [
+        [
+            {
+                "name": "i",
+                "type": "frame"
+            }
+        ],
+        [
+            {
+                "name": "o",
+                "type": "frame"
+            }
+        ]
+    ],
+    "version": "0.7.0",
+    "label": "123445",
+    "classification": "user_original",
+    "description": "fdjask;g",
+    "url": ""
+}

@@ -1,5 +1,22 @@
 {
   "id": "mpaste",
+  "rules" : {
+    "f" : {
+      "checkSeveralSpecifiedFormats" : {
+        "defaultRule" : {
+          "pattern" : "^[^,]+(,[^,]+)*$|^$",
+          "message" : "入力値が正しくありません。"
+        },
+        "specialRules" : [
+          {
+            "target" : ["x", "nfn"],
+            "pattern" : "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$|^$",
+            "message" : "項目の指定は数値のみ可能です。"
+          }
+        ]
+      }
+    }
+  },
   "params": [
     {
       "name": "f",
@@ -10,12 +27,12 @@
     {
       "name": "n",
       "type": "boolean",
-      "label": "入力ファイルにあって参照ファイルにない場合に NULL 値を出力する。"
+      "label": "入力ファイルにあって参照ファイルにない場合にNULL値を出力する。"
     },
     {
       "name": "N",
       "type": "boolean",
-      "label": "参照ファイルにあって入力ファイルにない場合に NULL 値を出力する。"
+      "label": "参照ファイルにあって入力ファイルにない場合にNULL値を出力する。"
     },
     {
       "name": "assert_diffSize",
@@ -87,6 +104,6 @@
   "version": "0.7.0",
   "label": "参照ファイル列の行番号マッチング結合",
   "classification": "table_join",
-  "description": "",
+  "description": "入力ファイルと参照ファイルを、少ない方のデータを基準として行番号でマッチングさせて結合する。",
   "url": "./static/pdf/mcmd/table_join/mpaste.pdf"
 }
