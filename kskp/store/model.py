@@ -254,8 +254,6 @@ def create_flow(request_json, user_id, data_source_name=None):
             @functools.wraps(func)
             def deco():
                 data = func()
-                now = datetime.now()
-
                 data['creator'] = get_user_by_id(user_id)['name']
                 JST = timezone(timedelta(hours=+9), 'JST')
                 data['createdAt'] = datetime.now(JST).strftime('%Y-%m-%d %H:%M:%S')
