@@ -1,5 +1,41 @@
 {
   "id": "mchgstr",
+  "rules": {
+    "c":{
+      "presence": {"allowEmpty": false},
+      "format" : {
+        "pattern": "^[^:,]+:[^:,]+(,[^:,]+:[^:,]+)*$|^@\\[.+\\]$",
+        "message": "置換対象となる文字列と置換文字列を、:(コロン)で区切って入力してください"
+      }
+    },
+    "O" : {
+      "format" : {
+          "pattern": "^[^,]*$",
+          "message": "この項目にて,(コンマ)は入力しないでください。"
+      }
+    },
+    "f": {
+      "presence": {"allowEmpty": false},
+      "checkSeveralSpecifiedFormats" : {
+        "defaultRule" : {
+          "pattern" : "^[^:,]+(:[^:,]+)?(,[^:,]+(:[^:,]+)?)*$",
+          "message" : "入力値が正しくありません。"
+        },
+        "specialRules" : [
+          {
+            "target" : "A",
+            "pattern" : "^[^:,]+:[^:,]+(,[^:,]+:[^:,]+)*$|^@\\[.+\\]$",
+            "message" : "対象となる列名と新しい列名を、:(コロン)で区切って入力してください"
+          },
+          {
+            "target" : ["x", "nfn"],
+            "pattern" : "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$|^[1-9]?[0-9]+L?(:[^,:]+)?(,[1-9]?[0-9]+L?(:[^,:]+)?)*$",
+            "message" : "項目の指定は数値のみ可能です。"
+          }
+        ]
+      }
+    }
+  },
   "params": [
     {
       "name": "c",
@@ -78,12 +114,6 @@
       "optional": true
     },
     {
-      "name": "q",
-      "type": "boolean",
-      "label": "自動並べ替えの無効化",
-      "optional": true
-    },
-    {
       "name": "tmpPath",
       "type": "string",
       "label": "作業ファイル格納パス名",
@@ -107,6 +137,6 @@
   "version": "0.7.0",
   "label": "文字列の置換",
   "classification": "value_transform",
-  "description": "",
+  "description": "f=で指定した項目について、c=で指定した条件で文字列を置換する。",
   "url": "./static/pdf/mcmd/value_transform/mchgstr.pdf"
 }
