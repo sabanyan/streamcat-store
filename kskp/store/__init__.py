@@ -101,4 +101,4 @@ BaseModel.metadata.create_all(bind=engine, checkfirst=True)
 # フレームを格納するフォルダがなければ作成する
 import pprint
 pprint.pprint('Init library folder')
-Library._init_library_folders()
+# Library._init_library_folders()
