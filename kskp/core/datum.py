@@ -140,10 +140,19 @@ class Datum(BaseModel):
     @property
     def label(self):
         if self._label is None or self._label == '':
-            import json
-            return json.loads(self.data, encoding='utf-8')['label']
+            return self.data2['label']
         else:
             return self._label
+
+    @property
+    def data2(self):
+        import json
+        try:
+            # data列の後方互換性
+            ret = json.loads(self.data, encoding='utf-8')
+        except Exception as e:
+            ret = self.data
+        return ret
 
     @property
     def created_at_str(self):
@@ -281,7 +290,6 @@ class Datum(BaseModel):
         """      .......
         指定されたDatumのuuidを参照するFlowを取得する
         """
-        # FIXIT : PostgreSQLのJSONB演算子が何故か機能しない、誰か教えてください。
         sql = """
         select uuid from data
         where type='flow'
@@ -406,10 +414,8 @@ class Datum(BaseModel):
         """
         import json
         for datum in data:
-            datum_data = json.loads(datum.data, encoding='utf-8')
-            if 'label' in datum.data:
-                if datum_data['label'] == label:
-                    return True
+            if datum.label == label:
+                return True
         return False
 
     @staticmethod

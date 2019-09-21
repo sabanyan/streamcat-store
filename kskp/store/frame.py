@@ -19,7 +19,7 @@ class Frame(Datum):
         super().__init__(parent_uuid, Datum.FRAME_TYPE, label, creator)
 
         # data列の値を作成する
-        self.data = json.dumps({'label' : label})
+        self.data = {'label' : label}
 
         # ファイルストリームを保持する
         self.stream = stream
@@ -127,7 +127,7 @@ class Frame(Datum):
             Datum.update_all_path(old_path, new_path, modifier)
             
             # レコードを更新する
-            data = json.dumps({'label' : new_label})
+            data = {'label' : new_label}
             session.query(Datum).filter(Datum.uuid==uuid).update({'_label'  :new_label,
                                                                   'data'    :data,
                                                                   'modifier':modifier})
@@ -268,7 +268,7 @@ class Frame(Datum):
         self.save_to_db()
 
     def save_to_db(self):
-        self.data = json.dumps({'label' : self.context.get('label')})
+        self.data = {'label' : self.context.get('label')}
         relative_path = Datum._to_rel_path(self.context.get('frame_path').as_posix())
         self.add_entry_from_path(relative_path)
 
