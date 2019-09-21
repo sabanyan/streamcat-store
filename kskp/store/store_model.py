@@ -34,11 +34,11 @@ class Store(BaseModel):
 
     @classmethod
     def create(cls, id, version=None, label=None, description=None, url=None, params=None, creator=None):
-        data = json.dumps({'version'    : version,
-                           'label'      : label,
-                           'description': description,
-                           'url'        : url,
-                           'params'     : params})
+        data = {'version'    : version,
+                'label'      : label,
+                'description': description,
+                'url'        : url,
+                'params'     : params}
         return Store(id, data, creator)
 
     @classmethod
@@ -76,9 +76,9 @@ class Store(BaseModel):
 
     def to_json(self):
         return {'id'          : self.id,
-                'version'     : json.loads(self.data)['version'],
-                'label'       : json.loads(self.data)['label'],
-                'description' : json.loads(self.data)['description'],
-                'url'         : json.loads(self.data)['url'],
-                'params'      : json.loads(self.data)['params']
+                'version'     : self.data['version'],
+                'label'       : self.data['label'],
+                'description' : self.data['description'],
+                'url'         : self.data['url'],
+                'params'      : self.data['params']
                 }

@@ -19,7 +19,7 @@ class Folder(Store):
         super().__init__(parent_uuid, Datum.FOLDER_TYPE, label, creator)
 
         # data列の値を作成する
-        self.data = json.dumps({'label' : label})
+        self.data = {'label' : label}
 
     @staticmethod
     def find_by_uuid(uuid):
@@ -118,7 +118,7 @@ class Folder(Store):
             Datum.update_all_path(old_path, new_path, modifier)
 
             # レコードを更新する
-            data = json.dumps({'label' : new_label})
+            data ={'label' : new_label}
             session.query(Datum).filter(Datum.uuid==uuid).update({'_label'  :new_label
                                                                  ,'data'    :data
                                                                  ,'modifier':modifier})
@@ -187,16 +187,15 @@ class Folder(Store):
         現在のフォルダ階層パスをリスト型で返す(APIのFolderPath属性の作成で用いる)
         """
         # 指定されたUUIDのfolerレコードを取得する
-        result = session.query(Datum.uuid, Datum.parent_id, Datum.type, Datum.data)\
-                        .filter(Datum.uuid==self.uuid).one_or_none()
+        datum = session.query(Datum).filter(Datum.uuid==self.uuid).one_or_none()
 
-        parent_id = result.parent_id
-        path_to_root = [{'type':result.type, 'uuid':result.uuid, 'label':json.loads(result.data, encoding='utf-8')['label']}]
+        parent_id = datum.parent_id
+        path_to_root = [{'type':datum.type, 'uuid':datum.uuid, 'label':datum.label}]
         # 取得したレコードから外部キー’parent_id’をたどり、途中のfolderレコードをリストに順に保存する
         while parent_id != None:
-            result = session.query(Datum.uuid, Datum.parent_id, Datum.type, Datum.data).filter(Datum.id==parent_id).one_or_none()
-            path_to_root.append({'type':result.type, 'uuid':result.uuid, 'label':json.loads(result.data, encoding='utf-8')['label']})
-            parent_id = result.parent_id
+            datum = session.query(Datum).filter(Datum.id==parent_id).one_or_none()
+            path_to_root.append({'type':datum.type, 'uuid':datum.uuid, 'label':datum.label})
+            parent_id = datum.parent_id
         # 保存したリストの並びを逆にする
         path_to_root.reverse()
         return path_to_root

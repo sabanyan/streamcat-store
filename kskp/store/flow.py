@@ -18,7 +18,7 @@ class Flow(Datum):
         self._path = ''
 
         # data列の値を作成する
-        self.data = json.dumps({'label' : label, 'flow' : flow_data})
+        self.data = {'label' : label, 'flow' : flow_data}
 
     @staticmethod
     def find_all_flows():
@@ -53,7 +53,7 @@ class Flow(Datum):
 
         subflows = []
         for datum in data:
-            datum_data = json.loads(datum.data, encoding='utf-8')['flow']
+            datum_data = datum.data2['flow']
             # onの時にno_inputs（＝inputsがない）のサブフローは出さない
             if no_inputs:
                 if len(datum_data['ports'][0]) == 0:
@@ -85,7 +85,7 @@ class Flow(Datum):
     def convert_to_flow(datum):
         parent_uuid = Datum.get_uuid_by_id(datum.parent_id)
         # label = json.loads(datum.data, encoding='utf-8')['label']
-        flow_data = json.loads(datum.data, encoding='utf-8')['flow']
+        flow_data = datum.data2['flow']
         flow = Flow(parent_uuid, datum.label, flow_data, datum.creator)
         flow.id = datum.id
         flow.uuid = datum.uuid
@@ -129,7 +129,7 @@ class Flow(Datum):
 
         try:
             # レコードを更新する
-            data = json.dumps({'label' : new_label, 'flow' : flow_data})
+            data = {'label' : new_label, 'flow' : flow_data}
             session.query(Datum).filter(Datum.uuid==uuid).update({'_label'   :new_label,
                                                                   'data'     :data,
                                                                   'modifier' :modifier})
@@ -198,7 +198,7 @@ class Flow(Datum):
 
     @property
     def flow_data(self):
-        return json.loads(self.data, encoding='utf-8')['flow']
+        return self.data2['flow']
 
     def duplicate(self, new_label, user_id):
         """

@@ -23,7 +23,7 @@ class AwsS3(Folder):
         self.type = Datum.AWSS3_TYPE
 
         # data列の値を作成する
-        self.data = json.dumps({'label' : label, 'bucket' : bucket_name})
+        self.data = {'label' : label, 'bucket' : bucket_name}
 
         # S3のオブジェクトを用意する
         # self._s3 = boto3.resource('s3')
@@ -57,7 +57,7 @@ class AwsS3(Folder):
     def convert_to_awss3(datum):
         parent_uuid = Datum.get_uuid_by_id(datum.parent_id)
         # label = json.loads(datum.data, encoding='utf-8')['label']
-        bucket_name = json.loads(datum.data, encoding='utf-8')['bucket']
+        bucket_name = datum.data2['bucket']
         awss3 = AwsS3(parent_uuid, datum.label, bucket_name, datum.creator)
         awss3.id = datum.id
         awss3.uuid = datum.uuid
@@ -112,7 +112,7 @@ class AwsS3(Folder):
             Datum.update_all_path(old_path, new_path, modifier)
 
             # レコードを更新する
-            data = json.dumps({'label' : new_label, 'bucket' : bucket_name})
+            data = {'label' : new_label, 'bucket' : bucket_name}
             session.query(Datum).filter(Datum.uuid==uuid).update({'_label'   :new_label
                                                                  ,'data'    :data
                                                                  ,'modifier':modifier})
@@ -154,7 +154,7 @@ class AwsS3(Folder):
 
     @property
     def bucket_name(self):
-        return json.loads(self.data, encoding='utf-8')['bucket']
+        return self.data2['bucket']
 
     def mount(self):
         path = Path(self._path)
