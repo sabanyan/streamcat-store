@@ -43,7 +43,7 @@ class Datum(BaseModel):
     _label      = Column('label', String)
     # PostgreSQLのENUM型の要素を変更してもSQLAlchemyから自動的に変更がかからないので手動で変更する必要がある
     type        = Column(ENUM(AWSS3_TYPE, FOLDER_TYPE, FLOW_TYPE, FRAME_TYPE, name='data_type'), nullable=False)
-    data        = Column(JSONB, nullable=False)
+    data        = Column(JSONB)
     creator     = Column(INTEGER)
     modifier    = Column(INTEGER)
     created_at  = Column(TIMESTAMP, default=text('CURRENT_TIMESTAMP'))
@@ -197,8 +197,10 @@ class Datum(BaseModel):
         new_label = new_path.name
 
         try:
-            # ディレクトリ名の移動によって他のDatumのpathが変更が必要であれば変更する
-            Datum.update_all_path(old_path, new_path.as_posix(), modifier)
+            # ファイル名の移動によって他のDatumのpathが変更が必要であれば変更する
+            Datum.update_same_path(old_path, new_path.as_posix(), modifier)
+            if self.type == Datum.FOLDER_TYPE or self.type == Datum.AWSS3_TYPE:
+                Datum.update_include_path(old_path, new_path.as_posix(), modifier)
             # レコードを更新する
             session.query(Datum).filter(Datum.id==self.id).update({'parent_id': to_folder.id
                                                                   ,'_path'    : new_path.as_posix()
@@ -211,6 +213,22 @@ class Datum(BaseModel):
             session.commit()
 
         return self
+
+    @staticmethod
+    def update_same_path(old_path, new_path, modifier):
+        # 同じファイルに対応するフォルダのpath列を、ファイル名の移動に合わせて変更する
+        session.query(Datum).filter(Datum._path==old_path).update({'_path'   : new_path
+                                                                 , 'modifier': modifier})
+    @staticmethod
+    def update_include_path(old_path, new_path, modifier):
+        # 同じディレクトリを含むpath列を、ディレクトリの移動に合わせて変更する
+        results = session.query(Datum.id, Datum._path).filter(Datum.type!=Datum.FLOW_TYPE)\
+                                                      .filter(Datum._path.like(old_path+'/%')).all()
+        import re
+        for result in results:
+            replaced_path = re.sub('^'+old_path, new_path, result._path)
+            session.query(Datum).filter(Datum.id==result.id).update({'_path'   : replaced_path
+                                                                    ,'modifier': modifier})
 
     @staticmethod
     def _to_abs_path(path):
@@ -326,20 +344,6 @@ class Datum(BaseModel):
         except PermissionError as e:
             # ファイルに対する権限がない場合
             raise e
-
-    @staticmethod
-    def update_all_path(old_path, new_path, modifier):
-        # 同じディレクトリに対応するフォルダのpath列を、ディレクトリ名の移動に合わせて変更する
-        session.query(Datum).filter(Datum._path==old_path).update({'_path'   : new_path
-                                                                 , 'modifier': modifier})
-        # 同じディレクトリを含むpath列を、ディレクトリの移動に合わせて変更する
-        results = session.query(Datum.id, Datum._path).filter(Datum.type.in_([Datum.FOLDER_TYPE, Datum.AWSS3_TYPE]))\
-                                                      .filter(Datum._path.like(old_path+'/%')).all()
-        import re
-        for result in results:
-            replaced_path = re.sub('^'+old_path, new_path, result._path)
-            session.query(Datum).filter(Datum.id==result.id).update({'_path'   : replaced_path
-                                                                    ,'modifier': modifier})
 
     @staticmethod
     def escape_filename(filename):

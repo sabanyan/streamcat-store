@@ -124,7 +124,7 @@ class Frame(Datum):
 
         try:
             # 同じファイルに対応するドキュメントのpath列を、ファイル名の移動に合わせて変更する
-            Datum.update_all_path(old_path, new_path, modifier)
+            Datum.update_same_path(old_path, new_path, modifier)
             
             # レコードを更新する
             data = {'label' : new_label}

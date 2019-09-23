@@ -115,7 +115,8 @@ class Folder(Store):
 
         try:
             # ディレクトリ名の移動によって他のDatumのpathが変更が必要であれば変更する
-            Datum.update_all_path(old_path, new_path, modifier)
+            Datum.update_same_path(old_path, new_path, modifier)
+            Datum.update_include_path(old_path, new_path, modifier)
 
             # レコードを更新する
             data ={'label' : new_label}
