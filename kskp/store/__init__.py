@@ -100,6 +100,10 @@ from .flows import FlowLink
 from .commands import CommandLink, CommandsPathLink, CommandsPathFileSource, RunfuncCommand
 from .model import *
 
+
+# テーブルを作成する
+BaseModel.metadata.create_all(bind=engine, checkfirst=True)
+
 # label列の新規追加(後方互換)
 sql = """
 ALTER TABLE data 
@@ -110,10 +114,28 @@ try:
 except Exception as e:
     pass
 
-# テーブルを作成する
-BaseModel.metadata.create_all(bind=engine, checkfirst=True)
+from sqlalchemy import event, DDL
 
+@event.listens_for(BaseModel.metadata, 'after_create')
+def receive_after_create(target, connection, tables, **kw):
+    "listen for the 'after_create' event"
 
+    if tables:
+        # tables were created.
+        create_d_view()
+        
+def create_d_view():
+    """
+    データの一覧を表示するVIEWを作成する
+    (開発及び運用時に閲覧するために用意しておく)
+    """
+    d_view = """
+    create view d as
+    select id, parent_id, uuid, path, label, type, date_trunc('second', created_at) as cteated_at
+    from data order by type, id
+    """
+    engine.execute(DDL('drop view if exists d'))
+    engine.execute(DDL(d_view))
 
 # フレームを格納するフォルダがなければ作成する
 import pprint
