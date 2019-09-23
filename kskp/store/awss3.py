@@ -158,16 +158,17 @@ class AwsS3(Folder):
         return self.data2['bucket']
 
     def mount(self):
-        path = Path(self._path)
+        self_abs_path = Datum._to_abs_path(self._path)
+        path = Path(self_abs_path)
         if not path.exists():
-            raise Exception('mount point(%s) does not exist' % self._path)
+            raise Exception('mount point(%s) does not exist' % self_abs_path)
         elif not path.is_dir():
-            raise Exception('mount point(%s) is not directory' % self._path)
+            raise Exception('mount point(%s) is not directory' % self_abs_path)
         elif AwsS3._has_children(path):
-            raise Exception('mount point(%s) has files' % self._path)
+            raise Exception('mount point(%s) has files' % self_abs_path)
         elif Datum.is_mount(path):
             # python3.7でis_mount()は追加される
-            raise Exception('mount point(%s) already mounted on' % self._path)
+            raise Exception('mount point(%s) already mounted on' % self_abs_path)
 
         # S3をマウントするgoofysコマンドの有無を確認する
         goofys_path = shutil.which('goofys')
@@ -177,7 +178,7 @@ class AwsS3(Folder):
         try:
             # goofysコマンドを実行してS3バケットをマウントする
             # (sudoで実行するとテストでしくじる)
-            goofys_cmd = goofys_path + ' %s %s' % (self.bucket_name, self._path)
+            goofys_cmd = goofys_path + ' %s %s' % (self.bucket_name, self_abs_path)
             goofys_ret = AwsS3._exec_command(goofys_cmd)
             # 念のためWAITを入れています
             sleep(1)
@@ -186,9 +187,10 @@ class AwsS3(Folder):
             raise Exception('"goofys" command returned error --> ' + str(e))
 
     def unmount(self):
-        path = Path(self._path)
+        self_abs_path = Datum._to_abs_path(self._path)
+        path = Path(self_abs_path)
         if not path.exists():
-            raise Exception('sudo mount point(%s) does not exist' % self._path)
+            raise Exception('sudo mount point(%s) does not exist' % self_abs_path)
 
         # python3.7でis_mount()は追加される
         if not Datum.is_mount(path):
@@ -198,7 +200,7 @@ class AwsS3(Folder):
             # マウント解除を実行する
             # (/etc/sudoersに %admin ALL = (ALL) NOPASSWD:/sbin/umount
             #  を追加するとテスト実行時にはパスワードを聞かれない)
-            umount_cmd = 'sudo umount %s' % self._path
+            umount_cmd = 'sudo umount %s' % self_abs_path
             umount_ret= AwsS3._exec_command(umount_cmd)
 
             # 念のためWAITを入れています
