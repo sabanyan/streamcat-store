@@ -364,13 +364,12 @@ class Datum(BaseModel):
         """
         FIXIT: usersテーブルへのアクセスはSQLAlchemyを用いる予定なので、以下のコードは暫定実装である
         """
-        # from ..model import get_user_by_id
-        # user = get_user_by_id(user_id)
-        # if user is None:
-        #     Exception('No user is found by designated user id')
-        # else:
-        #     return user['name']
-        return '開発者'
+        from ..store.model import get_user_by_id
+        user = get_user_by_id(user_id)
+        if user is None:
+            Exception('No user is found by designated user id')
+        else:
+            return user['name']
 
     @staticmethod
     def get_another_file_path(path, except_path=None):
