@@ -23,21 +23,20 @@ class ChildrenGetter:
         # ドキュメント/フォルダ --> ファイル
         folder_children = Datum.find_by_parent_uuid(folder.uuid)
         for folder_child in folder_children:
-            folder_child_path = folder_child.path
-            if folder_child_path is not None and folder_child_path != '' and not os.path.exists(folder_child_path):
+            if not folder_child.path_exists:
                 # フォルダ直下のデータについて、pathに値が設定されており、かつ対応するファイルが存在しない場合は、DBエントリから削除する
                 ChildrenGetter._convert_type(folder_child).remove_reference_only()
 
         # ファイル --> ドキュメント/フォルダ
         folder_children_path = [child.path for child in folder_children]
-        for child_file in os.listdir(dir_path):
+        for child_file in os.listdir(Datum._to_abs_path(dir_path)):
             # 既に対応するエントリが存在するファイルの可能性もある
             # その場合はこの処理の後、一つのファイルが複数のエントリに対応する事になる
             child_path = os.path.join(dir_path, child_file)
 
             if child_path not in folder_children_path:
                 # ディレクトリを登録する
-                if os.path.isdir(child_path):
+                if os.path.isdir(Datum._to_abs_path(child_path)):
                     new_child = Folder(folder.uuid, os.path.basename(child_path), user)
                     new_child.add_entry_from_path(child_path)
                     continue

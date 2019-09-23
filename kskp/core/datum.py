@@ -138,6 +138,11 @@ class Datum(BaseModel):
         self._path = value.as_posix()
 
     @property
+    def path_exists(self):
+        path = self._to_abs_path(self._path)
+        return os.path.exists(path)
+
+    @property
     def label(self):
         if self._label is None or self._label == '':
             return self.data2['label']
