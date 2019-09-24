@@ -93,49 +93,46 @@ class Datum(BaseModel):
 
     @property
     def path(self):
-        path_obj = self.path_obj
-        if path_obj.exists():
+        if self._path == '':
+            return None
+
+        if os.path.exists(self._path):
             # ここで_pathがマウントポイントで、かつUnmount状態のとき、そのまま_pathを返してしまうと、
             # children_getter._synchronize()によりS3バケットが空になってしまうので以下の場合分けを行う
-            if path_obj.is_dir():
+            if os.path.isdir(self._path):
                 if self.type == Datum.AWSS3_TYPE:
                     # _pathがディレクトリで、かつマウントポイントの場合、再マウント処理をする
                     Datum.remount(self.id)
-                    return self._path
+                    return Path(self._path)
                 else:
                     # _pathがディレクトリで、かつマウントポイントでない場合は、再マウント処理はしない
-                    return self._path
+                    return Path(self._path)
             else:
                 # _pathが(ディレクトリでない)ファイルで、かつ存在する場合は、再マウント処理はしない
-                return self._path
+                return Path(self._path)
         else:
             if self.id is None:
                 # 再マウント処理ができない場合
-                return self._path
+                return Path(self._path)
             # pathに対応するファイルまたはディレクトリが無い場合、再マウント処理する
             Datum.remount(self.id)
-            if not path_obj.exists():
+            if not os.path.exists(self._path):
                 # 再マウント処理をしてもファイルまたはディレクトリがない場合は、例外を送出する
                 # (ここで例外を送出するとexists(path)で存在チェックができなくなる)
                 # raise Exception('No file or directory of the path property exists.')
                 pass
-            return self._path
+            return Path(self._path)
 
     @path.setter
-    def path(self, value):
-        self._path = value
+    def path(self, path):
+        # Pathオブジェクトを受け取る
+        self._path = path.as_posix()
 
-    @property
-    def path_obj(self):
-        if self._path is None:
-            raise Exception('path attribute must not be None in path_obj property.')
-        return Path(self._path)
-
-    @path_obj.setter
-    def path_obj(self, value):
-        if value is None:
-            raise Exception('setting value must not be None in path_obj property.')
-        self._path = value.as_posix()
+    # @property
+    # def path_obj(self):
+    #     if self._path is None:
+    #         raise Exception('path attribute must not be None in path_obj property.')
+    #     return Path(self._path)
 
     @property
     def path_exists(self):
@@ -191,19 +188,19 @@ class Datum(BaseModel):
             pass
 
         # ファイルを移動する
-        old_path = self.path
-        new_path = to_folder.path_obj / self.path_obj.name
+        old_path = self._path
+        new_path = os.path.join(to_folder._path, os.path.basename(self._path))
         new_path = Datum.move_file(old_path, new_path)
-        new_label = new_path.name
+        new_label = os.path.basename(new_path)
 
         try:
             # ファイル名の移動によって他のDatumのpathが変更が必要であれば変更する
-            Datum.update_same_path(old_path, new_path.as_posix(), modifier)
+            Datum.update_same_path(old_path, new_path, modifier)
             if self.type == Datum.FOLDER_TYPE or self.type == Datum.AWSS3_TYPE:
-                Datum.update_include_path(old_path, new_path.as_posix(), modifier)
+                Datum.update_include_path(old_path, new_path, modifier)
             # レコードを更新する
             session.query(Datum).filter(Datum.id==self.id).update({'parent_id': to_folder.id
-                                                                  ,'_path'    : new_path.as_posix()
+                                                                  ,'_path'    : new_path
                                                                   ,'_label'   : new_label
                                                                   ,'modifier' : modifier})
         except Exception as e:
@@ -486,25 +483,25 @@ class Datum(BaseModel):
                 awss3.mount()
 
     @staticmethod
-    def is_mount(path_obj):
+    def is_mount(path):
         """
         Check if this path is a POSIX mount point
         """
-        abs_path_obj = Path(Datum._to_abs_path(path_obj))
+        abs_path = Path(Datum._to_abs_path(path))
 
         # Need to exist and be a dir
-        if not abs_path_obj.exists() or not abs_path_obj.is_dir():
+        if not abs_path.exists() or not abs_path.is_dir():
             return False
 
-        parent = abs_path_obj.parent
+        parent = abs_path.parent
         try:
             parent_dev = parent.stat().st_dev
         except OSError:
             return False
 
-        dev = abs_path_obj.stat().st_dev
+        dev = abs_path.stat().st_dev
         if dev != parent_dev:
             return True
-        ino = abs_path_obj.stat().st_ino
+        ino = abs_path.stat().st_ino
         parent_ino = parent.stat().st_ino
         return ino == parent_ino

@@ -110,7 +110,7 @@ class Folder(Store):
         new_label = Datum.escape_label(label)
 
         # ファイルを移動する
-        old_path = datum.path
+        old_path = datum._path
         new_path = Folder._move_dir(old_path, new_label)
 
         try:
@@ -288,7 +288,7 @@ class Folder(Store):
         frame = Library.load_frame(uuid)
         if frame is None:
             raise Exception('No frame(%s) is found !' % uuid)
-        path = Datum._to_abs_path(frame.path_obj)
+        path = Datum._to_abs_path(frame.path)
 
         return nm.m2tee({'i':path})
 
