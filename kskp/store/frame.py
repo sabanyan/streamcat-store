@@ -118,7 +118,7 @@ class Frame(Datum):
         new_label = Datum.escape_label(label)
 
         # ファイルを移動する
-        old_path = datum.path
+        old_path = datum._path
         new_path = os.path.join(os.path.dirname(old_path), Datum.escape_filename(new_label))
         new_path = Datum.move_file(old_path, new_path)
 

@@ -75,7 +75,7 @@ class AwsS3(Folder):
         if self.parent_id is None and Datum.count_root() > 0:
             raise Exception('You can not add root bucket. A root already exists.')
         # フォルダに紐付くディレクトリ(path列で指定されるディレクトリ)がなければ作成する
-        self.path = self._make_dir()
+        self.path = Path(self._make_dir())
         # ここでAWS S3 バケットをマウントする
         self.mount()
         try:
@@ -104,7 +104,7 @@ class AwsS3(Folder):
         new_label = Datum.escape_label(label)
 
         # ファイルを移動する
-        old_path = datum.path
+        old_path = datum._path
         new_path = Folder._move_dir(old_path, new_label)
 
         try:
