@@ -360,6 +360,7 @@ class RdbLoaderCommand(Command):
         self.i_ports = []
         self.o_ports = [Port('o', 'mcmd')]
         self.name = 'rdb_loader'
+        self._tmp_file_path = None
 
     def run(self, args, inputs):
         self._write_log('START')
@@ -416,7 +417,7 @@ class RdbLoaderCommand(Command):
         import uuid
         tmp_dir_path  = '/tmp'
         tmp_file_name = str(uuid.uuid4())
-        self.tmp_file_path = tmp_dir_path + '/' + tmp_file_name + ".csv"
+        self._tmp_file_path = tmp_dir_path + '/' + tmp_file_name + ".csv"
 
         # 結果をファイルに出力する
         def to_str(value):
@@ -425,7 +426,7 @@ class RdbLoaderCommand(Command):
             else:
                 return str(value)
 
-        with open(self.tmp_file_path, 'w') as f:
+        with open(self._tmp_file_path, 'w') as f:
             is_header = True
             for result in results:
                 if is_header:
@@ -437,7 +438,7 @@ class RdbLoaderCommand(Command):
                 f.write(result_line + '\n')
 
         # 結果のファイルを入力とするm2teeコマンドを作成する
-        cmd = nm.m2tee(i=self.tmp_file_path)
+        cmd = nm.m2tee(i=self._tmp_file_path)
 
         nysol_module = NysolModule()
         nysol_module.set_content(cmd)
@@ -494,5 +495,5 @@ class RdbLoaderCommand(Command):
         self._write_log('DTOR!')
         # Tmpファイルを削除する
         import os
-        if os.path.exists(self.tmp_file_path):
-            os.unlink(self.tmp_file_path)
+        if self._tmp_file_path is not None and os.path.exists(self._tmp_file_path):
+            os.unlink(self._tmp_file_path)
