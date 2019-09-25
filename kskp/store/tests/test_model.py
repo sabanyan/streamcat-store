@@ -126,6 +126,9 @@ class LibraryTest(unittest.TestCase):
         root = Library.load_root()
         # ルートデータストアの直下にフォルダを作成する
         folder_src = Library.save_folder(root.uuid, 'フォルダSRC', self.USER_ID1)
+        # 上記フォルダの直下にフレームを作成する
+        self.save(folder_src.path / 'aaaa1.csv')
+        frame_src = Library.save_frame(root.uuid, 'フレームSRC', folder_src.path / 'aaaa1.csv', self.USER_ID1)
         # ルートデータストアの直下にフォルダを作成する
         folder_dst = Library.save_folder(root.uuid, 'フォルダDST', self.USER_ID1)
         # フォルダSRCをフォルダDSTへ移動する
@@ -141,7 +144,14 @@ class LibraryTest(unittest.TestCase):
         self.assertEqual(updated_folder.modifier, self.USER_ID2)
         self.assertEqual(updated_folder.created_at, folder_src.created_at)
         self.assertIsNotNone(updated_folder.modified_at)
+        # 移動したフォルダ配下のファイルのpathが修正されていることを検証する
+        self.assertEqual(frame_src.path, root.path / 'フォルダDST/フォルダSRC/aaaa1.csv')
+        self.assertEqual(updated_folder.creator, self.USER_ID1)
+        self.assertEqual(updated_folder.modifier, self.USER_ID2)
+        self.assertEqual(updated_folder.created_at, folder_src.created_at)
+        self.assertIsNotNone(updated_folder.modified_at)
         # 作成したフォルダを削除する
+        Library.delete_frame(frame_src.uuid)
         Library.delete_folder(updated_folder.uuid)
         Library.delete_folder(folder_dst.uuid)
 

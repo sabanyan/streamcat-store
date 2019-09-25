@@ -71,7 +71,7 @@ class Library:
                           None,
                           creator)
         # documentレコードをDBに格納する
-        new_frame.add_entry_from_path(path.as_posix())
+        new_frame.add_entry_from_path(path)
         return new_frame
 
     @staticmethod

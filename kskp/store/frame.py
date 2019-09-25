@@ -93,7 +93,7 @@ class Frame(Datum):
         # 既にルートフォルダが存在する場合は、parent_id=NULLを許可しない
         if self.parent_id is None and Datum.count_root() > 0:
             raise Exception('You can not add another root frame. A root already exists!')
-        self._path = file_path
+        self.path = file_path
         try:
             # Dataテーブルにレコードを新規追加する
             session.add(self)
@@ -270,7 +270,7 @@ class Frame(Datum):
     def save_to_db(self):
         self.data = {'label' : self.context.get('label')}
         relative_path = Datum._to_rel_path(self.context.get('frame_path').as_posix())
-        self.add_entry_from_path(relative_path)
+        self.add_entry_from_path(Path(relative_path))
 
     def set_content(self, module):
         self._content = module

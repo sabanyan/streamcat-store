@@ -38,13 +38,13 @@ class ChildrenGetter:
                 # ディレクトリを登録する
                 if os.path.isdir(Datum._to_abs_path(child_path)):
                     new_child = Folder(folder.uuid, os.path.basename(child_path), user)
-                    new_child.add_entry_from_path(child_path)
+                    new_child.add_entry_from_path(Path(child_path))
                     continue
                 # FIXIT: 暫定的にデータタイプは拡張子をみて判断することにする
                 ext = os.path.splitext(child_path)[1]
                 if ext == '.csv':
                     new_child = Frame(folder.uuid, os.path.basename(child_path), None, user)
-                    new_child.add_entry_from_path(child_path)
+                    new_child.add_entry_from_path(Path(child_path))
                 elif ext == '.json':
                     with open(child_path) as f:
                         flow_data = f.read()
