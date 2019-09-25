@@ -17,6 +17,8 @@ class ChildrenGetter:
 
     @staticmethod
     def _synchronize(folder, dir_path, user):
+        from pathlib import Path
+        
         # バケットからファイルが削除されても、OSのファイルシステムに即反映されないので、ここでsync()する
         os.sync()
 
