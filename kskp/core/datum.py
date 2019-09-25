@@ -128,12 +128,6 @@ class Datum(BaseModel):
         # Pathオブジェクトを受け取る
         self._path = path.as_posix()
 
-    # @property
-    # def path_obj(self):
-    #     if self._path is None:
-    #         raise Exception('path attribute must not be None in path_obj property.')
-    #     return Path(self._path)
-
     @property
     def path_exists(self):
         path = self._to_abs_path(self._path)
