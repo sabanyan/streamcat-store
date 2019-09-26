@@ -152,7 +152,9 @@ class Datum(BaseModel):
 
     @property
     def created_at_str(self):
-        created_at_utc = self.created_at.astimezone(datetime.timezone.utc)
+        # DBに格納されている日時はUTCなので、タイムゾーンをUTCに設定する
+        created_at_utc = self.created_at.replace(tzinfo=datetime.timezone.utc)
+        # UTC日時はここで現地時間(環境変数TZの値)に設定される
         created_at_local = created_at_utc.astimezone()
         return created_at_local.strftime('%Y-%m-%d %H:%M:%S')
 
