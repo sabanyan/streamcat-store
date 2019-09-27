@@ -23,8 +23,8 @@ class Store(BaseModel):
     data        = Column(JSONB)
     creator     = Column(INTEGER)
     modifier    = Column(INTEGER)
-    created_at  = Column(TIMESTAMP, default=text('CURRENT_TIMESTAMP'))
-    modified_at = Column(TIMESTAMP, default=text('CURRENT_TIMESTAMP'), onupdate=text('CURRENT_TIMESTAMP'))
+    created_at  = Column(TIMESTAMP, default=text('statement_timestamp()'))
+    modified_at = Column(TIMESTAMP, default=text('statement_timestamp()'), onupdate=text('statement_timestamp()'))
 
     def __init__(self, id=None, data=None, creator=None):
         self.id = id
