@@ -242,7 +242,10 @@ class Frame(Datum):
 
     @staticmethod
     def _frame_path_exists(path, except_id):
-        result = session.query(Datum._path).filter(Datum._path == path)\
+        rel_path = Datum._to_rel_path(path)
+        abs_path = Datum._to_abs_path(path)
+
+        result = session.query(Datum._path).filter(Datum._path.in_([rel_path, abs_path]))\
                                            .filter(Datum.type == Datum.FRAME_TYPE)\
                                            .filter(Datum.id != except_id).count()
         return result > 0

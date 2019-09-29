@@ -228,7 +228,7 @@ class Folder(Store):
                 # 自分以外で同じディレクトリパス(相対パス)を使用しているフォルダの有無を確認する
                 if Folder._dir_path_exists(dir_path, except_id=self.id):
                     break
-                elif Datum.is_mount(dir_path):
+                elif Datum.is_mount(Path(dir_path)):
                     # マウント中のフォルダは削除しない
                     break
                 else:
@@ -252,12 +252,18 @@ class Folder(Store):
 
     @staticmethod
     def _dir_path_exists(dir_path, except_id):
-        results = session.query(Datum._path).filter(Datum._path.like(dir_path + '%'))\
-                                            .filter(Datum.id != except_id).all()
+        rel_path = Datum._to_rel_path(dir_path)
+        abs_path = Datum._to_abs_path(dir_path)
+
+        from sqlalchemy import or_
+        results = session.query(Datum._path)\
+                 .filter(or_(Datum._path.like(rel_path + '%'), Datum._path.like(abs_path + '%')))\
+                 .filter(Datum.id != except_id).all()
+
         for result in results:
-            if result._path == dir_path:
+            if Datum._to_rel_path(result._path) == rel_path:
                 return True
-            elif os.path.commonpath([result._path, dir_path]) == dir_path:
+            if os.path.commonpath([Datum._to_rel_path(result._path), rel_path]) == rel_path:
                 return True
         return False
 
@@ -274,7 +280,7 @@ class Folder(Store):
         保存するframeへのパスを作成する
         """
         # args['frame_path'] = (Path(Datum._to_abs_path(self.path)) / (str(uuid.uuid4()) + '.csv'))
-        args['frame_path'] = Path(Datum._to_abs_path(self.path)) / file_name
+        args['frame_path'] = Path(Datum._to_abs_path(self.path.as_posix())) / file_name
         return command.module(args, datum)
 
     @staticmethod
@@ -288,7 +294,7 @@ class Folder(Store):
         frame = Library.load_frame(uuid)
         if frame is None:
             raise Exception('No frame(%s) is found !' % uuid)
-        path = Datum._to_abs_path(frame.path)
+        path = Datum._to_abs_path(frame.path.as_posix())
 
         return nm.m2tee({'i':path})
 

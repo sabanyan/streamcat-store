@@ -76,7 +76,8 @@ class Datum(BaseModel):
             self._path = self.DEFAULT_LIBRARY_PATH
         else:
             dir_name = Datum.escape_filename(label)
-            self._path = os.path.join(parent._path, dir_name)
+            rel_parent_path = self._to_rel_path(parent._path)
+            self._path = os.path.join(rel_parent_path, dir_name)
 
         # label
         self._label = Datum.escape_label(label)
@@ -103,25 +104,33 @@ class Datum(BaseModel):
                 if self.type == Datum.AWSS3_TYPE:
                     # _pathがディレクトリで、かつマウントポイントの場合、再マウント処理をする
                     Datum.remount(self.id)
-                    return Path(self._path)
+                    # return Path(self._path)
                 else:
                     # _pathがディレクトリで、かつマウントポイントでない場合は、再マウント処理はしない
-                    return Path(self._path)
+                    # return Path(self._path)
+                    pass
             else:
                 # _pathが(ディレクトリでない)ファイルで、かつ存在する場合は、再マウント処理はしない
-                return Path(self._path)
+                # return Path(self._path)
+                pass
         else:
             if self.id is None:
                 # 再マウント処理ができない場合
-                return Path(self._path)
-            # pathに対応するファイルまたはディレクトリが無い場合、再マウント処理する
-            Datum.remount(self.id)
-            if not os.path.exists(self._path):
-                # 再マウント処理をしてもファイルまたはディレクトリがない場合は、例外を送出する
-                # (ここで例外を送出するとexists(path)で存在チェックができなくなる)
-                # raise Exception('No file or directory of the path property exists.')
+                # return Path(self._path)
                 pass
-            return Path(self._path)
+            else:
+                # pathに対応するファイルまたはディレクトリが無い場合、再マウント処理する
+                Datum.remount(self.id)
+                if not os.path.exists(self._path):
+                    # 再マウント処理をしてもファイルまたはディレクトリがない場合は、例外を送出する
+                    # (ここで例外を送出するとexists(path)で存在チェックができなくなる)
+                    # raise Exception('No file or directory of the path property exists.')
+                    pass
+                # return Path(self._path)
+                pass
+
+        # 必ず相対pathを返す
+        return Path(self._to_rel_path(self._path))
 
     @path.setter
     def path(self, path):
@@ -210,26 +219,45 @@ class Datum(BaseModel):
     @staticmethod
     def update_same_path(old_path, new_path, modifier):
         # 同じファイルに対応するフォルダのpath列を、ファイル名の移動に合わせて変更する
-        session.query(Datum).filter(Datum._path==old_path).update({'_path'   : new_path
-                                                                 , 'modifier': modifier})
+        rel_old_path = Datum._to_rel_path(old_path)
+        abs_old_path = Datum._to_abs_path(old_path)
+        from sqlalchemy import or_
+        session.query(Datum).filter(or_(Datum._path == rel_old_path, \
+                                        Datum._path == abs_old_path)).update({'_path'   : new_path
+                                                                            , 'modifier': modifier})
     @staticmethod
     def update_include_path(old_path, new_path, modifier):
         # 同じディレクトリを含むpath列を、ディレクトリの移動に合わせて変更する
-        results = session.query(Datum.id, Datum._path).filter(Datum.type!=Datum.FLOW_TYPE)\
-                                                      .filter(Datum._path.like(old_path+'/%')).all()
+        rel_old_path = Datum._to_rel_path(old_path)
+        abs_old_path = Datum._to_abs_path(old_path)
+        from sqlalchemy import or_
+        results = session.query(Datum.id, Datum._path)\
+                         .filter(Datum.type!=Datum.FLOW_TYPE)\
+                         .filter(or_(Datum._path.like(rel_old_path + '/%'),\
+                                     Datum._path.like(abs_old_path + '/%'))).all()
         import re
         for result in results:
-            replaced_path = re.sub('^'+old_path, new_path, result._path)
+            if result._path.startswith('/'):
+                replaced_path = re.sub('^'+abs_old_path, new_path, result._path)
+            else:
+                replaced_path = re.sub('^'+rel_old_path, new_path, result._path)
             session.query(Datum).filter(Datum.id==result.id).update({'_path'   : replaced_path
                                                                     ,'modifier': modifier})
 
     @staticmethod
     def _to_abs_path(path):
-        return (STORE_DIR.parent / path).as_posix()
+        if path.startswith('/'):
+            return path
+        else:
+            return (STORE_DIR.parent / path).as_posix()
 
     @staticmethod
     def _to_rel_path(path):
-        return Path(path).relative_to(STORE_DIR.parent).as_posix()
+        if path.startswith('/'):
+            # ディレクトリトラバーサルには対応していない
+            return Path(path).relative_to(STORE_DIR.parent).as_posix()
+        else:
+            return path
 
     @staticmethod
     def find_root():
@@ -483,7 +511,7 @@ class Datum(BaseModel):
         """
         Check if this path is a POSIX mount point
         """
-        abs_path = Path(Datum._to_abs_path(path))
+        abs_path = Path(Datum._to_abs_path(path.as_posix()))
 
         # Need to exist and be a dir
         if not abs_path.exists() or not abs_path.is_dir():
