@@ -388,7 +388,8 @@ class Datum(BaseModel):
         from ..store.model import get_user_by_id
         user = get_user_by_id(user_id)
         if user is None:
-            Exception('No user is found by designated user id')
+            # Exception('No user is found by designated user id')
+            return ''
         else:
             return user['name']
 
