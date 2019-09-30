@@ -216,6 +216,73 @@ class Flow(Datum):
         new_flow = Flow(self.parent_uuid, new_label, new_flow_data, user_id)
         return new_flow
 
+    def get_src_frame_uuids(self):
+        """
+        参照する入力frameを全て取得する
+        """
+        ret = []
+        flow_json = self.flow_data
+        
+        for node in flow_json['nodes']:
+            if node['type'] != 'frame':
+                continue
+            if node['cacheCreatedAt'] is not None and node['cacheCreatedAt'] != '':
+                # cacheCreatedAtに日時が入っている場合はキャッシュである
+                continue
+            if node['uuid'] is None or node['uuid'] == '':
+                continue
+            if node['uuid'] in ret:
+                continue
+            ret.append(node['uuid'])
+        return ret
+
+    def get_cache_frame_uuids(self):
+        """
+        参照するキャッシュframeを全て取得する
+        """
+        ret = []
+        flow_json = self.flow_data
+        
+        for node in flow_json['nodes']:
+            if node['type'] != 'frame':
+                continue
+            if node['cacheCreatedAt'] is None or node['cacheCreatedAt'] == '':
+                # cacheCreatedAtに日時が入っていない場合は入力フレームである
+                continue
+            if node['uuid'] is None or node['uuid'] == '':
+                continue
+            if node['uuid'] in ret:
+                continue
+            ret.append(node['uuid'])
+        return ret
+
+    def get_sub_flow_uuids(self):
+        """
+        参照するSub Flowを全て取得する
+        """
+        ret = []
+        flow_json = self.flow_data
+
+        for node in flow_json['nodes']:
+            if node['type'] != 'flow':
+                continue
+            if node['uuid'] is None or node['uuid'] == '':
+                continue
+            if node['uuid'] in ret:
+                continue
+            ret.append(node['uuid'])
+        return ret
+
+    def replace_uuid(self, old_uuid, new_uuid, user_id):
+        """
+        参照uuidを置き換える
+        """
+        flow_data = self.flow_data
+        for node in flow_data['nodes']:
+            if 'uuid' in node and node['uuid'] == old_uuid:
+                node['uuid'] = new_uuid
+        Flow.update_data(self.uuid, self.label, flow_data, user_id)
+
     def to_json(self):
         return {'uuid'      : self.uuid,
                 'type'      : Datum.FLOW_TYPE,
