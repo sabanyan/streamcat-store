@@ -220,44 +220,46 @@ class WinCp932ReadCommand(PCommand):
         super().__init__()
 
     def run(self, args, inputs):
-        f = None
-        f <<= inputs['i']
+        # f = None
+        # f <<= inputs['i']
 
-        args_string = (PCMD_DIR / 'src/windows_cp932_csv_read.sh').as_posix()
-        args_string += self.replace_args(args)
+        # args_string = (PCMD_DIR / 'src/windows_cp932_csv_read.sh').as_posix()
+        # args_string += self.replace_args(args)
 
-        return {'o': self.module(f, args_string)}
+        # return {'o': self.module(f, args_string)}
 
         # pythonによる変換
         # 不安定なので無効化しておく
 
-        # def Cp932_to_utf8():
-        #     """
-        #     ストリームでcp932→utf8に変換するコマンド
-        #     """
-        #     import traceback
-        #     import io
-        #
-        #     try:
-        #         # stdinのencodingがデフォルトでutf-8なので、設定し直す。
-        #         input_stream = io.TextIOWrapper(sys.stdin.buffer, encoding='cp932')
-        #         for line in input_stream:
-        #             # 標準出力するときも自動でutf-8に変換されるので、printだけでいい
-        #             print(line, end='')
-        #     except Exception as e:
-        #         with open('/dev/stderr', 'w') as fpe:
-        #             traceback.print_exc(file=fpe)
-        #
-        # # flushをしないと、デバッグ用のprintなども入ってしまう
-        # sys.stdout.flush()
-        # f = None
-        # f <<= inputs['i']
-        # f <<= nm.runfunc(Cp932_to_utf8)
-        #
-        # nysol_module_o= NysolModule()
-        # nysol_module_o.set_content(f)
-        #
-        # return {'o': nysol_module_o}
+        def Cp932_to_utf8():
+            """
+            ストリームでcp932→utf8に変換するコマンド
+            """
+            import traceback
+            import io
+        
+            try:
+                # stdinのencodingがデフォルトでutf-8なので、設定し直す。
+                input_stream = io.TextIOWrapper(sys.stdin.buffer, encoding='cp932')
+                for line in input_stream:
+                    # 標準出力するときも自動でutf-8に変換されるので、printだけでいい
+                    print(line, end='')
+                # flushをする
+                sys.stdout.flush()
+            except Exception as e:
+                with open('/dev/stderr', 'w') as fpe:
+                    traceback.print_exc(file=fpe)
+        
+        # flushをしないと、デバッグ用のprintなども入ってしまう
+        sys.stdout.flush()
+        f = None
+        f <<= inputs['i']
+        f <<= nm.runfunc(Cp932_to_utf8)
+        
+        nysol_module_o= NysolModule()
+        nysol_module_o.set_content(f)
+        
+        return {'o': nysol_module_o}
 
 class Utf8ToCp932Command(PCommand):
     def __init__(self):
@@ -347,3 +349,151 @@ class SelRowCommand(RunfuncCommand):
         nysol_module_u.set_content(f2)
 
         return {'o': nysol_module_o, 'u': nysol_module_u}
+
+
+class RdbLoaderCommand(Command):
+    """
+    指定したRDBからデータを取得するLoaderコマンド
+    """
+    def __init__(self):
+        super().__init__()
+        self.i_ports = []
+        self.o_ports = [Port('o', 'mcmd')]
+        self.name = 'rdb_loader'
+        self._tmp_file_path = None
+
+    def run(self, args, inputs):
+        self._write_log('START')
+
+        # RDBに接続する値を取得する
+        if 'dbms' not in args:
+            raise Exception('RDB種別の指定が必要です')
+        dbms = args['dbms']
+
+        if 'hostname' not in args:
+            raise Exception('RDBのホスト名またはIPアドレスの指定が必要です')
+        hostname = args['hostname']
+
+        if 'port' not in args:
+            raise Exception('RDB接続のポート番号の指定が必要です')
+        port = args['port']  
+
+        if 'database' not in args:
+            raise Exception('RDB接続のデータベース名の指定が必要です')
+        database = args['database']  
+
+        if 'user_id' not in args:
+            raise Exception('RDB接続のユーザIDが必要です')
+        user_id = args['user_id'] 
+
+        if 'password' not in args or args['password'] is None:
+            password = ''
+        else:
+            password = args['password']
+
+        if 'schema_name' not in args or args['schema_name'] is None:
+            schema_name = ''
+        else:
+            schema_name = args['schema_name']
+
+        if 'table_name' not in args:
+            raise Exception('RDB接続の取得元テーブル名が必要です')
+        table_name = args['table_name']
+
+        # RDBへの接続URIを作成する
+        from ...rdb_conn_info import RdbConnInfo
+        connInfo = RdbConnInfo(dbms, hostname, port, database, user_id, password)
+
+        # RDBへ接続する
+        engine = RdbLoaderCommand._connect_to_rdb(connInfo)
+
+        # SQL文を作成する
+        sql = RdbLoaderCommand._make_sql(schema_name, table_name)
+
+        # SQL文を発行し結果を取得する
+        results = RdbLoaderCommand._get_results(engine, sql)
+
+        # Tmpファイル名を決定する
+        import uuid
+        tmp_dir_path  = '/tmp'
+        tmp_file_name = str(uuid.uuid4())
+        self._tmp_file_path = tmp_dir_path + '/' + tmp_file_name + ".csv"
+
+        # 結果をファイルに出力する
+        def to_str(value):
+            if value is None:
+                return ''
+            else:
+                return str(value)
+
+        with open(self._tmp_file_path, 'w') as f:
+            is_header = True
+            for result in results:
+                if is_header:
+                    f.write(','.join(result.keys()))
+                    f.write('\n')
+                    is_header = False
+                str_result = map(to_str, result)
+                result_line = ','.join(str_result)
+                f.write(result_line + '\n')
+
+        # 結果のファイルを入力とするm2teeコマンドを作成する
+        cmd = nm.m2tee(i=self._tmp_file_path)
+
+        nysol_module = NysolModule()
+        nysol_module.set_content(cmd)
+        return {'o': nysol_module}
+
+    @staticmethod
+    def _make_sql(schema_name, table_name):
+        if schema_name == '':
+            schema_and_table_name = table_name
+        else:
+            schema_and_table_name = schema_name + '.' + table_name
+        return f"SELECT * FROM {schema_and_table_name}"
+
+    @staticmethod
+    def _connect_to_rdb(rdb_conn_info):
+        # データベースへの接続
+        from sqlalchemy import create_engine, exc
+        # echo=TrueでSQLログがコンソールに出力される
+        try:
+            engine = create_engine(rdb_conn_info.get_database_uri(), echo=False)
+        except exc.SQLAlchemyError as e:
+            raise Exception('RDBへの接続に失敗しました %s' % sql)
+        return engine
+
+    @staticmethod
+    def _get_results(engine, sql):
+        """
+        SQL文を発行し結果を取得する
+        """
+        from sqlalchemy import DDL, exc
+        try:
+            engine.execute('BEGIN')
+        except exc.SQLAlchemyError as e:
+            engine.execute('ROLLBACK')
+            raise Exception('トランザクションの開始に失敗しました')
+
+        try:
+            results = engine.execute(sql)
+        except exc.SQLAlchemyError as e:
+            engine.execute('ROLLBACK')
+            raise Exception('SQLの実行に失敗しました %s' % sql)
+        finally:
+            engine.execute('COMMIT')
+
+        return results
+
+    def _write_log(self, message):
+        indent = '  '
+        sys.__stderr__.write(indent + self.name + ': <\n')
+        sys.__stderr__.write(indent + '  ' + message + '\n')
+        sys.__stderr__.write(indent + '>\n')
+
+    def dtor(self):
+        self._write_log('DTOR!')
+        # Tmpファイルを削除する
+        import os
+        if self._tmp_file_path is not None and os.path.exists(self._tmp_file_path):
+            os.unlink(self._tmp_file_path)

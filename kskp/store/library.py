@@ -1,7 +1,7 @@
 from pathlib import Path
 
-# from kskp.store import FRAME_FOLDER_UUID, FRAME_FOLDER_LABEL
-# from kskp.store import CACHE_FOLDER_UUID, CACHE_FOLDER_LABEL
+from kskp.store import RESULT_FOLDER_UUID, RESULT_FOLDER_LABEL
+from kskp.store import CACHE_FOLDER_UUID, CACHE_FOLDER_LABEL
 
 from kskp.core  import Datum
 from kskp.store import Folder
@@ -10,6 +10,9 @@ from kskp.store import Frame
 from kskp.store import Flow
 
 class Library:
+    """
+    ライブラリ機能のFacadeパターン
+    """
 
     @staticmethod
     def load_root():
@@ -17,6 +20,29 @@ class Library:
         ルートデータストアを取得する
         """
         return Library._convert_type(Datum.find_root())
+
+    @staticmethod
+    def load_result_folder(creator=None):
+        """
+        出力結果フォルダを取得する
+        """
+        import datetime
+        today = str(datetime.date.today())
+        result_folder = Library._get_result_dir_path(creator)
+        today_folders = Datum.find_by_parent_uuid_and_label(result_folder.uuid, today)
+        if today_folders is None or len(today_folders)==0: 
+            today_folder = Folder(result_folder.uuid, today, creator)
+            today_folder.save()
+        else:
+            today_folder = today_folders[0]
+        return today_folder
+
+    @staticmethod
+    def load_cache_folder(creator=None):
+        """
+        キャッシュフォルダを取得する
+        """
+        return Library._get_cache_dir_path(creator)
 
     @staticmethod
     def load_frame(frame_uuid):
@@ -45,7 +71,7 @@ class Library:
                           None,
                           creator)
         # documentレコードをDBに格納する
-        new_frame.add_entry_from_path(path.as_posix())
+        new_frame.add_entry_from_path(path)
         return new_frame
 
     @staticmethod
@@ -204,8 +230,8 @@ class Library:
 
     @staticmethod
     def _init_library_folders():
-        # Library._get_frame_dir_path()
-        # Library._get_cache_dir_path()
+        Library._get_result_dir_path()
+        Library._get_cache_dir_path()
         Library._get_flow_dir_path()
 
     @staticmethod
@@ -214,15 +240,15 @@ class Library:
         from kskp.store import FLOW_FOLDER_UUID, FLOW_FOLDER_LABEL
         return Library._get_or_make_dir_path(FLOW_FOLDER_UUID, FLOW_FOLDER_LABEL, user_id)
 
-    # @staticmethod
-    # def _get_frame_dir_path(user_id=None):
-    #     # フレーム格納フォルダを取得する
-    #     return Library._get_or_make_dir_path(FRAME_FOLDER_UUID, FRAME_FOLDER_LABEL, user_id)
+    @staticmethod
+    def _get_result_dir_path(user_id=None):
+        # フレーム格納フォルダを取得する
+        return Library._get_or_make_dir_path(RESULT_FOLDER_UUID, RESULT_FOLDER_LABEL, user_id)
 
-    # @staticmethod
-    # def _get_cache_dir_path(user_id=None):
-    #     # キャッシュ格納フォルダを取得する
-    #     return Library._get_or_make_dir_path(CACHE_FOLDER_UUID, CACHE_FOLDER_LABEL, user_id)
+    @staticmethod
+    def _get_cache_dir_path(user_id=None):
+        # キャッシュ格納フォルダを取得する
+        return Library._get_or_make_dir_path(CACHE_FOLDER_UUID, CACHE_FOLDER_LABEL, user_id)
 
     @staticmethod
     def _get_or_make_dir_path(uuid, label, user_id=None):

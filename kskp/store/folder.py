@@ -19,7 +19,7 @@ class Folder(Store):
         super().__init__(parent_uuid, Datum.FOLDER_TYPE, label, creator)
 
         # data列の値を作成する
-        self.data = json.dumps({'label' : label})
+        self.data = {'label' : label}
 
     @staticmethod
     def find_by_uuid(uuid):
@@ -47,8 +47,8 @@ class Folder(Store):
     @staticmethod
     def convert_to_folder(datum):
         parent_uuid = Datum.get_uuid_by_id(datum.parent_id)
-        label = json.loads(datum.data, encoding='utf-8')['label']
-        folder = Folder(parent_uuid, label, datum.creator)
+        # label = json.loads(datum.data, encoding='utf-8')['label']
+        folder = Folder(parent_uuid, datum.label, datum.creator)
         folder.id = datum.id
         folder.uuid = datum.uuid
         folder._path = datum._path
@@ -83,7 +83,7 @@ class Folder(Store):
         # 既にルートフォルダが存在する場合は、parent_id=NULLを許可しない
         if self.parent_id is None and Datum.count_root() > 0:
             raise Exception('You can not add another root folder. A root already exists!')
-        self._path = file_path
+        self.path = file_path
         try:
             # Dataテーブルにレコードを新規追加する
             session.add(self)
@@ -106,17 +106,22 @@ class Folder(Store):
         if datum is None:
             raise Exception('no folder is found by designated id.')
 
+        # ラベルに'\0'が含まれていれば取り除く
+        new_label = Datum.escape_label(label)
+
         # ファイルを移動する
-        old_path = datum.path
-        new_path = Folder._move_dir(old_path, label)
+        old_path = datum._path
+        new_path = Folder._move_dir(old_path, new_label)
 
         try:
             # ディレクトリ名の移動によって他のDatumのpathが変更が必要であれば変更する
-            Folder._update_other_data(old_path, new_path, modifier)
+            Datum.update_same_path(old_path, new_path, modifier)
+            Datum.update_include_path(old_path, new_path, modifier)
 
             # レコードを更新する
-            data = json.dumps({'label' : label})
-            session.query(Datum).filter(Datum.uuid==uuid).update({'data'    :data
+            data ={'label' : new_label}
+            session.query(Datum).filter(Datum.uuid==uuid).update({'_label'  :new_label
+                                                                 ,'data'    :data
                                                                  ,'modifier':modifier})
         except Exception as e:
             session.rollback()
@@ -183,23 +188,18 @@ class Folder(Store):
         現在のフォルダ階層パスをリスト型で返す(APIのFolderPath属性の作成で用いる)
         """
         # 指定されたUUIDのfolerレコードを取得する
-        result = session.query(Datum.uuid, Datum.parent_id, Datum.type, Datum.data)\
-                        .filter(Datum.uuid==self.uuid).one_or_none()
+        datum = session.query(Datum).filter(Datum.uuid==self.uuid).one_or_none()
 
-        parent_id = result.parent_id
-        path_to_root = [{'type':result.type, 'uuid':result.uuid, 'label':json.loads(result.data, encoding='utf-8')['label']}]
+        parent_id = datum.parent_id
+        path_to_root = [{'type':datum.type, 'uuid':datum.uuid, 'label':datum.label}]
         # 取得したレコードから外部キー’parent_id’をたどり、途中のfolderレコードをリストに順に保存する
         while parent_id != None:
-            result = session.query(Datum.uuid, Datum.parent_id, Datum.type, Datum.data).filter(Datum.id==parent_id).one_or_none()
-            path_to_root.append({'type':result.type, 'uuid':result.uuid, 'label':json.loads(result.data, encoding='utf-8')['label']})
-            parent_id = result.parent_id
+            datum = session.query(Datum).filter(Datum.id==parent_id).one_or_none()
+            path_to_root.append({'type':datum.type, 'uuid':datum.uuid, 'label':datum.label})
+            parent_id = datum.parent_id
         # 保存したリストの並びを逆にする
         path_to_root.reverse()
         return path_to_root
-
-    @property
-    def label(self):
-        return json.loads(self.data, encoding='utf-8')['label']
 
     def _make_dir(self):
         """
@@ -209,8 +209,8 @@ class Folder(Store):
             # 同じ名称のファイルが既に存在する場合、末尾に数字を付加したディレクトリ名で作成する
             path = Folder.get_another_file_path(self._path)
             # フォルダに紐付くディレクトリ(path列で指定されるディレクトリ)がなければ作成する
-            if not os.path.isdir(path):
-                os.makedirs(path, exist_ok=True)
+            if not os.path.isdir(Datum._to_abs_path(path)):
+                os.makedirs(Datum._to_abs_path(path), exist_ok=True)
             return path
         except PermissionError as e:
             # ファイルに対する権限がない場合
@@ -223,14 +223,19 @@ class Folder(Store):
         try:
             # 全てのフォルダから紐づかないディレクトリは物理削除する
             dir_path = self._path.rstrip(os.pathsep)
-            while dir_path != '' and dir_path != '/' and dir_path != (STORE_DIR / 'frames').as_posix():
-                # 自分以外で同じディレクトリパスを使用しているフォルダの有無を確認する
+            abs_dir_path = Datum._to_abs_path(dir_path)
+            while dir_path != '' and dir_path != '/':
+                # 自分以外で同じディレクトリパス(相対パス)を使用しているフォルダの有無を確認する
                 if Folder._dir_path_exists(dir_path, except_id=self.id):
                     break
+                elif Datum.is_mount(Path(dir_path)):
+                    # マウント中のフォルダは削除しない
+                    break
                 else:
-                    if os.path.isdir(dir_path):
-                        os.rmdir(dir_path)
+                    if os.path.isdir(abs_dir_path):
+                        os.rmdir(abs_dir_path)
                     dir_path = os.path.dirname(dir_path)
+                    abs_dir_path = os.path.dirname(abs_dir_path)
         except PermissionError as e:
             # ファイルに対する権限がない場合
             raise e
@@ -246,41 +251,36 @@ class Folder(Store):
         return new_path
 
     @staticmethod
-    def _update_other_data(old_path, new_path, modifier):
-        # 同じディレクトリに対応するフォルダのpath列を、ディレクトリ名の移動に合わせて変更する
-        session.query(Datum).filter(Datum._path==old_path).update({'_path'   : new_path
-                                                                 , 'modifier': modifier})
-        # 同じディレクトリを含むpath列を、ディレクトリの移動に合わせて変更する
-        results = session.query(Datum.id, Datum._path).filter(Datum._path.like(old_path+'/%')).all()
-        for result in results:
-            replaced_path = re.sub('^'+old_path, new_path, result._path)
-            session.query(Datum).filter(Datum.id==result.id).update({'_path'   : replaced_path
-                                                                    ,'modifier': modifier})
-
-    @staticmethod
     def _dir_path_exists(dir_path, except_id):
-        results = session.query(Datum._path).filter(Datum._path.like(dir_path + '%'))\
-                                            .filter(Datum.id != except_id).all()
+        rel_path = Datum._to_rel_path(dir_path)
+        abs_path = Datum._to_abs_path(dir_path)
+
+        from sqlalchemy import or_
+        results = session.query(Datum._path)\
+                 .filter(or_(Datum._path.like(rel_path + '%'), Datum._path.like(abs_path + '%')))\
+                 .filter(Datum.id != except_id).all()
+
         for result in results:
-            if result._path == dir_path:
+            if Datum._to_rel_path(result._path) == rel_path:
                 return True
-            elif os.path.commonpath([result._path, dir_path]) == dir_path:
+            if os.path.commonpath([Datum._to_rel_path(result._path), rel_path]) == rel_path:
                 return True
         return False
 
     def to_json(self):
         return {'uuid'      : self.uuid,
                 'type'      : Datum.FOLDER_TYPE,
-                'label'     : json.loads(self.data, encoding='utf-8')['label'],
+                'label'     : self.label,
                 'creator'   : Datum.get_user_name_by_user_id(self.creator),
                 'createdAt' : self.created_at_str}
 
-    def save_frame(self, command, args, datum):
+    def save_frame(self, command, args, datum, file_name):
         """
         engine用
         保存するframeへのパスを作成する
         """
-        args['frame_path'] = (Path(self.path) / (str(uuid.uuid4()) + '.csv'))
+        # args['frame_path'] = (Path(Datum._to_abs_path(self.path)) / (str(uuid.uuid4()) + '.csv'))
+        args['frame_path'] = Path(Datum._to_abs_path(self.path.as_posix())) / file_name
         return command.module(args, datum)
 
     @staticmethod
@@ -294,9 +294,9 @@ class Folder(Store):
         frame = Library.load_frame(uuid)
         if frame is None:
             raise Exception('No frame(%s) is found !' % uuid)
-        path = frame.path_obj
+        path = Datum._to_abs_path(frame.path.as_posix())
 
-        return nm.m2tee({'i':path.as_posix()})
+        return nm.m2tee({'i':path})
 
     @property
     def content(self):

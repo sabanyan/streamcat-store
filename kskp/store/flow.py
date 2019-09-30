@@ -18,7 +18,7 @@ class Flow(Datum):
         self._path = ''
 
         # data列の値を作成する
-        self.data = json.dumps({'label' : label, 'flow' : flow_data})
+        self.data = {'label' : label, 'flow' : flow_data}
 
     @staticmethod
     def find_all_flows():
@@ -53,7 +53,7 @@ class Flow(Datum):
 
         subflows = []
         for datum in data:
-            datum_data = json.loads(datum.data, encoding='utf-8')['flow']
+            datum_data = datum.data2['flow']
             # onの時にno_inputs（＝inputsがない）のサブフローは出さない
             if no_inputs:
                 if len(datum_data['ports'][0]) == 0:
@@ -84,9 +84,9 @@ class Flow(Datum):
     @staticmethod
     def convert_to_flow(datum):
         parent_uuid = Datum.get_uuid_by_id(datum.parent_id)
-        label = json.loads(datum.data, encoding='utf-8')['label']
-        flow_data = json.loads(datum.data, encoding='utf-8')['flow']
-        flow = Flow(parent_uuid, label, flow_data, datum.creator)
+        # label = json.loads(datum.data, encoding='utf-8')['label']
+        flow_data = datum.data2['flow']
+        flow = Flow(parent_uuid, datum.label, flow_data, datum.creator)
         flow.id = datum.id
         flow.uuid = datum.uuid
         flow._path = datum._path
@@ -124,10 +124,14 @@ class Flow(Datum):
         if datum is None:
             raise Exception('no flow is found by designated id.')
 
+        # ラベルに'\0'が含まれていれば取り除く
+        new_label = Datum.escape_label(label)
+
         try:
             # レコードを更新する
-            data = json.dumps({'label' : label, 'flow' : flow_data})
-            session.query(Datum).filter(Datum.uuid==uuid).update({'data'     :data,
+            data = {'label' : new_label, 'flow' : flow_data}
+            session.query(Datum).filter(Datum.uuid==uuid).update({'_label'   :new_label,
+                                                                  'data'     :data,
                                                                   'modifier' :modifier})
         except Exception as e:
             session.rollback()
@@ -137,6 +141,34 @@ class Flow(Datum):
 
         return Flow.convert_to_flow(datum)
 
+    def move(self, parent_uuid, modifier):
+        """
+        指定されたStoreの直下に移動する
+        """
+        # UUID値の形式チェックをする
+        Datum.valid_uuid_or_raise(parent_uuid)
+
+        try:
+            from kskp.store import Folder
+            to_folder = Folder.find_by_uuid(parent_uuid)
+        except Exception as e:
+            raise Exception('移動先の指定はフォルダのUUIDしか許可していません')
+
+        if parent_uuid == self.uuid:
+            raise Exception('移動先と移動元の指定が同じです')
+
+        try:
+            # レコードを更新する
+            session.query(Datum).filter(Datum.id==self.id).update({'parent_id': to_folder.id
+                                                                  ,'modifier' : modifier})
+        except Exception as e:
+            session.rollback()
+            raise e
+        finally:
+            session.commit()
+
+        return self
+        
     def delete(self):
         """
         Flowを削除する
@@ -165,12 +197,8 @@ class Flow(Datum):
         pass
 
     @property
-    def label(self):
-        return json.loads(self.data, encoding='utf-8')['label']
-
-    @property
     def flow_data(self):
-        return json.loads(self.data, encoding='utf-8')['flow']
+        return self.data2['flow']
 
     def duplicate(self, new_label, user_id):
         """
