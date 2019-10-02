@@ -1,5 +1,25 @@
 {
   "id": "msep",
+  "rules" : {
+    "d" : {
+      "presence": {"allowEmpty": false}
+    },
+    "f" : {
+      "checkSeveralSpecifiedFormats" : {
+        "defaultRule" : {
+          "pattern" : "^[^,:]+$|^$",
+          "message" : "項目名は一つのみ入力してください。"
+        },
+        "specialRules" : [
+          {
+            "target" : ["x", "nfn"],
+            "pattern" : "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?$|^$|^@\\[.+\\]$",
+            "message" : "項目の指定は数値かつ1つのみ可能です。"
+          }
+        ]
+      }
+    }
+  },
   "params": [
     {
       "name": "d",
@@ -66,6 +86,6 @@
   "version": "0.7.0",
   "label": "レコードの分割(msep)",
   "classification": "table_split",
-  "description": "",
+  "description": "d=で指定したファイル名のデータに各レコードを出力する。",
   "url": "./static/pdf/mcmd/table_split/msep.pdf"
 }

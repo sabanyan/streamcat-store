@@ -55,6 +55,6 @@
   "version": "0.7.0",
   "label": "arffからcsv形式への変換",
   "classification": "data_format",
-  "description": "",
+  "description": "arff形式(WEKA 用のデータフォーマット)のデータからcsv形式のデータへ変換する。",
   "url": "./static/pdf/mcmd/data_format/marff2csv.pdf"
 }

@@ -1,5 +1,13 @@
 {
   "id": "mcal",
+  "rules": {
+    "a": {
+      "presence": {"allowEmpty": false}
+    },
+    "c": {
+      "presence": {"allowEmpty": false}
+    }
+  },
   "params": [
     {
       "name": "a",
@@ -72,6 +80,6 @@
   "version": "0.7.0",
   "label": "計算",
   "classification": "calculation",
-  "description": "",
+  "description": "c=で計算式を入力し、a=で指定した項目名に出力する。",
   "url": "./static/pdf/mcmd/calculation/mcal.pdf"
 }

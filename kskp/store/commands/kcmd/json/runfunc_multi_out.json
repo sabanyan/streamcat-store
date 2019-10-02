@@ -1,0 +1,33 @@
+{
+  "id": "test",
+  "params": [
+    {
+      "name": "n",
+      "type": "string",
+      "label": "取得行数"
+    }
+  ],
+  "ports": [
+    [
+      {
+        "name": "i",
+        "type": "frame"
+      }
+    ],
+    [
+      {
+        "name": "o",
+        "type": "frame"
+      },
+      {
+        "name": "u",
+        "type": "frame"
+      }
+    ]
+  ],
+  "version": "0.7.0",
+  "label": "行選択２",
+  "classification": "row_edit",
+  "description": "上から指定した数の行を取得する",
+  "url": ""
+}
