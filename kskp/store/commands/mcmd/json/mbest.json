@@ -4,7 +4,7 @@
     {
       "name": "s",
       "type": "string",
-      "label": "ソート対象列名(必須)"
+      "label": "ソート対象列名"
     },
     {
       "name": "from",
@@ -109,6 +109,6 @@
   "version": "0.7.0",
   "label": "指定行選択",
   "classification": "row_edit",
-  "description": "",
+  "description": "指定した行番号の行を選択する。行番号は0から始まる。",
   "url": "./static/pdf/mcmd/row_edit/mbest.pdf"
 }

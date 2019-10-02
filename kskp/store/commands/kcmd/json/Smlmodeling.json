@@ -1,0 +1,49 @@
+{
+  "version": "0.7.0",
+  "id": "sml_modeling",
+  "label": "モデリング",
+  "classification": "classification",
+  "description": "モデリングを行う",
+  "ports": [
+    [
+      {
+        "name": "i",
+        "type": "frame"
+      }
+    ],
+    [
+      {
+        "name": "o",
+        "type": "frame"
+      }
+    ]
+  ],
+  "params": [
+    {
+      "name": "classification",
+      "type": "boolean",
+      "label": "classification"
+    },
+    {
+      "name": "target_list",
+      "type": "string",
+      "label": "target_list"
+    },
+    {
+      "name": "k",
+      "type": "string",
+      "label": "列"
+    },
+    {
+      "name": "feature_list",
+      "type": "string",
+      "label": "feature_list"
+    },
+    {
+      "name": "command_list",
+      "type": "string",
+      "label": "command_list"
+    }
+  ],
+  "url": ""
+}

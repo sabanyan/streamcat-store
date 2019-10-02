@@ -1,5 +1,10 @@
 {
   "id": "mnewrand",
+  "rules" : {
+    "a" : {
+      "presence": {"allowEmpty": false}
+    }
+  },
   "params": [
     {
       "name": "a",
@@ -29,7 +34,7 @@
       "type": "string",
       "label": "作成するデータ行数",
       "optional": true,
-      "default": 10
+      "default": "10"
     },
     {
       "name": "int",

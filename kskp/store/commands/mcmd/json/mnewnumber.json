@@ -1,5 +1,31 @@
 {
   "id": "mnewnumber",
+  "rules":{
+    "I":{
+      "format" : {
+        "pattern": "^[1-9]?[0-9]*$|^@\\[.+\\]$|^$",
+        "message": "1以上の整数を半角で入力してください"
+       }
+    },
+    "S":{
+      "format" : {
+        "pattern": "^[A-Z]$|^[1-9]?[0-9]*$|^@\\[.+\\]$|^$",
+        "message": "半角の大文字アルファベットもしくは0以上の整数を半角で入力してください"
+       }
+    },
+    "s":{
+      "presencesIfTargetIsNotInput" : "q"
+    },
+    "a" : {
+      "presence": {"allowEmpty": false}
+    },
+    "l" : {
+      "format" : {
+        "pattern": "^[1-9]?[0-9]*$|^@\\[.+\\]$|^$",
+        "message": "1以上の整数を半角で入力してください"
+       }
+    }
+  },
   "params": [
     {
       "name": "a",
@@ -11,21 +37,21 @@
       "type": "string",
       "label": "連番を振る間隔",
       "optional": true,
-      "default": 1
+      "default": "1"
     },
     {
       "name": "S",
       "type": "string",
       "label": "開始数値/アルファベット(大文字)",
       "optional": true,
-      "default": 1
+      "default": "1"
     },
     {
       "name": "l",
       "type": "string",
       "label": "作成するデータ行数",
       "optional": true,
-      "default": 10
+      "default": "10"
     },
     {
       "name": "nfn",
