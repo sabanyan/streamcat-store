@@ -92,6 +92,8 @@ from .frame import Frame, Cache
 from .flow import Flow
 from .folder import Folder
 from .awss3 import AwsS3
+from .db_conn_info import DbConnInfo
+from .database import Database
 from .children_getter import ChildrenGetter
 
 from .library import Library
@@ -105,12 +107,12 @@ from .model import *
 BaseModel.metadata.create_all(bind=engine, checkfirst=True)
 
 # label列の新規追加(後方互換)
-sql = """
+sql1 = """
 ALTER TABLE data 
 ADD COLUMN label VARCHAR;
 """
 try:
-    engine.execute(sql)
+    engine.execute(sql1)
 except Exception as e:
     pass
 
@@ -138,6 +140,6 @@ def create_d_view():
     engine.execute(DDL(d_view))
 
 # フレームを格納するフォルダがなければ作成する
-import pprint
-pprint.pprint('Init library folder')
-Library._init_library_folders()
+# import pprint
+# pprint.pprint('Init library folder')
+# Library._init_library_folders()

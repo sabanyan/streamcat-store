@@ -22,8 +22,9 @@ class Datum(BaseModel):
     # DEFAULT_LIBRARY_PATH = (STORE_DIR / 'frames/csv').relative_to(STORE_DIR.parent.parent).as_posix()
     # DEFAULT_LIBRARY_PATH = (STORE_DIR / 'frames/csv').as_posix()
     DEFAULT_LIBRARY_PATH = 'store'
-    AWSS3_TYPE  = 'awss3'
     FOLDER_TYPE = 'folder'
+    AWSS3_TYPE  = 'awss3'
+    DATABASE_TYPE = 'database'
     FLOW_TYPE   = 'flow'
     FRAME_TYPE  = 'frame'
 
@@ -42,7 +43,7 @@ class Datum(BaseModel):
     _path       = Column('path', String, nullable=False)
     _label      = Column('label', String)
     # PostgreSQLのENUM型の要素を変更してもSQLAlchemyから自動的に変更がかからないので手動で変更する必要がある
-    type        = Column(ENUM(AWSS3_TYPE, FOLDER_TYPE, FLOW_TYPE, FRAME_TYPE, name='data_type'), nullable=False)
+    type        = Column(ENUM(FOLDER_TYPE, AWSS3_TYPE, DATABASE_TYPE, FLOW_TYPE, FRAME_TYPE, name='data_type'), nullable=False)
     data        = Column(JSONB)
     creator     = Column(INTEGER)
     modifier    = Column(INTEGER)
@@ -470,9 +471,10 @@ class Datum(BaseModel):
         """
         uuidの形式チェックの結果、正しくないuuidの場合は例外を送出する
         """
+        if uuid is None or uuid == '':
+            raise Exception(f'The UUID value is empty')
         if not Datum.is_valid_uuid(uuid):
-            raise Exception(
-                'The value is not UUID type. The comparison to UUID type column needs for uuid value in PostgreSQL.')
+            raise Exception(f'The UUID({uuid}) value is not valid format.')
 
     @staticmethod
     def remount(id):

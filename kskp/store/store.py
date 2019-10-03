@@ -6,7 +6,8 @@ from kskp.core import Datum
 
 class Store(Datum):
     """
-    datumを入れておく場所
+    Storeを表す
+    (StoreとはLoaderの入力元となり得る、またはSaverの出力先となり得るもの)
     """
     def __init__(self, parent_uuid, type, label, creator=None):
         super().__init__(parent_uuid, type, label, creator)
