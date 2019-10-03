@@ -38,6 +38,7 @@ class M2crossCommand(Command):
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
 
+        
 class McalCommand(Command):
     def __init__(self):
         super().__init__()
