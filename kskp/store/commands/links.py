@@ -129,7 +129,6 @@ class CommandLink:
             'utf8_to_cp932': Utf8ToCp932Command(),
             'sml_modeling': SmlModelingCommand(),
             'selrow': SelRowCommand(),
-            'rdb_loader' : RdbLoaderCommand(),
             # ビジュアライズ
             'csvtohtmltable': CsvToTableCommand(),
             'csvtolinegraph': CsvToLineGraphCommand(),
@@ -139,7 +138,8 @@ class CommandLink:
             # Storeコマンド
             'saver': SaverCommand(),
             'cachesaver': CacheSaverCommand(),
-            'loader': LoaderCommand()
+            'loader': LoaderCommand(),
+            'db_loader' : DbLoaderCommand()
         }
 
         if runnable_id not in table:
