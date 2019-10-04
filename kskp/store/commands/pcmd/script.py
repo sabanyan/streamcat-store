@@ -350,15 +350,48 @@ class MultiMcalCommand(Command):
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
 
-class MultiMcalWCCommand(Command):
+class MultiMcalRangeCommand(Command):
     def __init__(self):
         super().__init__()
         self.i_ports = [Port('i', 'frame')]
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i']
-        cmd_o = nm.mcal(args)
+#         args format:
+#             target column numbers: for now, can't figure out wildcard for column name, so just work with ranges first
+#             c: operation to be done on each column, operations to be done per target columns should use the wildcard $$ 
+#             a: output column name (string must include $$, default is 'new$$')
+
+        args['x'] = True
+
+        cmd_o = None
+        first = True
+
+        # sys.__stderr__.write(repr(args)+'\n')
+        #parse number expressions to get list of target columns
+        args['targets'] = args['targets'].split(',')
+
+        targets = []
+        for e in args['targets']:
+            if '-' in e:
+                targets += [*range(*[int(x) for x in e.split('-')])]
+            else:
+                targets.append(e)
+            
+        args.pop('targets')
+
+        #iterate over entire list and replace the '$$' in c and a inputs with column number
+        for target in targets:
+            arg = args.copy()
+            for key in 'ac':
+                arg[key] = arg[key].replace('$$',str(target))
+
+            if first:
+                cmd_o <<= nm.mcal({**inputs, **arg})
+                first = False
+            else:
+                cmd_o <<= nm.mcal(arg)
+        
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
