@@ -334,7 +334,9 @@ class MultiMcalCommand(Command):
         
         for arg in args:
             # one mcal will be added to cmd_o for every pair of c and a arguments passed in a list
-            cmd_o <<= nm.mcal({**inputs, **arg}) # {'i' : input, 'c': 'cal1', 'a' : 'col1'}
+            arg['i'] = inputs['i']
+            # cmd_o <<= nm.mcal({**inputs, **arg}) # {'i' : input, 'c': 'cal1', 'a' : 'col1'}
+            cmd_o <<= nm.mcal(arg)  
 
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
