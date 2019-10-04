@@ -367,7 +367,6 @@ class MultiMcalRangeCommand(Command):
         cmd_o = None
         first = True
 
-        # sys.__stderr__.write(repr(args)+'\n')
         #parse number expressions to get list of target columns
         args['targets'] = args['targets'].split(',')
 
@@ -380,11 +379,15 @@ class MultiMcalRangeCommand(Command):
             
         args.pop('targets')
 
-        #iterate over entire list and replace the '$$' in c and a inputs with column number
+        header = nm.mread(inputs).getline(header=True)
+        header = next(header)
+
+        #iterate over entire list and replace the '$$' in c and a inputs with column number/name
         for target in targets:
             arg = args.copy()
-            for key in 'ac':
-                arg[key] = arg[key].replace('$$',str(target))
+
+            arg['a'] = arg['a'].replace('$$',header[target])
+            arg['c'] = arg['c'].replace('$$',str(target))
 
             if first:
                 cmd_o <<= nm.mcal({**inputs, **arg})
