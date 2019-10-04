@@ -42,12 +42,6 @@
       "optional": true
     },
     {
-      "name": "x",
-      "type": "boolean",
-      "label": "項目番号による指定",
-      "optional": true
-    },
-    {
       "name": "tmpPath",
       "type": "string",
       "label": "作業ファイル格納パス名",
