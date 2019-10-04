@@ -324,19 +324,27 @@ class MultiMcalCommand(Command):
     def run(self, args, inputs):
 
         # inputs = {'i' : 'input'}
-
-        # args=[{'a' : 'col1', 'c': 'cal1'},
-        #       {'a' : 'col2', 'c': 'cal2'},
-        #       ...
-        #       ]
+        # args={
+        #         'arglist': [
+        #          {'a': 'col1', 'c': 'cal1'},
+        #          {'a': 'col2', 'c': 'cal2'},
+        #           ...
+        #         ]
+        #       }
 
         cmd_o = None
+        first = True
         
-        for arg in args:
+        for arg in args['arglist']:
             # one mcal will be added to cmd_o for every pair of c and a arguments passed in a list
-            arg['i'] = inputs['i']
-            # cmd_o <<= nm.mcal({**inputs, **arg}) # {'i' : input, 'c': 'cal1', 'a' : 'col1'}
-            cmd_o <<= nm.mcal(arg)  
+
+            # argdict = {**inputs, **arg}
+            # sys.__stderr__.write(repr(argdict)+'\n')
+            if first:
+                cmd_o <<= nm.mcal({**inputs, **arg}) # {'i' : input, 'c': 'cal1', 'a' : 'col1'}
+                first = False
+            else:
+                cmd_o <<= nm.mcal(arg)
 
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)

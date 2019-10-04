@@ -2,7 +2,7 @@
   "id": "multimcal",
   "params": [
     {
-      "name": "args",
+      "name": "arglist",
       "type": "list",
       "label": "引数",
       "elements": [
