@@ -372,9 +372,9 @@ class MultiMcalWCCommand(Command):
         header = next(header)
 
         # parse wildcard expression  
-        targets_wc = args.pop('targets')
+        targets_wc = args.pop('targets').split(',')
 
-        targets = [a for a in header if fn.fnmatch(a, targets_wc)]
+        targets = [a for a in header for target in targets_wc if fn.fnmatch(a, target)]
         #targets is now a list of column names to hit with calculation
 
         #iterate over entire list and replace the '$$' in c and a inputs with column number/name
