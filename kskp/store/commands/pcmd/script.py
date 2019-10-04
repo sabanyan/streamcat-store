@@ -349,6 +349,19 @@ class MultiMcalCommand(Command):
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
+
+class MultiMcalWCCommand(Command):
+    def __init__(self):
+        super().__init__()
+        self.i_ports = [Port('i', 'frame')]
+        self.o_ports = [Port('o', 'frame')]
+
+    def run(self, args, inputs):
+        args['i'] = inputs['i']
+        cmd_o = nm.mcal(args)
+        nysol_module_o= NysolModule()
+        nysol_module_o.set_content(cmd_o)
+        return {'o': nysol_module_o}
         
 class SelRowCommand(RunfuncCommand):
     def __init__(self):
