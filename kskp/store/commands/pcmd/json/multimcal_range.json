@@ -1,5 +1,5 @@
 {
-  "id": "multimcal_wc",
+  "id": "multimcal_range",
   "params": [
     {
       "name": "targets",
@@ -76,7 +76,7 @@
     ]
   ],
   "version": "0.7.0",
-  "label": "連続計算_wc",
+  "label": "連続計算_range",
   "classification": "calculation",
   "description": "",
   "url": "./static/pdf/mcmd/calculation/mcal.pdf"
