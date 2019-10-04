@@ -358,9 +358,9 @@ class MultiMcalWCCommand(Command):
 
     def run(self, args, inputs):
 #         args format:
-#             target column numbers: for now, can't figure out wildcard for column name, so just work with ranges first
-#             c: operation to be done on each column, operations to be done per target columns should use the wildcard $$ 
-#             a: output column name (string must include $$, default is 'new$$')
+#             target columns: expressions can use wildcards, and can be separated with commas
+#             c: operation to be done on each column, operations to be done per target columns should use the wildcard & 
+#             a: output column name (string must include &, default is 'new&')
 
         import fnmatch as fn
 
@@ -381,8 +381,8 @@ class MultiMcalWCCommand(Command):
         for target in targets:
             arg = args.copy()
 
-            arg['a'] = arg['a'].replace('$$',target)
-            arg['c'] = arg['c'].replace('$$',target)
+            arg['a'] = arg['a'].replace('&',target)
+            arg['c'] = arg['c'].replace('&',target)
 
             if first:
                 cmd_o <<= nm.mcal({**inputs, **arg})
@@ -403,8 +403,8 @@ class MultiMcalRangeCommand(Command):
     def run(self, args, inputs):
 #         args format:
 #             target column numbers: for now, can't figure out wildcard for column name, so just work with ranges first
-#             c: operation to be done on each column, operations to be done per target columns should use the wildcard $$ 
-#             a: output column name (string must include $$, default is 'new$$')
+#             c: operation to be done on each column, operations to be done per target columns should use the wildcard &
+#             a: output column name (string must include &, default is 'new&')
 
         args['x'] = True
 
@@ -430,8 +430,8 @@ class MultiMcalRangeCommand(Command):
         for target in targets:
             arg = args.copy()
 
-            arg['a'] = arg['a'].replace('$$',header[target])
-            arg['c'] = arg['c'].replace('$$',str(target))
+            arg['a'] = arg['a'].replace('&',header[target])
+            arg['c'] = arg['c'].replace('&',str(target))
 
             if first:
                 cmd_o <<= nm.mcal({**inputs, **arg})
