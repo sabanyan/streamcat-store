@@ -125,12 +125,8 @@ class Frame(Datum):
         try:
             # 同じファイルに対応するドキュメントのpath列を、ファイル名の移動に合わせて変更する
             Datum.update_same_path(old_path, new_path, modifier)
-            
-            # レコードを更新する
-            data = {'label' : new_label}
-            session.query(Datum).filter(Datum.uuid==uuid).update({'_label'  :new_label,
-                                                                  'data'    :data,
-                                                                  'modifier':modifier})
+            # labelとdata列を更新する
+            Frame._update_label_imp(uuid, new_label, modifier)
         except Exception as e:
             session.rollback()
             raise e
@@ -138,6 +134,37 @@ class Frame(Datum):
             session.commit()
 
         return Frame.convert_to_frame(datum)
+
+    @staticmethod
+    def update_label_only(uuid, label, modifier):
+        """
+        Frameのlabel列を更新する
+        (path及び対応ファイル名は変更しない)
+        """
+         # レコードを取得する
+        datum = session.query(Datum).filter(Datum.uuid==uuid)\
+                                    .filter(Datum.type==Datum.FRAME_TYPE).one_or_none()
+        if datum is None:
+            raise Exception('no frame is found by designated id.')
+
+        # ラベルに'\0'が含まれていれば取り除く
+        new_label = Datum.escape_label(label)
+
+        try:
+            Frame._update_label_imp(uuid, new_label, modifier)
+        except Exception as e:
+            session.rollback()
+            raise e
+        finally:
+            session.commit()
+
+    @staticmethod
+    def _update_label_imp(uuid, new_label, modifier):
+        # labelとdata列を更新する
+        data = {'label' : new_label}
+        session.query(Datum).filter(Datum.uuid==uuid).update({'_label'  :new_label,
+                                                              'data'    :data,
+                                                              'modifier':modifier})
 
     def delete(self):
         """

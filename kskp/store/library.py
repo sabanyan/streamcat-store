@@ -23,19 +23,7 @@ class Library:
 
     @staticmethod
     def load_result_folder(creator=None):
-        """
-        出力結果フォルダを取得する
-        """
-        import datetime
-        today = str(datetime.date.today())
-        result_folder = Library._get_result_dir_path(creator)
-        today_folders = Datum.find_by_parent_uuid_and_label(result_folder.uuid, today)
-        if today_folders is None or len(today_folders)==0: 
-            today_folder = Folder(result_folder.uuid, today, creator)
-            today_folder.save()
-        else:
-            today_folder = today_folders[0]
-        return today_folder
+        return Library._get_result_dir_path(creator)
 
     @staticmethod
     def load_cache_folder(creator=None):
