@@ -1,5 +1,13 @@
 {
   "id": "mtab2csv",
+  "rules":{
+    "d":{
+      "format" : {
+       "pattern": "^.$",
+       "message": "1バイト文字を一文字入力してください"
+      }
+    }
+  },
   "params": [
     {
       "name": "d",
@@ -61,6 +69,6 @@
   "version": "0.7.0",
   "label": "TSVからCSVデータへの変換",
   "classification": "data_format",
-  "description": "",
+  "description": "タブ区切りデータをcsvデータへ変換する。",
   "url": "./static/pdf/mcmd/data_format/mtab2csv.pdf"
 }

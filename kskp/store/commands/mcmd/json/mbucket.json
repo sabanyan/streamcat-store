@@ -1,5 +1,37 @@
 {
   "id": "mbucket",
+  "rules": {
+    "f":{
+      "presence": {"allowEmpty": false},
+      "checkSeveralSpecifiedFormats" : {
+        "defaultRule" : {
+          "pattern" : "^[^:,]+:[^:,]+(,[^:,]+:[^:,]+)*$|^@\\[.+\\]$",
+          "message" : "対象となる列名と新しい列名を、:(コロン)で区切って入力してください"
+        },
+        "specialRules" : [
+          {
+            "target" : ["x", "nfn"],
+            "pattern" : "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$|^[1-9]?[0-9]+L?:[^,:]+(,[1-9]?[0-9]+L?:[^,:]+)*$",
+            "message" : "項目の指定は数値のみ可能です。"
+          }
+        ]
+      }
+    },
+    "n":{
+      "presence": {"allowEmpty": false},
+      "format" : {
+        "pattern": "^[1-9]?[0-9]+(,[1-9]?[0-9]+)*$|^@\\[.+\\]$",
+        "message": "0以上の整数を半角で入力してください"
+      }
+    },
+    "bufcount" : {
+      "specifiedFormatIfTargetInput" : {
+        "target" : "bufcount",
+        "pattern": "^[1-9]?[0-9]*$|^$|^@\\[.+\\]$",
+        "message": "0以上の整数を半角で入力してください"
+      }
+    }
+  },
   "params": [
     {
       "name": "f",
@@ -25,8 +57,12 @@
     },
     {
       "name": "F",
-      "type": "string",
+      "type": "select",
       "label": "出力形式",
+      "options":{
+        "labels": ["パケット番号のみを表示","パケットの範囲のみを表示","パケット番号とパケット番号の両方を表示"],
+        "values": ["0","1","2"]
+      },
       "optional": true
     },
     {
@@ -95,13 +131,6 @@
       "type": "string",
       "label": "作業ファイル格納パス名",
       "optional": true
-    },
-    {
-      "name": "precision",
-      "type": "string",
-      "label": "有効桁数",
-      "optional": true,
-      "default": 10
     }
   ],
   "ports": [
@@ -121,6 +150,6 @@
   "version": "0.7.0",
   "label": "行分割",
   "classification": "table_split",
-  "description": "",
+  "description": "f=で指定した数値項目をn=で指定した数の区間に分割する。-rngを指定すると範囲均等分割、指定しなければ件数均等分割となる。",
   "url": "./static/pdf/mcmd/table_split/mbucket.pdf"
 }

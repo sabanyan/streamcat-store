@@ -1,5 +1,72 @@
 {
   "id": "mmvavg",
+  "rules":{
+    "t":{
+      "specifiedFormatIfTargetInput" : {
+        "target" : "t",
+        "pattern": "^[1-9]?[0-9]*$|^@\\[.+\\]$",
+        "message": "1以上の整数を半角で入力してください"
+       },
+       "raiseWarningTargetsSelected" : ["exp", "alpha"]
+    },
+    "alpha":{
+      "specifiedFormatIfTargetInput" : {
+        "target" : "alpha",
+        "pattern": "^(\\+|-)?[1-9]?[0-9]*(\\.[0-9]+)?$|^@\\[.+\\]$",
+        "message": "実数を半角で入力してください"
+       }
+    },
+    "skip":{
+      "specifiedFormatIfTargetInput" : {
+        "target" : "skip",
+        "pattern": "^(\\+|-)?[1-9]?[0-9]*$|^@\\[.+\\]$",
+        "message": "整数を半角で入力してください"
+       }
+    },
+    "s":{
+      "presencesIfTargetIsNotInput" : "q",
+      "checkSeveralSpecifiedFormats" : {
+        "defaultRule" : {
+          "pattern" : "^[^,]+(,[^,]+)*$|^$",
+          "message" : "入力が正しくありません"
+        },
+        "specialRules" : [
+          {
+            "target" : ["x", "nfn"],
+            "pattern" : "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$|^$",
+            "message" : "項目の指定は数値のみ可能です。"
+          }
+        ]
+      }
+    },
+    "f" : {
+      "presence": {"allowEmpty": false},
+      "checkSeveralSpecifiedFormats" : {
+        "defaultRule" : {
+          "pattern" : "^[^,]+(,[^,]+)*$",
+          "message" : "入力が正しくありません"
+        },
+        "specialRules" : [
+          {
+            "target" : ["x", "nfn"],
+            "pattern" : "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$",
+            "message" : "項目の指定は数値のみ可能です。"
+          }
+        ]
+      }
+    },
+    "exp" : {
+      "presencesIfTargetIsInput": "alpha",
+      "onlyOneInput" : {
+        "target" : ["w"]
+      }
+    },
+    "w" : {
+      "onlyOneInput" : {
+        "target" : ["exp"]
+      }
+    }
+  },
   "params": [
     {
       "name": "s",
@@ -22,7 +89,7 @@
     {
       "name": "f",
       "type": "string",
-      "label": "移動平均を求める列名(必須)"
+      "label": "移動平均を求める列名(複数項目指定可, 必須)"
     },
     {
       "name": "t",
@@ -107,13 +174,6 @@
       "type": "string",
       "label": "作業ファイル格納パス名",
       "optional": true
-    },
-    {
-      "name": "precision",
-      "type": "string",
-      "label": "有効桁数",
-      "optional": true,
-      "default": 10
     }
   ],
   "ports": [
@@ -133,6 +193,6 @@
   "version": "0.7.0",
   "label": "移動平均の算出",
   "classification": "table_grouping",
-  "description": "",
+  "description": "単純移動平均(SMA)、線形荷重移動平均(WMA)、指数平滑移動平均(EMA)の3種を算出できる。",
   "url": "./static/pdf/mcmd/table_grouping/mmvavg.pdf"
 }

@@ -1,5 +1,22 @@
 {
   "id": "muniq",
+  "rules" : {
+    "k" : {
+      "checkSeveralSpecifiedFormats" : {
+        "defaultRule" : {
+          "pattern" : "^[^,]+(,[^,]+)*$|^$",
+          "message" : "入力が正しくありません"
+        },
+        "specialRules" : [
+          {
+            "target" : ["x", "nfn"],
+            "pattern" : "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$|^$",
+            "message" : "項目の指定は数値のみ可能です。"
+          }
+        ]
+      }
+    }
+  },
   "params": [
     {
       "name": "k",
@@ -65,8 +82,8 @@
     ]
   ],
   "version": "0.7.0",
-  "label": "単一化",
+  "label": "レコードの単一化",
   "classification": "row_edit",
-  "description": "",
+  "description": "指定した項目について、値が重複した行を単一化する。",
   "url": "./static/pdf/mcmd/row_edit/muniq.pdf"
 }

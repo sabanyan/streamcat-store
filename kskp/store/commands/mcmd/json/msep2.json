@@ -1,5 +1,35 @@
 {
   "id": "msep2",
+  "rules" : {
+    "k" : {
+      "presence": {"allowEmpty": false},
+      "checkSeveralSpecifiedFormats" : {
+        "defaultRule" : {
+          "pattern" : "^[^,]+(,[^,]+)*$",
+          "message" : "入力が正しくありません"
+        },
+        "specialRules" : [
+          {
+            "target" : ["x", "nfn"],
+            "pattern" : "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$",
+            "message" : "項目の指定は数値のみ可能です。"
+          }
+        ]
+      }
+    },
+    "O" : {
+      "presence": {"allowEmpty": false}
+    },
+    "a" : {
+      "presence": {"allowEmpty": false},
+      "checkSeveralSpecifiedFormats" : {
+        "defaultRule" : {
+          "pattern" : "^[^,]+(,[^,]+)*$",
+          "message" : "入力が正しくありません"
+        }
+      }
+    }
+  },
   "params": [
     {
       "name": "k",
@@ -76,6 +106,6 @@
   "version": "0.7.0",
   "label": "連番、項目値表の出力を伴った行分割",
   "classification": "table_split",
-  "description": "",
+  "description": "k=で指定された項目yの値別にデータを分割する。",
   "url": "./static/pdf/mcmd/table_split/msep2.pdf"
 }
