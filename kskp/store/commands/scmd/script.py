@@ -27,8 +27,10 @@ class SaverCommand(Command):
         self.start_time = args['start_time']
 
         # UTC日時はここで現地時間(環境変数TZの値)に設定される
-        start_time_str = self.start_time.astimezone().strftime('%Y%m%d.%H%M%S.%f')[:-3]
-        folder = self.make_folder(store, flow_label, start_time_str)
+        start_time = self.start_time.astimezone()
+        start_time_str1 = start_time.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
+        start_time_str2 = start_time.strftime('%Y%m%d.%H%M%S.%f')[:-3]
+        folder = self.make_folder(store, flow_label, start_time_str1, start_time_str2)
         self.frame = self.make_frame(folder, point_label)
 
         # 1. storeにsaveする
@@ -44,17 +46,18 @@ class SaverCommand(Command):
         command_args['o'] = args['frame_path'].as_posix()
         return nm.m2tee(command_args)
 
-    def make_folder(self, store, folder_label1, folder_label2):
+    def make_folder(self, store, folder1_label, folder2_label, folder2_file_name):
         from kskp.store import Datum
         # フロー名フォルダがなければ作成する
-        results = Datum.find_by_parent_uuid_and_label(store.uuid, folder_label1)
+        results = Datum.find_by_parent_uuid_and_label(store.uuid, folder1_label)
         if results is None or len(results)==0:
-            folder1 = Folder(store.uuid, folder_label1, None)
+            folder1 = Folder(store.uuid, folder1_label, None)
             folder1.save()
         else:
             folder1 = results[0]
         # 開始時間フォルダを作成する
-        folder2 = Folder(folder1.uuid, folder_label2, None)
+        folder2 = Folder(folder1.uuid, folder2_label, None)
+        folder2.path = folder2.path.parent / folder2_file_name
         folder2.save()
         return folder2
 
@@ -72,12 +75,16 @@ class SaverCommand(Command):
         # 出力フレームのラベルに終了時刻と所要時間を付加する
         from datetime import datetime, timezone
         end_time = datetime.utcnow().replace(tzinfo=timezone.utc)
-        end_time_str = end_time.astimezone().strftime('%H%M%S.%f')[:-3]
-        new_label = self.frame.label + '_終了時刻' + end_time_str
+        end_time_str = end_time.astimezone().strftime('%H:%M:%S.%f')[:-3]
+        new_label = self.frame.label + ' 終了時刻' + end_time_str
         if self.start_time is not None:
-            elapsed_time = end_time - self.start_time
-            elapsed_time_str = str(elapsed_time.total_seconds())[:-3]
-            new_label = new_label + '_所要時間' + elapsed_time_str + 'sec'
+            elapsed_time = (end_time - self.start_time).total_seconds()
+            if elapsed_time < 60.0:
+                elapsed_time_str = str(round(elapsed_time, 2))
+                new_label = new_label + ' 処理時間' + elapsed_time_str + '秒'
+            else:
+                elapsed_time_str = str(round(elapsed_time / 60, 2))
+                new_label = new_label + ' 処理時間' + elapsed_time_str + '分'
         Frame.update_label_only(self.frame.uuid, new_label, None)
 
 class CacheSaverCommand(SaverCommand):
