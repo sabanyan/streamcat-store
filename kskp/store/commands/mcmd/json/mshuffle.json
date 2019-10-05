@@ -1,5 +1,30 @@
 {
   "id": "mshuffle",
+  "rules": {
+    "n":{
+      "onlyOneInput" : {
+        "target" : ["v"]
+      },
+      "format" : {
+        "pattern": "^[1-9]?[0-9]*$|^@\\[.+\\]$|^$",
+        "message": "1以上の整数を半角で入力してください"
+      },
+      "presencesIfTargetIsNotInput": "v"
+    },
+    "v":{
+      "onlyOneInput" : {
+        "target" : ["n","v"]
+      },
+      "format" : {
+        "pattern": "^[1-9]$|^[1-9][0-9]*(,[1-9]|[1-9][0-9]*)*$|^@\\[.+\\]$|^$",
+        "message": "1以上の整数を半角で入力してください"
+      },
+      "presencesIfTargetIsNotInput": "n"
+    },
+    "d" : {
+      "presence": {"allowEmpty": false}
+    }
+  },
   "params": [
     {
       "name": "n",
@@ -42,12 +67,6 @@
       "optional": true
     },
     {
-      "name": "q",
-      "type": "boolean",
-      "label": "自動並べ替えの無効化",
-      "optional": true
-    },
-    {
       "name": "tmpPath",
       "type": "string",
       "label": "作業ファイル格納パス名",
@@ -71,6 +90,6 @@
   "version": "0.7.0",
   "label": "レコード分割(mshuffle)",
   "classification": "table_split",
-  "description": "",
+  "description": "f=で指定した項目のhash値に従い、指定した数のファイルに入力ファイルを分割する。",
   "url": "./static/pdf/mcmd/table_split/mshuffle.pdf"
 }

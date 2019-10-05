@@ -1,5 +1,36 @@
 {
   "id": "mwindow",
+  "rules" : {
+    "wk":{
+      "presence": {"allowEmpty": false},
+      "checkSeveralSpecifiedFormats" : {
+        "defaultRule" : {
+          "pattern" : "^[^:,]+:[^:,]+(,[^:,]+:[^:,]+)*$",
+          "message" : "対象項目と、それに対応する新項目を:(コロン)を使用して入力してください。"
+        },
+        "specialRules" : [
+          {
+            "target" : ["x", "nfn"],
+            "pattern" : "^[1-9]?[0-9]+L?(%n|%r|%nr)?:[^,:]+(,[1-9]?[0-9]+L?(%n|%r|%nr)?:[^,:]+)*$|^@\\[.+\\](%n|%r|%nr)?$",
+            "message" : "項目の指定は数値のみ可能です。"
+          }
+        ]
+      }
+    },
+    "t":{
+      "presence": {"allowEmpty": false},
+      "format" : {
+          "pattern": "^[1-9]?[0-9]*$|^0$",
+          "message": "0以上の整数を半角で入力してください"
+      }
+    },
+    "k" : {
+      "format" : {
+        "pattern" : "^[^,]+$|^$",
+        "message" : "項目名は一つのみ入力してください。"
+      }
+    }
+  },
   "params": [
     {
       "name": "wk",
@@ -89,6 +120,6 @@
   "version": "0.7.0",
   "label": "スライド窓の生成",
   "classification": "table_grouping",
-  "description": "",
+  "description": "複数行をずらしながら複製する。",
   "url": "./static/pdf/mcmd/table_grouping/mwindow.pdf"
 }

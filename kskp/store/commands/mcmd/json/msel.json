@@ -1,5 +1,10 @@
 {
   "id": "msel",
+  "rules" : {
+    "c" : {
+      "presence": {"allowEmpty": false}
+    }
+  },
   "params": [
     {
       "name": "c",
@@ -62,8 +67,8 @@
     ]
   ],
   "version": "0.7.0",
-  "label": "行絞り込み",
+  "label": "条件式による行選択",
   "classification": "row_edit",
-  "description": "",
+  "description": "c=の計算式を実行し、結果が真であれば、その行を選択する。",
   "url": "./static/pdf/mcmd/row_edit/msel.pdf"
 }

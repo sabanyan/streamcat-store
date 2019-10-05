@@ -1,5 +1,37 @@
 {
   "id": "mduprec",
+  "rules": {
+    "n":{
+      "specifiedFormatIfTargetInput" : {
+        "target" : "n",
+        "pattern": "^[1-9]?[0-9]*$|^0$|^@\\[.+\\]$|^$",
+        "message": "0以上の整数を半角で入力してください"
+      },
+      "presencesIfTargetIsNotInput": "f",
+      "onlyOneInput" : {
+        "target" : ["f"]
+      }
+    },
+    "f": {
+      "checkSeveralSpecifiedFormats" : {
+        "defaultRule" : {
+          "pattern" : "^[^,]+$|^$",
+          "message" : "入力値が正しくありません。"
+        },
+        "specialRules" : [
+          {
+            "target" : ["x", "nfn"],
+            "pattern" : "^[1-9]?[0-9]+L?$|^@\\[.+\\]$|^$",
+            "message" : "項目の指定は数値のみ可能です。"
+          }
+        ]
+      },
+      "presencesIfTargetIsNotInput": "n",
+      "onlyOneInput" : {
+        "target" : ["n"]
+      }
+    }
+  },
   "params": [
     {
       "name": "f",
@@ -65,6 +97,6 @@
   "version": "0.7.0",
   "label": "レコードの複写",
   "classification": "row_edit",
-  "description": "",
+  "description": "n=もしくはf=で指定しただけ、各レコードを複写する。",
   "url": "./static/pdf/mcmd/row_edit/mduprec.pdf"
 }

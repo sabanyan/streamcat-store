@@ -1,5 +1,47 @@
 {
   "id": "mnumber",
+  "rules":{
+    "s":{
+      "checkSeveralSpecifiedFormats" : {
+        "defaultRule" : {
+          "pattern" : "^[^,]+(%n|%r|%nr)?(,[^,]+(%n|%r|%nr)?)*$",
+          "message" : "入力値が正しくありません。"
+        },
+        "specialRules" : [
+          {
+            "target" : ["x", "nfn"],
+            "pattern" : "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(%n|%r|%nr)?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(%n|%r|%nr)?)*$|^@\\[.+\\](%n|%r|%nr)?$",
+            "message" : "項目の指定は数値のみ可能です。"
+          },
+          {
+            "target" : ["B"],
+            "pattern" : "^[^,]+(%n|%r|%nr)?(,[^,]+(%n|%r|%nr)?)*$|^$",
+            "message" : "入力が正しくありません。"
+          }
+        ]
+      },
+      "presencesIfSpecifiedValueInput" : {
+        "target" : "e",
+        "value" : ["same", "skip"],
+        "needOrNot" : "1"
+      },
+      "presencesIfTargetIsNotInput": "B"
+    },
+    "I":{
+      "format" : {
+        "pattern": "^[1-9]?[0-9]*$|^0$|^@\\[.+\\]$|^$",
+        "message": "0以上の整数を半角で入力してください"
+      }
+    },
+    "a": {
+      "presencesIfTargetIsNotInput" : ["nfn", "nfno"],
+      "specifiedFormatIfTargetInput" : {
+        "target" : "a",
+        "pattern" : "^[^,]+$|^$",
+        "message" : "入力が正しくありません。"
+      }
+    }
+  },
   "params": [
     {
       "name": "a",
@@ -10,7 +52,7 @@
       "name": "e",
       "type": "string",
       "label": "同一キー同一ソート項目値への処理方法を指定する。",
-      "optional": true,
+      "optional" : true,
       "default": "seq"
     },
     {
@@ -103,6 +145,6 @@
   "version": "0.7.0",
   "label": "連番",
   "classification": "col_edit",
-  "description": "",
+  "description": "数字連番もしくはアルファベット連番を振り、a=で指定した項目名で出力する。",
   "url": "./static/pdf/mcmd/col_edit/mnumber.pdf"
 }
