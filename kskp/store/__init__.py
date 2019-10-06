@@ -88,6 +88,7 @@ ss = Session()
 from kskp.core import Datum, Port, Command
 
 from .store import Store, FrameStore, NysolModule, ModuleStore
+from .lock_manager import LockManager, LockedDatumException
 from .frame import Frame, Cache
 from .flow import Flow
 from .folder import Folder
