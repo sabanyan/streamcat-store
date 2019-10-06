@@ -81,10 +81,10 @@ class SaverCommand(Command):
             elapsed_time = (end_time - self.start_time).total_seconds()
             if elapsed_time < 60.0:
                 elapsed_time_str = str(round(elapsed_time, 2))
-                new_label = new_label + ' 処理時間' + elapsed_time_str + '秒'
+                new_label = new_label + ' 全体処理時間' + elapsed_time_str + '秒'
             else:
                 elapsed_time_str = str(round(elapsed_time / 60, 2))
-                new_label = new_label + ' 処理時間' + elapsed_time_str + '分'
+                new_label = new_label + ' 全体処理時間' + elapsed_time_str + '分'
         Frame.update_label_only(self.frame.uuid, new_label, None)
 
 class CacheSaverCommand(SaverCommand):
