@@ -128,7 +128,6 @@ class DbLoaderCommand(Command):
         self.i_ports = [Port('i', 'store')]
         self.o_ports = [Port('o', 'mcmd')]
         self.name = 'db_loader'
-        self._tmp_file_path = None
 
     def run(self, args, inputs):
         DbLoaderCommand._write_log('START')
@@ -156,26 +155,46 @@ class DbLoaderCommand(Command):
         # DBへの接続URIを作成する
         db_uri = database.get_database_uri()
 
-        # DBへ接続する
-        engine = DbLoaderCommand._connect_to_db(db_uri)
-
         # SQL文を作成する
         sql = DbLoaderCommand._make_sql(schema_name, table_name)
 
-        # SQL文を発行し結果を取得する
-        results = DbLoaderCommand._get_results(engine, sql)
+        # runfunc()へ渡す関数の定義
+        def results_getter(db_uri, sql):
 
-        # Tmpファイル名を決定する
-        import uuid
-        tmp_dir_path  = '/tmp'
-        tmp_file_name = str(uuid.uuid4())
-        self._tmp_file_path = tmp_dir_path + '/' + tmp_file_name + '.csv'
+            # NULL値を空文字に変換する
+            def to_str(value):
+                if value is None:
+                    return ''
+                else:
+                    return str(value)
 
-        # 結果をTmpファイルに出力する
-        self._write_to_file_from_results(results, self._tmp_file_path)
+            try:
+                # DBへ接続する
+                engine = DbLoaderCommand._connect_to_db(db_uri)
+                # SQL文を発行し結果を取得する
+                results = DbLoaderCommand._get_results(engine, sql)
 
-        # 結果のファイルを入力とするm2teeコマンドを作成する
-        cmd = nm.m2tee(i=self._tmp_file_path)
+                is_header = True
+                for result in results:
+                    if is_header:
+                        print(','.join(result.keys()))
+                        is_header = False
+                    # NULL値を空白にする
+                    str_result = map(to_str, result)
+                    result_line = ','.join(str_result)
+                    print(result_line)
+                # flushをする
+                sys.stdout.flush()
+            except Exception as e:
+                import traceback
+                with open('/dev/stderr', 'w') as fpe:
+                    traceback.print_exc(file=fpe)
+
+        # flushをしないと、デバッグ用のprintなども入ってしまう
+        sys.stdout.flush()
+
+        # Nysol Pythonのrunfunc関数を作成する
+        cmd = nm.runfunc(results_getter, db_uri=db_uri, sql=sql)
 
         nysol_module = NysolModule()
         nysol_module.set_content(cmd)
@@ -227,30 +246,11 @@ class DbLoaderCommand(Command):
         # 時間計測終了
         t2 = time.time()
         elapsed = t2-t1
-        DbLoaderCommand._write_log(f"SQL実行時間：{elapsed} sec")
+        # DbLoaderCommand._write_log(f"SQL実行時間：{elapsed} sec")
 
         return results
 
-    def _write_to_file_from_results(self, results, file_path):
-        def to_str(value):
-            if value is None:
-                return ''
-            else:
-                return str(value)
-
-        # 結果をファイルに出力する
-        with open(file_path, 'w') as f:
-            is_header = True
-            for result in results:
-                if is_header:
-                    f.write(','.join(result.keys()))
-                    f.write('\n')
-                    is_header = False
-                # NULL値を空白にする
-                str_result = map(to_str, result)
-                result_line = ','.join(str_result)
-                f.write(result_line + '\n')
-
+    @staticmethod
     def _write_log(message):
         indent = '  '
         sys.__stderr__.write(indent + 'db_loader' + ': <\n')
@@ -259,7 +259,4 @@ class DbLoaderCommand(Command):
 
     def dtor(self):
         DbLoaderCommand._write_log('DTOR!')
-        # Tmpファイルを削除する
-        import os
-        if self._tmp_file_path is not None and os.path.exists(self._tmp_file_path):
-            os.unlink(self._tmp_file_path)
+
