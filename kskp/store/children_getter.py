@@ -2,7 +2,7 @@ import os
 import datetime
 
 # from .abc_command import AbcCommand
-from kskp.store import Datum, Folder, Frame, Flow
+from kskp.store import Datum, Folder, Frame, Flow, Database
 
 class ChildrenGetter:
 
@@ -63,6 +63,8 @@ class ChildrenGetter:
             return Frame.convert_to_frame(datum)
         elif datum.type == Datum.FLOW_TYPE:
             return Flow.convert_to_flow(datum)
+        elif datum.type == Datum.DATABASE_TYPE:
+            return Database.convert_to_database(datum)
         elif datum.type == Datum.AWSS3_TYPE:
             raise Exception('AWS S3 store can not store in same type.')
         else:
