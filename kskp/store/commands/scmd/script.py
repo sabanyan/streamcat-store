@@ -117,8 +117,12 @@ class CacheSaverCommand(SaverCommand):
         # UTC日時はここで現地時間(環境変数TZの値)に設定される
         start_time = self.start_time.astimezone()
         start_time_str = start_time.strftime('%Y%m%d.%H%M%S.%f')[:-3]
+        
         # ラベル名を作成する
         cache_label = flow_label + '_' + point_label + '_' + start_time_str
+        # Nysolの oオプションに空白のファイル名があるとエラーになるので、空白を置換する
+        cache_label = cache_label.replace(' ', '_')
+
         # Cacheフレームを作成する
         self.frame = self.make_frame(store, cache_label)
         # 1. storeにsaveする
@@ -126,7 +130,6 @@ class CacheSaverCommand(SaverCommand):
         return {'o': self.wrap_with_frame(self.frame, datum_module, args)}
 
     def make_frame(self, store, label):
-        from kskp.store import Library
         return Cache(store.uuid, label, None)
 
     def dtor(self):
