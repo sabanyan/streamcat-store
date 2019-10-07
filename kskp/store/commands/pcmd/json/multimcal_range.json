@@ -10,7 +10,7 @@
       "name": "a",
       "type": "string",
       "label": "結果列名",
-      "default": "new$$" 
+      "default": "new_&" 
     },
     {
       "name": "c",

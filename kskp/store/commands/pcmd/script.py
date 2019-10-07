@@ -67,6 +67,7 @@ class SmlModelingCommand(PCommand):
 
         return {'o': self.module(f, args_string)}
 
+
 class ColumnListCommand(PCommand):
     def __init__(self):
         super().__init__()
@@ -79,6 +80,7 @@ class ColumnListCommand(PCommand):
         args_string += self.replace_args(args)
 
         return {'o': self.module(f, args_string)}
+
 
 class ColumnGroupingNameCommand(PCommand):
     def __init__(self):
@@ -121,6 +123,7 @@ class ColumnsToRowsCommand(PCommand):
 
         return {'o': self.module(f, args_string)}
 
+
 class ColumnUniqueNameCommand(PCommand):
     def __init__(self):
         super().__init__()
@@ -133,6 +136,7 @@ class ColumnUniqueNameCommand(PCommand):
         args_string += self.replace_args(args)
 
         return {'o': self.module(f, args_string)}
+
 
 class ColumnNameCommand(PCommand):
     def __init__(self):
@@ -147,6 +151,7 @@ class ColumnNameCommand(PCommand):
 
         return {'o': self.module(f, args_string)}
 
+
 class GroupbyColumnsCommand(PCommand):
     def __init__(self):
         super().__init__()
@@ -160,6 +165,7 @@ class GroupbyColumnsCommand(PCommand):
 
         return {'o': self.module(f, args_string)}
 
+
 class GroupbyCommand(PCommand):
     def __init__(self):
         super().__init__()
@@ -172,6 +178,7 @@ class GroupbyCommand(PCommand):
         args_string += self.replace_args(args)
 
         return {'o': self.module(f, args_string)}
+
 
 class CheckDuplicateRowsCommand(PCommand):
     def __init__(self):
@@ -261,6 +268,7 @@ class WinCp932ReadCommand(PCommand):
         
         return {'o': nysol_module_o}
 
+
 class Utf8ToCp932Command(PCommand):
     def __init__(self):
         super().__init__()
@@ -303,6 +311,7 @@ class Utf8ToCp932Command(PCommand):
         #
         # return {'o': nysol_module_o}
 
+
 class RunfuncCommand(Command):
     def __init__(self):
         super().__init__()
@@ -314,6 +323,7 @@ class RunfuncCommand(Command):
         実際実行(for override)
         """
         pass
+
 
 class MultiMcalCommand(Command):
     def __init__(self):
@@ -350,6 +360,7 @@ class MultiMcalCommand(Command):
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
 
+
 class MultiMcalWCCommand(Command):
     def __init__(self):
         super().__init__()
@@ -357,10 +368,10 @@ class MultiMcalWCCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-#         args format:
-#             target columns: expressions can use wildcards, and can be separated with commas
-#             c: operation to be done on each column, operations to be done per target columns should use the wildcard & 
-#             a: output column name (string must include &, default is 'new&')
+    #     args format:
+    #         target columns: expressions can use wildcards, and can be separated with commas
+    #         c: operation to be done on each column, operations to be done per target columns should use the token &, which represents the old column name 
+    #         a: output column name (string must include &, default is 'new&')
 
         import fnmatch as fn
 
@@ -377,7 +388,7 @@ class MultiMcalWCCommand(Command):
         targets = [a for a in header for target in targets_wc if fn.fnmatch(a, target)]
         #targets is now a list of column names to hit with calculation
 
-        #iterate over entire list and replace the '$$' in c and a inputs with column number/name
+        #iterate over entire list and replace the '&' in c and a inputs with column number/name
         for target in targets:
             arg = args.copy()
 
@@ -394,6 +405,7 @@ class MultiMcalWCCommand(Command):
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
 
+
 class MultiMcalRangeCommand(Command):
     def __init__(self):
         super().__init__()
@@ -401,10 +413,10 @@ class MultiMcalRangeCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-#         args format:
-#             target column numbers: for now, can't figure out wildcard for column name, so just work with ranges first
-#             c: operation to be done on each column, operations to be done per target columns should use the wildcard &
-#             a: output column name (string must include &, default is 'new&')
+    #     args format:
+    #         target column numbers: for now, can't figure out wildcard for column name, so just work with ranges first
+    #         c: operation to be done on each column, operations to be done per target columns should use the token & which represents the old field name
+    #         a: output column name (string must include &, default is 'new&')
 
         args['x'] = True
 
@@ -426,7 +438,7 @@ class MultiMcalRangeCommand(Command):
         header = nm.mread(inputs).getline(header=True)
         header = next(header)
 
-        #iterate over entire list and replace the '$$' in c and a inputs with column number/name
+        #iterate over entire list and replace the '&' in c and a inputs with column number/name
         for target in targets:
             arg = args.copy()
 
@@ -442,6 +454,7 @@ class MultiMcalRangeCommand(Command):
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
+        
         
 class SelRowCommand(RunfuncCommand):
     def __init__(self):
