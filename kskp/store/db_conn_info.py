@@ -21,8 +21,8 @@ class DbConnInfo():
         if self.port is None or self.port =='':
             raise Exception('DB接続のポート番号の指定が必要です')
 
-        if self.database is None or self.database =='':
-            raise Exception('DB接続のデータベース名の指定が必要です')
+        # if self.database is None or self.database =='':
+        #     raise Exception('DB接続のデータベース名の指定が必要です')
 
     def get_database_uri(self):
         """
