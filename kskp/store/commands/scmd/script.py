@@ -47,18 +47,31 @@ class SaverCommand(Command):
         return nm.m2tee(command_args)
 
     def make_folder(self, store, folder1_label, folder2_label, folder2_file_name):
-        from kskp.store import Datum
+        from kskp.store import Datum, AwsS3
+
         # フロー名フォルダがなければ作成する
-        results = Datum.find_by_parent_uuid_and_label(store.uuid, folder1_label)
-        if results is None or len(results)==0:
+        results1 = Datum.find_by_parent_uuid_and_label(store.uuid, folder1_label)
+        if results1 is None or len(results1)==0:
             folder1 = Folder(store.uuid, folder1_label, None)
             folder1.save()
         else:
-            folder1 = results[0]
-        # 開始時間フォルダを作成する
-        folder2 = Folder(folder1.uuid, folder2_label, None)
-        folder2.path = folder2.path.parent / folder2_file_name
-        folder2.save()
+            folder1 = results1[0]
+
+        # 開始時間フォルダがなければ作成する
+        results2 = Datum.find_by_parent_uuid_and_label(folder1.uuid, folder2_label)
+        if results2 is None or len(results2)==0:
+            folder2 = Folder(folder1.uuid, folder2_label, None)
+            folder2.path = folder2.path.parent / folder2_file_name
+            folder2.save()
+        else:
+            if results2[0].type == Datum.FOLDER_TYPE:
+                folder2 = Folder.convert_to_folder(results2[0])
+            elif results2[0].type == Datum.AWSS3_TYPE:
+                folder2 = AwsS3.convert_to_awss3(results2[0])
+            else:
+                # 開始時間フォルダを作成できなかった場合はフロー名フォルダ直下に結果を作成する
+                folder2 = folder1
+
         return folder2
 
     def make_frame(self, store, label):
@@ -75,12 +88,12 @@ class SaverCommand(Command):
         # 出力フレームのラベルに終了時刻と所要時間を付加する
         from datetime import datetime, timezone
         end_time = datetime.utcnow().replace(tzinfo=timezone.utc)
-        end_time_str = end_time.astimezone().strftime('%H:%M:%S.%f')[:-3]
+        end_time_str = end_time.astimezone().strftime('%H:%M:%S')
         new_label = self.frame.label + ' 終了時刻' + end_time_str
         if self.start_time is not None:
             elapsed_time = (end_time - self.start_time).total_seconds()
             if elapsed_time < 60.0:
-                elapsed_time_str = str(round(elapsed_time, 2))
+                elapsed_time_str = str(round(elapsed_time))
                 new_label = new_label + ' 全体処理時間' + elapsed_time_str + '秒'
             else:
                 elapsed_time_str = str(round(elapsed_time / 60, 2))

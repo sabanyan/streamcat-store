@@ -15,11 +15,11 @@ class Library:
     """
 
     @staticmethod
-    def load_root():
+    def load_root(creator=None):
         """
         ルートデータストアを取得する
         """
-        return Library._convert_type(Datum.find_root())
+        return Library._get_library(creator)
 
     @staticmethod
     def load_result_folder(creator=None):
