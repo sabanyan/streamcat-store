@@ -145,7 +145,7 @@ class Datum(BaseModel):
     @property
     def label(self):
         if self._label is None or self._label == '':
-            return self.data2['label']
+            return self.data2['label'] or ''
         else:
             return self._label
 

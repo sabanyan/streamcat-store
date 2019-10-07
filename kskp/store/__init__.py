@@ -138,6 +138,6 @@ def create_d_view():
     engine.execute(DDL(d_view))
 
 # フレームを格納するフォルダがなければ作成する
-import pprint
-pprint.pprint('Init library folder')
-Library._init_library_folders()
+# import pprint
+# pprint.pprint('Init library folder')
+# Library._init_library_folders()
