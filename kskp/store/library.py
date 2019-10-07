@@ -45,6 +45,13 @@ class Library:
         return Library._get_cache_dir_path(creator)
 
     @staticmethod
+    def load_flow_folder(creator=None):
+        """
+        フローフォルダを取得する
+        """
+        return Library._get_flow_dir_path(creator)
+
+    @staticmethod
     def load_frame(frame_uuid):
         """
         フレームを取得する
