@@ -108,9 +108,29 @@ class CacheSaverCommand(SaverCommand):
     def __init__(self):
         super().__init__()
 
+    def run(self, args, inputs):
+        store = inputs['store']
+        flow_label = args['flow_label']
+        point_label = args['point_label']
+        self.start_time = args['start_time']
+
+        # UTC日時はここで現地時間(環境変数TZの値)に設定される
+        start_time = self.start_time.astimezone()
+        start_time_str = start_time.strftime('%Y%m%d.%H%M%S.%f')[:-3]
+        # ラベル名を作成する
+        cache_label = flow_label + '_' + point_label + '_' + start_time_str
+        # Cacheフレームを作成する
+        self.frame = self.make_frame(store, cache_label)
+        # 1. storeにsaveする
+        datum_module = store.save_frame(self, args, inputs['i'], cache_label + '.csv') 
+        return {'o': self.wrap_with_frame(self.frame, datum_module, args)}
+
     def make_frame(self, store, label):
         from kskp.store import Library
         return Cache(store.uuid, label, None)
+
+    def dtor(self):
+        pass
 
 class RunsSaver(Command):
     """
