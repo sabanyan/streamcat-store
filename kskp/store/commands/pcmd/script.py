@@ -524,5 +524,12 @@ class TmcPhase2Loader(Command):
 
     def dtor(self):
         if self.temp_header_file_name != '':
-            sys.__stderr__.write('deleting {}...\n'.format(self.temp_header_file_name))
+            sys.__stderr__.write('TmcPhase2Loader: deleting {}...\n'.format(self.temp_header_file_name))
+            import os
+            if os.path.exists(self.temp_header_file_name):
+                os.remove(self.temp_header_file_name)
+                sys.__stderr__.write('TmcPhase2Loader: HAS DELETED {}! \n'.format(self.temp_header_file_name))
+            else:
+                sys.__stderr__.write('TmcPhase2Loader: NOT EXISTS path:{}!!!! please confirm.\n'.format(self.temp_header_file_name))
+
 
