@@ -508,10 +508,21 @@ class TmcPhase2Loader(Command):
         self.o_ports = [Port('o', 'mcmd')]
         self.name = 'tmc_phase2_loader'
 
+        # ヘッダだけを持つ、1行分のファイル。dtorで消す
+        self.temp_header_file_name = ''
+
     def run(self, args, inputs):
         from .src.tmc_phase2_loader import main
-        cmd = main(args)
+        cmd, head_path = main(args)
+
+        # dtorで使うように
+        self.temp_header_file_name = head_path
 
         nysol_module_o = NysolModule()
         nysol_module_o.set_content(cmd)
         return {'o': nysol_module_o}
+
+    def dtor(self):
+        if self.temp_header_file_name != '':
+            sys.__stderr__.write('deleting {}...\n'.format(self.temp_header_file_name))
+
