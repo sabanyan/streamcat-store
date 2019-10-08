@@ -66,6 +66,26 @@ import tempfile
 from datetime import datetime 
 
 
+ErrMsg = {
+    '1': '対象ファイルがありません。指定を見直してください。'
+}
+
+def check_args(args):
+    '''
+    argsのデフォルト値を追加する関数
+    '''
+
+    # bool型
+    args_bool = ['isSort', 'hasHeaderDiff', 'needFilenames']
+
+    # falseを追加
+    for arg in args_bool:
+        if args.get(arg) == '' or args.get(arg) is None:
+            args[arg] = False
+    
+    return args
+
+
 def makeFilelist(args):
     '''
     ファイルパスジェネレータを作成する
@@ -163,10 +183,16 @@ def main(args):
     '''
     ヘッダ差ありのときは、吸収のための処理をしている指定の有無で処理を分けた
     '''
+    args = check_args(args)
+
     sys.stderr.write("#START# tmc_loader {0} {1}\n".format(args,datetime.now().strftime("%Y/%m/%d %H:%M:%S")))
     
     f_info_gnt = makeFilelist(args)
     mergelist = makeMergelist(args, f_info_gnt) #読み込み順にソートされたリスト
+
+    # 読み込むファイルが無いときは、処理を止めてエラーを出す
+    if len(mergelist) == 0:
+        raise Exception(ErrMsg['1'])
 
     if args['hasHeaderDiff'] == True :
         whole_header = makeOutHeader(mergelist)
@@ -190,13 +216,17 @@ def main(args):
     # nm.mcat(nostop=args['hasHeaderDiff'], add_fname=args['needFilenames'], i=','.join(mergelist), o=args['o']).run(runlimit=128)
 
     # Nysolのストリームとして出力する
-    cmd_o = nm.mcat(nostop=args['hasHeaderDiff'], add_fname=args['needFilenames'], i=','.join(mergelist)).run(runlimit=128)
+    # cmd_o = nm.mcat(nostop=args['hasHeaderDiff'], add_fname=args['needFilenames'], i=','.join(mergelist)).run(runlimit=128)
+    cmd_o = nm.mcat(nostop=args['hasHeaderDiff'], add_fname=args['needFilenames'], i=','.join(mergelist))
+    sys.stderr.write("{0}\n".format(','.join(mergelist)))
+
+    # cmd_o = nm.mcat(i=','.join(mergelist)).run(runlimit=128)
+    # cmd_o = nm.mcat(i=','.join(mergelist))
     # nysol_module_o = NysolModule()
     # nysol_module_o.set_content(cmd_o)
     
-
-    if args['hasHeaderDiff'] == True :
-         os.remove(head_path) #tmp削除
+    # if args['hasHeaderDiff'] == True :
+    #      os.remove(head_path) #tmp削除
 
     sys.stderr.write("#END#  tmc_loader {0} {1}\n".format(args,datetime.now().strftime("%Y/%m/%d %H:%M:%S")))
 
