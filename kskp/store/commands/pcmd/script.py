@@ -383,7 +383,7 @@ class MultiMcalWCCommand(Command):
         header = nm.mread(inputs).getline(header=True)
         header = next(header)
 
-        if args['x']:
+        if 'x' in args.keys():
             # parse number expression
             targets_colnum = args.pop('targets').split(',')
 
@@ -392,7 +392,7 @@ class MultiMcalWCCommand(Command):
                 if '-' in e:
                     targets_final += [*range(int(e.split('-')[0]), int(e.split('-')[-1])+1)]
                 else:
-                    targets_final.append(e)
+                    targets_final.append(int(e.strip()))
             # targets_final is now a list of column numbers
 
         else:   
@@ -409,7 +409,7 @@ class MultiMcalWCCommand(Command):
         for target in targets_final:
             arg = args.copy()
 
-            arg['a'] = arg['a'].replace('&',header[target] if arg['x'] else target)
+            arg['a'] = arg['a'].replace('&',header[target] if 'x' in args.keys() else target)
             arg['c'] = arg['c'].replace('&',str(target))
 
             if first:

@@ -1,5 +1,5 @@
 {
-  "id": "multimcal",
+  "id": "multimcal_manyformula",
   "params": [
     {
       "name": "arglist",
@@ -81,6 +81,6 @@
   "version": "0.7.0",
   "label": "複数列計算（個別式）",
   "classification": "calculation",
-  "description": "一つのコマンドで複数の計算。c=で計算式を入力し、a=で指定した項目名に出力する。",
+  "description": "一つのコマンドで複数列計算。計算ごとにcとaオプションを入力する。",
   "url": "./static/pdf/mcmd/calculation/mcal.pdf"
 }
