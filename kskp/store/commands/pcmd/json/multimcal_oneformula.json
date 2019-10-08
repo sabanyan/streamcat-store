@@ -1,10 +1,10 @@
 {
-  "id": "multimcal_wc",
+  "id": "multimcal_oneformula",
   "params": [
     {
       "name": "targets",
       "type": "string",
-      "label" : "計算対象列名（必須）"
+      "label" : "計算対象列（必須）"
     },
     {
       "name": "a",
@@ -77,8 +77,8 @@
     ]
   ],
   "version": "0.7.0",
-  "label": "複数列計算（同一式）",
+  "label": "複数列計算（共通式）",
   "classification": "calculation",
-  "description": "c=で計算式を入力し、a=で指定した項目名に出力する。",
+  "description": "一つのコマンドで複数列計算。ワイルドカード又は項目番号で対象列を指定する。",
   "url": "./static/pdf/mcmd/calculation/mcal.pdf"
 }
