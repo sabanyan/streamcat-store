@@ -113,6 +113,6 @@
   "version": "0.7.0",
   "label": "複数列計算（共通式）",
   "classification": "calculation",
-  "description": "一つのコマンドで複数列計算。ワイルドカード又は番号で対象列を指定し、対象列に同じ計算を実行する。",
+  "description": "複数列の計算を、同一の式を全ての列に適用して行う。",
   "url": "./static/pdf/mcmd/calculation/mcal.pdf"
 }
