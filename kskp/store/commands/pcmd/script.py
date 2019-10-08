@@ -67,6 +67,7 @@ class SmlModelingCommand(PCommand):
 
         return {'o': self.module(f, args_string)}
 
+
 class ColumnListCommand(PCommand):
     def __init__(self):
         super().__init__()
@@ -79,6 +80,7 @@ class ColumnListCommand(PCommand):
         args_string += self.replace_args(args)
 
         return {'o': self.module(f, args_string)}
+
 
 class ColumnGroupingNameCommand(PCommand):
     def __init__(self):
@@ -121,6 +123,7 @@ class ColumnsToRowsCommand(PCommand):
 
         return {'o': self.module(f, args_string)}
 
+
 class ColumnUniqueNameCommand(PCommand):
     def __init__(self):
         super().__init__()
@@ -133,6 +136,7 @@ class ColumnUniqueNameCommand(PCommand):
         args_string += self.replace_args(args)
 
         return {'o': self.module(f, args_string)}
+
 
 class ColumnNameCommand(PCommand):
     def __init__(self):
@@ -147,6 +151,7 @@ class ColumnNameCommand(PCommand):
 
         return {'o': self.module(f, args_string)}
 
+
 class GroupbyColumnsCommand(PCommand):
     def __init__(self):
         super().__init__()
@@ -160,6 +165,7 @@ class GroupbyColumnsCommand(PCommand):
 
         return {'o': self.module(f, args_string)}
 
+
 class GroupbyCommand(PCommand):
     def __init__(self):
         super().__init__()
@@ -172,6 +178,7 @@ class GroupbyCommand(PCommand):
         args_string += self.replace_args(args)
 
         return {'o': self.module(f, args_string)}
+
 
 class CheckDuplicateRowsCommand(PCommand):
     def __init__(self):
@@ -261,6 +268,7 @@ class WinCp932ReadCommand(PCommand):
         
         return {'o': nysol_module_o}
 
+
 class Utf8ToCp932Command(PCommand):
     def __init__(self):
         super().__init__()
@@ -303,6 +311,7 @@ class Utf8ToCp932Command(PCommand):
         #
         # return {'o': nysol_module_o}
 
+
 class RunfuncCommand(Command):
     def __init__(self):
         super().__init__()
@@ -315,6 +324,127 @@ class RunfuncCommand(Command):
         """
         pass
 
+
+class MultiMcalCommand(Command):
+    def __init__(self):
+        super().__init__()
+        self.i_ports = [Port('i', 'frame')]
+        self.o_ports = [Port('o', 'frame')]
+
+    def run(self, args, inputs):
+
+        # inputs = {'i' : 'input'}
+        # args={
+        #         'arglist': [
+        #          {'a': 'col1', 'c': 'cal1'},
+        #          {'a': 'col2', 'c': 'cal2'},
+        #           ...
+        #         ]
+        #       }
+
+        cmd_o = None
+        first = True
+
+        aclist = args.pop('arglist')
+        for acarg in aclist:
+            # one mcal will be added to cmd_o for every pair of c and a arguments passed in a list
+
+            # argdict = {**inputs, **arg}
+            # sys.__stderr__.write(repr(argdict)+'\n')
+            if first:
+                cmd_o <<= nm.mcal({**inputs, **acarg, **args}) # {'i' : input, 'c': 'cal1', 'a' : 'col1'}
+                first = False
+            else:
+                cmd_o <<= nm.mcal({**acarg,**args})
+
+        nysol_module_o= NysolModule()
+        nysol_module_o.set_content(cmd_o)
+        return {'o': nysol_module_o}
+
+
+class MultiMcalWCCommand(Command):
+    def __init__(self):
+        super().__init__()
+        self.i_ports = [Port('i', 'frame')]
+        self.o_ports = [Port('o', 'frame')]
+
+    def parse(self,iter):
+        return self.parse_internal(iter)
+
+    def parse_internal(self, iter):
+        parsed = []
+
+        if type(iter) == list:
+            for e in iter:
+               parsed += [*self.parse_internal(e)] 
+            return parsed
+
+        elif '-' in iter:
+            [a, b] = iter.split('-')
+            a = self.parse_internal(a)[0]
+            b = self.parse_internal(b)[0]
+
+            if a < b:
+                return range(a, b+1)
+            else:
+                return range(a, b-1, -1)
+
+        elif 'L' in iter:
+            val = len(self.header) - int(iter.strip('L')) - 1
+            return [val]
+
+        elif type(iter) == str:
+            return [int(iter)]
+            
+    def run(self, args, inputs):
+    #     args format:
+    #         target columns: expressions can use wildcards, and can be separated with commas
+    #         c: operation to be done on each column, operations to be done per target columns should use the token &, which represents the old column name 
+    #         a: output column name (string must include &, default is 'new&')
+
+        import fnmatch as fn
+
+        cmd_o = None
+        first = True
+
+        # get header list
+        self.header = nm.mread(inputs).getline(header=True)
+        self.header = next(self.header)
+
+        if 'x' in args.keys():
+            # parse number expression
+            targets_final = self.parse(args.pop('targets').split(','))
+
+            # targets_final is now a list of column numbers
+
+        else:   
+
+            # parse wildcard expression  
+            targets_wc = args.pop('targets').split(',')
+
+            targets = [a for a in self.header for target in targets_wc if fn.fnmatch(a, target)]
+
+            targets_final = [a for a in targets if args['a'].replace('&',a) not in self.header]
+            #targets is now a list of column names to hit with calculation
+
+        #iterate over entire list and replace the '&' in c and a inputs with column number/name
+        for target in targets_final:
+            arg = args.copy()
+
+            arg['a'] = arg['a'].replace('&',self.header[target] if 'x' in args.keys() else target)
+            arg['c'] = arg['c'].replace('&',str(target))
+
+            if first:
+                cmd_o <<= nm.mcal({**inputs, **arg})
+                first = False
+            else:
+                cmd_o <<= nm.mcal(arg)
+        
+        nysol_module_o= NysolModule()
+        nysol_module_o.set_content(cmd_o)
+        return {'o': nysol_module_o}
+        
+        
 class SelRowCommand(RunfuncCommand):
     def __init__(self):
         super().__init__()
