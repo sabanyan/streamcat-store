@@ -1,5 +1,30 @@
 {
   "id": "msplit",
+  "rules" : {
+    "f" : {
+      "presence": {"allowEmpty": false},
+      "checkSeveralSpecifiedFormats" : {
+        "defaultRule" : {
+          "pattern" : "^[^,]+(,[^,]+)*$",
+          "message" : "入力が正しくありません"
+        },
+        "specialRules" : [
+          {
+            "target" : ["x", "nfn"],
+            "pattern" : "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$",
+            "message" : "項目の指定は数値のみ可能です。"
+          }
+        ]
+      }
+    },
+    "a" : {
+      "presence": {"allowEmpty": false},
+      "format" : {
+        "pattern" : "^[^:,]+(,[^:,]+)*$",
+        "message" : "入力が正しくありません。"
+      }
+    }
+  },
   "params": [
     {
       "name": "f",
@@ -15,12 +40,6 @@
       "name": "r",
       "type": "boolean",
       "label": "f=で指定した項目を取り除く",
-      "optional": true
-    },
-    {
-      "name": "delim",
-      "type": "string",
-      "label": "新しい区切り文字",
       "optional": true
     },
     {
@@ -71,6 +90,6 @@
   "version": "0.7.0",
   "label": "区切り文字による項目分割",
   "classification": "col_edit",
-  "description": "",
+  "description": "区切り文字によって項目を分割する。",
   "url": "./static/pdf/mcmd/col_edit/msplit.pdf"
 }

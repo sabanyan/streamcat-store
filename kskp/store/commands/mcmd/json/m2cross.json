@@ -1,5 +1,67 @@
 {
   "id": "m2cross",
+  "rules":{
+    "f":{
+      "presence": {"allowEmpty": false},
+      "checkSeveralSpecifiedFormats" : {
+        "defaultRule" : {
+          "pattern" : "^[^,]+$",
+          "message" : "一項目のみ入力してください"
+        },
+        "specialRules" : [
+          {
+            "target" : "a",
+            "pattern" : "^[^,]+(,[^,]+)*$",
+            "message" : "複数項目入力時は,(コンマ)で区切ってください",
+            "looserPatternThanDefault" : true
+          },
+          {
+            "target" : ["x", "nfn"],
+            "pattern" : "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$",
+            "message" : "項目の指定は数値のみ可能です。"
+          }
+        ]
+      }
+    },
+    "a":{
+      "presencesIfTargetIsNotInput": ["s"],
+      "format" : {
+        "pattern" : "^[^,]+,[^,]+$|^$",
+        "message" : "2項目入力してください"
+      }
+    },
+    "s":{
+      "presencesIfTargetIsNotInput": ["a"],
+      "checkSeveralSpecifiedFormats" : {
+        "defaultRule" : {
+          "pattern" : "^[^,]+$|^$",
+          "message" : "一項目のみ入力してください"
+        },
+        "specialRules" : [
+          {
+            "target" : ["x", "nfn"],
+            "pattern" : "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*|^@\\[.+\\]$|^$",
+            "message" : "項目の指定は数値のみ可能です。"
+          }
+        ]
+      }
+    },
+    "k" : {
+      "checkSeveralSpecifiedFormats" : {
+        "defaultRule" : {
+          "pattern" : "^[^,]+(,[^,]+)*$|^$",
+          "message" : "入力値が正しくありません。"
+        },
+        "specialRules" : [
+          {
+            "target" : ["x", "nfn"],
+            "pattern" : "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$|^$",
+            "message" : "項目の指定は数値のみ可能です。"
+          }
+        ]
+      }
+    }
+  },
   "params": [
     {
       "name": "f",
@@ -100,6 +162,6 @@
   "version": "0.7.0",
   "label": "1対Nのクロス集計",
   "classification": "value_crossing",
-  "description": "",
+  "description": "s=やa=で項目を指定し、f=で指定した項目でセルとして出力する。",
   "url": "./static/pdf/mcmd/value_crossing/m2cross.pdf"
 }

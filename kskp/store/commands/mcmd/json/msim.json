@@ -1,10 +1,49 @@
 {
   "id": "msim",
+  "rules":{
+    "c" : {
+      "presence": {"allowEmpty": false}
+    },
+    "f" : {
+      "presence": {"allowEmpty": false},
+      "checkSeveralSpecifiedFormats" : {
+        "defaultRule" : {
+          "pattern" : "^[^,]+(,[^,]+)+$",
+          "message" : "2つ以上の項目を指定してください"
+        },
+        "specialRules" : [
+          {
+            "target" : ["x", "nfn"],
+            "pattern" : "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$",
+            "message" : "項目の指定は数値のみ可能です。"
+          }
+        ]
+      }
+    },
+    "a" : {
+      "format" : {
+        "pattern" : "^[^,]+,[^,]+$|^$|^@\\[.+\\]$", 
+        "message" : "対象となる列名を2つ入力してください"
+      }
+    },
+    "bufcount" : {
+      "specifiedFormatIfTargetInput" : {
+        "target" : "bufcount",
+        "pattern": "^[1-9]?[0-9]*$|^0$|^$",
+        "message": "0以上の整数を半角で入力してください"
+      }
+    }
+  },
   "params": [
     {
       "name": "c",
-      "type": "string",
-      "label": "類似度（距離）名リスト"
+      "type": "select",
+      "label": "類似度名を指定",
+      "options":{
+        "multiple": true,
+        "labels": ["共分散","普偏共分散","ピアソンの積率相関係数","スピアマンの順位相関係数","ケンドールの順位相関係数","ユークリッド距離(数値)","コサイン","都市ブロック距離","ハミング距離","カイ2乗値","ファイ係数","ジャックカード係数","支持度","リフト値","最大確信度","最小確信度","yuleの連関係数(Q)","yuleの連関係数(Y)","kappa","oddsRatio","最大conviction","最小conviction"],
+        "values": ["covar","ucovar","pearson","spearman","kendall","euclid","cosine","cityblock","hamming","chi","phi","jaccard","support","lift","confMax","confMin","yuleQ","yuleY","kappa","oddsRatio","convMax","convMin"]
+      }
     },
     {
       "name": "f",
@@ -26,8 +65,8 @@
     },
     {
       "name": "n",
-      "type": "string",
-      "label": "Null データの場合は NULL にするフラグ",
+      "type": "boolean",
+      "label": "Null データの場合はNULLにするフラグ",
       "optional": true
     },
     {
@@ -96,13 +135,6 @@
       "type": "string",
       "label": "作業ファイル格納パス名",
       "optional": true
-    },
-    {
-      "name": "precision",
-      "type": "string",
-      "label": "有効桁数",
-      "optional": true,
-      "default": 10
     }
   ],
   "ports": [
@@ -122,6 +154,6 @@
   "version": "0.7.0",
   "label": "二変数間の類似度の計算",
   "classification": "table_grouping",
-  "description": "",
+  "description": "f=で指定した項目の二変数間の類似度(距離)をc=で指定した類似度(距離)関数で計算し、類似度行列として出力する。",
   "url": "./static/pdf/mcmd/table_grouping/msim.pdf"
 }

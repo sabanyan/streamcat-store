@@ -2,7 +2,7 @@
 import os
 import nysol.mcmd as nm
 
-from kskp.store import NysolModule, Cache, Frame
+from kskp.store import NysolModule, Cache, Folder, Frame
 from kskp.core import Command, Port
 
 
@@ -16,19 +16,29 @@ class SaverCommand(Command):
         super().__init__()
         self.i_ports = [Port('i', 'frame'), Port('store', 'store')]
         self.o_ports = [Port('o', 'mcmd')]
+        self.frame = None
+        self.start_time = None
 
     def run(self, args, inputs):
         # Frameを作成する
         store = inputs['store']
-        label = args['label']
-        frame = self.get_datum_obj(store, label)
+        flow_label = args['flow_label']
+        point_label = args['point_label']
+        self.start_time = args['start_time']
+
+        # UTC日時はここで現地時間(環境変数TZの値)に設定される
+        start_time = self.start_time.astimezone()
+        start_time_str1 = start_time.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
+        start_time_str2 = start_time.strftime('%Y%m%d.%H%M%S.%f')[:-3]
+        folder = self.make_folder(store, flow_label, start_time_str1, start_time_str2)
+        self.frame = self.make_frame(folder, point_label)
 
         # 1. storeにsaveする
-        datum_module = store.save_frame(self, args, inputs['i'], frame.uuid + '.csv') 
+        datum_module = folder.save_frame(self, args, inputs['i'], point_label + '.csv') 
         # 2. lasts用なのでコマンド実行のrunをする（繋げる必要はない）
         # result = datum_module.run(msg='on')
 
-        return {'o': self.wrap_with_frame(frame, datum_module, args)}
+        return {'o': self.wrap_with_frame(self.frame, datum_module, args)}
 
     def module(self, args, input):
         command_args = {}
@@ -36,14 +46,59 @@ class SaverCommand(Command):
         command_args['o'] = args['frame_path'].as_posix()
         return nm.m2tee(command_args)
 
-    def get_datum_obj(self, store, label):
-        from kskp.store import Library
+    def make_folder(self, store, folder1_label, folder2_label, folder2_file_name):
+        from kskp.store import Datum, AwsS3
+
+        # フロー名フォルダがなければ作成する
+        results1 = Datum.find_by_parent_uuid_and_label(store.uuid, folder1_label)
+        if results1 is None or len(results1)==0:
+            folder1 = Folder(store.uuid, folder1_label, None)
+            folder1.save()
+        else:
+            folder1 = results1[0]
+
+        # 開始時間フォルダがなければ作成する
+        results2 = Datum.find_by_parent_uuid_and_label(folder1.uuid, folder2_label)
+        if results2 is None or len(results2)==0:
+            folder2 = Folder(folder1.uuid, folder2_label, None)
+            folder2.path = folder2.path.parent / folder2_file_name
+            folder2.save()
+        else:
+            if results2[0].type == Datum.FOLDER_TYPE:
+                folder2 = Folder.convert_to_folder(results2[0])
+            elif results2[0].type == Datum.AWSS3_TYPE:
+                folder2 = AwsS3.convert_to_awss3(results2[0])
+            else:
+                # 開始時間フォルダを作成できなかった場合はフロー名フォルダ直下に結果を作成する
+                folder2 = folder1
+
+        return folder2
+
+    def make_frame(self, store, label):
         return Frame(store.uuid, label, None)
 
     def wrap_with_frame(self, frame, datum_module, args):
         frame.set_centext(args)
         frame.set_content(datum_module)
         return frame
+
+    def dtor(self):
+        if self.frame is None:
+            return
+        # 出力フレームのラベルに終了時刻と所要時間を付加する
+        from datetime import datetime, timezone
+        end_time = datetime.utcnow().replace(tzinfo=timezone.utc)
+        end_time_str = end_time.astimezone().strftime('%H:%M:%S')
+        new_label = self.frame.label + ' 終了時刻' + end_time_str
+        if self.start_time is not None:
+            elapsed_time = (end_time - self.start_time).total_seconds()
+            if elapsed_time < 60.0:
+                elapsed_time_str = str(round(elapsed_time))
+                new_label = new_label + ' 全体処理時間' + elapsed_time_str + '秒'
+            else:
+                elapsed_time_str = str(round(elapsed_time / 60, 2))
+                new_label = new_label + ' 全体処理時間' + elapsed_time_str + '分'
+        Frame.update_label_only(self.frame.uuid, new_label, None)
 
 class CacheSaverCommand(SaverCommand):
     """
@@ -53,9 +108,32 @@ class CacheSaverCommand(SaverCommand):
     def __init__(self):
         super().__init__()
 
-    def get_datum_obj(self, store, label):
-        from kskp.store import Library
+    def run(self, args, inputs):
+        store = inputs['store']
+        flow_label = args['flow_label']
+        point_label = args['point_label']
+        self.start_time = args['start_time']
+
+        # UTC日時はここで現地時間(環境変数TZの値)に設定される
+        start_time = self.start_time.astimezone()
+        start_time_str = start_time.strftime('%Y%m%d.%H%M%S.%f')[:-3]
+        
+        # ラベル名を作成する
+        cache_label = flow_label + '_' + point_label + '_' + start_time_str
+        # Nysolの oオプションに空白のファイル名があるとエラーになるので、空白を置換する
+        cache_label = cache_label.replace(' ', '_')
+
+        # Cacheフレームを作成する
+        self.frame = self.make_frame(store, cache_label)
+        # 1. storeにsaveする
+        datum_module = store.save_frame(self, args, inputs['i'], cache_label + '.csv') 
+        return {'o': self.wrap_with_frame(self.frame, datum_module, args)}
+
+    def make_frame(self, store, label):
         return Cache(store.uuid, label, None)
+
+    def dtor(self):
+        pass
 
 class RunsSaver(Command):
     """

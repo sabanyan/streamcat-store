@@ -74,6 +74,6 @@
   "version": "0.7.0",
   "label": "CSV検査",
   "classification": "validation",
-  "description": "",
+  "description": "KSKP上で扱っているMコマンドの仕様に沿って、csvファイルの形式を修正する",
   "url": "./static/pdf/mcmd/validation/mchkcsv.pdf"
 }

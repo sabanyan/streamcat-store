@@ -1,0 +1,29 @@
+{
+  "version": "0.7.0",
+  "id": "selectrows",
+  "label": "行選択",
+  "classification": "row_edit",
+  "description": "上から指定した数の行を取得する",
+  "ports": [
+    [
+      {
+        "name": "i",
+        "type": "frame"
+      }
+    ],
+    [
+      {
+        "name": "o",
+        "type": "frame"
+      }
+    ]
+  ],
+  "params": [
+    {
+      "name": "n",
+      "type": "string",
+      "label": "取得行数"
+    }
+  ],
+  "url": ""
+}

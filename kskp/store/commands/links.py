@@ -128,8 +128,10 @@ class CommandLink:
             'groupby': GroupbyCommand(),
             'utf8_to_cp932': Utf8ToCp932Command(),
             'sml_modeling': SmlModelingCommand(),
+            'multimcal_manyformula': MultiMcalCommand(),
+            'multimcal_oneformula': MultiMcalWCCommand(),
             'selrow': SelRowCommand(),
-            'rdb_loader' : RdbLoaderCommand(),
+            'tmc_phase2_loader': TmcPhase2Loader(),
             # ビジュアライズ
             'csvtohtmltable': CsvToTableCommand(),
             'csvtolinegraph': CsvToLineGraphCommand(),
