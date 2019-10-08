@@ -1,21 +1,55 @@
 {
   "id": "multimcal_oneformula",
+  "groups": [
+    {
+      "name": "group1",
+      "label": "計算式の設定",
+      "params": ["targets", "a", "c"]
+    },
+    {
+      "name": "group2",
+      "label": "列名・項目番号についての設定",
+      "params": ["x", "nfn", "nfno"]
+    },
+    {
+      "name": "group3",
+      "label": "その他",
+      "params": ["precision", "tmpPath"]
+    },
+    {
+      "name": "group4",
+      "label": "システム管理用設定（ログ出力）",
+      "params": ["assert_diffSize", "assert_nullout"]
+    }
+  ],  
+  "rules": {
+    "targets": {
+      "presence": {"allowEmpty": false}
+    },
+    "a": {
+      "presence": {"allowEmpty": false}
+    },
+    "c": {
+      "presence": {"allowEmpty": false}
+    }
+  },
   "params": [
     {
       "name": "targets",
       "type": "string",
-      "label" : "計算対象列（必須）"
+      "label" : "対象とする列（列名時:*,？,[...] 使用可）（項目番号時:0−3,5,0L 等使用可）"
     },
     {
       "name": "a",
       "type": "string",
-      "label": "結果列名（入力した＆を元列名に変更する）",
+      "label": "追加する列名（&:元の列名を表す記号）",
       "default": "new_&" 
     },
     {
       "name": "c",
       "type": "string",
-      "label": "計算式(必須)"
+      "label": "計算式(&:対象とする列の値を表す記号、${&},#{&}　可）",
+      "default": "${&}"
     },
     {
       "name": "precision",
@@ -79,6 +113,6 @@
   "version": "0.7.0",
   "label": "複数列計算（共通式）",
   "classification": "calculation",
-  "description": "一つのコマンドで複数列計算。ワイルドカード又は項目番号で対象列を指定する。",
+  "description": "一つのコマンドで複数列計算。ワイルドカード又は番号で対象列を指定し、対象列に同じ計算を実行する。",
   "url": "./static/pdf/mcmd/calculation/mcal.pdf"
 }

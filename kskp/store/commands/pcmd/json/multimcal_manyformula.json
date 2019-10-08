@@ -1,15 +1,37 @@
 {
   "id": "multimcal_manyformula",
+  "groups": [
+    {
+      "name": "group1",
+      "label": "計算式の設定",
+      "params": ["arglist"]
+    },
+    {
+      "name": "group2",
+      "label": "列名・項目番号についての設定",
+      "params": ["x", "nfn", "nfno"]
+    },
+    {
+      "name": "group3",
+      "label": "その他",
+      "params": ["precision", "tmpPath"]
+    },
+    {
+      "name": "group4",
+      "label": "システム管理用設定（ログ出力）",
+      "params": ["assert_diffSize", "assert_nullout"]
+    }
+  ],
   "params": [
     {
       "name": "arglist",
       "type": "list",
-      "label": "計算ごとのオップション",
+      "label": "列名と計算式（追加・順序変更・削除　可）",
       "elements": [
         {
           "name": "a",
           "type": "string",
-          "label": "結果列名(必須)"
+          "label": "列名(必須)"
         },
         {
           "name": "c",
