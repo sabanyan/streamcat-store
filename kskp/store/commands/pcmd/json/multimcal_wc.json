@@ -4,12 +4,12 @@
     {
       "name": "targets",
       "type": "string",
-      "label" : "Target columns"
+      "label" : "計算対象列名（必須）"
     },
     {
       "name": "a",
       "type": "string",
-      "label": "結果列名",
+      "label": "結果列名（入力した＆を元列名に変更する）",
       "default": "new_&" 
     },
     {
@@ -18,15 +18,16 @@
       "label": "計算式(必須)"
     },
     {
-      "name": "assert_diffSize",
-      "type": "boolean",
-      "label": "入力、出力件数比較を行う",
-      "optional": true
+      "name": "precision",
+      "type": "string",
+      "label": "有効桁数",
+      "optional": true,
+      "default": 10
     },
     {
-      "name": "assert_nullout",
+      "name": "x",
       "type": "boolean",
-      "label": "出力項目の NULL 値チェックを行う",
+      "label": "項目番号による指定",
       "optional": true
     },
     {
@@ -42,9 +43,16 @@
       "optional": true
     },
     {
-      "name": "x",
+      "name": "assert_diffSize",
       "type": "boolean",
-      "label": "項目番号による指定",
+      "label": "入力、出力件数比較を行う",
+      "optional": true
+    },
+    
+    {
+      "name": "assert_nullout",
+      "type": "boolean",
+      "label": "出力項目の NULL 値チェックを行う",
       "optional": true
     },
     {
@@ -52,13 +60,6 @@
       "type": "string",
       "label": "作業ファイル格納パス名",
       "optional": true
-    },
-    {
-      "name": "precision",
-      "type": "string",
-      "label": "有効桁数",
-      "optional": true,
-      "default": 10
     }
   ],
   "ports": [
@@ -76,8 +77,8 @@
     ]
   ],
   "version": "0.7.0",
-  "label": "連続計算_wc",
+  "label": "複数列計算（同一式）",
   "classification": "calculation",
-  "description": "",
+  "description": "c=で計算式を入力し、a=で指定した項目名に出力する。",
   "url": "./static/pdf/mcmd/calculation/mcal.pdf"
 }

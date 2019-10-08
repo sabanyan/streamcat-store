@@ -344,17 +344,18 @@ class MultiMcalCommand(Command):
 
         cmd_o = None
         first = True
-        
-        for arg in args['arglist']:
+
+        aclist = args.pop('arglist')
+        for acarg in aclist:
             # one mcal will be added to cmd_o for every pair of c and a arguments passed in a list
 
             # argdict = {**inputs, **arg}
             # sys.__stderr__.write(repr(argdict)+'\n')
             if first:
-                cmd_o <<= nm.mcal({**inputs, **arg}) # {'i' : input, 'c': 'cal1', 'a' : 'col1'}
+                cmd_o <<= nm.mcal({**inputs, **acarg, **args}) # {'i' : input, 'c': 'cal1', 'a' : 'col1'}
                 first = False
             else:
-                cmd_o <<= nm.mcal(arg)
+                cmd_o <<= nm.mcal({**acarg,**args})
 
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
@@ -382,69 +383,33 @@ class MultiMcalWCCommand(Command):
         header = nm.mread(inputs).getline(header=True)
         header = next(header)
 
-        # parse wildcard expression  
-        targets_wc = args.pop('targets').split(',')
+        if args['x']:
+            # parse number expression
+            targets_colnum = args.pop('targets').split(',')
 
-        targets = [a for a in header for target in targets_wc if fn.fnmatch(a, target)]
+            targets_final = []
+            for e in targets_colnum:
+                if '-' in e:
+                    targets_final += [*range(int(e.split('-')[0]), int(e.split('-')[-1])+1)]
+                else:
+                    targets_final.append(e)
+            # targets_final is now a list of column numbers
 
-        targets_final = [a for a in targets if args['a'].replace('&',a) not in header]
-        #targets is now a list of column names to hit with calculation
+        else:   
+
+            # parse wildcard expression  
+            targets_wc = args.pop('targets').split(',')
+
+            targets = [a for a in header for target in targets_wc if fn.fnmatch(a, target)]
+
+            targets_final = [a for a in targets if args['a'].replace('&',a) not in header]
+            #targets is now a list of column names to hit with calculation
 
         #iterate over entire list and replace the '&' in c and a inputs with column number/name
         for target in targets_final:
             arg = args.copy()
 
-            arg['a'] = arg['a'].replace('&',target)
-            arg['c'] = arg['c'].replace('&',target)
-
-            if first:
-                cmd_o <<= nm.mcal({**inputs, **arg})
-                first = False
-            else:
-                cmd_o <<= nm.mcal(arg)
-        
-        nysol_module_o= NysolModule()
-        nysol_module_o.set_content(cmd_o)
-        return {'o': nysol_module_o}
-
-
-class MultiMcalRangeCommand(Command):
-    def __init__(self):
-        super().__init__()
-        self.i_ports = [Port('i', 'frame')]
-        self.o_ports = [Port('o', 'frame')]
-
-    def run(self, args, inputs):
-    #     args format:
-    #         target column numbers: for now, can't figure out wildcard for column name, so just work with ranges first
-    #         c: operation to be done on each column, operations to be done per target columns should use the token & which represents the old field name
-    #         a: output column name (string must include &, default is 'new&')
-
-        args['x'] = True
-
-        cmd_o = None
-        first = True
-
-        #parse number expressions to get list of target columns
-        args['targets'] = args['targets'].split(',')
-
-        targets = []
-        for e in args['targets']:
-            if '-' in e:
-                targets += [*range(*[int(x) for x in e.split('-')])]
-            else:
-                targets.append(e)
-            
-        args.pop('targets')
-
-        header = nm.mread(inputs).getline(header=True)
-        header = next(header)
-
-        #iterate over entire list and replace the '&' in c and a inputs with column number/name
-        for target in targets:
-            arg = args.copy()
-
-            arg['a'] = arg['a'].replace('&',header[target])
+            arg['a'] = arg['a'].replace('&',header[target] if arg['x'] else target)
             arg['c'] = arg['c'].replace('&',str(target))
 
             if first:
