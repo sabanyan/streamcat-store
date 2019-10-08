@@ -103,6 +103,6 @@
   "version": "0.7.0",
   "label": "複数列計算（個別式）",
   "classification": "calculation",
-  "description": "一つのコマンドで複数列計算。計算ごとにcとaオプションを入力する。",
+  "description": "複数列の計算を、個別に計算式を指定して行う。",
   "url": "./static/pdf/mcmd/calculation/mcal.pdf"
 }
