@@ -368,6 +368,34 @@ class MultiMcalWCCommand(Command):
         self.i_ports = [Port('i', 'frame')]
         self.o_ports = [Port('o', 'frame')]
 
+    def parse(self,iter):
+        return self.parse_internal(iter)
+
+    def parse_internal(self, iter):
+        parsed = []
+
+        if type(iter) == list:
+            for e in iter:
+               parsed += [*self.parse_internal(e)] 
+            return parsed
+
+        elif '-' in iter:
+            [a, b] = iter.split('-')
+            a = self.parse_internal(a)[0]
+            b = self.parse_internal(b)[0]
+
+            if a < b:
+                return range(a, b+1)
+            else:
+                return range(a, b-1, -1)
+
+        elif 'L' in iter:
+            val = len(self.header) - int(iter.strip('L')) - 1
+            return [val]
+
+        elif type(iter) == str:
+            return [int(iter)]
+            
     def run(self, args, inputs):
     #     args format:
     #         target columns: expressions can use wildcards, and can be separated with commas
@@ -380,19 +408,13 @@ class MultiMcalWCCommand(Command):
         first = True
 
         # get header list
-        header = nm.mread(inputs).getline(header=True)
-        header = next(header)
+        self.header = nm.mread(inputs).getline(header=True)
+        self.header = next(self.header)
 
         if 'x' in args.keys():
             # parse number expression
-            targets_colnum = args.pop('targets').split(',')
+            targets_final = self.parse(args.pop('targets').split(','))
 
-            targets_final = []
-            for e in targets_colnum:
-                if '-' in e:
-                    targets_final += [*range(int(e.split('-')[0]), int(e.split('-')[-1])+1)]
-                else:
-                    targets_final.append(int(e.strip()))
             # targets_final is now a list of column numbers
 
         else:   
@@ -400,16 +422,16 @@ class MultiMcalWCCommand(Command):
             # parse wildcard expression  
             targets_wc = args.pop('targets').split(',')
 
-            targets = [a for a in header for target in targets_wc if fn.fnmatch(a, target)]
+            targets = [a for a in self.header for target in targets_wc if fn.fnmatch(a, target)]
 
-            targets_final = [a for a in targets if args['a'].replace('&',a) not in header]
+            targets_final = [a for a in targets if args['a'].replace('&',a) not in self.header]
             #targets is now a list of column names to hit with calculation
 
         #iterate over entire list and replace the '&' in c and a inputs with column number/name
         for target in targets_final:
             arg = args.copy()
 
-            arg['a'] = arg['a'].replace('&',header[target] if 'x' in args.keys() else target)
+            arg['a'] = arg['a'].replace('&',self.header[target] if 'x' in args.keys() else target)
             arg['c'] = arg['c'].replace('&',str(target))
 
             if first:
