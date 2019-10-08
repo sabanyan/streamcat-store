@@ -227,46 +227,46 @@ class WinCp932ReadCommand(PCommand):
         super().__init__()
 
     def run(self, args, inputs):
-        # f = None
-        # f <<= inputs['i']
+        f = None
+        f <<= inputs['i']
 
-        # args_string = (PCMD_DIR / 'src/windows_cp932_csv_read.sh').as_posix()
-        # args_string += self.replace_args(args)
+        args_string = (PCMD_DIR / 'src/windows_cp932_csv_read.sh').as_posix()
+        args_string += self.replace_args(args)
 
-        # return {'o': self.module(f, args_string)}
+        return {'o': self.module(f, args_string)}
 
         # pythonによる変換
         # 不安定なので無効化しておく
 
-        def Cp932_to_utf8():
-            """
-            ストリームでcp932→utf8に変換するコマンド
-            """
-            import traceback
-            import io
+        # def Cp932_to_utf8():
+        #     """
+        #     ストリームでcp932→utf8に変換するコマンド
+        #     """
+        #     import traceback
+        #     import io
         
-            try:
-                # stdinのencodingがデフォルトでutf-8なので、設定し直す。
-                input_stream = io.TextIOWrapper(sys.stdin.buffer, encoding='cp932')
-                for line in input_stream:
-                    # 標準出力するときも自動でutf-8に変換されるので、printだけでいい
-                    print(line, end='')
-                # flushをする
-                sys.stdout.flush()
-            except Exception as e:
-                with open('/dev/stderr', 'w') as fpe:
-                    traceback.print_exc(file=fpe)
+        #     try:
+        #         # stdinのencodingがデフォルトでutf-8なので、設定し直す。
+        #         input_stream = io.TextIOWrapper(sys.stdin.buffer, encoding='cp932')
+        #         for line in input_stream:
+        #             # 標準出力するときも自動でutf-8に変換されるので、printだけでいい
+        #             print(line, end='')
+        #         # flushをする
+        #         sys.stdout.flush()
+        #     except Exception as e:
+        #         with open('/dev/stderr', 'w') as fpe:
+        #             traceback.print_exc(file=fpe)
         
-        # flushをしないと、デバッグ用のprintなども入ってしまう
-        sys.stdout.flush()
-        f = None
-        f <<= inputs['i']
-        f <<= nm.runfunc(Cp932_to_utf8)
+        # # flushをしないと、デバッグ用のprintなども入ってしまう
+        # sys.stdout.flush()
+        # f = None
+        # f <<= inputs['i']
+        # f <<= nm.runfunc(Cp932_to_utf8)
         
-        nysol_module_o= NysolModule()
-        nysol_module_o.set_content(f)
+        # nysol_module_o= NysolModule()
+        # nysol_module_o.set_content(f)
         
-        return {'o': nysol_module_o}
+        # return {'o': nysol_module_o}
 
 
 class Utf8ToCp932Command(PCommand):
