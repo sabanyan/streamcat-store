@@ -130,7 +130,6 @@ class CommandLink:
             'sml_modeling': SmlModelingCommand(),
             'multimcal': MultiMcalCommand(),
             'multimcal_wc': MultiMcalWCCommand(),
-            'multimcal_range': MultiMcalRangeCommand(),
             'selrow': SelRowCommand(),
             'rdb_loader' : RdbLoaderCommand(),
             # ビジュアライズ
