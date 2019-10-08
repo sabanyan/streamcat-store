@@ -188,6 +188,8 @@ def main(args):
     if args['hasHeaderDiff'] == True:
         whole_header = makeOutHeader(mergelist)
         head_path = writeOutHeader(whole_header)
+    else:
+        head_path = ''
 
     mergelist = list(map(lambda path:str(path), mergelist))
 
