@@ -93,15 +93,11 @@ def makeFilelist(args):
     （開発用）：取得するファイル情報を見直す場合は、この関数に追加するといい
     '''
     p = pathlib.Path("{}".format(args['tmp_Path']))
-    # p = pathlib.Path(args['tmp_Path'])
-    # f_info_gnt = ((path, path.stat().st_mtime) for path in p.glob(args['target']))
     sys.stderr.write("{}\n".format(args['target']))
     f_info_gnt = ((path, path.stat().st_mtime) for path in p.glob("{}".format(args['target'])))
 
-    # # 中身の確認のためリスト化
-    # f_info_gnt = [(path, path.stat().st_mtime) for path in p.glob("{}".format(args['target']))]
-    # sys.stderr.write("{}\n".format(f_info_gnt))
     return f_info_gnt
+
 
 def makeMergelist(args,f_info_gnt):
     '''
@@ -120,12 +116,10 @@ def makeMergelist(args,f_info_gnt):
     return mergelist
 
 
-
 def makeOutHeader(mergelist):
     '''
     全ファイルの列名を集約したリストをつくる
     '''
-    # path_gnt = (path[0] for path in mergelist)
 
     def csv_line_gnt(r_fd):
         '''
@@ -165,13 +159,9 @@ def writeOutHeader(whole_header):
     出力データの列名の対応関係が、間違った状態になった。
     ヘッダのみファイルの行末が、改行にならないように文字列で出すとうまくいった。
     '''
-    #tmpファイル作成(delete＝Falseにしないと、後で開けない)
-    # tmp_fd = tempfile.NamedTemporaryFile(mode="w", delete=False,encoding='cp932',newline='') # win形式
-    tmp_fd = tempfile.NamedTemporaryFile(mode="w", delete=False, newline='') 
 
-    # writer = csv.writer(tmp_fd)
-    # writer.writerow(whole_header)
-    # print(whole_header)
+    # tmpファイル作成(delete＝Falseにしないと、後で開けない)
+    tmp_fd = tempfile.NamedTemporaryFile(mode="w", delete=False, newline='') 
 
     # 行末に改行が入らないよう、文字列として書き出す
     tmp_fd.write(",".join(whole_header))
@@ -183,91 +173,34 @@ def main(args):
     '''
     ヘッダ差ありのときは、吸収のための処理をしている指定の有無で処理を分けた
     '''
+
     args = check_args(args)
 
     sys.stderr.write("#START# tmc_loader {0} {1}\n".format(args,datetime.now().strftime("%Y/%m/%d %H:%M:%S")))
     
     f_info_gnt = makeFilelist(args)
-    mergelist = makeMergelist(args, f_info_gnt) #読み込み順にソートされたリスト
+    mergelist = makeMergelist(args, f_info_gnt)  # 読み込み順にソートされたリスト
 
     # 読み込むファイルが無いときは、処理を止めてエラーを出す
     if len(mergelist) == 0:
         raise Exception(ErrMsg['1'])
 
-    if args['hasHeaderDiff'] == True :
+    if args['hasHeaderDiff'] == True:
         whole_header = makeOutHeader(mergelist)
-        # print(whole_header)
-
         head_path = writeOutHeader(whole_header)
-        # sys.stderr.write(head_path)
-        # f = open(head_path,'r',newline='')
-        # print(f.read())
 
     mergelist = list(map(lambda path:str(path), mergelist))
 
 
-    if args['hasHeaderDiff'] == True :
-        mergelist.insert(0,head_path)
-
-    ## mcatでマージ（m2catでは、ファイル名追加、フォーマット吸収マージができない）
-    ## nm.mcat(nostop=True, add_fname=args['needFilenames'], i=','.join(mergelist), o=args['o']).run(runlimit=128)
+    if args['hasHeaderDiff'] == True:
+        mergelist.insert(0, head_path)
 
     ## 実装時テスト（ファイル出力化）
     # nm.mcat(nostop=args['hasHeaderDiff'], add_fname=args['needFilenames'], i=','.join(mergelist), o=args['o']).run(runlimit=128)
 
     # Nysolのストリームとして出力する
-    # cmd_o = nm.mcat(nostop=args['hasHeaderDiff'], add_fname=args['needFilenames'], i=','.join(mergelist)).run(runlimit=128)
     cmd_o = nm.mcat(nostop=args['hasHeaderDiff'], add_fname=args['needFilenames'], i=','.join(mergelist))
     sys.stderr.write("{0}\n".format(','.join(mergelist)))
-
-    # cmd_o = nm.mcat(i=','.join(mergelist)).run(runlimit=128)
-    # cmd_o = nm.mcat(i=','.join(mergelist))
-    # nysol_module_o = NysolModule()
-    # nysol_module_o.set_content(cmd_o)
-    
-    # if args['hasHeaderDiff'] == True :
-    #      os.remove(head_path) #tmp削除
-
     sys.stderr.write("#END#  tmc_loader {0} {1}\n".format(args,datetime.now().strftime("%Y/%m/%d %H:%M:%S")))
 
-    # return {'o': nysol_module_o}
-    return cmd_o
-
-
-### 以下古い処理
-    # if args['hasHeaderDiff'] == True :
-    #     whole_header = makeOutHeader(mergelist)
-    #     # print(whole_header)
-
-    #     head_path = writeOutHeader(whole_header)
-    #     # sys.stderr.write(head_path)
-    #     # f = open(head_path,'r',newline='')
-    #     # print(f.read())
-
-    #     # ｍcatに読ませるために、posixpathオブジェクトを文字列型に変換
-    #     mergelist = list(map(lambda path:str(path), mergelist))
-
-    #     # header列を追加
-    #     mergelist.insert(0,head_path)
-    #     # print(mergelist)
-    #     # # mergelist = map(lambda path:str(path),mergelist)
-    #     # print(list(mergelist))
-        
-    #     # nm.m2cat(nostop=True,i=mergelist,o="test2.csv").run()
-    #     # mcatでマージ（m2catでは、ファイル名追加、フォーマット吸収マージができない）
-    #     # nm.mcat(nostop=True, add_fname=args['needFilenames'], i=','.join(mergelist), o=args['o']).run(runlimit=128)
-    #     nm.mcat(nostop=args['hasHeaderDiff'], add_fname=args['needFilenames'], i=','.join(mergelist), o=args['o']).run(runlimit=128)
-
-    #     ##  tmpファイルを確認した
-    #     # with open(head_path,newline='') as f:
-    #     #     sys.stderr.write(f.read())
-
-    #     os.remove(head_path) #tmp削除
-
-    # else :
-    #     mergelist = list(map(lambda path:str(path), mergelist))
-    #     # sys.stderr.write("{}\n".format(mergelist))
-    #     # nm.m2cat(i=mergelist,o=args['o'])
-    #     nm.mcat(nostop=False, add_fname=args['needFilenames'], i=','.join(mergelist), o=args['o']).run(runlimit=128)
-
- 
+    return cmd_o, head_path
