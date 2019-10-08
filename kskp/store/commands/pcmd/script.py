@@ -497,3 +497,60 @@ class RdbLoaderCommand(Command):
         import os
         if self._tmp_file_path is not None and os.path.exists(self._tmp_file_path):
             os.unlink(self._tmp_file_path)
+
+class SleepCommand(Command):
+    """
+    指定した時間スリープする
+    """
+    def __init__(self):
+        super().__init__()
+        self.i_ports = [Port('i', 'frame')]
+        self.o_ports = [Port('o', 'mcmd')]
+        self.name = 'sleep'
+
+    def run(self, args, inputs):
+        # 寝る時間
+        seconds = args['seconds']
+
+        def sleep(seconds):
+            try:
+                # ここで寝ますZzz
+                import time
+                time.sleep(seconds)
+                # 入力をそのまま出力する
+                for line in sys.stdin:
+                    print(line, end='')
+                # flushをする
+                sys.stdout.flush()
+            except Exception as e:
+                import traceback
+                with open('/dev/stderr', 'w') as fpe:
+                    traceback.print_exc(file=fpe)
+
+        # flushをしないと、デバッグ用のprintなども入ってしまう
+        sys.stdout.flush()
+
+        cmd = inputs['i']
+        cmd <<= nm.runfunc(sleep, seconds=seconds)
+
+        nysol_module = NysolModule()
+        nysol_module.set_content(cmd)
+        return {'o': nysol_module}
+
+class TmcPhase2Loader(Command):
+    """
+    キオクシア様用に急遽作成したローダ
+    """
+    def __init__(self):
+        super().__init__()
+        self.i_ports = []
+        self.o_ports = [Port('o', 'mcmd')]
+        self.name = 'tmc_phase2_loader'
+
+    def run(self, args, inputs):
+        from .src.tmc_phase2_loader import main
+        cmd = main(args)
+
+        nysol_module_o = NysolModule()
+        nysol_module_o.set_content(cmd)
+        return {'o': nysol_module_o}

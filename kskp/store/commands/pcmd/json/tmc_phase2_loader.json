@@ -1,0 +1,53 @@
+{
+  "id": "tmc_phase2_loader",
+  "rules" : {
+    "target" : {
+      "presence": {"allowEmpty": false}
+    }
+  },
+  "params": [
+    {
+      "name": "target",
+      "type": "string",
+      "label": "【条件】フォルダ/ファイル名(ワイルドカード)"
+    },
+    {
+      "name": "isSort",
+      "type": "boolean",
+      "label": "【読込順】ファイル作成日時順",
+      "optional": true
+    },
+    {
+      "name": "hasHeaderDiff",
+      "type": "boolean",
+      "label": "異なる列数のファイルを列名をキーに集約する",
+      "optional": true
+    },
+    {
+      "name": "needFilenames",
+      "type": "boolean",
+      "label": "ファイル名を値として取り込む",
+      "optional": true
+    },
+    {
+      "name": "tmp_Path",
+      "type": "string",
+      "label": "作業ファイル格納パス名",
+      "optional": true
+    }
+  ],
+  "ports": [
+    [],
+    [
+      {
+        "name": "o",
+        "type": "frame"
+      }
+    ]
+  ],
+  "version": "0.1.0",
+  "label": "UTF8 LFファイル集約読み込み",
+  "classification": "data_source",
+  "description": "",
+  "url": ""
+}
