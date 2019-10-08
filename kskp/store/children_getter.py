@@ -10,7 +10,7 @@ class ChildrenGetter:
         user = args
         folder = inputs
         # フォルダとディレクトリの同期処理をする
-        # ChildrenGetter._synchronize(folder, folder.path, user)
+        # ChildrenGetter._synchronize(folder, folder.path.as_posix(), user)
         # フォルダ直下のデータを全てリストアップして返す
         children = Datum.find_by_parent_uuid(folder.uuid)
         return [ChildrenGetter._convert_type(child) for child in children]
@@ -30,7 +30,7 @@ class ChildrenGetter:
                 ChildrenGetter._convert_type(folder_child).remove_reference_only()
 
         # ファイル --> ドキュメント/フォルダ
-        folder_children_path = [child.path for child in folder_children]
+        folder_children_path = [child.path.as_posix() for child in folder_children]
         for child_file in os.listdir(Datum._to_abs_path(dir_path)):
             # 既に対応するエントリが存在するファイルの可能性もある
             # その場合はこの処理の後、一つのファイルが複数のエントリに対応する事になる

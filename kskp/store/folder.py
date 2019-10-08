@@ -137,7 +137,7 @@ class Folder(Store):
         """
         # 削除対象のフォルダの下にフォルダまたはファイルが存在する場合は例外を送出する
         if len(Datum.find_by_parent_uuid(self.uuid)) > 0:
-            raise Exception('Can not delete folder that has child file or folder.')
+            raise Exception('空でないフォルダは削除できません')
         try:
             # フォルダレコードを削除する
             session.query(Datum).filter(Datum.id==self.id)\
