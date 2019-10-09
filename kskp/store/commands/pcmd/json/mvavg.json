@@ -4,12 +4,12 @@
     {
       "name": "group1",
       "label": "対象列の設定",
-      "params": ["s","s_num", "k", "f", "a", "q"]
+      "params": ["s", "k", "fatlist", "q"]
     },
     {
       "name": "group2",
       "label": "計算の設定",
-      "params": ["type", "alpha","t"]
+      "params": ["type", "alpha"]
     },
     {
       "name": "group3",
@@ -35,25 +35,32 @@
       "label" : "Field to sort"
     },
     {
-      "name": "s_num",
-      "type": "boolean",
-      "label": "sort as numbers",
-      "default": true
-    },
-    {
       "name": "k",
       "type": "string",
       "label": "key field"
-    },
+    },    
     {
-      "name": "f",
-      "type": "string",
-      "label": "移動平均を求める項目名リスト"
-    },
-    {
-      "name": "a",
-      "type": "string",
-      "label": "results field name"
+      "name": "fatlist",
+      "type": "list",
+      "label": "移動平均対象列名と結果列名",
+      "elements": [
+        {
+          "name": "f",
+          "type": "string",
+          "label": "対象列名"
+        },
+        {
+          "name": "a",
+          "type": "string",
+          "label": "結果列名"
+        },
+        {
+          "name": "t",
+          "type": "string",
+          "label": "期間数"
+        }
+      ],
+      "default": [{"f": "", "a": "", "t": ""}]
     },
     {
       "name": "q",
@@ -70,12 +77,6 @@
         "values": ["simple","w","exp"]
       },
       "default": "simple"
-    },
-    {
-      "name": "t",
-      "type": "string",
-      "label": "Interval > 1",
-      "default": 5
     },
     {
       "name": "alpha",

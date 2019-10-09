@@ -4,7 +4,7 @@
     {
       "name": "group1",
       "label": "対象列の設定",
-      "params": ["s","s_num", "k", "f", "a", "q"]
+      "params": ["s", "k", "f", "a", "q"]
     },
     {
       "name": "group2",
@@ -33,12 +33,6 @@
       "name": "s",
       "type": "string",
       "label" : "Field to sort"
-    },
-    {
-      "name": "s_num",
-      "type": "boolean",
-      "label": "sort as numbers",
-      "default": true
     },
     {
       "name": "k",

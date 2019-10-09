@@ -452,25 +452,29 @@ class MvAvgCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        cmd_o = None
 
+        cmd_o = None
         cmd_o <<= nm.mread(inputs)
 
         # copy target  column into 'a' field
-        cmd_o <<= nm.mcal(a = args['a'], c = '${%s}' % args['f'])
-        
-        args['f'] = args.pop('a')
+        for fatdict in args.pop('fatlist'):
+            arg = args.copy()
 
-        mvavgtype = args.pop('type')
-        if mvavgtype != 'simple':
-            args[mvavgtype] = True
+            cmd_o <<= nm.mcal(a = fatdict['a'], c = '${%s}' % fatdict['f'])
+            
+            arg['f'] = fatdict['a']
 
-        sortasnum = args.pop('s_num')
-        if sortasnum:
-            args['s'] += '%n'
+            mvavgtype = arg.pop('type')
+            if mvavgtype != 'simple':
+                arg[mvavgtype] = True
 
-        # perform mmvavg on field specified by 'a' field, with skip = 0
-        cmd_o <<= nm.mmvavg({'skip': 0, **args})
+            arg['t'] = fatdict['t']
+            # sortasnum = args.pop('s_num')
+            # if sortasnum:
+            #     args['s'] += '%n'
+
+            # perform mmvavg on field specified by 'a' field, with skip = 0
+            cmd_o <<= nm.mmvavg({'skip': 0, **arg})
 
         # pass output
         nysol_module_o= NysolModule()
@@ -493,9 +497,9 @@ class MvStatsCommand(Command):
         
         args['f'] = args.pop('a')
 
-        sortasnum = args.pop('s_num')
-        if sortasnum:
-            args['s'] += '%n'
+        # sortasnum = args.pop('s_num')
+        # if sortasnum:
+        #     args['s'] += '%n'
 
         sys.__stderr__.write(repr(args))
         # perform mmvavg on field specified by 'a' field, with skip = 0
