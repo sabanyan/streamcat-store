@@ -4,12 +4,12 @@
     {
       "name": "group1",
       "label": "対象列の設定",
-      "params": ["s", "k", "f", "a", "q"]
+      "params": ["s", "k", "fatlist", "q"]
     },
     {
       "name": "group2",
       "label": "計算の設定",
-      "params": ["c","t"]
+      "params": ["c"]
     },
     {
       "name": "group3",
@@ -40,14 +40,27 @@
       "label": "key field"
     },
     {
-      "name": "f",
-      "type": "string",
-      "label": "移動平均を求める項目名リスト"
-    },
-    {
-      "name": "a",
-      "type": "string",
-      "label": "results field name"
+      "name": "fatlist",
+      "type": "list",
+      "label": "移動平均対象列名と結果列名",
+      "elements": [
+        {
+          "name": "f",
+          "type": "string",
+          "label": "対象列名"
+        },
+        {
+          "name": "a",
+          "type": "string",
+          "label": "結果列名"
+        },
+        {
+          "name": "t",
+          "type": "string",
+          "label": "期間数"
+        }
+      ],
+      "default": [{"f": "", "a": "", "t": ""}]
     },
     {
       "name": "q",
@@ -67,12 +80,6 @@
           "max","range","skew","uskew","kurt","ukurt"]
       },
       "default": "sum"
-    },
-    {
-      "name": "t",
-      "type": "string",
-      "label": "Interval > 1",
-      "default": 5
     },
     {
       "name": "precision",
