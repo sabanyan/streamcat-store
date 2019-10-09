@@ -1,5 +1,5 @@
 {
-  "id": "mvavg",
+  "id": "mvstats",
   "groups": [
     {
       "name": "group1",
@@ -9,7 +9,7 @@
     {
       "name": "group2",
       "label": "計算の設定",
-      "params": ["type", "alpha","t"]
+      "params": ["c","t"]
     },
     {
       "name": "group3",
@@ -62,26 +62,23 @@
       "optional": true
     },
     {
-      "name": "type",
+      "name": "c",
       "type": "select",
-      "label": "移動平均の種類",
+      "label": "統計量を指定",
       "options":{
-        "labels": ["単純移動平均(SMA)","線形荷重移動平均(WMA)","指数平滑移動平均(EMA)"],
-        "values": ["simple","w","exp"]
+        "labels": ["合計","算術平均","偏差平方和","分散","分散(不偏推定値)","標準偏差",
+          "標準偏差(不偏分散のsqrt)","変動係数","最小値","最大値","範囲", "歪度",
+          "歪度 (不偏推定値)","尖度","尖度 (不偏推定値)"],
+        "values": ["sum","mean","devsq","var","uvar","sd","usd","cv","min",
+          "max","range","skew","uskew","kurt","ukurt"]
       },
-      "default": "simple"
+      "default": "sum"
     },
     {
       "name": "t",
       "type": "string",
       "label": "Interval > 1",
       "default": 5
-    },
-    {
-      "name": "alpha",
-      "type": "string",
-      "label": "smoothing coefficient (if EMA)",
-      "optional": true
     },
     {
       "name": "precision",
@@ -154,8 +151,8 @@
     ]
   ],
   "version": "0.7.0",
-  "label": "移動平均",
+  "label": "移動窓の統計量の計算",
   "classification": "calculation",
-  "description": "複数列の計算を、同一の式を全ての列に適用して行う。",
+  "description": "移動窓を設定し、各種統計量(1変量)を計算する。",
   "url": "./static/pdf/mcmd/calculation/mcal.pdf"
 }

@@ -444,6 +444,7 @@ class MultiMcalWCCommand(Command):
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
         
+
 class MvAvgCommand(Command):
     def __init__(self):
         super().__init__()
@@ -455,12 +456,10 @@ class MvAvgCommand(Command):
 
         cmd_o <<= nm.mread(inputs)
 
-        sys.__stderr__.write(repr(args))
         # copy target  column into 'a' field
         cmd_o <<= nm.mcal(a = args['a'], c = '${%s}' % args['f'])
         
         args['f'] = args.pop('a')
-        sys.__stderr__.write(repr(args))
 
         mvavgtype = args.pop('type')
         if mvavgtype != 'simple':
@@ -471,9 +470,36 @@ class MvAvgCommand(Command):
             args['s'] += '%n'
 
         # perform mmvavg on field specified by 'a' field, with skip = 0
-        cmd_o <<= nm.mmvavg({'skip': 0, **args})        
+        cmd_o <<= nm.mmvavg({'skip': 0, **args})
+
+        # pass output
+        nysol_module_o= NysolModule()
+        nysol_module_o.set_content(cmd_o)
+        return {'o': nysol_module_o}
+
+class MvStatsCommand(Command):
+    def __init__(self):
+        super().__init__()
+        self.i_ports = [Port('i', 'frame')]
+        self.o_ports = [Port('o', 'frame')]
+
+    def run(self, args, inputs):
+        cmd_o = None
+
+        cmd_o <<= nm.mread(inputs)
+
+        # copy target  column into 'a' field
+        cmd_o <<= nm.mcal(a = args['a'], c = '${%s}' % args['f'])
+        
+        args['f'] = args.pop('a')
+
+        sortasnum = args.pop('s_num')
+        if sortasnum:
+            args['s'] += '%n'
 
         sys.__stderr__.write(repr(args))
+        # perform mmvavg on field specified by 'a' field, with skip = 0
+        cmd_o <<= nm.mmvstats({'skip': 0, **args})        
 
         # pass output
         nysol_module_o= NysolModule()
