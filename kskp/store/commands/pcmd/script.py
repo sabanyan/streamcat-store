@@ -451,7 +451,34 @@ class MvAvgCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        pass
+        cmd_o = None
+
+        cmd_o <<= nm.mread(inputs)
+
+        sys.__stderr__.write(repr(args))
+        # copy target  column into 'a' field
+        cmd_o <<= nm.mcal(a = args['a'], c = '${%s}' % args['f'])
+        
+        args['f'] = args.pop('a')
+        sys.__stderr__.write(repr(args))
+
+        mvavgtype = args.pop('type')
+        if mvavgtype != 'simple':
+            args[mvavgtype] = True
+
+        sortasnum = args.pop('s_num')
+        if sortasnum:
+            args['s'] += '%n'
+
+        # perform mmvavg on field specified by 'a' field, with skip = 0
+        cmd_o <<= nm.mmvavg({'skip': 0, **args})        
+
+        sys.__stderr__.write(repr(args))
+
+        # pass output
+        nysol_module_o= NysolModule()
+        nysol_module_o.set_content(cmd_o)
+        return {'o': nysol_module_o}
         
 class SelRowCommand(RunfuncCommand):
     def __init__(self):
