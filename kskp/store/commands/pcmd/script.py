@@ -444,6 +444,14 @@ class MultiMcalWCCommand(Command):
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
         
+class MvAvgCommand(Command):
+    def __init__(self):
+        super().__init__()
+        self.i_ports = [Port('i', 'frame')]
+        self.o_ports = [Port('o', 'frame')]
+
+    def run(self, args, inputs):
+        pass
         
 class SelRowCommand(RunfuncCommand):
     def __init__(self):

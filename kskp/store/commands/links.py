@@ -130,6 +130,7 @@ class CommandLink:
             'sml_modeling': SmlModelingCommand(),
             'multimcal_manyformula': MultiMcalCommand(),
             'multimcal_oneformula': MultiMcalWCCommand(),
+            'mvavg': MvAvgCommand(),
             'selrow': SelRowCommand(),
             # ビジュアライズ
             'csvtohtmltable': CsvToTableCommand(),
