@@ -4,7 +4,7 @@
     {
       "name": "group1",
       "label": "対象列の設定",
-      "params": ["s", "k", "f", "a", "q"]
+      "params": ["s","s_num", "k", "f", "a", "q"]
     },
     {
       "name": "group2",
@@ -35,6 +35,12 @@
       "label" : "Field to sort"
     },
     {
+      "name": "s_num",
+      "type": "boolean",
+      "label": "field to be sorted are numbers",
+      "default": true
+    },
+    {
       "name": "k",
       "type": "string",
       "label": "key field"
@@ -62,7 +68,8 @@
       "options":{
         "labels": ["単純移動平均(SMA)","線形荷重移動平均(WMA)","指数平滑移動平均(EMA)"],
         "values": ["simple","w","exp"]
-      }
+      },
+      "default": "simple"
     },
     {
       "name": "t",
