@@ -4,7 +4,7 @@
     {
       "name": "group1",
       "label": "対象列の設定",
-      "params": ["s", "k", "falist", "q"]
+      "params": ["s", "s_num", "s_desc", "k", "falist"]
     },
     {
       "name": "group2",
@@ -32,7 +32,20 @@
     {
       "name": "s",
       "type": "string",
-      "label" : "Field to sort"
+      "label" : "Field to sort",
+      "default": ""
+    },
+    {
+      "name": "s_num",
+      "type": "boolean",
+      "label" : "Sort field as numbers",
+      "optional": true
+    },
+    {
+      "name": "s_desc",
+      "type": "boolean",
+      "label" : "Sort in descending order",
+      "optional": true
     },
     {
       "name": "k",
@@ -55,19 +68,13 @@
           "label": "結果列名"
         }
       ],
-      "default": [{"f": "", "a": "", "t": ""}]
+      "default": [{"f": "", "a": ""}]
     },
     {
       "name": "t",
       "type": "string",
       "label": "期間数",
       "default": 5
-    },
-    {
-      "name": "q",
-      "type": "boolean",
-      "label": "自動並べ替えの無効化",
-      "optional": true
     },
     {
       "name": "type",
@@ -83,6 +90,7 @@
       "name": "alpha",
       "type": "string",
       "label": "smoothing coefficient (if EMA)",
+      "default": "",
       "optional": true
     },
     {

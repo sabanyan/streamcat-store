@@ -492,6 +492,20 @@ class MvAvgFixedCommand(Command):
         cmd_o = None
         cmd_o <<= nm.mread(inputs)
 
+        sortasnum = args.pop('s_num')
+        sortdesc = args.pop('s_desc')
+        if args['s'] == '':
+            args['q'] = True
+        elif sortasnum or sortdesc:
+            args['s'] += ('%' + ('n' if sortasnum else '') 
+                + ('r' if sortdesc else ''))
+
+        mvavgtype = args.pop('type')
+        if mvavgtype != 'simple':
+            args[mvavgtype] = True
+        if mvavgtype != 'exp':
+            args.pop('alpha')
+
         # copy target  column into 'a' field
         for fadict in args.pop('falist'):
             arg = args.copy()
@@ -500,15 +514,7 @@ class MvAvgFixedCommand(Command):
             
             arg['f'] = fadict['a']
 
-            mvavgtype = arg.pop('type')
-            if mvavgtype != 'simple':
-                arg[mvavgtype] = True
-
             # arg['t'] = fatdict['t']
-            
-            # sortasnum = args.pop('s_num')
-            # if sortasnum:
-            #     args['s'] += '%n'
 
             # perform mmvavg on field specified by 'a' field, with skip = 0
             cmd_o <<= nm.mmvavg({'skip': 0, **arg})
@@ -528,6 +534,14 @@ class MvStatsFixedCommand(Command):
         cmd_o = None
 
         cmd_o <<= nm.mread(inputs)
+            
+        sortasnum = args.pop('s_num')
+        sortdesc = args.pop('s_desc')
+        if  args['s'] == '':
+            args['q'] = True
+        elif sortasnum or sortdesc:
+            args['s'] += ('%' + ('n' if sortasnum else '') 
+                + ('r' if sortdesc else ''))
 
         for facdict in args.pop('faclist'):
             arg = args.copy()
@@ -537,9 +551,7 @@ class MvStatsFixedCommand(Command):
             arg['f'] = facdict['a']
 
             arg['c'] = facdict['c']
-            # sortasnum = args.pop('s_num')
-            # if sortasnum:
-            #     args['s'] += '%n'
+
 
             # perform mmvstats on field specified by 'a' field, with skip = 0
             cmd_o <<= nm.mmvstats({'skip': 0, **arg})
