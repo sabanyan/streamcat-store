@@ -1,15 +1,15 @@
 {
-  "id": "mvavg",
+  "id": "mvstats_fixed",
   "groups": [
     {
       "name": "group1",
       "label": "対象列の設定",
-      "params": ["s", "k", "fatlist", "q"]
+      "params": ["s", "k", "faclist", "q"]
     },
     {
       "name": "group2",
       "label": "計算の共通設定",
-      "params": ["type", "alpha"]
+      "params": ["t"]
     },
     {
       "name": "group3",
@@ -38,9 +38,9 @@
       "name": "k",
       "type": "string",
       "label": "key field"
-    },    
+    },
     {
-      "name": "fatlist",
+      "name": "faclist",
       "type": "list",
       "label": "移動平均対象列名と結果列名",
       "elements": [
@@ -55,12 +55,12 @@
           "label": "結果列名"
         },
         {
-          "name": "t",
+          "name": "c",
           "type": "string",
-          "label": "期間数"
+          "label": "統計量 *probably best if this is a dropdown"
         }
       ],
-      "default": [{"f": "", "a": "", "t": ""}]
+      "default": [{"f": "", "a": "", "c": ""}]
     },
     {
       "name": "q",
@@ -69,20 +69,10 @@
       "optional": true
     },
     {
-      "name": "type",
-      "type": "select",
-      "label": "移動平均の種類",
-      "options":{
-        "labels": ["単純移動平均(SMA)","線形荷重移動平均(WMA)","指数平滑移動平均(EMA)"],
-        "values": ["simple","w","exp"]
-      },
-      "default": "simple"
-    },
-    {
-      "name": "alpha",
+      "name": "t",
       "type": "string",
-      "label": "smoothing coefficient (if EMA)",
-      "optional": true
+      "label": "期間数",
+      "default": 5
     },
     {
       "name": "precision",
@@ -155,8 +145,8 @@
     ]
   ],
   "version": "0.7.0",
-  "label": "移動平均",
+  "label": "移動窓の統計量の計算_fixedinterval",
   "classification": "calculation",
-  "description": "複数列の計算を、同一の式を全ての列に適用して行う。",
+  "description": "移動窓を設定し、各種統計量(1変量)を計算する。",
   "url": "./static/pdf/mcmd/calculation/mcal.pdf"
 }

@@ -1,15 +1,15 @@
 {
-  "id": "mvavg",
+  "id": "mvavg_fixed",
   "groups": [
     {
       "name": "group1",
       "label": "対象列の設定",
-      "params": ["s", "k", "fatlist", "q"]
+      "params": ["s", "k", "falist", "q"]
     },
     {
       "name": "group2",
       "label": "計算の共通設定",
-      "params": ["type", "alpha"]
+      "params": ["type", "alpha", "t"]
     },
     {
       "name": "group3",
@@ -40,7 +40,7 @@
       "label": "key field"
     },    
     {
-      "name": "fatlist",
+      "name": "falist",
       "type": "list",
       "label": "移動平均対象列名と結果列名",
       "elements": [
@@ -53,14 +53,15 @@
           "name": "a",
           "type": "string",
           "label": "結果列名"
-        },
-        {
-          "name": "t",
-          "type": "string",
-          "label": "期間数"
         }
       ],
       "default": [{"f": "", "a": "", "t": ""}]
+    },
+    {
+      "name": "t",
+      "type": "string",
+      "label": "期間数",
+      "default": 5
     },
     {
       "name": "q",
@@ -155,7 +156,7 @@
     ]
   ],
   "version": "0.7.0",
-  "label": "移動平均",
+  "label": "移動平均_fixedinterval",
   "classification": "calculation",
   "description": "複数列の計算を、同一の式を全ての列に適用して行う。",
   "url": "./static/pdf/mcmd/calculation/mcal.pdf"
