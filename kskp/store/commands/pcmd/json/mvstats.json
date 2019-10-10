@@ -8,7 +8,7 @@
     },
     {
       "name": "group2",
-      "label": "計算の設定",
+      "label": "計算の共通設定",
       "params": ["c"]
     },
     {

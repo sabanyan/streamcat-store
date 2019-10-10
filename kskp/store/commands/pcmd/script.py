@@ -481,6 +481,74 @@ class MvAvgCommand(Command):
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
 
+class MvAvgFixedCommand(Command):
+    def __init__(self):
+        super().__init__()
+        self.i_ports = [Port('i', 'frame')]
+        self.o_ports = [Port('o', 'frame')]
+
+    def run(self, args, inputs):
+
+        cmd_o = None
+        cmd_o <<= nm.mread(inputs)
+
+        # copy target  column into 'a' field
+        for fadict in args.pop('falist'):
+            arg = args.copy()
+
+            cmd_o <<= nm.mcal(a = fadict['a'], c = '${%s}' % fadict['f'])
+            
+            arg['f'] = fadict['a']
+
+            mvavgtype = arg.pop('type')
+            if mvavgtype != 'simple':
+                arg[mvavgtype] = True
+
+            # arg['t'] = fatdict['t']
+            
+            # sortasnum = args.pop('s_num')
+            # if sortasnum:
+            #     args['s'] += '%n'
+
+            # perform mmvavg on field specified by 'a' field, with skip = 0
+            cmd_o <<= nm.mmvavg({'skip': 0, **arg})
+
+        # pass output
+        nysol_module_o= NysolModule()
+        nysol_module_o.set_content(cmd_o)
+        return {'o': nysol_module_o}
+
+class MvStatsFixedCommand(Command):
+    def __init__(self):
+        super().__init__()
+        self.i_ports = [Port('i', 'frame')]
+        self.o_ports = [Port('o', 'frame')]
+
+    def run(self, args, inputs):
+        cmd_o = None
+
+        cmd_o <<= nm.mread(inputs)
+
+        for facdict in args.pop('faclist'):
+            arg = args.copy()
+
+            cmd_o <<= nm.mcal(a = facdict['a'], c = '${%s}' % facdict['f'])
+            
+            arg['f'] = facdict['a']
+
+            arg['c'] = facdict['c']
+            # sortasnum = args.pop('s_num')
+            # if sortasnum:
+            #     args['s'] += '%n'
+
+            # perform mmvstats on field specified by 'a' field, with skip = 0
+            cmd_o <<= nm.mmvstats({'skip': 0, **arg})
+
+        # pass output
+        nysol_module_o= NysolModule()
+        nysol_module_o.set_content(cmd_o)
+        return {'o': nysol_module_o}
+        
 class MvStatsCommand(Command):
     def __init__(self):
         super().__init__()
@@ -504,7 +572,7 @@ class MvStatsCommand(Command):
             # if sortasnum:
             #     args['s'] += '%n'
 
-            # perform mmvavg on field specified by 'a' field, with skip = 0
+            # perform mmvstats on field specified by 'a' field, with skip = 0
             cmd_o <<= nm.mmvstats({'skip': 0, **arg})
 
         # pass output
