@@ -4,7 +4,7 @@
     {
       "name": "group1",
       "label": "対象列の設定",
-      "params": ["s", "k", "fatlist", "q"]
+      "params": ["s", "s_num", "s_desc", "k", "fatlist"]
     },
     {
       "name": "group2",
@@ -33,6 +33,20 @@
       "name": "s",
       "type": "string",
       "label" : "Field to sort"
+    },    
+    {
+      "name": "s_num",
+      "type": "boolean",
+      "label" : "Sort field as numbers",
+      "default": false,
+      "optional": true
+    },
+    {
+      "name": "s_desc",
+      "type": "boolean",
+      "label" : "Sort in descending order",
+      "default": false,
+      "optional": true
     },
     {
       "name": "k",

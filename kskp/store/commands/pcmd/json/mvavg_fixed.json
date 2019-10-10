@@ -4,7 +4,7 @@
     {
       "name": "group1",
       "label": "対象列の設定",
-      "params": ["s", "s_num", "s_desc", "k", "falist"]
+      "params": ["s", "s_num", "s_desc", "k", "f", "a"]
     },
     {
       "name": "group2",
@@ -39,12 +39,14 @@
       "name": "s_num",
       "type": "boolean",
       "label" : "Sort field as numbers",
+      "default": false,
       "optional": true
     },
     {
       "name": "s_desc",
       "type": "boolean",
       "label" : "Sort in descending order",
+      "default": false,
       "optional": true
     },
     {
@@ -53,22 +55,14 @@
       "label": "key field"
     },    
     {
-      "name": "falist",
-      "type": "list",
-      "label": "移動平均対象列名と結果列名",
-      "elements": [
-        {
-          "name": "f",
-          "type": "string",
-          "label": "対象列名"
-        },
-        {
-          "name": "a",
-          "type": "string",
-          "label": "結果列名"
-        }
-      ],
-      "default": [{"f": "", "a": ""}]
+      "name": "f",
+      "type": "string",
+      "label": "対象列名・番号"
+    },
+    {
+      "name": "a",
+      "type": "string",
+      "label": "結果列名"
     },
     {
       "name": "t",

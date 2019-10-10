@@ -60,7 +60,7 @@
         {
           "name": "f",
           "type": "string",
-          "label": "対象列名"
+          "label": "対象列名・番号"
         },
         {
           "name": "a",
