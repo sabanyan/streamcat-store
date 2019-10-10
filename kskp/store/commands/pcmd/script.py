@@ -397,10 +397,10 @@ class MultiMcalWCCommand(Command):
             return [int(iter)]
             
     def run(self, args, inputs):
-    #     args format:
-    #         target columns: expressions can use wildcards, and can be separated with commas
-    #         c: operation to be done on each column, operations to be done per target columns should use the token &, which represents the old column name 
-    #         a: output column name (string must include &, default is 'new&')
+        # args format:
+        #     target columns: expressions can use wildcards, and can be separated with commas
+        #     c: operation to be done on each column, operations to be done per target columns should use the token &, which represents the old column name 
+        #     a: output column name (string must include &, default is 'new&')
 
         import fnmatch as fn
 
@@ -411,7 +411,7 @@ class MultiMcalWCCommand(Command):
         self.header = nm.mread(inputs).getline(header=True)
         self.header = next(self.header)
 
-        if 'x' in args.keys():
+        if 'x' in args.keys() and args['x']:
             # parse number expression
             targets_final = self.parse(args.pop('targets').split(','))
 
@@ -451,19 +451,88 @@ class MvAvgCommand(Command):
         self.i_ports = [Port('i', 'frame')]
         self.o_ports = [Port('o', 'frame')]
 
+    def parse(self,iter):
+        return self.parse_internal(iter)
+
+    def parse_internal(self, iter):
+        parsed = []
+
+        if type(iter) == list:
+            for e in iter:
+               parsed += [*self.parse_internal(e)] 
+            return parsed
+
+        elif '-' in iter:
+            [a, b] = iter.split('-')
+            a = self.parse_internal(a)[0]
+            b = self.parse_internal(b)[0]
+
+            if a < b:
+                return range(a, b+1)
+            else:
+                return range(a, b-1, -1)
+
+        elif 'L' in iter:
+            val = len(self.header) - int(iter.strip('L')) - 1
+            return [val]
+
+        elif type(iter) == str:
+            return [int(iter)]
+
     def run(self, args, inputs):
+
+        import fnmatch as fn
 
         cmd_o = None
         cmd_o <<= nm.mread(inputs)
 
+        # sorting parameters
+        sortasnum = args.pop('s_num') if 's_num' in args else False
+        sortdesc = args.pop('s_desc') if 's_desc' in args else False
+
+        if ('s' not in args) or (args['s'] == ''):
+            args['q'] = True
+        elif sortasnum or sortdesc:
+            args['s'] += ('%' + ('n' if sortasnum else '') 
+                + ('r' if sortdesc else ''))
+
+        xoption = args.pop('x') if 'x' in args else False
+
+        # get index of columns
+        self.header = nm.mread(inputs).getline(header=True)
+        self.header = next(self.header)
+
+        fatlist = []
+
+        for fatargs in args.pop('fatlist'):
+            fs = fatargs.pop('f').split(',')
+            aexp = fatargs.pop('a')
+            if xoption:
+                # parsing number expressions
+                targets = self.parse(fs)
+
+                for colnum in targets:
+                    fatlist.append({'f': self.header[colnum], 
+                        'a': aexp.replace('&', self.header[colnum]), **fatargs})
+            else:
+                # parse wildcard/list expressions here
+
+                targets = [a for a in self.header for f in fs 
+                    if fn.fnmatch(a, f)]
+                
+                for colname in targets:
+                    fatlist.append({'f': colname, 
+                        'a': aexp.replace('&', colname), **fatargs})
+
+
         # copy target  column into 'a' field
-        for fatdict in args.pop('fatlist'):
+        for fatdict in fatlist:
             arg = args.copy()
 
-            cmd_o <<= nm.mcal(a = fatdict['a'], c = '${%s}' % fatdict['f'])
+            cmd_o <<= nm.mcal(a = fatdict['a'], c = '${%s}' % fatdict['f']) 
             
             arg['f'] = fatdict['a']
-
+            
             mvavgtype = arg.pop('type')
             if mvavgtype != 'simple':
                 arg[mvavgtype] = True
@@ -487,30 +556,91 @@ class MvAvgFixedCommand(Command):
         self.i_ports = [Port('i', 'frame')]
         self.o_ports = [Port('o', 'frame')]
 
+    def parse(self,iter):
+        return self.parse_internal(iter)
+
+    def parse_internal(self, iter):
+        parsed = []
+
+        if type(iter) == list:
+            for e in iter:
+               parsed += [*self.parse_internal(e)] 
+            return parsed
+
+        elif '-' in iter:
+            [a, b] = iter.split('-')
+            a = self.parse_internal(a)[0]
+            b = self.parse_internal(b)[0]
+
+            if a < b:
+                return range(a, b+1)
+            else:
+                return range(a, b-1, -1)
+
+        elif 'L' in iter:
+            val = len(self.header) - int(iter.strip('L')) - 1
+            return [val]
+
+        elif type(iter) == str:
+            return [int(iter)]
+
     def run(self, args, inputs):
 
+        import fnmatch as fn
         cmd_o = None
         cmd_o <<= nm.mread(inputs)
 
-        sortasnum = args.pop('s_num')
-        sortdesc = args.pop('s_desc')
-        if args['s'] == '':
+        sys.__stderr__.write(repr(args))
+
+        # sorting parameters
+        sortasnum = args.pop('s_num') if 's_num' in args else False
+        sortdesc = args.pop('s_desc') if 's_desc' in args else False
+
+        if ('s' not in args) or (args['s'] == ''):
             args['q'] = True
         elif sortasnum or sortdesc:
             args['s'] += ('%' + ('n' if sortasnum else '') 
                 + ('r' if sortdesc else ''))
 
+        # mvavg kind parameters
         mvavgtype = args.pop('type')
         if mvavgtype != 'simple':
             args[mvavgtype] = True
-        if mvavgtype != 'exp':
+        if (mvavgtype != 'exp') and ('alpha' in args):
             args.pop('alpha')
 
-        # copy target  column into 'a' field
-        for fadict in args.pop('falist'):
+        xoption = args.pop('x') if 'x' in args else False
+
+        # get index of columns
+        self.header = nm.mread(inputs).getline(header=True)
+        self.header = next(self.header)
+
+        falist = []
+        fs = args.pop('f').split(',')
+        aexp = args.pop('a')
+        if xoption:
+            # parsing number expressions
+            targets = self.parse(fs)
+
+            for colnum in targets:
+                falist.append({'f': self.header[colnum], 
+                    'a': aexp.replace('&', self.header[colnum])})
+        else:
+            # parse wildcard/list expressions here
+            targets = [a for a in self.header for f in fs 
+                if fn.fnmatch(a, f)]
+
+            for colname in targets:
+                falist.append({'f': colname, 
+                    'a': aexp.replace('&', colname)})
+
+        # iterate over processed list        
+        for fadict in falist:
             arg = args.copy()
 
-            cmd_o <<= nm.mcal(a = fadict['a'], c = '${%s}' % fadict['f'])
+            # copy target  column into 'a' field
+            cmd_o <<= nm.mcal(a = fadict['a'], c = '${%s}' % fadict['f'],
+                x = arg.pop('x') if 'x' in arg else False)
             
             arg['f'] = fadict['a']
 
