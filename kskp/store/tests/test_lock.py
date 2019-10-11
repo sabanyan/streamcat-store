@@ -36,11 +36,11 @@ class LockManagerTest(unittest.TestCase):
         ロックの取得と解除
         """
         # ロックを取得する
-        lock_for = str(uuid.uuid4())
-        lock = self.lock_manager.lock(lock_for, creator=1)
+        target = str(uuid.uuid4())
+        lock = self.lock_manager.lock(target, creator=1)
         # 正常にロックが取得できることを確認する
         self.assertIsNotNone(lock.uuid)
-        self.assertEqual(lock.lock_for, lock_for)
+        self.assertEqual(lock.target, target)
         self.assertEqual(lock.creator, 1)
         self.assertIsNotNone(lock.created_at)
         # 取得したロックUUIDはLockManagerが管理している
@@ -55,16 +55,16 @@ class LockManagerTest(unittest.TestCase):
         複数回のロックはできない
         """
         # ロックを取得する
-        lock_for = str(uuid.uuid4())
-        lock = self.lock_manager.lock(lock_for, creator=1)
+        target = str(uuid.uuid4())
+        lock = self.lock_manager.lock(target, creator=1)
         # 正常にロックが取得できることを確認する
         self.assertIsNotNone(lock.uuid)
-        self.assertEqual(lock.lock_for, lock_for)
+        self.assertEqual(lock.target, target)
         self.assertEqual(lock.creator, 1)
         self.assertIsNotNone(lock.created_at)
         # 同じユーザで、同じDatum UUIDでも複数回ロックはできない
         with self.assertRaises(LockedDatumException):
-            self.lock_manager.lock(lock_for, creator=1)
+            self.lock_manager.lock(target, creator=1)
         # ロックを解除する
         self.lock_manager.unlock(lock.uuid)
 
@@ -81,20 +81,20 @@ class LockManagerTest(unittest.TestCase):
         ロック解除後はロックできる
         """
         # ロックを取得する
-        lock_for = str(uuid.uuid4())
-        lock = self.lock_manager.lock(lock_for, creator=1)
+        target = str(uuid.uuid4())
+        lock = self.lock_manager.lock(target, creator=1)
         # 正常にロックが取得できることを確認する
         self.assertIsNotNone(lock.uuid)
-        self.assertEqual(lock.lock_for, lock_for)
+        self.assertEqual(lock.target, target)
         self.assertEqual(lock.creator, 1)
         self.assertIsNotNone(lock.created_at)
         # ロックを解除する
         self.lock_manager.unlock(lock.uuid)
         # 同じデータを再びロックする
-        lock = self.lock_manager.lock(lock_for, creator=1)
+        lock = self.lock_manager.lock(target, creator=1)
         # 正常にロックが取得できることを確認する
         self.assertIsNotNone(lock.uuid)
-        self.assertEqual(lock.lock_for, lock_for)
+        self.assertEqual(lock.target, target)
         self.assertEqual(lock.creator, 1)
         self.assertIsNotNone(lock.created_at)
 
@@ -111,11 +111,48 @@ class LockManagerTest(unittest.TestCase):
                 print(f'Begin : {self.getName()}')
                 # ロッを取得する
                 print(f'Lock  : {self.getName()}')
-                lock_for = str(uuid.uuid4())
-                lock = self.lock_manager.lock(lock_for, 1)
+                target = str(uuid.uuid4())
+                lock = self.lock_manager.lock(target, 1)
                 # ロックを解除する
                 print(f'Unlock: {self.getName()}')
                 self.lock_manager.unlock(lock.uuid)
 
         for i in range(10):
             LockRunner(name=str(i)).start()
+
+    def test_simulutaneous_lock2(self):
+        from kskp.store import Datum, Folder, Flow
+        from threading import Thread
+        class Worker():
+            # Lock Managerを作成する
+            lock_manager = LockManager()
+
+            def run(self, q):
+                # ロッを取得する
+                print(f'Lock')
+                lock = self.lock_manager.lock(str(uuid.uuid4()), 1)
+                # 寝る
+                import time
+                time.sleep(1)
+                # ロックを解除する
+                print(f'Unlock')
+                self.lock_manager.unlock(lock.uuid)
+                # 
+                q.get()
+                q.task_done()
+
+        worker = Worker()
+
+        import multiprocessing
+        q =  multiprocessing.JoinableQueue()
+
+        # マルチスレッドテストを実行する
+        for i in range(10):
+            from kskp.store import ss
+            q.put(i)
+            process = multiprocessing.Process(target=worker.run, name=str(i), args=(q, ))
+            process.start()
+
+        # 全てのスレッドの終了をまつ
+        q.join()
+
