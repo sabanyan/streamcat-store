@@ -314,6 +314,13 @@ class CsvtoRepetitivieWaveform(VisualizersBokehPlot):
 
         # 共通パラメーター
         frame_uuid = inputs.get('i')
+
+        # 軸の設定
+        self.column_name_x_axis = args.get('x_axis')
+        self.column_name_values = args.get('y_axis')
+        self.x_axis_label = args.get('x_label')
+        self.y_axis_label = args.get('y_label')
+
         # offset対応
         offset = int(args.get('offset')) if args.get('offset') else 0
         limit = int(args.get('limit')) if args.get('limit') else None
