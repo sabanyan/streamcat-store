@@ -554,7 +554,7 @@ class MvAvgCommand(Command):
         return {'o': nysol_module_o}
 
 
-class MvStatsFixedCommand(Command):
+class MvStatsCommand(Command):
     def __init__(self):
         super().__init__()
         self.i_ports = [Port('i', 'frame')]
@@ -594,11 +594,13 @@ class MvStatsFixedCommand(Command):
         # f is a wildcard/number expression
         # a is a colname that may have & in it
         # c specifies the statistic to be taken (list not allowed)
-        faclist = []
-        for arglist in args.pop('faclist'):
+        factlist = []
+        for arglist in args.pop('factlist'):
             fs = arglist.pop('f').split(',')
             aexp = arglist.pop('a')
             ops = arglist.pop('c').split(',')
+            ts = arglist.pop('t').split(',')
+
             if xoption:
                 # parse number expression
                 targets = []
@@ -607,68 +609,36 @@ class MvStatsFixedCommand(Command):
                     sys.__stderr__.write(repr(f))
                     targets += list(f) if type(f) is range else [f]
 
-                # targets is a list of column numbers parsed from expression
-                for colnum in targets:
-                    for op in ops:
-                        faclist.append({'f': self.header[colnum], 
-                            'a': aexp.replace('&', self.header[colnum]).replace('#', op), 
-                            'c': op})
+                colnames = [self.header[num] for num in targets]
 
             else:
                 # parse wildcard, list expression
-                targets = [a for a in self.header for f in fs 
+                colnames = [a for a in self.header for f in fs 
                     if fn.fnmatch(a, f)]
                 
-                for colname in targets:
-                    for op in ops:
-                        faclist.append({'f': colname, 
-                            'a': aexp.replace('&', colname).replace('#', op), 
-                            'c': op})
+            for colname in colnames:
+                for op in ops:
+                    for t in ts:
+                        factlist.append({'f': colname, 
+                            'a': aexp.replace('&', colname).replace('%', op).replace('#',t), 
+                            'c': op,
+                            't': t})
 
 
         # faclist is now a list of dictionaries of fac options:
         # [{'f': 'f1', 'a': 'a1', 'c': 'c1'},
         #  {'f': 'f2', 'a': 'a2', 'c': 'c2'},
         #  ...]
-        for facdict in faclist:
+        for factdict in factlist:
             arg = args.copy()
 
-            cmd_o <<= nm.mcal(a = facdict['a'], c = '${%s}' % facdict['f'])
+            cmd_o <<= nm.mcal(a = factdict['a'], c = '${%s}' % factdict['f'])
             
-            arg['f'] = facdict['a']
+            arg['f'] = factdict['a']
 
-            arg['c'] = facdict['c']
+            arg['c'] = factdict['c']
 
-            # perform mmvstats on field specified by 'a' field, with skip = 0
-            cmd_o <<= nm.mmvstats({'skip': 0, **arg})
-
-        # pass output
-        nysol_module_o= NysolModule()
-        nysol_module_o.set_content(cmd_o)
-        return {'o': nysol_module_o}
-        
-class MvStatsCommand(Command):
-    def __init__(self):
-        super().__init__()
-        self.i_ports = [Port('i', 'frame')]
-        self.o_ports = [Port('o', 'frame')]
-
-    def run(self, args, inputs):
-        cmd_o = None
-
-        cmd_o <<= nm.mread(inputs)
-
-        for fatdict in args.pop('fatlist'):
-            arg = args.copy()
-
-            cmd_o <<= nm.mcal(a = fatdict['a'], c = '${%s}' % fatdict['f'])
-            
-            arg['f'] = fatdict['a']
-
-            arg['t'] = fatdict['t']
-            # sortasnum = args.pop('s_num')
-            # if sortasnum:
-            #     args['s'] += '%n'
+            arg['t'] = factdict['t']
 
             # perform mmvstats on field specified by 'a' field, with skip = 0
             cmd_o <<= nm.mmvstats({'skip': 0, **arg})

@@ -174,5 +174,5 @@
   "label": "複数列の移動平均",
   "classification": "calculation",
   "description": "単純移動平均( SMA )、線形荷重移動平均( WMA )、指数平滑移動平均( EMA )の３手法が可能。複数列、複数の期間に対して一括で計算できる。",
-  "url": "./static/pdf/mcmd/calculation/mmvavg.pdf"
+  "url": ""
 }

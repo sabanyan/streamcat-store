@@ -1,5 +1,5 @@
 {
-  "id": "mvstats_fixed",
+  "id": "mvstats",
   "groups": [
     {
       "name": "group1",
@@ -14,12 +14,7 @@
     {
       "name": "group3",
       "label": "計算対象列と追加列名の設定（必須）",
-      "params": ["faclist"]
-    },
-    {
-      "name": "group4",
-      "label": "計算の共通設定",
-      "params": ["t"]
+      "params": ["factlist"]
     },
     {
       "name": "group5",
@@ -51,9 +46,9 @@
       "label": "グループ化する列（カンマ区切りで複数指定可）"
     },
     {
-      "name": "faclist",
+      "name": "factlist",
       "type": "list",
-      "label": "【対象列名】（列名時:*,？,[...] 使用可）（項目番号時:0−3,5,0L 等使用可）と【統計量】（１以上の整数をカンマ区切りで統計量指定可）と【結果列名】（&:元の列名を表す記号）（#:統計量を表わす記号）",
+      "label": "【対象列名】（列名時:*,？,[...] 使用可）（項目番号時:0−3,5,0L 等使用可）と【統計量】（１以上の整数をカンマ区切りで統計量指定可。指定可能統計量:sum, mean, devsq, var, uvar, sd, usd, cv, min, max, range, skew, uskew, kurt, ukurt）と【期間数】（１以上の整数をカンマ区切りで複数指定可）と【結果列名】（&:元の列名を表す記号）（%:統計量を表わす記号）（#:期間数を表わす記号）",
       "elements": [
         {
           "name": "f",
@@ -66,18 +61,17 @@
           "label": "統計量"
         },
         {
+          "name": "t",
+          "type": "string",
+          "label": "期間数（１以上の整数）"
+        },
+        {
           "name": "a",
           "type": "string",
           "label": "結果列名"
         }
       ],
-      "default": [{"f": "", "a": "", "c": ""}]
-    },
-    {
-      "name": "t",
-      "type": "string",
-      "label": "期間数（１以上の整数）",
-      "default": 5
+      "default": [{"f": "", "a": "", "c": "", "t": ""}]
     },
     {
       "name": "precision",
@@ -150,8 +144,8 @@
     ]
   ],
   "version": "0.7.0",
-  "label": "移動窓の統計量の計算_fixedinterval",
+  "label": "複数列の移動窓の統計量の計算",
   "classification": "calculation",
-  "description": "移動窓を設定し、各種統計量(1変量)を計算する。",
-  "url": "./static/pdf/mcmd/calculation/mcal.pdf"
+  "description": "移動窓を設定し、各種統計量(1変量)を計算する。複数列、複数の統計量を複数の期間に対して、一括で計算できる。",
+  "url": ""
 }
