@@ -70,7 +70,7 @@
         {
           "name": "c",
           "type": "string",
-          "label": "統計量 *probably best if this is a dropdown"
+          "label": "統計量"
         }
       ],
       "default": [{"f": "", "a": "", "c": ""}]
