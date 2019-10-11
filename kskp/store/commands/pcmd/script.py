@@ -487,14 +487,14 @@ class MvAvgCommand(Command):
         cmd_o <<= nm.mread(inputs)
 
         # sorting parameters
-        sortasnum = args.pop('s_num') if 's_num' in args else False
-        sortdesc = args.pop('s_desc') if 's_desc' in args else False
+        # sortasnum = args.pop('s_num') if 's_num' in args else False
+        # sortdesc = args.pop('s_desc') if 's_desc' in args else False
 
         if ('s' not in args) or (args['s'] == ''):
             args['q'] = True
-        elif sortasnum or sortdesc:
-            args['s'] += ('%' + ('n' if sortasnum else '') 
-                + ('r' if sortdesc else ''))
+        # elif sortasnum or sortdesc:
+        #     args['s'] += ('%' + ('n' if sortasnum else '') 
+        #         + ('r' if sortdesc else ''))
 
         xoption = args.pop('x') if 'x' in args else False
 
@@ -515,8 +515,8 @@ class MvAvgCommand(Command):
                 for colnum in targets:
                     for interval in ts: 
                         fatlist.append({'f': self.header[colnum], 
-                            'a': aexp.replace('&', self.header[colnum]).replace('#', interval), 
-                            't': interval})
+                         'a': aexp.replace('&', self.header[colnum]).replace('#', interval), 
+                         't': interval})
             else:
                 # parse wildcard/list expressions here
 
@@ -526,9 +526,14 @@ class MvAvgCommand(Command):
                 for colname in targets:
                     for interval in ts:
                         fatlist.append({'f': colname, 
-                            'a': aexp.replace('&', colname).replace('#', interval), 
-                            't': interval})
+                         'a': aexp.replace('&', colname).replace('#', interval), 
+                         't': interval})
 
+        mvavgtype = args.pop('type')
+        if mvavgtype != 'simple':
+            args[mvavgtype] = True
+        if mvavgtype != 'exp':
+            del args['alpha']
 
         # copy target  column into 'a' field
         for fatdict in fatlist:
@@ -537,15 +542,8 @@ class MvAvgCommand(Command):
             cmd_o <<= nm.mcal(a = fatdict['a'], c = '${%s}' % fatdict['f']) 
             
             arg['f'] = fatdict['a']
-            
-            mvavgtype = arg.pop('type')
-            if mvavgtype != 'simple':
-                arg[mvavgtype] = True
 
             arg['t'] = fatdict['t']
-            # sortasnum = args.pop('s_num')
-            # if sortasnum:
-            #     args['s'] += '%n'
 
             # perform mmvavg on field specified by 'a' field, with skip = 0
             cmd_o <<= nm.mmvavg({'skip': 0, **arg})

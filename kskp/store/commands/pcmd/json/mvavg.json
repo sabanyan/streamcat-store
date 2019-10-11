@@ -14,7 +14,7 @@
     {
       "name": "group2",
       "label": "時系列の設定（省略可）",
-      "params": ["s", "s_num", "s_desc"]
+      "params": ["s"]
     },
     {
       "name": "group3",
@@ -47,21 +47,7 @@
     {
       "name": "s",
       "type": "string",
-      "label" : "ソートする列（カンマ区切りで複数指定可）"
-    },    
-    {
-      "name": "s_num",
-      "type": "boolean",
-      "label" : "文字列ではなく、数値としてソートする",
-      "default": false,
-      "optional": true
-    },
-    {
-      "name": "s_desc",
-      "type": "boolean",
-      "label" : "昇順ではなく、降順でソートする",
-      "default": false,
-      "optional": true
+      "label" : "ソートする列（カンマ区切りで複数指定可）（末尾に付与:無しは文字列の昇順、%nは数値の昇順、%rは文字列の降順、%nrは数値の降順）"
     },
     {
       "name": "k",
