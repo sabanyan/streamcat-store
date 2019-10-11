@@ -507,13 +507,16 @@ class MvAvgCommand(Command):
         for fatargs in args.pop('fatlist'):
             fs = fatargs.pop('f').split(',')
             aexp = fatargs.pop('a')
+            ts = fatargs.pop('t').split(',')
             if xoption:
                 # parsing number expressions
                 targets = self.parse(fs)
 
                 for colnum in targets:
-                    fatlist.append({'f': self.header[colnum], 
-                        'a': aexp.replace('&', self.header[colnum]), **fatargs})
+                    for interval in ts: 
+                        fatlist.append({'f': self.header[colnum], 
+                            'a': aexp.replace('&', self.header[colnum]).replace('#', interval), 
+                            't': interval})
             else:
                 # parse wildcard/list expressions here
 
@@ -521,8 +524,10 @@ class MvAvgCommand(Command):
                     if fn.fnmatch(a, f)]
                 
                 for colname in targets:
-                    fatlist.append({'f': colname, 
-                        'a': aexp.replace('&', colname), **fatargs})
+                    for interval in ts:
+                        fatlist.append({'f': colname, 
+                            'a': aexp.replace('&', colname).replace('#', interval), 
+                            't': interval})
 
 
         # copy target  column into 'a' field
@@ -550,107 +555,6 @@ class MvAvgCommand(Command):
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
 
-class MvAvgFixedCommand(Command):
-    def __init__(self):
-        super().__init__()
-        self.i_ports = [Port('i', 'frame')]
-        self.o_ports = [Port('o', 'frame')]
-
-    def parse(self,iter):
-        return self.parse_internal(iter)
-
-    def parse_internal(self, iter):
-        parsed = []
-
-        if type(iter) == list:
-            for e in iter:
-               parsed += [*self.parse_internal(e)] 
-            return parsed
-
-        elif '-' in iter:
-            [a, b] = iter.split('-')
-            a = self.parse_internal(a)[0]
-            b = self.parse_internal(b)[0]
-
-            if a < b:
-                return range(a, b+1)
-            else:
-                return range(a, b-1, -1)
-
-        elif 'L' in iter:
-            val = len(self.header) - int(iter.strip('L')) - 1
-            return [val]
-
-        elif type(iter) == str:
-            return [int(iter)]
-
-    def run(self, args, inputs):
-
-        import fnmatch as fn
-
-        cmd_o = None
-        cmd_o <<= nm.mread(inputs)
-
-        # sorting parameters
-        sortasnum = args.pop('s_num') if 's_num' in args else False
-        sortdesc = args.pop('s_desc') if 's_desc' in args else False
-
-        if ('s' not in args) or (args['s'] == ''):
-            args['q'] = True
-        elif sortasnum or sortdesc:
-            args['s'] += ('%' + ('n' if sortasnum else '') 
-                + ('r' if sortdesc else ''))
-
-        # mvavg kind parameters
-        mvavgtype = args.pop('type')
-        if mvavgtype != 'simple':
-            args[mvavgtype] = True
-        if (mvavgtype != 'exp') and ('alpha' in args):
-            args.pop('alpha')
-
-        xoption = args.pop('x') if 'x' in args else False
-
-        # get index of columns
-        self.header = nm.mread(inputs).getline(header=True)
-        self.header = next(self.header)
-
-        falist = []
-        fs = args.pop('f').split(',')
-        aexp = args.pop('a')
-        if xoption:
-            # parsing number expressions
-            targets = self.parse(fs)
-
-            for colnum in targets:
-                falist.append({'f': self.header[colnum], 
-                    'a': aexp.replace('&', self.header[colnum])})
-        else:
-            # parse wildcard/list expressions here
-            targets = [a for a in self.header for f in fs 
-                if fn.fnmatch(a, f)]
-
-            for colname in targets:
-                falist.append({'f': colname, 
-                    'a': aexp.replace('&', colname)})
-
-        # iterate over processed list        
-        for fadict in falist:
-            arg = args.copy()
-
-            # copy target  column into 'a' field
-            cmd_o <<= nm.mcal(a = fadict['a'], c = '${%s}' % fadict['f'])
-            
-            arg['f'] = fadict['a']
-
-            # arg['t'] = fatdict['t']
-
-            # perform mmvavg on field specified by 'a' field, with skip = 0
-            cmd_o <<= nm.mmvavg({'skip': 0, **arg})
-
-        # pass output
-        nysol_module_o= NysolModule()
-        nysol_module_o.set_content(cmd_o)
-        return {'o': nysol_module_o}
 
 class MvStatsFixedCommand(Command):
     def __init__(self):
