@@ -3,26 +3,36 @@
   "groups": [
     {
       "name": "group1",
-      "label": "対象列の設定",
-      "params": ["s", "s_num", "s_desc", "k", "faclist"]
+      "label": "キー項目の設定（省略可）",
+      "params": ["k"]
     },
     {
       "name": "group2",
+      "label": "時系列の設定（省略可）",
+      "params": ["s"]
+    },
+    {
+      "name": "group3",
+      "label": "計算対象列と追加列名の設定（必須）",
+      "params": ["faclist"]
+    },
+    {
+      "name": "group4",
       "label": "計算の共通設定",
       "params": ["t"]
     },
     {
-      "name": "group3",
-      "label": "列名・項目番号についての設定",
+      "name": "group5",
+      "label": "列名・項目番号についての設定（省略可）",
       "params": ["x", "nfn", "nfno"]
     },
     {
-      "name": "group4",
-      "label": "その他",
+      "name": "group6",
+      "label": "その他（省略可）",
       "params": ["precision", "tmpPath"]
     },
     {
-      "name": "group5",
+      "name": "group7",
       "label": "システム管理用設定（ログ出力）",
       "params": ["assert_diffSize", "assert_nullkey", "assert_nullin",
         "assert_nullout"]
@@ -32,30 +42,18 @@
     {
       "name": "s",
       "type": "string",
-      "label" : "Field to sort",
+      "label" : "ソートする列（カンマ区切りで複数指定可）（末尾に付与:無しは文字列の昇順、%nは数値の昇順、%rは文字列の降順、%nrは数値の降順）",
       "default": ""
-    },
-    {
-      "name": "s_num",
-      "type": "boolean",
-      "label" : "Sort field as numbers",
-      "optional": true
-    },
-    {
-      "name": "s_desc",
-      "type": "boolean",
-      "label" : "Sort in descending order",
-      "optional": true
     },
     {
       "name": "k",
       "type": "string",
-      "label": "key field"
+      "label": "グループ化する列（カンマ区切りで複数指定可）"
     },
     {
       "name": "faclist",
       "type": "list",
-      "label": "移動平均対象列名と結果列名",
+      "label": "【対象列名】（列名時:*,？,[...] 使用可）（項目番号時:0−3,5,0L 等使用可）と【統計量】（１以上の整数をカンマ区切りで統計量指定可）と【結果列名】（&:元の列名を表す記号）（#:統計量を表わす記号）",
       "elements": [
         {
           "name": "f",
@@ -63,14 +61,14 @@
           "label": "対象列名・番号"
         },
         {
-          "name": "a",
-          "type": "string",
-          "label": "結果列名"
-        },
-        {
           "name": "c",
           "type": "string",
           "label": "統計量"
+        },
+        {
+          "name": "a",
+          "type": "string",
+          "label": "結果列名"
         }
       ],
       "default": [{"f": "", "a": "", "c": ""}]
@@ -78,7 +76,7 @@
     {
       "name": "t",
       "type": "string",
-      "label": "期間数",
+      "label": "期間数（１以上の整数）",
       "default": 5
     },
     {

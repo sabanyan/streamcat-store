@@ -563,8 +563,10 @@ class MvStatsFixedCommand(Command):
     def parse(self, exp):
         if '-' in exp:
             lims = [self.parse(num) for num in exp.split('-')]
-            return (range(lims[0], lims[1]+1) if lims[0] > lims[1] else 
-                range(lims[0], lims[1] - 1, -1))
+            if lims[0] < lims[1]:
+                return range(lims[0], lims[1]+1) 
+            else: 
+                return range(lims[0], lims[1] - 1, -1)
         elif 'L' in exp:
             return len(self.header) - int(exp.strip('L')) - 1
         else:
@@ -579,14 +581,9 @@ class MvStatsFixedCommand(Command):
         cmd_o <<= nm.mread(inputs)
             
         # sorting parameters
-        sortasnum = args.pop('s_num') if 's_num' in args else False
-        sortdesc = args.pop('s_desc') if 's_desc' in args else False
 
-        if  args['s'] == '':
+        if 's' not in args or (args['s'] == ''):
             args['q'] = True
-        elif sortasnum or sortdesc:
-            args['s'] += ('%' + ('n' if sortasnum else '') 
-                + ('r' if sortdesc else ''))
 
         # get index of columns
         self.header = nm.mread(inputs).getline(header=True)
@@ -601,18 +598,21 @@ class MvStatsFixedCommand(Command):
         for arglist in args.pop('faclist'):
             fs = arglist.pop('f').split(',')
             aexp = arglist.pop('a')
+            ops = arglist.pop('c').split(',')
             if xoption:
                 # parse number expression
                 targets = []
                 for f in fs:
                     f = self.parse(f)
                     sys.__stderr__.write(repr(f))
-                    targets.append(*list(f) if type(f) is range else f)
+                    targets += list(f) if type(f) is range else [f]
 
                 # targets is a list of column numbers parsed from expression
                 for colnum in targets:
-                    faclist.append({'f': self.header[colnum], 
-                        'a': aexp.replace('&', self.header[colnum]), **arglist})
+                    for op in ops:
+                        faclist.append({'f': self.header[colnum], 
+                            'a': aexp.replace('&', self.header[colnum]).replace('#', op), 
+                            'c': op})
 
             else:
                 # parse wildcard, list expression
@@ -620,15 +620,16 @@ class MvStatsFixedCommand(Command):
                     if fn.fnmatch(a, f)]
                 
                 for colname in targets:
-                    faclist.append({'f': colname, 
-                        'a': aexp.replace('&', colname), **arglist})
+                    for op in ops:
+                        faclist.append({'f': colname, 
+                            'a': aexp.replace('&', colname).replace('#', op), 
+                            'c': op})
 
 
         # faclist is now a list of dictionaries of fac options:
         # [{'f': 'f1', 'a': 'a1', 'c': 'c1'},
         #  {'f': 'f2', 'a': 'a2', 'c': 'c2'},
         #  ...]
-        sys.__stderr__.write(repr(faclist))
         for facdict in faclist:
             arg = args.copy()
 
@@ -637,7 +638,6 @@ class MvStatsFixedCommand(Command):
             arg['f'] = facdict['a']
 
             arg['c'] = facdict['c']
-
 
             # perform mmvstats on field specified by 'a' field, with skip = 0
             cmd_o <<= nm.mmvstats({'skip': 0, **arg})
