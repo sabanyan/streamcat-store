@@ -1,28 +1,43 @@
 {
-  "id": "mvavg",
+  "id": "mvavg",  
+  "rules": {
+    "fatlist":{
+      "presence": {"allowEmpty": false}
+    }
+  },
   "groups": [
     {
       "name": "group1",
-      "label": "対象列の設定",
-      "params": ["s", "s_num", "s_desc", "k", "fatlist"]
+      "label": "キー項目の設定（省略可）",
+      "params": ["k"]
     },
     {
       "name": "group2",
+      "label": "時系列の設定（省略可）",
+      "params": ["s", "s_num", "s_desc"]
+    },
+    {
+      "name": "group3",
+      "label": "計算対象列と追加列名の設定（必須）",
+      "params": ["fatlist"]
+    },
+    {
+      "name": "group4",
       "label": "計算の共通設定",
       "params": ["type", "alpha"]
     },
     {
-      "name": "group3",
+      "name": "group5",
       "label": "列名・項目番号についての設定",
       "params": ["x", "nfn", "nfno"]
     },
     {
-      "name": "group4",
+      "name": "group6",
       "label": "その他",
       "params": ["precision", "tmpPath"]
     },
     {
-      "name": "group5",
+      "name": "group7",
       "label": "システム管理用設定（ログ出力）",
       "params": ["assert_diffSize", "assert_nullkey", "assert_nullin",
         "assert_nullout"]
@@ -32,31 +47,31 @@
     {
       "name": "s",
       "type": "string",
-      "label" : "Field to sort"
+      "label" : "ソートする列（カンマ区切りで複数指定可）"
     },    
     {
       "name": "s_num",
       "type": "boolean",
-      "label" : "Sort field as numbers",
+      "label" : "文字列ではなく、数値としてソートする",
       "default": false,
       "optional": true
     },
     {
       "name": "s_desc",
       "type": "boolean",
-      "label" : "Sort in descending order",
+      "label" : "昇順ではなく、降順でソートする",
       "default": false,
       "optional": true
     },
     {
       "name": "k",
       "type": "string",
-      "label": "key field"
+      "label": "グループ化する列（カンマ区切りで複数指定可）"
     },    
     {
       "name": "fatlist",
       "type": "list",
-      "label": "移動平均対象列名と結果列名",
+      "label": "【対象列名】（列名時:*,？,[...] 使用可）（項目番号時:0−3,5,0L 等使用可）と【結果列名】（&:元の列名を表す記号）と【期間数】（１以上の整数）",
       "elements": [
         {
           "name": "f",
@@ -85,7 +100,7 @@
     {
       "name": "type",
       "type": "select",
-      "label": "移動平均の種類",
+      "label":  "移動平均手法の選択",
       "options":{
         "labels": ["単純移動平均(SMA)","線形荷重移動平均(WMA)","指数平滑移動平均(EMA)"],
         "values": ["simple","w","exp"]
@@ -95,7 +110,8 @@
     {
       "name": "alpha",
       "type": "string",
-      "label": "smoothing coefficient (if EMA)",
+      "label": "平滑化係数α（指数平滑手法時）",
+      "default": "",
       "optional": true
     },
     {
