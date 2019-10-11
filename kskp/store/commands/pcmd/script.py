@@ -587,10 +587,9 @@ class MvAvgFixedCommand(Command):
     def run(self, args, inputs):
 
         import fnmatch as fn
+
         cmd_o = None
         cmd_o <<= nm.mread(inputs)
-
-        sys.__stderr__.write(repr(args))
 
         # sorting parameters
         sortasnum = args.pop('s_num') if 's_num' in args else False
@@ -639,8 +638,7 @@ class MvAvgFixedCommand(Command):
             arg = args.copy()
 
             # copy target  column into 'a' field
-            cmd_o <<= nm.mcal(a = fadict['a'], c = '${%s}' % fadict['f'],
-                x = arg.pop('x') if 'x' in arg else False)
+            cmd_o <<= nm.mcal(a = fadict['a'], c = '${%s}' % fadict['f'])
             
             arg['f'] = fadict['a']
 
@@ -660,20 +658,76 @@ class MvStatsFixedCommand(Command):
         self.i_ports = [Port('i', 'frame')]
         self.o_ports = [Port('o', 'frame')]
 
+    def parse(self, exp):
+        if '-' in exp:
+            lims = [self.parse(num) for num in exp.split('-')]
+            return (range(lims[0], lims[1]+1) if lims[0] > lims[1] else 
+                range(lims[0], lims[1] - 1, -1))
+        elif 'L' in exp:
+            return len(self.header) - int(exp.strip('L')) - 1
+        else:
+            return int(exp)
+
+
     def run(self, args, inputs):
+        import fnmatch as fn
+
         cmd_o = None
 
         cmd_o <<= nm.mread(inputs)
             
-        sortasnum = args.pop('s_num')
-        sortdesc = args.pop('s_desc')
+        # sorting parameters
+        sortasnum = args.pop('s_num') if 's_num' in args else False
+        sortdesc = args.pop('s_desc') if 's_desc' in args else False
+
         if  args['s'] == '':
             args['q'] = True
         elif sortasnum or sortdesc:
             args['s'] += ('%' + ('n' if sortasnum else '') 
                 + ('r' if sortdesc else ''))
 
-        for facdict in args.pop('faclist'):
+        # get index of columns
+        self.header = nm.mread(inputs).getline(header=True)
+        self.header = next(self.header)
+
+        xoption = args.pop('x') if 'x' in args else False
+
+        # f is a wildcard/number expression
+        # a is a colname that may have & in it
+        # c specifies the statistic to be taken (list not allowed)
+        faclist = []
+        for arglist in args.pop('faclist'):
+            fs = arglist.pop('f').split(',')
+            aexp = arglist.pop('a')
+            if xoption:
+                # parse number expression
+                targets = []
+                for f in fs:
+                    f = self.parse(f)
+                    sys.__stderr__.write(repr(f))
+                    targets.append(*list(f) if type(f) is range else f)
+
+                # targets is a list of column numbers parsed from expression
+                for colnum in targets:
+                    faclist.append({'f': self.header[colnum], 
+                        'a': aexp.replace('&', self.header[colnum]), **arglist})
+
+            else:
+                # parse wildcard, list expression
+                targets = [a for a in self.header for f in fs 
+                    if fn.fnmatch(a, f)]
+                
+                for colname in targets:
+                    faclist.append({'f': colname, 
+                        'a': aexp.replace('&', colname), **arglist})
+
+
+        # faclist is now a list of dictionaries of fac options:
+        # [{'f': 'f1', 'a': 'a1', 'c': 'c1'},
+        #  {'f': 'f2', 'a': 'a2', 'c': 'c2'},
+        #  ...]
+        sys.__stderr__.write(repr(faclist))
+        for facdict in faclist:
             arg = args.copy()
 
             cmd_o <<= nm.mcal(a = facdict['a'], c = '${%s}' % facdict['f'])
