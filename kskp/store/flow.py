@@ -238,7 +238,9 @@ class Flow(Datum):
         for node in flow_json['nodes']:
             if node['type'] != 'frame':
                 continue
-            if node['cacheCreatedAt'] is not None and node['cacheCreatedAt'] != '':
+            if 'cacheCreatedAt' is node and\
+                node['cacheCreatedAt'] is not None and\
+                node['cacheCreatedAt'] != '':
                 # cacheCreatedAtに日時が入っている場合はキャッシュである
                 continue
             if node['uuid'] is None or node['uuid'] == '':
@@ -258,7 +260,9 @@ class Flow(Datum):
         for node in flow_json['nodes']:
             if node['type'] != 'frame':
                 continue
-            if node['cacheCreatedAt'] is None or node['cacheCreatedAt'] == '':
+            if 'cacheCreatedAt' is not node or\
+                node['cacheCreatedAt'] is None or\
+                node['cacheCreatedAt'] == '':
                 # cacheCreatedAtに日時が入っていない場合は入力フレームである
                 continue
             if node['uuid'] is None or node['uuid'] == '':

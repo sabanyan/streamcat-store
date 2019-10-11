@@ -9,15 +9,15 @@ class LockedDatumException(Exception):
     pass
 
 class Lock():
-    def __init__(self, lock_for, creator, created_at):
+    def __init__(self, target, creator, created_at):
         """
         uuid     : ロックのuuid
-        lock_for : ロック対象のuuid
+        target   : ロック対象のuuid
         creator  : ロックの作成者
         created_at : ロックの作成時刻
         """
         self.uuid = str(uuid.uuid4())
-        self.lock_for = lock_for
+        self.target = target
         self.creator = creator
         self.created_at = created_at
     
@@ -32,14 +32,14 @@ class LockManager():
         self._lock = threading.Lock()
         self._lock_data = {}
 
-    def lock(self, lock_for, creator):
+    def lock(self, target, creator):
         with self._lock:
             for lock in self._lock_data.values():
-                if lock.lock_for == lock_for:
+                if lock.target == target:
                     # ロック失敗 (T_T
-                    raise LockedDatumException(f'Datum ({lock_for}) is already locked')
+                    raise LockedDatumException(f'Datum ({target}) is already locked')
             # ロック成功 !
-            new_lock = Lock(lock_for, creator, datetime.utcnow())
+            new_lock = Lock(target, creator, datetime.utcnow())
             self._lock_data[new_lock.uuid] = new_lock
             return new_lock
 
