@@ -503,16 +503,16 @@ class MvAvgCommand(Command):
 
         # copy target  column into 'a' field
         for fatdict in fatlist:
-            arg = args.copy()
+            # arg = args.copy()
 
             cmd_o <<= nm.mcal(a = fatdict['a'], c = '${%s}' % fatdict['f']) 
             
-            arg['f'] = fatdict['a']
+            fatdict['f'] = fatdict.pop('a')
 
-            arg['t'] = fatdict['t']
+            # arg['t'] = fatdict['t']
 
             # perform mmvavg on field specified by 'a' field, with skip = 0
-            cmd_o <<= nm.mmvavg({'skip': 0, **arg})
+            cmd_o <<= nm.mmvavg({'skip': 0, **args, **fatdict})
 
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
@@ -593,16 +593,14 @@ class MvStatsCommand(Command):
         #  {'f': 'f2', 'a': 'a2', 'c': 'c2'},
         #  ...]
         for factdict in factlist:
-            arg = args.copy()
+            # arg = args.copy()
 
             cmd_o <<= nm.mcal(a = factdict['a'], c = '${%s}' % factdict['f'])
             
-            arg['f'] = factdict['a']
-            arg['c'] = factdict['c']
-            arg['t'] = factdict['t']
+            factdict['f'] = factdict.pop('a')
 
             # perform mmvstats on field specified by 'a' field, with skip = 0
-            cmd_o <<= nm.mmvstats({'skip': 0, **arg})
+            cmd_o <<= nm.mmvstats({'skip': 0, **args, **factdict})
 
         # pass output
         nysol_module_o= NysolModule()
@@ -679,14 +677,14 @@ class MvSimCommand(Command):
         #  {'f': 'f2', 'a': 'a2', 'c': 'c2'},
         #  ...]
         for fatdict in fatlist:
-            arg = args.copy()
+            # arg = args.copy()
             
-            arg['f'] = fatdict['f']
-            arg['a'] = fatdict['a']
-            arg['t'] = fatdict['t']
+            # arg['f'] = fatdict['f']
+            # arg['a'] = fatdict['a']
+            # arg['t'] = fatdict['t']
 
-            # perform mmvstats on field specified by 'a' field, with skip = 0
-            cmd_o <<= nm.mmvsim({'skip': 0, **arg})
+            # perform mmvsim on field specified by 'a' field, with skip = 0
+            cmd_o <<= nm.mmvsim({'skip': 0, **args, **fatdict})
 
         # pass output
         nysol_module_o= NysolModule()
