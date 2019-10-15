@@ -8,9 +8,9 @@ from pathlib import Path
 
 from kskp.core import Datum
 from . import ss as session
-from kskp.store import Folder
+from kskp.store import Folder, Mountable
 
-class AwsS3(Folder):
+class AwsS3(Folder, Mountable):
 
     def __init__(self, parent_uuid, label, bucket_name, creator=None):
         """
@@ -77,7 +77,7 @@ class AwsS3(Folder):
         # フォルダに紐付くディレクトリ(path列で指定されるディレクトリ)がなければ作成する
         self.path = Path(self._make_dir())
         # ここでAWS S3 バケットをマウントする
-        self.mount()
+        self.mount(self._path)
         try:
             # Dataテーブルにレコードを新規追加する
             session.add(self)
@@ -130,7 +130,7 @@ class AwsS3(Folder):
         バケットを削除する
         """
         # 自身のフォルダ以下のフレームが、自身のフォルダ以下以外にあるフローから参照されている場合は、例外を送出する
-        uuids = self._get_flow_uuids_using_other_datum()
+        uuids = self._get_flow_uuids_using_other_datum(self.id)
         if len(uuids) > 0:
             raise Exception(
                 'フロー(%s)で使用しているCSVファイルが登録解除対象になっているため削除できません' % uuids[0])
@@ -144,7 +144,7 @@ class AwsS3(Folder):
             self._remove_reference_only_recursively()
 
             # AWS S3 バケットをマウント解除する
-            self.unmount()
+            self.unmount(self._path)
             # ディレクトリを削除する
             self._remove_dir()
         except Exception as e:
@@ -157,87 +157,13 @@ class AwsS3(Folder):
     def bucket_name(self):
         return self.data2['bucket']
 
-    def mount(self):
-        self_abs_path = Datum._to_abs_path(self._path)
-        path = Path(self_abs_path)
-        if not path.exists():
-            raise Exception('mount point(%s) does not exist' % self_abs_path)
-        elif not path.is_dir():
-            raise Exception('mount point(%s) is not directory' % self_abs_path)
-        elif AwsS3._has_children(path):
-            raise Exception('mount point(%s) has files' % self_abs_path)
-        elif Datum.is_mount(path):
-            # python3.7でis_mount()は追加される
-            raise Exception('mount point(%s) already mounted on' % self_abs_path)
-
+    def _get_mount_cmd(self, mount_point_path):
         # S3をマウントするgoofysコマンドの有無を確認する
         goofys_path = shutil.which('goofys')
         if goofys_path is None:
             raise Exception('AWS S3 mount command, goofys is not found.')
+        return goofys_path + ' %s %s' % (self.bucket_name, mount_point_path)
 
-        try:
-            # goofysコマンドを実行してS3バケットをマウントする
-            # (sudoで実行するとテストでしくじる)
-            goofys_cmd = goofys_path + ' %s %s' % (self.bucket_name, self_abs_path)
-            goofys_ret = AwsS3._exec_command(goofys_cmd)
-            # 念のためWAITを入れています
-            sleep(1)
-        except subprocess.CalledProcessError as e:
-            # error_message = goofys_ret.stderr.decode('utf-8')
-            raise Exception('"goofys" command returned error --> ' + str(e))
-
-    def unmount(self):
-        self_abs_path = Datum._to_abs_path(self._path)
-        path = Path(self_abs_path)
-        if not path.exists():
-            raise Exception('sudo mount point(%s) does not exist' % self_abs_path)
-
-        # python3.7でis_mount()は追加される
-        if not Datum.is_mount(path):
-            return
-
-        try:
-            # マウント解除を実行する
-            # (/etc/sudoersに %admin ALL = (ALL) NOPASSWD:/sbin/umount
-            #  を追加するとテスト実行時にはパスワードを聞かれない)
-            umount_cmd = 'sudo umount %s' % self_abs_path
-            umount_ret= AwsS3._exec_command(umount_cmd)
-
-            # 念のためWAITを入れています
-            sleep(1)
-        except subprocess.CalledProcessError as e:
-            # error_message = umount_ret.stderr.decode('utf-8')
-            raise Exception('"umount" command returned error --> ' + str(e))
-
-
-    def _get_flow_uuids_using_other_datum(self):
-        """
-        自身のエントリ以下にあるFrameとFlowが、自身のエントリ以下以外にあるFlowから参照される、
-        そのようなFlowを全て返す
-        """
-        sql = """
-        WITH RECURSIVE R AS (
-            SELECT id, uuid FROM data WHERE id = {id}
-            UNION ALL
-            SELECT data.id, data.uuid FROM data JOIN R ON data.parent_id = R.id
-        )
-        SELECT uuid FROM data D
-        WHERE type = 'flow'
-        AND NOT
-            EXISTS (SELECT * FROM R
-                    WHERE R.id = D.id)
-        AND EXISTS (SELECT * FROM R
-                    WHERE type in ('flow','frame')
-                      AND to_tsvector(D.data) @@ to_tsquery(cast(R.uuid AS VARCHAR)))
-        """.format(id=self.id)
-        try:
-            results = session.execute(sql)
-            return [result[0] for result in results]
-        except Exception as e:
-            session.rollback()
-            raise e
-        finally:
-            session.commit()
 
     # def _remove_reference_only_recursively(self):
     #     """
@@ -262,20 +188,6 @@ class AwsS3(Folder):
     #     finally:
     #         session.commit()
 
-    @staticmethod
-    def _exec_command(command_line):
-        # S3をマウントするgoofysコマンドの有無を確認する
-        sub = subprocess.run(shlex.split(command_line), stdout = subprocess.PIPE, stderr=subprocess.PIPE)
-        # サブプロセスのリターンコードがNGの場合は例外を送出する
-        sub.check_returncode()
-        # 出力結果を返す
-        return sub
-
-    @staticmethod
-    def _has_children(dir_path):
-        for file in dir_path.glob("*"):
-            return True
-        return False
 
     # import boto3
     # import botocore.exceptions
