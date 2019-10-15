@@ -1,13 +1,13 @@
 from . import ss as session
 
 from kskp.core import Datum
-from kskp.store import Store, Flow, DbConnInfo, STORE_DIR
+from kskp.store import Store, Flow, DatabaseConn, STORE_DIR
 
 class Database(Store):
     """
     Databaseへの接続を表すStore
     """
-    def __init__(self, parent_uuid, label, dbConnInfo, creator=None):
+    def __init__(self, parent_uuid, label, database_conn, creator=None):
         """
         コンストラクタ
         """
@@ -17,9 +17,9 @@ class Database(Store):
         self._path = ''
 
         # data列の値を作成する
-        if dbConnInfo is None:
-            raise Exception('dbConnInfo引数がNoneです')
-        self.data = {'conn' : dbConnInfo.to_json()}
+        if database_conn is None:
+            raise Exception('database_conn引数がNoneです')
+        self.data = {'conn' : database_conn.to_json()}
 
     @staticmethod
     def find_by_uuid(uuid):
@@ -47,8 +47,8 @@ class Database(Store):
     @staticmethod
     def convert_to_database(datum):
         parent_uuid = Datum.get_uuid_by_id(datum.parent_id)
-        db_conn_info = DbConnInfo.from_json(datum.data2['conn'])
-        database = Database(parent_uuid, datum.label, db_conn_info, datum.creator)
+        database_conn = DatabaseConn.from_json(datum.data2['conn'])
+        database = Database(parent_uuid, datum.label, database_conn, datum.creator)
         database.id = datum.id
         database.uuid = datum.uuid
         database._path = datum._path
@@ -74,7 +74,7 @@ class Database(Store):
             session.commit()
 
     @staticmethod
-    def update_data(uuid, label, dbConnInfo, modifier):
+    def update_data(uuid, label, database_conn, modifier):
         """
         Databaseのdata列を更新する
         """
@@ -91,7 +91,7 @@ class Database(Store):
 
         try:
             # レコードを更新する
-            data = {'conn' : dbConnInfo.to_json()}
+            data = {'conn' : database_conn.to_json()}
             session.query(Datum).filter(Datum.uuid==uuid).update({'_label'   :new_label,
                                                                   'data'     :data,
                                                                   'modifier' :modifier})
@@ -158,28 +158,28 @@ class Database(Store):
         pass
 
     def get_database_uri(self):
-        db_conn_info = DbConnInfo.from_json(self.data2['conn'])
-        return db_conn_info.get_database_uri()
+        database_conn = DatabaseConn.from_json(self.data2['conn'])
+        return database_conn.get_database_uri()
 
     def valid_or_raise(self):
         """
         DB接続情報の形式チェックを行い、NGの場合は例外を送出する
         """
-        db_conn_info = DbConnInfo.from_json(self.data2['conn'])
-        return db_conn_info.valid_or_raise()
+        database_conn = DatabaseConn.from_json(self.data2['conn'])
+        return database_conn.valid_or_raise()
 
     def to_json(self):
-        db_conn_info = DbConnInfo.from_json(self.data2['conn'])
+        database_conn = DatabaseConn.from_json(self.data2['conn'])
         
         return {'uuid'      : self.uuid,
                 'type'      : Datum.DATABASE_TYPE,
                 'label'     : self.label,
-                'dbms'      : db_conn_info.dbms,
-                'hostname'  : db_conn_info.hostname,
-                'port'      : db_conn_info.port,
-                'database'  : db_conn_info.database,
-                'user_id'   : db_conn_info.user_id,
-                'password'  : db_conn_info.password,
+                'dbms'      : database_conn.dbms,
+                'hostname'  : database_conn.hostname,
+                'port'      : database_conn.port,
+                'database'  : database_conn.database,
+                'user_id'   : database_conn.user_id,
+                'password'  : database_conn.password,
                 'creator'   : Datum.get_user_name_by_user_id(self.creator),
                 'createdAt' : self.created_at_str}
 

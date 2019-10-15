@@ -1,4 +1,4 @@
-class DbConnInfo():
+class DatabaseConn():
     """
     DBへの接続情報を保持する
     """
@@ -38,12 +38,12 @@ class DbConnInfo():
 
     @staticmethod
     def from_json(conn):
-        return DbConnInfo(conn['dbms'],
-                          conn['hostname'],
-                          conn['port'],
-                          conn['database'],
-                          conn['user_id'],
-                          conn['password'])
+        return DatabaseConn(conn['dbms'],
+                            conn['hostname'],
+                            conn['port'],
+                            conn['database'],
+                            conn['user_id'],
+                            conn['password'])
 
     def to_json(self):
         return {'dbms'     : self.dbms,
