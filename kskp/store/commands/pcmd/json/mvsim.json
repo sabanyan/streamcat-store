@@ -1,10 +1,5 @@
 {
-  "id": "mvavg",  
-  "rules": {
-    "fatlist":{
-      "presence": {"allowEmpty": false}
-    }
-  },
+  "id": "mvsim",
   "groups": [
     {
       "name": "group1",
@@ -19,12 +14,7 @@
     {
       "name": "group3",
       "label": "計算対象列と追加列名の設定（必須）",
-      "params": ["fatlist"]
-    },
-    {
-      "name": "group4",
-      "label": "計算の共通設定（省略可）",
-      "params": ["type", "alpha"]
+      "params": ["fatlist", "c"]
     },
     {
       "name": "group5",
@@ -47,34 +37,28 @@
     {
       "name": "s",
       "type": "string",
-      "label": "ソートする列",
-      "description": "カンマ区切りで複数指定可\n【末尾に付与】:無しは文字列の昇順、%nは数値の昇順、%rは文字列の降順、%nrは数値の降順"
+      "label" : "ソートする列（カンマ区切りで複数指定可）（末尾に付与:無しは文字列の昇順、%nは数値の昇順、%rは文字列の降順、%nrは数値の降順）",
+      "default": ""
     },
     {
       "name": "k",
       "type": "string",
-      "label": "グループ化する列",
-      "description": "カンマ区切りで複数指定可"
-    },    
+      "label": "グループ化する列（カンマ区切りで複数指定可）"
+    },
     {
       "name": "fatlist",
       "type": "list",
-      "label": "計算対象の設定",
-<<<<<<< HEAD
-      "description": "【対象列名】列名時:*,？,[...] 使用可;項目番号時:0−3,5,0L 等使用可\n【期間数】１以上の整数をカンマ区切りで複数指定可\n【結果列名】（&:元の列名を表す記号）（#:期間数を表わす記号）",
-=======
-      "description": "【対象列名】（列名時:*,？,[...] 使用可）（項目番号時:0−3,5,0L 等使用可）\n【期間数】（１以上の整数をカンマ区切りで複数指定可）\n【結果列名】（&:元の列名を表す記号）（#:期間数を表わす記号）",
->>>>>>> Mvsim working
+      "label": "【対象列名】（列名時:*,？,[...] 使用可）（項目番号時:0−3,5,0L 等使用可）と【期間数】（１以上の整数をカンマ区切りで複数指定可）と【結果列名】（#:期間数を表わす記号）",
       "elements": [
         {
           "name": "f",
           "type": "string",
-          "label": "対象列名"
+          "label": "対象列名・番号"
         },
         {
           "name": "t",
           "type": "string",
-          "label": "期間数"
+          "label": "期間数（１以上の整数）"
         },
         {
           "name": "a",
@@ -85,28 +69,13 @@
       "default": [{"f": "", "a": "", "t": ""}]
     },
     {
-      "name": "q",
-      "type": "boolean",
-      "label": "自動並べ替えの無効化",
-      "optional": true
-    },
-    {
-      "name": "type",
+      "name": "c",
       "type": "select",
-      "label":  "移動平均手法の選択",
+      "label": "類似度名を指定",
       "options":{
-        "labels": ["単純移動平均(SMA)","線形荷重移動平均(WMA)","指数平滑移動平均(EMA)"],
-        "values": ["simple","w","exp"]
-      },
-      "default": "simple"
-    },
-    {
-      "name": "alpha",
-      "type": "string",
-      "label": "平滑化係数α",
-      "description": "指数平滑手法時、0~1の実数値、省略時は2/（期間数+1）",
-      "default": "",
-      "optional": true
+        "labels": ["共分散","普偏共分散","ピアソンの積率相関係数","スピアマンの順位相関係数","ケンドールの順位相関係数","ユークリッド距離(数値)","コサイン","都市ブロック距離","ハミング距離","カイ2乗値","ファイ係数","ジャックカード係数","支持度","リフト値"],
+        "values": ["covar","ucovar","pearson","spearman","kendall","euclid","cosine","cityblock","hamming","chi","phi","jaccard","support","lift"]
+      }
     },
     {
       "name": "precision",
@@ -179,8 +148,8 @@
     ]
   ],
   "version": "0.7.0",
-  "label": "複数列の移動平均",
+  "label": "similarity measure of moving windows",
   "classification": "calculation",
-  "description": "単純移動平均( SMA )、線形荷重移動平均( WMA )、指数平滑移動平均( EMA )の３手法が可能。複数列、複数の期間に対して一括で計算できる。",
+  "description": "mmvsim",
   "url": ""
 }

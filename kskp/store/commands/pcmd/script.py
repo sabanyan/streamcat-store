@@ -608,6 +608,90 @@ class MvStatsCommand(Command):
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
+
+
+class MvSimCommand(Command):
+    def __init__(self):
+        super().__init__()
+        self.i_ports = [Port('i', 'frame')]
+        self.o_ports = [Port('o', 'frame')]
+
+    def parse(self, exp):
+        if '-' in exp:
+            lims = [self.parse(num) for num in exp.split('-')]
+            if lims[0] < lims[1]:
+                return range(lims[0], lims[1]+1) 
+            else: 
+                return range(lims[0], lims[1] - 1, -1)
+        elif 'L' in exp:
+            return len(self.header) - int(exp.strip('L')) - 1
+        else:
+            return int(exp)
+
+
+    def run(self, args, inputs):
+        import fnmatch as fn
+
+        cmd_o = None
+        cmd_o <<= nm.mread(inputs)
+            
+        # sorting parameters
+        if 's' not in args or (args['s'] == ''):
+            args['q'] = True
+
+        # get index of columns
+        self.header = nm.mread(inputs).getline(header=True)
+        self.header = next(self.header)
+
+        xoption = args.pop('x') if 'x' in args else False
+
+        # f is a wildcard/number expression
+        # a is a colname that may have & in it
+        # c specifies the statistic to be taken (list not allowed)
+        fatlist = []
+        for arglist in args.pop('fatlist'):
+            fs = arglist.pop('f').split(',')
+            aexp = arglist.pop('a')
+            ts = arglist.pop('t').split(',')
+
+            if xoption:
+                # parse number expression
+                targets = []
+                for f in fs:
+                    f = self.parse(f)
+                    targets += list(f) if type(f) is range else [f]
+
+                colnames = [self.header[num] for num in targets]
+
+            else:
+                # parse wildcard, list expression
+                colnames = [a for a in self.header for f in fs 
+                    if fn.fnmatch(a, f)]
+                
+            for t in ts:
+                fatlist.append({'f': ','.join(colnames), 
+                    'a': aexp.replace('#',t), 
+                    't': t})
+
+
+        # faclist is now a list of dictionaries of fac options:
+        # [{'f': 'f1', 'a': 'a1', 'c': 'c1'},
+        #  {'f': 'f2', 'a': 'a2', 'c': 'c2'},
+        #  ...]
+        for fatdict in fatlist:
+            arg = args.copy()
+            
+            arg['f'] = fatdict['f']
+            arg['a'] = fatdict['a']
+            arg['t'] = fatdict['t']
+
+            # perform mmvstats on field specified by 'a' field, with skip = 0
+            cmd_o <<= nm.mmvsim({'skip': 0, **arg})
+
+        # pass output
+        nysol_module_o= NysolModule()
+        nysol_module_o.set_content(cmd_o)
+        return {'o': nysol_module_o}
         
 class SelRowCommand(RunfuncCommand):
     def __init__(self):
