@@ -132,6 +132,7 @@ class CommandLink:
             'multimcal_oneformula': MultiMcalWCCommand(),
             'mvavg': MvAvgCommand(),
             'mvstats': MvStatsCommand(),
+            'mvsim': MvSimCommand(),
             'selrow': SelRowCommand(),
             # ビジュアライズ
             'csvtohtmltable': CsvToTableCommand(),
