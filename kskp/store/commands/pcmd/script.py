@@ -349,8 +349,6 @@ class MultiMcalCommand(Command):
         for acarg in aclist:
             # one mcal will be added to cmd_o for every pair of c and a arguments passed in a list
 
-            # argdict = {**inputs, **arg}
-            # sys.__stderr__.write(repr(argdict)+'\n')
             if first:
                 cmd_o <<= nm.mcal({**inputs, **acarg, **args}) # {'i' : input, 'c': 'cal1', 'a' : 'col1'}
                 first = False
@@ -368,33 +366,17 @@ class MultiMcalWCCommand(Command):
         self.i_ports = [Port('i', 'frame')]
         self.o_ports = [Port('o', 'frame')]
 
-    def parse(self,iter):
-        return self.parse_internal(iter)
-
-    def parse_internal(self, iter):
-        parsed = []
-
-        if type(iter) == list:
-            for e in iter:
-               parsed += [*self.parse_internal(e)] 
-            return parsed
-
-        elif '-' in iter:
-            [a, b] = iter.split('-')
-            a = self.parse_internal(a)[0]
-            b = self.parse_internal(b)[0]
-
-            if a < b:
-                return range(a, b+1)
-            else:
-                return range(a, b-1, -1)
-
-        elif 'L' in iter:
-            val = len(self.header) - int(iter.strip('L')) - 1
-            return [val]
-
-        elif type(iter) == str:
-            return [int(iter)]
+    def parse(self, exp):
+        if '-' in exp:
+            lims = [self.parse(num) for num in exp.split('-')]
+            if lims[0] < lims[1]:
+                return range(lims[0], lims[1]+1) 
+            else: 
+                return range(lims[0], lims[1] - 1, -1)
+        elif 'L' in exp:
+            return len(self.header) - int(exp.strip('L')) - 1
+        else:
+            return int(exp)
             
     def run(self, args, inputs):
         # args format:
@@ -411,27 +393,34 @@ class MultiMcalWCCommand(Command):
         self.header = nm.mread(inputs).getline(header=True)
         self.header = next(self.header)
 
-        if 'x' in args.keys() and args['x']:
+        xoption = args.pop('x') if 'x' in args else False
+        
+        targs = args.pop('targets').split(',')
+        if xoption:
             # parse number expression
-            targets_final = self.parse(args.pop('targets').split(','))
 
-            # targets_final is now a list of column numbers
+            targets = []
+            for f in targs:
+                f = self.parse(f)
+                targets += list(f) if type(f) is range else [f]
 
+            colnames = [self.header[num] for num in targets]
         else:   
-
             # parse wildcard expression  
-            targets_wc = args.pop('targets').split(',')
+            colnames = [a for a in self.header for target in targs 
+                if fn.fnmatch(a, target)]
 
-            targets = [a for a in self.header for target in targets_wc if fn.fnmatch(a, target)]
 
-            targets_final = [a for a in targets if args['a'].replace('&',a) not in self.header]
-            #targets is now a list of column names to hit with calculation
+        # redundancy check
+        targets_final = [a for a in colnames 
+            if args['a'].replace('&',a) not in self.header]
+        #targets is now a list of column names to hit with calculation
 
         #iterate over entire list and replace the '&' in c and a inputs with column number/name
         for target in targets_final:
             arg = args.copy()
 
-            arg['a'] = arg['a'].replace('&',self.header[target] if 'x' in args.keys() else target)
+            arg['a'] = arg['a'].replace('&', target)
             arg['c'] = arg['c'].replace('&',str(target))
 
             if first:
@@ -451,33 +440,17 @@ class MvAvgCommand(Command):
         self.i_ports = [Port('i', 'frame')]
         self.o_ports = [Port('o', 'frame')]
 
-    def parse(self,iter):
-        return self.parse_internal(iter)
-
-    def parse_internal(self, iter):
-        parsed = []
-
-        if type(iter) == list:
-            for e in iter:
-               parsed += [*self.parse_internal(e)] 
-            return parsed
-
-        elif '-' in iter:
-            [a, b] = iter.split('-')
-            a = self.parse_internal(a)[0]
-            b = self.parse_internal(b)[0]
-
-            if a < b:
-                return range(a, b+1)
-            else:
-                return range(a, b-1, -1)
-
-        elif 'L' in iter:
-            val = len(self.header) - int(iter.strip('L')) - 1
-            return [val]
-
-        elif type(iter) == str:
-            return [int(iter)]
+    def parse(self, exp):
+        if '-' in exp:
+            lims = [self.parse(num) for num in exp.split('-')]
+            if lims[0] < lims[1]:
+                return range(lims[0], lims[1]+1) 
+            else: 
+                return range(lims[0], lims[1] - 1, -1)
+        elif 'L' in exp:
+            return len(self.header) - int(exp.strip('L')) - 1
+        else:
+            return int(exp)
 
     def run(self, args, inputs):
 
@@ -486,15 +459,8 @@ class MvAvgCommand(Command):
         cmd_o = None
         cmd_o <<= nm.mread(inputs)
 
-        # sorting parameters
-        # sortasnum = args.pop('s_num') if 's_num' in args else False
-        # sortdesc = args.pop('s_desc') if 's_desc' in args else False
-
         if ('s' not in args) or (args['s'] == ''):
             args['q'] = True
-        # elif sortasnum or sortdesc:
-        #     args['s'] += ('%' + ('n' if sortasnum else '') 
-        #         + ('r' if sortdesc else ''))
 
         xoption = args.pop('x') if 'x' in args else False
 
@@ -510,24 +476,24 @@ class MvAvgCommand(Command):
             ts = fatargs.pop('t').split(',')
             if xoption:
                 # parsing number expressions
-                targets = self.parse(fs)
+                targets = []
+                for f in fs:
+                    f = self.parse(f)
+                    targets += list(f) if type(f) is range else [f]
 
-                for colnum in targets:
-                    for interval in ts: 
-                        fatlist.append({'f': self.header[colnum], 
-                         'a': aexp.replace('&', self.header[colnum]).replace('#', interval), 
-                         't': interval})
+                colnames = [self.header[num] for num in targets]
+
             else:
                 # parse wildcard/list expressions here
 
-                targets = [a for a in self.header for f in fs 
+                colnames = [a for a in self.header for f in fs 
                     if fn.fnmatch(a, f)]
                 
-                for colname in targets:
-                    for interval in ts:
-                        fatlist.append({'f': colname, 
-                         'a': aexp.replace('&', colname).replace('#', interval), 
-                         't': interval})
+            for colname in colnames:
+                for interval in ts:
+                    fatlist.append({'f': colname, 
+                        'a': aexp.replace('&', colname).replace('#', interval), 
+                        't': interval})
 
         mvavgtype = args.pop('type')
         if mvavgtype != 'simple':
@@ -548,7 +514,6 @@ class MvAvgCommand(Command):
             # perform mmvavg on field specified by 'a' field, with skip = 0
             cmd_o <<= nm.mmvavg({'skip': 0, **arg})
 
-        # pass output
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
@@ -581,7 +546,6 @@ class MvStatsCommand(Command):
         cmd_o <<= nm.mread(inputs)
             
         # sorting parameters
-
         if 's' not in args or (args['s'] == ''):
             args['q'] = True
 
@@ -606,7 +570,6 @@ class MvStatsCommand(Command):
                 targets = []
                 for f in fs:
                     f = self.parse(f)
-                    sys.__stderr__.write(repr(f))
                     targets += list(f) if type(f) is range else [f]
 
                 colnames = [self.header[num] for num in targets]
@@ -635,9 +598,7 @@ class MvStatsCommand(Command):
             cmd_o <<= nm.mcal(a = factdict['a'], c = '${%s}' % factdict['f'])
             
             arg['f'] = factdict['a']
-
             arg['c'] = factdict['c']
-
             arg['t'] = factdict['t']
 
             # perform mmvstats on field specified by 'a' field, with skip = 0
