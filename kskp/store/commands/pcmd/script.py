@@ -645,12 +645,13 @@ class MvSimCommand(Command):
 
         # f is a wildcard/number expression
         # a is a colname that may have & in it
-        # c specifies the statistic to be taken (list not allowed)
-        fatlist = []
-        for arglist in args.pop('fatlist'):
+        # c specifies the statistic to be taken 
+        factlist = []
+        for arglist in args.pop('factlist'):
             fs = arglist.pop('f').split(',')
             aexp = arglist.pop('a')
             ts = arglist.pop('t').split(',')
+            ops = arglist.pop('c').split(',')
 
             if xoption:
                 # parse number expression
@@ -666,17 +667,19 @@ class MvSimCommand(Command):
                 colnames = [a for a in self.header for f in fs 
                     if fn.fnmatch(a, f)]
                 
-            for t in ts:
-                fatlist.append({'f': ','.join(colnames), 
-                    'a': aexp.replace('#',t), 
-                    't': t})
+            for op in ops:
+                for t in ts:
+                    factlist.append({'f': ','.join(colnames), 
+                        'a': aexp.replace('#',t).replace('%',op), 
+                        'c': op,
+                        't': t})
 
 
         # faclist is now a list of dictionaries of fac options:
         # [{'f': 'f1', 'a': 'a1', 'c': 'c1'},
         #  {'f': 'f2', 'a': 'a2', 'c': 'c2'},
         #  ...]
-        for fatdict in fatlist:
+        for factdict in factlist:
             # arg = args.copy()
             
             # arg['f'] = fatdict['f']
@@ -684,7 +687,7 @@ class MvSimCommand(Command):
             # arg['t'] = fatdict['t']
 
             # perform mmvsim on field specified by 'a' field, with skip = 0
-            cmd_o <<= nm.mmvsim({'skip': 0, **args, **fatdict})
+            cmd_o <<= nm.mmvsim({'skip': 0, **args, **factdict})
 
         # pass output
         nysol_module_o= NysolModule()
