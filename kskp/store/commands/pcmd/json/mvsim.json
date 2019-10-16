@@ -51,12 +51,12 @@
       "name": "factlist",
       "type": "list",
       "label": "計算対象の設定",
-      "description": "【対象列名】（列名時:*,？,[...] 使用可）（項目番号時:0−3,5,0L 等使用可）\n 【類似度名】指定可能類似度名:covar, ucovar, pearson, spearman, kendall, euclid, cosine, cityblock, hamming, chi, phi, jaccard, support, lift\n【期間数】１以上の整数をカンマ区切りで複数指定可\n【結果列名】（%:類似度名を表わす記号）（#:期間数を表わす記号）",
+      "description": "【対象列名】列名時:*,？,[...] 使用可\n\t項目番号時:0−3,5,0L 等使用可\n【類似度名】指定可能類似度名:covar, ucovar, pearson, spearman, kendall, euclid, cosine, cityblock, hamming, chi, phi, jaccard, support, lift\n【期間数】１以上の整数をカンマ区切りで複数指定可\n【結果列名】%:類似度名を表わす記号\n\t#:期間数を表わす記号",
       "elements": [
         {
           "name": "f",
           "type": "string",
-          "label": "対象列名・番号"
+          "label": "対象列名"
         },
         {
           "name": "c",
@@ -66,7 +66,7 @@
         {
           "name": "t",
           "type": "string",
-          "label": "期間数（１以上の整数）"
+          "label": "期間数"
         },
         {
           "name": "a",

@@ -26,7 +26,8 @@
     {
       "name": "arglist",
       "type": "list",
-      "label": "列名と計算式（追加・順序変更・削除　可）",
+      "label": "列名と計算式",
+      "description": "追加・順序変更・削除　可",
       "elements": [
         {
           "name": "a",
