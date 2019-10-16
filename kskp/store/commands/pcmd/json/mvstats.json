@@ -50,7 +50,7 @@
       "name": "factlist",
       "type": "list",
       "label": "計算対象の設定",
-      "description": "【対象列名】列名時:*,？,[...] 使用可　項目番号時:0−3,5,0L 等使用可\n【統計量】１以上の整数をカンマ区切りで統計量指定可。\n指定可能統計量:sum, mean, devsq, var, uvar, sd, usd, cv, min, max, range, skew, uskew, kurt, ukurt\n【期間数】１以上の整数をカンマ区切りで複数指定可\n【結果列名】（&:元の列名を表す記号）（%:統計量を表わす記号）（#:期間数を表わす記号）",
+      "description": "【対象列名】列名時:*,？,[...] 使用可　項目番号時:0−3,5,0L 等使用可\n【統計量】カンマ区切りで統計量指定可。\n\t指定可能統計量:sum, mean, devsq, var, uvar, sd, usd, cv, min, max, range, skew, uskew, kurt, ukurt\n【期間数】１以上の整数をカンマ区切りで複数指定可\n【結果列名】（&:元の列名を表す記号）（%:統計量を表わす記号）（#:期間数を表わす記号）",
       "elements": [
         {
           "name": "f",
