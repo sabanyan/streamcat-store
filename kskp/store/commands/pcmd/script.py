@@ -650,8 +650,8 @@ class MvSimCommand(Command):
         for arglist in args.pop('factlist'):
             fs = arglist.pop('f').split(',')
             aexp = arglist.pop('a')
-            ts = arglist.pop('t').split(',')
             ops = arglist.pop('c').split(',')
+            ts = arglist.pop('t').split(',')
 
             if xoption:
                 # parse number expression
@@ -675,16 +675,12 @@ class MvSimCommand(Command):
                         't': t})
 
 
-        # faclist is now a list of dictionaries of fac options:
-        # [{'f': 'f1', 'a': 'a1', 'c': 'c1'},
-        #  {'f': 'f2', 'a': 'a2', 'c': 'c2'},
+        # factlist is now a list of dictionaries of the fact options:
+        # [{'f': 'f1', 'a': 'a1', 'c': 'c1', 't':, 't1'},
+        #  {'f': 'f2', 'a': 'a2', 'c': 'c2', 't':, 't2'},
         #  ...]
         for factdict in factlist:
             # arg = args.copy()
-            
-            # arg['f'] = fatdict['f']
-            # arg['a'] = fatdict['a']
-            # arg['t'] = fatdict['t']
 
             # perform mmvsim on field specified by 'a' field, with skip = 0
             cmd_o <<= nm.mmvsim({'skip': 0, **args, **factdict})
