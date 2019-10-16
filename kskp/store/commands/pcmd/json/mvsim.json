@@ -13,23 +13,23 @@
     },
     {
       "name": "group3",
-      "label": "計算対象列と追加列名の設定（必須）",
+      "label": "計算対象と結果の項目設定（必須）",
       "params": ["factlist"]
     },
     {
       "name": "group5",
-      "label": "列名・項目番号についての設定（省略可）",
+      "label": "項目名・項目番号についての設定（省略可）",
       "params": ["x", "nfn", "nfno"]
     },
     {
       "name": "group6",
       "label": "その他（省略可）",
-      "params": ["precision", "tmpPath"]
+      "params": ["precision"]
     },
     {
       "name": "group7",
-      "label": "システム管理用設定（ログ出力）",
-      "params": ["assert_diffSize", "assert_nullkey", "assert_nullin",
+      "label": "システム管理用設定（作業領域・ログ出力）",
+      "params": ["tmpPath", "assert_diffSize", "assert_nullkey", "assert_nullin",
         "assert_nullout"]
     }
   ],  
@@ -37,8 +37,8 @@
     {
       "name": "s",
       "type": "string",
-      "label" : "ソートする列",
-      "description" : "カンマ区切りで複数指定可\n【末尾に付与】無しは文字列の昇順、%nは数値の昇順、%rは文字列の降順、%nrは数値の降順",
+      "label" : "ソートが必要な場合の項目設定",
+      "description" : "●カンマ区切りで複数指定可\n●入力データがソート済の場合、省略で処理速度が向上\n●表記：【末尾に付与】無しは文字列の昇順、%nは数値の昇順、%rは文字列の降順、%nrは数値の降順",
       "default": ""
     },
     {
@@ -51,12 +51,12 @@
       "name": "factlist",
       "type": "list",
       "label": "計算対象の設定",
-      "description": "【対象列名】列名時:*,？,[...] 使用可\n\t項目番号時:0−3,5,0L 等使用可\n【類似度名】指定可能類似度名:covar, ucovar, pearson, spearman, kendall, euclid, cosine, cityblock, hamming, chi, phi, jaccard, support, lift\n【期間数】１以上の整数をカンマ区切りで複数指定可\n【結果列名】%:類似度名を表わす記号\n\t#:期間数を表わす記号",
+      "description": "【対象項目】項目名時:*,？,[...] 使用可\n\t項目番号時:0−3,5,0L 等使用可\n【類似度名】カンマ区切りで統計量指定可。\n\t指定可能類似度名:covar, ucovar, pearson, spearman, kendall, euclid, cosine, cityblock, hamming, chi, phi, jaccard, support, lift\n【期間数】データ件数で指定する。１以上の整数をカンマ区切りで複数指定可\n【結果項目名】%:類似度名を表わす記号\n\t#:期間数を表わす記号",
       "elements": [
         {
           "name": "f",
           "type": "string",
-          "label": "対象列名"
+          "label": "対象項目"
         },
         {
           "name": "c",
@@ -71,24 +71,16 @@
         {
           "name": "a",
           "type": "string",
-          "label": "結果列名"
+          "label": "結果項目名"
         }
       ],
       "default": [{"f": "", "a": "", "c": "", "t": ""}]
     },
     {
-      "name": "c",
-      "type": "select",
-      "label": "類似度名を指定",
-      "options":{
-        "labels": ["共分散","普偏共分散","ピアソンの積率相関係数","スピアマンの順位相関係数","ケンドールの順位相関係数","ユークリッド距離(数値)","コサイン","都市ブロック距離","ハミング距離","カイ2乗値","ファイ係数","ジャックカード係数","支持度","リフト値"],
-        "values": ["covar","ucovar","pearson","spearman","kendall","euclid","cosine","cityblock","hamming","chi","phi","jaccard","support","lift"]
-      }
-    },
-    {
       "name": "precision",
       "type": "string",
       "label": "有効桁数",
+      "description": "1〜16の整数",
       "optional": true,
       "default": 10
     },
@@ -156,8 +148,8 @@
     ]
   ],
   "version": "0.7.0",
-  "label": "similarity measure of moving windows",
+  "label": "複数の移動窓の類似度計算",
   "classification": "calculation",
-  "description": "mmvsim",
+  "description": "移動窓を設定し、各種類似度 (2 変量の統計量) を計算する。複数の類似度を複数の期間に対して、一括で計算できる。",
   "url": ""
 }
