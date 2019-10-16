@@ -3,41 +3,41 @@
   "groups": [
     {
       "name": "group1",
-      "label": "計算式の設定",
+      "label": "計算式の設定（必須）",
       "params": ["arglist"]
     },
     {
       "name": "group2",
-      "label": "列名・項目番号についての設定",
+      "label": "項目名・項目番号についての設定（省略可）",
       "params": ["x", "nfn", "nfno"]
     },
     {
       "name": "group3",
-      "label": "その他",
-      "params": ["precision", "tmpPath"]
+      "label": "その他（省略可）",
+      "params": ["precision"]
     },
     {
       "name": "group4",
-      "label": "システム管理用設定（ログ出力）",
-      "params": ["assert_diffSize", "assert_nullout"]
+      "label": "システム管理用設定（作業領域・ログ出力）",
+      "params": [ "tmpPath", "assert_diffSize", "assert_nullout"]
     }
   ],
   "params": [
     {
       "name": "arglist",
       "type": "list",
-      "label": "列名と計算式",
+      "label": "項目名と計算式",
       "description": "追加・順序変更・削除　可",
       "elements": [
         {
           "name": "a",
           "type": "string",
-          "label": "列名(必須)"
+          "label": "結果項目名"
         },
         {
           "name": "c",
           "type": "string",
-          "label": "計算式(必須)"
+          "label": "計算式"
         }
       ],
       "default": [{"a": "", "c": ""}]
@@ -46,6 +46,7 @@
       "name": "precision",
       "type": "string",
       "label": "有効桁数",
+      "description": "1〜16の整数",
       "optional": true,
       "default": 10
     },
