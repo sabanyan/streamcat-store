@@ -18,7 +18,7 @@
     },
     {
       "name": "group3",
-      "label": "計算対象列と追加列名の設定（必須）",
+      "label": "計算対象と結果の項目設定（必須）",
       "params": ["fatlist"]
     },
     {
@@ -28,18 +28,18 @@
     },
     {
       "name": "group5",
-      "label": "列名・項目番号についての設定（省略可）",
+      "label": "項目名・項目番号についての設定（省略可）",
       "params": ["x", "nfn", "nfno"]
     },
     {
       "name": "group6",
       "label": "その他（省略可）",
-      "params": ["precision", "tmpPath"]
+      "params": ["precision"]
     },
     {
       "name": "group7",
-      "label": "システム管理用設定（ログ出力）",
-      "params": ["assert_diffSize", "assert_nullkey", "assert_nullin",
+      "label": "システム管理用設定（作業領域・ログ出力）",
+      "params": ["tmpPath","assert_diffSize", "assert_nullkey", "assert_nullin",
         "assert_nullout"]
     }
   ],  
@@ -47,8 +47,8 @@
     {
       "name": "s",
       "type": "string",
-      "label": "ソートする列",
-      "description": "カンマ区切りで複数指定可\n【末尾に付与】:無しは文字列の昇順、%nは数値の昇順、%rは文字列の降順、%nrは数値の降順"
+      "label" : "ソートが必要な場合の項目設定",
+      "description" : "●カンマ区切りで複数指定可\n●入力データがソート済の場合、省略で処理速度が向上\n●表記：【末尾に付与】無しは文字列の昇順、%nは数値の昇順、%rは文字列の降順、%nrは数値の降順"
     },
     {
       "name": "k",
@@ -60,12 +60,12 @@
       "name": "fatlist",
       "type": "list",
       "label": "計算対象の設定",
-      "description": "【対象列名】列名時:*,？,[...] 使用可\n\t項目番号時:0−3,5,0L 等使用可\n【期間数】１以上の整数をカンマ区切りで複数指定可\n【結果列名】&:元の列名を表す記号\n\t#:期間数を表わす記号",
+      "description": "【対象項目】項目名時:*,？,[...] 使用可\n\t項目番号時:0−3,5,0L 等使用可\n【期間数】データ件数で指定する。１以上の整数をカンマ区切りで複数指定可\n【結果項目】&:元の項目名を表す記号\n\t#:期間数を表わす記号",
       "elements": [
         {
           "name": "f",
           "type": "string",
-          "label": "対象列名"
+          "label": "対象項目"
         },
         {
           "name": "t",
@@ -75,16 +75,10 @@
         {
           "name": "a",
           "type": "string",
-          "label": "結果列名"
+          "label": "結果項目"
         }
       ],
       "default": [{"f": "", "a": "", "t": ""}]
-    },
-    {
-      "name": "q",
-      "type": "boolean",
-      "label": "自動並べ替えの無効化",
-      "optional": true
     },
     {
       "name": "type",
@@ -108,6 +102,7 @@
       "name": "precision",
       "type": "string",
       "label": "有効桁数",
+      "description": "1〜16の整数",
       "optional": true,
       "default": 10
     },
