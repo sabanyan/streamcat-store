@@ -1,5 +1,27 @@
 {
   "id": "mcal",
+  "groups": [
+    {
+      "name": "group1",
+      "label": "計算式の設定（必須）",
+      "params": ["a","c"]
+    },
+    {
+      "name": "group2",
+      "label": "項目名・項目番号についての設定（省略可）",
+      "params": ["x", "nfn", "nfno"]
+    },
+    {
+      "name": "group3",
+      "label": "その他（省略可）",
+      "params": ["precision"]
+    },
+    {
+      "name": "group4",
+      "label": "システム管理用設定（作業領域・ログ出力）",
+      "params": [ "tmpPath", "assert_diffSize", "assert_nullout"]
+    }
+  ],
   "rules": {
     "a": {
       "presence": {"allowEmpty": false}
@@ -12,12 +34,13 @@
     {
       "name": "a",
       "type": "string",
-      "label": "結果列名(必須)"
+      "label": "追加する項目名"
     },
     {
       "name": "c",
       "type": "string",
-      "label": "計算式(必須)"
+      "label": "計算式",
+      "description": "●項目の値、演算子、関数(100種以上)、if文を用いた計算が可能\n●値の参照\n  ${項目名}で当行参照、#{項目名}で前行参照が可能"
     },
     {
       "name": "assert_diffSize",
@@ -80,6 +103,6 @@
   "version": "0.7.0",
   "label": "計算",
   "classification": "calculation",
-  "description": "c=で計算式を入力し、a=で指定した項目名に出力する。",
+  "description": "列項目間の演算を行う",
   "url": "./static/pdf/mcmd/calculation/mcal.pdf"
 }
