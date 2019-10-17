@@ -4,6 +4,11 @@ import os
 from kskp.core import Command, Port
 from kskp.store import Library
 
+import nysol.mcmd as nm
+import pprint
+pp = pprint.PrettyPrinter(indent=4)
+
+
 class VisualizersCommand(Command):
     def __init__(self):
         super().__init__()
@@ -105,11 +110,14 @@ import numpy as np
 import holoviews as hv
 import random
 
-from bokeh.plotting import figure, ColumnDataSource
+from bokeh.plotting import figure
 from bokeh.resources import CDN
 from bokeh.embed import file_html,components
-from bokeh.models import HoverTool
+from bokeh.palettes import Dark2_5 as palette
+from bokeh.layouts import gridplot, column
+from bokeh.models import HoverTool, Select, Legend, ColumnDataSource
 from bokeh.io import output_file, show
+from bokeh.models.callbacks import CustomJS
 from numpy import histogram
 hv.extension('bokeh')
 
@@ -278,7 +286,7 @@ class CsvToBoxplotCommand(VisualizersBokehPlot):
         # ここstartがdfの最大行数を越えるとエラーが出る
         # if len(df) < start:
             # なんかする
-            # pass
+            # passd
 
         hv.extension('bokeh')
         x_label = args.get('x_label') if args.get('x_label') else ','.join(args.get('x_axis'))
@@ -304,122 +312,96 @@ class CsvtoRepetitivieWaveform(VisualizersBokehPlot):
         plotの反復波形図を作成する
         """
         self.init(args, inputs)
-        dataset = self.get_dataset()
-        graph_sources = self.get_sources(dataset)
-        plot = self.get_layout("反復波形図",graph_sources)
+
+        ## source
+        sources = {}
+        for label, df in self.named_dfs.items():
+            data = dict(
+                x = df[self.column_name_x_axis].tolist(),
+                y = df[self.column_name_values].tolist(),
+                group = df[self.group].tolist(),
+                label = [label] * (len(df.index))
+            )
+            sources[label] = data
+
+        #dataset = self.get_dataset()3a
+        #graph_sources = self.get_sources(dataset)
+        plot = self.get_layout("反復波形図",sources)
 
         return plot
 
     def init(self, args, inputs):
-
+    
         # 共通パラメーター
         frame_uuid = inputs.get('i')
 
         # 軸の設定
-        self.column_name_x_axis = args.get('x_axis')
-        self.column_name_values = args.get('y_axis')
-        self.x_axis_label = args.get('x_label')
-        self.y_axis_label = args.get('y_label')
+        self.column_name_x_axis = args.get('x_axis')[0]['column']
+        self.column_name_values = args.get('y_axis')[0]['column']
+        self.x_axis_label = args.get('x_axis')[0]['label']
+        self.y_axis_label = args.get('y_axis')[0]['label']
 
-        # offset対応
+        # データ系列の設定
+        self.keys = args.get('datas')
+        self.group = args.get('group')
+
+        # データ表示範囲の設定
         offset = int(args.get('offset')) if args.get('offset') else 0
         limit = int(args.get('limit')) if args.get('limit') else None
-        file_path = Library.load_frame(frame_uuid).path
+        
+        frame = Library.load_frame(frame_uuid)
+        df = frame.get_dataframe(limit, offset)
 
-        self.graph_width = args.get('x_size')
-        self.graph_height = height=args.get('y_size')
-        self.x_axis_label = args.get('x_label')
-        self.y_axis_label = args.get('y_label')
-
-        # ブロック句
-        if not os.path.exists(file_path):
-            return ''
-
-        self.preprocess = args.get('*preprocess')
-        self.df = pd.read_csv(file_path, nrows=limit, skiprows=range(1, offset))
-
-        # 反復波形図用パラメーター    
-        self.column_name_id = args.get('ids')
-        self.column_name_attrs = args.get('attrs')
-        self.column_name_x_axis = args.get('x_axis')
-        self.column_name_values = args.get('y_axis')
-
-        # 共通設定
+        named_dfs = {}
+        if self.keys is not None and len(self.keys) > 0:
+            results = self.direct_product_by_keys(df, self.keys)
+            named_dfs = self.process_df(df, results)
+        else:
+            named_dfs['all'] = df
+        self.groups = df[self.group].unique().tolist()
+        self.named_dfs = named_dfs
+        
+        # グラフ表示要素の設定
+        self.doTooltips = args.get('doTooltips')
+        self.doMarker = args.get('doMarker')
+        self.doStatics = args.get('doStatics')
+        self.doEvent = args.get('doEvent')
+        self.event = args.get('event')
+        self.statics = args.get('statics')
+        
+        # グラフサイズの設定
+        self.graph_width = args.get('width')
+        self.graph_height = height=args.get('height')
+        
+        #共通設定
         self.tools = "pan,wheel_zoom,box_zoom,reset,save,box_select"
-
-        # 反復波形図用設定
         self.tooltips = [
-            (self.column_name_id, "@id"),
-            (self.column_name_attrs, "@attr"),
+            ('', "@label"),
+            (self.group, "@group"),
             (self.column_name_x_axis, "@x"),
             (self.column_name_values, "@y"),
         ] 
-        # グラフ描画用データ
-        self.unique_df = self.df.drop_duplicates(self.column_name_id)
-        self.unique_ids = self.unique_df[self.column_name_id]
-        self.unique_attr = {}
-        for ui in self.unique_ids:
-            queryStr = '{0} == "{1}"'.format(self.column_name_id, ui)
-            self.unique_attr[ui] = self.unique_df.query(queryStr)[self.column_name_attrs].get_values()[0]
-        self.x_axis = self.df[self.column_name_x_axis].drop_duplicates().tolist()
-        self.dataset = self.get_dataset()
-        self.sources = self.get_sources(self.dataset)
-
-        self.filter = {self.column_name_id:[], self.column_name_attrs:''}
-
-    def get_dataset(self):
-        data = dict.fromkeys(self.unique_ids)
-        
-        for ui in data:
-            queryStr = '{0} == "{1}"'.format(self.column_name_id, ui)
-            data[ui] = {self.column_name_x_axis:dict.fromkeys(self.x_axis)}
-            data[ui][self.column_name_attrs] = self.unique_df.query(queryStr)[self.column_name_attrs].get_values()[0]
-            ui_df = self.df.query(queryStr)
-            for index, row in ui_df.iterrows():
-                x = row[self.column_name_x_axis]
-                y = row[self.column_name_values]
-                if x in data[ui][self.column_name_x_axis]:
-                    data[ui][self.column_name_x_axis][x] = y 
-
-        return data
-
-    def get_sources(self, dataset):
-        sources = dict.fromkeys(self.unique_df[self.column_name_id])
-        
-        for ui, attr in zip(self.unique_df[self.column_name_id], self.unique_df[self.column_name_attrs]):
-            dims = dict(filter(lambda item: item[1],dataset[ui][self.column_name_x_axis].items()))
-            dims = sorted(dims.items())        
-            x = [ item[0] for item in dims]
-            y = [ item[1] for item in dims]
-            sources[ui] = {}
-            sources[ui]['ColumnDataSource'] = ColumnDataSource(data=dict(
-                x = x,
-                y = y,
-                id = [ui] * len(x),
-                attr = [attr] * len(x)
-            ))
-            sources[ui][self.column_name_attrs] = self.unique_attr[ui]
-            
-        return sources
 
     def get_layout(self, title, sources):
+        import itertools
+
         f = figure(title=title, tools=self.tools, tooltips=self.tooltips, width=self.graph_width, height=self.graph_height,x_axis_label=self.x_axis_label, y_axis_label=self.y_axis_label)
+        
         elements = {}
         colors = itertools.cycle(palette)
-        for key, color in zip(sources,colors):
-            elements[key] = []
-            legend = '{0}({1})'.format(key, sources[key][self.column_name_attrs])
-            elements[key].append(f.line('x', 'y', source=sources[key]['ColumnDataSource'], legend=legend, color=color, alpha=0.75, muted_color=color, muted_alpha=0.2))
-            elements[key].append(f.circle('x', 'y', source=sources[key]['ColumnDataSource'], legend=legend, color=color, alpha=0.75, muted_color=color, muted_alpha=0.2))
+        for label, color in zip(sources,colors):
+            elements[label] = []
+            elements[label].append(f.line('x', 'y', source=sources[label], legend=label, color=color, alpha=0.75, muted_color=color, muted_alpha=0.2))
+            elements[label].append(f.circle('x', 'y', source=sources[label], legend=label, color=color, alpha=0.75, muted_color=color, muted_alpha=0.2))
             
         f.legend.location = "top_left"
         f.legend.click_policy = "mute"
 
-        attrs = sorted(self.unique_df[self.column_name_attrs].unique().tolist())
+        attrs = sorted(self.groups)
         attrs.insert(0, '-All-')
-        attr_select = Select(value=attrs[0], title=self.column_name_attrs, options=attrs) 
+        attr_select = Select(value=attrs[0], title=self.group, options=attrs) 
         
-        callback = CustomJS(args=dict(sources=sources, elements=elements, select=attr_select, attrs_list=attrs, name_attrs=self.column_name_attrs), code="""
+        callback = CustomJS(args=dict(sources=sources, elements=elements, select=attr_select, attrs_list=attrs, name_attrs=self.group), code="""
                 
             var isMute = (id, attr, filtered) => {
                 return !(attr === filtered['selected_attr'])
