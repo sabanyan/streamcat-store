@@ -159,7 +159,7 @@ class DbLoaderCommand(Command):
         sql = DbLoaderCommand._make_sql(schema_name, table_name)
 
         # runfunc()へ渡す関数の定義
-        def results_getter(db_uri, sql):
+        def results_getter(db_uri, dbms, sql):
 
             # NULL値を空文字に変換する
             def to_str(value):
@@ -172,7 +172,7 @@ class DbLoaderCommand(Command):
                 # DBへ接続する
                 engine = DbLoaderCommand._connect_to_db(db_uri)
                 # SQL文を発行し結果を取得する
-                results = DbLoaderCommand._get_results(engine, sql)
+                results = DbLoaderCommand._get_results(engine, dbms, sql)
 
                 is_header = True
                 for result in results:
@@ -194,7 +194,7 @@ class DbLoaderCommand(Command):
         sys.stdout.flush()
 
         # Nysol Pythonのrunfunc関数を作成する
-        cmd = nm.runfunc(results_getter, db_uri=db_uri, sql=sql)
+        cmd = nm.runfunc(results_getter, db_uri=db_uri, dbms=database.dbms, sql=sql)
 
         nysol_module = NysolModule()
         nysol_module.set_content(cmd)
@@ -220,7 +220,7 @@ class DbLoaderCommand(Command):
         return engine
 
     @staticmethod
-    def _get_results(engine, sql):
+    def _get_results(engine, dbms, sql):
         """
         SQL文を発行し結果を取得する
         """
@@ -229,11 +229,12 @@ class DbLoaderCommand(Command):
         import time
         t1 = time.time()
 
-        try:
-            engine.execute('BEGIN')
-        except exc.SQLAlchemyError as e:
-            engine.execute('ROLLBACK')
-            raise Exception('トランザクションの開始に失敗しました(%s)' % str(e))
+        if dbms.upper() != 'ORACLE':
+            try:
+                engine.execute('BEGIN')
+            except exc.SQLAlchemyError as e:
+                engine.execute('ROLLBACK')
+                raise Exception('トランザクションの開始に失敗しました(%s)' % str(e))
 
         try:
             results = engine.execute(sql)

@@ -29,7 +29,7 @@ class Database(Store):
         datum = session.query(Datum).filter(Datum.uuid==uuid)\
                                     .filter(Datum.type==Datum.DATABASE_TYPE).one_or_none()
         if datum is None:
-            raise Exception('no database is found by designated id.')
+            raise Exception(f'no database is found by designated id ({uuid}).')
         return Database.convert_to_database(datum)
 
     @staticmethod
@@ -156,6 +156,11 @@ class Database(Store):
         念の為Databaseも削除しない
         """
         pass
+
+    @property
+    def dbms(self):
+        database_conn = DatabaseConn.from_json(self.data2['conn'])
+        return database_conn.dbms
 
     def get_database_uri(self):
         database_conn = DatabaseConn.from_json(self.data2['conn'])
