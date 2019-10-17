@@ -119,6 +119,8 @@ from bokeh.models import HoverTool, Select, Legend, ColumnDataSource
 from bokeh.io import output_file, show
 from bokeh.models.callbacks import CustomJS
 from numpy import histogram
+import itertools
+
 hv.extension('bokeh')
 
 class CsvToLineGraphCommand(VisualizersBokehPlot):
@@ -324,9 +326,7 @@ class CsvtoRepetitivieWaveform(VisualizersBokehPlot):
             )
             sources[label] = data
 
-        #dataset = self.get_dataset()3a
-        #graph_sources = self.get_sources(dataset)
-        plot = self.get_layout("反復波形図",sources)
+        plot = self.get_grpah_plot("反復波形図",sources)
 
         return plot
 
@@ -362,10 +362,10 @@ class CsvtoRepetitivieWaveform(VisualizersBokehPlot):
         self.named_dfs = named_dfs
         
         # グラフ表示要素の設定
-        self.doTooltips = args.get('doTooltips')
-        self.doMarker = args.get('doMarker')
-        self.doStatics = args.get('doStatics')
-        self.doEvent = args.get('doEvent')
+        self.disableTooltips = args.get('doTooltips')
+        self.disableMarker = args.get('doMarker')
+        self.disableStatics = args.get('doStatics')
+        self.disableEvent = args.get('doEvent')
         self.event = args.get('event')
         self.statics = args.get('statics')
         
@@ -375,16 +375,32 @@ class CsvtoRepetitivieWaveform(VisualizersBokehPlot):
         
         #共通設定
         self.tools = "pan,wheel_zoom,box_zoom,reset,save,box_select"
-        self.tooltips = [
-            ('', "@label"),
-            (self.group, "@group"),
-            (self.column_name_x_axis, "@x"),
-            (self.column_name_values, "@y"),
-        ] 
+        self.tooltips = []
 
-    def get_layout(self, title, sources):
-        import itertools
+        # ツールチップを表示
+        if self.disableTooltips :
+            self.tooltips = [
+                ('', "@label"),
+                (self.group, "@group"),
+                (self.column_name_x_axis, "@x"),
+                (self.column_name_values, "@y"),
+            ]
 
+    def get_statics_plot(self, title, sources):
+        plot = figure(title=title, tools=self.tools,tooltips=self.tooltips)
+
+        args = {
+            'k':self.column_name_x_axis,
+            'f':self.column_name_values,
+            'c':args.get('statics')
+        }
+        statics = {}
+        #for label, df in sources:
+
+
+        return plot 
+
+    def get_grpah_plot(self, title, sources):
         f = figure(title=title, tools=self.tools, tooltips=self.tooltips, width=self.graph_width, height=self.graph_height,x_axis_label=self.x_axis_label, y_axis_label=self.y_axis_label)
         
         elements = {}
@@ -392,7 +408,9 @@ class CsvtoRepetitivieWaveform(VisualizersBokehPlot):
         for label, color in zip(sources,colors):
             elements[label] = []
             elements[label].append(f.line('x', 'y', source=sources[label], legend=label, color=color, alpha=0.75, muted_color=color, muted_alpha=0.2))
-            elements[label].append(f.circle('x', 'y', source=sources[label], legend=label, color=color, alpha=0.75, muted_color=color, muted_alpha=0.2))
+             # マーカーを表示
+            if self.disableMarker != True:
+                elements[label].append(f.circle('x', 'y', source=sources[label], legend=label, color=color, alpha=0.75, muted_color=color, muted_alpha=0.2))
             
         f.legend.location = "top_left"
         f.legend.click_policy = "mute"
