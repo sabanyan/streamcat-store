@@ -34,7 +34,14 @@ class DatabaseConn():
         hostname = self.hostname
         port     = self.port
         database = self.database
-        return f'{dbms}://{user_id}:{password}@{hostname}:{port}/{database}'
+        
+        if dbms.upper() == 'ORACLE':
+            import cx_Oracle
+            dsnStr = cx_Oracle.makedsn(hostname, port, database)
+            dsnStr = dsnStr.replace('SID', 'SERVICE_NAME')
+            return f'oracle://{user_id}:{password}@{dsnStr}'
+        else:
+            return f'{dbms}://{user_id}:{password}@{hostname}:{port}/{database}'
 
     @staticmethod
     def from_json(conn):
