@@ -1,0 +1,189 @@
+{
+    "version": "0.7.0",
+    "id": "csvtorepetitiviewaveform",
+    "order": 700,
+    "label": "反復波形図",
+    "classification": "visualize",
+    "description": "csvファイルから反復波形図を作成する",
+    "ports": [
+      [
+        {
+          "name": "i",
+          "type": "frame"
+        }
+      ],
+      [
+        {
+          "name": "o",
+          "type": "frame"
+        }
+      ]
+    ],
+    "params": [
+      {
+        "name": "x_axis",
+        "type": "list",
+        "elements": [
+          {
+            "name":"column",
+            "type":"column",
+            "label":"横軸列：時間軸",
+            "options":{
+              "css" : {"width":"40%"}
+              
+            }
+          },
+          {
+            "name":"label",
+            "type":"string",
+            "label":"横軸名",
+            "options":{
+              "css" : {"width":"40%"}
+            }
+          }
+        ],
+        "default":[{"column":"", "label":""}],
+        "options":{
+          "addable"  : false,
+          "deletable": false,
+          "draggable" : false
+        }
+      },
+      {
+        "name": "y_axis",
+        "type": "list",
+        "elements": [
+          {
+            "name":"column",
+            "type":"column",
+            "label":"縦軸列：観測軸",
+            "design":{
+              "width":"40%"
+            }
+          },
+          {
+            "name":"label",
+            "type":"string",
+            "label":"縦軸名",
+            "design":{
+              "width":"40%"
+            }
+          }
+        ],
+        "default":[{"column":"", "label":""}],
+        "options":{
+          "list_add"     : false,
+          "list_delete"  : false
+        }
+      },
+      {
+        "name": "datas",
+        "type": "column",
+        "options":{
+          "multiple": true
+        },
+        "label": "データ系列"
+      },
+      {
+        "name": "group",
+        "type": "column",
+        "options":{
+          "multiple": false
+        },
+        "label": "グループ化属性"
+      },
+      {
+        "name": "offset",
+        "type": "number",
+        "label": "表示の開始（１始まりの行番号）",
+        "default": 1
+      },
+      {
+        "name": "limit",
+        "type": "number",
+        "label": "表示の件数",
+        "default": 1000
+      },
+      {
+        "name": "doTooltips",
+        "type": "boolean",
+        "label": "ツールチップを表示しない",
+        "default":false
+      },
+      {
+        "name": "doMarker",
+        "type": "boolean",
+        "label": "マーカーを表示しない",
+        "default":false
+      },  
+      {
+        "name": "doStatics",
+        "type": "boolean",
+        "label": "統計量グラフを表示する",
+        "default":false
+      },  
+      {
+        "name": "doEvent",
+        "type": "boolean",
+        "label": "イベント発生時点の表示",
+        "default":false
+      }, 
+      {
+        "name": "event",
+        "type": "column",
+        "options": {
+          "multiple": false
+        }
+      },
+      {
+        "name": "statics",
+        "type": "column",
+        "options": {
+          "multiple": false,
+          "labels": ["最小・平均・最大で表示", "25％分位・中央値・75%分位で表示"],
+          "values": ["min:min, mean:mean, max:max", "qtile1:qtile1,median:median, qtile3:qtile3"]
+        }
+      },
+      {
+        "name": "width",
+        "type": "number",
+        "label": "横幅（ドット）",
+        "default": 600
+      },
+      {
+        "name": "height",
+        "type": "number",
+        "label": "縦幅（ドット）",
+        "default": 1000
+      }
+    ],
+    "groups": [
+      {
+        "name": "axis_group",
+        "label": "軸の設定",
+        "params": ["x_axis","y_axis"]
+      },
+      {
+        "name": "data_group",
+        "label": "データ系列の設定",
+        "params": ["datas","group"]
+      },
+      {
+        "name": "offset_group",
+        "label": "データ表示範囲の設定",
+        "params": ["offset","limit"]
+      },
+      {
+        "name": "graph_group",
+        "label": "グラフ表示要素の設定",
+        "params": ["doTooltips","doMarker","doStatics","doEvent","event","statics"]
+      },
+      {
+        "name": "graph_size",
+        "label": "グラフサイズの設定",
+        "params": ["width","height"]
+      }
+    ],
+    "url": ""
+  }
+  
