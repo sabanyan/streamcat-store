@@ -324,6 +324,55 @@ class RunfuncCommand(Command):
         """
         pass
 
+class GroupByPythonCommand(Command):
+    def __init__(self):
+        super().__init__()
+        self.i_ports = [Port('i', 'frame')]
+        self.o_ports = [Port('o', 'frame')]
+
+    def run(self, args, inputs):
+        cmd_o = None
+
+        #inputs f c s a k v x nfn nfno q
+
+        # mcut 
+        # take the wanted columns only (the id column and the value columns)
+
+        #### code in wildcard parsing later
+        fs = args.pop('f')
+        k = args.pop('k')
+
+        # take only the relevant columns
+        cmd_o <<= nm.mcut(f = f'{k},{fs}')
+
+        # msummary
+        # take the required stats for the required columns
+        cs = args.pop('c')
+        tempcol = 'tmpcol'
+
+        cmd_o <<= nm.msummary(k = k, f = fs, c = cs, a = 'tmpcol')
+
+        m2cross_k = ','.join([k,tempcol])
+        # tempcol holds the old column names (sensor names etc)
+
+        # m2cross 
+        cmd_o <<= nm.m2cross(k = m2cross_k, f= fs, a = 'type,value')
+        # type is the column listing the calculated quantities
+        # value is the column with all the actual values of those quantities
+
+        # mcal to create the column of unique column names
+        uniqueformat = '$s{%s}+"_"+$s{type}'.format(tempcol)
+        cmd_o <<= nm.mcal(a = 'unique_cols', c = uniqueformat) 
+
+        # mcross to bring it all back
+        cmd_o <<= nm.mcross(f = 'value', s = 'unique_cols', k = k)
+
+        # mcut to remove the extra 'fld' column after mcross
+        cmd_o <<= nm.mcut(r = True, f = 'fld')
+
+        nysol_module_o= NysolModule()
+        nysol_module_o.set_content(cmd_o)
+        return {'o': nysol_module_o}
 
 class MultiMcalCommand(Command):
     def __init__(self):
