@@ -126,6 +126,7 @@ class CommandLink:
             'columns_to_rows': ColumnsToRowsCommand(),
             'groupby_columns': GroupbyColumnsCommand(),
             'groupby': GroupbyCommand(),
+            'groupby_new': GroupByPythonCommand(),
             'utf8_to_cp932': Utf8ToCp932Command(),
             'sml_modeling': SmlModelingCommand(),
             'multi_mcal_manyformula': MultiMcalCommand(),
