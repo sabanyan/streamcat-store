@@ -331,46 +331,75 @@ class GroupByPythonCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        cmd_o = None
-        cmd_o = nm.mread(inputs)
+        import fnmatch as fn
 
-        #inputs K F C 
+        cmd = [None] * len(args['fclist'])
+
+        cmd[-1] <<= nm.mread(inputs)
 
         #### code in wildcard parsing later
         k = args.pop('k')
-        fs = args.pop('f')
+        fclist = args.pop('fclist')
+
+
+        all_fs = []
+        all_cs = []
+        for fcdict in fclist:
+            sys.__stderr__.write(f'{repr(fcdict)}\n{all_fs}')
+            all_fs += fcdict['f'].split(',')
+            all_cs += fcdict['c'].split(',')
+
+        #remove redundancies
+        all_fs = ','.join(list(dict.fromkeys(all_fs)))
+        all_cs = ','.join(list(dict.fromkeys(all_cs)))
 
         # mcut 
         # take the wanted columns only (the id column and the value columns)
-        cmd_o <<= nm.mcut(f = f'{k},{fs}')
+        cmd[-1] <<= nm.mcut(f = f'{k},{all_fs}')
 
-        # msummary
-        # take the required stats for the required columns
-        cs = args.pop('c')
+        ##### calculation portion:
         tempcol = 'tmpcol'
+        expanded_k = ','.join([k,tempcol])
 
-        cmd_o <<= nm.msummary(k = k, f = fs, c = cs, a = tempcol)
+        for i, fcdict in enumerate(fclist):
+            cs = fcdict.pop('c')
+            fs = fcdict.pop('f')
 
-        m2cross_k = ','.join([k,tempcol])
+            # msummary
+            # take the required stats for the required columns
+            if i != len(fclist) - 1:
+                cmd[i] <<= nm.msummary(i = cmd[-1], k = k, f = fs, 
+                        c = cs, a = tempcol)
+            else:
+                cmd[i] <<= nm.msummary(k = k, f = fs, c = cs, a = tempcol)
+
+        for i in range(1, len(cmd)):
+            cmd[0] <<= nm.mjoin(m = cmd[i], k = expanded_k, n = True, N = True,
+                    K = expanded_k)
+
         # tempcol holds the old column names (sensor names etc)
 
         # m2cross 
-        cmd_o <<= nm.m2cross(k = m2cross_k, f= cs, a = 'type,value')
+        cmd[0] <<= nm.m2cross(k = expanded_k, f= all_cs,
+                 a = 'type,value')
         # type is the column listing the calculated quantities
         # value is the column with all the actual values of those quantities
 
+        # delete rows with null values
+        cmd[0] <<= nm.mdelnull(f = 'value')
+
         # mcal to create the column of unique column names
-        uniqueformat = "$s{{{}}}+'_'+$s{{type}}" .format(tempcol)
-        cmd_o <<= nm.mcal(a = 'unique_cols', c = uniqueformat) 
+        uniqueformat = f"$s{{{tempcol}}}+'_'+$s{{type}}" 
+        cmd[0] <<= nm.mcal(a = 'unique_cols', c = uniqueformat) 
 
         # mcross to bring it all back
-        cmd_o <<= nm.mcross(f = 'value', s = 'unique_cols', k = k)
+        cmd[0] <<= nm.mcross(f = 'value', s = 'unique_cols', k = k)
 
         # mcut to remove the extra 'fld' column after mcross
-        cmd_o <<= nm.mcut(r = True, f = 'fld')
+        cmd[0] <<= nm.mcut(r = True, f = 'fld')
 
         nysol_module_o= NysolModule()
-        nysol_module_o.set_content(cmd_o)
+        nysol_module_o.set_content(cmd[0])
         return {'o': nysol_module_o}
 
 class MultiMcalCommand(Command):
@@ -553,7 +582,7 @@ class MvAvgCommand(Command):
         for fatdict in fatlist:
             # arg = args.copy()
 
-            cmd_o <<= nm.mcal(a = fatdict['a'], c = '${%s}' % fatdict['f']) 
+            cmd_o <<= nm.mcal(a = fatdict['a'], c = f'${{{fatdict["f"]}}}') 
             
             fatdict['f'] = fatdict.pop('a')
 
@@ -643,7 +672,7 @@ class MvStatsCommand(Command):
         for factdict in factlist:
             # arg = args.copy()
 
-            cmd_o <<= nm.mcal(a = factdict['a'], c = '${%s}' % factdict['f'])
+            cmd_o <<= nm.mcal(a = factdict['a'], c = f'${{{fatdict["f"]}}}')
             
             factdict['f'] = factdict.pop('a')
 

@@ -1,5 +1,22 @@
 {
   "id": "groupby_new",
+  "groups":[
+    {
+      "name": "group1",
+      "label": "キー項目の設定（省略可）",
+      "params": ["k"]
+    },
+    {
+      "name": "group2",
+      "label": "FC",
+      "params": ["fclist","delimiter"]
+    },
+    {
+      "name": "group3",
+      "label": "others",
+      "params": ["q","nfno","prefix","precision"]
+    }
+  ],
   "params": [
     {
       "name": "k",
@@ -7,14 +24,23 @@
       "label": "集計キー項目をカンマ区切りで与える（必須）"
     },
     {
-      "name": "f",
-      "type": "string",
-      "label": "同じ統計量計算を行う対象とする列範囲の指定、入力データの列名をカンマ区切りで与える（必須）"
-    },
-    {
-      "name": "c",
-      "type": "string",
-      "label": "統計量の指定と算出結果の列名の指定、演算の指定:作成列名 をカンマ区切りで与える（必須）"
+      "name": "fclist",
+      "type": "list",
+      "label": "計算対象の設定",
+      "description": "",
+      "elements": [
+        {
+          "name": "f",
+          "type": "string",
+          "label": "対象項目"
+        },
+        {
+          "name": "c",
+          "type": "string",
+          "label": "統計量"
+        }
+      ],
+      "default": [{"f": "", "c": ""}]
     },
     {
       "name": "delimiter",
