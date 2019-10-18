@@ -84,7 +84,7 @@
     {
       "name": "k",
       "type": "string",
-      "label": "グループ化する列",
+      "label": "グループ化する項目名",
       "description": "カンマ区切りで複数指定可"
     },
     {
