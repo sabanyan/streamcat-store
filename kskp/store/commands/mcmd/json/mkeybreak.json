@@ -1,5 +1,37 @@
 {
   "id": "mkeybreak",
+  "groups": [
+    {
+      "name": "group1",
+      "label": "グループの設定(必須)",
+      "params": ["k"]
+    },
+    {
+      "name": "group2",
+      "label": "グループ内のソートの設定（省略可)",
+      "params": ["s"]
+    },
+    {
+      "name": "group4",
+      "label": "追加列名(省略可)",
+      "params": ["a"]
+    },
+    {
+      "name": "group3",
+      "label": "その他(省略可)",
+      "params": ["q"]
+    },
+    {
+      "name": "group10",
+      "label": "項目名・項目番号についての設定（省略可）",
+      "params": ["x", "nfn", "nfno"]
+    },
+    {
+      "name": "group20",
+      "label": "システム管理用設定（作業領域・ログ出力）",
+      "params": ["tmpPath", "assert_diffSize", "assert_nullout", "assert_nullkey"]
+    }
+  ],
   "rules" : {
     "k" : {
       "presence": {"allowEmpty": false},
@@ -52,18 +84,21 @@
     {
       "name": "k",
       "type": "string",
-      "label": "集計キー列名(必須)"
+      "label": "グループ化する列",
+      "description": "カンマ区切りで複数指定可"
     },
     {
       "name": "s",
       "type": "string",
-      "label": "並べ替えの後、先端、終端に印をつける列名",
+      "label": "グループ内順序の指定",
+      "description" : "●カンマ区切りで複数指定可\n●表記：【末尾に付与】無しは文字列の昇順、%nは数値の昇順、%rは文字列の降順、%nrは数値の降順",
       "optional": true
     },
     {
       "name": "a",
       "type": "string",
-      "label": "先端と終端の印を出力する列名",
+      "label": "先頭と終端のフラグの項目名",
+      "description": "省略時: top,bot \n指定時: 先頭、終端の順番でカンマ区切りで指定",
       "optional": true
     },
     {
@@ -106,6 +141,7 @@
       "name": "q",
       "type": "boolean",
       "label": "自動並べ替えの無効化",
+      "description": "入力データがグループ化済かつソート済の場合、指定すると処理速度が向上",
       "optional": true
     },
     {
@@ -132,6 +168,6 @@
   "version": "0.7.0",
   "label": "キーブレイク箇所",
   "classification": "table_grouping",
-  "description": "k=で指定した項目をキー項目について、先頭と終端に印をつける。",
+  "description": "キー項目の値が変化する先頭と終端にフラグを付与する",
   "url": "./static/pdf/mcmd/table_grouping/mkeybreak.pdf"
 }
