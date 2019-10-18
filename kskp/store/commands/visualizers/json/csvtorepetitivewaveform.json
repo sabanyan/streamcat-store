@@ -119,7 +119,7 @@
       {
         "name": "doStatics",
         "type": "boolean",
-        "label": "統計量グラフを表示する",
+        "label": "統計量グラフを表示しない",
         "default":false
       },  
       {
@@ -130,6 +130,7 @@
       }, 
       {
         "name": "event",
+        "label": "イベント列",
         "type": "column",
         "options": {
           "multiple": false
@@ -137,11 +138,12 @@
       },
       {
         "name": "statics",
-        "type": "column",
+        "label": "表示する統計量",
+        "type": "select",
         "options": {
           "multiple": false,
           "labels": ["最小・平均・最大で表示", "25％分位・中央値・75%分位で表示"],
-          "values": ["min:min, mean:mean, max:max", "qtile1:qtile1,median:median, qtile3:qtile3"]
+          "values": ["min,mean,max", "qtile1,median,qtile3"]
         }
       },
       {
