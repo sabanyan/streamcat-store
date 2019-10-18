@@ -332,17 +332,16 @@ class GroupByPythonCommand(Command):
 
     def run(self, args, inputs):
         cmd_o = None
+        cmd_o = nm.mread(inputs)
 
-        #inputs f c s a k v x nfn nfno q
+        #inputs K F C 
+
+        #### code in wildcard parsing later
+        k = args.pop('k')
+        fs = args.pop('f')
 
         # mcut 
         # take the wanted columns only (the id column and the value columns)
-
-        #### code in wildcard parsing later
-        fs = args.pop('f')
-        k = args.pop('k')
-
-        # take only the relevant columns
         cmd_o <<= nm.mcut(f = f'{k},{fs}')
 
         # msummary
@@ -350,18 +349,18 @@ class GroupByPythonCommand(Command):
         cs = args.pop('c')
         tempcol = 'tmpcol'
 
-        cmd_o <<= nm.msummary(k = k, f = fs, c = cs, a = 'tmpcol')
+        cmd_o <<= nm.msummary(k = k, f = fs, c = cs, a = tempcol)
 
         m2cross_k = ','.join([k,tempcol])
         # tempcol holds the old column names (sensor names etc)
 
         # m2cross 
-        cmd_o <<= nm.m2cross(k = m2cross_k, f= fs, a = 'type,value')
+        cmd_o <<= nm.m2cross(k = m2cross_k, f= cs, a = 'type,value')
         # type is the column listing the calculated quantities
         # value is the column with all the actual values of those quantities
 
         # mcal to create the column of unique column names
-        uniqueformat = '$s{%s}+"_"+$s{type}'.format(tempcol)
+        uniqueformat = "$s{{{}}}+'_'+$s{{type}}" .format(tempcol)
         cmd_o <<= nm.mcal(a = 'unique_cols', c = uniqueformat) 
 
         # mcross to bring it all back
