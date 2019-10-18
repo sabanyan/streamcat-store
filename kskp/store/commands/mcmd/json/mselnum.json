@@ -1,5 +1,37 @@
 {
   "id": "mselnum",
+  "groups": [
+    {
+      "name": "group1",
+      "label": "グループの設定(必須)",
+      "params": ["k"]
+    },
+    {
+      "name": "group2",
+      "label": "条件式の設定（必須）",
+      "params": ["c"]
+    },
+    {
+        "name": "group3",
+        "label": "Group3",
+        "params": ["f"]
+    },
+    {
+      "name": "group10",
+      "label": "項目名・項目番号についての設定（省略可）",
+      "params": ["x", "nfn", "nfno"]
+    },
+    {
+      "name": "group11",
+      "label": "その他（省略可）",
+      "params": ["q", "r", "F", "R"]
+    },
+    {
+      "name": "group20",
+      "label": "システム管理用設定（作業領域・ログ出力）",
+      "params": [ "tmpPath", "assert_diffSize", "assert_nullkey","assert_nullin", "bufcount"]
+    }
+  ],
   "rules" : {
     "f" :{
       "presence": {"allowEmpty": false},
