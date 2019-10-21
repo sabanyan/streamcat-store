@@ -411,13 +411,7 @@ class CsvtoRepetitivieWaveform(VisualizersBokehPlot):
         return source
 
     def get_statics_source(self, df, disableTooltips=False):
-        k = self.keys
-        if self.keys is None:
-            k = []
-            return None
-        if (self.column_name_x_axis in k) == False:
-            k.append(self.column_name_x_axis)
-        k = ','.join(k)
+        k = self.column_name_x_axis
         f = self.column_name_values
         c = self.statics #"min,mean,max,qtile1,median,qtile3" #aa
         i = self.df.values.tolist()
@@ -433,7 +427,7 @@ class CsvtoRepetitivieWaveform(VisualizersBokehPlot):
         df = df.sort_values(by = self.column_name_x_axis)
         keys = c.split(',')
         source = {}
-        x = df[self.column_name_x_axis].tolist()
+        x = df[k].tolist()
         for key in keys:
             data = dict(
                 x = x,
