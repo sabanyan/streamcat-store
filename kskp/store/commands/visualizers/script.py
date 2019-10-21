@@ -323,18 +323,19 @@ class CsvtoRepetitivieWaveform(VisualizersBokehPlot):
         graph_plot.legend.location = "top_left"
         graph_plot.legend.click_policy = "mute"
 
+        select = self.get_select(graph_plot)
+        plots = [graph_plot, select]
+        
         statics_plot = None
         if self.disableStatics == False:
             statics_source = self.get_statics_source(self.df, disableTooltips=False)
-            statics_colors = self.get_colors(len(statics_source))
-            statics_plot = self.get_statics_plot("反復波形図(統計量)",statics_source, statics_colors)
-            if statics_plot is not None:
-                statics_plot.legend.location = "top_left"
-                statics_plot.legend.click_policy = "mute"
-
-        plots = [graph_plot]
-        if statics_plot is not None:
-            plots.append(statics_plot)
+            if statics_source is not None:
+                statics_colors = self.get_colors(len(statics_source))
+                statics_plot = self.get_statics_plot("反復波形図(統計量)",statics_source, statics_colors)
+                if statics_plot.legend:
+                    statics_plot.legend.location = "top_left"
+                    statics_plot.legend.click_policy = "mute"
+                plots.append(statics_plot)          
         
         return gridplot(plots, ncols=1, plot_width=self.graph_width, plot_height=self.graph_height)
         
@@ -358,7 +359,8 @@ class CsvtoRepetitivieWaveform(VisualizersBokehPlot):
         limit = int(args.get('limit')) if args.get('limit') else None
         
         frame = Library.load_frame(frame_uuid)
-        self.df = frame.get_dataframe(limit, offset)
+        df = frame.get_dataframe(limit, offset)
+        self.df = df.sort_values(by = self.column_name_x_axis)
         self.groups = self.df[self.group].unique().tolist()
         
         # グラフ表示要素の設定
@@ -412,7 +414,7 @@ class CsvtoRepetitivieWaveform(VisualizersBokehPlot):
         k = self.keys
         if self.keys is None:
             k = []
-        
+            return None
         if (self.column_name_x_axis in k) == False:
             k.append(self.column_name_x_axis)
         k = ','.join(k)
@@ -427,9 +429,8 @@ class CsvtoRepetitivieWaveform(VisualizersBokehPlot):
         result = result.run()
 
         name=result.pop(0)
-        df=pd.DataFrame(result,columns=name)
+        df= pd.DataFrame(result,columns=name)
         df = df.sort_values(by = self.column_name_x_axis)
-
         keys = c.split(',')
         source = {}
         x = df[self.column_name_x_axis].tolist()
@@ -442,6 +443,35 @@ class CsvtoRepetitivieWaveform(VisualizersBokehPlot):
             source[key] = data
 
         return source
+
+    def get_select(self, plot):
+        values = self.groups
+        values.insert(0, '')
+
+        s = Select(value=values[0], title=self.group, options=values, width=120)
+
+        callBack = CustomJS(args=dict(plot=plot, select=s), code="""
+            var value = select.value
+            var renderers = plot.renderers
+            if (!renderers) return
+
+            renderers.forEach(r => {
+                try {
+                    if (value === "") {
+                        r.muted = false
+                    } else if(r.data_source.data.group[0] === value) {
+                        r.muted = false
+                    } else {
+                        r.muted = true
+                    } 
+                } catch(e) {
+                    console.log(e)
+                }
+            })
+        """)
+        s.js_on_change('value', callBack)
+
+        return s
 
     def get_colors(self, size):
         i = 0
@@ -480,7 +510,6 @@ class CsvtoRepetitivieWaveform(VisualizersBokehPlot):
         return figure_plot
 
     def add_varea_to_plot(self, figure_plot, source, fill_color='#cccccc'):
-        
         keys = self.statics.split(',')
         length = len(keys)
         for index, key in enumerate(keys):
@@ -488,7 +517,7 @@ class CsvtoRepetitivieWaveform(VisualizersBokehPlot):
                 x = source[key]['x']
                 y1 = source[key]['y']
                 y2 = source[keys[index + 1]]['y']
-                figure_plot.varea(x=x, y1=y1, y2=y2, fill_color=fill_color, alpha=0.1)
+                figure_plot.varea(x=x, y1=y1, y2=y2, fill_color=fill_color, alpha=0.5)
 
         return figure_plot
 
@@ -500,29 +529,48 @@ class CsvtoRepetitivieWaveform(VisualizersBokehPlot):
         return figure_plot
 
     def add_span_to_plot(self, figure_plot, df):
-        queryStr = "{0} == {1}".format(self.event, "0")
-        df = df.query(queryStr)
-
-    def get_statics_plot(self, title, source, colors):
-        pp.pprint("soru")
-        pp.pprint(source)
         
+        queryStr = "{0} == {1}".format(self.event, "0")
+        result_df = df.query(queryStr)
+
+        from bokeh.models import Span
+
+        xs = result_df[self.column_name_x_axis].unique().tolist()
+
+        for x in xs:
+            s = Span(location= x,
+                              dimension='height', line_color='black',
+                              line_dash='dashed', line_width=3, line_alpha=0.3)
+            figure_plot.add_layout(s)
+
+        return figure_plot
+
+    def get_statics_plot(self, title, source, colors):        
         plot = self.get_plot(title)
         # plot
-        plot = self.add_lines_to_plot(plot, source, colors)
-        plot = self.add_varea_to_plot(plot, source)
+        if source == None:
+            return plot
         if self.disableMarker != True:
             plot = self.add_points_to_plot(plot, source, colors)
-
+        if self.disableEvent != True:
+            plot = self.add_span_to_plot(plot, self.df)
+       
+        plot = self.add_lines_to_plot(plot, source, colors)
+        plot = self.add_varea_to_plot(plot, source)
+        
         return plot 
 
     def get_grpah_plot(self, title, source, colors):
         plot = self.get_plot(title)
 
         # plot
+        if source == None:
+            return plot
         if self.disableMarker != True:
             plot = self.add_points_to_plot(plot, source, colors)
+        if self.disableEvent != True:
+            plot = self.add_span_to_plot(plot, self.df)
+
         plot = self.add_lines_to_plot(plot, source, colors)
-        #plot = self.add_varea_to_plot(plot, source)
 
         return plot
