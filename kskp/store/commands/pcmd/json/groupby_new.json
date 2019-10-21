@@ -3,18 +3,18 @@
   "groups":[
     {
       "name": "group1",
-      "label": "キー項目の設定（省略可）",
+      "label": "キー項目の設定（必須）",
       "params": ["k"]
     },
     {
       "name": "group2",
       "label": "FC",
-      "params": ["fclist","delimiter"]
+      "params": ["fclist","format"]
     },
     {
       "name": "group3",
       "label": "others",
-      "params": ["q","nfno","prefix","precision"]
+      "params": ["q","nfno","precision"]
     }
   ],
   "params": [
@@ -43,10 +43,10 @@
       "default": [{"f": "", "c": ""}]
     },
     {
-      "name": "delimiter",
+      "name": "format",
       "type": "string",
-      "label": "センサー名と特徴量名との区切り文字、省略時は _",
-      "optional": true
+      "label": "Format for new column names (& for old column name, % for stat)",
+      "default": "&_%"
     },
     {
       "name": "q",
@@ -58,12 +58,6 @@
       "name": "nfno",
       "type": "boolean",
       "label": "項目名行を出力しない",
-      "optional": true
-    },
-    {
-      "name": "prefix",
-      "type": "boolean",
-      "label": "センサー名と特徴量名との連結方法を接頭辞型にする。 省略時は接尾型",
       "optional": true
     },
     {

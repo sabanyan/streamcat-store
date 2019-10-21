@@ -338,25 +338,33 @@ class GroupByPythonCommand(Command):
 
         cmd[-1] <<= nm.mread(inputs)
 
-        #### code in wildcard parsing later
+        self.header = nm.mread(inputs).getline(header=True)
+        self.header = next(self.header)
+
         k = args.pop('k')
-        fclist = args.pop('fclist')
 
-
+        fclist = []
         all_fs = []
         all_cs = []
-        for fcdict in fclist:
-            sys.__stderr__.write(f'{repr(fcdict)}\n{all_fs}')
-            all_fs += fcdict['f'].split(',')
-            all_cs += fcdict['c'].split(',')
+        
+        # wildcard parsing
+        for arglist in args.pop('fclist'):
+            fs = [a for a in self.header for target in arglist['f'].split(',') 
+                if fn.fnmatch(a, target)]
+            cs = arglist['c']
+
+            fclist.append({'f': ','.join(fs), 'c': cs})
+
+            all_fs += [f for f in fs if f not in all_fs]
+            all_cs += [c for c in cs.split(',') if c not in all_cs]
 
         #remove redundancies
-        all_fs = ','.join(list(dict.fromkeys(all_fs)))
-        all_cs = ','.join(list(dict.fromkeys(all_cs)))
+        # all_fs = ','.join(list(dict.fromkeys(all_fs)))
+        # all_cs = ','.join(list(dict.fromkeys(all_cs)))
 
         # mcut 
         # take the wanted columns only (the id column and the value columns)
-        cmd[-1] <<= nm.mcut(f = f'{k},{all_fs}')
+        cmd[-1] <<= nm.mcut(f = f'{k},{",".join(all_fs)}')
 
         ##### calculation portion:
         tempcol = 'tmpcol'
@@ -375,31 +383,45 @@ class GroupByPythonCommand(Command):
                 cmd[i] <<= nm.msummary(k = k, f = fs, c = cs, a = tempcol)
 
             # make void columns for each missing column
-            for missingcol in all_cs.split(','):
+            for missingcol in all_cs:
                 if missingcol not in cs: 
                     cmd[i] <<= nm.mcal(a = missingcol, c = 'nulls()')
 
         # joining the separate msummary results:
-
-        # for i in range(1, len(cmd)):
-            # cmd[0] <<= nm.mjoin(m = cmd[i], k = expanded_k, n = True, N = True,
-            #         K = expanded_k)
         cmd_o <<= nm.m2cat(i = cmd) 
 
         # tempcol holds the old column names (sensor names etc)
 
         # m2cross 
-        cmd_o <<= nm.m2cross(k = expanded_k, f= all_cs,
-                 a = 'type,value')
+        cmd_o <<= nm.m2cross(k = expanded_k, f= all_cs, a = 'type,value')
+
         # type is the column listing the calculated quantities
         # value is the column with all the actual values of those quantities
 
         # delete rows with null values
         cmd_o <<= nm.mdelnull(f = 'value')
 
+        formatstring = args.pop('format')
+        colformat = ['']
+
+        for char in formatstring:
+            if char == '&':
+                colformat.append(f'$s{{{tempcol}}}')
+                colformat.append('')
+            elif char == '%':
+                colformat.append('$s{type}')
+                colformat.append('')
+            else:
+                colformat[-1] += char
+
+        # colformat = colformat[:-1]
+
+        for i, sub in enumerate(colformat):
+            if not sub.startswith('$'):
+                colformat[i] = f'"{sub}"' 
+
         # mcal to create the column of unique column names
-        uniqueformat = f"$s{{{tempcol}}}+'_'+$s{{type}}" 
-        cmd_o <<= nm.mcal(a = 'unique_cols', c = uniqueformat) 
+        cmd_o <<= nm.mcal(a = 'unique_cols', c = '+'.join(colformat))
 
         # mcross to bring it all back
         cmd_o <<= nm.mcross(f = 'value', s = 'unique_cols', k = k)
@@ -407,7 +429,7 @@ class GroupByPythonCommand(Command):
         # mcut to remove the extra 'fld' column after mcross
         cmd_o <<= nm.mcut(r = True, f = 'fld')
 
-        # nm.drawModelsD3(cmd_o,'groupbytest.html')
+        cmd_o.drawModelD3('groupbytest.html')
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
