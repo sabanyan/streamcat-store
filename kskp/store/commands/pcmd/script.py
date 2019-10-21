@@ -334,6 +334,7 @@ class GroupByPythonCommand(Command):
         import fnmatch as fn
 
         cmd = [None] * len(args['fclist'])
+        cmd_o = None
 
         cmd[-1] <<= nm.mread(inputs)
 
@@ -373,33 +374,42 @@ class GroupByPythonCommand(Command):
             else:
                 cmd[i] <<= nm.msummary(k = k, f = fs, c = cs, a = tempcol)
 
-        for i in range(1, len(cmd)):
-            cmd[0] <<= nm.mjoin(m = cmd[i], k = expanded_k, n = True, N = True,
-                    K = expanded_k)
+            # make void columns for each missing column
+            for missingcol in all_cs.split(','):
+                if missingcol not in cs: 
+                    cmd[i] <<= nm.mcal(a = missingcol, c = 'nulls()')
+
+        # joining the separate msummary results:
+
+        # for i in range(1, len(cmd)):
+            # cmd[0] <<= nm.mjoin(m = cmd[i], k = expanded_k, n = True, N = True,
+            #         K = expanded_k)
+        cmd_o <<= nm.m2cat(i = cmd) 
 
         # tempcol holds the old column names (sensor names etc)
 
         # m2cross 
-        cmd[0] <<= nm.m2cross(k = expanded_k, f= all_cs,
+        cmd_o <<= nm.m2cross(k = expanded_k, f= all_cs,
                  a = 'type,value')
         # type is the column listing the calculated quantities
         # value is the column with all the actual values of those quantities
 
         # delete rows with null values
-        cmd[0] <<= nm.mdelnull(f = 'value')
+        cmd_o <<= nm.mdelnull(f = 'value')
 
         # mcal to create the column of unique column names
         uniqueformat = f"$s{{{tempcol}}}+'_'+$s{{type}}" 
-        cmd[0] <<= nm.mcal(a = 'unique_cols', c = uniqueformat) 
+        cmd_o <<= nm.mcal(a = 'unique_cols', c = uniqueformat) 
 
         # mcross to bring it all back
-        cmd[0] <<= nm.mcross(f = 'value', s = 'unique_cols', k = k)
+        cmd_o <<= nm.mcross(f = 'value', s = 'unique_cols', k = k)
 
         # mcut to remove the extra 'fld' column after mcross
-        cmd[0] <<= nm.mcut(r = True, f = 'fld')
+        cmd_o <<= nm.mcut(r = True, f = 'fld')
 
+        # nm.drawModelsD3(cmd_o,'groupbytest.html')
         nysol_module_o= NysolModule()
-        nysol_module_o.set_content(cmd[0])
+        nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
 
 class MultiMcalCommand(Command):
