@@ -139,7 +139,8 @@ class CommandLink:
             'saver': SaverCommand(),
             'cachesaver': CacheSaverCommand(),
             'loader': LoaderCommand(),
-            'db_loader' : DbLoaderCommand()
+            'db_loader' : DbLoaderCommand(),
+            'db_saver'  : DbSaverCommand()
         }
 
         if runnable_id not in table:

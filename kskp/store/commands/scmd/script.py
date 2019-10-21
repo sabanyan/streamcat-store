@@ -18,6 +18,9 @@ class SaverCommand(Command):
 
     def run(self, args, inputs):
         # Frameを作成する
+        import pprint
+        pprint.pprint(args)   
+
         store = inputs['store']
         label = args['label']
         frame = self.get_datum_obj(store, label)
@@ -261,3 +264,135 @@ class DbLoaderCommand(Command):
     def dtor(self):
         DbLoaderCommand._write_log('DTOR!')
 
+
+class DbSaverCommand(Command):
+    """
+    指定したDBへデータを格納するSaverコマンド
+    """
+    def __init__(self):
+        super().__init__()
+        self.i_ports = [Port('i', 'frame'), Port('store', 'store')]
+        self.o_ports = [Port('o', 'mcmd')]
+        self._tmp_file_path = None
+
+    def run(self, args, inputs):
+        DbSaverCommand._write_log('START')
+
+        from kskp.store import Database
+        if not isinstance(inputs['i'], Database):
+            t = type(inputs['i'])
+            raise Exception(f'DbSaverの入力にDatabase Store以外のデータ型({t})が入力されました')
+        else:
+            database = inputs['i']
+
+        # DB接続情報に漏れがないか確認し、漏れがあれば例外を送出する
+        database.valid_or_raise()
+
+        # # 入力データ
+        # f = inputs['i']
+
+        # DB接続情報に漏れがないか確認し、漏れがあれば例外を送出する
+        database.valid_or_raise()
+
+        # 抽出元スキーマ名とテーブル名を取得する
+        if 'schema_name' not in args or args['schema_name'] is None:
+            schema_name = ''
+        else:
+            schema_name = args['schema_name']
+
+        if 'table_name' not in args:
+            raise Exception('DB接続の取得元テーブル名が必要です')
+        table_name = args['table_name']
+
+        # DBへの接続URIを作成する
+        db_uri = database.get_database_uri()
+
+        # Tmpファイル名を決定する
+        import uuid
+        from pathlib import Path
+        tmp_dir_path  = Path('/tmp')
+        tmp_file_name = str(uuid.uuid4()) + '.csv'
+        self._tmp_file_path = tmp_dir_path / tmp_file_name
+
+        # 指定されたテーブルがデータを格納可能か判定する → どうやって？
+
+        def bulk_inserter(dbms, db_uri, table_name):
+            
+            # 入力データを一旦ファイルに保存する → ストリーム処理できないか？ PIPE?
+            with self._tmp_file_path.open('w') as t:
+                is_header = True
+                for line in sys.stdin:
+                    if is_header:
+                        # 入力データの列数をカウントする
+                        column_count = len(line)
+                        columns = line
+                        is_header = False
+                    t.print(line)
+
+            # DBへ接続する
+            engine = DbSaverCommand._connect_to_db(db_uri)
+
+            # テーブルを作成する
+            DbSaverCommand._create_table(engine, dbms, table_name, columns)
+
+            # データをインポートする
+            DbSaverCommand._import_to_table(engine, dbms, table_name, self._tmp_file_path)
+
+        # flushをしないと、デバッグ用のprintなども入ってしまう
+        sys.stdout.flush()
+
+        # Nysol Pythonのrunfunc関数を作成する
+        cmd = inputs['i']
+        cmd <<= nm.runfunc(bulk_inserter, dbms=database.dbms, db_uri=db_uri, table_name=table_name)
+
+        nysol_module = NysolModule()
+        nysol_module.set_content(cmd)
+        return {'o': nysol_module}
+
+    @staticmethod
+    def _connect_to_db(db_uri):
+        # データベースへの接続
+        from sqlalchemy import create_engine, exc
+        # echo=TrueでSQLログがコンソールに出力される
+        try:
+            engine = create_engine(db_uri, echo=False)
+        except exc.SQLAlchemyError as e:
+            raise Exception('DBへの接続に失敗しました(%s)' % str(e))
+        return engine
+
+    @staticmethod
+    def _create_table(engine, dbms, table_name, columns):
+        for column in columns:
+            column_defs += f',{column} text'
+
+        creata_table = f"""
+        create table {table_name} (
+            id serial
+            {column_defs}
+        );
+        """
+        from sqlalchemy import DDL
+        engine.execute(DDL(creata_table))
+
+    @staticmethod
+    def _import_to_table(engine, dbms, table_name, file_path):
+        # if dbms.upper() == 'POSTGRESQL':
+        copy_stmt = f"""
+        COPY {table_name} from {file_path} with csv;
+        """
+        from sqlalchemy import DDL
+        engine.execute(DDL(copy_stmt))
+
+    @staticmethod
+    def _write_log(message):
+        indent = '  '
+        sys.__stderr__.write(indent + 'db_saver' + ': <\n')
+        sys.__stderr__.write(indent + '  ' + message + '\n')
+        sys.__stderr__.write(indent + '>\n')
+
+    def dtor(self):
+        DbSaverCommand._write_log('DTOR!')
+        # Tmpファイルを削除する
+        import os
+        if self._tmp_file_path is not None and self._tmp_file_path.exists():
+            self._tmp_file_path.unlink()
