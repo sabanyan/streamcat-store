@@ -396,12 +396,12 @@ class GroupByCommand(Command):
         for i, sub in enumerate(colformat):
             if not sub.startswith('$'):
                 colformat[i] = f'"{sub}"' 
-
+        
         # mcal to create the column of unique column names
         cmd_o <<= nm.mcal(a = 'unique_cols', c = '+'.join(colformat))
 
         # mcross to bring it all back
-        cmd_o <<= nm.mcross(f = 'value', s = 'unique_cols', k = k, precision=args['precision'])
+        cmd_o <<= nm.mcross(f = 'value', s = 'unique_cols', k = k)
 
         # mcut to remove the extra 'fld' column after mcross
         cmd_o <<= nm.mcut(r = True, f = 'fld', **args)
