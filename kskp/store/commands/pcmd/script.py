@@ -166,20 +166,6 @@ class GroupbyColumnsCommand(PCommand):
         return {'o': self.module(f, args_string)}
 
 
-class GroupbyCommand(PCommand):
-    def __init__(self):
-        super().__init__()
-
-    def run(self, args, inputs):
-        f = None
-        f <<= inputs['i']
-
-        args_string = (PCMD_DIR / 'src/groupby.sh').as_posix()
-        args_string += self.replace_args(args)
-
-        return {'o': self.module(f, args_string)}
-
-
 class CheckDuplicateRowsCommand(PCommand):
     def __init__(self):
         super().__init__()
@@ -324,7 +310,7 @@ class RunfuncCommand(Command):
         """
         pass
 
-class GroupByPythonCommand(Command):
+class GroupByCommand(Command):
     def __init__(self):
         super().__init__()
         self.i_ports = [Port('i', 'frame')]
