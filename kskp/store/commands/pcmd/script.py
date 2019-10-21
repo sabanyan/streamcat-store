@@ -358,10 +358,6 @@ class GroupByPythonCommand(Command):
             all_fs += [f for f in fs if f not in all_fs]
             all_cs += [c for c in cs.split(',') if c not in all_cs]
 
-        #remove redundancies
-        # all_fs = ','.join(list(dict.fromkeys(all_fs)))
-        # all_cs = ','.join(list(dict.fromkeys(all_cs)))
-
         # mcut 
         # take the wanted columns only (the id column and the value columns)
         cmd[-1] <<= nm.mcut(f = f'{k},{",".join(all_fs)}')
@@ -378,22 +374,19 @@ class GroupByPythonCommand(Command):
             # take the required stats for the required columns
             if i != len(fclist) - 1:
                 cmd[i] <<= nm.msummary(i = cmd[-1], k = k, f = fs, 
-                        c = cs, a = tempcol)
+                        c = cs, a = tempcol, precision = args['precision'])
             else:
-                cmd[i] <<= nm.msummary(k = k, f = fs, c = cs, a = tempcol)
+                cmd[i] <<= nm.msummary(k = k, f = fs, c = cs, a = tempcol,
+                        precision = args['precision'])
 
-            # make void columns for each missing column
+            # make null columns for each missing column
             for missingcol in all_cs:
-                if missingcol not in cs: 
+                if missingcol not in cs.split(','):
                     cmd[i] <<= nm.mcal(a = missingcol, c = 'nulls()')
 
-        # joining the separate msummary results:
-        cmd_o <<= nm.m2cat(i = cmd) 
-
-        # tempcol holds the old column names (sensor names etc)
-
         # m2cross 
-        cmd_o <<= nm.m2cross(k = expanded_k, f= all_cs, a = 'type,value')
+        cmd_o <<= nm.m2cross(i = cmd, k = expanded_k, f= all_cs, 
+                a = 'type,value')
 
         # type is the column listing the calculated quantities
         # value is the column with all the actual values of those quantities
@@ -414,8 +407,6 @@ class GroupByPythonCommand(Command):
             else:
                 colformat[-1] += char
 
-        # colformat = colformat[:-1]
-
         for i, sub in enumerate(colformat):
             if not sub.startswith('$'):
                 colformat[i] = f'"{sub}"' 
@@ -424,12 +415,12 @@ class GroupByPythonCommand(Command):
         cmd_o <<= nm.mcal(a = 'unique_cols', c = '+'.join(colformat))
 
         # mcross to bring it all back
-        cmd_o <<= nm.mcross(f = 'value', s = 'unique_cols', k = k)
+        cmd_o <<= nm.mcross(f = 'value', s = 'unique_cols', k = k, precision=args['precision'])
 
         # mcut to remove the extra 'fld' column after mcross
-        cmd_o <<= nm.mcut(r = True, f = 'fld')
+        cmd_o <<= nm.mcut(r = True, f = 'fld', **args)
 
-        cmd_o.drawModelD3('groupbytest.html')
+        # cmd_o.drawModelD3('groupbytest.html')
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}

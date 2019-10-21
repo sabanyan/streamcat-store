@@ -8,26 +8,27 @@
     },
     {
       "name": "group2",
-      "label": "FC",
+      "label": "計算対象と結果の項目設定（必須）",
       "params": ["fclist","format"]
     },
     {
       "name": "group3",
-      "label": "others",
-      "params": ["q","nfno","precision"]
+      "label": "その他（省略可）",
+      "params": ["nfno","precision"]
     }
   ],
   "params": [
     {
       "name": "k",
       "type": "string",
-      "label": "集計キー項目をカンマ区切りで与える（必須）"
+      "label": "集計キー項目を（必須）",
+      "description": "●カンマ区切りで複数指定可"
     },
     {
       "name": "fclist",
       "type": "list",
       "label": "計算対象の設定",
-      "description": "",
+      "description": "●【対象項目】項目名時:*,？,[...] 使用可\n●【統計量】カンマ区切りで統計量指定可。\n\t指定可能統計量:sum, mean, count, ucount, devsq, var, uvar, sd, usd, cv, min, qtile1, median, qtile3, max, range, qrange, mode, skew, uskew, kurt, ukurt",
       "elements": [
         {
           "name": "f",
@@ -45,14 +46,9 @@
     {
       "name": "format",
       "type": "string",
-      "label": "Format for new column names (& for old column name, % for stat)",
+      "label": "結果項目名の設定",
+      "description" : "&:元の項目を表す記号\n%:統計量を表わす記号",
       "default": "&_%"
-    },
-    {
-      "name": "q",
-      "type": "boolean",
-      "label": "集計キー項目でソートをしない",
-      "optional": true
     },
     {
       "name": "nfno",
