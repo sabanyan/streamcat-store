@@ -125,7 +125,7 @@
       {
         "name": "doEvent",
         "type": "boolean",
-        "label": "イベント発生時点の表示",
+        "label": "イベント発生時点を表示しない",
         "default":false
       }, 
       {
@@ -150,13 +150,13 @@
         "name": "width",
         "type": "number",
         "label": "横幅（ドット）",
-        "default": 600
+        "default": 1000
       },
       {
         "name": "height",
         "type": "number",
         "label": "縦幅（ドット）",
-        "default": 1000
+        "default": 600
       }
     ],
     "groups": [
