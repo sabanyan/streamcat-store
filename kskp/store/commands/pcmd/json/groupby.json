@@ -1,54 +1,32 @@
 {
   "id": "groupby",
-  "groups":[
-    {
-      "name": "group1",
-      "label": "キー項目の設定（必須）",
-      "params": ["k"]
-    },
-    {
-      "name": "group2",
-      "label": "計算対象と結果の項目設定（必須）",
-      "params": ["fclist","format"]
-    },
-    {
-      "name": "group3",
-      "label": "その他（省略可）",
-      "params": ["nfno","precision"]
-    }
-  ],
   "params": [
     {
       "name": "k",
       "type": "string",
-      "label": "集計キー項目を（必須）",
-      "description": "●カンマ区切りで複数指定可"
+      "label": "集計キー項目をカンマ区切りで与える（必須）"
     },
     {
-      "name": "fclist",
-      "type": "list",
-      "label": "計算対象の設定（追加・順序変更・削除　可）",
-        "description": "【対象項目】項目名時:*,？,[...] 使用可\n【統計量】統計量と算出結果の項目名の指定、カンマ区切りで複数指定可。\n指定可能統計量:\ncount　・・・　集計｜件数\nucount　・・・　集計｜種類数\nsum　・・・　集計｜合計\nmin　・・・　集計｜最小値\nmax　・・・　集計｜最大値\nmean　・・・　平均・分散｜算術平均\nmedian　・・・　平均・分散|中央値\nmode　・・・　平均・分散｜最頻値\nvar　・・・　平均・分散｜標本分散\nuvar　・・・　平均・分散｜不偏分散\nsd　・・・　平均・分散｜標準偏差\nusd　・・・　平均・分散｜標準偏差（不偏推定値）\ndevsq　・・・　平均・分散｜偏差平方和\ncv　・・・　平均・分散｜変動係数\nrange　・・・　範囲｜範囲\nqrange　・・・　範囲｜２５％〜７５％分位点の範囲\nqtile1　・・・　範囲｜２５％分位点\nqtile3　・・・　範囲｜７５％分位点\nskew　・・・　３次モーメント｜歪度\nuskew　・・・　３次モーメント｜歪度（不偏推定値）\nkurt　・・・　４次モーメント｜尖度\nukurt　・・・　４次モーメント｜尖度（不偏推定値）",
-      "elements": [
-        {
-          "name": "f",
-          "type": "string",
-          "label": "対象項目"
-        },
-        {
-          "name": "c",
-          "type": "string",
-          "label": "統計量"
-        }
-      ],
-      "default": [{"f": "", "c": ""}]
-    },
-    {
-      "name": "format",
+      "name": "f",
       "type": "string",
-      "label": "結果項目名の設定",
-      "description" : "&:元の項目を表す記号\n%:統計量を表わす記号",
-      "default": "&_%"
+      "label": "同じ統計量計算を行う対象とする列範囲の指定、入力データの列名をカンマ区切りで与える（必須）"
+    },
+    {
+      "name": "c",
+      "type": "string",
+      "label": "統計量の指定と算出結果の列名の指定、演算の指定:作成列名 をカンマ区切りで与える（必須）"
+    },
+    {
+      "name": "delimiter",
+      "type": "string",
+      "label": "センサー名と特徴量名との区切り文字、省略時は _",
+      "optional": true
+    },
+    {
+      "name": "q",
+      "type": "boolean",
+      "label": "集計キー項目でソートをしない",
+      "optional": true
     },
     {
       "name": "nfno",
@@ -57,11 +35,10 @@
       "optional": true
     },
     {
-      "name": "precision",
-      "type": "string",
-      "label": "有効桁数",
-      "optional": true,
-      "default": "10"
+      "name": "prefix",
+      "type": "boolean",
+      "label": "センサー名と特徴量名との連結方法を接頭辞型にする。 省略時は接尾型",
+      "optional": true
     }
   ],
   "ports": [
@@ -81,6 +58,6 @@
   "version": "0.7.0",
   "label": "GroupBy処理",
   "classification": "col_edit",
-  "description": "groupby処理を行う_new",
+  "description": "groupby処理を行う",
   "url": ""
 }
