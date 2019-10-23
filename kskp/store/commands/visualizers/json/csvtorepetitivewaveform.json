@@ -27,25 +27,18 @@
           {
             "name":"column",
             "type":"column",
-            "label":"横軸列：時間軸",
-            "options":{
-              "css" : {"width":"40%"}
-              
-            }
+            "label":"横軸列：時間軸"
           },
           {
             "name":"label",
             "type":"string",
-            "label":"横軸名",
-            "options":{
-              "css" : {"width":"40%"}
-            }
+            "label":"横軸名"
           }
         ],
         "default":[{"column":"", "label":""}],
         "options":{
-          "addable"  : false,
-          "deletable": false,
+          "visiable_button_add"  : false,
+          "visiable_button_delete": false,
           "draggable" : false
         }
       },
@@ -56,24 +49,19 @@
           {
             "name":"column",
             "type":"column",
-            "label":"縦軸列：観測軸",
-            "design":{
-              "width":"40%"
-            }
+            "label":"縦軸列：観測軸"
           },
           {
             "name":"label",
             "type":"string",
-            "label":"縦軸名",
-            "design":{
-              "width":"40%"
-            }
+            "label":"縦軸名"
           }
         ],
         "default":[{"column":"", "label":""}],
         "options":{
-          "list_add"     : false,
-          "list_delete"  : false
+          "visiable_button_add"  : false,
+          "visiable_button_delete": false,
+          "draggable" : false
         }
       },
       {
@@ -105,25 +93,25 @@
         "default": 1000
       },
       {
-        "name": "doTooltips",
+        "name": "disableTooltips",
         "type": "boolean",
         "label": "ツールチップを表示しない",
         "default":false
       },
       {
-        "name": "doMarker",
+        "name": "disableMarker",
         "type": "boolean",
         "label": "マーカーを表示しない",
         "default":false
       },  
       {
-        "name": "doStatics",
+        "name": "disableStatics",
         "type": "boolean",
         "label": "統計量グラフを表示しない",
         "default":false
       },  
       {
-        "name": "doEvent",
+        "name": "disableEvent",
         "type": "boolean",
         "label": "イベント発生時点を表示しない",
         "default":false
@@ -178,7 +166,7 @@
       {
         "name": "graph_group",
         "label": "グラフ表示要素の設定",
-        "params": ["doTooltips","doMarker","doStatics","doEvent","event","statics"]
+        "params": ["disableTooltips","disableMarker","disableStatics","disableEvent","event","statics"]
       },
       {
         "name": "graph_size",
