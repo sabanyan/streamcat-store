@@ -28,7 +28,7 @@
       "name": "fclist",
       "type": "list",
       "label": "計算対象の設定（追加・順序変更・削除　可）",
-      "description": "【対象項目】項目名時:*,？,[...] 使用可\n【統計量】カンマ区切りで統計量指定可。\n\t指定可能統計量:sum, mean, count, ucount, devsq, var, uvar, sd, usd, cv, min, qtile1, median, qtile3, max, range, qrange, mode, skew, uskew, kurt, ukurt",
+      "description": "【対象項目】項目名時:*,？,[...] 使用可\n【統計量】統計量と算出結果の項目名の指定、カンマ区切りで複数指定可。\n\t指定可能統計量:sum, mean, count, ucount, devsq, var, uvar, sd, usd, cv, min, qtile1, median, qtile3, max, range, qrange, mode, skew, uskew, kurt, ukurt",
       "elements": [
         {
           "name": "f",
