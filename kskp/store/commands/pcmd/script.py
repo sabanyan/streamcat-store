@@ -330,13 +330,62 @@ class GroupBy2Command(Command):
         self.i_ports = [Port('i', 'frame')]
         self.o_ports = [Port('o', 'frame')]
 
+    def rootmeansquare(self, ks, fs, a, precision):
+        # k gives key fields
+        # f gives target fields
+        # a gives output field name
+
+        subcmd = None
+        subcmd <<= nm.mstdin()
+        # mcal to square
+        fs = fs.split(',')
+        for f in fs:
+            subcmd <<= nm.mcal(a = f'{f}_temp', c = f'${{{f}}}^2')
+        
+        # msummary to sum
+        subcmd <<= nm.msummary(c = 'sum,count', f = ','.join(fs), k = ks)
+
+        # mcal to sqrt
+        subcmd <<= nm.mcal(a = a, c = 'sqrt(${sum}/${count})')
+
+        # mcut to remove old row
+        finalcols = ','.join([ks,'fld',a])
+        subcmd <<= nm.mcut(f = finalcols)
+
+        subcmd <<= nm.mstdout()
+        subcmd.run()
+
     def run(self, args, inputs):
         import fnmatch as fn
 
-        cmd = [None] * len(args['fclist'])
-        cmd_o = None
+        msummaryoptions = [
+            'sum',
+            'mean',
+            'count',
+            'ucount',
+            'devsq',
+            'var',
+            'uvar',
+            'sd',
+            'usd',
+            'cv',
+            'min',
+            'qtile1',
+            'median',
+            'qtile3',
+            'max',
+            'range',
+            'qrange',
+            'mode',
+            'skew',
+            'uskew',
+            'kurt',
+            'ukurt'
+        ]
 
-        cmd[-1] <<= nm.mread(inputs)
+        new_calcs = {
+            'rms' : self.rootmeansquare
+            }
 
         self.header = nm.mread(inputs).getline(header=True)
         self.header = next(self.header)
@@ -352,38 +401,63 @@ class GroupBy2Command(Command):
             fs = [a for a in self.header for target in arglist['f'].split(',') 
                 if fn.fnmatch(a, target)]
 
-            cs = arglist['c']
-            for c in cs.split(','):
+            cs = arglist['c'].split(',')
+            cs_msummary = []
+            cs_custom = []
+
+            for i,c in enumerate(cs):
                 if ':' in c:
                     final_fs.append(c.split(':')[-1])
                 else:
                     final_fs.append(c)
+                    
+                if c.split(':')[0] not in msummaryoptions:
+                    cs_custom.append(cs[i])
+                else:
+                    cs_msummary.append(cs[i])
 
-            fclist.append({'f': ','.join(fs), 'c': cs})
+            if cs_msummary:
+                fclist.append({'f': ','.join(fs), 'c': cs_msummary, 'msummary' : True})
+            for cs in  cs_custom:
+                fclist.append({'f': ','.join(fs), 'c': cs_custom, 'msummary' : False})
 
             all_fs += [f for f in fs if f not in all_fs]
 
+        cmd = [None] * len(fclist)
+        cmd_o = None
+
+        cmd[-1] <<= nm.mread(inputs)
         # take the wanted columns only (the id column and the value columns)
         cmd[-1] <<= nm.mcut(f = f'{k},{",".join(all_fs)}')
 
         ##### calculation portion:
-        tempcol = 'tmpcol'
-        expanded_k = ','.join([k,tempcol])
+        expanded_k = ','.join([k,'fld'])
 
         for i, fcdict in enumerate(fclist):
             cs = fcdict.pop('c')
             fs = fcdict.pop('f')
 
-            # msummary
             # take the required stats for the required columns
-            if i != len(fclist) - 1:
-                cmd[i] <<= nm.msummary(i = cmd[-1], k = k, f = fs, 
-                        c = cs, a = tempcol, precision = args['precision'])
-            else:
-                cmd[i] <<= nm.msummary(k = k, f = fs, c = cs, a = tempcol,
-                        precision = args['precision'], o = 'msummary.csv')
+            if fcdict['msummary']:
+                if i != len(fclist) - 1:
+                    cmd[i] <<= nm.mread(i = cmd[-1])
 
-            cs = [c.split(':')[-1] for c in cs.split(',')]
+                cmd[i] <<= nm.msummary(k = k, f = fs, c = cs, a = 'fld',
+                        precision = args['precision'])
+            else:
+                for c in cs:
+                    if ':' in c:
+                        cleft, cright = c.split(':')
+                    else:
+                        cleft = c
+                        cright = c
+
+                    if i != len(fclist) - 1:
+                        cmd[i] <<= nm.mread(i=cmd[-1])
+                    cmd[i] <<= nm.runfunc(new_calcs[cleft], ks = k, fs = fs, 
+                                          a = cright, precision = args['precision'])
+
+            cs = [c.split(':')[-1] for c in cs]
 
             # make null columns for each missing column
             for missingcol in final_fs:
@@ -405,7 +479,7 @@ class GroupBy2Command(Command):
 
         for char in formatstring:
             if char == '&':
-                colformat.append(f'$s{{{tempcol}}}')
+                colformat.append('$s{fld}')
                 colformat.append('')
             elif char == '%':
                 colformat.append('$s{type}')
@@ -426,7 +500,6 @@ class GroupBy2Command(Command):
         # mcut to remove the extra 'fld' column after mcross
         cmd_o <<= nm.mcut(r = True, f = 'fld', **args)
 
-        # cmd_o.drawModelD3('groupbytest.html')
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
