@@ -317,7 +317,7 @@ class CsvtoRepetitivieWaveform(VisualizersBokehPlot):
         """
         self.init(args, inputs)
         
-        graph_source = self.get_graph_source(self.df, disableTooltips=False) 
+        graph_source = self.get_graph_source(self.df, disableTooltips=self.disableTooltips) 
         graph_colors = self.get_colors(len(graph_source))
         graph_plot = self.get_grpah_plot("反復波形図",graph_source, graph_colors)
         graph_plot.legend.location = "top_left"
@@ -328,7 +328,7 @@ class CsvtoRepetitivieWaveform(VisualizersBokehPlot):
         
         statics_plot = None
         if self.disableStatics == False:
-            statics_source = self.get_statics_source(self.df, disableTooltips=False)
+            statics_source = self.get_statics_source(self.df, disableTooltips=self.disableTooltips)
             if statics_source is not None:
                 statics_colors = self.get_colors(len(statics_source))
                 statics_plot = self.get_statics_plot("反復波形図(統計量)",statics_source, statics_colors)
@@ -364,10 +364,10 @@ class CsvtoRepetitivieWaveform(VisualizersBokehPlot):
         self.groups = self.df[self.group].unique().tolist()
         
         # グラフ表示要素の設定
-        self.disableTooltips = args.get('doTooltips') if args.get('doTooltips') else False
-        self.disableMarker = args.get('doMarker') if args.get('doMarker') else False
-        self.disableStatics = args.get('doStatics') if args.get('doStatics') else False
-        self.disableEvent = args.get('doEvent') if args.get('doEvent') else False
+        self.disableTooltips = args.get('disableTooltips') if args.get('disableTooltips') else False
+        self.disableMarker = args.get('disableMarker') if args.get('disableMarker') else False
+        self.disableStatics = args.get('disableStatics') if args.get('disableStatics') else False
+        self.disableEvent = args.get('disableEvent') if args.get('disableEvent') else False
         self.event = args.get('event')
         self.statics = args.get('statics')
         
@@ -485,7 +485,7 @@ class CsvtoRepetitivieWaveform(VisualizersBokehPlot):
                     (self.column_name_x_axis, "@x"),
                     (self.column_name_values, "@y"),
                 ]
-            plot = figure(title=title, tools=self.tools, tooltips=tooltips,x_axis_label=self.x_axis_label, y_axis_label=self.y_axis_label)
+            plot = figure(title=title, tools=self.tools, tooltips=self.tooltips,x_axis_label=self.x_axis_label, y_axis_label=self.y_axis_label)
             return plot
         
         plot = figure(title=title, tools=self.tools,x_axis_label=self.x_axis_label, y_axis_label=self.y_axis_label)
