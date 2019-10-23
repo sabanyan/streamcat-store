@@ -331,20 +331,24 @@ class GroupByCommand(Command):
 
         fclist = []
         all_fs = []
-        all_cs = []
+        final_fs = []
         
         # wildcard parsing
         for arglist in args.pop('fclist'):
             fs = [a for a in self.header for target in arglist['f'].split(',') 
                 if fn.fnmatch(a, target)]
+
             cs = arglist['c']
+            for c in cs.split(','):
+                if ':' in c:
+                    final_fs.append(c.split(':')[-1])
+                else:
+                    final_fs.append(c)
 
             fclist.append({'f': ','.join(fs), 'c': cs})
 
             all_fs += [f for f in fs if f not in all_fs]
-            all_cs += [c for c in cs.split(',') if c not in all_cs]
 
-        # mcut 
         # take the wanted columns only (the id column and the value columns)
         cmd[-1] <<= nm.mcut(f = f'{k},{",".join(all_fs)}')
 
@@ -363,15 +367,17 @@ class GroupByCommand(Command):
                         c = cs, a = tempcol, precision = args['precision'])
             else:
                 cmd[i] <<= nm.msummary(k = k, f = fs, c = cs, a = tempcol,
-                        precision = args['precision'])
+                        precision = args['precision'], o = 'msummary.csv')
+
+            cs = [c.split(':')[-1] for c in cs.split(',')]
 
             # make null columns for each missing column
-            for missingcol in all_cs:
-                if missingcol not in cs.split(','):
+            for missingcol in final_fs:
+                if missingcol not in cs:
                     cmd[i] <<= nm.mcal(a = missingcol, c = 'nulls()')
 
         # m2cross 
-        cmd_o <<= nm.m2cross(i = cmd, k = expanded_k, f= all_cs, 
+        cmd_o <<= nm.m2cross(i = cmd, k = expanded_k, f= final_fs, 
                 a = 'type,value')
 
         # type is the column listing the calculated quantities
@@ -681,7 +687,7 @@ class MvStatsCommand(Command):
         for factdict in factlist:
             # arg = args.copy()
 
-            cmd_o <<= nm.mcal(a = factdict['a'], c = f'${{{fatdict["f"]}}}')
+            cmd_o <<= nm.mcal(a = factdict['a'], c = f'${{{factdict["f"]}}}')
             
             factdict['f'] = factdict.pop('a')
 
