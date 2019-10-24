@@ -455,9 +455,8 @@ class GroupBy2Command(Command):
             subcmd <<= nm.mcut(f = fld, r = True)
             subcmd <<= nm.mfldname(f = f'{fld}_diff:{fld}')
 
-        subcmd <<= nm.msummary(k = ks, c = 'mean', f = fs, 
+        subcmd <<= nm.msummary(k = ks, c = f'mean:{a}', f = fs, 
                                precision = precision)
-        subcmd <<= nm.mfldname(f = f'mean:{a}')
         subcmd <<= nm.mstdout()
         subcmd.run()
         
@@ -486,11 +485,51 @@ class GroupBy2Command(Command):
             subcmd <<= nm.mcut(f = fld, r = True)
             subcmd <<= nm.mfldname(f = f'{fld}_diff:{fld}')
 
-        subcmd <<= nm.msummary(k = ks, c = 'mean', f = fs, precision = precision)
-        subcmd <<= nm.mfldname(f = f'mean:{a}')
+        subcmd <<= nm.msummary(k = ks, c = f'mean:{a}', f = fs, 
+                               precision = precision)
         subcmd <<= nm.mstdout()
         subcmd.run()
-        pass
+
+    def integral(self, ks, fs, a, x, precision):
+        fs = fs.split(',')
+        subcmd = None
+        subcmd <<= nm.mstdin()
+
+
+        # get keybreak points
+        subcmd <<= nm.msortf(f = ks, o = 'aftersort.csv')
+        subcmd <<= nm.mkeybreak(k = ks, s = f'{x}%n', o = 'afterkeybreak.csv')
+        
+        # fix time column
+        # subcmd <<= nm.mcal(a = 'tmp_time', c = f'floor(${{{x}}},1)')
+        subcmd <<= nm.mcal(a = 'uxt', c = f'uxt($t{{{x}}})')
+        # subcmd <<= nm.mcal(a = 'uxt', 
+        #             c = f'cat(".",$s{{tmp_uxt}},regexstr($s{{{x}}},"[0-9]*$"))')
+
+        # if not top of section, get time step length, else null
+        subcmd <<= nm.mcal(a = 'time_step', 
+                           c = f'if(isnull(${{top}}),${{uxt}}-#{{uxt}},nulln())',
+                           o='beforepartialsums.csv')
+
+        # if not top of section, add current and previous value, else null
+        for f in fs:
+            subcmd <<= nm.mcal(a = f'{f}_partial_sum', 
+                    c = f'if(isnull(${{top}}),${{{f}}}+#{{{f}}},nulln())')
+
+            # trapezoid rule: (((partialsum)/2)*step size)
+            subcmd <<= nm.mcal(a = f'{f}_trap', 
+                    c = f'(${{{f}_partial_sum}}/2)*${{time_step}}')
+
+            subcmd <<= nm.mcut(f = f, r = True)
+            subcmd <<= nm.mfldname(f = f'{f}_trap:{f}', o='afterpartialsum.csv')
+
+        # sum over each key
+        subcmd <<= nm.msummary(k = ks, c = f'sum:{a}', f = fs,
+                               precision = precision)
+
+        subcmd <<= nm.mstdout()
+        subcmd.run()
+
 
 
         # ## Template
@@ -500,8 +539,6 @@ class GroupBy2Command(Command):
         # subcmd <<= nm.mstdout()
         # subcmd.run()
 
-    def integral(self):
-        pass
 
     def run(self, args, inputs):
         import fnmatch as fn
@@ -541,7 +578,7 @@ class GroupBy2Command(Command):
                 'median_ad' : self.medianabsolutedeviation
             },
             '1field_time' : {
-                # 'integral' : self.integral
+                'integral' : self.integral
             }
         }
 
@@ -549,13 +586,14 @@ class GroupBy2Command(Command):
         self.header = next(self.header)
 
         k = args.pop('k')
+        xs = []
 
         fclist = []
         all_fs = []
         final_fs = []
         
         # wildcard parsing
-        for arglist in args.pop('fclist'):
+        for arglist in args.get('fclist') + args.get('xfclist'):
             fs = [a for a in self.header for target in arglist['f'].split(',') 
                 if fn.fnmatch(a, target)]
 
@@ -569,12 +607,12 @@ class GroupBy2Command(Command):
             for i,c in enumerate(cs):
                 if ':' in c:
                     final_fs.append(c.split(':')[-1])
-                else:
+                elif c:
                     final_fs.append(c)
                 
                 if c.split(':')[0] in msummaryoptions:
                     cs_msummary.append(cs[i])
-                else:
+                elif c:
                     for key in new_calcs:
                         if c.split(':')[0] in new_calcs[key]:
                             cs_custom[key].append(cs[i])
@@ -585,18 +623,23 @@ class GroupBy2Command(Command):
             for optype, calcs in cs_custom.items():
                 if calcs:
                     for c in calcs:
+                        x = arglist.get('x')
+
+                        if x and x not in xs:
+                            xs.append(x)
+
                         fclist.append({'f': ','.join(fs), 'c': c, 
+                                    'x': x, 
                                     'optype' : optype})
 
             all_fs += [f for f in fs if f not in all_fs]
-
 
         cmd = [None] * len(fclist)
         cmd_o = None
 
         cmd[-1] <<= nm.mread(inputs)
-        # take the wanted columns only (the id column and the value columns)
-        cmd[-1] <<= nm.mcut(f = f'{k},{",".join(all_fs)}')
+        # take the wanted columns only (the key columns and the value columns)
+        cmd[-1] <<= nm.mcut(f = f'{",".join(xs)},{k},{",".join(all_fs)}')
 
         ##### calculation portion:
         expanded_k = ','.join([k,'fld'])
@@ -633,7 +676,7 @@ class GroupBy2Command(Command):
                     cmd[i] <<= nm.runfunc(new_calcs['1field_time'][cleft], 
                                             ks = k, fs = fs, 
                                             a = cright, 
-                                            timefld = args['timefld'], 
+                                            x = fcdict['x'], 
                                             precision = args['precision'])
                 
                 cs = [cright]
@@ -647,7 +690,7 @@ class GroupBy2Command(Command):
 
         cmd_o <<= nm.m2cross(i = cmd, k = expanded_k, f= final_fs, 
                 a = 'type,value')
-        cmd_o <<= nm.mdelnull(f = 'value')
+        cmd_o <<= nm.mdelnull(f = 'value', o = 'afterdellnull.csv')
 
         formatstring = args.pop('format')
         colformat = ['']
