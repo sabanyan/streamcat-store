@@ -152,20 +152,6 @@ class ColumnNameCommand(PCommand):
         return {'o': self.module(f, args_string)}
 
 
-class GroupbyColumnsCommand(PCommand):
-    def __init__(self):
-        super().__init__()
-
-    def run(self, args, inputs):
-        f = None
-        f <<= inputs['i']
-
-        args_string = (PCMD_DIR / 'src/groupby_columns.sh').as_posix()
-        args_string += self.replace_args(args)
-
-        return {'o': self.module(f, args_string)}
-
-
 class GroupbyCommand(PCommand):
     def __init__(self):
         super().__init__()
@@ -175,6 +161,20 @@ class GroupbyCommand(PCommand):
         f <<= inputs['i']
 
         args_string = (PCMD_DIR / 'src/groupby.sh').as_posix()
+        args_string += self.replace_args(args)
+
+        return {'o': self.module(f, args_string)}
+
+
+class GroupbyColumnsCommand(PCommand):
+    def __init__(self):
+        super().__init__()
+
+    def run(self, args, inputs):
+        f = None
+        f <<= inputs['i']
+
+        args_string = (PCMD_DIR / 'src/groupby_columns.sh').as_posix()
         args_string += self.replace_args(args)
 
         return {'o': self.module(f, args_string)}
@@ -324,50 +324,290 @@ class RunfuncCommand(Command):
         """
         pass
 
-class GroupByPythonCommand(Command):
+class GroupBy2Command(Command):
     def __init__(self):
         super().__init__()
         self.i_ports = [Port('i', 'frame')]
         self.o_ports = [Port('o', 'frame')]
 
+    def rootmeansquare(self, ks, fs, a, precision):
+        # k gives key fields
+        # f gives target fields
+        # a gives output field name
+
+        subcmd = None
+        subcmd <<= nm.mstdin()
+        # mcal to square
+        fs = fs.split(',')
+
+        for f in fs:
+            subcmd <<= nm.mcal(a = f'{f}_temp', c = f'${{{f}}}^2',
+                               precision = precision)
+            subcmd <<= nm.mcut(f = f, r = True)
+            subcmd <<= nm.mfldname(f = f'{f}_temp:{f}')
+        
+        # msummary to sum
+        subcmd <<= nm.msummary(c = 'sum,count', f = ','.join(fs), k = ks,
+                               precision = precision)
+
+        # mcal to sqrt
+        subcmd <<= nm.mcal(a = a, c = 'sqrt(${sum}/${count})',
+                           precision = precision)
+
+        # mcut to remove old row
+        finalcols = ','.join([ks,'fld',a])
+        subcmd <<= nm.mcut(f = finalcols)
+
+        subcmd <<= nm.mstdout()
+        subcmd.run()
+
+    def harmonicmean(self, ks, fs, a, precision):
+        subcmd = None
+        subcmd <<= nm.mstdin()
+
+        fs = fs.split(',')
+        for f in fs:
+            subcmd <<= nm.mcal(a = f'{f}_inv', c = f'1/${{{f}}}',
+                               precision = precision)
+            subcmd <<= nm.mcut(f = f, r = True)
+            subcmd <<= nm.mfldname(f = f'{f}_inv:{f}')
+
+        subcmd <<= nm.msummary(c = 'sum,count', f = ','.join(fs), k = ks,
+                               precision = precision)
+
+        subcmd <<= nm.mcal(a = a, c = '${count}/${sum}', precision = precision)
+
+        finalcols = ','.join([ks,'fld',a])
+        subcmd <<= nm.mcut(f = finalcols)
+        
+        subcmd <<= nm.mstdout()
+        subcmd.run()
+
+    def geometricmean(self, ks, fs, a, precision):
+        # positive numbers only
+        subcmd = None
+        subcmd <<= nm.mstdin()
+
+        fs = fs.split(',')
+        for f in fs:
+            subcmd <<= nm.mcal(a = f'{f}_ln', c = f'ln(abs(${{{f}}}))',
+                               precision = precision)
+            subcmd <<= nm.mcut(f = f, r = True)
+            subcmd <<= nm.mfldname(f = f'{f}_ln:{f}')
+
+        subcmd <<= nm.msummary(c = 'sum,count', f = ','.join(fs), k = ks,
+                               precision = precision)
+
+        subcmd <<= nm.mcal(a = a, c = 'exp(${count}/${sum})', 
+                           precision = precision)
+
+        finalcols = ','.join([ks,'fld',a])
+        subcmd <<= nm.mcut(f = finalcols)
+        
+        subcmd <<= nm.mstdout()
+        subcmd.run()
+
+    def frequencymean(self, ks, fs, a, precision):
+        subcmd = None
+        subcmd <<= nm.mstdin()
+
+        fs = fs.split(',')
+        for f in fs:
+            subcmd <<= nm.mcal(a = f'{f}_inv', c = f'1/${{{f}}}',
+                               precision = precision)
+            subcmd <<= nm.mcut(f = f, r = True)
+            subcmd <<= nm.mfldname(f = f'{f}_inv:{f}')
+
+        subcmd <<= nm.msummary(c = 'sum,count', f = ','.join(fs), k = ks,
+                               precision = precision)
+
+        subcmd <<= nm.mcal(a = a, c = '${count}/${sum}', precision = precision)
+
+        finalcols = ','.join([ks,'fld',a])
+        subcmd <<= nm.mcut(f = finalcols)
+        
+        subcmd <<= nm.mstdout()
+        subcmd.run()
+
+    def meanabsolutedeviation(self, ks, fs, a, precision):
+
+        # subcmd = None
+        # subcmd <<= nm.mstdin()
+
+        # subcmd <<= nm.mstdout()
+        # subcmd.run()
+        pass
+        
+    def medianabsolutedeviation(self, ks, fs, a, precision):
+        # subcmd = None
+        # subcmd <<= nm.mstdin()
+
+        # subcmd <<= nm.mstdout()
+        # subcmd.run()
+        pass
+
+
+        # ## Template
+        # subcmd = None
+        # subcmd <<= nm.mstdin()
+
+        # subcmd <<= nm.mstdout()
+        # subcmd.run()
+
     def run(self, args, inputs):
-        cmd_o = None
-        cmd_o = nm.mread(inputs)
+        import fnmatch as fn
 
-        #inputs K F C 
+        msummaryoptions = [
+            'sum',
+            'mean',
+            'count',
+            'ucount',
+            'devsq',
+            'var',
+            'uvar',
+            'sd',
+            'usd',
+            'cv',
+            'min',
+            'qtile1',
+            'median',
+            'qtile3',
+            'max',
+            'range',
+            'qrange',
+            'mode',
+            'skew',
+            'uskew',
+            'kurt',
+            'ukurt'
+        ]
 
-        #### code in wildcard parsing later
+        new_calcs = {
+            'rms' : self.rootmeansquare,
+            'hmean' : self.harmonicmean,
+            'gmean' : self.geometricmean,
+            'fmean' : self.frequencymean,
+            'aad' : self.meanabsolutedeviation,
+            'mad' : self.medianabsolutedeviation
+            }
+
+        self.header = nm.mread(inputs).getline(header=True)
+        self.header = next(self.header)
+
         k = args.pop('k')
-        fs = args.pop('f')
 
-        # mcut 
+        fclist = []
+        all_fs = []
+        final_fs = []
+        
+        # wildcard parsing
+        for arglist in args.pop('fclist'):
+            fs = [a for a in self.header for target in arglist['f'].split(',') 
+                if fn.fnmatch(a, target)]
+
+            cs = arglist['c'].split(',')
+            cs_msummary = []
+            cs_custom = []
+
+            for i,c in enumerate(cs):
+                if ':' in c:
+                    final_fs.append(c.split(':')[-1])
+                else:
+                    final_fs.append(c)
+                    
+                if c.split(':')[0] not in msummaryoptions:
+                    cs_custom.append(cs[i])
+                else:
+                    cs_msummary.append(cs[i])
+
+            if cs_msummary:
+                fclist.append({'f': ','.join(fs), 'c': cs_msummary, 
+                               'msummary' : True})
+            for c in cs_custom:
+                fclist.append({'f': ','.join(fs), 'c': c, 
+                               'msummary' : False})
+
+            all_fs += [f for f in fs if f not in all_fs]
+
+        cmd = [None] * len(fclist)
+        cmd_o = None
+
+        cmd[-1] <<= nm.mread(inputs)
         # take the wanted columns only (the id column and the value columns)
-        cmd_o <<= nm.mcut(f = f'{k},{fs}')
+        cmd[-1] <<= nm.mcut(f = f'{k},{",".join(all_fs)}')
 
-        # msummary
-        # take the required stats for the required columns
-        cs = args.pop('c')
-        tempcol = 'tmpcol'
+        ##### calculation portion:
+        expanded_k = ','.join([k,'fld'])
 
-        cmd_o <<= nm.msummary(k = k, f = fs, c = cs, a = tempcol)
+        for i, fcdict in enumerate(fclist):
+            cs = fcdict.pop('c')
+            fs = fcdict.pop('f')
 
-        m2cross_k = ','.join([k,tempcol])
-        # tempcol holds the old column names (sensor names etc)
+            # take the required stats for the required columns
+            if fcdict['msummary']:
+                if i != len(fclist) - 1:
+                    cmd[i] <<= nm.mread(i = cmd[-1])
+
+                cmd[i] <<= nm.msummary(k = k, f = fs, c = cs, a = 'fld',
+                        precision = args['precision'])
+
+                cs = [c.split(':')[-1] for c in cs]
+            else:
+                if ':' in cs:
+                    cleft, cright = cs.split(':')
+                else:
+                    cleft = cs
+                    cright = cs
+
+                if i != len(fclist) - 1:
+                    cmd[i] <<= nm.mread(i=cmd[-1])
+                    
+                cmd[i] <<= nm.runfunc(new_calcs[cleft], ks = k, fs = fs, 
+                                        a = cright, precision = args['precision'])
+                
+                cs = [cright]
+
+
+            # make null columns for each missing column
+            for missingcol in final_fs:
+                if missingcol not in cs:
+                    cmd[i] <<= nm.mcal(a = missingcol, c = 'nulls()')
 
         # m2cross 
-        cmd_o <<= nm.m2cross(k = m2cross_k, f= cs, a = 'type,value')
+        cmd_o <<= nm.m2cross(i = cmd, k = expanded_k, f= final_fs, 
+                a = 'type,value')
+
         # type is the column listing the calculated quantities
         # value is the column with all the actual values of those quantities
 
+        # delete rows with null values
+        cmd_o <<= nm.mdelnull(f = 'value')
+
+        formatstring = args.pop('format')
+        colformat = ['']
+
+        for char in formatstring:
+            if char == '&':
+                colformat.append('$s{fld}')
+                colformat.append('')
+            elif char == '%':
+                colformat.append('$s{type}')
+                colformat.append('')
+            else:
+                colformat[-1] += char
+
+        for i, sub in enumerate(colformat):
+            if not sub.startswith('$'):
+                colformat[i] = f'"{sub}"' 
+        
         # mcal to create the column of unique column names
-        uniqueformat = "$s{{{}}}+'_'+$s{{type}}" .format(tempcol)
-        cmd_o <<= nm.mcal(a = 'unique_cols', c = uniqueformat) 
+        cmd_o <<= nm.mcal(a = 'unique_cols', c = '+'.join(colformat))
 
         # mcross to bring it all back
         cmd_o <<= nm.mcross(f = 'value', s = 'unique_cols', k = k)
 
         # mcut to remove the extra 'fld' column after mcross
-        cmd_o <<= nm.mcut(r = True, f = 'fld')
+        cmd_o <<= nm.mcut(r = True, f = 'fld', **args)
 
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
@@ -553,7 +793,7 @@ class MvAvgCommand(Command):
         for fatdict in fatlist:
             # arg = args.copy()
 
-            cmd_o <<= nm.mcal(a = fatdict['a'], c = '${%s}' % fatdict['f']) 
+            cmd_o <<= nm.mcal(a = fatdict['a'], c = f'${{{fatdict["f"]}}}') 
             
             fatdict['f'] = fatdict.pop('a')
 
@@ -643,7 +883,7 @@ class MvStatsCommand(Command):
         for factdict in factlist:
             # arg = args.copy()
 
-            cmd_o <<= nm.mcal(a = factdict['a'], c = '${%s}' % factdict['f'])
+            cmd_o <<= nm.mcal(a = factdict['a'], c = f'${{{factdict["f"]}}}')
             
             factdict['f'] = factdict.pop('a')
 
