@@ -8,11 +8,16 @@
     },
     {
       "name": "group2",
+      "label": "時系列の設定（省略可）",
+      "params": ["timefld"]
+    },
+    {
+      "name": "group3",
       "label": "計算対象と結果の項目設定（必須）",
       "params": ["fclist","format"]
     },
     {
-      "name": "group3",
+      "name": "group4",
       "label": "その他（省略可）",
       "params": ["nfno","precision"]
     }
@@ -23,6 +28,11 @@
       "type": "string",
       "label": "集計キー項目を指定する（必須）",
       "description": "●カンマ区切りで複数指定可"
+    },
+    {
+      "name": "timefld",
+      "type": "string",
+      "label": "time field"
     },
     {
       "name": "fclist",
