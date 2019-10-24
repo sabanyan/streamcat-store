@@ -319,7 +319,8 @@ class CsvtoRepetitivieWaveform(VisualizersBokehPlot):
         
         graph_source = self.get_graph_source(self.df, disableTooltips=self.disableTooltips) 
         graph_colors = self.get_colors(len(graph_source))
-        graph_plot = self.get_grpah_plot("反復波形図",graph_source, graph_colors)
+        graph_plot = self.get_plot("反復波形図")
+        graph_plot = self.get_grpah_plot(graph_plot,graph_source, graph_colors)
         graph_plot.legend.location = "top_left"
         graph_plot.legend.click_policy = "mute"
 
@@ -331,7 +332,8 @@ class CsvtoRepetitivieWaveform(VisualizersBokehPlot):
             statics_source = self.get_statics_source(self.df, disableTooltips=self.disableTooltips)
             if statics_source is not None:
                 statics_colors = self.get_colors(len(statics_source))
-                statics_plot = self.get_statics_plot("反復波形図(統計量)",statics_source, statics_colors)
+                plot = self.get_plot("反復波形図",graph_plot.x_range,graph_plot.y_range)
+                statics_plot = self.get_statics_plot(plot,statics_source, statics_colors)
                 if statics_plot.legend:
                     statics_plot.legend.location = "top_left"
                     statics_plot.legend.click_policy = "mute"
@@ -379,15 +381,6 @@ class CsvtoRepetitivieWaveform(VisualizersBokehPlot):
         self.tools = "pan,wheel_zoom,box_zoom,reset,save,box_select"
         self.tooltips = None
 
-        # ツールチップを表示
-        if self.disableTooltips :
-            self.tooltips = [
-                ("凡例", "@label"),
-                (self.column_name_x_axis, "@x"),
-                (self.column_name_values, "@y"),
-            ]
-
-
     def get_graph_source(self, df, disableTooltips=False):
 
         named_dfs = {}
@@ -403,7 +396,7 @@ class CsvtoRepetitivieWaveform(VisualizersBokehPlot):
             data = dict(
                 x = n_df[self.column_name_x_axis].tolist(),
                 y = n_df[self.column_name_values].tolist(),
-                group = n_df[self.group].tolist(),
+                #group = n_df[self.group].tolist(),
                 label = [label] * (len(n_df.index))
             )
             source[label] = data
@@ -413,7 +406,7 @@ class CsvtoRepetitivieWaveform(VisualizersBokehPlot):
     def get_statics_source(self, df, disableTooltips=False):
         k = self.column_name_x_axis
         f = self.column_name_values
-        c = self.statics #"min,mean,max,qtile1,median,qtile3" #aa
+        c = self.statics #"min,mean,max,qtile1,median,qtile3"
         i = self.df.values.tolist()
         i.insert(0,list(df.columns))
 
@@ -478,17 +471,28 @@ class CsvtoRepetitivieWaveform(VisualizersBokehPlot):
 
         return colors
 
-    def get_plot(self, title):
+    def get_plot(self, title, x_range=None, y_range=None):
+        
+        tooltips = None
         if self.disableTooltips != True:
             tooltips = [
-                    ("label", "@label"),
+                    ("凡例", "@label"),
                     (self.column_name_x_axis, "@x"),
                     (self.column_name_values, "@y"),
                 ]
-            plot = figure(title=title, tools=self.tools, tooltips=self.tooltips,x_axis_label=self.x_axis_label, y_axis_label=self.y_axis_label)
-            return plot
         
-        plot = figure(title=title, tools=self.tools,x_axis_label=self.x_axis_label, y_axis_label=self.y_axis_label)
+        plot = figure(
+            title=title,
+            tools=self.tools,
+            tooltips=tooltips,
+            x_axis_label=self.x_axis_label,
+            y_axis_label=self.y_axis_label
+        )
+        if x_range is not None:
+            plot.x_range = x_range
+        if y_range is not None:
+            plot.y_range = y_range
+
         return plot
 
     def add_lines_to_plot(self, figure_plot, source, colors):
@@ -499,7 +503,7 @@ class CsvtoRepetitivieWaveform(VisualizersBokehPlot):
 
     def add_points_to_plot(self, figure_plot, source, colors):
         for label, color in zip(source,colors):
-            figure_plot.circle('x', 'y', source=ColumnDataSource(data=source[label]), legend=label, color=color, alpha=0.75, muted_color=color, muted_alpha=0.2, size=8)
+            figure_plot.circle('x', 'y', source=ColumnDataSource(data=source[label]), legend=label, color=color, alpha=0.9, muted_color=color, muted_alpha=0.2, size=8)
         
         return figure_plot
 
@@ -515,15 +519,7 @@ class CsvtoRepetitivieWaveform(VisualizersBokehPlot):
 
         return figure_plot
 
-    def add_statics_to_plot(self, figure_plot, source, colors):
-        for label, color in zip(source,colors):
-            if label == 'min' or label == 'max':
-                figure_plot.rect('x', 'y', source=source[label], width=0.2, height=0.01, legend=label, line_color=color, alpha=0.75, muted_color=color, muted_alpha=0.2)
-        
-        return figure_plot
-
     def add_span_to_plot(self, figure_plot, df):
-        
         queryStr = "{0} == {1}".format(self.event, "0")
         result_df = df.query(queryStr)
 
@@ -539,32 +535,31 @@ class CsvtoRepetitivieWaveform(VisualizersBokehPlot):
 
         return figure_plot
 
-    def get_statics_plot(self, title, source, colors):        
-        plot = self.get_plot(title)
+    def get_statics_plot(self, plot, source, colors):        
         # plot
         if source == None:
             return plot
-        if self.disableMarker != True:
-            plot = self.add_points_to_plot(plot, source, colors)
-        if self.disableEvent != True:
-            plot = self.add_span_to_plot(plot, self.df)
-       
+
         plot = self.add_lines_to_plot(plot, source, colors)
         plot = self.add_varea_to_plot(plot, source)
-        
+        if self.disableEvent != True:
+            plot = self.add_span_to_plot(plot, self.df)
+        if self.disableMarker != True:
+            plot = self.add_points_to_plot(plot, source, colors)
+       
         return plot 
 
-    def get_grpah_plot(self, title, source, colors):
-        plot = self.get_plot(title)
+    def get_grpah_plot(self, plot, source, colors):
 
         # plot
         if source == None:
             return plot
-        if self.disableMarker != True:
-            plot = self.add_points_to_plot(plot, source, colors)
+        plot = self.add_lines_to_plot(plot, source, colors)
         if self.disableEvent != True:
             plot = self.add_span_to_plot(plot, self.df)
-
-        plot = self.add_lines_to_plot(plot, source, colors)
+        if self.disableMarker != True:
+            plot = self.add_points_to_plot(plot, source, colors)
+   
+        
 
         return plot
