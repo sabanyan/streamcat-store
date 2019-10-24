@@ -436,9 +436,11 @@ class GroupBy2Command(Command):
 
         subcmd <<= nm.mstdin()
 
-        meancalc <<= nm.msummary(i = subcmd, k = ks, f = fs, c = 'mean')
+        meancalc <<= nm.msummary(i = subcmd, k = ks, f = fs, c = 'mean',
+                                 precision = precision)
         meancalc <<= nm.m2cross(f = 'mean', a = 'type,value', k = ks + ',fld')
-        meancalc <<= nm.mcal(a = 'colnames', c = '$s{fld}+"_mean"')
+        meancalc <<= nm.mcal(a = 'colnames', c = '$s{fld}+"_mean"',
+                             precision = precision)
         meancalc <<= nm.mcross(f = 'value', s= 'colnames', k = ks)
 
         flds = fs.split(',')
@@ -448,11 +450,13 @@ class GroupBy2Command(Command):
 
         for fld in flds:
             subcmd <<= nm.mcal(a = f'{fld}_diff', 
-                               c = f'abs(${{{fld}}}-${{{fld+"_mean"}}})')
+                               c = f'abs(${{{fld}}}-${{{fld+"_mean"}}})',
+                               precision = precision)
             subcmd <<= nm.mcut(f = fld, r = True)
             subcmd <<= nm.mfldname(f = f'{fld}_diff:{fld}')
 
-        subcmd <<= nm.msummary(k = ks, c = 'mean', f = fs)
+        subcmd <<= nm.msummary(k = ks, c = 'mean', f = fs, 
+                               precision = precision)
         subcmd <<= nm.mfldname(f = f'mean:{a}')
         subcmd <<= nm.mstdout()
         subcmd.run()
@@ -463,9 +467,11 @@ class GroupBy2Command(Command):
 
         subcmd <<= nm.mstdin()
 
-        meancalc <<= nm.msummary(i = subcmd, k = ks, f = fs, c = 'median')
+        meancalc <<= nm.msummary(i = subcmd, k = ks, f = fs, c = 'median',
+                                 precision = precision)
         meancalc <<= nm.m2cross(f = 'median', a = 'type,value', k = ks + ',fld')
-        meancalc <<= nm.mcal(a = 'colnames', c = '$s{fld}+"_median"')
+        meancalc <<= nm.mcal(a = 'colnames', c = '$s{fld}+"_median"',
+                             precision = precision)
         meancalc <<= nm.mcross(f = 'value', s= 'colnames', k = ks)
 
         flds = fs.split(',')
@@ -475,12 +481,13 @@ class GroupBy2Command(Command):
 
         for fld in flds:
             subcmd <<= nm.mcal(a = f'{fld}_diff', 
-                               c = f'abs(${{{fld}}}-${{{fld+"_median"}}})')
+                               c = f'abs(${{{fld}}}-${{{fld+"_median"}}})',
+                               precision = precision)
             subcmd <<= nm.mcut(f = fld, r = True)
             subcmd <<= nm.mfldname(f = f'{fld}_diff:{fld}')
 
-        subcmd <<= nm.msummary(k = ks, c = 'median', f = fs)
-        subcmd <<= nm.mfldname(f = f'median:{a}')
+        subcmd <<= nm.msummary(k = ks, c = 'mean', f = fs, precision = precision)
+        subcmd <<= nm.mfldname(f = f'mean:{a}')
         subcmd <<= nm.mstdout()
         subcmd.run()
         pass
@@ -492,6 +499,9 @@ class GroupBy2Command(Command):
 
         # subcmd <<= nm.mstdout()
         # subcmd.run()
+
+    def integral(self):
+        pass
 
     def run(self, args, inputs):
         import fnmatch as fn
@@ -522,13 +532,18 @@ class GroupBy2Command(Command):
         ]
 
         new_calcs = {
-            'rms' : self.rootmeansquare,
-            'hmean' : self.harmonicmean,
-            'gmean' : self.geometricmean,
-            'fmean' : self.frequencymean,
-            'mean_ad' : self.meanabsolutedeviation,
-            'median_ad' : self.medianabsolutedeviation
+            '1field' : {
+                'rms' : self.rootmeansquare,
+                'hmean' : self.harmonicmean,
+                'gmean' : self.geometricmean,
+                'fmean' : self.frequencymean,
+                'mean_ad' : self.meanabsolutedeviation,
+                'median_ad' : self.medianabsolutedeviation
+            },
+            '1field_time' : {
+                # 'integral' : self.integral
             }
+        }
 
         self.header = nm.mread(inputs).getline(header=True)
         self.header = next(self.header)
@@ -546,27 +561,35 @@ class GroupBy2Command(Command):
 
             cs = arglist['c'].split(',')
             cs_msummary = []
-            cs_custom = []
+            cs_custom = {
+                '1field' : [],
+                '1field_time' : []
+            }
 
             for i,c in enumerate(cs):
                 if ':' in c:
                     final_fs.append(c.split(':')[-1])
                 else:
                     final_fs.append(c)
-                    
-                if c.split(':')[0] not in msummaryoptions:
-                    cs_custom.append(cs[i])
-                else:
+                
+                if c.split(':')[0] in msummaryoptions:
                     cs_msummary.append(cs[i])
+                else:
+                    for key in new_calcs:
+                        if c.split(':')[0] in new_calcs[key]:
+                            cs_custom[key].append(cs[i])
 
             if cs_msummary:
                 fclist.append({'f': ','.join(fs), 'c': cs_msummary, 
-                               'msummary' : True})
-            for c in cs_custom:
-                fclist.append({'f': ','.join(fs), 'c': c, 
-                               'msummary' : False})
+                               'optype' : 'msummary'})
+            for optype, calcs in cs_custom.items():
+                if calcs:
+                    for c in calcs:
+                        fclist.append({'f': ','.join(fs), 'c': c, 
+                                    'optype' : optype})
 
             all_fs += [f for f in fs if f not in all_fs]
+
 
         cmd = [None] * len(fclist)
         cmd_o = None
@@ -583,7 +606,7 @@ class GroupBy2Command(Command):
             fs = fcdict.pop('f')
 
             # take the required stats for the required columns
-            if fcdict['msummary']:
+            if fcdict['optype'] == 'msummary':
                 if i != len(fclist) - 1:
                     cmd[i] <<= nm.mread(i = cmd[-1])
 
@@ -600,9 +623,18 @@ class GroupBy2Command(Command):
 
                 if i != len(fclist) - 1:
                     cmd[i] <<= nm.mread(i=cmd[-1])
-                    
-                cmd[i] <<= nm.runfunc(new_calcs[cleft], ks = k, fs = fs, 
-                                        a = cright, precision = args['precision'])
+                
+                if fcdict['optype'] == '1field':
+                    cmd[i] <<= nm.runfunc(new_calcs['1field'][cleft], ks = k, 
+                                            fs = fs, 
+                                            a = cright, 
+                                            precision = args['precision'])
+                elif fcdict['optype'] == '1field_time':
+                    cmd[i] <<= nm.runfunc(new_calcs['1field_time'][cleft], 
+                                            ks = k, fs = fs, 
+                                            a = cright, 
+                                            timefld = args['timefld'], 
+                                            precision = args['precision'])
                 
                 cs = [cright]
 
@@ -612,14 +644,9 @@ class GroupBy2Command(Command):
                 if missingcol not in cs:
                     cmd[i] <<= nm.mcal(a = missingcol, c = 'nulls()')
 
-        # m2cross 
+
         cmd_o <<= nm.m2cross(i = cmd, k = expanded_k, f= final_fs, 
                 a = 'type,value')
-
-        # type is the column listing the calculated quantities
-        # value is the column with all the actual values of those quantities
-
-        # delete rows with null values
         cmd_o <<= nm.mdelnull(f = 'value')
 
         formatstring = args.pop('format')
@@ -639,14 +666,9 @@ class GroupBy2Command(Command):
             if not sub.startswith('$'):
                 colformat[i] = f'"{sub}"' 
         
-        # mcal to create the column of unique column names
         cmd_o <<= nm.mcal(a = 'unique_cols', c = '+'.join(colformat))
-
-        # mcross to bring it all back
         cmd_o <<= nm.mcross(f = 'value', s = 'unique_cols', k = k)
-
-        # mcut to remove the extra 'fld' column after mcross
-        cmd_o <<= nm.mcut(r = True, f = 'fld', **args)
+        cmd_o <<= nm.mcut(r = True, f = 'fld', nfno = args.get('nfno'))
 
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
