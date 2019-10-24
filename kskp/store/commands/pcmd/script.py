@@ -408,42 +408,81 @@ class GroupBy2Command(Command):
         subcmd.run()
 
     def frequencymean(self, ks, fs, a, precision):
-        subcmd = None
-        subcmd <<= nm.mstdin()
-
-        fs = fs.split(',')
-        for f in fs:
-            subcmd <<= nm.mcal(a = f'{f}_inv', c = f'1/${{{f}}}',
-                               precision = precision)
-            subcmd <<= nm.mcut(f = f, r = True)
-            subcmd <<= nm.mfldname(f = f'{f}_inv:{f}')
-
-        subcmd <<= nm.msummary(c = 'sum,count', f = ','.join(fs), k = ks,
-                               precision = precision)
-
-        subcmd <<= nm.mcal(a = a, c = '${count}/${sum}', precision = precision)
-
-        finalcols = ','.join([ks,'fld',a])
-        subcmd <<= nm.mcut(f = finalcols)
-        
-        subcmd <<= nm.mstdout()
-        subcmd.run()
-
-    def meanabsolutedeviation(self, ks, fs, a, precision):
-
         # subcmd = None
         # subcmd <<= nm.mstdin()
 
+        # fs = fs.split(',')
+        # for f in fs:
+        #     subcmd <<= nm.mcal(a = f'{f}_inv', c = f'1/${{{f}}}',
+        #                        precision = precision)
+        #     subcmd <<= nm.mcut(f = f, r = True)
+        #     subcmd <<= nm.mfldname(f = f'{f}_inv:{f}')
+
+        # subcmd <<= nm.msummary(c = 'sum,count', f = ','.join(fs), k = ks,
+        #                        precision = precision)
+
+        # subcmd <<= nm.mcal(a = a, c = '${count}/${sum}', precision = precision)
+
+        # finalcols = ','.join([ks,'fld',a])
+        # subcmd <<= nm.mcut(f = finalcols)
+        
         # subcmd <<= nm.mstdout()
         # subcmd.run()
         pass
+
+    def meanabsolutedeviation(self, ks, fs, a, precision):
+        subcmd = None
+        meancalc = None
+
+        subcmd <<= nm.mstdin()
+
+        meancalc <<= nm.msummary(i = subcmd, k = ks, f = fs, c = 'mean')
+        meancalc <<= nm.m2cross(f = 'mean', a = 'type,value', k = ks + ',fld')
+        meancalc <<= nm.mcal(a = 'colnames', c = '$s{fld}+"_mean"')
+        meancalc <<= nm.mcross(f = 'value', s= 'colnames', k = ks)
+
+        flds = fs.split(',')
+        fldnames = [f + '_mean' for f in flds]
+        subcmd <<= nm.mjoin(k = ks, K = ks, m = meancalc, 
+                            f = ','.join(fldnames), o='mjoin.csv')
+
+        for fld in flds:
+            subcmd <<= nm.mcal(a = f'{fld}_diff', 
+                               c = f'abs(${{{fld}}}-${{{fld+"_mean"}}})')
+            subcmd <<= nm.mcut(f = fld, r = True)
+            subcmd <<= nm.mfldname(f = f'{fld}_diff:{fld}')
+
+        subcmd <<= nm.msummary(k = ks, c = 'mean', f = fs)
+        subcmd <<= nm.mfldname(f = f'mean:{a}')
+        subcmd <<= nm.mstdout()
+        subcmd.run()
         
     def medianabsolutedeviation(self, ks, fs, a, precision):
-        # subcmd = None
-        # subcmd <<= nm.mstdin()
+        subcmd = None
+        meancalc = None
 
-        # subcmd <<= nm.mstdout()
-        # subcmd.run()
+        subcmd <<= nm.mstdin()
+
+        meancalc <<= nm.msummary(i = subcmd, k = ks, f = fs, c = 'median')
+        meancalc <<= nm.m2cross(f = 'median', a = 'type,value', k = ks + ',fld')
+        meancalc <<= nm.mcal(a = 'colnames', c = '$s{fld}+"_median"')
+        meancalc <<= nm.mcross(f = 'value', s= 'colnames', k = ks)
+
+        flds = fs.split(',')
+        fldnames = [f + '_median' for f in flds]
+        subcmd <<= nm.mjoin(k = ks, K = ks, m = meancalc, 
+                            f = ','.join(fldnames), o='mjoin.csv')
+
+        for fld in flds:
+            subcmd <<= nm.mcal(a = f'{fld}_diff', 
+                               c = f'abs(${{{fld}}}-${{{fld+"_median"}}})')
+            subcmd <<= nm.mcut(f = fld, r = True)
+            subcmd <<= nm.mfldname(f = f'{fld}_diff:{fld}')
+
+        subcmd <<= nm.msummary(k = ks, c = 'median', f = fs)
+        subcmd <<= nm.mfldname(f = f'median:{a}')
+        subcmd <<= nm.mstdout()
+        subcmd.run()
         pass
 
 
@@ -487,8 +526,8 @@ class GroupBy2Command(Command):
             'hmean' : self.harmonicmean,
             'gmean' : self.geometricmean,
             'fmean' : self.frequencymean,
-            'aad' : self.meanabsolutedeviation,
-            'mad' : self.medianabsolutedeviation
+            'mean_ad' : self.meanabsolutedeviation,
+            'median_ad' : self.medianabsolutedeviation
             }
 
         self.header = nm.mread(inputs).getline(header=True)
@@ -786,7 +825,7 @@ class MvAvgCommand(Command):
         mvavgtype = args.pop('type')
         if mvavgtype != 'simple':
             args[mvavgtype] = True
-        if mvavgtype != 'exp':
+        if mvavgtype != 'exp' and 'alpha' in args:
             del args['alpha']
 
         # copy target  column into 'a' field
