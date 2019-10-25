@@ -9,7 +9,7 @@
     {
       "name": "group3",
       "label": "計算対象と結果の項目設定（必須）",
-      "params": ["clist", "fclist","xfclist","format"]
+      "params": ["format","clist", "fclist","xfclist"]
     },
     {
       "name": "group4",
@@ -28,15 +28,20 @@
       "name": "clist",
       "type": "list",
       "label": "計算対象の設定（追加・順序変更・削除　可）",
-      "description": "",
+      "description": "rows　・・・　集計｜件数（NULL行込み）",
       "elements": [
         {
           "name": "c",
           "type": "string",
           "label": "統計量"
+        },
+        {
+          "name" : "fld",
+          "type": "string",
+          "label": "追加項目名"
         }
       ],
-      "default": [{"c": ""}]
+      "default": [{"c": "", "fld": ""}]
     },
     {
       "name": "fclist",
@@ -61,7 +66,7 @@
       "name": "xfclist",
       "type": "list",
       "label": "w/ time axis",
-      "description": "integral　・・・　積分値\nWhen using time axis, field must be in the format HHMMSS",
+      "description": "integral　・・・　積分値\nslope　・・・　傾き\nWhen using time axis, field must be in the format HHMMSS",
       "elements": [
         {
           "name": "x",

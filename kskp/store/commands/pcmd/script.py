@@ -332,13 +332,14 @@ class GroupBy2Command(Command):
 
     def rows(self, k, precision, **kwargs):
         a = kwargs['a']
+        fld = kwargs['fld']
         
         subcmd = None
         subcmd <<= nm.mstdin()
 
         subcmd <<= nm.mcount(k = k, a = a)
-        subcmd <<= nm.mcal(a = 'fld', c = 'nulls()')
-        subcmd <<= nm.mcut(f = f'{k},fld,{a}', o = 'afterrows.csv')
+        subcmd <<= nm.mcal(a = 'fld', c = f'"{fld}"')
+        subcmd <<= nm.mcut(f = f'{k},fld,{a}')
 
         subcmd <<= nm.mstdout()
         subcmd.run()
@@ -525,12 +526,12 @@ class GroupBy2Command(Command):
         
         fs = f.split(',')
         subcmd = None
-        subcmd <<= nm.mstdin(o = 'inputtointegra.csv')
+        subcmd <<= nm.mstdin()
 
 
         # get keybreak points
         subcmd <<= nm.msortf(f = k)
-        subcmd <<= nm.mkeybreak(k = k, s = f'{x}%n',o = 'afterkeybreak.csv')
+        subcmd <<= nm.mkeybreak(k = k, s = f'{x}%n')
         
         # fix time column
         # subcmd <<= nm.mcal(a = 'tmp_time', c = f'floor(${{{x}}},1)')
@@ -562,43 +563,41 @@ class GroupBy2Command(Command):
         subcmd.run()
         
     def slope(self, k, precision, **kwargs):
-        # fs = fs.split(',')
-        # subcmd = None
-        # subcmd <<= nm.mstdin()
+        f = kwargs['f']
+        x = kwargs['x']
+        a = kwargs['a']
 
+        fs = f.split(',')
+        subcmd = None
+        subcmd <<= nm.mstdin()
 
-        # # get keybreak points
-        # subcmd <<= nm.msortf(f = k, o = 'aftersort.csv')
-        # subcmd <<= nm.mkeybreak(k = k, s = f'{x}%n')
+        # fix time column
+        # subcmd <<= nm.mcal(a = 'tmp_time', c = f'floor(${{{x}}},1)')
+        subcmd <<= nm.mcal(a = 'uxt', c = f'uxt($t{{{x}}})')
+        # subcmd <<= nm.mcal(a = 'uxt', 
+        #             c = f'cat(".",$s{{tmp_uxt}},regexstr($s{{{x}}},"[0-9]*$"))')
+
+        for fld in fs: 
+            subcmd <<= nm.mcal(a = f'{fld}_prod',c = f'${{{fld}}}*${{uxt}}')
         
-        # # fix time column
-        # # subcmd <<= nm.mcal(a = 'tmp_time', c = f'floor(${{{x}}},1)')
-        # subcmd <<= nm.mcal(a = 'uxt', c = f'uxt($t{{{x}}})')
-        # # subcmd <<= nm.mcal(a = 'uxt', 
-        # #             c = f'cat(".",$s{{tmp_uxt}},regexstr($s{{{x}}},"[0-9]*$"))')
+        prod_fldnames = ','.join([f'{fld}_prod' for fld in fs])
+        
+        subcmd <<= nm.msummary(k = k, f = f'{prod_fldnames},{f},uxt',
+                               c = 'mean,var')
+    
+        subcmd <<= nm.m2cross(k = f'{k},fld', f = 'mean,var', a = f'type,{a}')
+        subcmd <<= nm.mcal(a = 'tmp_colnames', c = '$s{fld}+"_"+$s{type}')
+        subcmd <<= nm.mcross(f = f'{a}', s = 'tmp_colnames', k = k)
 
-        # # if not top of section, get time step length, else null
-        # subcmd <<= nm.mcal(a = 'time_step', 
-        #                    c = f'if(isnull(${{top}}),${{uxt}}-#{{uxt}},nulln())')
-
-        # # if not top of section, add current and previous value, else null
-        # for f in fs:
-        #     subcmd <<= nm.mcal(a = f'{f}_partial_sum', 
-        #             c = f'if(isnull(${{top}}),${{{f}}}+#{{{f}}},nulln())')
-
-        #     # trapezoid rule: (((partialsum)/2)*step size)
-        #     subcmd <<= nm.mcal(a = f'{f}_trap', 
-        #             c = f'(${{{f}_partial_sum}}/2)*${{time_step}}')
-
-        #     subcmd <<= nm.mcut(f = f, r = True)
-        #     subcmd <<= nm.mfldname(f = f'{f}_trap:{f}')
-
-        # # sum over each key
-        # subcmd <<= nm.msummary(k = k, c = f'sum:{a}', f = fs,
-        #                        precision = precision)
-
-        # subcmd <<= nm.mstdout()
-        # subcmd.run()
+        for fld in fs:
+            subcmd <<= nm.mcal(a = fld, 
+                c = f'(${{{fld}_prod_mean}}-(${{{fld}_mean}}*${{uxt_mean}}))/${{{fld}_var}}')
+        
+        subcmd <<= nm.mcross(f = f, s = 'fld', k = k)
+        subcmd <<= nm.mcut(f = f'{k},fld,{a}')
+        
+        subcmd <<= nm.mstdout()
+        subcmd.run()
         pass
 
 
@@ -640,7 +639,7 @@ class GroupBy2Command(Command):
         ]
 
         new_calcs = {
-            # 0 fields (input k, a)
+            # 0 fields (input k, a, fld)
             'rows' : self.rows,
             # 1 field (input k, a, f)
             'rms' : self.rootmeansquare,
@@ -678,8 +677,10 @@ class GroupBy2Command(Command):
                     fs = ','.join([a for a in self.header 
                         for target in arglist['f'].split(',')
                         if fn.fnmatch(a, target)])
+                    all_fs += [f for f in fs.split(',') if f not in all_fs]
+                    arglist['f'] = fs
 
-                cs = arglist['c'].split(',')
+                cs = arglist.pop('c').split(',')
                 cs_msummary = []
                 cs_custom = []
 
@@ -695,14 +696,14 @@ class GroupBy2Command(Command):
                         cs_custom.append(cs[i])
 
                 if cs_msummary:
-                    calclist.append({'f': fs, 'c': ','.join(cs_msummary), 
-                                'optype' : 'msummary'})
+                    calclist.append({'c': ','.join(cs_msummary), 
+                                'optype' : 'msummary',
+                                **arglist})
 
                 for calc in cs_custom:
-                    calclist.append({'f': fs, 'c': calc, 'x': x, 
-                                'optype' : 'custom'})
-                if fs:
-                    all_fs += [f for f in fs.split(',') if f not in all_fs]
+                    calclist.append({'c': calc, 
+                                'optype' : 'custom',
+                                **arglist})
 
         cmd = [None] * len(calclist)
         cmd_o = None
@@ -727,7 +728,7 @@ class GroupBy2Command(Command):
                 if i != len(calclist) - 1:
                     cmd[i] <<= nm.mread(i = cmd[-1])
 
-                cmd[i] <<= nm.msummary(k = k, precision = prec, **calcdict)
+                cmd[i] <<= nm.msummary(k = k, precision = prec, **calcdict, o = 'beforemcat.csv')
 
                 final_cs = [c.split(':')[-1] for c in cs.split(',')]
             elif optype == 'custom':
