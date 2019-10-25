@@ -12,6 +12,19 @@ class Store(Datum):
     def __init__(self, parent_uuid, type, label, creator=None):
         super().__init__(parent_uuid, type, label, creator)
 
+    @staticmethod
+    def find_by_uuid(uuid):
+        """
+        指定されたuuidを持つStoreレコードを取得する
+        """
+        from kskp.store import ss as session
+        store = session.query(Datum).filter(Datum.uuid==uuid)\
+                                    .filter(Datum.type!=Datum.FRAME_TYPE)\
+                                    .filter(Datum.type!=Datum.FLOW_TYPE).one_or_none()
+        if store is None:
+            raise Exception('no store is found by designated id.')
+        return store
+
     # def save(self, datum):
     #     """
     #     override用

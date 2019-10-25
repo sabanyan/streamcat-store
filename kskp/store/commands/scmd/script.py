@@ -18,9 +18,6 @@ class SaverCommand(Command):
 
     def run(self, args, inputs):
         # Frameを作成する
-        import pprint
-        pprint.pprint(args)   
-
         store = inputs['store']
         label = args['label']
         frame = self.get_datum_obj(store, label)
@@ -135,12 +132,12 @@ class DbLoaderCommand(Command):
     def run(self, args, inputs):
         DbLoaderCommand._write_log('START')
 
-        from kskp.store import Database
-        if not isinstance(inputs['i'], Database):
+        from kskp.store import Datum, Database
+        if inputs['i'].type != Datum.DATABASE_TYPE:
             t = type(inputs['i'])
             raise Exception(f'DbLoaderの入力にDatabase Store以外のデータ型({t})が入力されました')
         else:
-            database = inputs['i']
+            database = Database.convert_to_database(inputs['i'])
 
         # DB接続情報に漏れがないか確認し、漏れがあれば例外を送出する
         database.valid_or_raise()
@@ -278,21 +275,18 @@ class DbSaverCommand(Command):
     def run(self, args, inputs):
         DbSaverCommand._write_log('START')
 
-        from kskp.store import Database
-        if not isinstance(inputs['i'], Database):
-            t = type(inputs['i'])
+        from kskp.store import Datum, Database
+        if inputs['store'].type != Datum.DATABASE_TYPE:
+            t = type(inputs['store'])
             raise Exception(f'DbSaverの入力にDatabase Store以外のデータ型({t})が入力されました')
         else:
-            database = inputs['i']
+            database = Database.convert_to_database(inputs['store'])
 
         # DB接続情報に漏れがないか確認し、漏れがあれば例外を送出する
         database.valid_or_raise()
 
         # # 入力データ
         # f = inputs['i']
-
-        # DB接続情報に漏れがないか確認し、漏れがあれば例外を送出する
-        database.valid_or_raise()
 
         # 抽出元スキーマ名とテーブル名を取得する
         if 'schema_name' not in args or args['schema_name'] is None:
@@ -317,26 +311,36 @@ class DbSaverCommand(Command):
         # 指定されたテーブルがデータを格納可能か判定する → どうやって？
 
         def bulk_inserter(dbms, db_uri, table_name):
-            
-            # 入力データを一旦ファイルに保存する → ストリーム処理できないか？ PIPE?
-            with self._tmp_file_path.open('w') as t:
-                is_header = True
-                for line in sys.stdin:
-                    if is_header:
-                        # 入力データの列数をカウントする
-                        column_count = len(line)
-                        columns = line
-                        is_header = False
-                    t.print(line)
+            try:
 
-            # DBへ接続する
-            engine = DbSaverCommand._connect_to_db(db_uri)
+                # 入力データを一旦ファイルに保存する → ストリーム処理できないか？ PIPE?
+                with self._tmp_file_path.open('w') as t:
+                    is_header = True
+                    for line in sys.stdin:
+                        if is_header:
+                            # 入力データのヘッダ行からテーブル列名を作成する
+                            import csv
+                            csv_ = csv.reader(csv.StringIO(line), delimiter=',', quotechar='"')
+                            is_header = False
+                            continue
+                        t.write(line)
 
-            # テーブルを作成する
-            DbSaverCommand._create_table(engine, dbms, table_name, columns)
+                # flushをする
+                sys.stdout.flush()
 
-            # データをインポートする
-            DbSaverCommand._import_to_table(engine, dbms, table_name, self._tmp_file_path)
+                # DBへ接続する
+                engine = DbSaverCommand._connect_to_db(db_uri)
+
+                # テーブルを作成する
+                # DbSaverCommand._create_table(engine, dbms, table_name, csv_)
+
+                # # データをインポートする
+                DbSaverCommand._import_to_table(engine, dbms, table_name, self._tmp_file_path)
+
+            except Exception as e:
+                import traceback
+                with open('/dev/stderr', 'w') as fpe:
+                    traceback.print_exc(file=fpe)
 
         # flushをしないと、デバッグ用のprintなども入ってしまう
         sys.stdout.flush()
@@ -345,10 +349,16 @@ class DbSaverCommand(Command):
         cmd = inputs['i']
         cmd <<= nm.runfunc(bulk_inserter, dbms=database.dbms, db_uri=db_uri, table_name=table_name)
 
-        nysol_module = NysolModule()
-        nysol_module.set_content(cmd)
-        return {'o': nysol_module}
+        # 結果はFrameに入れて返す
+        from kskp.store import Frame, Datum
+        # 親は取り敢えずROOT
+        root = Datum.find_root()
+        frame = Frame(root.uuid, 'db_saver', None)
+        frame.set_centext(args)
+        frame.set_content(cmd)
 
+        return {'o': frame}  
+        
     @staticmethod
     def _connect_to_db(db_uri):
         # データベースへの接続
@@ -361,27 +371,36 @@ class DbSaverCommand(Command):
         return engine
 
     @staticmethod
-    def _create_table(engine, dbms, table_name, columns):
-        for column in columns:
-            column_defs += f',{column} text'
+    def _create_table(engine, dbms, table_name, csv):
+        column_defs = ''
+        for columns in csv:
+            for column in columns:
+                column_defs += f',{column} text'
 
+        # 列名の重複を避ける仕組みを作らなければならない
         creata_table = f"""
         create table {table_name} (
-            id serial
+            id_0 serial
             {column_defs}
         );
         """
-        from sqlalchemy import DDL
-        engine.execute(DDL(creata_table))
+        from sqlalchemy import DDL, exc
+        try:
+            engine.execute(DDL(creata_table))
+        except exc.SQLAlchemyError as e:
+            raise Exception('DBのテーブル作成に失敗しました(%s)' % str(e))
 
     @staticmethod
     def _import_to_table(engine, dbms, table_name, file_path):
         # if dbms.upper() == 'POSTGRESQL':
         copy_stmt = f"""
-        COPY {table_name} from {file_path} with csv;
+        COPY {table_name} from '{file_path}' with csv;
         """
-        from sqlalchemy import DDL
-        engine.execute(DDL(copy_stmt))
+        from sqlalchemy import DDL, exc
+        try:
+            engine.execute(DDL(copy_stmt))
+        except exc.SQLAlchemyError as e:
+            raise Exception('DBのテーブルへのデータインポートに失敗しました(%s)' % str(e))
 
     @staticmethod
     def _write_log(message):
@@ -394,5 +413,5 @@ class DbSaverCommand(Command):
         DbSaverCommand._write_log('DTOR!')
         # Tmpファイルを削除する
         import os
-        if self._tmp_file_path is not None and self._tmp_file_path.exists():
-            self._tmp_file_path.unlink()
+        # if self._tmp_file_path is not None and self._tmp_file_path.exists():
+        #     self._tmp_file_path.unlink()
