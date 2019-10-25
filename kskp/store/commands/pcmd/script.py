@@ -336,6 +336,10 @@ class GroupBy2Command(Command):
         subcmd = None
         subcmd <<= nm.mstdin()
 
+        subcmd <<= nm.mcount(k = k, a = a)
+        subcmd <<= nm.mcal(a = 'fld', c = 'nulls()')
+        subcmd <<= nm.mcut(f = f'{k},fld,{a}', o = 'afterrows.csv')
+
         subcmd <<= nm.mstdout()
         subcmd.run()
 
@@ -662,7 +666,7 @@ class GroupBy2Command(Command):
         final_fs = []
         
         # wildcard parsing
-        for arglist in args.get('fclist') + args.get('xfclist'):
+        for arglist in args.get('clist') + args.get('fclist') + args.get('xfclist'):
             if arglist.get('c'):
                 fs = arglist.get('f')
                 x = arglist.get('x')
@@ -697,8 +701,8 @@ class GroupBy2Command(Command):
                 for calc in cs_custom:
                     calclist.append({'f': fs, 'c': calc, 'x': x, 
                                 'optype' : 'custom'})
-
-                all_fs += [f for f in fs.split(',') if f not in all_fs]
+                if fs:
+                    all_fs += [f for f in fs.split(',') if f not in all_fs]
 
         cmd = [None] * len(calclist)
         cmd_o = None
