@@ -330,7 +330,19 @@ class GroupBy2Command(Command):
         self.i_ports = [Port('i', 'frame')]
         self.o_ports = [Port('o', 'frame')]
 
-    def rootmeansquare(self, ks, fs, a, precision):
+    def rows(self, k, precision, **kwargs):
+        a = kwargs['a']
+        
+        subcmd = None
+        subcmd <<= nm.mstdin()
+
+        subcmd <<= nm.mstdout()
+        subcmd.run()
+
+    def rootmeansquare(self, k, precision, **kwargs):
+        f = kwargs['f']
+        a = kwargs['a']
+        
         # k gives key fields
         # f gives target fields
         # a gives output field name
@@ -338,16 +350,16 @@ class GroupBy2Command(Command):
         subcmd = None
         subcmd <<= nm.mstdin()
         # mcal to square
-        fs = fs.split(',')
+        fs = f.split(',')
 
-        for f in fs:
-            subcmd <<= nm.mcal(a = f'{f}_temp', c = f'${{{f}}}^2',
+        for fld in fs:
+            subcmd <<= nm.mcal(a = f'{fld}_temp', c = f'${{{fld}}}^2',
                                precision = precision)
-            subcmd <<= nm.mcut(f = f, r = True)
-            subcmd <<= nm.mfldname(f = f'{f}_temp:{f}')
+            subcmd <<= nm.mcut(f = fld, r = True)
+            subcmd <<= nm.mfldname(f = f'{fld}_temp:{fld}')
         
         # msummary to sum
-        subcmd <<= nm.msummary(c = 'sum,count', f = ','.join(fs), k = ks,
+        subcmd <<= nm.msummary(c = 'sum,count', f = f, k = k,
                                precision = precision)
 
         # mcal to sqrt
@@ -355,59 +367,65 @@ class GroupBy2Command(Command):
                            precision = precision)
 
         # mcut to remove old row
-        finalcols = ','.join([ks,'fld',a])
+        finalcols = ','.join([k,'fld',a])
         subcmd <<= nm.mcut(f = finalcols)
 
         subcmd <<= nm.mstdout()
         subcmd.run()
 
-    def harmonicmean(self, ks, fs, a, precision):
+    def harmonicmean(self, k, precision, **kwargs):
+        f = kwargs['f']
+        a = kwargs['a']
+        
         subcmd = None
         subcmd <<= nm.mstdin()
 
-        fs = fs.split(',')
-        for f in fs:
-            subcmd <<= nm.mcal(a = f'{f}_inv', c = f'1/${{{f}}}',
+        fs = f.split(',')
+        for fld in fs:
+            subcmd <<= nm.mcal(a = f'{fld}_inv', c = f'1/${{{fld}}}',
                                precision = precision)
-            subcmd <<= nm.mcut(f = f, r = True)
-            subcmd <<= nm.mfldname(f = f'{f}_inv:{f}')
+            subcmd <<= nm.mcut(f = fld, r = True)
+            subcmd <<= nm.mfldname(f = f'{fld}_inv:{fld}')
 
-        subcmd <<= nm.msummary(c = 'sum,count', f = ','.join(fs), k = ks,
+        subcmd <<= nm.msummary(c = 'sum,count', f = f, k = k,
                                precision = precision)
 
         subcmd <<= nm.mcal(a = a, c = '${count}/${sum}', precision = precision)
 
-        finalcols = ','.join([ks,'fld',a])
+        finalcols = ','.join([k,'fld',a])
         subcmd <<= nm.mcut(f = finalcols)
         
         subcmd <<= nm.mstdout()
         subcmd.run()
 
-    def geometricmean(self, ks, fs, a, precision):
+    def geometricmean(self, k, precision, **kwargs):
+        f = kwargs['f']
+        a = kwargs['a']
+        
         # positive numbers only
         subcmd = None
         subcmd <<= nm.mstdin()
 
-        fs = fs.split(',')
-        for f in fs:
-            subcmd <<= nm.mcal(a = f'{f}_ln', c = f'ln(abs(${{{f}}}))',
+        fs = f.split(',')
+        for fld in fs:
+            subcmd <<= nm.mcal(a = f'{fld}_ln', c = f'ln(abs(${{{fld}}}))',
                                precision = precision)
-            subcmd <<= nm.mcut(f = f, r = True)
-            subcmd <<= nm.mfldname(f = f'{f}_ln:{f}')
+            subcmd <<= nm.mcut(f = fld, r = True)
+            subcmd <<= nm.mfldname(f = f'{fld}_ln:{fld}')
 
-        subcmd <<= nm.msummary(c = 'sum,count', f = ','.join(fs), k = ks,
+        subcmd <<= nm.msummary(c = 'sum,count', f = f, k = k,
                                precision = precision)
 
         subcmd <<= nm.mcal(a = a, c = 'exp(${count}/${sum})', 
                            precision = precision)
 
-        finalcols = ','.join([ks,'fld',a])
+        finalcols = ','.join([k,'fld',a])
         subcmd <<= nm.mcut(f = finalcols)
         
         subcmd <<= nm.mstdout()
         subcmd.run()
 
-    def frequencymean(self, ks, fs, a, precision):
+    def frequencymean(self, k, precision, **kwargs):
         # subcmd = None
         # subcmd <<= nm.mstdin()
 
@@ -418,35 +436,38 @@ class GroupBy2Command(Command):
         #     subcmd <<= nm.mcut(f = f, r = True)
         #     subcmd <<= nm.mfldname(f = f'{f}_inv:{f}')
 
-        # subcmd <<= nm.msummary(c = 'sum,count', f = ','.join(fs), k = ks,
+        # subcmd <<= nm.msummary(c = 'sum,count', f = ','.join(fs), k = k,
         #                        precision = precision)
 
         # subcmd <<= nm.mcal(a = a, c = '${count}/${sum}', precision = precision)
 
-        # finalcols = ','.join([ks,'fld',a])
+        # finalcols = ','.join([k,'fld',a])
         # subcmd <<= nm.mcut(f = finalcols)
         
         # subcmd <<= nm.mstdout()
         # subcmd.run()
         pass
 
-    def meanabsolutedeviation(self, ks, fs, a, precision):
+    def meanabsolutedeviation(self, k, precision, **kwargs):
+        f = kwargs['f']
+        a = kwargs['a']
+        
         subcmd = None
         meancalc = None
 
         subcmd <<= nm.mstdin()
 
-        meancalc <<= nm.msummary(i = subcmd, k = ks, f = fs, c = 'mean',
+        meancalc <<= nm.msummary(i = subcmd, k = k, f = f, c = 'mean',
                                  precision = precision)
-        meancalc <<= nm.m2cross(f = 'mean', a = 'type,value', k = ks + ',fld')
+        meancalc <<= nm.m2cross(f = 'mean', a = 'type,value', k = k + ',fld')
         meancalc <<= nm.mcal(a = 'colnames', c = '$s{fld}+"_mean"',
                              precision = precision)
-        meancalc <<= nm.mcross(f = 'value', s= 'colnames', k = ks)
+        meancalc <<= nm.mcross(f = 'value', s= 'colnames', k = k)
 
-        flds = fs.split(',')
-        fldnames = [f + '_mean' for f in flds]
-        subcmd <<= nm.mjoin(k = ks, K = ks, m = meancalc, 
-                            f = ','.join(fldnames), o='mjoin.csv')
+        flds = f.split(',')
+        fldnames = [fld + '_mean' for fld in flds]
+        subcmd <<= nm.mjoin(k = k, K = k, m = meancalc, 
+                            f = ','.join(fldnames))
 
         for fld in flds:
             subcmd <<= nm.mcal(a = f'{fld}_diff', 
@@ -455,27 +476,30 @@ class GroupBy2Command(Command):
             subcmd <<= nm.mcut(f = fld, r = True)
             subcmd <<= nm.mfldname(f = f'{fld}_diff:{fld}')
 
-        subcmd <<= nm.msummary(k = ks, c = f'mean:{a}', f = fs, 
+        subcmd <<= nm.msummary(k = k, c = f'mean:{a}', f = f, 
                                precision = precision)
         subcmd <<= nm.mstdout()
         subcmd.run()
         
-    def medianabsolutedeviation(self, ks, fs, a, precision):
+    def medianabsolutedeviation(self, k, precision, **kwargs):
+        f = kwargs['f']
+        a = kwargs['a']
+        
         subcmd = None
         meancalc = None
 
         subcmd <<= nm.mstdin()
 
-        meancalc <<= nm.msummary(i = subcmd, k = ks, f = fs, c = 'median',
+        meancalc <<= nm.msummary(i = subcmd, k = k, f = f, c = 'median',
                                  precision = precision)
-        meancalc <<= nm.m2cross(f = 'median', a = 'type,value', k = ks + ',fld')
+        meancalc <<= nm.m2cross(f = 'median', a = 'type,value', k = k + ',fld')
         meancalc <<= nm.mcal(a = 'colnames', c = '$s{fld}+"_median"',
                              precision = precision)
-        meancalc <<= nm.mcross(f = 'value', s= 'colnames', k = ks)
+        meancalc <<= nm.mcross(f = 'value', s= 'colnames', k = k)
 
-        flds = fs.split(',')
-        fldnames = [f + '_median' for f in flds]
-        subcmd <<= nm.mjoin(k = ks, K = ks, m = meancalc, 
+        flds = f.split(',')
+        fldnames = [fld + '_median' for fld in flds]
+        subcmd <<= nm.mjoin(k = k, K = k, m = meancalc, 
                             f = ','.join(fldnames), o='mjoin.csv')
 
         for fld in flds:
@@ -485,20 +509,24 @@ class GroupBy2Command(Command):
             subcmd <<= nm.mcut(f = fld, r = True)
             subcmd <<= nm.mfldname(f = f'{fld}_diff:{fld}')
 
-        subcmd <<= nm.msummary(k = ks, c = f'mean:{a}', f = fs, 
+        subcmd <<= nm.msummary(k = k, c = f'mean:{a}', f = f, 
                                precision = precision)
         subcmd <<= nm.mstdout()
         subcmd.run()
 
-    def integral(self, ks, fs, a, x, precision):
-        fs = fs.split(',')
+    def integral(self, k, precision, **kwargs):
+        f = kwargs['f']
+        x = kwargs['x']
+        a = kwargs['a']
+        
+        fs = f.split(',')
         subcmd = None
-        subcmd <<= nm.mstdin()
+        subcmd <<= nm.mstdin(o = 'inputtointegra.csv')
 
 
         # get keybreak points
-        subcmd <<= nm.msortf(f = ks, o = 'aftersort.csv')
-        subcmd <<= nm.mkeybreak(k = ks, s = f'{x}%n', o = 'afterkeybreak.csv')
+        subcmd <<= nm.msortf(f = k)
+        subcmd <<= nm.mkeybreak(k = k, s = f'{x}%n',o = 'afterkeybreak.csv')
         
         # fix time column
         # subcmd <<= nm.mcal(a = 'tmp_time', c = f'floor(${{{x}}},1)')
@@ -508,27 +536,66 @@ class GroupBy2Command(Command):
 
         # if not top of section, get time step length, else null
         subcmd <<= nm.mcal(a = 'time_step', 
-                           c = f'if(isnull(${{top}}),${{uxt}}-#{{uxt}},nulln())',
-                           o='beforepartialsums.csv')
+                        c = f'if(isnull(${{top}}),${{uxt}}-#{{uxt}},nulln())')
 
         # if not top of section, add current and previous value, else null
-        for f in fs:
-            subcmd <<= nm.mcal(a = f'{f}_partial_sum', 
-                    c = f'if(isnull(${{top}}),${{{f}}}+#{{{f}}},nulln())')
+        for fld in fs:
+            subcmd <<= nm.mcal(a = f'{fld}_partial_sum', 
+                    c = f'if(isnull(${{top}}),${{{fld}}}+#{{{fld}}},nulln())')
 
             # trapezoid rule: (((partialsum)/2)*step size)
-            subcmd <<= nm.mcal(a = f'{f}_trap', 
-                    c = f'(${{{f}_partial_sum}}/2)*${{time_step}}')
+            subcmd <<= nm.mcal(a = f'{fld}_trap', 
+                    c = f'(${{{fld}_partial_sum}}/2)*${{time_step}}')
 
-            subcmd <<= nm.mcut(f = f, r = True)
-            subcmd <<= nm.mfldname(f = f'{f}_trap:{f}', o='afterpartialsum.csv')
+            subcmd <<= nm.mcut(f = fld, r = True)
+            subcmd <<= nm.mfldname(f = f'{fld}_trap:{fld}')
 
         # sum over each key
-        subcmd <<= nm.msummary(k = ks, c = f'sum:{a}', f = fs,
-                               precision = precision)
+        subcmd <<= nm.msummary(k = k, c = f'sum:{a}', f = f,
+                            precision = precision)
 
         subcmd <<= nm.mstdout()
         subcmd.run()
+        
+    def slope(self, k, precision, **kwargs):
+        # fs = fs.split(',')
+        # subcmd = None
+        # subcmd <<= nm.mstdin()
+
+
+        # # get keybreak points
+        # subcmd <<= nm.msortf(f = k, o = 'aftersort.csv')
+        # subcmd <<= nm.mkeybreak(k = k, s = f'{x}%n')
+        
+        # # fix time column
+        # # subcmd <<= nm.mcal(a = 'tmp_time', c = f'floor(${{{x}}},1)')
+        # subcmd <<= nm.mcal(a = 'uxt', c = f'uxt($t{{{x}}})')
+        # # subcmd <<= nm.mcal(a = 'uxt', 
+        # #             c = f'cat(".",$s{{tmp_uxt}},regexstr($s{{{x}}},"[0-9]*$"))')
+
+        # # if not top of section, get time step length, else null
+        # subcmd <<= nm.mcal(a = 'time_step', 
+        #                    c = f'if(isnull(${{top}}),${{uxt}}-#{{uxt}},nulln())')
+
+        # # if not top of section, add current and previous value, else null
+        # for f in fs:
+        #     subcmd <<= nm.mcal(a = f'{f}_partial_sum', 
+        #             c = f'if(isnull(${{top}}),${{{f}}}+#{{{f}}},nulln())')
+
+        #     # trapezoid rule: (((partialsum)/2)*step size)
+        #     subcmd <<= nm.mcal(a = f'{f}_trap', 
+        #             c = f'(${{{f}_partial_sum}}/2)*${{time_step}}')
+
+        #     subcmd <<= nm.mcut(f = f, r = True)
+        #     subcmd <<= nm.mfldname(f = f'{f}_trap:{f}')
+
+        # # sum over each key
+        # subcmd <<= nm.msummary(k = k, c = f'sum:{a}', f = fs,
+        #                        precision = precision)
+
+        # subcmd <<= nm.mstdout()
+        # subcmd.run()
+        pass
 
 
 
@@ -569,128 +636,122 @@ class GroupBy2Command(Command):
         ]
 
         new_calcs = {
-            '1field' : {
-                'rms' : self.rootmeansquare,
-                'hmean' : self.harmonicmean,
-                'gmean' : self.geometricmean,
-                'fmean' : self.frequencymean,
-                'mean_ad' : self.meanabsolutedeviation,
-                'median_ad' : self.medianabsolutedeviation
-            },
-            '1field_time' : {
-                'integral' : self.integral
-            }
+            # 0 fields (input k, a)
+            'rows' : self.rows,
+            # 1 field (input k, a, f)
+            'rms' : self.rootmeansquare,
+            'hmean' : self.harmonicmean,
+            'gmean' : self.geometricmean,
+            'fmean' : self.frequencymean,
+            'mean_ad' : self.meanabsolutedeviation,
+            'median_ad' : self.medianabsolutedeviation,
+            # 1 field + time (input k, a, f, x)
+            'integral' : self.integral,
+            'slope' : self.slope
         }
 
         self.header = nm.mread(inputs).getline(header=True)
         self.header = next(self.header)
 
         k = args.pop('k')
+        prec = args.pop('precision')
         xs = []
 
-        fclist = []
+        calclist = []
         all_fs = []
         final_fs = []
         
         # wildcard parsing
         for arglist in args.get('fclist') + args.get('xfclist'):
-            fs = [a for a in self.header for target in arglist['f'].split(',') 
-                if fn.fnmatch(a, target)]
+            if arglist.get('c'):
+                fs = arglist.get('f')
+                x = arglist.get('x')
 
-            cs = arglist['c'].split(',')
-            cs_msummary = []
-            cs_custom = {
-                '1field' : [],
-                '1field_time' : []
-            }
+                if x and x not in xs:
+                    xs.append(x)
 
-            for i,c in enumerate(cs):
-                if ':' in c:
-                    final_fs.append(c.split(':')[-1])
-                elif c:
-                    final_fs.append(c)
-                
-                if c.split(':')[0] in msummaryoptions:
-                    cs_msummary.append(cs[i])
-                elif c:
-                    for key in new_calcs:
-                        if c.split(':')[0] in new_calcs[key]:
-                            cs_custom[key].append(cs[i])
+                if fs:
+                    fs = ','.join([a for a in self.header 
+                        for target in arglist['f'].split(',')
+                        if fn.fnmatch(a, target)])
 
-            if cs_msummary:
-                fclist.append({'f': ','.join(fs), 'c': cs_msummary, 
-                               'optype' : 'msummary'})
-            for optype, calcs in cs_custom.items():
-                if calcs:
-                    for c in calcs:
-                        x = arglist.get('x')
+                cs = arglist['c'].split(',')
+                cs_msummary = []
+                cs_custom = []
 
-                        if x and x not in xs:
-                            xs.append(x)
+                for i,c in enumerate(cs):
+                    if ':' in c:
+                        final_fs.append(c.split(':')[-1])
+                    elif c:
+                        final_fs.append(c)
+                    
+                    if c.split(':')[0] in msummaryoptions:
+                        cs_msummary.append(cs[i])
+                    elif c:
+                        cs_custom.append(cs[i])
 
-                        fclist.append({'f': ','.join(fs), 'c': c, 
-                                    'x': x, 
-                                    'optype' : optype})
+                if cs_msummary:
+                    calclist.append({'f': fs, 'c': ','.join(cs_msummary), 
+                                'optype' : 'msummary'})
 
-            all_fs += [f for f in fs if f not in all_fs]
+                for calc in cs_custom:
+                    calclist.append({'f': fs, 'c': calc, 'x': x, 
+                                'optype' : 'custom'})
 
-        cmd = [None] * len(fclist)
+                all_fs += [f for f in fs.split(',') if f not in all_fs]
+
+        cmd = [None] * len(calclist)
         cmd_o = None
-
         cmd[-1] <<= nm.mread(inputs)
         # take the wanted columns only (the key columns and the value columns)
-        cmd[-1] <<= nm.mcut(f = f'{",".join(xs)},{k},{",".join(all_fs)}')
+        # generate string of columns to cut
+        if xs:
+            timecols = ','.join(xs) + ','
+        else:
+            timecols = ''
+
+        cmd[-1] <<= nm.mcut(f = f'{timecols}{k},{",".join(all_fs)}')
 
         ##### calculation portion:
-        expanded_k = ','.join([k,'fld'])
 
-        for i, fcdict in enumerate(fclist):
-            cs = fcdict.pop('c')
-            fs = fcdict.pop('f')
+        for i, calcdict in enumerate(calclist):
+            cs = calcdict.get('c')
+            optype = calcdict.pop('optype')
 
             # take the required stats for the required columns
-            if fcdict['optype'] == 'msummary':
-                if i != len(fclist) - 1:
+            if optype == 'msummary':
+                if i != len(calclist) - 1:
                     cmd[i] <<= nm.mread(i = cmd[-1])
 
-                cmd[i] <<= nm.msummary(k = k, f = fs, c = cs, a = 'fld',
-                        precision = args['precision'])
+                cmd[i] <<= nm.msummary(k = k, precision = prec, **calcdict)
 
-                cs = [c.split(':')[-1] for c in cs]
-            else:
+                final_cs = [c.split(':')[-1] for c in cs.split(',')]
+            elif optype == 'custom':
                 if ':' in cs:
-                    cleft, cright = cs.split(':')
+                    cs, calcdict['a'] = cs.split(':')
                 else:
-                    cleft = cs
-                    cright = cs
+                    calcdict['a'] = cs
 
-                if i != len(fclist) - 1:
+                if i != len(calclist) - 1:
                     cmd[i] <<= nm.mread(i=cmd[-1])
                 
-                if fcdict['optype'] == '1field':
-                    cmd[i] <<= nm.runfunc(new_calcs['1field'][cleft], ks = k, 
-                                            fs = fs, 
-                                            a = cright, 
-                                            precision = args['precision'])
-                elif fcdict['optype'] == '1field_time':
-                    cmd[i] <<= nm.runfunc(new_calcs['1field_time'][cleft], 
-                                            ks = k, fs = fs, 
-                                            a = cright, 
-                                            x = fcdict['x'], 
-                                            precision = args['precision'])
+                cmd[i] <<= nm.runfunc(new_calcs[cs], k = k,
+                                      precision = prec,
+                                      **calcdict)
                 
-                cs = [cright]
+                final_cs = [calcdict['a']]
 
 
             # make null columns for each missing column
             for missingcol in final_fs:
-                if missingcol not in cs:
+                if missingcol not in final_cs:
                     cmd[i] <<= nm.mcal(a = missingcol, c = 'nulls()')
 
+        expanded_k = ','.join([k,'fld'])
 
         cmd_o <<= nm.m2cross(i = cmd, k = expanded_k, f= final_fs, 
                 a = 'type,value')
-        cmd_o <<= nm.mdelnull(f = 'value', o = 'afterdellnull.csv')
+        cmd_o <<= nm.mdelnull(f = 'value')
 
         formatstring = args.pop('format')
         colformat = ['']
