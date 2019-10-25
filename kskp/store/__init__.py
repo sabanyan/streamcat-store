@@ -136,13 +136,8 @@ def create_d_view():
     """
     d_view = """
     create view d as
-    select id, parent_id, uuid, path, label, type, date_trunc('second', created_at) as cteated_at
+    select id, parent_id, uuid, path, label, type, date_trunc('second', created_at) as created_at
     from data order by type, id
     """
     engine.execute(DDL('drop view if exists d'))
     engine.execute(DDL(d_view))
-
-# フレームを格納するフォルダがなければ作成する
-# import pprint
-# pprint.pprint('Init library folder')
-# Library._init_library_folders()

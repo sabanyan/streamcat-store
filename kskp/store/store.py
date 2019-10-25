@@ -23,6 +23,19 @@ class Store(Datum):
                                     .filter(Datum.type!=Datum.FLOW_TYPE).one_or_none()
         if store is None:
             raise Exception('no store is found by designated id.')
+        return Store.convert_to_store(store)
+
+    @staticmethod
+    def convert_to_store(datum):
+        parent_uuid = Datum.get_uuid_by_id(datum.parent_id)
+        store = Store(parent_uuid, datum.type, datum.label, datum.creator)
+        store.id = datum.id
+        store.uuid = datum.uuid
+        store._path = datum._path
+        store.data = datum.data
+        store.modifier = datum.modifier
+        store.created_at = datum.created_at
+        store.modified_at = datum.modified_at
         return store
 
     # def save(self, datum):
