@@ -9,7 +9,7 @@
     {
       "name": "group3",
       "label": "計算対象と結果の項目設定（必須）",
-      "params": ["fclist","xfclist","format"]
+      "params": ["clist", "fclist","xfclist","format"]
     },
     {
       "name": "group4",
@@ -23,6 +23,20 @@
       "type": "string",
       "label": "集計キー項目を指定する（必須）",
       "description": "●カンマ区切りで複数指定可"
+    },
+    {
+      "name": "clist",
+      "type": "list",
+      "label": "計算対象の設定（追加・順序変更・削除　可）",
+      "description": "",
+      "elements": [
+        {
+          "name": "c",
+          "type": "string",
+          "label": "統計量"
+        }
+      ],
+      "default": [{"c": ""}]
     },
     {
       "name": "fclist",
