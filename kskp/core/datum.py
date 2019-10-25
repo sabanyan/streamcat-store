@@ -164,6 +164,13 @@ class Datum(BaseModel):
         return ret
 
     @property
+    def content(self):
+        """
+        Engineから参照する
+        """
+        return self
+
+    @property
     def created_at_str(self):
         # DBに格納されている日時はUTCなので、タイムゾーンをUTCに設定する
         created_at_utc = self.created_at.replace(tzinfo=datetime.timezone.utc)
