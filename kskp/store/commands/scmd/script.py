@@ -285,9 +285,6 @@ class DbSaverCommand(Command):
         # DB接続情報に漏れがないか確認し、漏れがあれば例外を送出する
         database.valid_or_raise()
 
-        # # 入力データ
-        # f = inputs['i']
-
         # 抽出元スキーマ名とテーブル名を取得する
         if 'schema_name' not in args or args['schema_name'] is None:
             schema_name = ''
@@ -302,40 +299,27 @@ class DbSaverCommand(Command):
         db_uri = database.get_database_uri()
 
         # Tmpファイル名を決定する
-        import uuid
-        from pathlib import Path
-        tmp_dir_path  = Path('/tmp')
-        tmp_file_name = str(uuid.uuid4()) + '.csv'
-        self._tmp_file_path = tmp_dir_path / tmp_file_name
+        # self._tmp_file_path = DbSaverCommand._get_tmp_file_name()
 
         # 指定されたテーブルがデータを格納可能か判定する → どうやって？
 
         def bulk_inserter(dbms, db_uri, table_name):
             try:
-
-                # 入力データを一旦ファイルに保存する → ストリーム処理できないか？ PIPE?
-                with self._tmp_file_path.open('w') as t:
-                    is_header = True
-                    for line in sys.stdin:
-                        if is_header:
-                            # 入力データのヘッダ行からテーブル列名を作成する
-                            import csv
-                            csv_ = csv.reader(csv.StringIO(line), delimiter=',', quotechar='"')
-                            is_header = False
-                            continue
-                        t.write(line)
-
-                # flushをする
-                sys.stdout.flush()
-
                 # DBへ接続する
                 engine = DbSaverCommand._connect_to_db(db_uri)
 
-                # テーブルを作成する
-                # DbSaverCommand._create_table(engine, dbms, table_name, csv_)
+                # CSVのヘッダ行を取得する
+                csv_columns = DbSaverCommand._get_csv_column_names(sys.stdin)
 
-                # # データをインポートする
-                DbSaverCommand._import_to_table(engine, dbms, table_name, self._tmp_file_path)
+                # インポート先テーブルが無ければ作成する
+                if not DbSaverCommand._table_exists(engine, table_name):
+                    DbSaverCommand._create_table(engine, dbms, table_name, csv_columns)
+
+                # CSVデータのインポートコマンドを発行する
+                DbSaverCommand._import_to_table(dbms, db_uri, table_name, csv_columns, sys.stdin)
+
+                # flushをする
+                sys.stdout.flush()
 
             except Exception as e:
                 import traceback
@@ -350,10 +334,8 @@ class DbSaverCommand(Command):
         cmd <<= nm.runfunc(bulk_inserter, dbms=database.dbms, db_uri=db_uri, table_name=table_name)
 
         # 結果はFrameに入れて返す
-        from kskp.store import Frame, Datum
-        # 親は取り敢えずROOT
-        root = Datum.find_root()
-        frame = Frame(root.uuid, 'db_saver', None)
+        from kskp.store import Frame
+        frame = Frame(None, 'db_saver', None)
         frame.set_centext(args)
         frame.set_content(cmd)
 
@@ -371,16 +353,28 @@ class DbSaverCommand(Command):
         return engine
 
     @staticmethod
-    def _create_table(engine, dbms, table_name, csv):
+    def _get_csv_column_names(f):
+        for header in f:
+            import csv
+            csv_header = csv.reader(csv.StringIO(header), delimiter=',', quotechar='"')
+            # CSV列名を取得する
+            for csv_column_names in csv_header:
+                return csv_column_names
+
+    @staticmethod
+    def _table_exists(engine, table_name):
+        return engine.dialect.has_table(engine, table_name)
+
+    @staticmethod
+    def _create_table(engine, dbms, table_name, csv_columns):
         column_defs = ''
-        for columns in csv:
-            for column in columns:
-                column_defs += f',{column} text'
+        for column in csv_columns:
+            column_defs += f',{column} text'
 
         # 列名の重複を避ける仕組みを作らなければならない
         creata_table = f"""
-        create table {table_name} (
-            id_0 serial
+        CREATE TABLE {table_name} (
+            id_kskp SERIAL
             {column_defs}
         );
         """
@@ -391,16 +385,64 @@ class DbSaverCommand(Command):
             raise Exception('DBのテーブル作成に失敗しました(%s)' % str(e))
 
     @staticmethod
-    def _import_to_table(engine, dbms, table_name, file_path):
-        # if dbms.upper() == 'POSTGRESQL':
-        copy_stmt = f"""
-        COPY {table_name} from '{file_path}' with csv;
-        """
-        from sqlalchemy import DDL, exc
+    def _import_to_table(dbms, db_uri, table_name, csv_columns, csv_input):
         try:
-            engine.execute(DDL(copy_stmt))
-        except exc.SQLAlchemyError as e:
-            raise Exception('DBのテーブルへのデータインポートに失敗しました(%s)' % str(e))
+            if dbms.upper() == 'POSTGRESQL':
+                DbSaverCommand._import_to_table_postgresql(db_uri, table_name, csv_columns, csv_input)
+            elif dbms.upper() == 'ORACLE':
+                DbSaverCommand._import_to_table_oracle(db_uri, table_name, csv_columns, csv_input)
+            else:
+                raise Exception('DBのインポート先DBMS種別が判定できませんでした')
+        except Exception as e:
+            raise Exception('DBのテーブルへのインポートに失敗しました(%s)' % str(e))
+
+    @staticmethod
+    def _import_to_table_postgresql(db_uri, table_name, csv_columns, csv_input):
+        # psycopg2からはCOPY文を発行できないようである
+        import io, psycopg2
+        with psycopg2.connect(db_uri) as conn:
+            with conn.cursor() as cursor:
+                cursor.copy_from(sys.stdin, table_name, sep=',', null=r'', size=8192, columns=csv_columns)       
+
+        # 入力データを標準入力へ渡す
+        for line in sys.stdin:
+            print(line)
+        # 入力データの終わりを告げる
+        print(r'\.', end='')
+
+    @staticmethod
+    def _import_to_table_oracle(db_uri, table_name, csv_columns, csv_input):
+        import cx_Oracle
+
+        # 一括してINSERTする行数
+        batch_rows = 10000
+
+        with cx_Oracle.connect(db_uri) as conn:
+            with conn.cursor() as cursor:
+                # Predefine the memory areas to match the table definition
+                cursor.setinputsizes(None, 25)
+
+                sql = f'INSERT INTO {table_name} (id, parent_id) VALUES (:1, :2)'
+                csv_data = []
+
+                for line in csv_input:
+                    csv_data.append((line[0], line[1]))
+                    if len(csv_data) % batch_rows == 0:
+                        # batch_rowsの行数のデータを一括してINSERTする
+                        cursor.executemany(sql, csv_data)
+                        csv_data = []
+                if csv_data:
+                    cursor.executemany(sql, csv_data)
+
+            conn.commit()
+
+    @staticmethod
+    def _get_tmp_file_name():
+        import uuid
+        from pathlib import Path
+        tmp_dir_path  = Path('/tmp')
+        tmp_file_name = str(uuid.uuid4()) + '.csv'
+        return tmp_dir_path / tmp_file_name
 
     @staticmethod
     def _write_log(message):
@@ -413,5 +455,5 @@ class DbSaverCommand(Command):
         DbSaverCommand._write_log('DTOR!')
         # Tmpファイルを削除する
         import os
-        # if self._tmp_file_path is not None and self._tmp_file_path.exists():
-        #     self._tmp_file_path.unlink()
+        if self._tmp_file_path is not None and self._tmp_file_path.exists():
+            self._tmp_file_path.unlink()
