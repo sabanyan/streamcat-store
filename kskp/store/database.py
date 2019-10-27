@@ -159,12 +159,11 @@ class Database(Store):
 
     @property
     def dbms(self):
-        database_conn = DatabaseConn.from_json(self.data2['conn'])
-        return database_conn.dbms
+        return self.conn.dbms
 
-    def get_database_uri(self):
-        database_conn = DatabaseConn.from_json(self.data2['conn'])
-        return database_conn.get_database_uri()
+    @property
+    def conn(self):
+        return DatabaseConn.from_json(self.data2['conn'])
 
     def valid_or_raise(self):
         """
