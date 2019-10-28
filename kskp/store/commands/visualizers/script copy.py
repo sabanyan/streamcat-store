@@ -118,8 +118,6 @@ from bokeh.layouts import gridplot, column
 from bokeh.models import HoverTool, Select, Legend, ColumnDataSource
 from bokeh.io import output_file, show
 from bokeh.models.callbacks import CustomJS
-from bokeh.models import Span
-
 from numpy import histogram
 import itertools
 
@@ -274,7 +272,7 @@ class CsvToScatterCommand(VisualizersBokehPlot):
 class CsvToBoxplotCommand(VisualizersBokehPlot):
     def __init__(self):
         super().__init__()
-        
+
     def plot(self, args, inputs):
         """
         csvのファイルパスから、
@@ -316,36 +314,18 @@ class CsvtoRepetitivieWaveform(VisualizersBokehPlot):
         plotの反復波形図を作成する
         """
         self.init(args, inputs)
-        
-        graph_source = self.get_graph_source(self.df, disableTooltips=self.disableTooltips) 
-        graph_colors = self.get_colors(len(graph_source))
-        graph_plot = self.get_plot("反復波形図")
-        graph_plot = self.get_grpah_plot(graph_plot,graph_source, graph_colors)
-        graph_plot.legend.location = "top_left"
-        graph_plot.legend.click_policy = "mute"
 
-        select = self.get_select(graph_plot)
-        plots = [graph_plot, select]
-        
-        statics_plot = None
-        if self.disableStatics == False:
-            statics_source = self.get_statics_source(self.df, disableTooltips=self.disableTooltips)
-            if statics_source is not None:
-                statics_colors = self.get_colors(len(statics_source))
-                plot = self.get_plot("反復波形図",graph_plot.x_range,graph_plot.y_range)
-                statics_plot = self.get_statics_plot(plot,statics_source, statics_colors)
-                if statics_plot.legend:
-                    statics_plot.legend.location = "top_left"
-                    statics_plot.legend.click_policy = "mute"
-                plots.append(statics_plot)          
-        
-        return gridplot(plots, ncols=1, plot_width=self.graph_width, plot_height=self.graph_height)
-        
-      
+        if slef.
+
+        plot = self.get_grpah_plot("反復波形図",sources)
+
+        return plot
+
     def init(self, args, inputs):
     
         # 共通パラメーター
         frame_uuid = inputs.get('i')
+
         # 軸の設定
         self.column_name_x_axis = args.get('x_axis')[0]['column']
         self.column_name_values = args.get('y_axis')[0]['column']
@@ -353,7 +333,7 @@ class CsvtoRepetitivieWaveform(VisualizersBokehPlot):
         self.y_axis_label = args.get('y_axis')[0]['label']
 
         # データ系列の設定
-        self.keys = args.get('datas') if args.get('datas') else None
+        self.keys = args.get('datas')
         self.group = args.get('group')
 
         # データ表示範囲の設定
@@ -362,14 +342,21 @@ class CsvtoRepetitivieWaveform(VisualizersBokehPlot):
         
         frame = Library.load_frame(frame_uuid)
         df = frame.get_dataframe(limit, offset)
-        self.df = df.sort_values(by = self.column_name_x_axis)
-        self.groups = self.df[self.group].unique().tolist()
+
+        named_dfs = {}
+        if self.keys is not None and len(self.keys) > 0:
+            results = self.direct_product_by_keys(df, self.keys)
+            named_dfs = self.process_df(df, results)
+        else:
+            named_dfs['all'] = df
+        self.groups = df[self.group].unique().tolist()
+        self.named_dfs = named_dfs
         
         # グラフ表示要素の設定
-        self.disableTooltips = args.get('disableTooltips') if args.get('disableTooltips') else False
-        self.disableMarker = args.get('disableMarker') if args.get('disableMarker') else False
-        self.disableStatics = args.get('disableStatics') if args.get('disableStatics') else False
-        self.disableEvent = args.get('disableEvent') if args.get('disableEvent') else False
+        self.disableTooltips = args.get('doTooltips')
+        self.disableMarker = args.get('doMarker')
+        self.disableStatics = args.get('doStatics')
+        self.disableEvent = args.get('doEvent')
         self.event = args.get('event')
         self.statics = args.get('statics')
         
@@ -381,185 +368,93 @@ class CsvtoRepetitivieWaveform(VisualizersBokehPlot):
         self.tools = "pan,wheel_zoom,box_zoom,reset,save,box_select"
         self.tooltips = None
 
-    def get_graph_source(self, df, disableTooltips=False):
+        # ツールチップを表示
+        if self.disableTooltips :
+            self.tooltips = [
+                ('', "@label"),
+                (self.group, "@group"),
+                (self.column_name_x_axis, "@x"),
+                (self.column_name_values, "@y"),
+            ]
 
-        named_dfs = {}
-        if self.keys is not None and len(self.keys) > 0:
-            results = self.direct_product_by_keys(df, self.keys)
-            named_dfs = self.process_df(df, results)
-        else:
-            named_dfs['all'] = df
-  
+    def get_graph_source(disableTooltips):
         ## source
         source = {}
-        for label, n_df in named_dfs.items():
+        for label, df in self.named_dfs.items():
             data = dict(
-                x = n_df[self.column_name_x_axis].tolist(),
-                y = n_df[self.column_name_values].tolist(),
-                #group = n_df[self.group].tolist(),
-                label = [label] * (len(n_df.index))
+                x = df[self.column_name_x_axis].tolist(),
+                y = df[self.column_name_values].tolist(),
+                group = df[self.group].tolist(),
+                label = [label] * (len(df.index))
             )
             source[label] = data
         
         return source
 
-    def get_statics_source(self, df, disableTooltips=False):
-        k = self.column_name_x_axis
-        f = self.column_name_values
-        c = self.statics #"min,mean,max,qtile1,median,qtile3"
-        i = self.df.values.tolist()
-        i.insert(0,list(df.columns))
+    def get_statics_plot(self, title, sources):
+        plot = figure(title=title, tools=self.tools,tooltips=self.tooltips)
 
-        dtype = "{}:float".format(self.column_name_x_axis)
-        result = None
-        result <<= nm.msummary(i=i, k=k, f=f, c=c).writelist(dtype=dtype, header=True)
-        result = result.run()
+        args = {
+            'k':self.column_name_x_axis,
+            'f':self.column_name_values,
+            'c':args.get('statics')
+        }
+        statics = {}
+        #for label, df in sources:
 
-        name=result.pop(0)
-        df= pd.DataFrame(result,columns=name)
-        df = df.sort_values(by = self.column_name_x_axis)
-        keys = c.split(',')
-        source = {}
-        x = df[k].tolist()
-        for key in keys:
-            data = dict(
-                x = x,
-                y = df[key].tolist(),
-                label = [key] * (len(x))
-            )
-            source[key] = data
 
-        return source
-
-    def get_select(self, plot):
-        values = self.groups
-        values.insert(0, '')
-
-        s = Select(value=values[0], title=self.group, options=values, width=120)
-
-        callBack = CustomJS(args=dict(plot=plot, select=s), code="""
-            var value = select.value
-            var renderers = plot.renderers
-            if (!renderers) return
-
-            renderers.forEach(r => {
-                try {
-                    if (value === "") {
-                        r.muted = false
-                    } else if(r.data_source.data.group[0] === value) {
-                        r.muted = false
-                    } else {
-                        r.muted = true
-                    } 
-                } catch(e) {
-                    console.log(e)
-                }
-            })
-        """)
-        s.js_on_change('value', callBack)
-
-        return s
-
-    def get_colors(self, size):
-        i = 0
-        colors = []
-        for d in itertools.cycle(palette):
-            if i >= size:
-                break
-            colors.append(d)
-            i = i + 1
-
-        return colors
-
-    def get_plot(self, title, x_range=None, y_range=None):
-        
-        tooltips = None
-        if self.disableTooltips != True:
-            tooltips = [
-                    ("凡例", "@label"),
-                    (self.column_name_x_axis, "@x"),
-                    (self.column_name_values, "@y"),
-                ]
-        
-        plot = figure(
-            title=title,
-            tools=self.tools,
-            tooltips=tooltips,
-            x_axis_label=self.x_axis_label,
-            y_axis_label=self.y_axis_label
-        )
-        if x_range is not None:
-            plot.x_range = x_range
-        if y_range is not None:
-            plot.y_range = y_range
-
-        return plot
-
-    def add_lines_to_plot(self, figure_plot, source, colors):
-        for label, color in zip(source,colors):
-            figure_plot.line('x', 'y', source=source[label], legend=label, color=color, alpha=0.75, muted_color=color, muted_alpha=0.2)
-        
-        return figure_plot
-
-    def add_points_to_plot(self, figure_plot, source, colors):
-        for label, color in zip(source,colors):
-            figure_plot.circle('x', 'y', source=ColumnDataSource(data=source[label]), legend=label, color=color, alpha=0.9, muted_color=color, muted_alpha=0.2, size=8)
-        
-        return figure_plot
-
-    def add_varea_to_plot(self, figure_plot, source, fill_color='#cccccc'):
-        keys = self.statics.split(',')
-        length = len(keys)
-        for index, key in enumerate(keys):
-            if (index + 1) < length:
-                x = source[key]['x']
-                y1 = source[key]['y']
-                y2 = source[keys[index + 1]]['y']
-                figure_plot.varea(x=x, y1=y1, y2=y2, fill_color=fill_color, alpha=0.5)
-
-        return figure_plot
-
-    def add_span_to_plot(self, figure_plot, df):
-        queryStr = "{0} == {1}".format(self.event, "0")
-        result_df = df.query(queryStr)
-
-        from bokeh.models import Span
-
-        xs = result_df[self.column_name_x_axis].unique().tolist()
-
-        for x in xs:
-            s = Span(location= x,
-                              dimension='height', line_color='black',
-                              line_dash='dashed', line_width=3, line_alpha=0.3)
-            figure_plot.add_layout(s)
-
-        return figure_plot
-
-    def get_statics_plot(self, plot, source, colors):        
-        # plot
-        if source == None:
-            return plot
-
-        plot = self.add_lines_to_plot(plot, source, colors)
-        plot = self.add_varea_to_plot(plot, source)
-        if self.disableEvent != True:
-            plot = self.add_span_to_plot(plot, self.df)
-        if self.disableMarker != True:
-            plot = self.add_points_to_plot(plot, source, colors)
-       
         return plot 
 
-    def get_grpah_plot(self, plot, source, colors):
-
-        # plot
-        if source == None:
-            return plot
-        plot = self.add_lines_to_plot(plot, source, colors)
-        if self.disableEvent != True:
-            plot = self.add_span_to_plot(plot, self.df)
-        if self.disableMarker != True:
-            plot = self.add_points_to_plot(plot, source, colors)
-   
+    def get_grpah_plot(self, title, sources):
+        f = figure(title=title, tools=self.tools, tooltips=self.tooltips, width=self.graph_width, height=self.graph_height,x_axis_label=self.x_axis_label, y_axis_label=self.y_axis_label)
         
+        elements = {}
+        colors = itertools.cycle(palette)
+        for label, color in zip(sources,colors):
+            elements[label] = []
+            elements[label].append(f.line('x', 'y', source=sources[label], legend=label, color=color, alpha=0.75, muted_color=color, muted_alpha=0.2))
+             # マーカーを表示
+            if self.disableMarker != True:
+                elements[label].append(f.circle('x', 'y', source=sources[label], legend=label, color=color, alpha=0.75, muted_color=color, muted_alpha=0.2))
+            
+        f.legend.location = "top_left"
+        f.legend.click_policy = "mute"
 
-        return plot
+        attrs = sorted(self.groups)
+        attrs.insert(0, '-All-')
+        attr_select = Select(value=attrs[0], title=self.group, options=attrs) 
+        
+        callback = CustomJS(args=dict(sources=sources, elements=elements, select=attr_select, attrs_list=attrs, name_attrs=self.group), code="""
+                
+            var isMute = (id, attr, filtered) => {
+                return !(attr === filtered['selected_attr'])
+            }
+            var update = (key, mute) => { 
+                elements[key].map((graphElement) => {
+                    graphElement.muted = mute
+                })
+            }
+
+            var clear = (key) => { 
+                elements[key].map((graphElement) => {
+                    graphElement.muted = false
+                })
+            }
+
+            var value = select.value
+            var filtered = {'selected_attr':value}
+            for (key in sources) {
+                var source_id = key
+                var source_attr = sources[key][name_attrs]
+                var mute = isMute(key, source_attr, filtered)
+                if (value === attrs_list[0]) {
+                    clear(key)
+                } else {
+                    update(key, mute)
+                }
+            }
+        """)
+
+        attr_select.js_on_change('value', callback)
+
+        return gridplot([f, attr_select], ncols=1)
