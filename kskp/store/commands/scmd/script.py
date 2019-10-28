@@ -292,7 +292,7 @@ class DbSaverCommand(Command):
             schema_name = args['schema_name']
 
         if 'table_name' not in args:
-            raise Exception('DB接続の取得元テーブル名が必要です')
+            raise Exception('DB接続の格納先テーブル名が必要です')
         table_name = args['table_name']
 
         # Tmpファイル名を決定する
@@ -313,20 +313,14 @@ class DbSaverCommand(Command):
                 if not DbSaverCommand._table_exists(engine, schema_name, table_name):
                     DbSaverCommand._create_table(engine, database.dbms, schema_name, table_name, csv_columns)
 
-                # flushをする
-                sys.stdout.flush()
-
                 # CSVデータのインポートコマンドを発行する
                 DbSaverCommand._import_to_table(database, schema_name, table_name, csv_columns, sys.stdin)
-
-                # flushをする
-                sys.stdout.flush()
-
             except Exception as e:
-                engine.dispose()
                 with open('/dev/stderr', 'w') as fpe:
                     import traceback
                     traceback.print_exc(file=fpe)
+            finally:
+                engine.dispose()
 
         # flushをしないと、デバッグ用のprintなども入ってしまう
         sys.stdout.flush()
@@ -439,6 +433,9 @@ class DbSaverCommand(Command):
 
     @staticmethod
     def _import_to_table_oracle(database, schema_name, table_name, csv_columns, csv_input):
+        """
+        ORACLE 12c以降に対応する
+        """
         schema_and_table_name = schema_name + '.' + table_name if schema_name != '' else table_name
 
         # INSERT文のテーブル列名リストとVALUESのプレースホルダリストを作成する
@@ -482,6 +479,11 @@ class DbSaverCommand(Command):
                     cursor.executemany(sql, values_list)
 
             conn.commit()
+
+    @staticmethod
+    def _save_as_data_source(database, label):
+        from kskp.store import Flow
+        pass
 
     @staticmethod
     def _get_tmp_file_name():
