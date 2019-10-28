@@ -344,6 +344,30 @@ class GroupBy2Command(Command):
         subcmd <<= nm.mstdout()
         subcmd.run()
 
+    def missingdata(self, k, precision, **kwargs):
+        f = kwargs['f']
+        a = kwargs['a']
+
+        subcmd = None
+        allrows = None
+        subcmd <<= nm.mstdin()
+        
+        allrows <<= nm.mcount(i = subcmd, k = k, a = 'allrows')
+
+        subcmd <<= nm.msummary(k = k, f = f, c = 'count')
+        subcmd <<= nm.mjoin(k = k, m = allrows, f = 'allrows', K = k)
+
+        subcmd <<= nm.mcal(a = 'missingcount', c = '${allrows}-${count}')
+        subcmd <<= nm.mcal(a = 'missingpercent', 
+                        c = '((${allrows}-${count})/${allrows})*100',
+                        precision = 3)
+        subcmd <<= nm.mcal(a = a, c = '$s{missingcount}+"("+$s{missingpercent}+"%)"')
+
+        subcmd <<= nm.mcut(f = f'{k},fld,{a}')
+
+        subcmd <<= nm.mstdout()
+        subcmd.run()
+
     def rootmeansquare(self, k, precision, **kwargs):
         f = kwargs['f']
         a = kwargs['a']
@@ -642,6 +666,7 @@ class GroupBy2Command(Command):
             # 0 fields (input k, a, fld)
             'rows' : self.rows,
             # 1 field (input k, a, f)
+            'miss' : self.missingdata,
             'rms' : self.rootmeansquare,
             'hmean' : self.harmonicmean,
             'gmean' : self.geometricmean,
@@ -740,6 +765,7 @@ class GroupBy2Command(Command):
                 if i != len(calclist) - 1:
                     cmd[i] <<= nm.mread(i=cmd[-1])
                 
+                sys.__stderr__.write(repr(k))
                 cmd[i] <<= nm.runfunc(new_calcs[cs], k = k,
                                       precision = prec,
                                       **calcdict)
