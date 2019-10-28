@@ -137,6 +137,7 @@ class CommandLink:
             'csvtohistogram': CsvToHistogramCommand(),
             'csvtoscatter': CsvToScatterCommand(),
             'csvtoboxplot': CsvToBoxplotCommand(),
+            'csvtorepetitiviewaveform': CsvtoRepetitivieWaveform(),
             # Storeコマンド
             'saver': SaverCommand(),
             'cachesaver': CacheSaverCommand(),
