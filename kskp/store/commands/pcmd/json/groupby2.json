@@ -7,12 +7,22 @@
       "params": ["k"]
     },
     {
+      "name": "group2",
+      "label": "データセットに対する特徴量",
+      "params": ["format","clist"]
+    },
+    {
       "name": "group3",
-      "label": "計算対象と結果の項目設定（必須）",
-      "params": ["format","clist", "fclist","xfclist"]
+      "label": "１つの変数に対する特徴量",
+      "params": ["fclist"]
     },
     {
       "name": "group4",
+      "label": "２つの変数に対する特徴量",
+      "params": ["xfclist"]
+    },
+    {
+      "name": "group5",
       "label": "その他（省略可）",
       "params": ["nfno","precision"]
     }
@@ -28,7 +38,7 @@
       "name": "clist",
       "type": "list",
       "label": "計算対象の設定（追加・順序変更・削除　可）",
-      "description": "rows　・・・　集計｜件数（NULL行込み）",
+      "description": "指定可能統計量:\nrows　・・・　集計｜件数（NULL行込み）",
       "elements": [
         {
           "name": "c",
@@ -65,8 +75,8 @@
     {
       "name": "xfclist",
       "type": "list",
-      "label": "w/ time axis",
-      "description": "integral　・・・　積分値\nslope　・・・　傾き\nWhen using time axis, field must be in the format HHMMSS",
+      "label": "計算対象の設定（追加・順序変更・削除　可）",
+      "description": "指定可能統計量:\nintegral　・・・　積分値\nslope　・・・　傾き\nmeanf　・・・　周波数平均（横軸は周波数）\nWhen using time axis, field must be in the 14-digit format YYYYMMDDhhmmss",
       "elements": [
         {
           "name": "x",
