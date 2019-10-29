@@ -161,12 +161,12 @@ class DbLoaderCommand(Command):
         # runfunc()へ渡す関数の定義
         def results_getter(db_uri, dbms, sql):
 
-            # NULL値を空文字に変換する
+            # NULL値を空文字に変換する、""で囲む
             def to_str(value):
                 if value is None:
                     return ''
                 else:
-                    return str(value)
+                    return f'"{str(value)}"'
 
             try:
                 # DBへ接続する
@@ -423,10 +423,10 @@ class DbSaverCommand(Command):
         import io, psycopg2
         with psycopg2.connect(db_uri) as conn:
             with conn.cursor() as cursor:
-                cursor.copy_from(sys.stdin, schema_and_table_name, sep=',', null=r'', size=8192, columns=csv_columns)       
+                cursor.copy_from(csv_input, schema_and_table_name, sep=',', null=r'', size=8192, columns=csv_columns)       
 
         # 入力データを標準入力へ渡す
-        for line in sys.stdin:
+        for line in csv_input:
             print(line)
         # 入力データの終わりを告げる
         print(r'\.', end='')

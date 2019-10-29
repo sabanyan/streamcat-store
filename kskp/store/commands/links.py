@@ -19,7 +19,7 @@ class CommandLink:
         """
         idとなる文字列を受け取ってrunnableのインスタンスを返却する
         """
-        from kskp.engine.tests.test_main import Square
+        from kskp.engine.tests.square_command import Square
 
         # runfunc用の関数のimport
         from kskp.store.commands.pcmd.src import (
