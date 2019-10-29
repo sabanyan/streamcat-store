@@ -28,12 +28,15 @@ class DatabaseConn():
         """
         RDBへの接続URIを返す
         """
+        import urllib.parse
+        
+        # URLエンコードを行う
         dbms     = self.dbms
-        user_id  = self.user_id
-        password = self.password
+        user_id  = urllib.parse.quote(self.user_id)
+        password = urllib.parse.quote(self.password)
         hostname = self.hostname
         port     = self.port
-        database = self.database
+        database = urllib.parse.quote(self.database)
         
         if dbms.upper() == 'ORACLE':
             import cx_Oracle
