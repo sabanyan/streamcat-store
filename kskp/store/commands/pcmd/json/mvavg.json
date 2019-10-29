@@ -1,10 +1,5 @@
 {
-  "id": "multi_mvavg",  
-  "rules": {
-    "fatlist":{
-      "presence": {"allowEmpty": false}
-    }
-  },
+  "id": "multi_mvavg",
   "groups": [
     {
       "name": "group1",
