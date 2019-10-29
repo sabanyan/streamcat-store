@@ -196,7 +196,7 @@ class Datum(BaseModel):
         old_path = self._path
         new_path = os.path.join(to_folder._path, os.path.basename(self._path))
         new_path = Datum.move_file(old_path, new_path)
-        new_label = os.path.basename(new_path)
+        new_label = Datum.get_another_label_name(self.label, self.parent_uuid, except_uuid=self.uuid)
 
         try:
             # ファイル名の移動によって他のDatumのpathが変更が必要であれば変更する
@@ -422,28 +422,30 @@ class Datum(BaseModel):
             return body + '_1' + ext
 
     @staticmethod
-    def get_another_label_name(label, parent_uuid):
+    def get_another_label_name(label, parent_uuid, except_uuid=None):
         """
         指定する親データストア内で、同じ名称のラベルがすでにある場合、末尾に数字を付加したラベル名を返す
         """
         children = Datum.find_by_parent_uuid(parent_uuid)
-        while Datum._label_exists_in_Data(label, children):
-            if label[-1:].isdecimal():
-                nextNumber = int(label[-1:]) + 1
+        while Datum._label_exists_in_Data(label, children, except_uuid):
+            # 後ろから1番目の'_'でラベル名を区切る
+            label_elems = label.rsplit('_', 1)
+            if len(label_elems) == 2 and label_elems[1].isdecimal():
+                nextNumber = int(label_elems[1]) + 1
+                label = label_elems[0] + '_' + str(nextNumber)
             else:
                 # 開始番号は1を飛び越して2?!
-                nextNumber = 2
-            label = label + str(nextNumber)
+                label = label + '_2'
         return label
 
     @staticmethod
-    def _label_exists_in_Data(label, data):
+    def _label_exists_in_Data(label, data, except_uuid):
         """
         dataの中にlabelを使用しているdatumがあればTrueを返す
         """
         import json
         for datum in data:
-            if datum.label == label:
+            if datum.label == label and (except_uuid is None or datum.uuid != except_uuid):
                 return True
         return False
 
