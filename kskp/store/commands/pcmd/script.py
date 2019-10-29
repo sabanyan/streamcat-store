@@ -578,21 +578,22 @@ class GroupBy2Command(Command):
         try:
             headerline = True
 
-            for dlist in nm.mstdin().keyblock(f'{k}', header = True):
+            for dlist in nm.mstdin().keyblock(f'{k}', x, header = True):
                 id = ','.join(dlist[0][1:len(k.split(','))+1])
 
                 if headerline:
                     header = dlist[0]
                     print(f'{k},fld,{a}')
-                    f_loc = header.index(f) 
                     headerline = False
                 else:
-                    y = np.abs(np.fft.rfft([float(xdlist[f_loc]) 
-                                            for xdlist in dlist]))
+                    for fld in f.split(','):
+                        f_loc = header.index(fld)
 
-                    mean = y.dot(np.arange(len(y)))/y.sum()
+                        y = np.abs(np.fft.rfft([float(xdlist[f_loc]) 
+                                                for xdlist in dlist]))
+                        mean = y.dot(np.arange(len(y)))/y.sum()
 
-                    print(f'{id},{f},{mean}')
+                        print(f'{id},{fld},{mean}')
             sys.__stdout__.flush()#not needed for bigger data
         except Exception as e:
             with open('/dev/stderr', 'w') as fpe:
