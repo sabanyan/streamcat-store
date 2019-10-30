@@ -562,7 +562,6 @@ class GroupBy2Command(Command):
         subcmd <<= nm.mstdout()
         subcmd.run()
         
-
     def meanfrequency(self, k, precision, **kwargs):
         # body of this method adapted from:
         # github.com/nysol/nysol_python/blob/master/scripts/sample/mkfeature.py
@@ -588,11 +587,9 @@ class GroupBy2Command(Command):
                     for fld in f.split(','):
                         f_loc = header.index(fld)
 
-                        y = np.abs(np.fft.rfft([float(xdlist[f_loc]) 
-                                                for xdlist in dlist]))**2
-                        
-                        sys.__stderr__.write(repr(y)+'\n')
-                        sys.__stderr__.flush()
+                        targetcol = [float(xdlist[f_loc]) for xdlist in dlist]
+
+                        y = np.abs(np.fft.rfft(targetcol))**2
 
                         mean = y.dot(np.arange(len(y)))/y.sum()
 
@@ -863,6 +860,7 @@ class GroupBy2Command(Command):
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
+
 
 class MultiMcalCommand(Command):
     def __init__(self):
