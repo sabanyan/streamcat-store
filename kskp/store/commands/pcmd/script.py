@@ -442,10 +442,10 @@ class GroupBy2Command(Command):
             subcmd <<= nm.mcut(f = fld, r = True)
             subcmd <<= nm.mfldname(f = f'{fld}_ln:{fld}')
 
-        subcmd <<= nm.msummary(c = 'sum,count', f = f, k = k,
+        subcmd <<= nm.msummary(c = 'mean', f = f, k = k,
                                precision = precision)
 
-        subcmd <<= nm.mcal(a = a, c = 'exp(${count}/${sum})', 
+        subcmd <<= nm.mcal(a = a, c = 'exp(${mean})', 
                            precision = precision)
 
         finalcols = f'{k},fld,{a}'
