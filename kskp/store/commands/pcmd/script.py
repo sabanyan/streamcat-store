@@ -589,7 +589,11 @@ class GroupBy2Command(Command):
                         f_loc = header.index(fld)
 
                         y = np.abs(np.fft.rfft([float(xdlist[f_loc]) 
-                                                for xdlist in dlist]))
+                                                for xdlist in dlist]))**2
+                        
+                        sys.__stderr__.write(repr(y)+'\n')
+                        sys.__stderr__.flush()
+
                         mean = y.dot(np.arange(len(y)))/y.sum()
 
                         print(f'{id},{fld},{mean}')
@@ -625,7 +629,7 @@ class GroupBy2Command(Command):
                         f_loc = header.index(fld)
 
                         y = np.abs(np.fft.rfft([float(xdlist[f_loc]) 
-                                                for xdlist in dlist]))
+                                                for xdlist in dlist]))**2
 
                         mean = y.dot(np.arange(len(y)))/y.sum()
                         moment2 = y.dot(np.arange(len(y))**2)/y.sum()
