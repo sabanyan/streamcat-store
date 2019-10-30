@@ -22,8 +22,10 @@ class Datum(BaseModel):
     # DEFAULT_LIBRARY_PATH = (STORE_DIR / 'frames/csv').relative_to(STORE_DIR.parent.parent).as_posix()
     # DEFAULT_LIBRARY_PATH = (STORE_DIR / 'frames/csv').as_posix()
     DEFAULT_LIBRARY_PATH = 'store'
-    AWSS3_TYPE  = 'awss3'
     FOLDER_TYPE = 'folder'
+    AWSS3_TYPE  = 'awss3'
+    RFOLDER_TYPE = 'rfolder'
+    DATABASE_TYPE = 'database'
     FLOW_TYPE   = 'flow'
     FRAME_TYPE  = 'frame'
 
@@ -42,7 +44,7 @@ class Datum(BaseModel):
     _path       = Column('path', String, nullable=False)
     _label      = Column('label', String)
     # PostgreSQLのENUM型の要素を変更してもSQLAlchemyから自動的に変更がかからないので手動で変更する必要がある
-    type        = Column(ENUM(AWSS3_TYPE, FOLDER_TYPE, FLOW_TYPE, FRAME_TYPE, name='data_type'), nullable=False)
+    type        = Column(ENUM(FOLDER_TYPE, AWSS3_TYPE, RFOLDER_TYPE, DATABASE_TYPE, FLOW_TYPE, FRAME_TYPE, name='data_type'), nullable=False)
     data        = Column(JSONB)
     creator     = Column(INTEGER)
     modifier    = Column(INTEGER)
@@ -94,6 +96,8 @@ class Datum(BaseModel):
 
     @property
     def path(self):
+        from kskp.store import Mountable
+
         if self._path == '':
             return None
 
@@ -101,9 +105,9 @@ class Datum(BaseModel):
             # ここで_pathがマウントポイントで、かつUnmount状態のとき、そのまま_pathを返してしまうと、
             # children_getter._synchronize()によりS3バケットが空になってしまうので以下の場合分けを行う
             if os.path.isdir(self._path):
-                if self.type == Datum.AWSS3_TYPE:
+                if isinstance(self, Mountable):
                     # _pathがディレクトリで、かつマウントポイントの場合、再マウント処理をする
-                    Datum.remount(self.id)
+                    Mountable.remount(self.id)
                     # return Path(self._path)
                 else:
                     # _pathがディレクトリで、かつマウントポイントでない場合は、再マウント処理はしない
@@ -120,7 +124,7 @@ class Datum(BaseModel):
                 pass
             else:
                 # pathに対応するファイルまたはディレクトリが無い場合、再マウント処理する
-                Datum.remount(self.id)
+                Mountable.remount(self.id)
                 if not os.path.exists(self._path):
                     # 再マウント処理をしてもファイルまたはディレクトリがない場合は、例外を送出する
                     # (ここで例外を送出するとexists(path)で存在チェックができなくなる)
@@ -160,6 +164,13 @@ class Datum(BaseModel):
         return ret
 
     @property
+    def content(self):
+        """
+        Engineから参照する
+        """
+        return self
+
+    @property
     def created_at_str(self):
         # DBに格納されている日時はUTCなので、タイムゾーンをUTCに設定する
         created_at_utc = self.created_at.replace(tzinfo=datetime.timezone.utc)
@@ -180,10 +191,11 @@ class Datum(BaseModel):
         except Exception as e:
             raise Exception('移動先の指定はフォルダのUUIDしか許可していません')
 
-        # 移動対象がAWS S3フォルダの場合は、path列を変更することはマウントポイントを変更することになるので
+        # 移動対象がマウントポイントの場合は、path列を変更することはマウントポイントを変更することになるので
         # とりあえずエラーとする
-        if self.type == Datum.AWSS3_TYPE:
-            raise Exception('AWS S3フォルダを移動することはできません')
+        from kskp.store import Mountable
+        if isinstance(self, Mountable):
+            raise Exception('マウントポイントフォルダを移動することはできません')
 
         if parent_uuid == self.uuid:
             raise Exception('移動先と移動元の指定が同じです')
@@ -201,7 +213,7 @@ class Datum(BaseModel):
         try:
             # ファイル名の移動によって他のDatumのpathが変更が必要であれば変更する
             Datum.update_same_path(old_path, new_path, modifier)
-            if self.type == Datum.FOLDER_TYPE or self.type == Datum.AWSS3_TYPE:
+            if isinstance(self, Folder):
                 Datum.update_include_path(old_path, new_path, modifier)
             # レコードを更新する
             session.query(Datum).filter(Datum.id==self.id).update({'parent_id': to_folder.id
@@ -472,62 +484,7 @@ class Datum(BaseModel):
         """
         uuidの形式チェックの結果、正しくないuuidの場合は例外を送出する
         """
+        if uuid is None or uuid == '':
+            raise Exception(f'The UUID value is empty')
         if not Datum.is_valid_uuid(uuid):
-            raise Exception(
-                'The value is not UUID type. The comparison to UUID type column needs for uuid value in PostgreSQL.')
-
-    @staticmethod
-    def remount(id):
-        """
-        ルートデータストアから指定されたidのDatumまでの経路において、
-        マウントされていないマウントポイントがあればマウントし直す
-        """
-        sql = """
-        WITH RECURSIVE R AS (
-            SELECT id, parent_id, uuid, type, path FROM data WHERE id = {id}
-            UNION ALL
-            SELECT D.id, D.parent_id, D.uuid, D.type, D.path FROM data D JOIN R ON D.id = R.parent_id
-        )
-        SELECT uuid, path FROM R
-        WHERE type = 'awss3'
-        ORDER BY id
-        """.format(id=id)
-        try:
-            results = session.execute(sql)
-        except Exception as e:
-            session.rollback()
-            raise e
-        finally:
-            session.commit()
-
-        for result in results:
-            mount_point_dir = result[1]
-            if not Datum.is_mount(Path(mount_point_dir)):
-                uuid = str(result[0])
-                from kskp.store import AwsS3
-                awss3 = AwsS3.find_by_uuid(uuid)
-                awss3.mount()
-
-    @staticmethod
-    def is_mount(path):
-        """
-        Check if this path is a POSIX mount point
-        """
-        abs_path = Path(Datum._to_abs_path(path.as_posix()))
-
-        # Need to exist and be a dir
-        if not abs_path.exists() or not abs_path.is_dir():
-            return False
-
-        parent = abs_path.parent
-        try:
-            parent_dev = parent.stat().st_dev
-        except OSError:
-            return False
-
-        dev = abs_path.stat().st_dev
-        if dev != parent_dev:
-            return True
-        ino = abs_path.stat().st_ino
-        parent_ino = parent.stat().st_ino
-        return ino == parent_ino
+            raise Exception(f'The UUID({uuid}) value is not valid format.')

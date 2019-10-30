@@ -263,7 +263,7 @@ class Library:
         return folder
 
     @staticmethod
-    def _get_library(user_id):
+    def _get_library(user_id=None):
         """
         ルートデータストアを取得する、存在しない場合は作成する
         """
@@ -291,5 +291,7 @@ class Library:
             return Frame.convert_to_frame(datum)
         elif datum.type == Datum.FLOW_TYPE:
             return Flow.convert_to_flow(datum)
+        elif datum.type == Datum.DATABASE_TYPE:
+            return Database.convert_to_database(datum)
         else:
             raise Exception('Undefined type of datum is found!')
