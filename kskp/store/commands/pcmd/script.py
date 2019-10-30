@@ -668,7 +668,7 @@ class GroupBy2Command(Command):
 
         for fld in fs:
             subcmd <<= nm.mcal(a = fld, 
-                c = f'(${{{fld}_prod_mean}}-(${{{fld}_mean}}*${{uxt_mean}}))/${{{fld}_var}}')
+                c = f'(${{{fld}_prod_mean}}-(${{{fld}_mean}}*${{uxt_mean}}))/${{uxt_var}}')
         
         subcmd <<= nm.mcross(f = f, s = 'fld', k = k)
         subcmd <<= nm.mcut(f = f'{k},fld,{a}')
