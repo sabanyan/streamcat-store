@@ -19,7 +19,7 @@
     {
       "name": "group4",
       "label": "計算の共通設定（省略可）",
-      "params": ["type", "alpha"]
+      "params": ["type", "alpha", "n"]
     },
     {
       "name": "group5",
@@ -100,6 +100,12 @@
       "description": "1〜16の整数",
       "optional": true,
       "default": 10
+    },
+    {
+      "name": "n",
+      "type": "boolean",
+      "label": "NULL 値が 1 つでも含まれていると結果も NULL 値とする",
+      "optional": true
     },
     {
       "name": "x",
