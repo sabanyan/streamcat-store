@@ -318,7 +318,7 @@ def _get_or_make_dir_path(uuid, label, user_id):
         folder = Folder.find_by_uuid(uuid)
     else:
         # フォルダが無い場合は作成する
-        root = Library.load_root()
+        root = Library.load_root(user_id)
         folder = Folder(root.uuid,
                         label,
                         user_id)

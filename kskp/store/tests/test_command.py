@@ -97,14 +97,14 @@ class CommandTest(unittest.TestCase):
                 "schema_name" : os.environ['KSKP_POSTGRESQL_SCHEMA_NAME'],
                 "table_name": "test"
                 }, 
-                "commandId": "rdb_loader"
+                "commandId": "db_loader"
             }
         ]
     }
 
-    def test_rdb_loader_command(self):
+    def test_db_loader_command(self):
         """
-        RDBローダーコマンドが正しくデータを取得できること
+        DBローダーコマンドが正しくデータを取得できること
         """
         flow_link = FlowJsonLink(self.flow_data['label'], json.dumps(self.flow_data))
         lasts = execute(flow_link, {}, {})
@@ -147,7 +147,7 @@ class CommandTest(unittest.TestCase):
                 "error": {}, 
                 "id": "c", 
                 "type": "command", 
-                "label": "RDBからの読み込み", 
+                "label": "DBからの読み込み", 
                 "srcs": {}, 
                 "srcsOrder": [], 
                 "dsts": {
@@ -163,14 +163,14 @@ class CommandTest(unittest.TestCase):
                 "schema_name" : os.environ['KSKP_POSTGRESQL_SCHEMA_NAME'],
                 "table_name": "test"
                 }, 
-                "commandId": "rdb_loader"
+                "commandId": "db_loader"
             }
         ]
     }
 
-    def test_not_connected_to_rdb(self):
+    def test_not_connected_to_db(self):
         """
-        RDBに接続できない場合は例外を送出すること
+        DBに接続できない場合は例外を送出すること
         """
         flow_link = FlowJsonLink(self.flow_data2['label'], json.dumps(self.flow_data2))
 
