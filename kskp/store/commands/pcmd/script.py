@@ -448,7 +448,7 @@ class GroupBy2Command(Command):
         subcmd <<= nm.mcal(a = a, c = 'exp(${count}/${sum})', 
                            precision = precision)
 
-        finalcols = ','.join([k,'fld',a])
+        finalcols = f'{k},fld,{a}'
         subcmd <<= nm.mcut(f = finalcols)
         
         subcmd <<= nm.mstdout()
@@ -506,7 +506,7 @@ class GroupBy2Command(Command):
         flds = f.split(',')
         fldnames = [fld + '_median' for fld in flds]
         subcmd <<= nm.mjoin(k = k, K = k, m = meancalc, 
-                            f = ','.join(fldnames), o='mjoin.csv')
+                            f = ','.join(fldnames))
 
         for fld in flds:
             subcmd <<= nm.mcal(a = f'{fld}_diff', 
@@ -562,8 +562,6 @@ class GroupBy2Command(Command):
         subcmd <<= nm.mstdout()
         subcmd.run()
         
-    # def fft_coeffs(self, k, f,):
-    #     pass
 
     def meanfrequency(self, k, precision, **kwargs):
         # body of this method adapted from:
@@ -585,6 +583,7 @@ class GroupBy2Command(Command):
                     header = dlist[0]
                     print(f'{k},fld,{a}')
                     headerline = False
+
                 else:
                     for fld in f.split(','):
                         f_loc = header.index(fld)
@@ -595,68 +594,49 @@ class GroupBy2Command(Command):
 
                         print(f'{id},{fld},{mean}')
             sys.__stdout__.flush()#not needed for bigger data
+
         except Exception as e:
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
 
-    # def meanfrequency(self, k, precision, **kwargs):
-    #     f = kwargs['f']
-    #     x = kwargs['x']
-    #     a = kwargs['a']
-
-    #     subcmd = None
-    #     subcmd <<= nm.mstdin()
-
-    #     fs = f.split(',')
-    #     for fld in fs:
-    #         subcmd <<= nm.mcal(a = f'{fld}_prod', c = f'${{{fld}}}*${{{x}}}',
-    #                            precision = precision)
-
-    #     inter_fldnames = ','.join([f'{fld}_prod' for fld in fs])
-
-    #     subcmd <<= nm.msummary(c = 'sum', f = f'{f},{inter_fldnames}', k = k,
-    #                            precision = precision)
-
-    #     subcmd <<= nm.m2cross(k = f'{k},fld', f = 'sum', a = f'type,{a}')
-    #     subcmd <<= nm.mcal(a = 'tmp_colnames', c = '$s{fld}+"_"+$s{type}')
-    #     subcmd <<= nm.mcross(f = f'{a}', s = 'tmp_colnames', k = k)
-
-    #     for fld in fs:
-    #         subcmd <<= nm.mcal(a = fld, 
-    #                            c = f'${{{fld}_prod_sum}}/${{{fld}_sum}}')
-        
-    #     subcmd <<= nm.mcross(f = f, s = 'fld', k = k)
-    #     subcmd <<= nm.mcut(f = f'{k},fld,{a}')
-        
-    #     subcmd <<= nm.mstdout()
-    #     subcmd.run()
-
     def frequencyvar(self, k, precision, **kwargs):
-        f = kwargs['f']
-        x = kwargs['x']
-        a = kwargs['a']
+        # body of this method adapted from:
+        # github.com/nysol/nysol_python/blob/master/scripts/sample/mkfeature.py
+        f = kwargs.get('f')
+        x = kwargs.get('x')
+        a = kwargs.get('a')
 
-        subcmd = None
-        subcmd <<= nm.mstdin()
+        import numpy as np
+        import traceback
 
-        fs = f.split(',')
+        try:
+            headerline = True
 
-        subcmd <<= nm.msummary(c = 'sum,devsq', f = f'{f}', k = k,
-                               precision = precision)
+            for dlist in nm.mstdin().keyblock(f'{k}', x, header = True):
+                id = ','.join(dlist[0][1:len(k.split(','))+1])
 
-        subcmd <<= nm.m2cross(k = f'{k},fld', f = 'sum,devsq', a = f'type,{a}')
-        subcmd <<= nm.mcal(a = 'tmp_colnames', c = '$s{fld}+"_"+$s{type}')
-        subcmd <<= nm.mcross(f = f'{a}', s = 'tmp_colnames', k = k)
+                if headerline:
+                    header = dlist[0]
+                    print(f'{k},fld,{a}')
+                    headerline = False
 
-        for fld in fs:
-            subcmd <<= nm.mcal(a = fld, 
-                               c = f'${{{fld}_devsq}}/${{{fld}_sum}}')
-        
-        subcmd <<= nm.mcross(f = f, s = 'fld', k = k)
-        subcmd <<= nm.mcut(f = f'{k},fld,{a}')
-        
-        subcmd <<= nm.mstdout()
-        subcmd.run()
+                else:
+                    for fld in f.split(','):
+                        f_loc = header.index(fld)
+
+                        y = np.abs(np.fft.rfft([float(xdlist[f_loc]) 
+                                                for xdlist in dlist]))
+
+                        mean = y.dot(np.arange(len(y)))/y.sum()
+                        moment2 = y.dot(np.arange(len(y))**2)/y.sum()
+                        variance = moment2 - mean ** 2 
+
+                        print(f'{id},{fld},{variance}')
+            sys.__stdout__.flush()#not needed for bigger data
+
+        except Exception as e:
+            with open('/dev/stderr', 'w') as fpe:
+                traceback.print_exc(file=fpe)
 
     def slope(self, k, precision, **kwargs):
         f = kwargs['f']
@@ -841,7 +821,6 @@ class GroupBy2Command(Command):
                 cmd[i] <<= nm.runfunc(new_calcs[cs], k = k,
                                       precision = prec,
                                       **calcdict)
-                cmd[i] <<= nm.m2tee(o=f'debug_after{cs}.csv')
                 final_cs = [calcdict['a']]
 
 
