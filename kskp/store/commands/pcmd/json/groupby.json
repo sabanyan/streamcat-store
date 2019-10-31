@@ -39,6 +39,13 @@
       "type": "boolean",
       "label": "センサー名と特徴量名との連結方法を接頭辞型にする。 省略時は接尾型",
       "optional": true
+    },
+    {
+      "name": "precision",
+      "type": "string",
+      "label": "有効桁数",
+      "optional": true,
+      "default": 10
     }
   ],
   "ports": [
