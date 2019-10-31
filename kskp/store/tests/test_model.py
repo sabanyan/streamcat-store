@@ -344,7 +344,7 @@ class LibraryTest(unittest.TestCase):
         self.assertEqual(updated_frame.created_at, frame_src.created_at)
         self.assertIsNotNone(updated_frame.modified_at)
         # 作成したフォルダを削除する
-        Library.delete_folder(updated_frame.uuid)
+        Library.delete_frame(updated_frame.uuid)
         Library.delete_folder(folder_dst.uuid)
 
     def test_move_frame2(self):
@@ -378,7 +378,7 @@ class LibraryTest(unittest.TestCase):
         self.assertEqual(updated_frame.created_at, frame_src.created_at)
         self.assertIsNotNone(updated_frame.modified_at)
         # 作成したフォルダを削除する
-        Library.delete_folder(updated_frame.uuid)
+        Library.delete_frame(updated_frame.uuid)
         Library.delete_folder(folder_dst.uuid)
 
     def test_save_frame(self):
