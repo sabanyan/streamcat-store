@@ -520,6 +520,65 @@ class GroupBy2Command(Command):
         subcmd <<= nm.mstdout()
         subcmd.run()
 
+    def strmax(self, k, precision, **kwargs):
+        f = kwargs['f']
+        a = kwargs['a']
+
+        try:
+            fs = f.split(',')
+            targets = [None] * len(fs)
+
+            subcmd = None
+            subcmd_final = None
+
+            subcmd <<= nm.mstdin()
+
+            for i, fld in enumerate(fs):
+                targets[i] <<= nm.mkeybreak(i = subcmd, k = k, s = fld)
+                targets[i] <<= nm.mcal(a = 'fld', c = f'if($s{{bot}}=="1","{fld}",nulls())')
+                targets[i] <<= nm.mcal(a = a, c = f'if($s{{bot}}=="1",${{{fld}}},nulln())')
+                targets[i] <<= nm.mdelnull(f = a)
+
+            subcmd_final <<= nm.m2cat(i = targets)
+            subcmd_final <<= nm.mcut(f = f'{k},fld,{a}')
+            subcmd_final <<= nm.mstdout()
+            subcmd_final.run()
+
+        except Exception as e:
+            import traceback
+            with open('/dev/stderr', 'w') as fpe:
+                traceback.print_exc(file=fpe)
+
+    def strmin(self, k, precision, **kwargs):
+        f = kwargs['f']
+        a = kwargs['a']
+
+        try:
+            fs = f.split(',')
+            targets = [None] * len(fs)
+
+            subcmd = None
+            subcmd_final = None
+
+            subcmd <<= nm.mstdin()
+
+            for i, fld in enumerate(fs):
+                targets[i] <<= nm.mkeybreak(i = subcmd, k = k, s = fld)
+                targets[i] <<= nm.mcal(a = 'fld', c = f'if($s{{top}}=="1","{fld}",nulls())')
+                targets[i] <<= nm.mcal(a = a, c = f'if($s{{top}}=="1",${{{fld}}},nulln())')
+                targets[i] <<= nm.mdelnull(f = a)
+
+            subcmd_final <<= nm.m2cat(i = targets)
+            subcmd_final <<= nm.mcut(f = f'{k},fld,{a}')
+            subcmd_final <<= nm.mstdout()
+            subcmd_final.run()
+
+        except Exception as e:
+            import traceback
+            with open('/dev/stderr', 'w') as fpe:
+                traceback.print_exc(file=fpe)
+        pass
+
     def integral(self, k, precision, **kwargs):
         f = kwargs['f']
         x = kwargs['x']
@@ -699,13 +758,12 @@ class GroupBy2Command(Command):
 
 
 
-        # ## Template
-        # subcmd = None
-        # subcmd <<= nm.mstdin()
+    # ## Template
+    # subcmd = None
+    # subcmd <<= nm.mstdin()
 
-        # subcmd <<= nm.mstdout()
-        # subcmd.run()
-
+    # subcmd <<= nm.mstdout()
+    # subcmd.run()
 
     def run(self, args, inputs):
         import fnmatch as fn
@@ -743,6 +801,8 @@ class GroupBy2Command(Command):
             'rms' : self.rootmeansquare,
             'hmean' : self.harmonicmean,
             'gmean' : self.geometricmean,
+            'strmax' : self.strmax,
+            'strmin' : self.strmin,            
             'mean_ad' : self.meanabsolutedeviation,
             'median_ad' : self.medianabsolutedeviation,
             # 1 field + time (input k, a, f, x)
@@ -806,7 +866,8 @@ class GroupBy2Command(Command):
                                 'optype' : 'custom',
                                 **arglist})
 
-        sys.__stderr__.write(repr(calclist))
+        # sys.__stderr__.write(repr(calclist))
+
         cmd = [None] * len(calclist)
         cmd_o = None
         cmd[-1] <<= nm.mread(inputs)
