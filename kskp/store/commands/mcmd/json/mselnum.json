@@ -1,5 +1,27 @@
 {
   "id": "mselnum",
+  "groups": [
+    {
+      "name": "group1",
+      "label": "グループ単位での行選択の設定 (省略可)",
+      "params": ["k","R","q"]
+    },
+    {
+      "name": "group2",
+      "label": "数値範囲による行選択条件の設定（必須）",
+      "params": ["c","f","F"]
+    },
+    {
+      "name": "group10",
+      "label": "項目名・項目番号についての設定（省略可）",
+      "params": ["x", "nfn", "nfno"]
+    },
+    {
+      "name": "group20",
+      "label": "システム管理用設定（作業領域・ログ出力）",
+      "params": [ "bufcount","tmpPath", "assert_diffSize", "assert_nullkey","assert_nullin", "r"]
+    }
+  ],
   "rules" : {
     "f" :{
       "presence": {"allowEmpty": false},
@@ -51,35 +73,38 @@
     {
       "name": "f",
       "type": "string",
-      "label": "検索列名(必須)"
+      "label": "条件判定をする項目を指定",
+      "description" : "●カンマ区切りで複数指定可"
     },
     {
       "name": "c",
       "type": "string",
-      "label": "検索文字列(必須)"
+      "label": "数値範囲条件を指定",
+      "description": "●区間は、閉区間[] 開区間() の記号を、下限値、上限値と組み合わせて表記する\n【指定の例】[1,3): 1以上3未満 \n●区間は、カンマ区切りで複数指定が可能"
     },
     {
       "name": "k",
       "type": "string",
-      "label": "選択単位となるキー列名",
+      "label": "グループ化する項目名",
+      "description": "●条件を満たしたグループの全行が出力される\n●カンマ区切りで複数指定可",
       "optional": true
     },
     {
       "name": "F",
       "type": "boolean",
-      "label": "f=パラメータで複数項目を指定した場合、その全ての値がマッチする行を撰択する。",
+      "label": "複数の項目指定時に、各項目のOR条件ではなく、AND条件で判定",
       "optional": true
     },
     {
       "name": "r",
       "type": "boolean",
-      "label": "選択ではなく削除する。",
+      "label": "条件反転",
       "optional": true
     },
     {
       "name": "R",
       "type": "boolean",
-      "label": "k=パラメータを指定した場合、その全ての行がマッチすれば行を撰択する。",
+      "label": "一部の行ではなく、全ての行で条件を満たすグループを出力",
       "optional": true
     },
     {
@@ -129,6 +154,7 @@
       "name": "q",
       "type": "boolean",
       "label": "自動並べ替えの無効化",
+      "description": "入力データがグループ単位でソート済みの場合、指定すると処理速度が向上",
       "optional": true
     },
     {
@@ -159,6 +185,6 @@
   "version": "0.7.0",
   "label": "数値範囲による行選択",
   "classification": "row_edit",
-  "description": "f=で指定した項目の値が、c=で指定した数値範囲にマッチする行を選択する。",
+  "description": "指定した数値範囲にマッチする行とグループを選択する",
   "url": "./static/pdf/mcmd/row_edit/mselnum.pdf"
 }
