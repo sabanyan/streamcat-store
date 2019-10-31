@@ -524,8 +524,10 @@ class GroupBy2Command(Command):
         f = kwargs['f']
         x = kwargs['x']
         a = kwargs['a']
-        
+
+        dateformat = kwargs.pop('dateformat') 
         fs = f.split(',')
+
         subcmd = None
         subcmd <<= nm.mstdin()
 
@@ -534,10 +536,16 @@ class GroupBy2Command(Command):
         subcmd <<= nm.mkeybreak(k = k, s = f'{x}%n')
         
         # fix time column
-        # subcmd <<= nm.mcal(a = 'tmp_time', c = f'floor(${{{x}}},1)')
-        subcmd <<= nm.mcal(a = 'uxt', c = f'uxt($t{{{x}}})')
-        # subcmd <<= nm.mcal(a = 'uxt', 
-        #             c = f'cat(".",$s{{tmp_uxt}},regexstr($s{{{x}}},"[0-9]*$"))')
+        if dateformat == 'date':
+            subcmd <<= nm.mcal(a = '__INT__', 
+                    c = f'uxt( s2t(regexstr($s{{{x}}},"^[0-9]{{14,14}}|^[0-9]{{6,6}}") ) )')
+            subcmd <<= nm.mcal(a = '__FLAC__', 
+                    c = f'regexstr($s{{{x}}},"[.][0-9]{{0,6}}$")')
+            subcmd <<= nm.mcal(a = 'uxt',
+                    c = 'if( isnull($s{__FLAC__}), $s{__INT__}, $s{__INT__}+$s{__FLAC__} )')
+        else:
+            subcmd <<= nm.mfldname(f = f'{x}:uxt')
+            x = 'uxt'
 
         # if not top of section, get time step length, else null
         subcmd <<= nm.mcal(a = 'time_step', 
@@ -644,38 +652,50 @@ class GroupBy2Command(Command):
         x = kwargs['x']
         a = kwargs['a']
 
-        fs = f.split(',')
-        subcmd = None
-        subcmd <<= nm.mstdin()
+        import traceback
+        try:
+            dateformat = kwargs.pop('dateformat')
 
-        # fix time column
-        # subcmd <<= nm.mcal(a = 'tmp_time', c = f'floor(${{{x}}},1)')
-        subcmd <<= nm.mcal(a = 'uxt', c = f'uxt($t{{{x}}})')
-        # subcmd <<= nm.mcal(a = 'uxt', 
-        #             c = f'cat(".",$s{{tmp_uxt}},regexstr($s{{{x}}},"[0-9]*$"))')
+            fs = f.split(',')
+            subcmd = None
+            subcmd <<= nm.mstdin()
 
-        for fld in fs: 
-            subcmd <<= nm.mcal(a = f'{fld}_prod',c = f'${{{fld}}}*${{uxt}}')
-        
-        prod_fldnames = ','.join([f'{fld}_prod' for fld in fs])
-        
-        subcmd <<= nm.msummary(k = k, f = f'{prod_fldnames},{f},uxt',
-                               c = 'mean,var')
-    
-        subcmd <<= nm.m2cross(k = f'{k},fld', f = 'mean,var', a = f'type,{a}')
-        subcmd <<= nm.mcal(a = 'tmp_colnames', c = '$s{fld}+"_"+$s{type}')
-        subcmd <<= nm.mcross(f = f'{a}', s = 'tmp_colnames', k = k)
+            # fix time column
+            if dateformat == 'date':
+                subcmd <<= nm.mcal(a = '__INT__', 
+                        c = f'uxt( s2t(regexstr($s{{{x}}},"^[0-9]{{14,14}}|^[0-9]{{6,6}}") ) )')
+                subcmd <<= nm.mcal(a = '__FLAC__', 
+                        c = f'regexstr($s{{{x}}},"[.][0-9]{{0,6}}$")')
+                subcmd <<= nm.mcal(a = 'uxt',
+                        c = 'if( isnull($s{__FLAC__}), $s{__INT__}, $s{__INT__}+$s{__FLAC__} )')
+            else:
+                subcmd <<= nm.mfldname(f = f'{x}:uxt')
+                x = 'uxt'
 
-        for fld in fs:
-            subcmd <<= nm.mcal(a = fld, 
-                c = f'(${{{fld}_prod_mean}}-(${{{fld}_mean}}*${{uxt_mean}}))/${{{fld}_var}}')
+            for fld in fs: 
+                subcmd <<= nm.mcal(a = f'{fld}_prod',c = f'${{{fld}}}*${{uxt}}')
+            
+            prod_fldnames = ','.join([f'{fld}_prod' for fld in fs])
+            
+            subcmd <<= nm.msummary(k = k, f = f'{prod_fldnames},{f},uxt',
+                                c = 'mean,var')
         
-        subcmd <<= nm.mcross(f = f, s = 'fld', k = k)
-        subcmd <<= nm.mcut(f = f'{k},fld,{a}')
-        
-        subcmd <<= nm.mstdout()
-        subcmd.run()
-        pass
+            subcmd <<= nm.m2cross(k = f'{k},fld', f = 'mean,var', a = f'type,{a}')
+            subcmd <<= nm.mcal(a = 'tmp_colnames', c = '$s{fld}+"_"+$s{type}')
+            subcmd <<= nm.mcross(f = f'{a}', s = 'tmp_colnames', k = k)
+
+            for fld in fs:
+                subcmd <<= nm.mcal(a = fld, 
+                    c = f'(${{{fld}_prod_mean}}-(${{{fld}_mean}}*${{uxt_mean}}))/${{uxt_var}}')
+            
+            subcmd <<= nm.mcross(f = f, s = 'fld', k = k)
+            subcmd <<= nm.mcut(f = f'{k},fld,{a}')
+            
+            subcmd <<= nm.mstdout()
+            subcmd.run()
+        except Exception as e:
+            with open('/dev/stderr', 'w') as fpe:
+                traceback.print_exc(file=fpe)
 
 
 
@@ -749,8 +769,10 @@ class GroupBy2Command(Command):
                 fs = arglist.get('f')
                 x = arglist.get('x')
 
-                if x and x not in xs:
-                    xs.append(x)
+                if x: 
+                    arglist['dateformat'] = args['dateformat']
+                    if x not in xs:
+                        xs.append(x)
 
                 if fs:
                     fs = ','.join([a for a in self.header 
@@ -784,6 +806,7 @@ class GroupBy2Command(Command):
                                 'optype' : 'custom',
                                 **arglist})
 
+        sys.__stderr__.write(repr(calclist))
         cmd = [None] * len(calclist)
         cmd_o = None
         cmd[-1] <<= nm.mread(inputs)

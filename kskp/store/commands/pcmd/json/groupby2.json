@@ -19,7 +19,7 @@
     {
       "name": "group4",
       "label": "２つの変数に対する特徴量",
-      "params": ["xfclist"]
+      "params": ["xfclist", "dateformat"]
     },
     {
       "name": "group5",
@@ -76,7 +76,7 @@
       "name": "xfclist",
       "type": "list",
       "label": "計算対象の設定（追加・順序変更・削除　可）",
-      "description": "指定可能統計量:\nintegral　・・・　積分値\nslope　・・・　傾き\nmeanf　・・・　周波数平均\nWhen using time axis, field must be in the 14-digit format YYYYMMDDhhmmss",
+      "description": "指定可能統計量:\nintegral　・・・　積分値\nslope　・・・　傾き\nmeanf　・・・　周波数平均\nvarf ・・・　周波数分散",
       "elements": [
         {
           "name": "x",
@@ -95,6 +95,16 @@
         }
       ],
       "default": [{"x": "", "f": "", "c": ""}]
+    },
+    {
+      "name": "dateformat",
+      "type": "select",
+      "label":  "時間項目のフォーマット",
+      "options":{
+        "labels": ["暦型（14桁[.6桁]）","数値"],
+        "values": ["date","num"]
+      },
+      "default": "date"
     },
     {
       "name": "format",
