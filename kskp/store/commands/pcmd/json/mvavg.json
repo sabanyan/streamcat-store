@@ -1,0 +1,178 @@
+{
+  "id": "multi_mvavg",
+  "groups": [
+    {
+      "name": "group1",
+      "label": "キー項目の設定（省略可）",
+      "params": ["k"]
+    },
+    {
+      "name": "group2",
+      "label": "時系列の設定（省略可）",
+      "params": ["s"]
+    },
+    {
+      "name": "group3",
+      "label": "計算対象と結果の項目設定（必須）",
+      "params": ["fatlist"]
+    },
+    {
+      "name": "group4",
+      "label": "計算の共通設定（省略可）",
+      "params": ["type", "alpha", "n"]
+    },
+    {
+      "name": "group5",
+      "label": "項目名・項目番号についての設定（省略可）",
+      "params": ["x", "nfn", "nfno"]
+    },
+    {
+      "name": "group6",
+      "label": "その他（省略可）",
+      "params": ["precision"]
+    },
+    {
+      "name": "group7",
+      "label": "システム管理用設定（作業領域・ログ出力）",
+      "params": ["tmpPath","assert_diffSize", "assert_nullkey", "assert_nullin",
+        "assert_nullout"]
+    }
+  ],  
+  "params": [
+    {
+      "name": "s",
+      "type": "string",
+      "label" : "ソートが必要な場合の項目設定",
+      "description" : "●カンマ区切りで複数指定可\n●入力データがソート済の場合、省略で処理速度が向上\n●表記：【末尾に付与】無しは文字列の昇順、%nは数値の昇順、%rは文字列の降順、%nrは数値の降順"
+    },
+    {
+      "name": "k",
+      "type": "string",
+      "label": "グループ化する列",
+      "description": "カンマ区切りで複数指定可"
+    },    
+    {
+      "name": "fatlist",
+      "type": "list",
+      "label": "計算対象の設定",
+      "description": "【対象項目】項目名時:*,？,[...] 使用可\n\t項目番号時:0−3,5,0L 等使用可\n【期間数】データ件数で指定する。１以上の整数をカンマ区切りで複数指定可\n【結果項目】&:元の項目名を表す記号\n\t#:期間数を表わす記号",
+      "elements": [
+        {
+          "name": "f",
+          "type": "string",
+          "label": "対象項目"
+        },
+        {
+          "name": "t",
+          "type": "string",
+          "label": "期間数"
+        },
+        {
+          "name": "a",
+          "type": "string",
+          "label": "結果項目"
+        }
+      ],
+      "default": [{"f": "", "a": "", "t": ""}]
+    },
+    {
+      "name": "type",
+      "type": "select",
+      "label":  "移動平均手法の選択",
+      "options":{
+        "labels": ["単純移動平均(SMA)","線形荷重移動平均(WMA)","指数平滑移動平均(EMA)"],
+        "values": ["simple","w","exp"]
+      },
+      "default": "simple"
+    },
+    {
+      "name": "alpha",
+      "type": "string",
+      "label": "平滑化係数α",
+      "description": "指数平滑手法時、0~1の実数値、省略時は2/（期間数+1）",
+      "default": "",
+      "optional": true
+    },
+    {
+      "name": "precision",
+      "type": "string",
+      "label": "有効桁数",
+      "description": "1〜16の整数",
+      "optional": true,
+      "default": 10
+    },
+    {
+      "name": "n",
+      "type": "boolean",
+      "label": "NULL 値が 1 つでも含まれていると結果も NULL 値とする",
+      "optional": true
+    },
+    {
+      "name": "x",
+      "type": "boolean",
+      "label": "項目番号による指定",
+      "optional": true
+    },
+    {
+      "name": "nfn",
+      "type": "boolean",
+      "label": "入力データの 1 行目を項目名行とみなさない。",
+      "optional": true
+    },
+    {
+      "name": "nfno",
+      "type": "boolean",
+      "label": "出力データに項目名行を出力しない。",
+      "optional": true
+    },
+    {
+      "name": "assert_diffSize",
+      "type": "boolean",
+      "label": "入力、出力件数比較を行う",
+      "optional": true
+    },
+    {
+      "name": "assert_nullkey",
+      "type": "boolean",
+      "label": "キー項目にNULL値が含まれているかどうかのチェックを行う",
+      "optional": true
+    },
+    {
+      "name": "assert_nullin",
+      "type": "boolean",
+      "label": "入力項目のf=で指定された項目のNULL値チェックを行う",
+      "optional": true
+    },
+    {
+      "name": "assert_nullout",
+      "type": "boolean",
+      "label": "出力項目の NULL 値チェックを行う",
+      "optional": true
+    },
+    {
+      "name": "tmpPath",
+      "type": "string",
+      "label": "作業ファイル格納パス名",
+      "optional": true
+    }
+  ],
+  "ports": [
+    [
+      {
+        "name": "i",
+        "type": "frame"
+      }
+    ],
+    [
+      {
+        "name": "o",
+        "type": "frame"
+      }
+    ]
+  ],
+  "version": "0.7.0",
+  "label": "複数列の移動平均",
+  "classification": "calculation",
+  "description": "単純移動平均( SMA )、線形荷重移動平均( WMA )、指数平滑移動平均( EMA )の３手法が可能。複数列、複数の期間に対して一括で計算できる。",
+  "url": ""
+}
