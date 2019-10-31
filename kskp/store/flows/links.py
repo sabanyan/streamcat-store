@@ -2,6 +2,9 @@ import json
 from pathlib import Path
 
 class FlowLink:
+    """
+    kskp.store.Flowクラスで代用できるが、テストで使うかもしれないので残しておく
+    """
     def __init__(self, flow_uuid):
         self.flow_uuid = flow_uuid
         self.flow = None

@@ -88,10 +88,15 @@ ss = Session()
 from kskp.core import Datum, Port, Command
 
 from .store import Store, FrameStore, NysolModule, ModuleStore
+from .database_conn import DatabaseConn
+from .remote_folder_conn import RemoteFolderConn
+from .mountable import Mountable
 from .frame import Frame, Cache
 from .flow import Flow
 from .folder import Folder
 from .awss3 import AwsS3
+from .remote_folder import RemoteFolder
+from .database import Database
 from .children_getter import ChildrenGetter
 
 from .library import Library
@@ -105,12 +110,12 @@ from .model import *
 BaseModel.metadata.create_all(bind=engine, checkfirst=True)
 
 # label列の新規追加(後方互換)
-sql = """
+sql1 = """
 ALTER TABLE data 
 ADD COLUMN label VARCHAR;
 """
 try:
-    engine.execute(sql)
+    engine.execute(sql1)
 except Exception as e:
     pass
 
@@ -131,13 +136,8 @@ def create_d_view():
     """
     d_view = """
     create view d as
-    select id, parent_id, uuid, path, label, type, date_trunc('second', created_at) as cteated_at
+    select id, parent_id, uuid, path, label, type, date_trunc('second', created_at) as created_at
     from data order by type, id
     """
     engine.execute(DDL('drop view if exists d'))
     engine.execute(DDL(d_view))
-
-# フレームを格納するフォルダがなければ作成する
-# import pprint
-# pprint.pprint('Init library folder')
-# Library._init_library_folders()

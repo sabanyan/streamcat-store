@@ -1,5 +1,27 @@
 {
   "id": "msortf",
+  "groups": [
+    {
+      "name": "group1",
+      "label": "対象とする項目名 (必須)",
+      "params": ["f"]
+    },
+    {
+      "name": "group10",
+      "label": "項目名・項目番号についての設定（省略可）",
+      "params": ["x", "nfn", "nfno"]
+    },
+    {
+      "name": "group11",
+      "label": "その他（省略可）",
+      "params": ["noflg"]
+    },
+    {
+      "name": "group20",
+      "label": "システム管理用設定（作業領域・ログ出力）",
+      "params": [ "tmpPath", "blocks", "threadCnt","pways","maxlines","assert_diffSize"]
+    }
+  ],
   "rules":{
     "f" : {
       "presence": {"allowEmpty": false},
@@ -15,13 +37,6 @@
             "message" : "項目の指定は数値のみ可能です。"
           }
         ]
-      }
-    },
-    "pways":{
-      "specifiedFormatIfTargetInput" : {
-        "target" : "pways",
-        "pattern": "^[2-9]$|^[1-9].[0-9]$|^100$|^$|^@\\[.+\\]$",
-        "message": "2から100までの整数を半角で入力してください"
       }
     },
     "blocks":{
@@ -50,12 +65,14 @@
     {
       "name": "f",
       "type": "string",
-      "label": "対象列名(必須)"
+      "label": "ソートする項目名",
+      "description" : "●カンマ区切りで複数指定可\n●表記：【末尾に付与】無しは文字列の昇順、%nは数値の昇順、%rは文字列の降順、%nrは数値の降順"
     },
     {
       "name": "pways",
       "type": "string",
-      "label": "分割ソートされた複数のファイルを同時に何個併合するかを指定する。",
+      "label": "分割ソートされた複数のデータを同時に何個併合するかを指定する。",
+      "description" : "2~100の整数で指定 省略時は32",
       "optional": true,
       "default": 32
     },
@@ -63,6 +80,7 @@
       "name": "maxlines",
       "type": "string",
       "label": "メモリ内でソートする際の件数の上限を指定する。",
+      "description" : "100~1000万の整数で指定 省略時は50万",
       "optional": true,
       "default": 500000
     },
@@ -70,20 +88,22 @@
       "name": "blocks",
       "type": "string",
       "label": "メモリ内でソートする際のメモリサイズ上限をブロックサイズで指定する。",
+      "description" : "1~100の整数で指定 省略時は10",
       "optional": true,
       "default": 10
     },
     {
       "name": "threadCnt",
       "type": "string",
-      "label": "分割ソートする際に、マルチスレッドの機能を用いて同時にソートする数を指定する。",
+      "label": " メモリ内でソートを実行するスレッド数 分割ソートする際に、マルチスレッドの機能を用いて同時にソートする数を指定する。",
+      "description" : "1~50の整数で指定 省略時は8",
       "optional": true,
       "default": 8
     },
     {
       "name": "noflg",
       "type": "boolean",
-      "label": "出力 CSV のヘッダーにソーティングの印 (%0,%0n など) を付けない。",
+      "label": "出力の項目名の末尾に、ソーティングの印 (%0,%0n など) を付けない。",
       "optional": true
     },
     {
