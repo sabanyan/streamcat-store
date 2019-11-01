@@ -1,5 +1,37 @@
 {
   "id": "mslide",
+  "groups": [
+    {
+      "name": "group1",
+      "label": "グループの設定 (省略可)",
+      "params": ["k"]
+    },
+    {
+      "name": "group2",
+      "label": "グループ内のソートの設定（省略可)",
+      "params": ["s"]
+    },
+    {
+      "name": "group4",
+      "label": "行ずらしの設定 (必須)",
+      "params": ["f","t","r","n","l"]
+    },
+    {
+      "name": "group3",
+      "label": "その他 (省略可)",
+      "params": ["q"]
+    },
+    {
+      "name": "group10",
+      "label": "項目名・項目番号についての設定（省略可）",
+      "params": ["x", "nfn", "nfno"]
+    },
+    {
+      "name": "group20",
+      "label": "システム管理用設定（作業領域・ログ出力）",
+      "params": ["tmpPath", "assert_diffSize", "assert_nullout", "assert_nullkey","assert_nullin"]
+    }
+  ],
   "rules":{
     "s": {
       "presencesIfTargetIsNotInput" : "q",
@@ -15,12 +47,6 @@
             "message" : "項目の指定は数値のみ可能です。"
           }
         ]
-      }
-    },
-    "t":{
-      "format" : {
-        "pattern": "^[1-9]?[0-9]*$|^$|^@\\[.+\\]$",
-        "message": "1以上の整数を半角で入力してください"
       }
     },
     "f" : {
@@ -63,45 +89,49 @@
   },
   "params": [
     {
-      "name": "f",
-      "type": "string",
-      "label": "ずらす対象の列名(必須)"
-    },
-    {
       "name": "s",
       "type": "string",
-      "label": "ソート対象列名",
+      "label": "グループ内順序の指定",
+      "description":"●カンマ区切りで複数指定可\n●表記：【末尾に付与】無しは文字列の昇順、%nは数値の昇順、%rは文字列の降順、%nrは数値の降順\n●注意： グループ化に用いた項目を含めるとグループ内順序の指定が無効になるため、含めずに設定",
       "optional": true
     },
     {
       "name": "k",
       "type": "string",
-      "label": "単位とする列名",
+      "label": "グループ化する項目名",
+      "description": "●カンマ区切りで複数指定可",
       "optional": true
+    },
+    {
+      "name": "f",
+      "type": "string",
+      "label": "行ずらしの項目名(必須)",
+      "description":"●カンマ区切りで複数指定可\n  項目名時:*,？ 使用可\n  項目番号時:0−3,5,0L 等使用可"
     },
     {
       "name": "t",
       "type": "string",
-      "label": "ずらす回数",
+      "label": "行数の指定",
+      "description": "●指定した行数全ての値を、当行に持ってくる  \n   追加列名は 元の列名と行数を組合せて自動作成される\n●1以上の整数で指定する 省略時は 1",
       "optional": true,
       "default": 1
     },
     {
       "name": "r",
       "type": "boolean",
-      "label": "逆方向に (上の値を下に) ずらす。",
+      "label": "先の行ではなく、前の行から持ってくる",
       "optional": true
     },
     {
       "name": "n",
       "type": "boolean",
-      "label": "次 (前) の行がなくても NULL 値を出力する。",
+      "label": "持ってくる先がない場合には、行削除ではなく、値をNullとする",
       "optional": true
     },
     {
       "name": "l",
       "type": "boolean",
-      "label": "最後にずらした結果のみを出力する。",
+      "label": "指定した行数全てでなく、最後の行のみ持ってくる",
       "optional": true
     },
     {
@@ -150,6 +180,7 @@
       "name": "q",
       "type": "boolean",
       "label": "自動並べ替えの無効化",
+      "description": "入力データがグループ単位でソート済みの場合、指定すると処理速度が向上",
       "optional": true
     },
     {
@@ -176,6 +207,6 @@
   "version": "0.7.0",
   "label": "行ずらし",
   "classification": "table_grouping",
-  "description": "指定した項目の値を制定した行数ずらして出力する。",
+  "description": "項目の値を指定した行数ずらして出力する",
   "url": "./static/pdf/mcmd/table_grouping/mslide.pdf"
 }
