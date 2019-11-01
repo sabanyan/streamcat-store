@@ -520,12 +520,73 @@ class GroupBy2Command(Command):
         subcmd <<= nm.mstdout()
         subcmd.run()
 
+    def strmax(self, k, precision, **kwargs):
+        f = kwargs['f']
+        a = kwargs['a']
+
+        try:
+            fs = f.split(',')
+            targets = [None] * len(fs)
+
+            subcmd = None
+            subcmd_final = None
+
+            subcmd <<= nm.mstdin()
+
+            for i, fld in enumerate(fs):
+                targets[i] <<= nm.mkeybreak(i = subcmd, k = k, s = fld)
+                targets[i] <<= nm.mcal(a = 'fld', c = f'if($s{{bot}}=="1","{fld}",nulls())')
+                targets[i] <<= nm.mcal(a = a, c = f'if($s{{bot}}=="1",${{{fld}}},nulln())')
+                targets[i] <<= nm.mdelnull(f = a)
+
+            subcmd_final <<= nm.m2cat(i = targets)
+            subcmd_final <<= nm.mcut(f = f'{k},fld,{a}')
+            subcmd_final <<= nm.mstdout()
+            subcmd_final.run()
+
+        except Exception as e:
+            import traceback
+            with open('/dev/stderr', 'w') as fpe:
+                traceback.print_exc(file=fpe)
+
+    def strmin(self, k, precision, **kwargs):
+        f = kwargs['f']
+        a = kwargs['a']
+
+        try:
+            fs = f.split(',')
+            targets = [None] * len(fs)
+
+            subcmd = None
+            subcmd_final = None
+
+            subcmd <<= nm.mstdin()
+
+            for i, fld in enumerate(fs):
+                targets[i] <<= nm.mkeybreak(i = subcmd, k = k, s = fld)
+                targets[i] <<= nm.mcal(a = 'fld', c = f'if($s{{top}}=="1","{fld}",nulls())')
+                targets[i] <<= nm.mcal(a = a, c = f'if($s{{top}}=="1",${{{fld}}},nulln())')
+                targets[i] <<= nm.mdelnull(f = a)
+
+            subcmd_final <<= nm.m2cat(i = targets)
+            subcmd_final <<= nm.mcut(f = f'{k},fld,{a}')
+            subcmd_final <<= nm.mstdout()
+            subcmd_final.run()
+
+        except Exception as e:
+            import traceback
+            with open('/dev/stderr', 'w') as fpe:
+                traceback.print_exc(file=fpe)
+        pass
+
     def integral(self, k, precision, **kwargs):
         f = kwargs['f']
         x = kwargs['x']
         a = kwargs['a']
-        
+
+        dateformat = kwargs.pop('dateformat') 
         fs = f.split(',')
+
         subcmd = None
         subcmd <<= nm.mstdin()
 
@@ -534,10 +595,16 @@ class GroupBy2Command(Command):
         subcmd <<= nm.mkeybreak(k = k, s = f'{x}%n')
         
         # fix time column
-        # subcmd <<= nm.mcal(a = 'tmp_time', c = f'floor(${{{x}}},1)')
-        subcmd <<= nm.mcal(a = 'uxt', c = f'uxt($t{{{x}}})')
-        # subcmd <<= nm.mcal(a = 'uxt', 
-        #             c = f'cat(".",$s{{tmp_uxt}},regexstr($s{{{x}}},"[0-9]*$"))')
+        if dateformat == 'date':
+            subcmd <<= nm.mcal(a = '__INT__', 
+                    c = f'uxt( s2t(regexstr($s{{{x}}},"^[0-9]{{14,14}}|^[0-9]{{6,6}}") ) )')
+            subcmd <<= nm.mcal(a = '__FLAC__', 
+                    c = f'regexstr($s{{{x}}},"[.][0-9]{{0,6}}$")')
+            subcmd <<= nm.mcal(a = 'uxt',
+                    c = 'if( isnull($s{__FLAC__}), $s{__INT__}, $s{__INT__}+$s{__FLAC__} )')
+        else:
+            subcmd <<= nm.mfldname(f = f'{x}:uxt')
+            x = 'uxt'
 
         # if not top of section, get time step length, else null
         subcmd <<= nm.mcal(a = 'time_step', 
@@ -644,48 +711,59 @@ class GroupBy2Command(Command):
         x = kwargs['x']
         a = kwargs['a']
 
-        fs = f.split(',')
-        subcmd = None
-        subcmd <<= nm.mstdin()
+        import traceback
+        try:
+            dateformat = kwargs.pop('dateformat')
 
-        # fix time column
-        # subcmd <<= nm.mcal(a = 'tmp_time', c = f'floor(${{{x}}},1)')
-        subcmd <<= nm.mcal(a = 'uxt', c = f'uxt($t{{{x}}})')
-        # subcmd <<= nm.mcal(a = 'uxt', 
-        #             c = f'cat(".",$s{{tmp_uxt}},regexstr($s{{{x}}},"[0-9]*$"))')
+            fs = f.split(',')
+            subcmd = None
+            subcmd <<= nm.mstdin()
 
-        for fld in fs: 
-            subcmd <<= nm.mcal(a = f'{fld}_prod',c = f'${{{fld}}}*${{uxt}}')
+            # fix time column
+            if dateformat == 'date':
+                subcmd <<= nm.mcal(a = '__INT__', 
+                        c = f'uxt( s2t(regexstr($s{{{x}}},"^[0-9]{{14,14}}|^[0-9]{{6,6}}") ) )')
+                subcmd <<= nm.mcal(a = '__FLAC__', 
+                        c = f'regexstr($s{{{x}}},"[.][0-9]{{0,6}}$")')
+                subcmd <<= nm.mcal(a = 'uxt',
+                        c = 'if( isnull($s{__FLAC__}), $s{__INT__}, $s{__INT__}+$s{__FLAC__} )')
+            else:
+                subcmd <<= nm.mfldname(f = f'{x}:uxt')
+                x = 'uxt'
+
+            for fld in fs: 
+                subcmd <<= nm.mcal(a = f'{fld}_prod',c = f'${{{fld}}}*${{uxt}}')
+            
+            prod_fldnames = ','.join([f'{fld}_prod' for fld in fs])
+            
+            subcmd <<= nm.msummary(k = k, f = f'{prod_fldnames},{f},uxt',
+                                c = 'mean,var')
         
-        prod_fldnames = ','.join([f'{fld}_prod' for fld in fs])
-        
-        subcmd <<= nm.msummary(k = k, f = f'{prod_fldnames},{f},uxt',
-                               c = 'mean,var')
-    
-        subcmd <<= nm.m2cross(k = f'{k},fld', f = 'mean,var', a = f'type,{a}')
-        subcmd <<= nm.mcal(a = 'tmp_colnames', c = '$s{fld}+"_"+$s{type}')
-        subcmd <<= nm.mcross(f = f'{a}', s = 'tmp_colnames', k = k)
+            subcmd <<= nm.m2cross(k = f'{k},fld', f = 'mean,var', a = f'type,{a}')
+            subcmd <<= nm.mcal(a = 'tmp_colnames', c = '$s{fld}+"_"+$s{type}')
+            subcmd <<= nm.mcross(f = f'{a}', s = 'tmp_colnames', k = k)
 
-        for fld in fs:
-            subcmd <<= nm.mcal(a = fld, 
-                c = f'(${{{fld}_prod_mean}}-(${{{fld}_mean}}*${{uxt_mean}}))/${{{fld}_var}}')
-        
-        subcmd <<= nm.mcross(f = f, s = 'fld', k = k)
-        subcmd <<= nm.mcut(f = f'{k},fld,{a}')
-        
-        subcmd <<= nm.mstdout()
-        subcmd.run()
-        pass
+            for fld in fs:
+                subcmd <<= nm.mcal(a = fld, 
+                    c = f'(${{{fld}_prod_mean}}-(${{{fld}_mean}}*${{uxt_mean}}))/${{uxt_var}}')
+            
+            subcmd <<= nm.mcross(f = f, s = 'fld', k = k)
+            subcmd <<= nm.mcut(f = f'{k},fld,{a}')
+            
+            subcmd <<= nm.mstdout()
+            subcmd.run()
+        except Exception as e:
+            with open('/dev/stderr', 'w') as fpe:
+                traceback.print_exc(file=fpe)
 
 
 
-        # ## Template
-        # subcmd = None
-        # subcmd <<= nm.mstdin()
+    # ## Template
+    # subcmd = None
+    # subcmd <<= nm.mstdin()
 
-        # subcmd <<= nm.mstdout()
-        # subcmd.run()
-
+    # subcmd <<= nm.mstdout()
+    # subcmd.run()
 
     def run(self, args, inputs):
         import fnmatch as fn
@@ -723,6 +801,8 @@ class GroupBy2Command(Command):
             'rms' : self.rootmeansquare,
             'hmean' : self.harmonicmean,
             'gmean' : self.geometricmean,
+            'strmax' : self.strmax,
+            'strmin' : self.strmin,            
             'mean_ad' : self.meanabsolutedeviation,
             'median_ad' : self.medianabsolutedeviation,
             # 1 field + time (input k, a, f, x)
@@ -749,8 +829,10 @@ class GroupBy2Command(Command):
                 fs = arglist.get('f')
                 x = arglist.get('x')
 
-                if x and x not in xs:
-                    xs.append(x)
+                if x: 
+                    arglist['dateformat'] = args['dateformat']
+                    if x not in xs:
+                        xs.append(x)
 
                 if fs:
                     fs = ','.join([a for a in self.header 
@@ -783,6 +865,8 @@ class GroupBy2Command(Command):
                     calclist.append({'c': calc, 
                                 'optype' : 'custom',
                                 **arglist})
+
+        # sys.__stderr__.write(repr(calclist))
 
         cmd = [None] * len(calclist)
         cmd_o = None
@@ -1261,151 +1345,3 @@ class SelRowCommand(RunfuncCommand):
         nysol_module_u.set_content(f2)
 
         return {'o': nysol_module_o, 'u': nysol_module_u}
-
-
-class RdbLoaderCommand(Command):
-    """
-    指定したRDBからデータを取得するLoaderコマンド
-    """
-    def __init__(self):
-        super().__init__()
-        self.i_ports = []
-        self.o_ports = [Port('o', 'mcmd')]
-        self.name = 'rdb_loader'
-        self._tmp_file_path = None
-
-    def run(self, args, inputs):
-        self._write_log('START')
-
-        # RDBに接続する値を取得する
-        if 'dbms' not in args:
-            raise Exception('RDB種別の指定が必要です')
-        dbms = args['dbms']
-
-        if 'hostname' not in args:
-            raise Exception('RDBのホスト名またはIPアドレスの指定が必要です')
-        hostname = args['hostname']
-
-        if 'port' not in args:
-            raise Exception('RDB接続のポート番号の指定が必要です')
-        port = args['port']  
-
-        if 'database' not in args:
-            raise Exception('RDB接続のデータベース名の指定が必要です')
-        database = args['database']  
-
-        if 'user_id' not in args:
-            raise Exception('RDB接続のユーザIDが必要です')
-        user_id = args['user_id'] 
-
-        if 'password' not in args or args['password'] is None:
-            password = ''
-        else:
-            password = args['password']
-
-        if 'schema_name' not in args or args['schema_name'] is None:
-            schema_name = ''
-        else:
-            schema_name = args['schema_name']
-
-        if 'table_name' not in args:
-            raise Exception('RDB接続の取得元テーブル名が必要です')
-        table_name = args['table_name']
-
-        # RDBへの接続URIを作成する
-        from ...rdb_conn_info import RdbConnInfo
-        connInfo = RdbConnInfo(dbms, hostname, port, database, user_id, password)
-
-        # RDBへ接続する
-        engine = RdbLoaderCommand._connect_to_rdb(connInfo)
-
-        # SQL文を作成する
-        sql = RdbLoaderCommand._make_sql(schema_name, table_name)
-
-        # SQL文を発行し結果を取得する
-        results = RdbLoaderCommand._get_results(engine, sql)
-
-        # Tmpファイル名を決定する
-        import uuid
-        tmp_dir_path  = '/tmp'
-        tmp_file_name = str(uuid.uuid4())
-        self._tmp_file_path = tmp_dir_path + '/' + tmp_file_name + ".csv"
-
-        # 結果をファイルに出力する
-        def to_str(value):
-            if value is None:
-                return ''
-            else:
-                return str(value)
-
-        with open(self._tmp_file_path, 'w') as f:
-            is_header = True
-            for result in results:
-                if is_header:
-                    f.write(','.join(result.keys()))
-                    f.write('\n')
-                    is_header = False
-                str_result = map(to_str, result)
-                result_line = ','.join(str_result)
-                f.write(result_line + '\n')
-
-        # 結果のファイルを入力とするm2teeコマンドを作成する
-        cmd = nm.m2tee(i=self._tmp_file_path)
-
-        nysol_module = NysolModule()
-        nysol_module.set_content(cmd)
-        return {'o': nysol_module}
-
-    @staticmethod
-    def _make_sql(schema_name, table_name):
-        if schema_name == '':
-            schema_and_table_name = table_name
-        else:
-            schema_and_table_name = schema_name + '.' + table_name
-        return f"SELECT * FROM {schema_and_table_name}"
-
-    @staticmethod
-    def _connect_to_rdb(rdb_conn_info):
-        # データベースへの接続
-        from sqlalchemy import create_engine, exc
-        # echo=TrueでSQLログがコンソールに出力される
-        try:
-            engine = create_engine(rdb_conn_info.get_database_uri(), echo=False)
-        except exc.SQLAlchemyError as e:
-            raise Exception('RDBへの接続に失敗しました %s' % sql)
-        return engine
-
-    @staticmethod
-    def _get_results(engine, sql):
-        """
-        SQL文を発行し結果を取得する
-        """
-        from sqlalchemy import DDL, exc
-        try:
-            engine.execute('BEGIN')
-        except exc.SQLAlchemyError as e:
-            engine.execute('ROLLBACK')
-            raise Exception('トランザクションの開始に失敗しました')
-
-        try:
-            results = engine.execute(sql)
-        except exc.SQLAlchemyError as e:
-            engine.execute('ROLLBACK')
-            raise Exception('SQLの実行に失敗しました %s' % sql)
-        finally:
-            engine.execute('COMMIT')
-
-        return results
-
-    def _write_log(self, message):
-        indent = '  '
-        sys.__stderr__.write(indent + self.name + ': <\n')
-        sys.__stderr__.write(indent + '  ' + message + '\n')
-        sys.__stderr__.write(indent + '>\n')
-
-    def dtor(self):
-        self._write_log('DTOR!')
-        # Tmpファイルを削除する
-        import os
-        if self._tmp_file_path is not None and os.path.exists(self._tmp_file_path):
-            os.unlink(self._tmp_file_path)

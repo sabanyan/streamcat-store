@@ -220,6 +220,8 @@ class Folder(Store):
         """
         Folderに対応するディレクトリを削除する
         """
+        from kskp.store import Mountable
+        
         try:
             # 全てのフォルダから紐づかないディレクトリは物理削除する
             dir_path = self._path.rstrip(os.pathsep)
@@ -228,7 +230,7 @@ class Folder(Store):
                 # 自分以外で同じディレクトリパス(相対パス)を使用しているフォルダの有無を確認する
                 if Folder._dir_path_exists(dir_path, except_id=self.id):
                     break
-                elif Datum.is_mount(Path(dir_path)):
+                elif Mountable.is_mount(Path(dir_path)):
                     # マウント中のフォルダは削除しない
                     break
                 else:

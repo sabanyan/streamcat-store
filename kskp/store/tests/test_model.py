@@ -125,27 +125,27 @@ class LibraryTest(unittest.TestCase):
         # ルートデータストアを取得する
         root = Library.load_root()
         # ルートデータストアの直下にフォルダを作成する
-        folder_src = Library.save_folder(root.uuid, 'フォルダSRC', self.USER_ID1)
+        folder_src = Library.save_folder(root.uuid, 'フォルダSRC_AA', self.USER_ID1)
         # 上記フォルダの直下にフレームを作成する
         self.save(folder_src.path / 'aaaa1.csv')
         frame_src = Library.save_frame(root.uuid, 'フレームSRC', folder_src.path / 'aaaa1.csv', self.USER_ID1)
         # ルートデータストアの直下にフォルダを作成する
         folder_dst = Library.save_folder(root.uuid, 'フォルダDST', self.USER_ID1)
-        # フォルダSRCをフォルダDSTへ移動する
+        # フォルダSRC_AAをフォルダDSTへ移動する
         updated_folder = folder_src.move(folder_dst.uuid, self.USER_ID2)
         # parent_id, path, modifierが変更されることを検証する
         self.assertEqual(updated_folder.id, folder_src.id)
         self.assertEqual(updated_folder.parent_id, folder_dst.id)
         self.assertEqual(updated_folder.uuid, folder_src.uuid)
-        self.assertEqual(updated_folder.path, root.path / 'フォルダDST/フォルダSRC')
+        self.assertEqual(updated_folder.path, root.path / 'フォルダDST/フォルダSRC_AA')
         self.assertEqual(updated_folder.type, folder_src.type)
-        self.assertEqual(updated_folder.label, 'フォルダSRC')
+        self.assertEqual(updated_folder.label, 'フォルダSRC_AA')
         self.assertEqual(updated_folder.creator, self.USER_ID1)
         self.assertEqual(updated_folder.modifier, self.USER_ID2)
         self.assertEqual(updated_folder.created_at, folder_src.created_at)
         self.assertIsNotNone(updated_folder.modified_at)
         # 移動したフォルダ配下のファイルのpathが修正されていることを検証する
-        self.assertEqual(frame_src.path, root.path / 'フォルダDST/フォルダSRC/aaaa1.csv')
+        self.assertEqual(frame_src.path, root.path / 'フォルダDST/フォルダSRC_AA/aaaa1.csv')
         self.assertEqual(updated_folder.creator, self.USER_ID1)
         self.assertEqual(updated_folder.modifier, self.USER_ID2)
         self.assertEqual(updated_folder.created_at, folder_src.created_at)
@@ -324,8 +324,10 @@ class LibraryTest(unittest.TestCase):
         """
         # ルートデータストアを取得する
         root = Library.load_root()
+        # フレームデータを格納するファイルを作成する
+        self.save(root.path / 'aiueo.csv')
         # ルートデータストアの直下にフレームを作成する
-        frame_src = Library.save_folder(root.uuid, 'フレームSRC', self.USER_ID1)
+        frame_src = Library.save_frame(root.uuid, 'フレームSRC', root.path / 'aiueo.csv', self.USER_ID1)
         # ルートデータストアの直下にフォルダを作成する
         folder_dst = Library.save_folder(root.uuid, 'フォルダDST_A', self.USER_ID1)
         # フレームSRCをフォルダDSTへ移動する
@@ -334,7 +336,7 @@ class LibraryTest(unittest.TestCase):
         self.assertEqual(updated_frame.id, frame_src.id)
         self.assertEqual(updated_frame.parent_id, folder_dst.id)
         self.assertEqual(updated_frame.uuid, frame_src.uuid)
-        self.assertEqual(updated_frame.path, root.path / 'フォルダDST_A/フレームSRC')
+        self.assertEqual(updated_frame.path, root.path / 'フォルダDST_A/aiueo.csv')
         self.assertEqual(updated_frame.type, frame_src.type)
         self.assertEqual(updated_frame.label, 'フレームSRC')
         self.assertEqual(updated_frame.creator, self.USER_ID1)
@@ -342,7 +344,41 @@ class LibraryTest(unittest.TestCase):
         self.assertEqual(updated_frame.created_at, frame_src.created_at)
         self.assertIsNotNone(updated_frame.modified_at)
         # 作成したフォルダを削除する
-        Library.delete_folder(updated_frame.uuid)
+        Library.delete_frame(updated_frame.uuid)
+        Library.delete_folder(folder_dst.uuid)
+
+    def test_move_frame2(self):
+        """
+        フレームを移動する
+        (異動先に同じファイル・ラベル名がある場合)
+        """
+        # ルートデータストアを取得する
+        root = Library.load_root()
+        # フレームデータを格納するファイルを作成する
+        self.save(root.path / 'aiueo2.csv')
+        # ルートデータストアの直下にフレームを作成する
+        frame_src = Library.save_frame(root.uuid, 'フレームSRC2', root.path / 'aiueo2.csv', self.USER_ID1)
+        # ルートデータストアの直下にフォルダを作成する
+        folder_dst = Library.save_folder(root.uuid, 'フォルダDST_A2', self.USER_ID1)
+        # フレームデータを格納するファイルを作成する
+        self.save(folder_dst.path / 'aiueo2.csv')
+        # フォルダDST_A2の直下に同じ名称でフレームを作成する
+        frame_src2 = Library.save_frame(root.uuid, 'フレームSRC2', folder_dst.path / 'aiueo2.csv', self.USER_ID1)
+        # フレームSRC2をフォルダDSTへ移動する
+        updated_frame = frame_src.move(folder_dst.uuid, self.USER_ID2)
+        # parent_id, path, modifierが変更されることを検証する
+        self.assertEqual(updated_frame.id, frame_src.id)
+        self.assertEqual(updated_frame.parent_id, folder_dst.id)
+        self.assertEqual(updated_frame.uuid, frame_src.uuid)
+        self.assertEqual(updated_frame.path, root.path / 'フォルダDST_A2/aiueo2_1.csv')
+        self.assertEqual(updated_frame.type, frame_src.type)
+        self.assertEqual(updated_frame.label, 'フレームSRC2_2')
+        self.assertEqual(updated_frame.creator, self.USER_ID1)
+        self.assertEqual(updated_frame.modifier, self.USER_ID2)
+        self.assertEqual(updated_frame.created_at, frame_src.created_at)
+        self.assertIsNotNone(updated_frame.modified_at)
+        # 作成したフォルダを削除する
+        Library.delete_frame(updated_frame.uuid)
         Library.delete_folder(folder_dst.uuid)
 
     def test_save_frame(self):
