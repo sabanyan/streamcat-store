@@ -38,6 +38,7 @@ class M2crossCommand(Command):
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
 
+        
 class McalCommand(Command):
     def __init__(self):
         super().__init__()
@@ -197,22 +198,6 @@ class MjoinCommand(Command):
         args['m'] = inputs['m']
         nysol_module = NysolModule()
         nysol_module.set_content(nm.mjoin(args))
-        return {'o': nysol_module}
-
-class MteeCommand(Command):
-    """
-    Mteeコマンド
-    """
-    def __init__(self):
-        super().__init__()
-        self.i_ports = [Port('i', 'frame')]
-        self.o_ports = [Port('o', 'mcmd')]
-
-    def run(self, args, inputs):
-        import nysol.mcmd as nm
-        args['i'] = inputs['i']
-        nysol_module = NysolModule()
-        nysol_module.set_content(nm.m2tee(args))
         return {'o': nysol_module}
 
 class MchkcsvCommand(Command):

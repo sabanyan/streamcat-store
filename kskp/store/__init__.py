@@ -1,14 +1,19 @@
 import os
 from pathlib import Path
 
-FLOW_FOLDER_UUID   = 'ff37fe34-9c25-4Ad0-b74A-affda3712a45'
-FLOW_FOLDER_LABEL  = 'フロー'
+FLOW_FOLDER_UUID    = 'ff37fe34-9c25-4Ad0-b74A-affda3712a45'
+FLOW_FOLDER_LABEL   = 'フロー'
+RESULT_FOLDER_UUID  = 'aacb4914-0695-40fc-b14b-95b7f1f81707'
+RESULT_FOLDER_LABEL = '実行結果'
+CACHE_FOLDER_UUID   = 'cc9f050d-b007-414e-a6e0-6d31a9c13395'
+CACHE_FOLDER_LABEL  = 'キャッシュ'
 
 # フローがDBに保存されるようになるまでは下記のパスをstoreが持っておく
-STORE_DIR = Path(__file__).parent.parent / 'store'
+# STORE_DIR = Path(__file__).parent.parent / 'store'
+STORE_DIR = Path(__file__).parent.parent.parent / 'store'
 FLOW_PATH = (STORE_DIR / 'flows/json').as_posix()
 if not os.path.exists(FLOW_PATH):
-    os.mkdir(FLOW_PATH)
+    os.makedirs(FLOW_PATH)
 
 def _is_unittest():
     # python3 -m unittestで実行した場合は、is_unittest=Trueとなる
@@ -53,7 +58,7 @@ else:
 # echo=TrueでSQLログがコンソールに出力される
 from sqlalchemy import create_engine
 # SQLite用
-os.environ['SQLITE_PATH'] = os.getenv('SQLITE_PATH', (STORE_DIR / 'kskp.db').as_posix())
+os.environ['SQLITE_PATH'] = os.getenv('SQLITE_PATH', (STORE_DIR.parent / 'kskp.db').as_posix())
 # os.environ['DATABASE_URI'] = "sqlite:///" + os.environ['SQLITE_PATH']
 # check_same_threadをFalseにすることで、sessionをスレッドをまたいで使うことができるようになる（デフォルトはTrue）
 # -> PostgreSQLにはこのオプションはない
@@ -83,10 +88,15 @@ ss = Session()
 from kskp.core import Datum, Port, Command
 
 from .store import Store, FrameStore, NysolModule, ModuleStore
+from .database_conn import DatabaseConn
+from .remote_folder_conn import RemoteFolderConn
+from .mountable import Mountable
 from .frame import Frame, Cache
 from .flow import Flow
 from .folder import Folder
 from .awss3 import AwsS3
+from .remote_folder import RemoteFolder
+from .database import Database
 from .children_getter import ChildrenGetter
 
 from .library import Library
@@ -95,10 +105,39 @@ from .flows import FlowLink
 from .commands import CommandLink, CommandsPathLink, CommandsPathFileSource, RunfuncCommand
 from .model import *
 
+
 # テーブルを作成する
 BaseModel.metadata.create_all(bind=engine, checkfirst=True)
 
-# フレームを格納するフォルダがなければ作成する
-import pprint
-pprint.pprint('Init library folder')
-Library._init_library_folders()
+# label列の新規追加(後方互換)
+sql1 = """
+ALTER TABLE data 
+ADD COLUMN label VARCHAR;
+"""
+try:
+    engine.execute(sql1)
+except Exception as e:
+    pass
+
+from sqlalchemy import event, DDL
+
+@event.listens_for(BaseModel.metadata, 'after_create')
+def receive_after_create(target, connection, tables, **kw):
+    "listen for the 'after_create' event"
+
+    if tables:
+        # tables were created.
+        create_d_view()
+        
+def create_d_view():
+    """
+    データの一覧を表示するVIEWを作成する
+    (開発及び運用時に閲覧するために用意しておく)
+    """
+    d_view = """
+    create view d as
+    select id, parent_id, uuid, path, label, type, date_trunc('second', created_at) as created_at
+    from data order by type, id
+    """
+    engine.execute(DDL('drop view if exists d'))
+    engine.execute(DDL(d_view))

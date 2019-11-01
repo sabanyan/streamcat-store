@@ -1,5 +1,22 @@
 {
   "id": "msel",
+  "groups": [
+    {
+      "name": "group1",
+      "label": "条件式の設定（必須）",
+      "params": ["c"]
+    },
+    {
+      "name": "group3",
+      "label": "項目名・項目番号についての設定（省略可）",
+      "params": ["x", "nfn", "nfno"]
+    },
+    {
+      "name": "group4",
+      "label": "システム管理用設定（作業領域・ログ出力）",
+      "params": [ "tmpPath", "assert_diffSize","r"]
+    }
+  ],
   "rules" : {
     "c" : {
       "presence": {"allowEmpty": false}
@@ -9,12 +26,13 @@
     {
       "name": "c",
       "type": "string",
-      "label": "絞込条件式(必須)"
+      "label": "絞込条件式",
+      "description": "●マッチした行は o に、それ以外は u に出力する\n●項目の値、数値、文字列、時刻に対する演算子と関数が100種以上とif文による制御を組み合わせた計算が可能\n●値の参照\n  ${項目名}で当行参照、#{項目名}で前行参照が可能\n●型の指定\n  数値：${}, 文字列:$s{}, 時刻:$t{}, 日付:$d{}, 論理:$b{}"
     },
     {
       "name": "r",
       "type": "boolean",
-      "label": "選択ではなく削除する。",
+      "label": "条件反転",
       "optional": true
     },
     {
@@ -69,6 +87,6 @@
   "version": "0.7.0",
   "label": "条件式による行選択",
   "classification": "row_edit",
-  "description": "c=の計算式を実行し、結果が真であれば、その行を選択する。",
+  "description": "条件式にマッチした行とそれ以外に分ける",
   "url": "./static/pdf/mcmd/row_edit/msel.pdf"
 }

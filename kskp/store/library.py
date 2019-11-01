@@ -1,7 +1,7 @@
 from pathlib import Path
 
-# from kskp.store import FRAME_FOLDER_UUID, FRAME_FOLDER_LABEL
-# from kskp.store import CACHE_FOLDER_UUID, CACHE_FOLDER_LABEL
+from kskp.store import RESULT_FOLDER_UUID, RESULT_FOLDER_LABEL
+from kskp.store import CACHE_FOLDER_UUID, CACHE_FOLDER_LABEL
 
 from kskp.core  import Datum
 from kskp.store import Folder
@@ -10,13 +10,34 @@ from kskp.store import Frame
 from kskp.store import Flow
 
 class Library:
+    """
+    ライブラリ機能のFacadeパターン
+    """
 
     @staticmethod
-    def load_root():
+    def load_root(creator=None):
         """
         ルートデータストアを取得する
         """
-        return Library._convert_type(Datum.find_root())
+        return Library._get_library(creator)
+
+    @staticmethod
+    def load_result_folder(creator=None):
+        return Library._get_result_dir_path(creator)
+
+    @staticmethod
+    def load_cache_folder(creator=None):
+        """
+        キャッシュフォルダを取得する
+        """
+        return Library._get_cache_dir_path(creator)
+
+    @staticmethod
+    def load_flow_folder(creator=None):
+        """
+        フローフォルダを取得する
+        """
+        return Library._get_flow_dir_path(creator)
 
     @staticmethod
     def load_frame(frame_uuid):
@@ -45,7 +66,7 @@ class Library:
                           None,
                           creator)
         # documentレコードをDBに格納する
-        new_frame.add_entry_from_path(path.as_posix())
+        new_frame.add_entry_from_path(path)
         return new_frame
 
     @staticmethod
@@ -204,8 +225,8 @@ class Library:
 
     @staticmethod
     def _init_library_folders():
-        # Library._get_frame_dir_path()
-        # Library._get_cache_dir_path()
+        Library._get_result_dir_path()
+        Library._get_cache_dir_path()
         Library._get_flow_dir_path()
 
     @staticmethod
@@ -214,15 +235,15 @@ class Library:
         from kskp.store import FLOW_FOLDER_UUID, FLOW_FOLDER_LABEL
         return Library._get_or_make_dir_path(FLOW_FOLDER_UUID, FLOW_FOLDER_LABEL, user_id)
 
-    # @staticmethod
-    # def _get_frame_dir_path(user_id=None):
-    #     # フレーム格納フォルダを取得する
-    #     return Library._get_or_make_dir_path(FRAME_FOLDER_UUID, FRAME_FOLDER_LABEL, user_id)
+    @staticmethod
+    def _get_result_dir_path(user_id=None):
+        # フレーム格納フォルダを取得する
+        return Library._get_or_make_dir_path(RESULT_FOLDER_UUID, RESULT_FOLDER_LABEL, user_id)
 
-    # @staticmethod
-    # def _get_cache_dir_path(user_id=None):
-    #     # キャッシュ格納フォルダを取得する
-    #     return Library._get_or_make_dir_path(CACHE_FOLDER_UUID, CACHE_FOLDER_LABEL, user_id)
+    @staticmethod
+    def _get_cache_dir_path(user_id=None):
+        # キャッシュ格納フォルダを取得する
+        return Library._get_or_make_dir_path(CACHE_FOLDER_UUID, CACHE_FOLDER_LABEL, user_id)
 
     @staticmethod
     def _get_or_make_dir_path(uuid, label, user_id=None):
@@ -242,7 +263,7 @@ class Library:
         return folder
 
     @staticmethod
-    def _get_library(user_id):
+    def _get_library(user_id=None):
         """
         ルートデータストアを取得する、存在しない場合は作成する
         """
@@ -270,5 +291,7 @@ class Library:
             return Frame.convert_to_frame(datum)
         elif datum.type == Datum.FLOW_TYPE:
             return Flow.convert_to_flow(datum)
+        elif datum.type == Datum.DATABASE_TYPE:
+            return Database.convert_to_database(datum)
         else:
             raise Exception('Undefined type of datum is found!')
