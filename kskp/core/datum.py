@@ -19,10 +19,13 @@ class Datum(BaseModel):
     """
     # TODO: とりあえずFrameだけ
     # csv以外も出た時は改めて考えねば
-    DEFAULT_LIBRARY_PATH = (STORE_DIR / 'frames/csv').as_posix()
     # DEFAULT_LIBRARY_PATH = (STORE_DIR / 'frames/csv').relative_to(STORE_DIR.parent.parent).as_posix()
-    AWSS3_TYPE  = 'awss3'
+    # DEFAULT_LIBRARY_PATH = (STORE_DIR / 'frames/csv').as_posix()
+    DEFAULT_LIBRARY_PATH = 'store'
     FOLDER_TYPE = 'folder'
+    AWSS3_TYPE  = 'awss3'
+    RFOLDER_TYPE = 'rfolder'
+    DATABASE_TYPE = 'database'
     FLOW_TYPE   = 'flow'
     FRAME_TYPE  = 'frame'
 
@@ -39,13 +42,14 @@ class Datum(BaseModel):
     parent_id   = Column(INTEGER)
     uuid        = Column(UUID, nullable=False, unique=True)
     _path       = Column('path', String, nullable=False)
+    _label      = Column('label', String)
     # PostgreSQLのENUM型の要素を変更してもSQLAlchemyから自動的に変更がかからないので手動で変更する必要がある
-    type        = Column(ENUM(AWSS3_TYPE, FOLDER_TYPE, FLOW_TYPE, FRAME_TYPE, name='data_type'), nullable=False)
-    data        = Column(JSONB, nullable=False)
+    type        = Column(ENUM(FOLDER_TYPE, AWSS3_TYPE, RFOLDER_TYPE, DATABASE_TYPE, FLOW_TYPE, FRAME_TYPE, name='data_type'), nullable=False)
+    data        = Column(JSONB)
     creator     = Column(INTEGER)
     modifier    = Column(INTEGER)
-    created_at  = Column(TIMESTAMP, default=text('CURRENT_TIMESTAMP'))
-    modified_at = Column(TIMESTAMP, default=text('CURRENT_TIMESTAMP'), onupdate=text('CURRENT_TIMESTAMP'))
+    created_at  = Column(TIMESTAMP, default=text('statement_timestamp()'))
+    modified_at = Column(TIMESTAMP, default=text('statement_timestamp()'), onupdate=text('statement_timestamp()'))
 
     def __init__(self, parent_uuid, datum_type, label, creator=None):
         """
@@ -74,7 +78,11 @@ class Datum(BaseModel):
             self._path = self.DEFAULT_LIBRARY_PATH
         else:
             dir_name = Datum.escape_filename(label)
-            self._path = os.path.join(parent._path, dir_name)
+            rel_parent_path = self._to_rel_path(parent._path)
+            self._path = os.path.join(rel_parent_path, dir_name)
+
+        # label
+        self._label = Datum.escape_label(label)
 
         # type
         self.type = datum_type
@@ -88,55 +96,180 @@ class Datum(BaseModel):
 
     @property
     def path(self):
-        path_obj = self.path_obj
-        if path_obj.exists():
+        from kskp.store import Mountable
+
+        if self._path == '':
+            return None
+
+        if os.path.exists(self._path):
             # ここで_pathがマウントポイントで、かつUnmount状態のとき、そのまま_pathを返してしまうと、
             # children_getter._synchronize()によりS3バケットが空になってしまうので以下の場合分けを行う
-            if path_obj.is_dir():
-                if self.type == Datum.AWSS3_TYPE:
+            if os.path.isdir(self._path):
+                if isinstance(self, Mountable):
                     # _pathがディレクトリで、かつマウントポイントの場合、再マウント処理をする
-                    Datum.remount(self.id)
-                    return self._path
+                    Mountable.remount(self.id)
+                    # return Path(self._path)
                 else:
                     # _pathがディレクトリで、かつマウントポイントでない場合は、再マウント処理はしない
-                    return self._path
+                    # return Path(self._path)
+                    pass
             else:
                 # _pathが(ディレクトリでない)ファイルで、かつ存在する場合は、再マウント処理はしない
-                return self._path
+                # return Path(self._path)
+                pass
         else:
             if self.id is None:
                 # 再マウント処理ができない場合
-                return self._path
-            # pathに対応するファイルまたはディレクトリが無い場合、再マウント処理する
-            Datum.remount(self.id)
-            if not path_obj.exists():
-                # 再マウント処理をしてもファイルまたはディレクトリがない場合は、例外を送出する
-                # (ここで例外を送出するとexists(path)で存在チェックができなくなる)
-                # raise Exception('No file or directory of the path property exists.')
+                # return Path(self._path)
                 pass
-            return self._path
+            else:
+                # pathに対応するファイルまたはディレクトリが無い場合、再マウント処理する
+                Mountable.remount(self.id)
+                if not os.path.exists(self._path):
+                    # 再マウント処理をしてもファイルまたはディレクトリがない場合は、例外を送出する
+                    # (ここで例外を送出するとexists(path)で存在チェックができなくなる)
+                    # raise Exception('No file or directory of the path property exists.')
+                    pass
+                # return Path(self._path)
+                pass
+
+        # 必ず相対pathを返す
+        return Path(self._to_rel_path(self._path))
 
     @path.setter
-    def path(self, value):
-        self._path = value
+    def path(self, path):
+        # Pathオブジェクトを受け取る
+        self._path = path.as_posix()
 
     @property
-    def path_obj(self):
-        if self._path is None:
-            raise Exception('path attribute must not be None in path_obj property.')
-        return Path(self._path)
+    def path_exists(self):
+        path = self._to_abs_path(self._path)
+        return os.path.exists(path)
 
-    @path_obj.setter
-    def path_obj(self, value):
-        if value is None:
-            raise Exception('setting value must not be None in path_obj property.')
-        self._path = value.as_posix()
+    @property
+    def label(self):
+        if self._label is None or self._label == '':
+            return self.data2['label'] or ''
+        else:
+            return self._label
+
+    @property
+    def data2(self):
+        import json
+        try:
+            # data列の後方互換性
+            ret = json.loads(self.data, encoding='utf-8')
+        except Exception as e:
+            ret = self.data
+        return ret
+
+    @property
+    def content(self):
+        """
+        Engineから参照する
+        """
+        return self
 
     @property
     def created_at_str(self):
-        created_at_utc = self.created_at.astimezone(datetime.timezone.utc)
+        # DBに格納されている日時はUTCなので、タイムゾーンをUTCに設定する
+        created_at_utc = self.created_at.replace(tzinfo=datetime.timezone.utc)
+        # UTC日時はここで現地時間(環境変数TZの値)に設定される
         created_at_local = created_at_utc.astimezone()
         return created_at_local.strftime('%Y-%m-%d %H:%M:%S')
+
+    def move(self, parent_uuid, modifier):
+        """
+        指定されたStoreの直下に移動する
+        """
+        # UUID値の形式チェックをする
+        Datum.valid_uuid_or_raise(parent_uuid)
+
+        try:
+            from kskp.store import Folder
+            to_folder = Folder.find_by_uuid(parent_uuid)
+        except Exception as e:
+            raise Exception('移動先の指定はフォルダのUUIDしか許可していません')
+
+        # 移動対象がマウントポイントの場合は、path列を変更することはマウントポイントを変更することになるので
+        # とりあえずエラーとする
+        from kskp.store import Mountable
+        if isinstance(self, Mountable):
+            raise Exception('マウントポイントフォルダを移動することはできません')
+
+        if parent_uuid == self.uuid:
+            raise Exception('移動先と移動元の指定が同じです')
+
+        # 移動先が移動元フォルダの配下になる場合は例外を送出する
+        if self.type == Datum.FOLDER_TYPE:
+            pass
+
+        # ファイルを移動する
+        old_path = self._path
+        new_path = os.path.join(to_folder._path, os.path.basename(self._path))
+        new_path = Datum.move_file(old_path, new_path)
+        new_label = Datum.get_another_label_name(self.label, self.parent_uuid, except_uuid=self.uuid)
+
+        try:
+            # ファイル名の移動によって他のDatumのpathが変更が必要であれば変更する
+            Datum.update_same_path(old_path, new_path, modifier)
+            if isinstance(self, Folder):
+                Datum.update_include_path(old_path, new_path, modifier)
+            # レコードを更新する
+            session.query(Datum).filter(Datum.id==self.id).update({'parent_id': to_folder.id
+                                                                  ,'_path'    : new_path
+                                                                  ,'_label'   : new_label
+                                                                  ,'modifier' : modifier})
+        except Exception as e:
+            session.rollback()
+            raise e
+        finally:
+            session.commit()
+
+        return self
+
+    @staticmethod
+    def update_same_path(old_path, new_path, modifier):
+        # 同じファイルに対応するフォルダのpath列を、ファイル名の移動に合わせて変更する
+        rel_old_path = Datum._to_rel_path(old_path)
+        abs_old_path = Datum._to_abs_path(old_path)
+        from sqlalchemy import or_
+        session.query(Datum).filter(or_(Datum._path == rel_old_path, \
+                                        Datum._path == abs_old_path)).update({'_path'   : new_path
+                                                                            , 'modifier': modifier})
+    @staticmethod
+    def update_include_path(old_path, new_path, modifier):
+        # 同じディレクトリを含むpath列を、ディレクトリの移動に合わせて変更する
+        rel_old_path = Datum._to_rel_path(old_path)
+        abs_old_path = Datum._to_abs_path(old_path)
+        from sqlalchemy import or_
+        results = session.query(Datum.id, Datum._path)\
+                         .filter(Datum.type!=Datum.FLOW_TYPE)\
+                         .filter(or_(Datum._path.like(rel_old_path + '/%'),\
+                                     Datum._path.like(abs_old_path + '/%'))).all()
+        import re
+        for result in results:
+            if result._path.startswith('/'):
+                replaced_path = re.sub('^'+abs_old_path, new_path, result._path)
+            else:
+                replaced_path = re.sub('^'+rel_old_path, new_path, result._path)
+            session.query(Datum).filter(Datum.id==result.id).update({'_path'   : replaced_path
+                                                                    ,'modifier': modifier})
+
+    @staticmethod
+    def _to_abs_path(path):
+        if path.startswith('/'):
+            return path
+        else:
+            return (STORE_DIR.parent / path).as_posix()
+
+    @staticmethod
+    def _to_rel_path(path):
+        if path.startswith('/'):
+            # ディレクトリトラバーサルには対応していない
+            return Path(path).relative_to(STORE_DIR.parent).as_posix()
+        else:
+            return path
 
     @staticmethod
     def find_root():
@@ -172,7 +305,7 @@ class Datum(BaseModel):
         datum = session.query(Datum)\
                         .filter(sub_query.filter(f2.id==Datum.parent_id)
                                          .filter(f2.uuid==parent_uuid).exists())\
-                        .order_by(Datum.type,desc(Datum.created_at)).all()
+                        .order_by(Datum.type, desc(Datum.created_at)).all()
         return datum
 
     @staticmethod
@@ -190,11 +323,29 @@ class Datum(BaseModel):
                                        .filter(f2.uuid==uuid).exists()).one_or_none()
 
     @staticmethod
+    def find_by_parent_uuid_and_label(parent_uuid, label):
+        """
+        指定したuuidの親と指定したラベル名のレコードを全て取得する
+        """
+        from sqlalchemy import desc
+
+        # UUID値の形式チェックをする
+        Datum.valid_uuid_or_raise(parent_uuid)
+
+        f2 = aliased(Datum)
+        sub_query = session.query(f2)
+        datum = session.query(Datum)\
+                        .filter(sub_query.filter(f2.id==Datum.parent_id)
+                                         .filter(f2.uuid==parent_uuid).exists())\
+                        .filter(Datum._label==label)\
+                        .order_by(Datum.type, desc(Datum.created_at)).all()
+        return datum
+
+    @staticmethod
     def get_flow_uuids_using_other_datum(datum_uuid):
         """      .......
         指定されたDatumのuuidを参照するFlowを取得する
         """
-        # FIXIT : PostgreSQLのJSONB演算子が何故か機能しない、誰か教えてください。
         sql = """
         select uuid from data
         where type='flow'
@@ -209,12 +360,17 @@ class Datum(BaseModel):
         """
         ドキュメントまたはフォルダに対応するファイルまたはディレクトリを移動する
         """
+        if old_path is None or old_path == '':
+            raise Exception('move_file(): 移動元のファイルパスが指定されていません')
+        if new_path is None or new_path == '':
+            raise Exception('move_file(): 移動先のファイルパスが指定されていません')
+        
         try:
             # 同じ名称のファイルが既に存在する場合、末尾に数字を付加したファイル名で作成する
             new_path = Datum.get_another_file_path(new_path, except_path=old_path)
             # ファイルを移動する
-            if os.path.exists(old_path):
-                os.rename(old_path, new_path)
+            if os.path.exists(Datum._to_abs_path(old_path)):
+                os.rename(Datum._to_abs_path(old_path), Datum._to_abs_path(new_path))
                 return new_path
             else:
                 return old_path
@@ -229,17 +385,24 @@ class Datum(BaseModel):
         return filename.translate(trans_table)
 
     @staticmethod
+    def escape_label(label):
+        if label is None:
+            return label
+        # '\0'は少なくともPostgreSQLのVARCHARに格納できない
+        trans_table = str.maketrans({'\0' : ''})
+        return label.translate(trans_table)
+
+    @staticmethod
     def get_user_name_by_user_id(user_id):
         """
         FIXIT: usersテーブルへのアクセスはSQLAlchemyを用いる予定なので、以下のコードは暫定実装である
         """
-        # from ..model import get_user_by_id
-        # user = get_user_by_id(user_id)
-        # if user is None:
-        #     Exception('No user is found by designated user id')
-        # else:
-        #     return user['name']
-        return '開発者'
+        from ..store.model import get_user_by_id
+        user = get_user_by_id(user_id)
+        if user is None:
+            Exception('No user is found by designated user id')
+        else:
+            return user['name']
 
     @staticmethod
     def get_another_file_path(path, except_path=None):
@@ -247,7 +410,7 @@ class Datum(BaseModel):
         同じ名称のファイルが既に存在する場合、末尾に数字を付加したファイル名で作成する
         except_path : 存在チェックを除外するファイル名
         """
-        while os.path.exists(path) and path != except_path:
+        while os.path.exists(Datum._to_abs_path(path)) and path != except_path:
             filename = os.path.basename(path)
             dirname = os.path.dirname(path)
             new_filename = Datum._get_another_file_name(filename)
@@ -271,31 +434,31 @@ class Datum(BaseModel):
             return body + '_1' + ext
 
     @staticmethod
-    def get_another_label_name(label, parent_uuid):
+    def get_another_label_name(label, parent_uuid, except_uuid=None):
         """
         指定する親データストア内で、同じ名称のラベルがすでにある場合、末尾に数字を付加したラベル名を返す
         """
         children = Datum.find_by_parent_uuid(parent_uuid)
-        while Datum._label_exists_in_Data(label, children):
-            if label[-1:].isdecimal():
-                nextNumber = int(label[-1:]) + 1
+        while Datum._label_exists_in_Data(label, children, except_uuid):
+            # 後ろから1番目の'_'でラベル名を区切る
+            label_elems = label.rsplit('_', 1)
+            if len(label_elems) == 2 and label_elems[1].isdecimal():
+                nextNumber = int(label_elems[1]) + 1
+                label = label_elems[0] + '_' + str(nextNumber)
             else:
                 # 開始番号は1を飛び越して2?!
-                nextNumber = 2
-            label = label + str(nextNumber)
+                label = label + '_2'
         return label
 
     @staticmethod
-    def _label_exists_in_Data(label, data):
+    def _label_exists_in_Data(label, data, except_uuid):
         """
         dataの中にlabelを使用しているdatumがあればTrueを返す
         """
         import json
         for datum in data:
-            datum_data = json.loads(datum.data, encoding='utf-8')
-            if 'label' in datum.data:
-                if datum_data['label'] == label:
-                    return True
+            if datum.label == label and (except_uuid is None or datum.uuid != except_uuid):
+                return True
         return False
 
     @staticmethod
@@ -321,60 +484,7 @@ class Datum(BaseModel):
         """
         uuidの形式チェックの結果、正しくないuuidの場合は例外を送出する
         """
+        if uuid is None or uuid == '':
+            raise Exception(f'The UUID value is empty')
         if not Datum.is_valid_uuid(uuid):
-            raise Exception(
-                'The value is not UUID type. The comparison to UUID type column needs for uuid value in PostgreSQL.')
-
-    @staticmethod
-    def remount(id):
-        """
-        ルートデータストアから指定されたidのDatumまでの経路において、
-        マウントされていないマウントポイントがあればマウントし直す
-        """
-        sql = """
-        WITH RECURSIVE R AS (
-            SELECT id, parent_id, uuid, type, path FROM data WHERE id = {id}
-            UNION ALL
-            SELECT D.id, D.parent_id, D.uuid, D.type, D.path FROM data D JOIN R ON D.id = R.parent_id
-        )
-        SELECT uuid, path FROM R
-        WHERE type = 'awss3'
-        ORDER BY id
-        """.format(id=id)
-        try:
-            results = session.execute(sql)
-        except Exception as e:
-            session.rollback()
-            raise e
-        finally:
-            session.commit()
-
-        for result in results:
-            mount_point_dir = result[1]
-            if not Datum.is_mount(Path(mount_point_dir)):
-                uuid = str(result[0])
-                from kskp.store import AwsS3
-                awss3 = AwsS3.find_by_uuid(uuid)
-                awss3.mount()
-
-    @staticmethod
-    def is_mount(path_obj):
-        """
-        Check if this path is a POSIX mount point
-        """
-        # Need to exist and be a dir
-        if not path_obj.exists() or not path_obj.is_dir():
-            return False
-
-        parent = Path(path_obj.parent)
-        try:
-            parent_dev = parent.stat().st_dev
-        except OSError:
-            return False
-
-        dev = path_obj.stat().st_dev
-        if dev != parent_dev:
-            return True
-        ino = path_obj.stat().st_ino
-        parent_ino = parent.stat().st_ino
-        return ino == parent_ino
+            raise Exception(f'The UUID({uuid}) value is not valid format.')

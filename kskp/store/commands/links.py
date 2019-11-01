@@ -19,7 +19,12 @@ class CommandLink:
         """
         idとなる文字列を受け取ってrunnableのインスタンスを返却する
         """
-        from kskp.engine.tests.test_main import Square
+        from kskp.engine.tests.square_command import Square
+
+        # runfunc用の関数のimport
+        from kskp.store.commands.pcmd.src import (
+            hex2bin
+        )
 
         table = {
             # テスト用コマンド
@@ -121,8 +126,14 @@ class CommandLink:
             'columns_to_rows': ColumnsToRowsCommand(),
             'groupby_columns': GroupbyColumnsCommand(),
             'groupby': GroupbyCommand(),
+            'groupby2': GroupBy2Command(),
             'utf8_to_cp932': Utf8ToCp932Command(),
             'sml_modeling': SmlModelingCommand(),
+            'multi_mcal_manyformula': MultiMcalCommand(),
+            'multi_mcal_oneformula': MultiMcalWCCommand(),
+            'multi_mvavg': MvAvgCommand(),
+            'multi_mvstats': MvStatsCommand(),
+            'multi_mvsim': MvSimCommand(),
             'selrow': SelRowCommand(),
             # ビジュアライズ
             'csvtohtmltable': CsvToTableCommand(),
@@ -130,10 +141,13 @@ class CommandLink:
             'csvtohistogram': CsvToHistogramCommand(),
             'csvtoscatter': CsvToScatterCommand(),
             'csvtoboxplot': CsvToBoxplotCommand(),
+            'csvtorepetitiviewaveform': CsvtoRepetitivieWaveform(),
             # Storeコマンド
             'saver': SaverCommand(),
             'cachesaver': CacheSaverCommand(),
-            'loader': LoaderCommand()
+            'loader': LoaderCommand(),
+            'db_loader' : DbLoaderCommand(),
+            'db_saver'  : DbSaverCommand()
         }
 
         if runnable_id not in table:
