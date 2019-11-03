@@ -273,6 +273,23 @@ class Flow(Datum):
             ret.append(node['uuid'])
         return ret
 
+    def get_store_uuids(self):
+        """
+        参照するStoreを全て取得する
+        """
+        ret = []
+        flow_json = self.flow_data
+
+        for node in flow_json['nodes']:
+            if node['type'] != 'store':
+                continue
+            if node['uuid'] is None or node['uuid'] == '':
+                continue
+            if node['uuid'] in ret:
+                continue
+            ret.append(node['uuid'])
+        return ret
+
     def replace_uuid(self, old_uuid, new_uuid, user_id):
         """
         参照uuidを置き換える
