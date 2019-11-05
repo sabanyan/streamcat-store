@@ -1,5 +1,37 @@
 {
   "id": "maccum",
+  "groups": [
+    {
+    "name": "group1",
+      "label": "グループの設定 (省略可)",
+      "params": ["k"]
+    },
+    {
+      "name": "group2",
+      "label": "グループ内のソートの設定（省略可)",
+      "params": ["s"]
+    },
+    {
+      "name": "group5",
+      "label": "累積計算の設定 (必須)",
+      "params": ["f"]
+    },
+    {
+      "name": "group10",
+      "label": "その他 (省略可)",
+      "params": ["precision","q"]
+    },
+    {
+      "name": "group15",
+      "label": "項目名・項目番号についての設定（省略可）",
+      "params": ["x", "nfn", "nfno"]
+    },
+    {
+      "name": "group20",
+      "label": "システム管理用設定（作業領域・ログ出力）",
+      "params": ["tmpPath", "assert_diffSize", "assert_nullout", "assert_nullkey","assert_nullin"]
+    }
+  ],
   "rules": {
     "f":{
       "presence": {"allowEmpty": false},
@@ -53,17 +85,20 @@
     {
       "name": "f",
       "type": "string",
-      "label": "累積列名(必須)"
+      "label": "対象とする項目名と追加項目名の指定",
+      "description": "●対象列名、追加列名の順で コロン区切りで指定\n●カンマ区切りで複数指定可"
     },
     {
       "name": "s",
       "type": "string",
-      "label": "並び替えの後、累積計算を行う列名(必須)"
+      "label": "グループ内順序の指定",
+      "description": "●カンマ区切りで複数指定可\n●表記：【末尾に付与】無しは文字列の昇順、%nは数値の昇順、%rは文字列の降順、%nrは数値の降順\n●注意： グループ化に用いた項目を含めるとグループ内順序の指定が無効になるため、含めずに設定"
     },
     {
       "name": "k",
       "type": "string",
-      "label": "累積単位となる列名",
+      "label": "グループ化する項目名",
+      "description": "●カンマ区切りで複数指定可",
       "optional": true
     },
     {
@@ -112,6 +147,7 @@
       "name": "q",
       "type": "boolean",
       "label": "自動並べ替えの無効化",
+      "description": "入力データがグループ単位でソート済みの場合、指定すると処理速度が向上",
       "optional": true
     },
     {
@@ -124,6 +160,7 @@
       "name": "precision",
       "type": "string",
       "label": "有効桁数",
+      "description": "1〜16の整数",
       "optional": true,
       "default": 10
     }
@@ -145,6 +182,6 @@
   "version": "0.7.0",
   "label": "累積計算",
   "classification": "table_grouping",
-  "description": "f=パラメータで指定した項目の累積を計算し、新しい項目として追加する。",
+  "description": "累積を計算する",
   "url": "./static/pdf/mcmd/table_grouping/maccum.pdf"
 }
