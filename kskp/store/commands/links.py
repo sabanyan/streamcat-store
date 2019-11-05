@@ -136,12 +136,12 @@ class CommandLink:
             'multi_mvsim': MvSimCommand(),
             'selrow': SelRowCommand(),
             # ビジュアライズ
-            'csvtohtmltable': CsvToTableCommand(),
-            'csvtolinegraph': CsvToLineGraphCommand(),
-            'csvtohistogram': CsvToHistogramCommand(),
-            'csvtoscatter': CsvToScatterCommand(),
-            'csvtoboxplot': CsvToBoxplotCommand(),
-            'csvtorepetitiviewaveform': CsvtoRepetitivieWaveform(),
+            'csvtohtmltable': CsvToTableCommand2(),
+            'csvtolinegraph': CsvToLineGraphCommand2(),
+            'csvtohistogram': CsvToHistogramCommand2(),
+            'csvtoscatter': CsvToScatterCommand2(),
+            'csvtoboxplot': CsvToBoxplotCommand2(),
+            'csvtorepetitiviewaveform': CsvtoRepetitivieWaveform2(),
             # Storeコマンド
             'saver': SaverCommand(),
             'cachesaver': CacheSaverCommand(),
