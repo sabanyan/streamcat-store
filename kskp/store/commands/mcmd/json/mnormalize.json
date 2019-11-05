@@ -43,25 +43,56 @@
       }
     }
   },
+  "groups": [
+    {
+      "name": "group1",
+      "label": "グループの設定 (省略可)",
+      "params": ["k"]
+    },
+    {
+      "name": "group5",
+      "label": "基準化の設定 (必須)",
+      "params": ["f", "c"]
+    },
+
+    {
+      "name": "group10",
+      "label": "その他 (省略可)",
+      "params": ["precision", "q"]
+    },
+    {
+      "name": "group15",
+      "label": "項目名・項目番号についての設定（省略可）",
+      "params": ["x", "nfn", "nfno"]
+    },
+    {
+      "name": "group20",
+      "label": "システム管理用設定（作業領域・ログ出力）",
+      "params": ["tmpPath", "bufcount", "assert_diffSize", "assert_nullout", "assert_nullkey","assert_nullin"]
+    }
+  ],
   "params": [
     {
       "name": "c",
       "type": "select",
       "label": "基準化方法を指定",
+      "description":"●標準偏差による基準化　（平均:0,標準偏差:1）\n  グループ単位の平均値との差を標準偏差で割った値（z得点）\n●偏差値　（平均:50,標準偏差:10）\n  z得点から偏差値を求める\n●値の範囲による基準化\n  最小値を 0, 最大値を 1 に線形変換",
       "options":{
-        "labels": ["z得点", "偏差値", "最小値を0、最大値を1に線形変換"],
+        "labels": ["標準偏差による基準化", "偏差値", "値の範囲による基準化"],
         "values": ["z", "Z", "range"]
       }
     },
     {
       "name": "f",
       "type": "string",
-      "label": "基準化列名(必須)"
+      "label": "対象とする項目名と追加項目名の指定",
+      "description": "●対象列名、追加列名の順で コロン区切りで指定\n●カンマ区切りで複数指定可"
     },
     {
       "name": "k",
       "type": "string",
-      "label": "単位とする列名",
+      "label": "グループ化する項目名",
+      "description": "●カンマ区切りで複数指定可",
       "optional": true
     },
     {
@@ -116,7 +147,8 @@
     {
       "name": "q",
       "type": "boolean",
-      "label": "自動並べ替えの無効化（k=パラメータ指定時の自動並べ替えを無効にしたい場合",
+      "label": "自動並べ替えの無効化",
+      "description": "入力データがグループ単位でソート済みの場合、指定すると処理速度が向上",
       "optional": true
     },
     {
@@ -128,7 +160,8 @@
     {
       "name": "precision",
       "type": "string",
-      "label": "有効桁数",
+      "label": "有効桁数",   
+      "description":"1〜16の整数",
       "optional": true,
       "default": 10
     }
@@ -150,6 +183,6 @@
   "version": "0.7.0",
   "label": "基準化",
   "classification": "table_grouping",
-  "description": "f=で指定した項目を、c=で指定した基準化の方法で基準化する。",
+  "description": "基準化（z得点、偏差値、0-1への線形変換）する",
   "url": "./static/pdf/mcmd/table_grouping/table_grouping.pdf"
 }
