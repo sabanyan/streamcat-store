@@ -63,8 +63,8 @@ class FrameStore(Store):
         for frame in self.data.values():
             frame.save_result()
 
-    def append(self, point_id, cache_point):
-        self.data[point_id] = cache_point
+    def append(self, point_id, datum):
+        self.data[point_id] = datum
 
 class ModuleStore(Store):
     """
