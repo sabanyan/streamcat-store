@@ -1,36 +1,40 @@
 {
   "id": "mnjoin",
+  "groups": [
+    {
+      "name": "group1",
+      "label": "結合の設定 (必須)",
+      "params": ["k", "K"]
+    },
+    {
+      "name": "group3",
+      "label": "追加する項目の設定",
+      "params": ["f"]
+    },
+    {
+      "name": "group5",
+      "label": "出力グループの設定 (省略可)",
+      "params": ["n","N"]
+    },
+    {
+      "name": "group10",
+      "label": "その他 (省略可)",
+      "params": ["q"]
+    },
+    {
+      "name": "group15",
+      "label": "項目名・項目番号についての設定（省略可）",
+      "params": ["x", "nfn", "nfno"]
+    },
+    {
+      "name": "group20",
+      "label": "システム管理用設定（作業領域・ログ出力）",
+      "params": ["tmpPath", "bufcount", "assert_diffSize", "assert_nullout", "assert_nullkey","assert_nullin"]
+    }
+  ],
   "rules" : {
     "k" : {
-      "presence": {"allowEmpty": false},
-      "checkSeveralSpecifiedFormats" : {
-        "defaultRule" : {
-          "pattern" : "^[^,]+$",
-          "message" : "1項目のみ入力してください"
-        },
-        "specialRules" : [
-          {
-            "target" : ["x", "nfn"],
-            "pattern" : "^[1-9]?[0-9]+L?$|^@\\[.+\\]$",
-            "message" : "項目の指定は数値のみ可能です。"
-          }
-        ]
-      }
-    },
-    "f" : {
-      "checkSeveralSpecifiedFormats" : {
-        "defaultRule" : {
-          "pattern" : "^[^,]+$|^$",
-          "message" : "1項目のみ入力してください"
-        },
-        "specialRules" : [
-          {
-            "target" : ["x", "nfn"],
-            "pattern" : "^[1-9]?[0-9]+L?|^$|^@\\[.+\\]$",
-            "message" : "項目の指定は数値のみ可能です。"
-          }
-        ]
-      }
+      "presence": {"allowEmpty": false}
     },
     "bufcount" : {
       "specifiedFormatIfTargetInput" : {
@@ -40,98 +44,104 @@
       }
     }
   },
-  "params": [
-    {
-      "name": "k",
-      "type": "string",
-      "label": "入力データの結合キー名(必須)"
-    },
-    {
-      "name": "f",
-      "type": "string",
-      "label": "参照列名",
-      "optional": true
-    },
-    {
-      "name": "K",
-      "type": "string",
-      "label": "参照データの結合キー名",
-      "optional": true
-    },
-    {
-      "name": "n",
-      "type": "boolean",
-      "label": "参照データにない入力データをNULL値として出力するフラグ。",
-      "optional": true
-    },
-    {
-      "name": "N",
-      "type": "boolean",
-      "label": "入力データにない参照データをNULL値として出力するフラグ。",
-      "optional": true
-    },
-    {
-      "name": "bufcount",
-      "type": "string",
-      "label": "バッファの数",
-      "optional": true,
-      "default": "10"
-    },
-    {
-      "name": "assert_diffSize",
-      "type": "boolean",
-      "label": "入力、出力件数比較を行う",
-      "optional": true
-    },
-    {
-      "name": "assert_nullkey",
-      "type": "boolean",
-      "label": "キー項目にNULL値が含まれているかどうかのチェックを行う",
-      "optional": true
-    },
-    {
-      "name": "assert_nullin",
-      "type": "boolean",
-      "label": "入力項目のf=またはvf=で指定された項目のNULL値チェックを行う",
-      "optional": true
-    },
-    {
-      "name": "assert_nullout",
-      "type": "boolean",
-      "label": "出力項目のNULL値チェックを行う",
-      "optional": true
-    },
-    {
-      "name": "nfn",
-      "type": "boolean",
-      "label": "入力データの1行目を項目名行とみなさない。",
-      "optional": true
-    },
-    {
-      "name": "nfno",
-      "type": "boolean",
-      "label": "出力データに項目名行を出力しない。",
-      "optional": true
-    },
-    {
-      "name": "x",
-      "type": "boolean",
-      "label": "項目番号による指定",
-      "optional": true
-    },
-    {
-      "name": "q",
-      "type": "boolean",
-      "label": "自動並べ替えの無効化",
-      "optional": true
-    },
-    {
-      "name": "tmpPath",
-      "type": "string",
-      "label": "作業ファイル格納パス名",
-      "optional": true
-    }
-  ],
+    "params": [
+      {
+        "name": "k",
+        "type": "string",
+        "label": "入力データのグループ項目名 (必須)",
+        "description": "●カンマ区切りで複数指定可"
+      },
+      {
+        "name": "K",
+        "type": "string",
+        "label": "参照データのグループ項目名 (省略可)",
+        "description": "●カンマ区切りで複数指定可\n●入力データのグループ項目名と同じ場合は省略可",
+        "optional": true
+      },
+      {
+        "name": "f",
+        "type": "string",
+        "label": "追加する項目名(省略可)",
+        "description": "●参照データの項目名を指定\n  省略時は、グループ項目以外の全項目が追加される\n●カンマ区切りで複数指定可\n  項目名時:*,？ 使用可\n  項目番号時:0−3,5,0L 等使用可",
+        "optional": true
+      },
+      {
+        "name": "n",
+        "type": "boolean",
+        "label": "入力データのみに存在するグループも出力する",
+        "description":"参照データに値が存在しないため、グループ項目以外はNullになる",
+        "optional": true
+      },
+      {
+        "name": "N",
+        "type": "boolean",
+        "label": "参照データのみに存在するグループも出力する",
+        "description": "入力データに値が存在しないため、グループ項目以外はNullになる",
+        "optional": true
+      },
+      {
+        "name": "assert_diffSize",
+        "type": "boolean",
+        "label": "入力、出力件数比較を行う",
+        "optional": true
+      },
+      {
+        "name": "assert_nullkey",
+        "type": "boolean",
+        "label": "キー項目に NULL 値が含まれているかどうかのチェックを行う",
+        "optional": true
+      },
+      {
+        "name": "assert_nullin",
+        "type": "boolean",
+        "label": "入力項目の f=または vf=で指定された項目の NULL 値チェックを行う",
+        "optional": true
+      },
+      {
+        "name": "assert_nullout",
+        "type": "boolean",
+        "label": "出力項目の NULL 値チェックを行う",
+        "optional": true
+      },
+      {
+        "name": "nfn",
+        "type": "boolean",
+        "label": "入力データの 1 行目を項目名行とみなさない。",
+        "optional": true
+      },
+      {
+        "name": "nfno",
+        "type": "boolean",
+        "label": "出力データに項目名行を出力しない。",
+        "optional": true
+      },
+      {
+        "name": "x",
+        "type": "boolean",
+        "label": "項目番号による指定",
+        "optional": true
+      },
+      {
+        "name": "q",
+        "type": "boolean",
+        "label": "自動並べ替えの無効化",
+        "description": "入力データと参照データともにグループ単位でソート済みの場合、指定すると処理速度が向上",
+        "optional": true
+      },
+      {
+        "name": "bufcount",
+        "type": "string",
+        "label": "バッファの数",
+        "optional": true,
+        "default": "10"
+      },
+      {
+        "name": "tmpPath",
+        "type": "string",
+        "label": "作業ファイル格納パス名",
+        "optional": true
+      }
+    ],
   "ports": [
     [
       {
@@ -153,6 +163,6 @@
   "version": "0.7.0",
   "label": "参照ファイル列の結合",
   "classification": "table_join",
-  "description": "入力ファイルの項目値と参照ファイルの項目値を比較、同値であれば参照ファイルにある、f=で指定した項目値を結合する。",
+  "description": "グループ項目をキーとして、参照データを結合する。\n グループ項目に重複がある場合は、入力データと参照データの組合せでレコードを追加する",
   "url": "./static/pdf/mcmd/table_join/mnjoin.pdf"
 }

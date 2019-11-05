@@ -1,5 +1,37 @@
 {
   "id": "mjoin",
+  "groups": [
+    {
+      "name": "group1",
+      "label": "結合の設定 (必須)",
+      "params": ["k", "K"]
+    },
+    {
+      "name": "group3",
+      "label": "追加する項目の設定",
+      "params": ["f"]
+    },
+    {
+      "name": "group5",
+      "label": "出力グループの設定 (省略可)",
+      "params": ["n","N"]
+    },
+    {
+      "name": "group10",
+      "label": "その他 (省略可)",
+      "params": ["q"]
+    },
+    {
+      "name": "group15",
+      "label": "項目名・項目番号についての設定（省略可）",
+      "params": ["x", "nfn", "nfno"]
+    },
+    {
+      "name": "group20",
+      "label": "システム管理用設定（作業領域・ログ出力）",
+      "params": ["tmpPath", "assert_diffSize", "assert_nullout", "assert_nullkey","assert_nullin"]
+    }
+  ],
   "rules" : {
     "k" : {
       "presence": {"allowEmpty": false},
@@ -37,30 +69,35 @@
     {
       "name": "k",
       "type": "string",
-      "label": "結合キー名(必須)"
-    },
-    {
-      "name": "f",
-      "type": "string",
-      "label": "参照列名",
-      "optional": true
+      "label": "入力データのグループ項目名 (必須)",
+      "description": "●カンマ区切りで複数指定可"
     },
     {
       "name": "K",
       "type": "string",
-      "label": "参照ファイル上の結合キー名",
+      "label": "参照データのグループ項目名 (省略可)",
+      "description": "●カンマ区切りで複数指定可\n●入力データのグループ項目名と同じ場合は省略可\n【注意】値の重複がある場合\n  結合する行が不定になるため、任意の行が結合されます\n   重複がある場合は、mnjoinの使用を推奨します",
+      "optional": true
+    },
+    {
+      "name": "f",
+      "type": "string",
+      "label": "追加する項目名(省略可)",
+      "description": "●参照データの項目名を指定\n  省略時は、グループ項目以外の全項目が追加される\n●カンマ区切りで複数指定可\n  項目名時:*,？ 使用可\n  項目番号時:0−3,5,0L 等使用可",
       "optional": true
     },
     {
       "name": "n",
       "type": "boolean",
-      "label": "参照データにない入力データを NULL 値として出力する",
+      "label": "入力データのみに存在するグループも出力する",
+      "description":"参照データに値が存在しないため、グループ項目以外はNullになる",
       "optional": true
     },
     {
       "name": "N",
       "type": "boolean",
-      "label": "入力データにない参照データを NULL 値として出力する",
+      "label": "参照データのみに存在するグループも出力する",
+      "description": "入力データに値が存在しないため、グループ項目以外はNullになる",
       "optional": true
     },
     {
@@ -109,6 +146,7 @@
       "name": "q",
       "type": "boolean",
       "label": "自動並べ替えの無効化",
+      "description": "入力データと参照データともにグループ単位でソート済みの場合、指定すると処理速度が向上",
       "optional": true
     },
     {
@@ -139,6 +177,6 @@
   "version": "0.7.0",
   "label": "結合",
   "classification": "table_join",
-  "description": "入力ファイルの項目値と参照ファイルの項目値を比較し、同じ値を持つf=で指定した参照ファイルの項目値を結合する。",
+  "description": "グループの重複がない参照データを、入力データに結合する",
   "url": "./static/pdf/mcmd/table_join/mjoin.pdf"
 }
