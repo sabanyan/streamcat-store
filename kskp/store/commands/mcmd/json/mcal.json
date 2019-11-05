@@ -83,6 +83,7 @@
       "type": "string",
       "label": "有効桁数",
       "optional": true,
+      "description": "1〜16の整数",
       "default": 10
     }
   ],
