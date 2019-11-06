@@ -142,8 +142,8 @@
     ]
   ],
   "version": "0.7.0",
-  "label": "GroupBy処理2",
+  "label":  "特徴量計算",
   "classification": "col_edit",
-  "description": "groupby処理を行う_new",
+  "description": "グループ単位の特徴量を計算する",
   "url": ""
 }

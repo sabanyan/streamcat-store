@@ -3,18 +3,18 @@
   "groups": [
     {
       "name": "group1",
-      "label": "結合の設定 (必須)",
+      "label": "結合キーの設定 (必須)",
       "params": ["k", "K"]
     },
     {
-      "name": "group3",
-      "label": "追加する項目の設定",
-      "params": ["f"]
+      "name": "group5",
+      "label": "結合方法の設定  (省略時は 共通部分を出力)",
+      "params": ["n","N"]
     },
     {
-      "name": "group5",
-      "label": "出力グループの設定 (省略可)",
-      "params": ["n","N"]
+      "name": "group3",
+      "label": "結合する項目の設定",
+      "params": ["f"]
     },
     {
       "name": "group10",
@@ -34,13 +34,35 @@
   ],
   "rules" : {
     "k" : {
-      "presence": {"allowEmpty": false}
+      "presence": {"allowEmpty": false},
+      "checkSeveralSpecifiedFormats" : {
+        "defaultRule" : {
+          "pattern" : "^[^,]+(,[^,]+)*$",
+          "message" : "入力が正しくありません"
+        },
+        "specialRules" : [
+          {
+            "target" : ["x", "nfn"],
+            "pattern" : "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$",
+            "message" : "項目の指定は数値のみ可能です。"
+          }
+        ]
+      }
     },
-    "bufcount" : {
-      "specifiedFormatIfTargetInput" : {
-        "target" : "bufcount",
-        "pattern": "^[1-9]?[0-9]*$|^$",
-        "message": "0以上の整数を半角で入力してください"
+    "K" : {
+      "presence": {"allowEmpty": false},
+      "checkSeveralSpecifiedFormats" : {
+        "defaultRule" : {
+          "pattern" : "^[^,]+(,[^,]+)*$|^$",
+          "message" : "入力が正しくありません"
+        },
+        "specialRules" : [
+          {
+            "target" : ["x", "nfn"],
+            "pattern" : "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$|^$",
+            "message" : "項目の指定は数値のみ可能です。"
+          }
+        ]
       }
     }
   },
@@ -48,35 +70,35 @@
       {
         "name": "k",
         "type": "string",
-        "label": "入力データのグループ項目名 (必須)",
-        "description": "●カンマ区切りで複数指定可"
+        "label": "入力i のキー項目名",
+        "description": "●カンマ区切りで複数指定可\n  項目番号時:0−3,5,0L 等使用可"
       },
       {
         "name": "K",
         "type": "string",
-        "label": "参照データのグループ項目名 (省略可)",
-        "description": "●カンマ区切りで複数指定可\n●入力データのグループ項目名と同じ場合は省略可",
+        "label": "入力m のキー項目名",
+        "description": "●入力i の指定項目と、1対1に対応させて指定\n\n【注意】キー項目には重複ないことが必要\n        重複時はコマンド「自然結合」を使用",
         "optional": true
       },
       {
         "name": "f",
         "type": "string",
-        "label": "追加する項目名(省略可)",
-        "description": "●参照データの項目名を指定\n  省略時は、グループ項目以外の全項目が追加される\n●カンマ区切りで複数指定可\n  項目名時:*,？ 使用可\n  項目番号時:0−3,5,0L 等使用可",
+        "label": "入力m から結合する項目名 (省略可)",
+        "description": "●キー項目を除いた全ての項目ではなく、一部の項目のみを結合する場合に指定\n●結合後に、重複が生じない設定が必要\n●カンマ区切りで複数指定可\n  項目名時:*,？ 使用可\n  項目番号時:0−3,5,0L 等使用可\n【注意】入力i に存在する列名を指定した場合は、エラーとなり、処理を停止",
         "optional": true
       },
       {
         "name": "n",
         "type": "boolean",
-        "label": "入力データのみに存在するグループも出力する",
-        "description":"参照データに値が存在しないため、グループ項目以外はNullになる",
+        "label": "入力i にある行を全て出す (左結合)",
+        "description":"対応するものが無い場合は、Null値を出力\nもう一方も指定により、両者の和集合を出力",
         "optional": true
       },
       {
         "name": "N",
         "type": "boolean",
-        "label": "参照データのみに存在するグループも出力する",
-        "description": "入力データに値が存在しないため、グループ項目以外はNullになる",
+        "label": "入力m にある行を全て出す (右結合)",
+        "description": "対応するものが無い場合は、Null値を出力\nもう一方も指定により、両者の和集合を出力",
         "optional": true
       },
       {
@@ -94,7 +116,7 @@
       {
         "name": "assert_nullin",
         "type": "boolean",
-        "label": "入力項目の f=または vf=で指定された項目の NULL 値チェックを行う",
+        "label": "結合する項目名で指定された項目の NULL 値チェックを行う",
         "optional": true
       },
       {
@@ -106,7 +128,7 @@
       {
         "name": "nfn",
         "type": "boolean",
-        "label": "入力データの 1 行目を項目名行とみなさない。",
+        "label": "入力i および 入力m の 1 行目を項目名行とみなさない。",
         "optional": true
       },
       {
@@ -125,21 +147,21 @@
         "name": "q",
         "type": "boolean",
         "label": "自動並べ替えの無効化",
-        "description": "入力データと参照データともにグループ単位でソート済みの場合、指定すると処理速度が向上",
+        "description": "入力i と入力m ともにキー項目でソート済みの場合、指定すると処理速度が向上",
         "optional": true
-      },
-      {
-        "name": "bufcount",
-        "type": "string",
-        "label": "バッファの数",
-        "optional": true,
-        "default": "10"
       },
       {
         "name": "tmpPath",
         "type": "string",
         "label": "作業ファイル格納パス名",
         "optional": true
+      },  
+      {
+        "name": "bufcount",
+        "type": "string",
+        "label": "バッファの数",
+        "optional": true,
+        "default": "10"
       }
     ],
   "ports": [
@@ -161,8 +183,8 @@
     ]
   ],
   "version": "0.7.0",
-  "label": "参照ファイル列の結合",
+  "label": "自然結合",
   "classification": "table_join",
-  "description": "グループ項目をキーとして、参照データを結合する。\n グループ項目に重複がある場合は、入力データと参照データの組合せでレコードを追加する",
+  "description": "入力i と 入力m を、キー項目で結合する",
   "url": "./static/pdf/mcmd/table_join/mnjoin.pdf"
 }
