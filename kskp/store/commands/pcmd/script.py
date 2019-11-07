@@ -579,6 +579,33 @@ class GroupBy2Command(Command):
                 traceback.print_exc(file=fpe)
         pass
 
+    def strucount(self, k, precision, **kwargs):
+        f = kwargs['f']
+        a = kwargs['a']
+
+        try:
+            fs = f.split(',')
+            subcmd_start = None
+            subcmd = None
+            subcmds = [None] * len(fs)
+            subcmd_start <<= nm.mstdin()
+
+            for i, fld in enumerate(fs):
+                subcmds[i] <<= nm.muniq(i = subcmd_start, k = f'{k},{fld}') 
+                subcmds[i] <<= nm.mcount(k = k, a = f'{a}')
+                subcmds[i] <<= nm.mcal(a = 'fld', c = f'"{fld}"')
+                subcmds[i] <<= nm.mcut(f = f'{k},fld,{a}')
+
+            subcmd <<= nm.m2cat(i = subcmds)
+            subcmd <<= nm.mstdout()
+            subcmd.run()
+
+        except Exception as e:
+            import traceback
+            with open('/dev/stderr', 'w') as fpe:
+                traceback.print_exc(file=fpe)
+        pass
+
     def integral(self, k, precision, **kwargs):
         f = kwargs['f']
         x = kwargs['x']
@@ -803,6 +830,7 @@ class GroupBy2Command(Command):
             'gmean' : self.geometricmean,
             'strmax' : self.strmax,
             'strmin' : self.strmin,            
+            'strucount' : self.strucount,
             'mean_ad' : self.meanabsolutedeviation,
             'median_ad' : self.medianabsolutedeviation,
             # 1 field + time (input k, a, f, x)
