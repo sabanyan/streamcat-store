@@ -734,9 +734,9 @@ class GroupBy2Command(Command):
                 traceback.print_exc(file=fpe)
 
     def slope(self, k, precision, **kwargs):
-        f = kwargs['f']
-        x = kwargs['x']
-        a = kwargs['a']
+        f = kwargs.get('f')
+        x = kwargs.get('x')
+        a = kwargs.get('a')
 
         import traceback
         try:
@@ -843,7 +843,7 @@ class GroupBy2Command(Command):
         self.header = nm.mread(inputs).getline(header=True)
         self.header = next(self.header)
 
-        k = args.pop('k')
+        k = args.get('k')
         prec = args.pop('precision')
         xs = []
 
@@ -906,6 +906,10 @@ class GroupBy2Command(Command):
         else:
             timecols = ''
 
+        if not k:
+            k = '___tmpk___'
+            cmd[-1] <<= nm.mcal(a = k, c = '"all"')
+
         cmd[-1] <<= nm.mcut(f = f'{timecols}{k},{",".join(all_fs)}')
 
         ##### calculation portion:
@@ -967,7 +971,8 @@ class GroupBy2Command(Command):
         
         cmd_o <<= nm.mcal(a = 'unique_cols', c = '+'.join(colformat))
         cmd_o <<= nm.mcross(f = 'value', s = 'unique_cols', k = k)
-        cmd_o <<= nm.mcut(r = True, f = 'fld', nfno = args.get('nfno'))
+        cmd_o <<= nm.mcut(r = True, f = 'fld', 
+                          nfno = args.get('nfno'))
 
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
