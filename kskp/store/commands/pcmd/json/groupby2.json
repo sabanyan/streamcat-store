@@ -3,7 +3,7 @@
   "groups":[
     {
       "name": "group1",
-      "label": "キー項目の設定（必須）",
+      "label": "キー項目の設定",
       "params": ["k"]
     },
     {
@@ -31,7 +31,7 @@
     {
       "name": "k",
       "type": "string",
-      "label": "集計キー項目を指定する（必須）",
+      "label": "集計キー項目を指定する",
       "description": "●カンマ区切りで複数指定可"
     },
     {
