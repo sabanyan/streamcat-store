@@ -235,6 +235,9 @@ class Flow(Datum):
         ret = []
         flow_json = self.flow_data
         
+        if 'nodes' not in flow_json:
+            return ret
+
         for node in flow_json['nodes']:
             if node['type'] != 'frame':
                 continue
@@ -257,6 +260,9 @@ class Flow(Datum):
         ret = []
         flow_json = self.flow_data
         
+        if 'nodes' not in flow_json:
+            return ret
+
         for node in flow_json['nodes']:
             if node['type'] != 'frame':
                 continue
@@ -278,6 +284,9 @@ class Flow(Datum):
         """
         ret = []
         flow_json = self.flow_data
+
+        if 'nodes' not in flow_json:
+            return ret
 
         for node in flow_json['nodes']:
             if node['type'] != 'flow':
