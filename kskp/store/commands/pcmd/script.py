@@ -324,6 +324,7 @@ class RunfuncCommand(Command):
         """
         pass
 
+
 class GroupBy2Command(Command):
     def __init__(self):
         super().__init__()
@@ -753,7 +754,7 @@ class GroupBy2Command(Command):
                 subcmd <<= nm.mcal(a = '__FLAC__', 
                         c = f'regexstr($s{{{x}}},"[.][0-9]{{0,6}}$")')
                 subcmd <<= nm.mcal(a = 'uxt',
-                        c = 'if( isnull($s{__FLAC__}), $s{__INT__}, $s{__INT__}+$s{__FLAC__} )')
+                        c = 'if( isnull($s{__FLAC__}), $s{__INT__}, $s{__INT__}+$s{__FLAC__} )', o = 'beforeslope.csv')
             else:
                 subcmd <<= nm.mfldname(f = f'{x}:uxt')
                 x = 'uxt'
@@ -783,7 +784,46 @@ class GroupBy2Command(Command):
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
 
+    def slopeinorder(self, k, precision, **kwargs):
+        f = kwargs.get('f')
+        s = kwargs.get('s')
+        a = kwargs.get('a')
 
+        import traceback
+        try:
+            fs = f.split(',')
+            subcmd = None
+            subcmd <<= nm.mstdin()
+
+            # fix "time" column
+            subcmd <<= nm.msortf(f = f'{k},{s}')
+            ordercol = '__order__'
+            subcmd <<= nm.mnumber(k = k, a = f'{ordercol}', q = True, S = '1')
+
+            for fld in fs: 
+                subcmd <<= nm.mcal(a = f'{fld}_prod',c = f'${{{fld}}}*${{{ordercol}}}')
+            
+            prod_fldnames = ','.join([f'{fld}_prod' for fld in fs])
+            
+            subcmd <<= nm.msummary(k = k, f = f'{prod_fldnames},{f},{ordercol}',
+                                c = 'mean,var')
+        
+            subcmd <<= nm.m2cross(k = f'{k},fld', f = 'mean,var', a = f'type,{a}')
+            subcmd <<= nm.mcal(a = 'tmp_colnames', c = '$s{fld}+"_"+$s{type}')
+            subcmd <<= nm.mcross(f = f'{a}', s = 'tmp_colnames', k = k)
+
+            for fld in fs:
+                subcmd <<= nm.mcal(a = fld, 
+                    c = f'(${{{fld}_prod_mean}}-(${{{fld}_mean}}*${{{ordercol}_mean}}))/${{{ordercol}_var}}')
+            
+            subcmd <<= nm.mcross(f = f, s = 'fld', k = k)
+            subcmd <<= nm.mcut(f = f'{k},fld,{a}')
+            
+            subcmd <<= nm.mstdout()
+            subcmd.run()
+        except Exception as e:
+            with open('/dev/stderr', 'w') as fpe:
+                traceback.print_exc(file=fpe)
 
     # ## Template
     # subcmd = None
@@ -837,7 +877,8 @@ class GroupBy2Command(Command):
             'integral' : self.integral,
             'meanf' : self.meanfrequency,
             'varf' : self.frequencyvar,
-            'slope' : self.slope
+            'slope' : self.slope,
+            '__slope' : self.slopeinorder
         }
 
         self.header = nm.mread(inputs).getline(header=True)
@@ -852,7 +893,7 @@ class GroupBy2Command(Command):
         final_fs = []
         
         # wildcard parsing
-        for arglist in args.get('clist') + args.get('fclist') + args.get('xfclist'):
+        for arglist in args.get('clist') + args.get('fclist') + args.get('xfclist') + args.get('sfclist'):
             if arglist.get('c'):
                 fs = arglist.get('f')
                 x = arglist.get('x')
@@ -1342,6 +1383,7 @@ class MvSimCommand(Command):
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
+
 
 class SelRowCommand(RunfuncCommand):
     def __init__(self):
