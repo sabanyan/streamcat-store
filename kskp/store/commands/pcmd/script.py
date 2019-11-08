@@ -796,9 +796,8 @@ class GroupBy2Command(Command):
             subcmd <<= nm.mstdin()
 
             # fix "time" column
-            subcmd <<= nm.msortf(f = f'{k},{s}')
             ordercol = '__order__'
-            subcmd <<= nm.mnumber(k = k, a = f'{ordercol}', q = True, S = '1')
+            subcmd <<= nm.mnumber(k = k, a = f'{ordercol}', s = f'{k},{s}', S = '1')
 
             for fld in fs: 
                 subcmd <<= nm.mcal(a = f'{fld}_prod',c = f'${{{fld}}}*${{{ordercol}}}')
