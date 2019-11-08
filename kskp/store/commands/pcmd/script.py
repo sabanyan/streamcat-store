@@ -910,6 +910,8 @@ class GroupBy2Command(Command):
             k = '__key__'
             cmd[-1] <<= nm.mcal(a = k, c = '"all"')
 
+        expanded_k = ','.join([k,'fld'])
+
         cmd[-1] <<= nm.mcut(f = f'{timecols}{k}{","+",".join(all_fs) if len(all_fs) > 0 else ""}')
 
         ##### calculation portion:
@@ -926,6 +928,9 @@ class GroupBy2Command(Command):
                 cmd[i] <<= nm.msummary(k = k, precision = prec, **calcdict)
 
                 final_cs = [c.split(':')[-1] for c in cs.split(',')]
+                cmd[i] <<= nm.m2cross(k = expanded_k, f = final_cs, 
+                        a = 'type,value')
+
             elif optype == 'custom':
                 if ':' in cs:
                     cs, calcdict['a'] = cs.split(':')
@@ -938,18 +943,12 @@ class GroupBy2Command(Command):
                 cmd[i] <<= nm.runfunc(new_calcs[cs], k = k,
                                       precision = prec,
                                       **calcdict)
+
                 final_cs = [calcdict['a']]
+                cmd[i] <<= nm.m2cross(k = expanded_k, f= final_cs, 
+                        a = 'type,value')
 
-
-            # make null columns for each missing column
-            for missingcol in final_fs:
-                if missingcol not in final_cs:
-                    cmd[i] <<= nm.mcal(a = missingcol, c = 'nulls()')
-
-        expanded_k = ','.join([k,'fld'])
-
-        cmd_o <<= nm.m2cross(i = cmd, k = expanded_k, f= final_fs, 
-                a = 'type,value')
+        cmd_o <<= nm.m2cat(i = cmd)
         cmd_o <<= nm.mdelnull(f = 'value')
 
         formatstring = args.pop('format')
