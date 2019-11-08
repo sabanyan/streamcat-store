@@ -1345,3 +1345,44 @@ class SelRowCommand(RunfuncCommand):
         nysol_module_u.set_content(f2)
 
         return {'o': nysol_module_o, 'u': nysol_module_u}
+
+class RowRangeCommand(Command):
+    """
+    指定範囲の行を抽出する
+    """
+    def __init__(self):
+        super().__init__()
+        self.i_ports = [Port('i', 'frame')]
+        self.o_ports = [Port('o', 'frame')]
+
+    def run(self, args, inputs):
+        # 指定範囲の取得
+        offset = int(args.get('offset')) if args.get('offset') else 0
+        limit = int(args.get('limit')) if args.get('limit') else 999999
+        offset_limit = offset + limit
+       
+        cmd = inputs['i']
+        cmd <<= nm.msel(c=f'{offset}<=line() && line()<{offset_limit}')
+
+        # pass output
+        nysol_module_o= NysolModule()
+        nysol_module_o.set_content(cmd)
+        return {'o': nysol_module_o}
+
+class ToListCommand(Command):
+    """
+    入力データをPython Listに出力する
+    """
+    def __init__(self):
+        super().__init__()
+        self.i_ports = [Port('i', 'frame')]
+        self.o_ports = [Port('o', 'list')]
+
+    def run(self, args, inputs):
+        cmd = inputs['i']
+        cmd <<= nm.writelist(header=True)
+
+        # pass output
+        nysol_module_o= NysolModule()
+        nysol_module_o.set_content(cmd)
+        return {'o': nysol_module_o}

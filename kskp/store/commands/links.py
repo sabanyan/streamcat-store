@@ -135,6 +135,8 @@ class CommandLink:
             'multi_mvstats': MvStatsCommand(),
             'multi_mvsim': MvSimCommand(),
             'selrow': SelRowCommand(),
+            'rowrange': RowRangeCommand(),
+            'to_list' : ToListCommand(),
             # ビジュアライズ
             'csvtohtmltable': CsvToTableCommand2(),
             'csvtolinegraph': CsvToLineGraphCommand2(),
@@ -147,7 +149,8 @@ class CommandLink:
             'cachesaver': CacheSaverCommand(),
             'loader': LoaderCommand(),
             'db_loader' : DbLoaderCommand(),
-            'db_saver'  : DbSaverCommand()
+            'db_saver'  : DbSaverCommand(),
+            'runs' : RunsCommand()
         }
 
         if runnable_id not in table:

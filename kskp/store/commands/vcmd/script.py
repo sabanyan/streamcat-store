@@ -9,7 +9,7 @@ import nysol.mcmd as nm
 class VisualizersCommand(Command):
     def __init__(self):
         super().__init__()
-        self.i_ports = [Port('i', 'frame')]
+        self.i_ports = [Port('i', 'mcmd')]
         self.o_ports = [Port('o', 'preview')]
 
     def run(self, args, inputs):
@@ -32,22 +32,22 @@ class CsvToTableCommand2(VisualizersHtml):
         csvのファイルパスから、
         HTMLのテーブル形式にして返す
         """
-        # offset対応
-        offset = int(args.get('offset')) if args.get('offset') else 0
-        limit = int(args.get('limit')) if args.get('limit') else 999999
-        offset_limit = offset + limit
+        # # offset対応
+        # offset = int(args.get('offset')) if args.get('offset') else 0
+        # limit = int(args.get('limit')) if args.get('limit') else 999999
+        # offset_limit = offset + limit
 
-        nysol_result = []
-        # inputs['i']にはNysolPythonコマンドが来る
-        cmd = inputs['i']
-        cmd <<= nm.msel(c=f'{offset}<=line() && line()<{offset_limit}')
-        cmd <<= nm.writelist(header=True, o=nysol_result)
+        # nysol_result = []
+        # # inputs['i']にはNysolPythonコマンドが来る
+        # cmd = inputs['i']
+        # cmd <<= nm.msel(c=f'{offset}<=line() && line()<{offset_limit}')
+        # cmd <<= nm.writelist(header=True, o=nysol_result)
 
         # 結果はPreviewに入れて返す
         from kskp.store import Preview
         preview = Preview(None, 'csv_to_table')
-        preview.set_content(cmd)
-        preview.nysol_result = nysol_result
+        # preview.set_content(cmd)
+        preview.nysol_result = inputs['i']
 
         return {'o': preview}  
 
@@ -132,17 +132,19 @@ class CsvToLineGraphCommand2(VisualizersBokehPlot):
         """
         ビジュアライズを描画、保存する。
         """
-        # offset対応
-        offset = int(args.get('offset')) if args.get('offset') else 0
-        limit = int(args.get('limit')) if args.get('limit') else 999999
-        offset_limit = offset + limit
+        # # offset対応
+        # offset = int(args.get('offset')) if args.get('offset') else 0
+        # limit = int(args.get('limit')) if args.get('limit') else 999999
+        # offset_limit = offset + limit
        
-        # inputs['i']にはNysolPythonコマンドが来る
-        nysol_result = []
-        cmd = inputs['i']
-        cmd <<= nm.msel(c=f'{offset}<=line() && line()<{offset_limit}')
-        cmd <<= nm.writelist(header=True, o=nysol_result)
-        cmd.run(msg='on')
+        # # inputs['i']にはNysolPythonコマンドが来る
+        # nysol_result = []
+        # cmd = inputs['i']
+        # cmd <<= nm.msel(c=f'{offset}<=line() && line()<{offset_limit}')
+        # cmd <<= nm.writelist(header=True, o=nysol_result)
+        # cmd.run(msg='on')
+
+        nysol_result = inputs['i']
 
         # NysolPythonの結果をpandasのDataFrameに変換する
         df = pd.DataFrame(nysol_result[1:], columns=nysol_result[0])
@@ -191,17 +193,19 @@ class CsvToHistogramCommand2(VisualizersBokehPlot):
         csvのファイルパスから、
         plotのヒストグラムを作成する
         """
-        # offset対応
-        offset = int(args.get('offset')) if args.get('offset') else 0
-        limit = int(args.get('limit')) if args.get('limit') else 999999
-        offset_limit = offset + limit
+        # # offset対応
+        # offset = int(args.get('offset')) if args.get('offset') else 0
+        # limit = int(args.get('limit')) if args.get('limit') else 999999
+        # offset_limit = offset + limit
 
-        # inputs['i']にはNysolPythonコマンドが来る
-        nysol_result = []
-        cmd = inputs['i']
-        cmd <<= nm.msel(c=f'{offset}<=line() && line()<{offset_limit}')
-        cmd <<= nm.writelist(header=True, o=nysol_result)
-        cmd.run(msg='on')
+        # # inputs['i']にはNysolPythonコマンドが来る
+        # nysol_result = []
+        # cmd = inputs['i']
+        # cmd <<= nm.msel(c=f'{offset}<=line() && line()<{offset_limit}')
+        # cmd <<= nm.writelist(header=True, o=nysol_result)
+        # cmd.run(msg='on')
+
+        nysol_result = inputs['i']
 
         # NysolPythonの結果をpandasのDataFrameに変換する
         df = pd.DataFrame(nysol_result[1:], columns=nysol_result[0])
@@ -249,17 +253,19 @@ class CsvToScatterCommand2(VisualizersBokehPlot):
         csvのファイルパスから、
         plotの散布図を作成する
         """
-        # offset対応
-        offset = int(args.get('offset')) if args.get('offset') else 0
-        limit = int(args.get('limit')) if args.get('limit') else 999999
-        offset_limit = offset + limit
+        # # offset対応
+        # offset = int(args.get('offset')) if args.get('offset') else 0
+        # limit = int(args.get('limit')) if args.get('limit') else 999999
+        # offset_limit = offset + limit
 
-        # inputs['i']にはNysolPythonコマンドが来る
-        nysol_result = []
-        cmd = inputs['i']
-        cmd <<= nm.msel(c=f'{offset}<=line() && line()<{offset_limit}')
-        cmd <<= nm.writelist(header=True, o=nysol_result)
-        cmd.run(msg='on')
+        # # inputs['i']にはNysolPythonコマンドが来る
+        # nysol_result = []
+        # cmd = inputs['i']
+        # cmd <<= nm.msel(c=f'{offset}<=line() && line()<{offset_limit}')
+        # cmd <<= nm.writelist(header=True, o=nysol_result)
+        # cmd.run(msg='on')
+
+        nysol_result = inputs['i']
 
         # NysolPythonの結果をpandasのDataFrameに変換する
         df = pd.DataFrame(nysol_result[1:], columns=nysol_result[0])
@@ -314,17 +320,19 @@ class CsvToBoxplotCommand2(VisualizersBokehPlot):
         csvのファイルパスから、
         plotの箱ひげ図を作成する
         """
-        # offset対応
-        offset = int(args.get('offset')) if args.get('offset') else 0
-        limit = int(args.get('limit')) if args.get('limit') else 999999
-        offset_limit = offset + limit
+        # # offset対応
+        # offset = int(args.get('offset')) if args.get('offset') else 0
+        # limit = int(args.get('limit')) if args.get('limit') else 999999
+        # offset_limit = offset + limit
 
-        # inputs['i']にはNysolPythonコマンドが来る
-        nysol_result = []
-        cmd = inputs['i']
-        cmd <<= nm.msel(c=f'{offset}<=line() && line()<{offset_limit}')
-        cmd <<= nm.writelist(header=True, o=nysol_result)
-        cmd.run(msg='on')
+        # # inputs['i']にはNysolPythonコマンドが来る
+        # nysol_result = []
+        # cmd = inputs['i']
+        # cmd <<= nm.msel(c=f'{offset}<=line() && line()<{offset_limit}')
+        # cmd <<= nm.writelist(header=True, o=nysol_result)
+        # cmd.run(msg='on')
+
+        nysol_result = inputs['i']
 
         # NysolPythonの結果をpandasのDataFrameに変換する
         df = pd.DataFrame(nysol_result[1:], columns=nysol_result[0])
@@ -393,18 +401,20 @@ class CsvtoRepetitivieWaveform2(VisualizersBokehPlot):
       
     def init(self, args, inputs):
     
-        # データ表示範囲の設定
-        offset = int(args.get('offset')) if args.get('offset') else 0
-        limit = int(args.get('limit')) if args.get('limit') else 999999
-        offset_limit = offset + limit
+        # # データ表示範囲の設定
+        # offset = int(args.get('offset')) if args.get('offset') else 0
+        # limit = int(args.get('limit')) if args.get('limit') else 999999
+        # offset_limit = offset + limit
 
-        # inputs['i']にはNysolPythonコマンドが来る
-        nysol_result = []
-        cmd = inputs['i']
-        cmd <<= nm.msel(c=f'{offset}<=line() && line()<{offset_limit}')
-        cmd <<= nm.writelist(header=True, o=nysol_result)
-        cmd.run(msg='on')
+        # # inputs['i']にはNysolPythonコマンドが来る
+        # nysol_result = []
+        # cmd = inputs['i']
+        # cmd <<= nm.msel(c=f'{offset}<=line() && line()<{offset_limit}')
+        # cmd <<= nm.writelist(header=True, o=nysol_result)
+        # cmd.run(msg='on')
 
+        nysol_result = inputs['i']
+        
         # NysolPythonの結果をpandasのDataFrameに変換する
         df = pd.DataFrame(nysol_result[1:], columns=nysol_result[0])
 
