@@ -896,11 +896,17 @@ class GroupBy2Command(Command):
             if arglist.get('c'):
                 fs = arglist.get('f')
                 x = arglist.get('x')
+                s = arglist.get('s')
 
-                if x: 
+                if x or s: 
                     arglist['dateformat'] = args['dateformat']
-                    if x not in xs:
+                    if x and x not in xs:
                         xs.append(x)
+                    if s: 
+                        scols = s.split(',')
+                        for col in scols:
+                            if col.split('%')[0] not in xs:
+                                xs.append(col)
 
                 if fs:
                     fs = ','.join([a for a in self.header 
@@ -941,6 +947,7 @@ class GroupBy2Command(Command):
         cmd[-1] <<= nm.mread(inputs)
         # take the wanted columns only (the key columns and the value columns)
         # generate string of columns to cut
+
         if xs:
             timecols = ','.join(xs) + ','
         else:
