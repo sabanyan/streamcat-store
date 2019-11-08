@@ -1,5 +1,42 @@
 {
   "id": "mnrjoin",
+  "groups": [
+    {
+      "name": "group3",
+      "label": "範囲の設定",
+      "params": ["rf", "R"]
+    },
+    {
+      "name": "group1",
+      "label": "結合キーの設定 (省略可)",
+      "params": ["k", "K"]
+    },
+    {
+      "name": "group5",
+      "label": "結合方法の設定  (省略時は 共通部分を出力)",
+      "params": ["n","N"]
+    },
+    {
+      "name": "group3",
+      "label": "結合する項目の設定",
+      "params": ["f"]
+    },
+    {
+      "name": "group10",
+      "label": "その他 (省略可)",
+      "params": ["q"]
+    },
+    {
+      "name": "group15",
+      "label": "項目名・項目番号についての設定（省略可）",
+      "params": ["x", "nfn", "nfno"]
+    },
+    {
+      "name": "group20",
+      "label": "システム管理用設定（作業領域・ログ出力）",
+      "params": ["tmpPath", "assert_diffSize", "assert_nullout", "assert_nullkey","assert_nullin"]
+    }
+  ],
   "rules" : {
     "f" : {
       "checkSeveralSpecifiedFormats" : {
@@ -194,8 +231,8 @@
     ]
   ],
   "version": "0.7.0",
-  "label": "参照ファイルの複数範囲条件結合",
+  "label": "範囲による自然結合mnrjoin",
   "classification": "table_join",
-  "description": "r=で指定した項目値と、m=で指定した参照ファイルのR=で指定した２項目の値の範囲条件にマッチすれば、f=項目を結合する。",
+  "description": "範囲により参照データの項目を結合する",
   "url": "./static/pdf/mcmd/table_join/mnrjoin.pdf"
 }
