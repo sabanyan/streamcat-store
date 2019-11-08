@@ -584,3 +584,31 @@ class DbSaverCommand(Command):
         import os
         if self._tmp_file_path is not None and self._tmp_file_path.exists():
             self._tmp_file_path.unlink()
+
+class RunsCommand(Command):
+    def __init__(self):
+        super().__init__()
+        self.i_ports = [Port('*', 'mcmd')]
+        self.o_ports = [Port('*', 'datum?')]
+
+    def run(self, args, inputs):
+        nm_list = []
+        for nysol_module in inputs.values():
+            nm_list.append(nysol_module)
+
+        # NYSOL Pythonを実行する
+        import nysol.mcmd as nm
+        results = nm.runs(nm_list, msg='on')
+        
+        if len(results) != len(inputs):
+            raise Exception('RunsCommandの入力ポートと出力ポートの数が異なります')
+
+        # resultsの要素はnm_listへのappend順に対応している?ため
+        # 入力ポートと出力ポートは同じキーで対応付ける
+        i = 0
+        ret = {}
+        for i_port_name in inputs.keys():
+            ret[i_port_name] = results[i]
+            i += 1
+
+        return ret
