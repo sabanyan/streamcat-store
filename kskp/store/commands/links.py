@@ -150,6 +150,7 @@ class CommandLink:
             'loader': LoaderCommand(),
             'db_loader' : DbLoaderCommand(),
             'db_saver'  : DbSaverCommand(),
+            'activity' : ActivityCommand(),
             'runs' : RunsCommand()
         }
 

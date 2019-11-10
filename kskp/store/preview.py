@@ -14,13 +14,6 @@ class Preview(Datum):
         self.data = None
         self.nysol_result = []
 
-    def set_content(self, module):
-        self.data = module
-
-    @property
-    def content(self):
-        return self.data
-
     def save_result(self):
         """
         プレビューデータはDBに保存しない

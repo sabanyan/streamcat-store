@@ -71,7 +71,7 @@ class VisualizersBokehPlot(VisualizersCommand):
         preview.script = script1
         preview.div = div1
 
-        return {'o': preview}  
+        return {'o': preview} 
 
 
     def direct_product_by_keys(self, df, keys):
