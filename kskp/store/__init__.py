@@ -97,6 +97,7 @@ from .folder import Folder
 from .awss3 import AwsS3
 from .remote_folder import RemoteFolder
 from .preview import Preview, BokehPlotPreview
+from .activity import Activity
 from .database import Database
 from .children_getter import ChildrenGetter
 from .flow_dumper import FlowDumper

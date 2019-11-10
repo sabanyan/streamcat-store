@@ -14,7 +14,7 @@ class SaverCommand(Command):
     def __init__(self):
         super().__init__()
         self.i_ports = [Port('i', 'frame'), Port('store', 'store')]
-        self.o_ports = [Port('o', 'mcmd')]
+        self.o_ports = [Port('o', 'mcmd'), Port('u', 'frame')]
         self.frame = None
         self.start_time = None
 
@@ -22,7 +22,8 @@ class SaverCommand(Command):
         # Frameを作成する
         store = inputs['store']
         flow_label = args['flow_label']
-        point_label = args['point_label']
+        point = args['point']
+        point_label = point.label if point.label is not None else point.id
         self.start_time = args['start_time']
 
         # UTC日時はここで現地時間(環境変数TZの値)に設定される
@@ -37,7 +38,7 @@ class SaverCommand(Command):
         # 2. lasts用なのでコマンド実行のrunをする（繋げる必要はない）
         # result = datum_module.run(msg='on')
 
-        return {'o': self.wrap_with_frame(self.frame, datum_module, args)}
+        return {'o': self.wrap_with_frame(self.frame, datum_module, args), 'u': self.frame.uuid}
 
     def module(self, args, input):
         command_args = {}
@@ -110,7 +111,8 @@ class CacheSaverCommand(SaverCommand):
     def run(self, args, inputs):
         store = inputs['store']
         flow_label = args['flow_label']
-        point_label = args['point_label']
+        point = args['point']
+        point_label = point.label if point.label is not None else point.id
         self.start_time = args['start_time']
 
         # UTC日時はここで現地時間(環境変数TZの値)に設定される
@@ -612,3 +614,29 @@ class RunsCommand(Command):
             i += 1
 
         return ret
+
+from kskp.store import Activity
+
+class ActivityCommand(Command):
+    def __init__(self):
+        super().__init__()
+        self.i_ports = [Port('*', 'datum')]
+        self.o_ports = [Port('o', 'activity')]
+        self.activity = None
+
+    def run(self, args, inputs):
+        # raise Exception('activity RUN!')
+
+        if self.activity is None:
+            flow_uuid = args['flow_uuid']
+            self.activity = Activity(None, 'activity', flow_uuid)
+
+        import pprint 
+        pprint.pprint(inputs)
+
+        for port_id, datum in inputs.items():
+            point = args['points'][port_id]
+            self.activity.add(point, datum)
+
+        return {'o': self.activity}
+
