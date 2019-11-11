@@ -20,6 +20,7 @@ class Preview(Datum):
         """
         pass
 
+    @property
     def result(self):
         """
         テストコードで用いる
@@ -44,6 +45,7 @@ class BokehPlotPreview(Preview):
         self.script = None
         self.div = None
 
+    @property
     def result(self):
         """
         テストコードで用いる
