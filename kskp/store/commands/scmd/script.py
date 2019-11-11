@@ -39,12 +39,15 @@ class SaverCommand(Command):
         # result = datum_module.run(msg='on')
 
         return {'o': self.wrap_with_frame(self.frame, datum_module, args), 'u': self.frame.uuid}
+        # TODO: FrameModuleを葬るためには、RunsCommandの後にSaverを付加するように変更する必要があるだろう
+        # return {'o': datum_module, 'u': self.frame.uuid}
 
     def module(self, args, input):
         command_args = {}
         command_args['i'] = input
         command_args['o'] = args['frame_path'].as_posix()
-        return nm.m2tee(command_args)
+        # return nm.m2tee(command_args)
+        return nm.writecsv(command_args)
 
     def make_folder(self, store, folder1_label, folder2_label, folder2_file_name):
         from kskp.store import Datum, AwsS3
@@ -594,14 +597,16 @@ class RunsCommand(Command):
         self.o_ports = [Port('*', 'datum?')]
 
     def run(self, args, inputs):
+
         nm_list = []
         for nysol_module in inputs.values():
             nm_list.append(nysol_module)
 
         # NYSOL Pythonを実行する
         import nysol.mcmd as nm
+        # results = nm_list[0].drawModelD3("autoadd_list.html")
         results = nm.runs(nm_list, msg='on')
-        
+
         if len(results) != len(inputs):
             raise Exception('RunsCommandの入力ポートと出力ポートの数が異なります')
 
@@ -630,9 +635,6 @@ class ActivityCommand(Command):
         if self.activity is None:
             flow_uuid = args['flow_uuid']
             self.activity = Activity(None, 'activity', flow_uuid)
-
-        import pprint 
-        pprint.pprint(inputs)
 
         for port_id, datum in inputs.items():
             point = args['points'][port_id]
