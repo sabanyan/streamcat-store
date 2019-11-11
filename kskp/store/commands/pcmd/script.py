@@ -784,7 +784,7 @@ class GroupBy2Command(Command):
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
 
-    def slopeinorder(self, k, precision, **kwargs):
+    def slopebyorder(self, k, precision, **kwargs):
         f = kwargs.get('f')
         s = kwargs.get('s')
         a = kwargs.get('a')
@@ -877,7 +877,7 @@ class GroupBy2Command(Command):
             'meanf' : self.meanfrequency,
             'varf' : self.frequencyvar,
             'slope' : self.slope,
-            '__slope' : self.slopeinorder
+            '__slope' : self.slopebyorder
         }
 
         self.header = nm.mread(inputs).getline(header=True)
@@ -976,7 +976,7 @@ class GroupBy2Command(Command):
 
                 final_cs = [c.split(':')[-1] for c in cs.split(',')]
                 cmd[i] <<= nm.m2cross(k = expanded_k, f = final_cs, 
-                        a = 'type,value')
+                        a = '__type__,__val__')
 
             elif optype == 'custom':
                 if ':' in cs:
@@ -993,10 +993,10 @@ class GroupBy2Command(Command):
 
                 final_cs = [calcdict['a']]
                 cmd[i] <<= nm.m2cross(k = expanded_k, f= final_cs, 
-                        a = 'type,value')
+                        a = '__type__,__val__')
 
         cmd_o <<= nm.m2cat(i = cmd)
-        cmd_o <<= nm.mdelnull(f = 'value')
+        cmd_o <<= nm.mdelnull(f = '__val__')
 
         formatstring = args.pop('format')
         colformat = ['']
@@ -1006,7 +1006,7 @@ class GroupBy2Command(Command):
                 colformat.append('$s{fld}')
                 colformat.append('')
             elif char == '%':
-                colformat.append('$s{type}')
+                colformat.append('$s{__type__}')
                 colformat.append('')
             else:
                 colformat[-1] += char
@@ -1014,9 +1014,9 @@ class GroupBy2Command(Command):
         for i, sub in enumerate(colformat):
             if not sub.startswith('$'):
                 colformat[i] = f'"{sub}"' 
-        
+
         cmd_o <<= nm.mcal(a = 'unique_cols', c = '+'.join(colformat))
-        cmd_o <<= nm.mcross(f = 'value', s = 'unique_cols', k = k)
+        cmd_o <<= nm.mcross(f = '__val__', s = 'unique_cols', k = k)
         cmd_o <<= nm.mcut(r = True, f = 'fld', 
                           nfno = args.get('nfno'))
 
