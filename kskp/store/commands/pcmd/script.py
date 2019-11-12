@@ -891,7 +891,7 @@ class GroupBy2Command(Command):
                 subcmd <<= nm.mcal(a = '__FLAC__', 
                         c = f'regexstr($s{{{x}}},"[.][0-9]{{0,6}}$")')
                 subcmd <<= nm.mcal(a = 'uxt',
-                        c = 'if( isnull($s{__FLAC__}), $s{__INT__}, $s{__INT__}+$s{__FLAC__} )', o = 'beforeslope.csv')
+                        c = 'if( isnull($s{__FLAC__}), $s{__INT__}, $s{__INT__}+$s{__FLAC__} )')
             else:
                 subcmd <<= nm.mfldname(f = f'{x}:uxt')
                 x = 'uxt'
@@ -988,7 +988,7 @@ class GroupBy2Command(Command):
                 subcmd <<= nm.mcal(a = '__FLAC__', 
                         c = f'regexstr($s{{{x}}},"[.][0-9]{{0,6}}$")')
                 subcmd <<= nm.mcal(a = 'uxt',
-                        c = 'if( isnull($s{__FLAC__}), $s{__INT__}, $s{__INT__}+$s{__FLAC__} )', o = 'beforeslope.csv')
+                        c = 'if( isnull($s{__FLAC__}), $s{__INT__}, $s{__INT__}+$s{__FLAC__} )')
             else:
                 subcmd <<= nm.mfldname(f = f'{x}:uxt')
                 x = 'uxt'
@@ -1047,7 +1047,7 @@ class GroupBy2Command(Command):
                 subcmd <<= nm.mcal(a = '__FLAC__', 
                         c = f'regexstr($s{{{x}}},"[.][0-9]{{0,6}}$")')
                 subcmd <<= nm.mcal(a = 'uxt',
-                        c = 'if( isnull($s{__FLAC__}), $s{__INT__}, $s{__INT__}+$s{__FLAC__} )', o = 'beforeslope.csv')
+                        c = 'if( isnull($s{__FLAC__}), $s{__INT__}, $s{__INT__}+$s{__FLAC__} )')
             else:
                 subcmd <<= nm.mfldname(f = f'{x}:uxt')
                 x = 'uxt'
@@ -1106,7 +1106,7 @@ class GroupBy2Command(Command):
                 subcmd <<= nm.mcal(a = '__FLAC__', 
                         c = f'regexstr($s{{{x}}},"[.][0-9]{{0,6}}$")')
                 subcmd <<= nm.mcal(a = 'uxt',
-                        c = 'if( isnull($s{__FLAC__}), $s{__INT__}, $s{__INT__}+$s{__FLAC__} )', o = 'beforeslope.csv')
+                        c = 'if( isnull($s{__FLAC__}), $s{__INT__}, $s{__INT__}+$s{__FLAC__} )')
             else:
                 subcmd <<= nm.mfldname(f = f'{x}:uxt')
                 x = 'uxt'
@@ -1165,7 +1165,7 @@ class GroupBy2Command(Command):
                 subcmd <<= nm.mcal(a = '__FLAC__', 
                         c = f'regexstr($s{{{x}}},"[.][0-9]{{0,6}}$")')
                 subcmd <<= nm.mcal(a = 'uxt',
-                        c = 'if( isnull($s{__FLAC__}), $s{__INT__}, $s{__INT__}+$s{__FLAC__} )', o = 'beforeslope.csv')
+                        c = 'if( isnull($s{__FLAC__}), $s{__INT__}, $s{__INT__}+$s{__FLAC__} )')
             else:
                 subcmd <<= nm.mfldname(f = f'{x}:uxt')
                 x = 'uxt'
@@ -1197,7 +1197,71 @@ class GroupBy2Command(Command):
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
 
-    # --------------- 2 vars -----------------------
+    def autocorrelation_agg(self, k, precision, **kwargs):
+        f = kwargs.get('f')
+        a = kwargs.get('a')
+        x = kwargs.get('x')
+
+        subcmd = None
+        subcmd_o = None
+
+        fs = f.split(',')
+        targets = [None] * len(fs) 
+        msummary = [None] * len(fs) 
+
+        import traceback
+        try:
+            dateformat = kwargs.pop('dateformat')
+
+            fs = f.split(',')
+            subcmd = None
+            subcmd <<= nm.mstdin()
+
+            # fix time column
+            if dateformat == 'date':
+                subcmd <<= nm.mcal(a = '__INT__', 
+                        c = f'uxt( s2t(regexstr($s{{{x}}},"^[0-9]{{14,14}}|^[0-9]{{6,6}}") ) )')
+                subcmd <<= nm.mcal(a = '__FLAC__', 
+                        c = f'regexstr($s{{{x}}},"[.][0-9]{{0,6}}$")')
+                subcmd <<= nm.mcal(a = 'uxt',
+                        c = 'if( isnull($s{__FLAC__}), $s{__INT__}, $s{__INT__}+$s{__FLAC__} )')
+            else:
+                subcmd <<= nm.mfldname(f = f'{x}:uxt')
+                x = 'uxt'
+
+            for i, fld in enumerate(fs):
+                msummary[i] <<= nm.msummary(k = k, c = 'mean,var,count', f =fld, 
+                                          i = subcmd)
+                
+                targets[i] <<= nm.mcut(f = f'{k},uxt', i = subcmd)
+                targets[i] <<= nm.mjoin(k = k, m = msummary[i], f = 'mean,var,count')
+                targets[i] <<= nm.mcombi(k = k, f = 'uxt', a = 't1,t2', n = 2)
+                targets[i] <<= nm.mfsort(f = 't1,t2', n = True)
+                targets[i] <<= nm.mcal(c = '${t2}-${t1}', a = 'rag')
+
+                targets[i] <<= nm.mjoin(k = f'{k},t1', m = subcmd, 
+                                        K = f'{k},uxt', f = f'{fld}:{fld}_t1')
+                targets[i] <<= nm.mjoin(k = f'{k},t2', m = subcmd, 
+                                        K = f'{k},uxt', f = f'{fld}:{fld}_t2')
+                targets[i] <<= nm.mcal(a = 'sub_t1t2',
+                    c = f'(${{{fld}_t1}}-${{mean}})*(${{{fld}_t2}}-${{mean}})')
+                targets[i] <<= nm.msum(k = f'{k},rag', f = 'sub_t1t2')
+                targets[i] <<= nm.mcal(a = fld, 
+                                     c = '${sub_t1t2}/(${count}-${rag})/${var}')
+                targets[i] <<= nm.msummary(k = k, f = fld, 
+                        c = f'mean:{a}_mean,median:{a}_median,var:{a}_var')
+
+            # subcmd_o <<= nm.mcut(i = targets, f = f'{k},fld,{a}_{n}')
+
+            subcmd_o <<= nm.mstdout(i = targets)
+            subcmd_o.run()
+
+        except Exception as e:
+            with open('/dev/stderr', 'w') as fpe:
+                traceback.print_exc(file=fpe)
+
+
+    # --------------- 3 vars -----------------------
 
     def countpeaks(self, k, precision, **kwargs):
         f = kwargs.get('f')
@@ -1227,7 +1291,7 @@ class GroupBy2Command(Command):
                 subcmd <<= nm.mcal(a = '__FLAC__', 
                         c = f'regexstr($s{{{x}}},"[.][0-9]{{0,6}}$")')
                 subcmd <<= nm.mcal(a = 'uxt',
-                        c = 'if( isnull($s{__FLAC__}), $s{__INT__}, $s{__INT__}+$s{__FLAC__} )', o = 'beforeslope.csv')
+                        c = 'if( isnull($s{__FLAC__}), $s{__INT__}, $s{__INT__}+$s{__FLAC__} )')
             else:
                 subcmd <<= nm.mfldname(f = f'{x}:uxt')
                 x = 'uxt'
@@ -1240,7 +1304,7 @@ class GroupBy2Command(Command):
                                          f = f'{fld}:{fld}_down_', i = subcmd)
                 
                 targets[i] <<= nm.mjoin(k = f'{k},uxt', f = f'{fld}_up_*',
-                                        m = mslide[i], o = 'beforedelnull.csv')
+                                        m = mslide[i])
                 targets[i] <<= nm.mdelnull(f = f'{fld}_up_*,{fld}_down_*')
                 targets[i] <<= nm.mcal(c = f'max(${{{fld}_up*}},${{{fld}_down_*}})',
                                        a = '__rollmax__')
@@ -1322,6 +1386,8 @@ class GroupBy2Command(Command):
             'firstmax' : self.firstmax,
             'lastmin' : self.lastmin,
             'lastmax' : self.lastmax,
+            'autocorr' : self.autocorrelation_agg,
+            # 3 fields
             'peaks' : self.countpeaks
         }
 
@@ -1445,7 +1511,9 @@ class GroupBy2Command(Command):
                 cmd[i] <<= nm.runfunc(new_calcs[cs], k = k, precision = prec,
                                       **calcdict)
 
-                if n:
+                if cs == 'autocorr':
+                    final_cs = [f'{calcdict["a"]}_{suff}' for suff in ['mean','median','var']]
+                elif n:
                     final_cs =[f'{calcdict["a"]}_{calcdict["n"]}']
                 else:
                     final_cs = [calcdict['a']]
