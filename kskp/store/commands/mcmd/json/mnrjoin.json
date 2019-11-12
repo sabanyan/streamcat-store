@@ -1,5 +1,8 @@
 {
   "id": "mnrjoin",
+  "label": "範囲による自然結合mnrjoin",
+  "classification": "table_join",
+  "description": "範囲により参照データの項目を結合する",
   "groups": [
     {
       "name": "group3",
@@ -231,8 +234,5 @@
     ]
   ],
   "version": "0.7.0",
-  "label": "範囲による自然結合mnrjoin",
-  "classification": "table_join",
-  "description": "範囲により参照データの項目を結合する",
   "url": "./static/pdf/mcmd/table_join/mnrjoin.pdf"
 }
