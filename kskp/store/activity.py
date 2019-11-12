@@ -7,6 +7,9 @@ from . import ss as session
 from kskp.core import Datum
 
 class Activity(Datum):
+    """
+    実行結果情報を表す
+    """
 
     TYPE = 'activity'
 

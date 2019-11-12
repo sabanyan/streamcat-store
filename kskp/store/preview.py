@@ -14,12 +14,6 @@ class Preview(Datum):
         self.data = None
         self.nysol_result = []
 
-    def save_result(self):
-        """
-        プレビューデータはDBに保存しない
-        """
-        pass
-
     @property
     def result(self):
         """

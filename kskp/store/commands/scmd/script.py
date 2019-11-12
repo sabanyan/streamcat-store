@@ -31,14 +31,21 @@ class SaverCommand(Command):
         start_time_str1 = start_time.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
         start_time_str2 = start_time.strftime('%Y%m%d.%H%M%S.%f')[:-3]
         folder = self.make_folder(store, flow_label, start_time_str1, start_time_str2)
-        self.frame = self.make_frame(folder, point_label)
+        self.frame = self.make_frame(folder, point_label + '.csv')
+        # ラベル名とファイル名はコンストラクタで別々に指定できるようにすれば
+        # 改めてupdate_label_only()を行う必要はなくなる
+        # もしくは、実行ログ一覧画面さえできれば別々に指定する必要もなくなるか？
+        Frame.update_label_only(self.frame.uuid, point_label, None)
 
         # 1. storeにsaveする
         datum_module = folder.save_frame(self, args, inputs['i'], point_label + '.csv') 
         # 2. lasts用なのでコマンド実行のrunをする（繋げる必要はない）
         # result = datum_module.run(msg='on')
 
-        return {'o': self.wrap_with_frame(self.frame, datum_module, args), 'u': self.frame.uuid}
+        self.frame.set_centext(args)
+        self.frame.set_content(datum_module)
+
+        return {'o': self.frame, 'u': self.frame.uuid}
         # TODO: FrameModuleを葬るためには、RunsCommandの後にSaverを付加するように変更する必要があるだろう
         # return {'o': datum_module, 'u': self.frame.uuid}
 
@@ -78,12 +85,12 @@ class SaverCommand(Command):
         return folder2
 
     def make_frame(self, store, label):
-        return Frame(store.uuid, label, None)
-
-    def wrap_with_frame(self, frame, datum_module, args):
-        frame.set_centext(args)
-        frame.set_content(datum_module)
-        return frame
+        import io
+        f = io.BytesIO(b'')
+        self.frame = Frame(store.uuid, label, f)
+        # RunsCommandの実行前にFrameを登録する
+        self.frame.save()
+        return self.frame
 
     def dtor(self):
         if self.frame is None:
@@ -129,12 +136,26 @@ class CacheSaverCommand(SaverCommand):
 
         # Cacheフレームを作成する
         self.frame = self.make_frame(store, cache_label)
+
         # 1. storeにsaveする
         datum_module = store.save_frame(self, args, inputs['i'], cache_label + '.csv') 
-        return {'o': self.wrap_with_frame(self.frame, datum_module, args)}
+
+        self.frame.set_centext(args)
+        self.frame.set_content(datum_module)
+
+        # FlowのキャッシュUUIDを変更する
+        # frame.set_centext(args)の後で行う必要がある
+        self.frame.update_flow(modifier=None)
+
+        return {'o': self.frame}
 
     def make_frame(self, store, label):
-        return Cache(store.uuid, label, None)
+        import io
+        f = io.BytesIO(b'')
+        self.frame = Cache(store.uuid, label, f)
+        # RunsCommandの実行前にFrameを登録する
+        self.frame.save()
+        return self.frame
 
     def dtor(self):
         pass

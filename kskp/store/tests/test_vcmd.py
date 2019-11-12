@@ -107,21 +107,23 @@ class VCmdTestCase(unittest.TestCase):
         json_str = json.dumps(self.flow_csvtohtmltable)
         preview_args = 	{
 			"d1" : {
-				 "visualizer" : "csvtohtmltable",
-	             "offset" : 2,
-				 "limit"  : 2
+                "args" : {
+                    "visualizer" : "csvtohtmltable",
+                    "offset" : 2,
+                    "limit"  : 2
+                }
 			}
 		}
         flow_link = FlowJsonLink('CSV to HTML table', json_str, preview_args=preview_args)
-        lasts = execute(flow_link, {}, {})
-        preview = lasts['d1']
+        activity = execute(flow_link, {}, {})
+        result = self.convert_from_activity_preview(activity)['d1']
 
         expected_result = {'header': ['customer', 'amount', 'date'], 
                            'reader': [['B', '3500', '20180112'], 
                                       ['A', '2000', '20180105']]
                           }
 
-        self.assertEqual(preview.result(), expected_result)
+        self.assertDictEqual(result, expected_result)
         
     def test_csvtolinegraph(self):
         pass
@@ -137,3 +139,10 @@ class VCmdTestCase(unittest.TestCase):
 
     def test_csvtorepetitiviewaveform(self):
         pass
+
+    def convert_from_activity_preview(self, activity):
+        """
+        execute()の戻り値であるActivityから
+        pointのidとpreviewのDictに置き換える
+        """
+        return {point.id : preview.result for point, preview in activity.result.items()}
