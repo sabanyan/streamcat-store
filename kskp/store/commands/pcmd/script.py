@@ -607,6 +607,75 @@ class GroupBy2Command(Command):
         subcmd <<= nm.mstdout()
         subcmd.run()
 
+    def reoccurringdatapoints(self, k, precision, **kwargs):
+        f = kwargs['f']
+        a = kwargs['a']
+
+        try:
+            fs = f.split(',')
+            targets = [None] * len(fs)
+
+            subcmd = None
+            subcmd_o = None
+
+            subcmd <<= nm.mstdin()
+
+            for i, fld in enumerate(fs):
+                targets[i] <<= nm.mcount(k = f'{k},{fld}', a = '__count__',
+                                         i = subcmd)
+                targets[i] <<= nm.mfldname(f = f'{fld}:___')
+                targets[i] <<= nm.mcal(a = fld, c = '${__count__}>1')
+                targets[i] <<= nm.msummary(k = k, f = f'{fld}', 
+                                           c = 'sum:__sum__,count:__count__')
+                targets[i] <<= nm.mcal(c = '${__sum__}/${__count__}', a = a)
+
+            subcmd_o <<= nm.m2cat(i = targets)
+            subcmd_o <<= nm.mcut(f = f'{k},fld,{a}')
+            subcmd_o <<= nm.mstdout()
+            subcmd_o.run()
+
+        except Exception as e:
+            import traceback
+            with open('/dev/stderr', 'w') as fpe:
+                traceback.print_exc(file=fpe)
+
+    def reoccurringvalues(self, k, precision, **kwargs):
+        f = kwargs['f']
+        a = kwargs['a']
+
+        try:
+            fs = f.split(',')
+            targets = [None] * len(fs)
+            mcount = [None] * len(fs)
+
+            subcmd = None
+            subcmd_o = None
+
+            subcmd <<= nm.mstdin()
+
+            for i, fld in enumerate(fs):
+                mcount[i] <<= nm.mcount(k = f'{k}', a ='__total__', 
+                                        i = subcmd)
+
+                targets[i] <<= nm.mcount(k = f'{k},{fld}', a = '__count__',
+                                         i = subcmd)
+                targets[i] <<= nm.mcal(a = '__repeat__', c = 'if(${__count__}>1,${__count__},0)')
+                targets[i] <<= nm.msum(k = k, f = '__repeat__')
+
+                targets[i] <<= nm.mjoin(m = mcount[i], f = '__total__', k = k)
+                targets[i] <<= nm.mcal(a = a, c = '${__repeat__}/${__total__}')
+                targets[i] <<= nm.mcal(a = 'fld', c = f'"{fld}"')
+
+            subcmd_o <<= nm.m2cat(i = targets)
+            subcmd_o <<= nm.mcut(f = f'{k},fld,{a}')
+            subcmd_o <<= nm.mstdout()
+            subcmd_o.run()
+
+        except Exception as e:
+            import traceback
+            with open('/dev/stderr', 'w') as fpe:
+                traceback.print_exc(file=fpe)
+
     def sumofreoccurringdatapoints(self, k, precision, **kwargs):
         f = kwargs['f']
         a = kwargs['a']
@@ -1239,6 +1308,8 @@ class GroupBy2Command(Command):
             'strucount' : self.strucount,
             'mean_ad' : self.meanabsolutedeviation,
             'median_ad' : self.medianabsolutedeviation,
+            'repeatdata' : self.reoccurringdatapoints,
+            'repeatvalues' : self.reoccurringvalues,
             'sum_repeatdata' : self.sumofreoccurringdatapoints,
             'sum_repeatvalues' : self.sumofreoccurringvalues,
             # 1 field + time (input k, a, f, x)
