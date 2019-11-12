@@ -672,6 +672,7 @@ class GroupBy2Command(Command):
             import traceback
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
+    
     # --------------- 2 vars -----------------------
 
     def integral(self, k, precision, **kwargs):
@@ -1127,6 +1128,8 @@ class GroupBy2Command(Command):
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
 
+    # --------------- 2 vars -----------------------
+
     def countpeaks(self, k, precision, **kwargs):
         f = kwargs.get('f')
         a = kwargs.get('a')
@@ -1268,6 +1271,7 @@ class GroupBy2Command(Command):
                 fs = arglist.get('f')
                 x = arglist.get('x')
                 s = arglist.get('s')
+                ns = arglist.get('n')
 
                 if x or s: 
                     arglist['dateformat'] = args['dateformat']
@@ -1307,9 +1311,17 @@ class GroupBy2Command(Command):
                                 **arglist})
 
                 for calc in cs_custom:
-                    calclist.append({'c': calc, 
-                                'optype' : 'custom',
-                                **arglist})
+                    if ns:
+                        ns = ns.split(',')
+                        for n in ns:
+                            arglist['n'] = n
+                            calclist.append({'c': calc, 
+                                        'optype' : 'custom',
+                                        **arglist})
+                    else:
+                        calclist.append({'c': calc, 
+                                    'optype' : 'custom',
+                                    **arglist})
 
         # sys.__stderr__.write(repr(calclist))
 
