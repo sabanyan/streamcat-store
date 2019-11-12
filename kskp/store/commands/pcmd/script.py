@@ -779,6 +779,74 @@ class GroupBy2Command(Command):
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
     
+    def countabovemean(self, k, precision, **kwargs):
+        f = kwargs['f']
+        a = kwargs['a']
+
+        try:
+            fs = f.split(',')
+            targets = [None] * len(fs)
+            msummary = [None] * len(fs)
+
+            subcmd = None
+            subcmd_o = None
+
+            subcmd <<= nm.mstdin()
+
+            for i, fld in enumerate(fs):
+                msummary[i] <<= nm.msummary(i = subcmd, k = k, f = fld, 
+                                            c = 'mean:__mean')
+
+                targets[i] <<= nm.mjoin(i = subcmd, m = msummary[i], k = k, 
+                                        f = '__mean')
+                targets[i] <<= nm.mcal(c = f'${{{fld}}}>${{__mean}}', a = a)
+                targets[i] <<= nm.msum(k = k, f = a)
+                targets[i] <<= nm.msetstr(a = 'fld', v = fld)
+                targets[i] <<= nm.mcut(f = f'{k},fld,{a}')
+
+            subcmd_o <<= nm.m2cat(i = targets)
+            subcmd_o <<= nm.mstdout()
+            subcmd_o.run()
+
+        except Exception as e:
+            import traceback
+            with open('/dev/stderr', 'w') as fpe:
+                traceback.print_exc(file=fpe)
+
+    def countbelowmean(self, k, precision, **kwargs):
+        f = kwargs['f']
+        a = kwargs['a']
+
+        try:
+            fs = f.split(',')
+            targets = [None] * len(fs)
+            msummary = [None] * len(fs)
+
+            subcmd = None
+            subcmd_o = None
+
+            subcmd <<= nm.mstdin()
+
+            for i, fld in enumerate(fs):
+                msummary[i] <<= nm.msummary(i = subcmd, k = k, f = fld, 
+                                            c = 'mean:__mean')
+
+                targets[i] <<= nm.mjoin(i = subcmd, m = msummary[i], k = k, 
+                                        f = '__mean')
+                targets[i] <<= nm.mcal(c = f'${{{fld}}}<${{__mean}}', a = a)
+                targets[i] <<= nm.msum(k = k, f = a)
+                targets[i] <<= nm.msetstr(a = 'fld', v = fld)
+                targets[i] <<= nm.mcut(f = f'{k},fld,{a}')
+
+            subcmd_o <<= nm.m2cat(i = targets)
+            subcmd_o <<= nm.mstdout()
+            subcmd_o.run()
+
+        except Exception as e:
+            import traceback
+            with open('/dev/stderr', 'w') as fpe:
+                traceback.print_exc(file=fpe)
+
     # --------------- 2 vars -----------------------
 
     def integral(self, k, precision, **kwargs):
@@ -1319,6 +1387,7 @@ class GroupBy2Command(Command):
         except Exception as e:
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
+
     def autocorrelation_agg(self, k, precision, **kwargs):
         f = kwargs.get('f')
         a = kwargs.get('a')
@@ -1561,6 +1630,8 @@ class GroupBy2Command(Command):
             'repeatvalues' : self.reoccurringvalues,
             'sum_repeatdata' : self.sumofreoccurringdatapoints,
             'sum_repeatvalues' : self.sumofreoccurringvalues,
+            'count_above_mean' : self.countabovemean,
+            'count_below_mean' : self.countbelowmean,
             # 1 field + time (input k, a, f, x)
             'integral' : self.integral,
             'meanf' : self.meanfrequency,
