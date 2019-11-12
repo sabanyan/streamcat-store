@@ -676,6 +676,43 @@ class GroupBy2Command(Command):
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
 
+    def reoccurringvalues(self, k, precision, **kwargs):
+        f = kwargs['f']
+        a = kwargs['a']
+
+        try:
+            fs = f.split(',')
+            targets = [None] * len(fs)
+            mcount = [None] * len(fs)
+
+            subcmd = None
+            subcmd_o = None
+
+            subcmd <<= nm.mstdin()
+
+            for i, fld in enumerate(fs):
+                mcount[i] <<= nm.mcount(k = f'{k}', a ='__total__', 
+                                        i = subcmd)
+
+                targets[i] <<= nm.mcount(k = f'{k},{fld}', a = '__count__',
+                                         i = subcmd)
+                targets[i] <<= nm.mcal(a = '__repeat__', c = 'if(${__count__}>1,${__count__},0)')
+                targets[i] <<= nm.msum(k = k, f = '__repeat__')
+
+                targets[i] <<= nm.mjoin(m = mcount[i], f = '__total__', k = k)
+                targets[i] <<= nm.mcal(a = a, c = '${__repeat__}/${__total__}')
+                targets[i] <<= nm.mcal(a = 'fld', c = f'"{fld}"')
+
+            subcmd_o <<= nm.m2cat(i = targets)
+            subcmd_o <<= nm.mcut(f = f'{k},fld,{a}')
+            subcmd_o <<= nm.mstdout()
+            subcmd_o.run()
+
+        except Exception as e:
+            import traceback
+            with open('/dev/stderr', 'w') as fpe:
+                traceback.print_exc(file=fpe)
+                
     def sumofreoccurringdatapoints(self, k, precision, **kwargs):
         f = kwargs['f']
         a = kwargs['a']
@@ -1197,6 +1234,91 @@ class GroupBy2Command(Command):
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
 
+    def abs_energy(self, k, precision, **kwargs):
+        f = kwargs.get('f')
+        a = kwargs.get('a')
+        x = kwargs.get('x')
+
+        subcmd = None
+
+        fs = f.split(',')
+
+        import traceback
+        try:
+            dateformat = kwargs.pop('dateformat')
+
+            fs = f.split(',')
+            subcmd = None
+            subcmd <<= nm.mstdin()
+
+            # fix time column
+            if dateformat == 'date':
+                subcmd <<= nm.mcal(a = '__INT__', 
+                        c = f'uxt( s2t(regexstr($s{{{x}}},"^[0-9]{{14,14}}|^[0-9]{{6,6}}") ) )')
+                subcmd <<= nm.mcal(a = '__FLAC__', 
+                        c = f'regexstr($s{{{x}}},"[.][0-9]{{0,6}}$")')
+                subcmd <<= nm.mcal(a = 'uxt',
+                        c = 'if( isnull($s{__FLAC__}), $s{__INT__}, $s{__INT__}+$s{__FLAC__} )')
+            else:
+                subcmd <<= nm.mfldname(f = f'{x}:uxt')
+                x = 'uxt'
+
+            for fld in fs:
+                subcmd <<= nm.mcal(c = f'${{{fld}}}*${{{fld}}}', a = f'__tmp{fld}__')
+                subcmd <<= nm.mcut(f = fld, r = True)
+                subcmd <<= nm.mfldname(f = f'__tmp{fld}__:{fld}')
+            
+            subcmd <<= nm.msummary(k = k, c = f'sum:{a}', f = f, precision = precision)
+
+            subcmd <<= nm.mstdout()
+            subcmd.run()
+
+        except Exception as e:
+            with open('/dev/stderr', 'w') as fpe:
+                traceback.print_exc(file=fpe)
+
+    def abs_sum_of_changes(self, k, precision, **kwargs):
+        f = kwargs.get('f')
+        a = kwargs.get('a')
+        x = kwargs.get('x')
+
+        subcmd = None
+
+        fs = f.split(',')
+
+        import traceback
+        try:
+            dateformat = kwargs.pop('dateformat')
+
+            fs = f.split(',')
+            subcmd = None
+            subcmd <<= nm.mstdin()
+
+            # fix time column
+            if dateformat == 'date':
+                subcmd <<= nm.mcal(a = '__INT__', 
+                        c = f'uxt( s2t(regexstr($s{{{x}}},"^[0-9]{{14,14}}|^[0-9]{{6,6}}") ) )')
+                subcmd <<= nm.mcal(a = '__FLAC__', 
+                        c = f'regexstr($s{{{x}}},"[.][0-9]{{0,6}}$")')
+                subcmd <<= nm.mcal(a = 'uxt',
+                        c = 'if( isnull($s{__FLAC__}), $s{__INT__}, $s{__INT__}+$s{__FLAC__} )')
+            else:
+                subcmd <<= nm.mfldname(f = f'{x}:uxt')
+                x = 'uxt'
+
+            for fld in fs:
+                subcmd <<= nm.mcal(c = f'abs(${{{fld}}}-#{{{fld}}}', a = f'__tmp{fld}__')
+                subcmd <<= nm.mcut(f = fld, r = True)
+                subcmd <<= nm.mfldname(f = f'__tmp{fld}__:{fld}')
+            
+            subcmd <<= nm.msummary(k = k, c = f'sum:{a}', f = f, precision = precision)
+
+            subcmd <<= nm.mstdout()
+            subcmd.run()
+
+        except Exception as e:
+            with open('/dev/stderr', 'w') as fpe:
+                traceback.print_exc(file=fpe)
     def autocorrelation_agg(self, k, precision, **kwargs):
         f = kwargs.get('f')
         a = kwargs.get('a')
@@ -1259,7 +1381,6 @@ class GroupBy2Command(Command):
         except Exception as e:
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
-
 
     # --------------- 3 vars -----------------------
 
@@ -1324,6 +1445,70 @@ class GroupBy2Command(Command):
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
 
+    def autocorrelation(self, k, precision, **kwargs):
+        f = kwargs.get('f')
+        a = kwargs.get('a')
+        x = kwargs.get('x')
+        n = kwargs.get('n')
+
+        subcmd = None
+        subcmd_o = None
+
+        fs = f.split(',')
+        targets = [None] * len(fs)
+        msummary = [None] * len(fs)
+
+        import traceback
+        try:
+            dateformat = kwargs.pop('dateformat')
+
+            fs = f.split(',')
+            subcmd = None
+            subcmd <<= nm.mstdin()
+
+            # fix time column
+            if dateformat == 'date':
+                subcmd <<= nm.mcal(a = '__INT__', 
+                        c = f'uxt( s2t(regexstr($s{{{x}}},"^[0-9]{{14,14}}|^[0-9]{{6,6}}") ) )')
+                subcmd <<= nm.mcal(a = '__FLAC__', 
+                        c = f'regexstr($s{{{x}}},"[.][0-9]{{0,6}}$")')
+                subcmd <<= nm.mcal(a = 'uxt',
+                        c = 'if( isnull($s{__FLAC__}), $s{__INT__}, $s{__INT__}+$s{__FLAC__} )')
+            else:
+                subcmd <<= nm.mfldname(f = f'{x}:uxt')
+                x = 'uxt'
+
+            for i, fld in enumerate(fs):
+                if n == 0:
+                    targets[i] <<= nm.muniq(k = k, i = subcmd)
+                    targets[i] <<= nm.mcut(f = k)
+                    targets[i] <<= nm.msetstr(v = fld, a = 'fld') 
+                    targets[i] <<= nm.msetstr(v = 1, a = a)
+                else:
+                    msummary[i] <<= nm.msummary(i = subcmd, k = k, f = fld,
+                            c = 'mean:__mean,var:__var,count:__count')
+
+                    targets[i] <<= nm.mjoin(i = subcmd, m = msummary[i], k = k,
+                            f = '__mean,__var,__count')
+
+                    targets[i] <<= nm.mslide(k = k, s = 'uxt', t = n, l = True, 
+                                            f = f'{fld}:__{fld}_L')
+                    targets[i] <<= nm.mcal(c = f'(${{{fld}}}-${{__mean}})*(${{__{fld}_L}}-${{__mean}})',
+                                           a = f'__{fld}_m')
+                    targets[i] <<= nm.msum(k = k, f = f'__{fld}_m')
+                    targets[i] <<= nm.msetstr(a = '__lag', v = n)
+                    targets[i] <<= nm.msetstr(a = 'fld', v = fld)
+                    targets[i] <<= nm.mcal(a = f'{a}_{n}', 
+                        c = f'${{__{fld}_m}}/(${{__count}}-${{__lag}})/${{__var}}')
+
+            subcmd_o <<= nm.mcut(i = targets, f = f'{k},fld,{a}_{n}')
+
+            subcmd_o <<= nm.mstdout()
+            subcmd_o.run()
+
+        except Exception as e:
+            with open('/dev/stderr', 'w') as fpe:
+                traceback.print_exc(file=fpe)
     # ## Template
     # subcmd = None
     # subcmd <<= nm.mstdin()
@@ -1386,9 +1571,12 @@ class GroupBy2Command(Command):
             'firstmax' : self.firstmax,
             'lastmin' : self.lastmin,
             'lastmax' : self.lastmax,
-            'autocorr' : self.autocorrelation_agg,
+            'abs_energy' : self.abs_energy, 
+            'abs_sum_of_changes' : self.abs_sum_of_changes, 
+            'autocorr_agg' : self.autocorrelation_agg,
             # 3 fields
-            'peaks' : self.countpeaks
+            'peaks' : self.countpeaks,
+            'autocorr' : self.autocorrelation
         }
 
         self.header = nm.mread(inputs).getline(header=True)
@@ -1484,6 +1672,8 @@ class GroupBy2Command(Command):
         ##### calculation portion:
 
         for i, calcdict in enumerate(calclist):
+            # sys.__stderr__.write(repr(calcdict)+'\n')
+
             cs = calcdict.get('c')
             n = calcdict.get('n')
             optype = calcdict.pop('optype')
@@ -1511,7 +1701,7 @@ class GroupBy2Command(Command):
                 cmd[i] <<= nm.runfunc(new_calcs[cs], k = k, precision = prec,
                                       **calcdict)
 
-                if cs == 'autocorr':
+                if cs == 'autocorr_agg':
                     final_cs = [f'{calcdict["a"]}_{suff}' for suff in ['mean','median','var']]
                 elif n:
                     final_cs =[f'{calcdict["a"]}_{calcdict["n"]}']
