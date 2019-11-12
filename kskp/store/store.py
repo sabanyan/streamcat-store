@@ -50,21 +50,6 @@ class Store(Datum):
     #     """
     #     pass
 
-class FrameStore(Store):
-    """
-    Frameを置いておくStore
-    将来的にはなくす予定
-    """
-    def __init__(self):
-        super().__init__(None, 'framestore', None)
-        self.data = {}
-
-    def save(self):
-        for frame in self.data.values():
-            frame.save_result()
-
-    def append(self, point_id, datum):
-        self.data[point_id] = datum
 
 class ModuleStore(Store):
     """

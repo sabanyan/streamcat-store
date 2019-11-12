@@ -95,7 +95,6 @@ class CommandLink:
             "mstats": MstatsCommand(),
             "msum": MsumCommand(),
             "mtab2csv": Mtab2csvCommand(),
-            "mtee": MteeCommand(),
             "mtonull": MtonullCommand(),
             "mtra": MtraCommand(),
             "mtrafld": MtrafldCommand(),

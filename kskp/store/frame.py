@@ -288,15 +288,6 @@ class Frame(Datum):
     def set_centext(self, params):
         self.context = params
 
-    def save_result(self):
-        # フレームが作成されているか確認(run後なので作成されているはず、作成されていないと作れない)
-        if not self.created:
-            # とりあえずfalseを返す
-            return False
-
-        # dbに保存
-        self.save_to_db()
-
     def save_to_db(self):
         self.data = {'label' : self.context.get('label')}
         relative_path = Datum._to_rel_path(self.context.get('frame_path').as_posix())
@@ -434,19 +425,6 @@ class Cache(Frame):
     """
     def __init__(self, parent_uuid, label, stream, creator=None):
         super().__init__(parent_uuid, label, stream, creator)
-
-    def save_result(self):
-        # キャッシュが作成されているか確認
-        if not self.created:
-            # とりあえずfalseを返す
-            return False
-
-        # dbに保存
-        self.save_to_db()
-
-        # jsonのnodeのuuidを変更
-        # self.update_json_flow()
-        self.update_flow(self.creator)
 
     def update_flow(self, modifier):
         from kskp.store import Flow
