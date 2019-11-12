@@ -618,14 +618,12 @@ class RunsCommand(Command):
         self.o_ports = [Port('*', 'datum?')]
 
     def run(self, args, inputs):
-
         nm_list = []
         for nysol_module in inputs.values():
             nm_list.append(nysol_module)
 
         # NYSOL Pythonを実行する
         import nysol.mcmd as nm
-        # results = nm_list[0].drawModelD3("autoadd_list.html")
         results = nm.runs(nm_list, msg='on')
 
         if len(results) != len(inputs):
