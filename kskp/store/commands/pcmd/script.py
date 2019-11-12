@@ -332,130 +332,159 @@ class GroupBy2Command(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def rows(self, k, precision, **kwargs):
-        a = kwargs['a']
-        fld = kwargs['fld']
-        
-        subcmd = None
-        subcmd <<= nm.mstdin()
+        try:
+            a = kwargs['a']
+            fld = kwargs['fld']
+            
+            subcmd = None
+            subcmd <<= nm.mstdin()
 
-        subcmd <<= nm.mcount(k = k, a = a)
-        subcmd <<= nm.mcal(a = 'fld', c = f'"{fld}"')
-        subcmd <<= nm.mcut(f = f'{k},fld,{a}')
+            subcmd <<= nm.mcount(k = k, a = a)
+            subcmd <<= nm.mcal(a = 'fld', c = f'"{fld}"')
+            subcmd <<= nm.mcut(f = f'{k},fld,{a}')
 
-        subcmd <<= nm.mstdout()
-        subcmd.run()
+            subcmd <<= nm.mstdout()
+            subcmd.run()
+        except Exception as e:
+            import traceback
+            with open('/dev/stderr', 'w') as fpe:
+                traceback.print_exc(file=fpe)
 
     # --------------- 1 var -----------------------
     
     def missingdata(self, k, precision, **kwargs):
-        f = kwargs['f']
-        a = kwargs['a']
+        try:
+            f = kwargs['f']
+            a = kwargs['a']
 
-        subcmd = None
-        allrows = None
-        subcmd <<= nm.mstdin()
-        
-        allrows <<= nm.mcount(i = subcmd, k = k, a = 'allrows')
+            subcmd = None
+            allrows = None
+            subcmd <<= nm.mstdin()
+            
+            allrows <<= nm.mcount(i = subcmd, k = k, a = 'allrows')
 
-        subcmd <<= nm.msummary(k = k, f = f, c = 'count')
-        subcmd <<= nm.mjoin(k = k, m = allrows, f = 'allrows', K = k)
+            subcmd <<= nm.msummary(k = k, f = f, c = 'count')
+            subcmd <<= nm.mjoin(k = k, m = allrows, f = 'allrows', K = k)
 
-        subcmd <<= nm.mcal(a = 'missingcount', c = '${allrows}-${count}')
-        subcmd <<= nm.mcal(a = 'missingpercent', 
-                        c = '((${allrows}-${count})/${allrows})*100',
-                        precision = 3)
-        subcmd <<= nm.mcal(a = a, c = '$s{missingcount}+"("+$s{missingpercent}+"%)"')
+            subcmd <<= nm.mcal(a = 'missingcount', c = '${allrows}-${count}')
+            subcmd <<= nm.mcal(a = 'missingpercent', 
+                            c = '((${allrows}-${count})/${allrows})*100',
+                            precision = 3)
+            subcmd <<= nm.mcal(a = a, c = '$s{missingcount}+"("+$s{missingpercent}+"%)"')
 
-        subcmd <<= nm.mcut(f = f'{k},fld,{a}')
+            subcmd <<= nm.mcut(f = f'{k},fld,{a}')
 
-        subcmd <<= nm.mstdout()
-        subcmd.run()
+            subcmd <<= nm.mstdout()
+            subcmd.run()
+
+        except Exception as e:
+            import traceback
+            with open('/dev/stderr', 'w') as fpe:
+                traceback.print_exc(file=fpe)
 
     def rootmeansquare(self, k, precision, **kwargs):
-        f = kwargs['f']
-        a = kwargs['a']
-        
-        # k gives key fields
-        # f gives target fields
-        # a gives output field name
+        try:
+            f = kwargs['f']
+            a = kwargs['a']
+            
+            # k gives key fields
+            # f gives target fields
+            # a gives output field name
 
-        subcmd = None
-        subcmd <<= nm.mstdin()
-        # mcal to square
-        fs = f.split(',')
+            subcmd = None
+            subcmd <<= nm.mstdin()
+            # mcal to square
+            fs = f.split(',')
 
-        for fld in fs:
-            subcmd <<= nm.mcal(a = f'{fld}_temp', c = f'${{{fld}}}^2',
-                               precision = precision)
-            subcmd <<= nm.mcut(f = fld, r = True)
-            subcmd <<= nm.mfldname(f = f'{fld}_temp:{fld}')
-        
-        # msummary to sum
-        subcmd <<= nm.msummary(c = 'sum,count', f = f, k = k,
-                               precision = precision)
+            for fld in fs:
+                subcmd <<= nm.mcal(a = f'{fld}_temp', c = f'${{{fld}}}^2',
+                                precision = precision)
+                subcmd <<= nm.mcut(f = fld, r = True)
+                subcmd <<= nm.mfldname(f = f'{fld}_temp:{fld}')
+            
+            # msummary to sum
+            subcmd <<= nm.msummary(c = 'sum,count', f = f, k = k,
+                                precision = precision)
 
-        # mcal to sqrt
-        subcmd <<= nm.mcal(a = a, c = 'sqrt(${sum}/${count})',
-                           precision = precision)
+            # mcal to sqrt
+            subcmd <<= nm.mcal(a = a, c = 'sqrt(${sum}/${count})',
+                            precision = precision)
 
-        # mcut to remove old row
-        finalcols = ','.join([k,'fld',a])
-        subcmd <<= nm.mcut(f = finalcols)
+            # mcut to remove old row
+            finalcols = ','.join([k,'fld',a])
+            subcmd <<= nm.mcut(f = finalcols)
 
-        subcmd <<= nm.mstdout()
-        subcmd.run()
+            subcmd <<= nm.mstdout()
+            subcmd.run()
+
+        except Exception as e:
+            import traceback
+            with open('/dev/stderr', 'w') as fpe:
+                traceback.print_exc(file=fpe)
 
     def geometricmean(self, k, precision, **kwargs):
-        f = kwargs['f']
-        a = kwargs['a']
-        
-        # positive numbers only
-        subcmd = None
-        subcmd <<= nm.mstdin()
+        try:
+            f = kwargs['f']
+            a = kwargs['a']
+            
+            # positive numbers only
+            subcmd = None
+            subcmd <<= nm.mstdin()
 
-        fs = f.split(',')
-        for fld in fs:
-            subcmd <<= nm.mcal(a = f'{fld}_ln', c = f'ln(abs(${{{fld}}}))',
-                               precision = precision)
-            subcmd <<= nm.mcut(f = fld, r = True)
-            subcmd <<= nm.mfldname(f = f'{fld}_ln:{fld}')
+            fs = f.split(',')
+            for fld in fs:
+                subcmd <<= nm.mcal(a = f'{fld}_ln', c = f'ln(abs(${{{fld}}}))',
+                                precision = precision)
+                subcmd <<= nm.mcut(f = fld, r = True)
+                subcmd <<= nm.mfldname(f = f'{fld}_ln:{fld}')
 
-        subcmd <<= nm.msummary(c = 'mean', f = f, k = k,
-                               precision = precision)
+            subcmd <<= nm.msummary(c = 'mean', f = f, k = k,
+                                precision = precision)
 
-        subcmd <<= nm.mcal(a = a, c = 'exp(${mean})', 
-                           precision = precision)
+            subcmd <<= nm.mcal(a = a, c = 'exp(${mean})', 
+                            precision = precision)
 
-        finalcols = f'{k},fld,{a}'
-        subcmd <<= nm.mcut(f = finalcols)
-        
-        subcmd <<= nm.mstdout()
-        subcmd.run()
+            finalcols = f'{k},fld,{a}'
+            subcmd <<= nm.mcut(f = finalcols)
+            
+            subcmd <<= nm.mstdout()
+            subcmd.run()
+
+        except Exception as e:
+            import traceback
+            with open('/dev/stderr', 'w') as fpe:
+                traceback.print_exc(file=fpe)
 
     def harmonicmean(self, k, precision, **kwargs):
-        f = kwargs['f']
-        a = kwargs['a']
-        
-        subcmd = None
-        subcmd <<= nm.mstdin()
+        try:
+            f = kwargs['f']
+            a = kwargs['a']
+            
+            subcmd = None
+            subcmd <<= nm.mstdin()
 
-        fs = f.split(',')
-        for fld in fs:
-            subcmd <<= nm.mcal(a = f'{fld}_inv', c = f'1/${{{fld}}}',
-                               precision = precision)
-            subcmd <<= nm.mcut(f = fld, r = True)
-            subcmd <<= nm.mfldname(f = f'{fld}_inv:{fld}')
+            fs = f.split(',')
+            for fld in fs:
+                subcmd <<= nm.mcal(a = f'{fld}_inv', c = f'1/${{{fld}}}',
+                                precision = precision)
+                subcmd <<= nm.mcut(f = fld, r = True)
+                subcmd <<= nm.mfldname(f = f'{fld}_inv:{fld}')
 
-        subcmd <<= nm.msummary(c = 'sum,count', f = f, k = k,
-                               precision = precision)
+            subcmd <<= nm.msummary(c = 'sum,count', f = f, k = k,
+                                precision = precision)
 
-        subcmd <<= nm.mcal(a = a, c = '${count}/${sum}', precision = precision)
+            subcmd <<= nm.mcal(a = a, c = '${count}/${sum}', precision = precision)
 
-        finalcols = ','.join([k,'fld',a])
-        subcmd <<= nm.mcut(f = finalcols)
-        
-        subcmd <<= nm.mstdout()
-        subcmd.run()
+            finalcols = ','.join([k,'fld',a])
+            subcmd <<= nm.mcut(f = finalcols)
+            
+            subcmd <<= nm.mstdout()
+            subcmd.run()
+
+        except Exception as e:
+            import traceback
+            with open('/dev/stderr', 'w') as fpe:
+                traceback.print_exc(file=fpe)
 
     def strmax(self, k, precision, **kwargs):
         f = kwargs['f']
@@ -542,70 +571,82 @@ class GroupBy2Command(Command):
                 traceback.print_exc(file=fpe)
 
     def meanabsolutedeviation(self, k, precision, **kwargs):
-        f = kwargs['f']
-        a = kwargs['a']
-        
-        subcmd = None
-        meancalc = None
+        try:
+            f = kwargs['f']
+            a = kwargs['a']
+            
+            subcmd = None
+            meancalc = None
 
-        subcmd <<= nm.mstdin() 
+            subcmd <<= nm.mstdin() 
 
-        meancalc <<= nm.msummary(i = subcmd, k = k, f = f, c = 'mean',
-                                 precision = precision)
-        meancalc <<= nm.m2cross(f = 'mean', a = 'type,value', k = k + ',fld')
-        meancalc <<= nm.mcal(a = 'colnames', c = '$s{fld}+"_mean"',
-                             precision = precision)
-        meancalc <<= nm.mcross(f = 'value', s= 'colnames', k = k)
+            meancalc <<= nm.msummary(i = subcmd, k = k, f = f, c = 'mean',
+                                    precision = precision)
+            meancalc <<= nm.m2cross(f = 'mean', a = 'type,value', k = k + ',fld')
+            meancalc <<= nm.mcal(a = 'colnames', c = '$s{fld}+"_mean"',
+                                precision = precision)
+            meancalc <<= nm.mcross(f = 'value', s= 'colnames', k = k)
 
-        flds = f.split(',')
-        fldnames = [fld + '_mean' for fld in flds]
-        subcmd <<= nm.mjoin(k = k, K = k, m = meancalc, 
-                            f = ','.join(fldnames))
+            flds = f.split(',')
+            fldnames = [fld + '_mean' for fld in flds]
+            subcmd <<= nm.mjoin(k = k, K = k, m = meancalc, 
+                                f = ','.join(fldnames))
 
-        for fld in flds:
-            subcmd <<= nm.mcal(a = f'{fld}_diff', 
-                               c = f'abs(${{{fld}}}-${{{fld+"_mean"}}})',
-                               precision = precision)
-            subcmd <<= nm.mcut(f = fld, r = True)
-            subcmd <<= nm.mfldname(f = f'{fld}_diff:{fld}')
+            for fld in flds:
+                subcmd <<= nm.mcal(a = f'{fld}_diff', 
+                                c = f'abs(${{{fld}}}-${{{fld+"_mean"}}})',
+                                precision = precision)
+                subcmd <<= nm.mcut(f = fld, r = True)
+                subcmd <<= nm.mfldname(f = f'{fld}_diff:{fld}')
 
-        subcmd <<= nm.msummary(k = k, c = f'mean:{a}', f = f, 
-                               precision = precision)
-        subcmd <<= nm.mstdout()
-        subcmd.run()
+            subcmd <<= nm.msummary(k = k, c = f'mean:{a}', f = f, 
+                                precision = precision)
+            subcmd <<= nm.mstdout()
+            subcmd.run()
+
+        except Exception as e:
+            import traceback
+            with open('/dev/stderr', 'w') as fpe:
+                traceback.print_exc(file=fpe)
         
     def medianabsolutedeviation(self, k, precision, **kwargs):
-        f = kwargs['f']
-        a = kwargs['a']
-        
-        subcmd = None
-        meancalc = None
+        try:
+            f = kwargs['f']
+            a = kwargs['a']
+            
+            subcmd = None
+            meancalc = None
 
-        subcmd <<= nm.mstdin()
+            subcmd <<= nm.mstdin()
 
-        meancalc <<= nm.msummary(i = subcmd, k = k, f = f, c = 'median',
-                                 precision = precision)
-        meancalc <<= nm.m2cross(f = 'median', a = 'type,value', k = k + ',fld')
-        meancalc <<= nm.mcal(a = 'colnames', c = '$s{fld}+"_median"',
-                             precision = precision)
-        meancalc <<= nm.mcross(f = 'value', s= 'colnames', k = k)
+            meancalc <<= nm.msummary(i = subcmd, k = k, f = f, c = 'median',
+                                    precision = precision)
+            meancalc <<= nm.m2cross(f = 'median', a = 'type,value', k = k + ',fld')
+            meancalc <<= nm.mcal(a = 'colnames', c = '$s{fld}+"_median"',
+                                precision = precision)
+            meancalc <<= nm.mcross(f = 'value', s= 'colnames', k = k)
 
-        flds = f.split(',')
-        fldnames = [fld + '_median' for fld in flds]
-        subcmd <<= nm.mjoin(k = k, K = k, m = meancalc, 
-                            f = ','.join(fldnames))
+            flds = f.split(',')
+            fldnames = [fld + '_median' for fld in flds]
+            subcmd <<= nm.mjoin(k = k, K = k, m = meancalc, 
+                                f = ','.join(fldnames))
 
-        for fld in flds:
-            subcmd <<= nm.mcal(a = f'{fld}_diff', 
-                               c = f'abs(${{{fld}}}-${{{fld+"_median"}}})',
-                               precision = precision)
-            subcmd <<= nm.mcut(f = fld, r = True)
-            subcmd <<= nm.mfldname(f = f'{fld}_diff:{fld}')
+            for fld in flds:
+                subcmd <<= nm.mcal(a = f'{fld}_diff', 
+                                c = f'abs(${{{fld}}}-${{{fld+"_median"}}})',
+                                precision = precision)
+                subcmd <<= nm.mcut(f = fld, r = True)
+                subcmd <<= nm.mfldname(f = f'{fld}_diff:{fld}')
 
-        subcmd <<= nm.msummary(k = k, c = f'mean:{a}', f = f, 
-                               precision = precision)
-        subcmd <<= nm.mstdout()
-        subcmd.run()
+            subcmd <<= nm.msummary(k = k, c = f'mean:{a}', f = f, 
+                                precision = precision)
+            subcmd <<= nm.mstdout()
+            subcmd.run()
+
+        except Exception as e:
+            import traceback
+            with open('/dev/stderr', 'w') as fpe:
+                traceback.print_exc(file=fpe)
 
     def reoccurringdatapoints(self, k, precision, **kwargs):
         f = kwargs['f']
@@ -628,43 +669,6 @@ class GroupBy2Command(Command):
                 targets[i] <<= nm.msummary(k = k, f = f'{fld}', 
                                            c = 'sum:__sum__,count:__count__')
                 targets[i] <<= nm.mcal(c = '${__sum__}/${__count__}', a = a)
-
-            subcmd_o <<= nm.m2cat(i = targets)
-            subcmd_o <<= nm.mcut(f = f'{k},fld,{a}')
-            subcmd_o <<= nm.mstdout()
-            subcmd_o.run()
-
-        except Exception as e:
-            import traceback
-            with open('/dev/stderr', 'w') as fpe:
-                traceback.print_exc(file=fpe)
-
-    def reoccurringvalues(self, k, precision, **kwargs):
-        f = kwargs['f']
-        a = kwargs['a']
-
-        try:
-            fs = f.split(',')
-            targets = [None] * len(fs)
-            mcount = [None] * len(fs)
-
-            subcmd = None
-            subcmd_o = None
-
-            subcmd <<= nm.mstdin()
-
-            for i, fld in enumerate(fs):
-                mcount[i] <<= nm.mcount(k = f'{k}', a ='__total__', 
-                                        i = subcmd)
-
-                targets[i] <<= nm.mcount(k = f'{k},{fld}', a = '__count__',
-                                         i = subcmd)
-                targets[i] <<= nm.mcal(a = '__repeat__', c = 'if(${__count__}>1,${__count__},0)')
-                targets[i] <<= nm.msum(k = k, f = '__repeat__')
-
-                targets[i] <<= nm.mjoin(m = mcount[i], f = '__total__', k = k)
-                targets[i] <<= nm.mcal(a = a, c = '${__repeat__}/${__total__}')
-                targets[i] <<= nm.mcal(a = 'fld', c = f'"{fld}"')
 
             subcmd_o <<= nm.m2cat(i = targets)
             subcmd_o <<= nm.mcut(f = f'{k},fld,{a}')
@@ -850,54 +854,60 @@ class GroupBy2Command(Command):
     # --------------- 2 vars -----------------------
 
     def integral(self, k, precision, **kwargs):
-        f = kwargs['f']
-        x = kwargs['x']
-        a = kwargs['a']
+        try:
+            f = kwargs['f']
+            x = kwargs['x']
+            a = kwargs['a']
 
-        dateformat = kwargs.pop('dateformat') 
-        fs = f.split(',')
+            dateformat = kwargs.pop('dateformat') 
+            fs = f.split(',')
 
-        subcmd = None
-        subcmd <<= nm.mstdin()
+            subcmd = None
+            subcmd <<= nm.mstdin()
 
-        # get keybreak points
-        subcmd <<= nm.msortf(f = k)
-        subcmd <<= nm.mkeybreak(k = k, s = f'{x}%n')
-        
-        # fix time column
-        if dateformat == 'date':
-            subcmd <<= nm.mcal(a = '__INT__', 
-                    c = f'uxt( s2t(regexstr($s{{{x}}},"^[0-9]{{14,14}}|^[0-9]{{6,6}}") ) )')
-            subcmd <<= nm.mcal(a = '__FLAC__', 
-                    c = f'regexstr($s{{{x}}},"[.][0-9]{{0,6}}$")')
-            subcmd <<= nm.mcal(a = 'uxt',
-                    c = 'if( isnull($s{__FLAC__}), $s{__INT__}, $s{__INT__}+$s{__FLAC__} )')
-        else:
-            subcmd <<= nm.mfldname(f = f'{x}:uxt')
-            x = 'uxt'
+            # get keybreak points
+            subcmd <<= nm.msortf(f = k)
+            subcmd <<= nm.mkeybreak(k = k, s = f'{x}%n')
+            
+            # fix time column
+            if dateformat == 'date':
+                subcmd <<= nm.mcal(a = '__INT__', 
+                        c = f'uxt( s2t(regexstr($s{{{x}}},"^[0-9]{{14,14}}|^[0-9]{{6,6}}") ) )')
+                subcmd <<= nm.mcal(a = '__FLAC__', 
+                        c = f'regexstr($s{{{x}}},"[.][0-9]{{0,6}}$")')
+                subcmd <<= nm.mcal(a = 'uxt',
+                        c = 'if( isnull($s{__FLAC__}), $s{__INT__}, $s{__INT__}+$s{__FLAC__} )')
+            else:
+                subcmd <<= nm.mfldname(f = f'{x}:uxt')
+                x = 'uxt'
 
-        # if not top of section, get time step length, else null
-        subcmd <<= nm.mcal(a = 'time_step', 
-                        c = f'if(isnull(${{top}}),${{uxt}}-#{{uxt}},nulln())')
+            # if not top of section, get time step length, else null
+            subcmd <<= nm.mcal(a = 'time_step', 
+                            c = f'if(isnull(${{top}}),${{uxt}}-#{{uxt}},nulln())')
 
-        # if not top of section, add current and previous value, else null
-        for fld in fs:
-            subcmd <<= nm.mcal(a = f'{fld}_partial_sum', 
-                    c = f'if(isnull(${{top}}),${{{fld}}}+#{{{fld}}},nulln())')
+            # if not top of section, add current and previous value, else null
+            for fld in fs:
+                subcmd <<= nm.mcal(a = f'{fld}_partial_sum', 
+                        c = f'if(isnull(${{top}}),${{{fld}}}+#{{{fld}}},nulln())')
 
-            # trapezoid rule: (((partialsum)/2)*step size)
-            subcmd <<= nm.mcal(a = f'{fld}_trap', 
-                    c = f'(${{{fld}_partial_sum}}/2)*${{time_step}}')
+                # trapezoid rule: (((partialsum)/2)*step size)
+                subcmd <<= nm.mcal(a = f'{fld}_trap', 
+                        c = f'(${{{fld}_partial_sum}}/2)*${{time_step}}')
 
-            subcmd <<= nm.mcut(f = fld, r = True)
-            subcmd <<= nm.mfldname(f = f'{fld}_trap:{fld}')
+                subcmd <<= nm.mcut(f = fld, r = True)
+                subcmd <<= nm.mfldname(f = f'{fld}_trap:{fld}')
 
-        # sum over each key
-        subcmd <<= nm.msummary(k = k, c = f'sum:{a}', f = f,
-                            precision = precision)
+            # sum over each key
+            subcmd <<= nm.msummary(k = k, c = f'sum:{a}', f = f,
+                                precision = precision)
 
-        subcmd <<= nm.mstdout()
-        subcmd.run()
+            subcmd <<= nm.mstdout()
+            subcmd.run()
+
+        except Exception as e:
+            import traceback
+            with open('/dev/stderr', 'w') as fpe:
+                traceback.print_exc(file=fpe)
         
     def meanfrequency(self, k, precision, **kwargs):
         # body of this method adapted from:
