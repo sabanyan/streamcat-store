@@ -1461,6 +1461,84 @@ class GroupBy2Command(Command):
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
 
+    def longeststrikeabovemean(self, k, precision, **kwargs):
+        f = kwargs['f']
+        a = kwargs['a']
+        x = kwargs['x']
+
+        try:
+            fs = f.split(',')
+            targets = [None] * len(fs)
+            msummary = [None] * len(fs)
+
+            subcmd = None
+            subcmd_o = None
+
+            subcmd <<= nm.mstdin()
+
+            for i, fld in enumerate(fs):
+                msummary[i] <<= nm.msummary(i = subcmd, k = k, f = fld, 
+                                            c = 'mean:__mean')
+
+                targets[i] <<= nm.mjoin(i = subcmd, m = msummary[i], k = k, 
+                                        f = '__mean')
+
+                targets[i] <<= nm.msortf(f = f'{k},{x}')
+                targets[i] <<= nm.mcal(c = f'${{__mean}}<=${{{fld}}}', a = '__above')
+                targets[i] <<= nm.mcount(q = True, k = f'{k},__above', a = '__a_count')
+                targets[i] <<= nm.mbest(k = k, s = '__above%nr,__a_count%nr', size = 1)
+                targets[i] <<= nm.mcal(c = 'if(${__above}==0,0,${__a_count})', a = a)
+                targets[i] <<= nm.msetstr(a = 'fld', v = fld)
+                targets[i] <<= nm.mcut(f = f'{k},fld,{a}')
+
+            subcmd_o <<= nm.m2cat(i = targets)
+            subcmd_o <<= nm.mstdout()
+            subcmd_o.run()
+
+        except Exception as e:
+            import traceback
+            with open('/dev/stderr', 'w') as fpe:
+                traceback.print_exc(file=fpe)
+
+    def longeststrikebelowmean(self, k, precision, **kwargs):
+        f = kwargs['f']
+        a = kwargs['a']
+        x = kwargs['x']
+
+        try:
+            fs = f.split(',')
+            targets = [None] * len(fs)
+            msummary = [None] * len(fs)
+
+            subcmd = None
+            subcmd_o = None
+
+            subcmd <<= nm.mstdin()
+
+            for i, fld in enumerate(fs):
+                msummary[i] <<= nm.msummary(i = subcmd, k = k, f = fld, 
+                                            c = 'mean:__mean')
+
+                targets[i] <<= nm.mjoin(i = subcmd, m = msummary[i], k = k, 
+                                        f = '__mean')
+
+                targets[i] <<= nm.msortf(f = f'{k},{x}')
+                targets[i] <<= nm.mcal(c = f'${{__mean}}>=${{{fld}}}', a = '__below')
+                targets[i] <<= nm.mcount(q = True, k = f'{k},__below', a = '__b_count')
+                targets[i] <<= nm.mbest(k = k, s = '__below%nr,__b_count%nr', size = 1)
+                targets[i] <<= nm.mcal(c = 'if(${__below}==0,0,${__b_count})', a = a)
+                targets[i] <<= nm.msetstr(a = 'fld', v = fld)
+                targets[i] <<= nm.mcut(f = f'{k},fld,{a}')
+
+            subcmd_o <<= nm.m2cat(i = targets)
+            subcmd_o <<= nm.mstdout()
+            subcmd_o.run()
+
+        except Exception as e:
+            import traceback
+            with open('/dev/stderr', 'w') as fpe:
+                traceback.print_exc(file=fpe)
+
     # --------------- 3 vars -----------------------
 
     def countpeaks(self, k, precision, **kwargs):
@@ -1655,6 +1733,8 @@ class GroupBy2Command(Command):
             'abs_energy' : self.abs_energy, 
             'abs_sum_of_changes' : self.abs_sum_of_changes, 
             'autocorr_agg' : self.autocorrelation_agg,
+            'longest_strike_above_mean' : self.longeststrikeabovemean,
+            'longest_strike_below_mean' : self.longeststrikebelowmean,
             # 3 fields
             'peaks' : self.countpeaks,
             'autocorr' : self.autocorrelation
