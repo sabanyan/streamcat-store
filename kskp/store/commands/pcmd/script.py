@@ -331,6 +331,20 @@ class GroupBy2Command(Command):
         self.i_ports = [Port('i', 'frame')]
         self.o_ports = [Port('o', 'frame')]
 
+    def fixtimecolumn(self, flow, col, dateformat = 'date'):
+        if dateformat == 'date':
+            flow <<= nm.mcal(a = '__INT__', 
+                    c = f'uxt( s2t(regexstr($s{{{col}}},"^[0-9]{{14,14}}|^[0-9]{{6,6}}") ) )')
+            flow <<= nm.mcal(a = '__FLAC__', 
+                    c = f'regexstr($s{{{col}}},"[.][0-9]{{0,6}}$")')
+            flow <<= nm.mcal(a = 'uxt',
+                    c = 'if( isnull($s{__FLAC__}), $s{__INT__}, $s{__INT__}+$s{__FLAC__} )')
+        else:
+            flow <<= nm.mfldname(f = f'{col}:uxt')
+        
+        return flow
+
+
     def rows(self, k, precision, **kwargs):
         try:
             a = kwargs['a']
@@ -567,6 +581,36 @@ class GroupBy2Command(Command):
 
         except Exception as e:
             import traceback
+            with open('/dev/stderr', 'w') as fpe:
+                traceback.print_exc(file=fpe)
+
+    def abs_energy(self, k, precision, **kwargs):
+        f = kwargs.get('f')
+        a = kwargs.get('a')
+
+        subcmd = None
+
+        fs = f.split(',')
+
+        import traceback
+        try:
+
+            fs = f.split(',')
+            subcmd = None
+            subcmd <<= nm.mstdin()
+
+
+            for fld in fs:
+                subcmd <<= nm.mcal(c = f'${{{fld}}}*${{{fld}}}', a = f'__tmp{fld}__')
+                subcmd <<= nm.mcut(f = fld, r = True)
+                subcmd <<= nm.mfldname(f = f'__tmp{fld}__:{fld}')
+            
+            subcmd <<= nm.msummary(k = k, c = f'sum:{a}', f = f, precision = precision)
+
+            subcmd <<= nm.mstdout()
+            subcmd.run()
+
+        except Exception as e:
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
 
@@ -870,16 +914,7 @@ class GroupBy2Command(Command):
             subcmd <<= nm.mkeybreak(k = k, s = f'{x}%n')
             
             # fix time column
-            if dateformat == 'date':
-                subcmd <<= nm.mcal(a = '__INT__', 
-                        c = f'uxt( s2t(regexstr($s{{{x}}},"^[0-9]{{14,14}}|^[0-9]{{6,6}}") ) )')
-                subcmd <<= nm.mcal(a = '__FLAC__', 
-                        c = f'regexstr($s{{{x}}},"[.][0-9]{{0,6}}$")')
-                subcmd <<= nm.mcal(a = 'uxt',
-                        c = 'if( isnull($s{__FLAC__}), $s{__INT__}, $s{__INT__}+$s{__FLAC__} )')
-            else:
-                subcmd <<= nm.mfldname(f = f'{x}:uxt')
-                x = 'uxt'
+            subcmd = self.fixtimecolumn(subcmd, x, dateformat)
 
             # if not top of section, get time step length, else null
             subcmd <<= nm.mcal(a = 'time_step', 
@@ -1000,16 +1035,7 @@ class GroupBy2Command(Command):
             subcmd <<= nm.mstdin()
 
             # fix time column
-            if dateformat == 'date':
-                subcmd <<= nm.mcal(a = '__INT__', 
-                        c = f'uxt( s2t(regexstr($s{{{x}}},"^[0-9]{{14,14}}|^[0-9]{{6,6}}") ) )')
-                subcmd <<= nm.mcal(a = '__FLAC__', 
-                        c = f'regexstr($s{{{x}}},"[.][0-9]{{0,6}}$")')
-                subcmd <<= nm.mcal(a = 'uxt',
-                        c = 'if( isnull($s{__FLAC__}), $s{__INT__}, $s{__INT__}+$s{__FLAC__} )')
-            else:
-                subcmd <<= nm.mfldname(f = f'{x}:uxt')
-                x = 'uxt'
+            subcmd = self.fixtimecolumn(subcmd, x, dateformat)
 
             for fld in fs: 
                 subcmd <<= nm.mcal(a = f'{fld}_prod',c = f'${{{fld}}}*${{uxt}}')
@@ -1097,16 +1123,7 @@ class GroupBy2Command(Command):
             subcmd <<= nm.mstdin()
 
             # fix time column
-            if dateformat == 'date':
-                subcmd <<= nm.mcal(a = '__INT__', 
-                        c = f'uxt( s2t(regexstr($s{{{x}}},"^[0-9]{{14,14}}|^[0-9]{{6,6}}") ) )')
-                subcmd <<= nm.mcal(a = '__FLAC__', 
-                        c = f'regexstr($s{{{x}}},"[.][0-9]{{0,6}}$")')
-                subcmd <<= nm.mcal(a = 'uxt',
-                        c = 'if( isnull($s{__FLAC__}), $s{__INT__}, $s{__INT__}+$s{__FLAC__} )')
-            else:
-                subcmd <<= nm.mfldname(f = f'{x}:uxt')
-                x = 'uxt'
+            subcmd = self.fixtimecolumn(subcmd, x, dateformat)
 
             for i, fld in enumerate(fs):
                 msum[i] <<= nm.msummary(c = 'min,range', k = k,
@@ -1156,16 +1173,7 @@ class GroupBy2Command(Command):
             subcmd <<= nm.mstdin()
 
             # fix time column
-            if dateformat == 'date':
-                subcmd <<= nm.mcal(a = '__INT__', 
-                        c = f'uxt( s2t(regexstr($s{{{x}}},"^[0-9]{{14,14}}|^[0-9]{{6,6}}") ) )')
-                subcmd <<= nm.mcal(a = '__FLAC__', 
-                        c = f'regexstr($s{{{x}}},"[.][0-9]{{0,6}}$")')
-                subcmd <<= nm.mcal(a = 'uxt',
-                        c = 'if( isnull($s{__FLAC__}), $s{__INT__}, $s{__INT__}+$s{__FLAC__} )')
-            else:
-                subcmd <<= nm.mfldname(f = f'{x}:uxt')
-                x = 'uxt'
+            subcmd = self.fixtimecolumn(subcmd, x, dateformat)
 
             for i, fld in enumerate(fs):
                 msum[i] <<= nm.msummary(c = 'min,range', k = k,
@@ -1215,16 +1223,7 @@ class GroupBy2Command(Command):
             subcmd <<= nm.mstdin()
 
             # fix time column
-            if dateformat == 'date':
-                subcmd <<= nm.mcal(a = '__INT__', 
-                        c = f'uxt( s2t(regexstr($s{{{x}}},"^[0-9]{{14,14}}|^[0-9]{{6,6}}") ) )')
-                subcmd <<= nm.mcal(a = '__FLAC__', 
-                        c = f'regexstr($s{{{x}}},"[.][0-9]{{0,6}}$")')
-                subcmd <<= nm.mcal(a = 'uxt',
-                        c = 'if( isnull($s{__FLAC__}), $s{__INT__}, $s{__INT__}+$s{__FLAC__} )')
-            else:
-                subcmd <<= nm.mfldname(f = f'{x}:uxt')
-                x = 'uxt'
+            subcmd = self.fixtimecolumn(subcmd, x, dateformat)
 
             for i, fld in enumerate(fs):
                 msum[i] <<= nm.msummary(c = 'min,range', k = k,
@@ -1274,16 +1273,7 @@ class GroupBy2Command(Command):
             subcmd <<= nm.mstdin()
 
             # fix time column
-            if dateformat == 'date':
-                subcmd <<= nm.mcal(a = '__INT__', 
-                        c = f'uxt( s2t(regexstr($s{{{x}}},"^[0-9]{{14,14}}|^[0-9]{{6,6}}") ) )')
-                subcmd <<= nm.mcal(a = '__FLAC__', 
-                        c = f'regexstr($s{{{x}}},"[.][0-9]{{0,6}}$")')
-                subcmd <<= nm.mcal(a = 'uxt',
-                        c = 'if( isnull($s{__FLAC__}), $s{__INT__}, $s{__INT__}+$s{__FLAC__} )')
-            else:
-                subcmd <<= nm.mfldname(f = f'{x}:uxt')
-                x = 'uxt'
+            subcmd = self.fixtimecolumn(subcmd, x, dateformat)
 
             for i, fld in enumerate(fs):
                 msum[i] <<= nm.msummary(c = 'min,range', k = k,
@@ -1294,7 +1284,6 @@ class GroupBy2Command(Command):
                 msum[i] <<= nm.mcal(a = '__tmpcol__',
                                     c = f'$s{{fld}}+"_"+$s{{__type__}}')
                 msum[i] <<= nm.mcross(k = k, f = '__val__', s = '__tmpcol__')
-                
 
                 targets[i] <<= nm.mbest(k = k, s = f'{fld}%nr,uxt%nr',
                                         i = subcmd)
@@ -1329,16 +1318,7 @@ class GroupBy2Command(Command):
             subcmd <<= nm.mstdin()
 
             # fix time column
-            if dateformat == 'date':
-                subcmd <<= nm.mcal(a = '__INT__', 
-                        c = f'uxt( s2t(regexstr($s{{{x}}},"^[0-9]{{14,14}}|^[0-9]{{6,6}}") ) )')
-                subcmd <<= nm.mcal(a = '__FLAC__', 
-                        c = f'regexstr($s{{{x}}},"[.][0-9]{{0,6}}$")')
-                subcmd <<= nm.mcal(a = 'uxt',
-                        c = 'if( isnull($s{__FLAC__}), $s{__INT__}, $s{__INT__}+$s{__FLAC__} )')
-            else:
-                subcmd <<= nm.mfldname(f = f'{x}:uxt')
-                x = 'uxt'
+            subcmd = self.fixtimecolumn(subcmd, x, dateformat)
 
             for i, fld in enumerate(fs):
                 targets[i] <<= nm.mslide(k = k, s = 'uxt', i = subcmd, 
@@ -1376,16 +1356,7 @@ class GroupBy2Command(Command):
             subcmd <<= nm.mstdin()
 
             # fix time column
-            if dateformat == 'date':
-                subcmd <<= nm.mcal(a = '__INT__', 
-                        c = f'uxt( s2t(regexstr($s{{{x}}},"^[0-9]{{14,14}}|^[0-9]{{6,6}}") ) )')
-                subcmd <<= nm.mcal(a = '__FLAC__', 
-                        c = f'regexstr($s{{{x}}},"[.][0-9]{{0,6}}$")')
-                subcmd <<= nm.mcal(a = 'uxt',
-                        c = 'if( isnull($s{__FLAC__}), $s{__INT__}, $s{__INT__}+$s{__FLAC__} )')
-            else:
-                subcmd <<= nm.mfldname(f = f'{x}:uxt')
-                x = 'uxt'
+            subcmd = self.fixtimecolumn(subcmd, x, dateformat)
 
             for i, fld in enumerate(fs):
                 targets[i] <<= nm.mslide(k = k, s = 'uxt', i = subcmd, 
@@ -1403,49 +1374,6 @@ class GroupBy2Command(Command):
 
         except Exception as e:
             import traceback
-            with open('/dev/stderr', 'w') as fpe:
-                traceback.print_exc(file=fpe)
-
-    def abs_energy(self, k, precision, **kwargs):
-        f = kwargs.get('f')
-        a = kwargs.get('a')
-        x = kwargs.get('x')
-
-        subcmd = None
-
-        fs = f.split(',')
-
-        import traceback
-        try:
-            dateformat = kwargs.pop('dateformat')
-
-            fs = f.split(',')
-            subcmd = None
-            subcmd <<= nm.mstdin()
-
-            # fix time column
-            if dateformat == 'date':
-                subcmd <<= nm.mcal(a = '__INT__', 
-                        c = f'uxt( s2t(regexstr($s{{{x}}},"^[0-9]{{14,14}}|^[0-9]{{6,6}}") ) )')
-                subcmd <<= nm.mcal(a = '__FLAC__', 
-                        c = f'regexstr($s{{{x}}},"[.][0-9]{{0,6}}$")')
-                subcmd <<= nm.mcal(a = 'uxt',
-                        c = 'if( isnull($s{__FLAC__}), $s{__INT__}, $s{__INT__}+$s{__FLAC__} )')
-            else:
-                subcmd <<= nm.mfldname(f = f'{x}:uxt')
-                x = 'uxt'
-
-            for fld in fs:
-                subcmd <<= nm.mcal(c = f'${{{fld}}}*${{{fld}}}', a = f'__tmp{fld}__')
-                subcmd <<= nm.mcut(f = fld, r = True)
-                subcmd <<= nm.mfldname(f = f'__tmp{fld}__:{fld}')
-            
-            subcmd <<= nm.msummary(k = k, c = f'sum:{a}', f = f, precision = precision)
-
-            subcmd <<= nm.mstdout()
-            subcmd.run()
-
-        except Exception as e:
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
 
@@ -1467,18 +1395,10 @@ class GroupBy2Command(Command):
             subcmd <<= nm.mstdin()
 
             # fix time column
-            if dateformat == 'date':
-                subcmd <<= nm.mcal(a = '__INT__', 
-                        c = f'uxt( s2t(regexstr($s{{{x}}},"^[0-9]{{14,14}}|^[0-9]{{6,6}}") ) )')
-                subcmd <<= nm.mcal(a = '__FLAC__', 
-                        c = f'regexstr($s{{{x}}},"[.][0-9]{{0,6}}$")')
-                subcmd <<= nm.mcal(a = 'uxt',
-                        c = 'if( isnull($s{__FLAC__}), $s{__INT__}, $s{__INT__}+$s{__FLAC__} )')
-            else:
-                subcmd <<= nm.mfldname(f = f'{x}:uxt')
-                x = 'uxt'
+            subcmd = self.fixtimecolumn(subcmd, x, dateformat)
 
             for fld in fs:
+                subcmd <<= nm.msortf(f = f'{k},uxt')
                 subcmd <<= nm.mcal(c = f'abs(${{{fld}}}-#{{{fld}}}', a = f'__tmp{fld}__')
                 subcmd <<= nm.mcut(f = fld, r = True)
                 subcmd <<= nm.mfldname(f = f'__tmp{fld}__:{fld}')
@@ -1513,16 +1433,7 @@ class GroupBy2Command(Command):
             subcmd <<= nm.mstdin()
 
             # fix time column
-            if dateformat == 'date':
-                subcmd <<= nm.mcal(a = '__INT__', 
-                        c = f'uxt( s2t(regexstr($s{{{x}}},"^[0-9]{{14,14}}|^[0-9]{{6,6}}") ) )')
-                subcmd <<= nm.mcal(a = '__FLAC__', 
-                        c = f'regexstr($s{{{x}}},"[.][0-9]{{0,6}}$")')
-                subcmd <<= nm.mcal(a = 'uxt',
-                        c = 'if( isnull($s{__FLAC__}), $s{__INT__}, $s{__INT__}+$s{__FLAC__} )')
-            else:
-                subcmd <<= nm.mfldname(f = f'{x}:uxt')
-                x = 'uxt'
+            subcmd = self.fixtimecolumn(subcmd, x, dateformat)
 
             for i, fld in enumerate(fs):
                 msummary[i] <<= nm.msummary(k = k, c = 'mean,var,count', f =fld, 
@@ -1573,17 +1484,7 @@ class GroupBy2Command(Command):
             subcmd <<= nm.mstdin()
 
             # fix time column
-            if dateformat == 'date':
-                subcmd <<= nm.mcal(a = '__INT__', 
-                        c = f'uxt( s2t(regexstr($s{{{x}}},"^[0-9]{{14,14}}|^[0-9]{{6,6}}") ) )')
-                subcmd <<= nm.mcal(a = '__FLAC__', 
-                        c = f'regexstr($s{{{x}}},"[.][0-9]{{0,6}}$")')
-                subcmd <<= nm.mcal(a = 'uxt',
-                        c = 'if( isnull($s{__FLAC__}), $s{__INT__}, $s{__INT__}+$s{__FLAC__} )')
-            else:
-                subcmd <<= nm.mfldname(f = f'{x}:uxt')
-                x = 'uxt'
-
+            subcmd = self.fixtimecolumn(subcmd, x, dateformat)
 
             for i, fld in enumerate(fs):
                 msummary[i] <<= nm.msummary(i = subcmd, k = k, f = fld, 
@@ -1627,17 +1528,7 @@ class GroupBy2Command(Command):
             subcmd <<= nm.mstdin()
 
             # fix time column
-            if dateformat == 'date':
-                subcmd <<= nm.mcal(a = '__INT__', 
-                        c = f'uxt( s2t(regexstr($s{{{x}}},"^[0-9]{{14,14}}|^[0-9]{{6,6}}") ) )')
-                subcmd <<= nm.mcal(a = '__FLAC__', 
-                        c = f'regexstr($s{{{x}}},"[.][0-9]{{0,6}}$")')
-                subcmd <<= nm.mcal(a = 'uxt',
-                        c = 'if( isnull($s{__FLAC__}), $s{__INT__}, $s{__INT__}+$s{__FLAC__} )')
-            else:
-                subcmd <<= nm.mfldname(f = f'{x}:uxt')
-                x = 'uxt'
-
+            subcmd = self.fixtimecolumn(subcmd, x, dateformat)
 
             for i, fld in enumerate(fs):
                 msummary[i] <<= nm.msummary(i = subcmd, k = k, f = fld, 
@@ -1680,16 +1571,7 @@ class GroupBy2Command(Command):
             subcmd <<= nm.mstdin()
 
             # fix time column
-            if dateformat == 'date':
-                subcmd <<= nm.mcal(a = '__INT__', 
-                        c = f'uxt( s2t(regexstr($s{{{x}}},"^[0-9]{{14,14}}|^[0-9]{{6,6}}") ) )')
-                subcmd <<= nm.mcal(a = '__FLAC__', 
-                        c = f'regexstr($s{{{x}}},"[.][0-9]{{0,6}}$")')
-                subcmd <<= nm.mcal(a = 'uxt',
-                        c = 'if( isnull($s{__FLAC__}), $s{__INT__}, $s{__INT__}+$s{__FLAC__} )')
-            else:
-                subcmd <<= nm.mfldname(f = f'{x}:uxt')
-                x = 'uxt'
+            subcmd = self.fixtimecolumn(subcmd, x, dateformat)
 
             for i, fld in enumerate(fs):
                 targets[i] <<= nm.mslide(k = k, s = 'uxt', f = f'{fld}:__shifted{fld}',
@@ -1733,16 +1615,7 @@ class GroupBy2Command(Command):
             subcmd <<= nm.mstdin()
 
             # fix time column
-            if dateformat == 'date':
-                subcmd <<= nm.mcal(a = '__INT__', 
-                        c = f'uxt( s2t(regexstr($s{{{x}}},"^[0-9]{{14,14}}|^[0-9]{{6,6}}") ) )')
-                subcmd <<= nm.mcal(a = '__FLAC__', 
-                        c = f'regexstr($s{{{x}}},"[.][0-9]{{0,6}}$")')
-                subcmd <<= nm.mcal(a = 'uxt',
-                        c = 'if( isnull($s{__FLAC__}), $s{__INT__}, $s{__INT__}+$s{__FLAC__} )')
-            else:
-                subcmd <<= nm.mfldname(f = f'{x}:uxt')
-                x = 'uxt'
+            subcmd = self.fixtimecolumn(subcmd, x, dateformat)
 
             for i, fld in enumerate(fs):
                 mslide[i] <<= nm.mslide(k = k, s = 'uxt', t = n, r = True, 
@@ -1794,16 +1667,7 @@ class GroupBy2Command(Command):
             subcmd <<= nm.mstdin()
 
             # fix time column
-            if dateformat == 'date':
-                subcmd <<= nm.mcal(a = '__INT__', 
-                        c = f'uxt( s2t(regexstr($s{{{x}}},"^[0-9]{{14,14}}|^[0-9]{{6,6}}") ) )')
-                subcmd <<= nm.mcal(a = '__FLAC__', 
-                        c = f'regexstr($s{{{x}}},"[.][0-9]{{0,6}}$")')
-                subcmd <<= nm.mcal(a = 'uxt',
-                        c = 'if( isnull($s{__FLAC__}), $s{__INT__}, $s{__INT__}+$s{__FLAC__} )')
-            else:
-                subcmd <<= nm.mfldname(f = f'{x}:uxt')
-                x = 'uxt'
+            subcmd = self.fixtimecolumn(subcmd, x, dateformat)
 
             for i, fld in enumerate(fs):
                 if n == 0:
@@ -1884,6 +1748,7 @@ class GroupBy2Command(Command):
             'strmax' : self.strmax,
             'strmin' : self.strmin,
             'strucount' : self.strucount,
+            'abs_energy' : self.abs_energy, 
             'mean_ad' : self.meanabsolutedeviation,
             'median_ad' : self.medianabsolutedeviation,
             'repeatdata' : self.reoccurringdatapoints,
@@ -1904,7 +1769,6 @@ class GroupBy2Command(Command):
             'lastmax' : self.lastmax,
             'mean_change' : self.meanchange,
             'mean_abs_change' : self.meanabschange,
-            'abs_energy' : self.abs_energy, 
             'abs_sum_of_changes' : self.abs_sum_of_changes, 
             'autocorr_agg' : self.autocorrelation_agg,
             'longest_strike_above_mean' : self.longeststrikeabovemean,
@@ -1926,8 +1790,14 @@ class GroupBy2Command(Command):
         all_fs = []
         final_fs = []
         
-        # wildcard parsing
-        for arglist in args.get('clist') + args.get('fclist') + args.get('xfclist') + args.get('sfclist') + args.get('xfcnlist'):
+        allargs = (args.get('clist') + 
+                  args.get('fclist') +
+                  args.get('xfclist') + 
+                  args.get('sfclist') + 
+                  args.get('xfcnlist'))
+
+        # parse inputs into list-of-dictionaries form
+        for arglist in allargs:
             if arglist.get('c'):
                 fs = arglist.get('f')
                 x = arglist.get('x')
@@ -1945,11 +1815,11 @@ class GroupBy2Command(Command):
                                 xs.append(col)
 
                 if fs:
-                    fs = ','.join([a for a in self.header 
+                    fs = [a for a in self.header 
                         for target in arglist['f'].split(',')
-                        if fn.fnmatch(a, target)])
-                    all_fs += [f for f in fs.split(',') if f not in all_fs]
-                    arglist['f'] = fs
+                        if fn.fnmatch(a, target)]
+                    all_fs += [f for f in fs if f not in all_fs]
+                    arglist['f'] = ','.join(fs)
 
                 cs = arglist.pop('c').split(',')
                 cs_msummary = []
