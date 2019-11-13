@@ -1312,6 +1312,72 @@ class GroupBy2Command(Command):
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
 
+    def meanchange(self, k, precision, **kwargs):
+        f = kwargs['f']
+        a = kwargs['a']
+        x = kwargs['x']
+
+        try:
+            fs = f.split(',')
+            targets = [None] * len(fs)
+
+            subcmd = None
+            subcmd_o = None
+
+            subcmd <<= nm.mstdin()
+
+            for i, fld in enumerate(fs):
+                targets[i] <<= nm.mslide(k = k, s = x, i = subcmd, 
+                                         f = f'{fld}:__shifted{fld}')
+                targets[i] <<= nm.mcal(c = f'${{__shifted{fld}}}-${{{fld}}}', 
+                                       a = a)
+                targets[i] <<= nm.mavg(k = k, f = a)
+
+                targets[i] <<= nm.msetstr(a = 'fld', v = fld)
+                targets[i] <<= nm.mcut(f = f'{k},fld,{a}')
+
+            subcmd_o <<= nm.m2cat(i = targets)
+            subcmd_o <<= nm.mstdout()
+            subcmd_o.run()
+
+        except Exception as e:
+            import traceback
+            with open('/dev/stderr', 'w') as fpe:
+                traceback.print_exc(file=fpe)
+
+    def meanabschange(self, k, precision, **kwargs):
+        f = kwargs['f']
+        a = kwargs['a']
+        x = kwargs['x']
+
+        try:
+            fs = f.split(',')
+            targets = [None] * len(fs)
+
+            subcmd = None
+            subcmd_o = None
+
+            subcmd <<= nm.mstdin()
+
+            for i, fld in enumerate(fs):
+                targets[i] <<= nm.mslide(k = k, s = x, i = subcmd, 
+                                         f = f'{fld}:__shifted{fld}')
+                targets[i] <<= nm.mcal(c = f'abs(${{__shifted{fld}}}-${{{fld}}})', 
+                                       a = a)
+                targets[i] <<= nm.mavg(k = k, f = a)
+
+                targets[i] <<= nm.msetstr(a = 'fld', v = fld)
+                targets[i] <<= nm.mcut(f = f'{k},fld,{a}')
+
+            subcmd_o <<= nm.m2cat(i = targets)
+            subcmd_o <<= nm.mstdout()
+            subcmd_o.run()
+
+        except Exception as e:
+            import traceback
+            with open('/dev/stderr', 'w') as fpe:
+                traceback.print_exc(file=fpe)
+
     def abs_energy(self, k, precision, **kwargs):
         f = kwargs.get('f')
         a = kwargs.get('a')
@@ -1730,6 +1796,8 @@ class GroupBy2Command(Command):
             'firstmax' : self.firstmax,
             'lastmin' : self.lastmin,
             'lastmax' : self.lastmax,
+            'mean_change' : self.meanchange,
+            'mean_abs_change' : self.meanabschange,
             'abs_energy' : self.abs_energy, 
             'abs_sum_of_changes' : self.abs_sum_of_changes, 
             'autocorr_agg' : self.autocorrelation_agg,
