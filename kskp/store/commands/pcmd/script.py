@@ -345,10 +345,11 @@ class GroupBy2Command(Command):
         return flow
 
 
-    def rows(self, k, precision, **kwargs):
+    def rows(self, **kwargs):
         try:
-            a = kwargs['a']
-            fld = kwargs['fld']
+            a = kwargs.get('a')
+            fld = kwargs.get('fld')
+            k = kwargs.get('k')
             
             subcmd = None
             subcmd <<= nm.mstdin()
@@ -366,10 +367,12 @@ class GroupBy2Command(Command):
 
     # --------------- 1 var -----------------------
     
-    def missingdata(self, k, precision, **kwargs):
+    def missingdata(self, **kwargs):
         try:
-            f = kwargs['f']
-            a = kwargs['a']
+            f = kwargs.get('f')
+            a = kwargs.get('a')
+            k = kwargs.get('k')
+            precision = kwargs.get('precision')
 
             subcmd = None
             allrows = None
@@ -396,10 +399,12 @@ class GroupBy2Command(Command):
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
 
-    def rootmeansquare(self, k, precision, **kwargs):
+    def rootmeansquare(self, **kwargs):
         try:
-            f = kwargs['f']
-            a = kwargs['a']
+            f = kwargs.get('f')
+            a = kwargs.get('a')
+            k = kwargs.get('k')
+            precision = kwargs.get('precision')
             
             # k gives key fields
             # f gives target fields
@@ -436,10 +441,12 @@ class GroupBy2Command(Command):
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
 
-    def geometricmean(self, k, precision, **kwargs):
+    def geometricmean(self, **kwargs):
         try:
-            f = kwargs['f']
-            a = kwargs['a']
+            f = kwargs.get('f')
+            a = kwargs.get('a')
+            k = kwargs.get('k')
+            precision = kwargs.get('precision')
             
             # positive numbers only
             subcmd = None
@@ -469,10 +476,12 @@ class GroupBy2Command(Command):
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
 
-    def harmonicmean(self, k, precision, **kwargs):
+    def harmonicmean(self, **kwargs):
         try:
-            f = kwargs['f']
-            a = kwargs['a']
+            f = kwargs.get('f')
+            a = kwargs.get('a')
+            k = kwargs.get('k')
+            precision = kwargs.get('precision')
             
             subcmd = None
             subcmd <<= nm.mstdin()
@@ -500,11 +509,13 @@ class GroupBy2Command(Command):
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
 
-    def strmax(self, k, precision, **kwargs):
-        f = kwargs['f']
-        a = kwargs['a']
-
+    def strmax(self, **kwargs):
         try:
+            f = kwargs.get('f')
+            a = kwargs.get('a')
+            k = kwargs.get('k')
+            precision = kwargs.get('precision')
+            
             fs = f.split(',')
             targets = [None] * len(fs)
 
@@ -516,7 +527,7 @@ class GroupBy2Command(Command):
             for i, fld in enumerate(fs):
                 targets[i] <<= nm.mkeybreak(i = subcmd, k = k, s = fld)
                 targets[i] <<= nm.mcal(a = 'fld', c = f'if($s{{bot}}=="1","{fld}",nulls())')
-                targets[i] <<= nm.mcal(a = a, c = f'if($s{{bot}}=="1",${{{fld}}},nulln())')
+                targets[i] <<= nm.mcal(a = a, c = f'if($s{{bot}}=="1",$s{{{fld}}},nulls())')
                 targets[i] <<= nm.mdelnull(f = a)
 
             subcmd_final <<= nm.m2cat(i = targets)
@@ -529,11 +540,13 @@ class GroupBy2Command(Command):
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
 
-    def strmin(self, k, precision, **kwargs):
-        f = kwargs['f']
-        a = kwargs['a']
-
+    def strmin(self, **kwargs):
         try:
+            f = kwargs.get('f')
+            a = kwargs.get('a')
+            k = kwargs.get('k')
+            precision = kwargs.get('precision')
+
             fs = f.split(',')
             targets = [None] * len(fs)
 
@@ -545,7 +558,7 @@ class GroupBy2Command(Command):
             for i, fld in enumerate(fs):
                 targets[i] <<= nm.mkeybreak(i = subcmd, k = k, s = fld)
                 targets[i] <<= nm.mcal(a = 'fld', c = f'if($s{{top}}=="1","{fld}",nulls())')
-                targets[i] <<= nm.mcal(a = a, c = f'if($s{{top}}=="1",${{{fld}}},nulln())')
+                targets[i] <<= nm.mcal(a = a, c = f'if($s{{top}}=="1",$s{{{fld}}},nulls())')
                 targets[i] <<= nm.mdelnull(f = a)
 
             subcmd_final <<= nm.m2cat(i = targets)
@@ -558,11 +571,13 @@ class GroupBy2Command(Command):
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
 
-    def strucount(self, k, precision, **kwargs):
-        f = kwargs['f']
-        a = kwargs['a']
-
+    def strucount(self, **kwargs):
         try:
+            f = kwargs.get('f')
+            a = kwargs.get('a')
+            k = kwargs.get('k')
+            precision = kwargs.get('precision')
+
             fs = f.split(',')
             subcmd_start = None
             subcmd = None
@@ -584,16 +599,12 @@ class GroupBy2Command(Command):
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
 
-    def abs_energy(self, k, precision, **kwargs):
-        f = kwargs.get('f')
-        a = kwargs.get('a')
-
-        subcmd = None
-
-        fs = f.split(',')
-
-        import traceback
+    def abs_energy(self, **kwargs):
         try:
+            f = kwargs.get('f')
+            a = kwargs.get('a')
+            k = kwargs.get('k')
+            precision = kwargs.get('precision')
 
             fs = f.split(',')
             subcmd = None
@@ -611,13 +622,16 @@ class GroupBy2Command(Command):
             subcmd.run()
 
         except Exception as e:
+            import traceback
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
 
-    def meanabsolutedeviation(self, k, precision, **kwargs):
+    def meanabsolutedeviation(self, **kwargs):
         try:
-            f = kwargs['f']
-            a = kwargs['a']
+            f = kwargs.get('f')
+            a = kwargs.get('a')
+            k = kwargs.get('k')
+            precision = kwargs.get('precision')
             
             subcmd = None
             meancalc = None
@@ -653,10 +667,12 @@ class GroupBy2Command(Command):
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
         
-    def medianabsolutedeviation(self, k, precision, **kwargs):
+    def medianabsolutedeviation(self, **kwargs):
         try:
-            f = kwargs['f']
-            a = kwargs['a']
+            f = kwargs.get('f')
+            a = kwargs.get('a')
+            k = kwargs.get('k')
+            precision = kwargs.get('precision')
             
             subcmd = None
             meancalc = None
@@ -692,11 +708,13 @@ class GroupBy2Command(Command):
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
 
-    def reoccurringdatapoints(self, k, precision, **kwargs):
-        f = kwargs['f']
-        a = kwargs['a']
-
+    def reoccurringdatapoints(self, **kwargs):
         try:
+            f = kwargs.get('f')
+            a = kwargs.get('a')
+            k = kwargs.get('k')
+            precision = kwargs.get('precision')
+
             fs = f.split(',')
             targets = [None] * len(fs)
 
@@ -724,11 +742,13 @@ class GroupBy2Command(Command):
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
 
-    def reoccurringvalues(self, k, precision, **kwargs):
-        f = kwargs['f']
-        a = kwargs['a']
-
+    def reoccurringvalues(self, **kwargs):
         try:
+            f = kwargs.get('f')
+            a = kwargs.get('a')
+            k = kwargs.get('k')
+            precision = kwargs.get('precision')
+
             fs = f.split(',')
             targets = [None] * len(fs)
             mcount = [None] * len(fs)
@@ -761,11 +781,13 @@ class GroupBy2Command(Command):
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
                 
-    def sumofreoccurringdatapoints(self, k, precision, **kwargs):
-        f = kwargs['f']
-        a = kwargs['a']
-
+    def sumofreoccurringdatapoints(self, **kwargs):
         try:
+            f = kwargs.get('f')
+            a = kwargs.get('a')
+            k = kwargs.get('k')
+            precision = kwargs.get('precision')
+
             fs = f.split(',')
             targets = [None] * len(fs)
 
@@ -794,11 +816,13 @@ class GroupBy2Command(Command):
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
 
-    def sumofreoccurringvalues(self, k, precision, **kwargs):
-        f = kwargs['f']
-        a = kwargs['a']
-
+    def sumofreoccurringvalues(self, **kwargs):
         try:
+            f = kwargs.get('f')
+            a = kwargs.get('a')
+            k = kwargs.get('k')
+            precision = kwargs.get('precision')
+
             fs = f.split(',')
             targets = [None] * len(fs)
 
@@ -827,11 +851,13 @@ class GroupBy2Command(Command):
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
     
-    def countabovemean(self, k, precision, **kwargs):
-        f = kwargs['f']
-        a = kwargs['a']
-
+    def countabovemean(self, **kwargs):
         try:
+            f = kwargs.get('f')
+            a = kwargs.get('a')
+            k = kwargs.get('k')
+            precision = kwargs.get('precision')
+
             fs = f.split(',')
             targets = [None] * len(fs)
             msummary = [None] * len(fs)
@@ -861,11 +887,13 @@ class GroupBy2Command(Command):
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
 
-    def countbelowmean(self, k, precision, **kwargs):
-        f = kwargs['f']
-        a = kwargs['a']
-
+    def countbelowmean(self, **kwargs):
         try:
+            f = kwargs.get('f')
+            a = kwargs.get('a')
+            k = kwargs.get('k')
+            precision = kwargs.get('precision')
+
             fs = f.split(',')
             targets = [None] * len(fs)
             msummary = [None] * len(fs)
@@ -897,13 +925,16 @@ class GroupBy2Command(Command):
 
     # --------------- 2 vars -----------------------
 
-    def integral(self, k, precision, **kwargs):
+    def integral(self, **kwargs):
         try:
-            f = kwargs['f']
-            x = kwargs['x']
-            a = kwargs['a']
+            f = kwargs.get('f')
+            a = kwargs.get('a')
+            x = kwargs.get('x')
+            k = kwargs.get('k')
+            precision = kwargs.get('precision')
 
             dateformat = kwargs.pop('dateformat') 
+
             fs = f.split(',')
 
             subcmd = None
@@ -944,17 +975,18 @@ class GroupBy2Command(Command):
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
         
-    def meanfrequency(self, k, precision, **kwargs):
+    def meanfrequency(self, **kwargs):
         # body of this method adapted from:
         # github.com/nysol/nysol_python/blob/master/scripts/sample/mkfeature.py
-        f = kwargs.get('f')
-        x = kwargs.get('x')
-        a = kwargs.get('a')
-
-        import numpy as np
-        import traceback
-
         try:
+            import numpy as np
+            
+            f = kwargs.get('f')
+            a = kwargs.get('a')
+            x = kwargs.get('x')
+            k = kwargs.get('k')
+            precision = kwargs.get('precision')
+
             headerline = True
 
             for dlist in nm.mstdin().keyblock(f'{k}', x, header = True):
@@ -979,20 +1011,22 @@ class GroupBy2Command(Command):
             sys.__stdout__.flush()#not needed for bigger data
 
         except Exception as e:
+            import traceback
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
 
-    def frequencyvar(self, k, precision, **kwargs):
+    def frequencyvar(self, **kwargs):
         # body of this method adapted from:
         # github.com/nysol/nysol_python/blob/master/scripts/sample/mkfeature.py
-        f = kwargs.get('f')
-        x = kwargs.get('x')
-        a = kwargs.get('a')
-
-        import numpy as np
-        import traceback
-
         try:
+            import numpy as np
+            
+            f = kwargs.get('f')
+            a = kwargs.get('a')
+            x = kwargs.get('x')
+            k = kwargs.get('k')
+            precision = kwargs.get('precision')
+
             headerline = True
 
             for dlist in nm.mstdin().keyblock(f'{k}', x, header = True):
@@ -1018,16 +1052,18 @@ class GroupBy2Command(Command):
             sys.__stdout__.flush()#not needed for bigger data
 
         except Exception as e:
+            import traceback
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
 
-    def slope(self, k, precision, **kwargs):
-        f = kwargs.get('f')
-        x = kwargs.get('x')
-        a = kwargs.get('a')
-
-        import traceback
+    def slope(self, **kwargs):
         try:
+            f = kwargs.get('f')
+            a = kwargs.get('a')
+            x = kwargs.get('x')
+            k = kwargs.get('k')
+            precision = kwargs.get('precision')
+
             dateformat = kwargs.pop('dateformat')
 
             fs = f.split(',')
@@ -1059,16 +1095,18 @@ class GroupBy2Command(Command):
             subcmd <<= nm.mstdout()
             subcmd.run()
         except Exception as e:
+            import traceback
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
 
-    def slopebyorder(self, k, precision, **kwargs):
-        f = kwargs.get('f')
-        s = kwargs.get('s')
-        a = kwargs.get('a')
-
-        import traceback
+    def slopebyorder(self, **kwargs):
         try:
+            f = kwargs.get('f')
+            a = kwargs.get('a')
+            x = kwargs.get('s')
+            k = kwargs.get('k')
+            precision = kwargs.get('precision')
+
             fs = f.split(',')
             subcmd = None
             subcmd <<= nm.mstdin()
@@ -1099,28 +1137,26 @@ class GroupBy2Command(Command):
             subcmd <<= nm.mstdout()
             subcmd.run()
         except Exception as e:
+            import traceback
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
 
-    def firstmin(self, k, precision, **kwargs):
-        f = kwargs.get('f')
-        a = kwargs.get('a')
-        x = kwargs.get('x')
-
-        subcmd = None
-        subcmd_o = None
-
-        fs = f.split(',')
-        targets = [None] * len(fs) 
-        msum = [None] * len(fs) 
-
-        import traceback
+    def firstmin(self, **kwargs):
         try:
+            f = kwargs.get('f')
+            a = kwargs.get('a')
+            x = kwargs.get('x')
+            k = kwargs.get('k')
+            precision = kwargs.get('precision')
+
             dateformat = kwargs.pop('dateformat')
 
-            fs = f.split(',')
             subcmd = None
-            subcmd <<= nm.mstdin()
+            subcmd_o = None
+
+            fs = f.split(',')
+            targets = [None] * len(fs) 
+            msum = [None] * len(fs) 
 
             # fix time column
             subcmd = self.fixtimecolumn(subcmd, x, dateformat)
@@ -1149,28 +1185,26 @@ class GroupBy2Command(Command):
             subcmd_o.run()
 
         except Exception as e:
+            import traceback
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
 
-    def firstmax(self, k, precision, **kwargs):
-        f = kwargs.get('f')
-        a = kwargs.get('a')
-        x = kwargs.get('x')
-
-        subcmd = None
-        subcmd_o = None
-
-        fs = f.split(',')
-        targets = [None] * len(fs) 
-        msum = [None] * len(fs) 
-
-        import traceback
+    def firstmax(self, **kwargs):
         try:
+            f = kwargs.get('f')
+            a = kwargs.get('a')
+            x = kwargs.get('x')
+            k = kwargs.get('k')
+            precision = kwargs.get('precision')
+
             dateformat = kwargs.pop('dateformat')
 
-            fs = f.split(',')
             subcmd = None
-            subcmd <<= nm.mstdin()
+            subcmd_o = None
+
+            fs = f.split(',')
+            targets = [None] * len(fs) 
+            msum = [None] * len(fs) 
 
             # fix time column
             subcmd = self.fixtimecolumn(subcmd, x, dateformat)
@@ -1199,28 +1233,26 @@ class GroupBy2Command(Command):
             subcmd_o.run()
 
         except Exception as e:
+            import traceback
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
 
-    def lastmin(self, k, precision, **kwargs):
-        f = kwargs.get('f')
-        a = kwargs.get('a')
-        x = kwargs.get('x')
-
-        subcmd = None
-        subcmd_o = None
-
-        fs = f.split(',')
-        targets = [None] * len(fs) 
-        msum = [None] * len(fs) 
-
-        import traceback
+    def lastmin(self, **kwargs):
         try:
+            f = kwargs.get('f')
+            a = kwargs.get('a')
+            x = kwargs.get('x')
+            k = kwargs.get('k')
+            precision = kwargs.get('precision')
+
             dateformat = kwargs.pop('dateformat')
 
-            fs = f.split(',')
             subcmd = None
-            subcmd <<= nm.mstdin()
+            subcmd_o = None
+
+            fs = f.split(',')
+            targets = [None] * len(fs) 
+            msum = [None] * len(fs) 
 
             # fix time column
             subcmd = self.fixtimecolumn(subcmd, x, dateformat)
@@ -1249,28 +1281,26 @@ class GroupBy2Command(Command):
             subcmd_o.run()
 
         except Exception as e:
+            import traceback
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
 
-    def lastmax(self, k, precision, **kwargs):
-        f = kwargs.get('f')
-        a = kwargs.get('a')
-        x = kwargs.get('x')
-
-        subcmd = None
-        subcmd_o = None
-
-        fs = f.split(',')
-        targets = [None] * len(fs) 
-        msum = [None] * len(fs) 
-
-        import traceback
+    def lastmax(self, **kwargs):
         try:
+            f = kwargs.get('f')
+            a = kwargs.get('a')
+            x = kwargs.get('x')
+            k = kwargs.get('k')
+            precision = kwargs.get('precision')
+
             dateformat = kwargs.pop('dateformat')
+           
+            subcmd = None
+            subcmd_o = None
 
             fs = f.split(',')
-            subcmd = None
-            subcmd <<= nm.mstdin()
+            targets = [None] * len(fs) 
+            msum = [None] * len(fs) 
 
             # fix time column
             subcmd = self.fixtimecolumn(subcmd, x, dateformat)
@@ -1298,15 +1328,18 @@ class GroupBy2Command(Command):
             subcmd_o.run()
 
         except Exception as e:
+            import traceback
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
 
-    def meanchange(self, k, precision, **kwargs):
-        f = kwargs['f']
-        a = kwargs['a']
-        x = kwargs['x']
-
+    def meanchange(self, **kwargs):
         try:
+            f = kwargs.get('f')
+            a = kwargs.get('a')
+            x = kwargs.get('x')
+            k = kwargs.get('k')
+            precision = kwargs.get('precision')
+
             dateformat = kwargs.pop('dateformat')
 
             fs = f.split(',')
@@ -1339,12 +1372,14 @@ class GroupBy2Command(Command):
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
 
-    def meanabschange(self, k, precision, **kwargs):
-        f = kwargs['f']
-        a = kwargs['a']
-        x = kwargs['x']
-
+    def meanabschange(self, **kwargs):
         try:
+            f = kwargs.get('f')
+            a = kwargs.get('a')
+            x = kwargs.get('x')
+            k = kwargs.get('k')
+            precision = kwargs.get('precision')
+
             dateformat = kwargs.pop('dateformat')
 
             fs = f.split(',')
@@ -1377,17 +1412,14 @@ class GroupBy2Command(Command):
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
 
-    def abs_sum_of_changes(self, k, precision, **kwargs):
-        f = kwargs.get('f')
-        a = kwargs.get('a')
-        x = kwargs.get('x')
-
-        subcmd = None
-
-        fs = f.split(',')
-
-        import traceback
+    def abs_sum_of_changes(self, **kwargs):
         try:
+            f = kwargs.get('f')
+            a = kwargs.get('a')
+            x = kwargs.get('x')
+            k = kwargs.get('k')
+            precision = kwargs.get('precision')
+
             dateformat = kwargs.pop('dateformat')
 
             fs = f.split(',')
@@ -1409,27 +1441,27 @@ class GroupBy2Command(Command):
             subcmd.run()
 
         except Exception as e:
+            import traceback
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
 
-    def autocorrelation_agg(self, k, precision, **kwargs):
-        f = kwargs.get('f')
-        a = kwargs.get('a')
-        x = kwargs.get('x')
-
-        subcmd = None
-        subcmd_o = None
-
-        fs = f.split(',')
-        targets = [None] * len(fs) 
-        msummary = [None] * len(fs) 
-
-        import traceback
+    def autocorrelation_agg(self, **kwargs):
         try:
+            f = kwargs.get('f')
+            a = kwargs.get('a')
+            x = kwargs.get('x')
+            k = kwargs.get('k')
+            precision = kwargs.get('precision')
+
             dateformat = kwargs.pop('dateformat')
 
             fs = f.split(',')
             subcmd = None
+            subcmd_o = None
+
+            targets = [None] * len(fs) 
+            msummary = [None] * len(fs) 
+
             subcmd <<= nm.mstdin()
 
             # fix time column
@@ -1454,7 +1486,7 @@ class GroupBy2Command(Command):
                 targets[i] <<= nm.msum(k = f'{k},rag', f = 'sub_t1t2')
                 targets[i] <<= nm.mcal(a = fld, 
                                      c = '${sub_t1t2}/(${count}-${rag})/${var}')
-                targets[i] <<= nm.msummary(k = k, f = fld, 
+                targets[i] <<= nm.msummary(k = k, f = fld, precision = precision,
                         c = f'mean:{a}_mean,median:{a}_median,var:{a}_var')
 
             # subcmd_o <<= nm.mcut(i = targets, f = f'{k},fld,{a}_{n}')
@@ -1463,15 +1495,18 @@ class GroupBy2Command(Command):
             subcmd_o.run()
 
         except Exception as e:
+            import traceback
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
 
-    def longeststrikeabovemean(self, k, precision, **kwargs):
-        f = kwargs['f']
-        a = kwargs['a']
-        x = kwargs['x']
-
+    def longeststrikeabovemean(self, **kwargs):
         try:
+            f = kwargs.get('f')
+            a = kwargs.get('a')
+            x = kwargs.get('x')
+            k = kwargs.get('k')
+            precision = kwargs.get('precision')
+
             dateformat = kwargs.pop('dateformat')
 
             fs = f.split(',')
@@ -1510,12 +1545,14 @@ class GroupBy2Command(Command):
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
 
-    def longeststrikebelowmean(self, k, precision, **kwargs):
-        f = kwargs['f']
-        a = kwargs['a']
-        x = kwargs['x']
-
+    def longeststrikebelowmean(self, **kwargs):
         try:
+            f = kwargs.get('f')
+            a = kwargs.get('a')
+            x = kwargs.get('x')
+            k = kwargs.get('k')
+            precision = kwargs.get('precision')
+
             dateformat = kwargs.pop('dateformat')
 
             fs = f.split(',')
@@ -1554,12 +1591,14 @@ class GroupBy2Command(Command):
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
 
-    def mean2ndderivative_central(self, k, precision, **kwargs):
-        f = kwargs['f']
-        a = kwargs['a']
-        x = kwargs['x']
-
+    def mean2ndderivative_central(self, **kwargs):
         try:
+            f = kwargs.get('f')
+            a = kwargs.get('a')
+            x = kwargs.get('x')
+            k = kwargs.get('k')
+            precision = kwargs.get('precision')
+
             dateformat = kwargs.pop('dateformat')
 
             fs = f.split(',')
@@ -1593,26 +1632,23 @@ class GroupBy2Command(Command):
 
     # --------------- 3 vars -----------------------
 
-    def countpeaks(self, k, precision, **kwargs):
-        f = kwargs.get('f')
-        a = kwargs.get('a')
-        x = kwargs.get('x')
-        n = kwargs.get('n')
-
-        subcmd = None
-        subcmd_o = None
-
-        fs = f.split(',')
-        targets = [None] * len(fs) 
-        mslide = [None] * len(fs) 
-
-        import traceback
+    def countpeaks(self, **kwargs):
         try:
+            f = kwargs.get('f')
+            a = kwargs.get('a')
+            x = kwargs.get('x')
+            k = kwargs.get('k')
+            n = kwargs.get('n')
+            precision = kwargs.get('precision')
+
             dateformat = kwargs.pop('dateformat')
 
-            fs = f.split(',')
             subcmd = None
-            subcmd <<= nm.mstdin()
+            subcmd_o = None
+
+            fs = f.split(',')
+            targets = [None] * len(fs) 
+            mslide = [None] * len(fs) 
 
             # fix time column
             subcmd = self.fixtimecolumn(subcmd, x, dateformat)
@@ -1642,29 +1678,27 @@ class GroupBy2Command(Command):
             subcmd_o.run()
 
         except Exception as e:
+            import traceback
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
 
-    def autocorrelation(self, k, precision, **kwargs):
-        f = kwargs.get('f')
-        a = kwargs.get('a')
-        x = kwargs.get('x')
-        n = kwargs.get('n')
-
-        subcmd = None
-        subcmd_o = None
-
-        fs = f.split(',')
-        targets = [None] * len(fs)
-        msummary = [None] * len(fs)
-
-        import traceback
+    def autocorrelation(self, **kwargs):
         try:
+            f = kwargs.get('f')
+            a = kwargs.get('a')
+            x = kwargs.get('x')
+            k = kwargs.get('k')
+            n = kwargs.get('n')
+            precision = kwargs.get('precision')
+
             dateformat = kwargs.pop('dateformat')
 
-            fs = f.split(',')
             subcmd = None
-            subcmd <<= nm.mstdin()
+            subcmd_o = None
+
+            fs = f.split(',')
+            targets = [None] * len(fs)
+            msummary = [None] * len(fs)
 
             # fix time column
             subcmd = self.fixtimecolumn(subcmd, x, dateformat)
@@ -1698,6 +1732,7 @@ class GroupBy2Command(Command):
             subcmd_o.run()
 
         except Exception as e:
+            import traceback
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
     
@@ -1799,11 +1834,9 @@ class GroupBy2Command(Command):
         # parse inputs into list-of-dictionaries form
         for arglist in allargs:
             if arglist.get('c'):
-                fs = arglist.get('f')
+
                 x = arglist.get('x')
                 s = arglist.get('s')
-                ns = arglist.get('n')
-
                 if x or s: 
                     arglist['dateformat'] = args['dateformat']
                     if x and x not in xs:
@@ -1814,6 +1847,7 @@ class GroupBy2Command(Command):
                             if col.split('%')[0] not in xs:
                                 xs.append(col)
 
+                fs = arglist.get('f')
                 if fs:
                     fs = [a for a in self.header 
                         for target in arglist['f'].split(',')
@@ -1841,6 +1875,8 @@ class GroupBy2Command(Command):
                                 'optype' : 'msummary',
                                 **arglist})
 
+                ns = arglist.get('n')
+
                 for calc in cs_custom:
                     if ns:
                         ns = ns.split(',')
@@ -1856,24 +1892,23 @@ class GroupBy2Command(Command):
 
         # sys.__stderr__.write(repr(calclist))
 
+        cmd_i = None
         cmd = [None] * len(calclist)
         cmd_o = None
-        cmd[-1] <<= nm.mread(inputs)
+
+        cmd_i <<= nm.mread(inputs)
         # take the wanted columns only (the key columns and the value columns)
         # generate string of columns to cut
 
-        if xs:
-            timecols = ','.join(xs) + ','
-        else:
-            timecols = ''
+        colstocut = xs + [f for f in all_fs if f not in xs]
 
         if not k:
             k = '__key__'
-            cmd[-1] <<= nm.mcal(a = k, c = '"all"')
+            cmd_i <<= nm.mcal(a = k, c = '"all"')
 
         expanded_k = ','.join([k,'fld'])
 
-        cmd[-1] <<= nm.mcut(f = f'{timecols}{k}{","+",".join(all_fs) if len(all_fs) > 0 else ""}')
+        cmd_i <<= nm.mcut(f = f'{k}{","+",".join(colstocut) if len(colstocut) > 0 else ""}')
 
         ##### calculation portion:
 
@@ -1884,16 +1919,14 @@ class GroupBy2Command(Command):
             n = calcdict.get('n')
             optype = calcdict.pop('optype')
 
+            calcdict['precision'] = prec
+            calcdict['k'] = k
+
             # take the required stats for the required columns
             if optype == 'msummary':
-                if i != len(calclist) - 1:
-                    cmd[i] <<= nm.mread(i = cmd[-1])
-
-                cmd[i] <<= nm.msummary(k = k, precision = prec, **calcdict)
+                cmd[i] <<= nm.msummary(i = cmd_i, **calcdict, o = 'aftermsummary.csv')
 
                 final_cs = [c.split(':')[-1] for c in cs.split(',')]
-                cmd[i] <<= nm.m2cross(k = expanded_k, f = final_cs, 
-                        a = '__type__,__val__')
 
             elif optype == 'custom':
                 if ':' in cs:
@@ -1901,11 +1934,8 @@ class GroupBy2Command(Command):
                 else:
                     calcdict['a'] = cs
 
-                if i != len(calclist) - 1:
-                    cmd[i] <<= nm.mread(i=cmd[-1])
-                
-                cmd[i] <<= nm.runfunc(new_calcs[cs], k = k, precision = prec,
-                                      **calcdict)
+                cmd[i] <<= nm.mread(i=cmd_i)
+                cmd[i] <<= nm.runfunc(new_calcs[cs], **calcdict)
 
                 if cs == 'autocorr_agg':
                     final_cs = [f'{calcdict["a"]}_{suff}' for suff in ['mean','median','var']]
@@ -1914,11 +1944,11 @@ class GroupBy2Command(Command):
                 else:
                     final_cs = [calcdict['a']]
 
-                cmd[i] <<= nm.m2cross(k = expanded_k, f= final_cs, 
-                        a = '__type__,__val__')
+            cmd[i] <<= nm.m2cross(k = expanded_k, f= final_cs, 
+                    a = '__type__,__val__')
 
-        cmd_o <<= nm.m2cat(i = cmd)
-        cmd_o <<= nm.mdelnull(f = '__val__')
+        # cmd_o <<= nm.m2cat(i = cmd)
+        cmd_o <<= nm.mdelnull(i = cmd, f = '__val__')
 
         formatstring = args.pop('format')
         colformat = ['']
