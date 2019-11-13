@@ -1318,6 +1318,8 @@ class GroupBy2Command(Command):
         x = kwargs['x']
 
         try:
+            dateformat = kwargs.pop('dateformat')
+
             fs = f.split(',')
             targets = [None] * len(fs)
 
@@ -1326,8 +1328,20 @@ class GroupBy2Command(Command):
 
             subcmd <<= nm.mstdin()
 
+            # fix time column
+            if dateformat == 'date':
+                subcmd <<= nm.mcal(a = '__INT__', 
+                        c = f'uxt( s2t(regexstr($s{{{x}}},"^[0-9]{{14,14}}|^[0-9]{{6,6}}") ) )')
+                subcmd <<= nm.mcal(a = '__FLAC__', 
+                        c = f'regexstr($s{{{x}}},"[.][0-9]{{0,6}}$")')
+                subcmd <<= nm.mcal(a = 'uxt',
+                        c = 'if( isnull($s{__FLAC__}), $s{__INT__}, $s{__INT__}+$s{__FLAC__} )')
+            else:
+                subcmd <<= nm.mfldname(f = f'{x}:uxt')
+                x = 'uxt'
+
             for i, fld in enumerate(fs):
-                targets[i] <<= nm.mslide(k = k, s = x, i = subcmd, 
+                targets[i] <<= nm.mslide(k = k, s = 'uxt', i = subcmd, 
                                          f = f'{fld}:__shifted{fld}')
                 targets[i] <<= nm.mcal(c = f'${{__shifted{fld}}}-${{{fld}}}', 
                                        a = a)
@@ -1351,6 +1365,8 @@ class GroupBy2Command(Command):
         x = kwargs['x']
 
         try:
+            dateformat = kwargs.pop('dateformat')
+
             fs = f.split(',')
             targets = [None] * len(fs)
 
@@ -1359,8 +1375,20 @@ class GroupBy2Command(Command):
 
             subcmd <<= nm.mstdin()
 
+            # fix time column
+            if dateformat == 'date':
+                subcmd <<= nm.mcal(a = '__INT__', 
+                        c = f'uxt( s2t(regexstr($s{{{x}}},"^[0-9]{{14,14}}|^[0-9]{{6,6}}") ) )')
+                subcmd <<= nm.mcal(a = '__FLAC__', 
+                        c = f'regexstr($s{{{x}}},"[.][0-9]{{0,6}}$")')
+                subcmd <<= nm.mcal(a = 'uxt',
+                        c = 'if( isnull($s{__FLAC__}), $s{__INT__}, $s{__INT__}+$s{__FLAC__} )')
+            else:
+                subcmd <<= nm.mfldname(f = f'{x}:uxt')
+                x = 'uxt'
+
             for i, fld in enumerate(fs):
-                targets[i] <<= nm.mslide(k = k, s = x, i = subcmd, 
+                targets[i] <<= nm.mslide(k = k, s = 'uxt', i = subcmd, 
                                          f = f'{fld}:__shifted{fld}')
                 targets[i] <<= nm.mcal(c = f'abs(${{__shifted{fld}}}-${{{fld}}})', 
                                        a = a)
@@ -1533,6 +1561,8 @@ class GroupBy2Command(Command):
         x = kwargs['x']
 
         try:
+            dateformat = kwargs.pop('dateformat')
+
             fs = f.split(',')
             targets = [None] * len(fs)
             msummary = [None] * len(fs)
@@ -1542,6 +1572,19 @@ class GroupBy2Command(Command):
 
             subcmd <<= nm.mstdin()
 
+            # fix time column
+            if dateformat == 'date':
+                subcmd <<= nm.mcal(a = '__INT__', 
+                        c = f'uxt( s2t(regexstr($s{{{x}}},"^[0-9]{{14,14}}|^[0-9]{{6,6}}") ) )')
+                subcmd <<= nm.mcal(a = '__FLAC__', 
+                        c = f'regexstr($s{{{x}}},"[.][0-9]{{0,6}}$")')
+                subcmd <<= nm.mcal(a = 'uxt',
+                        c = 'if( isnull($s{__FLAC__}), $s{__INT__}, $s{__INT__}+$s{__FLAC__} )')
+            else:
+                subcmd <<= nm.mfldname(f = f'{x}:uxt')
+                x = 'uxt'
+
+
             for i, fld in enumerate(fs):
                 msummary[i] <<= nm.msummary(i = subcmd, k = k, f = fld, 
                                             c = 'mean:__mean')
@@ -1549,7 +1592,7 @@ class GroupBy2Command(Command):
                 targets[i] <<= nm.mjoin(i = subcmd, m = msummary[i], k = k, 
                                         f = '__mean')
 
-                targets[i] <<= nm.msortf(f = f'{k},{x}')
+                targets[i] <<= nm.msortf(f = f'{k},uxt')
                 targets[i] <<= nm.mcal(c = f'${{__mean}}<=${{{fld}}}', a = '__above')
                 targets[i] <<= nm.mcount(q = True, k = f'{k},__above', a = '__a_count')
                 targets[i] <<= nm.mbest(k = k, s = '__above%nr,__a_count%nr', size = 1)
@@ -1572,6 +1615,8 @@ class GroupBy2Command(Command):
         x = kwargs['x']
 
         try:
+            dateformat = kwargs.pop('dateformat')
+
             fs = f.split(',')
             targets = [None] * len(fs)
             msummary = [None] * len(fs)
@@ -1581,6 +1626,19 @@ class GroupBy2Command(Command):
 
             subcmd <<= nm.mstdin()
 
+            # fix time column
+            if dateformat == 'date':
+                subcmd <<= nm.mcal(a = '__INT__', 
+                        c = f'uxt( s2t(regexstr($s{{{x}}},"^[0-9]{{14,14}}|^[0-9]{{6,6}}") ) )')
+                subcmd <<= nm.mcal(a = '__FLAC__', 
+                        c = f'regexstr($s{{{x}}},"[.][0-9]{{0,6}}$")')
+                subcmd <<= nm.mcal(a = 'uxt',
+                        c = 'if( isnull($s{__FLAC__}), $s{__INT__}, $s{__INT__}+$s{__FLAC__} )')
+            else:
+                subcmd <<= nm.mfldname(f = f'{x}:uxt')
+                x = 'uxt'
+
+
             for i, fld in enumerate(fs):
                 msummary[i] <<= nm.msummary(i = subcmd, k = k, f = fld, 
                                             c = 'mean:__mean')
@@ -1588,8 +1646,8 @@ class GroupBy2Command(Command):
                 targets[i] <<= nm.mjoin(i = subcmd, m = msummary[i], k = k, 
                                         f = '__mean')
 
-                targets[i] <<= nm.msortf(f = f'{k},{x}')
-                targets[i] <<= nm.mcal(c = f'${{__mean}}>=${{{fld}}}', a = '__below')
+                targets[i] <<= nm.msortf(f = f'{k},uxt')
+                targets[i] <<= nm.mcal(c = f'${{__mean}}<=${{{fld}}}', a = '__below')
                 targets[i] <<= nm.mcount(q = True, k = f'{k},__below', a = '__b_count')
                 targets[i] <<= nm.mbest(k = k, s = '__below%nr,__b_count%nr', size = 1)
                 targets[i] <<= nm.mcal(c = 'if(${__below}==0,0,${__b_count})', a = a)
@@ -1611,6 +1669,8 @@ class GroupBy2Command(Command):
         x = kwargs['x']
 
         try:
+            dateformat = kwargs.pop('dateformat')
+
             fs = f.split(',')
             targets = [None] * len(fs)
 
@@ -1619,8 +1679,20 @@ class GroupBy2Command(Command):
 
             subcmd <<= nm.mstdin()
 
+            # fix time column
+            if dateformat == 'date':
+                subcmd <<= nm.mcal(a = '__INT__', 
+                        c = f'uxt( s2t(regexstr($s{{{x}}},"^[0-9]{{14,14}}|^[0-9]{{6,6}}") ) )')
+                subcmd <<= nm.mcal(a = '__FLAC__', 
+                        c = f'regexstr($s{{{x}}},"[.][0-9]{{0,6}}$")')
+                subcmd <<= nm.mcal(a = 'uxt',
+                        c = 'if( isnull($s{__FLAC__}), $s{__INT__}, $s{__INT__}+$s{__FLAC__} )')
+            else:
+                subcmd <<= nm.mfldname(f = f'{x}:uxt')
+                x = 'uxt'
+
             for i, fld in enumerate(fs):
-                targets[i] <<= nm.mslide(k = k, s = x, f = f'{fld}:__shifted{fld}',
+                targets[i] <<= nm.mslide(k = k, s = 'uxt', f = f'{fld}:__shifted{fld}',
                                          t = 2, i = subcmd)
                 targets[i] <<= nm.mcal(c = f'(${{__shifted{fld}2}}-2*${{__shifted{fld}1}}+${{{fld}}})/2',
                                        a = a)
@@ -1764,6 +1836,8 @@ class GroupBy2Command(Command):
         except Exception as e:
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
+    
+    
     # ## Template
     # subcmd = None
     # subcmd <<= nm.mstdin()
