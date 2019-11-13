@@ -1605,6 +1605,38 @@ class GroupBy2Command(Command):
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
 
+    def mean2ndderivative_central(self, k, precision, **kwargs):
+        f = kwargs['f']
+        a = kwargs['a']
+        x = kwargs['x']
+
+        try:
+            fs = f.split(',')
+            targets = [None] * len(fs)
+
+            subcmd = None
+            subcmd_o = None
+
+            subcmd <<= nm.mstdin()
+
+            for i, fld in enumerate(fs):
+                targets[i] <<= nm.mslide(k = k, s = x, f = f'{fld}:__shifted{fld}',
+                                         t = 2, i = subcmd)
+                targets[i] <<= nm.mcal(c = f'(${{__shifted{fld}2}}-2*${{__shifted{fld}1}}+${{{fld}}})/2',
+                                       a = a)
+                targets[i] <<= nm.mavg(k = k, f = a)
+                targets[i] <<= nm.msetstr(a = 'fld', v = fld)
+                targets[i] <<= nm.mcut(f = f'{k},fld,{a}')
+
+            subcmd_o <<= nm.m2cat(i = targets)
+            subcmd_o <<= nm.mstdout()
+            subcmd_o.run()
+
+        except Exception as e:
+            import traceback
+            with open('/dev/stderr', 'w') as fpe:
+                traceback.print_exc(file=fpe)
+
     # --------------- 3 vars -----------------------
 
     def countpeaks(self, k, precision, **kwargs):
@@ -1803,6 +1835,7 @@ class GroupBy2Command(Command):
             'autocorr_agg' : self.autocorrelation_agg,
             'longest_strike_above_mean' : self.longeststrikeabovemean,
             'longest_strike_below_mean' : self.longeststrikebelowmean,
+            'mean_second_derivative_central' : self.mean2ndderivative_central,
             # 3 fields
             'peaks' : self.countpeaks,
             'autocorr' : self.autocorrelation

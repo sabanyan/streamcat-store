@@ -81,7 +81,7 @@
       "name": "xfclist",
       "type": "list",
       "label": "時系列の特徴量",
-      "description": "指定可能統計量:\nintegral　・・・　積分値\nslope　・・・　傾き\nmeanf　・・・　周波数平均\nvarf ・・・　周波数分散\nfirstmin\nfirstmax\nlastmin\nlastmax\nmean_change\nmean_abs_change\nabs_energy\nabs_sum_of_changes\nautocorr_agg\nlongest_strike_above_mean\nlongest_strike_below_mean\n追加・順序変更・削除　可",
+      "description": "指定可能統計量:\nintegral　・・・　積分値\nslope　・・・　傾き\nmeanf　・・・　周波数平均\nvarf ・・・　周波数分散\nfirstmin\nfirstmax\nlastmin\nlastmax\nmean_change\nmean_abs_change\nabs_energy\nabs_sum_of_changes\nautocorr_agg\nlongest_strike_above_mean\nlongest_strike_below_mean\nmean_second_derivative_central\n追加・順序変更・削除　可",
       "elements": [
         {
           "name": "x",
