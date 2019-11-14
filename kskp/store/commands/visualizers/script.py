@@ -332,7 +332,7 @@ class CsvtoRepetitivieWaveform(VisualizersBokehPlot):
             statics_source = self.get_statics_source(self.df, disableTooltips=self.disableTooltips)
             if statics_source is not None:
                 statics_colors = self.get_colors(len(statics_source))
-                plot = self.get_plot("反復波形図",graph_plot.x_range,graph_plot.y_range)
+                plot = self.get_plot("反復波形図",graph_plot.x_range,graph_plot.y_range,False)
                 statics_plot = self.get_statics_plot(plot,statics_source, statics_colors)
                 if statics_plot.legend:
                     statics_plot.legend.location = "top_left"
@@ -396,7 +396,7 @@ class CsvtoRepetitivieWaveform(VisualizersBokehPlot):
             data = dict(
                 x = n_df[self.column_name_x_axis].tolist(),
                 y = n_df[self.column_name_values].tolist(),
-                #group = n_df[self.group].tolist(),
+                group = n_df[self.group].tolist(),
                 label = [label] * (len(n_df.index))
             )
             source[label] = data
@@ -471,7 +471,7 @@ class CsvtoRepetitivieWaveform(VisualizersBokehPlot):
 
         return colors
 
-    def get_plot(self, title, x_range=None, y_range=None):
+    def get_plot(self, title, x_range=None, y_range=None, visiableGroup=True):
         
         tooltips = None
         if self.disableTooltips != True:
@@ -479,6 +479,13 @@ class CsvtoRepetitivieWaveform(VisualizersBokehPlot):
                     ("凡例", "@label"),
                     (self.column_name_x_axis, "@x"),
                     (self.column_name_values, "@y"),
+                    ("group", "@group")
+                ]
+            if visiableGroup == False:
+                tooltips = [
+                    ("凡例", "@label"),
+                    (self.column_name_x_axis, "@x"),
+                    (self.column_name_values, "@y")
                 ]
         
         plot = figure(
