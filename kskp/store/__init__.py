@@ -87,11 +87,11 @@ ss = Session()
 
 from kskp.core import Datum, Port, Command
 
-from .store import Store, NysolModule, ModuleStore
+from .store import Store, NysolModule, ModuleStore, List
 from .database_conn import DatabaseConn
 from .remote_folder_conn import RemoteFolderConn
 from .mountable import Mountable
-from .frame import Frame, Cache
+from .frame import Frame
 from .flow import Flow
 from .folder import Folder
 from .awss3 import AwsS3
