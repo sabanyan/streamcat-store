@@ -9,7 +9,7 @@ import nysol.mcmd as nm
 class VisualizersCommand(Command):
     def __init__(self):
         super().__init__()
-        self.i_ports = [Port('i', 'mcmd')]
+        self.i_ports = [Port('i', 'list')]
         self.o_ports = [Port('o', 'preview')]
 
     def run(self, args, inputs):

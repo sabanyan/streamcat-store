@@ -1,4 +1,4 @@
-from kskp.store import Command, Port, Datum
+from kskp.store import Command, Port, Datum, NysolModule
 
 class Square(Command):
     """
@@ -13,8 +13,9 @@ class Square(Command):
     def run(self, args, inputs):
         # 厳密にはframeじゃないが、まぁテスト用のコマンドなので
         # ラップするのはなんでもいいかなと思いframeにした。
+        i = inputs['i'].content if isinstance(inputs['i'], Integer) else inputs['i']
         frame = Integer()
-        frame.set_content([[inputs['i'][0][0] ** 2]])
+        frame.set_content([[i[0][0] ** 2]])
         return {self.o_ports[0].name: frame}
 
 class Integer(Datum):

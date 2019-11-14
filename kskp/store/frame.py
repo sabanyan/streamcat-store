@@ -285,27 +285,27 @@ class Frame(Datum):
                 'createdAt' : self.created_at_str}
 
     # for engine
-    def set_centext(self, params):
-        self.context = params
+    # def set_centext(self, params):
+    #     self.context = params
 
-    def save_to_db(self):
-        self.data = {'label' : self.context.get('label')}
-        relative_path = Datum._to_rel_path(self.context.get('frame_path').as_posix())
-        self.add_entry_from_path(Path(relative_path))
+    # def save_to_db(self):
+    #     self.data = {'label' : self.context.get('label')}
+    #     relative_path = Datum._to_rel_path(self.context.get('frame_path').as_posix())
+    #     self.add_entry_from_path(Path(relative_path))
 
-    def set_content(self, module):
-        self._content = module
+    # def set_content(self, module):
+    #     self._content = module
 
-    @property
-    def content(self):
-        return self._content
+    # @property
+    # def content(self):
+    #     return self._content
 
-    @property
-    def created(self):
-        if self.context.get('frame_path') is not None:
-            return self.context.get('frame_path').exists()
-        else:
-            return False
+    # @property
+    # def created(self):
+    #     if self.context.get('frame_path') is not None:
+    #         return self.context.get('frame_path').exists()
+    #     else:
+    #         return False
 
     def get_dataframe(self, limit, offset, time_series_columns=False):
         import pandas as pd
@@ -417,26 +417,26 @@ class Frame(Datum):
 
         return column_list
 
-class Cache(Frame):
-    """
-    FrameもCacheもどちらも実ファイルを生成するdatumであり、
-    違いはflowのjsonを書き換えるか書き換えないか（今の所）
-    ということでFrameを継承したものにしてみた。
-    """
-    def __init__(self, parent_uuid, label, stream, creator=None):
-        super().__init__(parent_uuid, label, stream, creator)
+# class Cache(Frame):
+#     """
+#     FrameもCacheもどちらも実ファイルを生成するdatumであり、
+#     違いはflowのjsonを書き換えるか書き換えないか（今の所）
+#     ということでFrameを継承したものにしてみた。
+#     """
+#     def __init__(self, parent_uuid, label, stream, creator=None):
+#         super().__init__(parent_uuid, label, stream, creator)
 
-    def update_flow(self, modifier):
-        from kskp.store import Flow
-        if self.context.get('flow_uuid') is None:
-            return
-        flow = Flow.find_by_uuid(self.context.get('flow_uuid'))
-        f = flow.flow_data
-        self._update_node(f)
-        Flow.update_data(flow.uuid, flow.label, f, modifier)
+#     def update_flow(self, modifier):
+#         from kskp.store import Flow
+#         if self.context.get('flow_uuid') is None:
+#             return
+#         flow = Flow.find_by_uuid(self.context.get('flow_uuid'))
+#         f = flow.flow_data
+#         self._update_node(f)
+#         Flow.update_data(flow.uuid, flow.label, f, modifier)
 
-    def _update_node(self, flow_json):
-        for node in flow_json['nodes']:
-            if node['id'] == self.context.get('datum_id'):
-                node['uuid'] = self.uuid
-                node['cacheCreatedAt'] = datetime.now(timezone(timedelta(hours=+9), 'JST')).strftime('%Y-%m-%d %H:%M:%S')
+#     def _update_node(self, flow_json):
+#         for node in flow_json['nodes']:
+#             if node['id'] == self.context.get('datum_id'):
+#                 node['uuid'] = self.uuid
+#                 node['cacheCreatedAt'] = datetime.now(timezone(timedelta(hours=+9), 'JST')).strftime('%Y-%m-%d %H:%M:%S')
