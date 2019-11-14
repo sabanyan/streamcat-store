@@ -300,6 +300,17 @@ class Flow(Datum):
                 node['uuid'] = new_uuid
         Flow.update_data(self.uuid, self.label, flow_data, user_id)
 
+    def set_cache(self, node_id, cache_uuid, user_id):
+        from datetime import datetime, timedelta, timezone
+
+        flow_data = self.flow_data
+        for node in flow_data['nodes']:
+            if node['id'] == node_id:
+                node['uuid'] = cache_uuid
+                # 記録時間はUTC、表示時間は現地時間にすべきでは？？
+                node['cacheCreatedAt'] = datetime.now(timezone(timedelta(hours=+9), 'JST')).strftime('%Y-%m-%d %H:%M:%S')
+        Flow.update_data(self.uuid, self.label, flow_data, user_id)
+
     def to_json(self):
         return {'uuid'      : self.uuid,
                 'type'      : Datum.FLOW_TYPE,

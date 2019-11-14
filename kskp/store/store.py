@@ -77,12 +77,9 @@ class NysolModule(Datum):
     """
     NysolModuleをラップするクラス
     """
-    def __init__(self):
+    def __init__(self, nysol_cmd=None):
         super().__init__(None, 'nm', None)
-        self._content = None
-
-    def set_uuid(self, uuid):
-        self.uuid = uuid
+        self._content = nysol_cmd
 
     def set_content(self, module):
         self._content = module
@@ -90,3 +87,6 @@ class NysolModule(Datum):
     @property
     def content(self):
         return self._content
+
+    def __ilshift__(self, other):
+        raise Exception(f'NysolModule({str(self._content)})に"<<="演算子は使えません ( ´Д`)/')
