@@ -3,7 +3,7 @@ import os
 import sys
 import nysol.mcmd as nm
 
-from kskp.store import NysolModule, Cache, Folder, Frame
+from kskp.store import NysolModule, Datum, Folder, Frame
 from kskp.core import Command, Port
 
 class SaverCommand(Command):
@@ -37,24 +37,16 @@ class SaverCommand(Command):
         # もしくは、実行ログ一覧画面さえできれば別々に指定する必要もなくなるか？
         Frame.update_label_only(self.frame.uuid, point_label, None)
 
-        # 1. storeにsaveする
-        datum_module = folder.save_frame(self, args, inputs['i'], point_label + '.csv') 
-        # 2. lasts用なのでコマンド実行のrunをする（繋げる必要はない）
-        # result = datum_module.run(msg='on')
+        # NYSOLコマンドを作成する
+        cmd = inputs['i'].content
+        cmd = self.append_writecsv_cmd(cmd, self.frame.path)
 
-        self.frame.set_centext(args)
-        self.frame.set_content(datum_module)
+        return {'o': NysolModule(cmd), 'u': self.frame.uuid}
 
-        return {'o': self.frame, 'u': self.frame.uuid}
-        # TODO: FrameModuleを葬るためには、RunsCommandの後にSaverを付加するように変更する必要があるだろう
-        # return {'o': datum_module, 'u': self.frame.uuid}
-
-    def module(self, args, input):
-        command_args = {}
-        command_args['i'] = input
-        command_args['o'] = args['frame_path'].as_posix()
-        # return nm.m2tee(command_args)
-        return nm.writecsv(command_args)
+    def append_writecsv_cmd(self, cmd, frame_path):
+        abs_frame_path = Datum._to_abs_path(frame_path.as_posix())
+        cmd <<= nm.writecsv(o=abs_frame_path)
+        return cmd
 
     def make_folder(self, store, folder1_label, folder2_label, folder2_file_name):
         from kskp.store import Datum, AwsS3
@@ -137,25 +129,18 @@ class CacheSaverCommand(SaverCommand):
         # Cacheフレームを作成する
         self.frame = self.make_frame(store, cache_label)
 
-        # 1. storeにsaveする
-        datum_module = store.save_frame(self, args, inputs['i'], cache_label + '.csv') 
-
-        self.frame.set_centext(args)
-        self.frame.set_content(datum_module)
-
         # FlowのキャッシュUUIDを変更する
-        # frame.set_centext(args)の後で行う必要がある
-        self.frame.update_flow(modifier=None)
+        from kskp.store import Flow
+        flow = Flow.find_by_uuid(args['flow_uuid'])
+        node_id = args['datum_id']
+        # TODO: RunsCommand実行前にFlowにキャッシュありの情報を更新すると、同じフローの同時実行に支障があるだろう
+        flow.set_cache(node_id, self.frame.uuid, None)
 
-        return {'o': self.frame}
+        # NYSOLコマンドを作成する
+        cmd = inputs['i'].content
+        cmd = self.append_writecsv_cmd(cmd, self.frame.path)
 
-    def make_frame(self, store, label):
-        import io
-        f = io.BytesIO(b'')
-        self.frame = Cache(store.uuid, label, f)
-        # RunsCommandの実行前にFrameを登録する
-        self.frame.save()
-        return self.frame
+        return {'o': NysolModule(cmd)}
 
     def dtor(self):
         pass
@@ -300,9 +285,7 @@ class DbLoaderCommand(Command):
         # Nysol Pythonのrunfunc関数を作成する
         cmd = nm.runfunc(results_getter, db_uri=db_uri, dbms=database.dbms, sql=sql)
 
-        nysol_module = NysolModule()
-        nysol_module.set_content(cmd)
-        return {'o': nysol_module}
+        return {'o': NysolModule(cmd)}
 
     @staticmethod
     def _make_sql(schema_name, table_name):
@@ -430,17 +413,11 @@ class DbSaverCommand(Command):
         sys.stdout.flush()
 
         # Nysol Pythonのrunfunc関数を作成する
-        cmd = inputs['i']
+        cmd = inputs['i'].content
         cmd <<= nm.runfunc(bulk_inserter, database=database, schema_name=schema_name, table_name=table_name)
 
-        # 結果はFrameに入れて返す
-        from kskp.store import Frame
-        frame = Frame(None, 'db_saver', None)
-        frame.set_centext(args)
-        frame.set_content(cmd)
-
         # TODO: 'u'には意味のないUUIDを返しているが、正しくはDBの結果を表すUUIDを返したい
-        return {'o': frame, 'u': frame.uuid}  
+        return {'o': NysolModule(cmd), 'u': 'C7C25162-404F-4300-9547-446651CE69DD'}  
         
     @staticmethod
     def _connect_to_db(db_uri):
@@ -621,10 +598,11 @@ class RunsCommand(Command):
     def run(self, args, inputs):
         nm_list = []
         for nysol_module in inputs.values():
-            nm_list.append(nysol_module)
+            nm_list.append(nysol_module.content)
 
         # NYSOL Pythonを実行する
         import nysol.mcmd as nm
+        # nm_list[0].drawModelsD3('aaa.html').run()
         results = nm.runs(nm_list, msg='on')
 
         if len(results) != len(inputs):

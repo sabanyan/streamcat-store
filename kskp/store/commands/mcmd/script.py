@@ -110,11 +110,14 @@ class McutCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i']
-        cmd_o = nm.mcut(args)
-        nysol_module_o= NysolModule()
-        nysol_module_o.set_content(cmd_o)
-        return {'o': nysol_module_o}
+        # args['i'] = inputs['i']
+        # cmd_o = nm.mcut(args)
+        # nysol_module_o= NysolModule()
+        # nysol_module_o.set_content(cmd_o)
+        # return {'o': nysol_module_o}
+        cmd = inputs['i'].content
+        cmd <<= nm.mcut(args)
+        return {'o': NysolModule(cmd)}
 
 class MnumberCommand(Command):
     def __init__(self):
