@@ -373,7 +373,7 @@ class DbSaverCommand(Command):
     def __init__(self):
         super().__init__()
         self.i_ports = [Port('i', 'frame'), Port('store', 'store')]
-        self.o_ports = [Port('o', 'mcmd')]
+        self.o_ports = [Port('o', 'mcmd'), Port('u', 'frame')]
         self._tmp_file_path = None
 
     def run(self, args, inputs):
@@ -439,7 +439,8 @@ class DbSaverCommand(Command):
         frame.set_centext(args)
         frame.set_content(cmd)
 
-        return {'o': frame}  
+        # TODO: 'u'には意味のないUUIDを返しているが、正しくはDBの結果を表すUUIDを返したい
+        return {'o': frame, 'u': frame.uuid}  
         
     @staticmethod
     def _connect_to_db(db_uri):
@@ -661,3 +662,5 @@ class ActivityCommand(Command):
 
         return {'o': self.activity}
 
+    def dtor(self):
+        self.activity = None

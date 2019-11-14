@@ -27,6 +27,8 @@ class Activity(Datum):
         self.data = {'time' : 0, 'flow_uuid' : flow_uuid, 'result': self.result}
 
     def add(self, point, result_frame):
+        if point in self.result:
+            raise Exception('Same point already Exists!')
         self.result[point] = result_frame
 
     def count_result(self):
