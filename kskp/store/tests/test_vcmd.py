@@ -114,7 +114,7 @@ class VCmdTestCase(unittest.TestCase):
                 }
 			}
 		}
-        flow_link = FlowJsonLink('CSV to HTML table', json_str, preview_args=preview_args)
+        flow_link = FlowJsonLink('CSV to HTML table', json_str, FlowLinkContext(), preview_args=preview_args)
         activity = execute(flow_link, {}, {})
         result = self.convert_from_activity_preview(activity)['d1']
 
