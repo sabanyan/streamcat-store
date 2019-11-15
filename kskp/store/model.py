@@ -275,8 +275,6 @@ def create_flow(request_json, user_id, data_source_name=None):
 
     data = make_flow_json()
 
-    write_data_to_json(make_flow_path(data_source_name), data)
-
     return data
 #
 #
