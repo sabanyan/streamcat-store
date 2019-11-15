@@ -510,7 +510,6 @@ class GroupBy2Command(Command):
             f = kwargs.get('f')
             a = kwargs.get('a')
             k = kwargs.get('k')
-            precision = kwargs.get('precision')
             
             fs = f.split(',')
             targets = [None] * len(fs)
@@ -540,7 +539,6 @@ class GroupBy2Command(Command):
             f = kwargs.get('f')
             a = kwargs.get('a')
             k = kwargs.get('k')
-            precision = kwargs.get('precision')
 
             fs = f.split(',')
             targets = [None] * len(fs)
@@ -709,7 +707,8 @@ class GroupBy2Command(Command):
                 targets[i] <<= nm.mcal(a = fld, c = '${__count__}>1')
                 targets[i] <<= nm.msummary(k = k, f = f'{fld}', 
                                            c = 'sum:__sum__,count:__count__')
-                targets[i] <<= nm.mcal(c = '${__sum__}/${__count__}', a = a)
+                targets[i] <<= nm.mcal(c = '${__sum__}/${__count__}', a = a,
+                                       precision = precision)
 
             subcmd_o <<= nm.m2cat(i = targets)
             subcmd_o <<= nm.mcut(f = f'{k},fld,{a}')
@@ -744,7 +743,8 @@ class GroupBy2Command(Command):
                 targets[i] <<= nm.msum(k = k, f = '__repeat__')
 
                 targets[i] <<= nm.mjoin(m = mcount[i], f = '__total__', k = k)
-                targets[i] <<= nm.mcal(a = a, c = '${__repeat__}/${__total__}')
+                targets[i] <<= nm.mcal(a = a, c = '${__repeat__}/${__total__}',
+                                       precision = precision)
                 targets[i] <<= nm.mcal(a = 'fld', c = f'"{fld}"')
 
             subcmd_o <<= nm.m2cat(i = targets)
@@ -826,7 +826,6 @@ class GroupBy2Command(Command):
             f = kwargs.get('f')
             a = kwargs.get('a')
             k = kwargs.get('k')
-            precision = kwargs.get('precision')
 
             fs = f.split(',')
             targets = [None] * len(fs)
@@ -859,7 +858,6 @@ class GroupBy2Command(Command):
             f = kwargs.get('f')
             a = kwargs.get('a')
             k = kwargs.get('k')
-            precision = kwargs.get('precision')
 
             fs = f.split(',')
             targets = [None] * len(fs)
@@ -935,6 +933,7 @@ class GroupBy2Command(Command):
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
         
+    # currently broken
     def meanfrequency(self, subcmd, **kwargs):
         # body of this method adapted from:
         # github.com/nysol/nysol_python/blob/master/scripts/sample/mkfeature.py
@@ -975,6 +974,7 @@ class GroupBy2Command(Command):
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
 
+    # currently broken
     def frequencyvar(self, subcmd, **kwargs):
         # body of this method adapted from:
         # github.com/nysol/nysol_python/blob/master/scripts/sample/mkfeature.py
@@ -1069,7 +1069,7 @@ class GroupBy2Command(Command):
 
             # fix "time" column
             ordercol = '__order__'
-            subcmd <<= nm.mnumber(k = k, a = f'{ordercol}', s = f'{k},{s}', S = '1')
+            subcmd <<= nm.mnumber(k = k, a = f'{ordercol}', s = f'{k},{x}', S = '1')
 
             for fld in fs: 
                 subcmd <<= nm.mcal(a = f'{fld}_prod',c = f'${{{fld}}}*${{{ordercol}}}')
@@ -1084,7 +1084,7 @@ class GroupBy2Command(Command):
             subcmd <<= nm.mcross(f = f'{a}', s = 'tmp_colnames', k = k)
 
             for fld in fs:
-                subcmd <<= nm.mcal(a = fld, 
+                subcmd <<= nm.mcal(a = fld, precision = precision,
                     c = f'(${{{fld}_prod_mean}}-(${{{fld}_mean}}*${{{ordercol}_mean}}))/${{{ordercol}_var}}')
             
             subcmd <<= nm.mcross(f = f, s = 'fld', k = k)
@@ -1303,7 +1303,7 @@ class GroupBy2Command(Command):
                                          f = f'{fld}:__shifted{fld}')
                 targets[i] <<= nm.mcal(c = f'${{__shifted{fld}}}-${{{fld}}}', 
                                        a = a)
-                targets[i] <<= nm.mavg(k = k, f = a)
+                targets[i] <<= nm.mavg(k = k, f = a, precision = precision)
 
                 targets[i] <<= nm.msetstr(a = 'fld', v = fld)
                 targets[i] <<= nm.mcut(f = f'{k},fld,{a}')
@@ -1340,7 +1340,7 @@ class GroupBy2Command(Command):
                                          f = f'{fld}:__shifted{fld}')
                 targets[i] <<= nm.mcal(c = f'abs(${{__shifted{fld}}}-${{{fld}}})', 
                                        a = a)
-                targets[i] <<= nm.mavg(k = k, f = a)
+                targets[i] <<= nm.mavg(k = k, f = a, precision = precision)
 
                 targets[i] <<= nm.msetstr(a = 'fld', v = fld)
                 targets[i] <<= nm.mcut(f = f'{k},fld,{a}')
@@ -1375,7 +1375,8 @@ class GroupBy2Command(Command):
                 subcmd <<= nm.mcut(f = fld, r = True)
                 subcmd <<= nm.mfldname(f = f'__tmp{fld}__:{fld}')
             
-            subcmd <<= nm.msummary(k = k, c = f'sum:{a}', f = f, precision = precision)
+            subcmd <<= nm.msummary(k = k, c = f'sum:{a}', f = f, 
+                                   precision = precision)
 
             return subcmd
 
@@ -1440,7 +1441,6 @@ class GroupBy2Command(Command):
             a = kwargs.get('a')
             x = kwargs.get('x')
             k = kwargs.get('k')
-            precision = kwargs.get('precision')
 
             dateformat = kwargs.pop('dateformat')
 
@@ -1483,7 +1483,6 @@ class GroupBy2Command(Command):
             a = kwargs.get('a')
             x = kwargs.get('x')
             k = kwargs.get('k')
-            precision = kwargs.get('precision')
 
             dateformat = kwargs.pop('dateformat')
 
@@ -1543,7 +1542,7 @@ class GroupBy2Command(Command):
                                          t = 2, i = subcmd)
                 targets[i] <<= nm.mcal(c = f'(${{__shifted{fld}2}}-2*${{__shifted{fld}1}}+${{{fld}}})/2',
                                        a = a)
-                targets[i] <<= nm.mavg(k = k, f = a)
+                targets[i] <<= nm.mavg(k = k, f = a, precision = precision)
                 targets[i] <<= nm.msetstr(a = 'fld', v = fld)
                 targets[i] <<= nm.mcut(f = f'{k},fld,{a}')
 
@@ -1565,7 +1564,6 @@ class GroupBy2Command(Command):
             x = kwargs.get('x')
             k = kwargs.get('k')
             n = kwargs.get('n')
-            precision = kwargs.get('precision')
 
             dateformat = kwargs.pop('dateformat')
 
@@ -1646,7 +1644,7 @@ class GroupBy2Command(Command):
                     targets[i] <<= nm.msum(k = k, f = f'__{fld}_m')
                     targets[i] <<= nm.msetstr(a = '__lag', v = n)
                     targets[i] <<= nm.msetstr(a = 'fld', v = fld)
-                    targets[i] <<= nm.mcal(a = f'{a}_{n}', 
+                    targets[i] <<= nm.mcal(a = f'{a}_{n}', precision = precision,
                         c = f'${{__{fld}_m}}/(${{__count}}-${{__lag}})/${{__var}}')
 
             subcmd_o <<= nm.mcut(i = targets, f = f'{k},fld,{a}_{n}')
