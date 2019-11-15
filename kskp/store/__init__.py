@@ -117,10 +117,10 @@ sql1 = """
 ALTER TABLE data 
 ADD COLUMN label VARCHAR;
 """
-try:
-    engine.execute(sql1)
-except Exception as e:
-    pass
+# try:
+#     engine.execute(sql1)
+# except Exception as e:
+#     pass
 
 from sqlalchemy import event, DDL
 
