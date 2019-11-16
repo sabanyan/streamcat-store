@@ -43,7 +43,7 @@ class SaverCommand(Command):
         cmd = inputs['i'].content
         cmd = self.append_writecsv_cmd(cmd, self.frame.path)
  
-        return {'o': NysolModule(cmd), 'u': self.frame.uuid}
+        return {'o': NysolModule(cmd), 'u': self.frame}
 
     def append_writecsv_cmd(self, cmd, frame_path):
         abs_frame_path = Datum._to_abs_path(frame_path.as_posix())
@@ -86,24 +86,6 @@ class SaverCommand(Command):
         self.frame.save()
         return self.frame
 
-    def dtor(self):
-        if self.frame is None:
-            return
-        # 出力フレームのラベルに終了時刻と所要時間を付加する
-        from datetime import datetime, timezone
-        end_time = datetime.utcnow().replace(tzinfo=timezone.utc)
-        end_time_str = end_time.astimezone().strftime('%H:%M:%S')
-        new_label = self.frame.label + ' 終了時刻' + end_time_str
-        if self.start_time is not None:
-            elapsed_time = (end_time - self.start_time).total_seconds()
-            if elapsed_time < 60.0:
-                elapsed_time_str = str(round(elapsed_time))
-                new_label = new_label + ' 全体処理時間' + elapsed_time_str + '秒'
-            else:
-                elapsed_time_str = str(round(elapsed_time / 60, 2))
-                new_label = new_label + ' 全体処理時間' + elapsed_time_str + '分'
-        Frame.update_label_only(self.frame.uuid, new_label, None)
-
 class CacheSaverCommand(SaverCommand):
     """
     指定されているstoreに出力するコマンド（テスト用）
@@ -144,8 +126,6 @@ class CacheSaverCommand(SaverCommand):
 
         return {'o': NysolModule(cmd)}
 
-    def dtor(self):
-        pass
 
 # 1つ保存のsaverはどうなる？
 # 普通なら、inputsできたものをargs情報を使って保存か
@@ -581,20 +561,12 @@ class ActivityCommand(Command):
         super().__init__()
         self.i_ports = [Port('*', 'datum')]
         self.o_ports = [Port('o', 'activity')]
-        self.activity = None
 
     def run(self, args, inputs):
-        # raise Exception('activity RUN!')
-
-        if self.activity is None:
-            flow_uuid = args['flow_uuid']
-            self.activity = Activity(None, 'activity', flow_uuid)
+        activity = args['activity']
 
         for port_id, datum in inputs.items():
             point = args['points'][port_id]
-            self.activity.add(point, datum)
+            activity.add(point, datum)
 
-        return {'o': self.activity}
-
-    def dtor(self):
-        self.activity = None
+        return {'o': activity}
