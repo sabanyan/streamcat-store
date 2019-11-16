@@ -1379,6 +1379,7 @@ class SelRowCommand(RunfuncCommand):
         return {'o': nysol_module_o, 'u': nysol_module_u}
 
 class RowRangeCommand(Command):
+    """
     指定範囲の行を抽出する
     """
     def __init__(self):

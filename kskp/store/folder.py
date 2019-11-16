@@ -298,8 +298,9 @@ class Folder(Store):
             raise Exception('No frame(%s) is found !' % uuid)
         path = Datum._to_abs_path(frame.path.as_posix())
 
-        # return nm.m2tee({'i':path})
-        return nm.mread({'i':path})
+        return nm.m2tee({'i':path})
+        # mreadで存在しないファイルパスを指定するとDockerごと落ちる
+        # return nm.mread({'i':path})
 
     @property
     def content(self):
