@@ -101,7 +101,7 @@ class FlowDumper:
                 f.write(type)
                 f.write(',')
                 f.write(label)
-                # f.write('\n')
+                f.write('\n')
 
         return gathered_uuids
 
