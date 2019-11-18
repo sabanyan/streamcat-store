@@ -28,13 +28,12 @@ class Activity(Datum):
         start_time = datetime.utcnow().replace(tzinfo=timezone.utc)
 
         # data列の値を作成する
-        self.result = {}
+        # [(point, frame)]
+        self.result = []
         self.data = {'start_time' : start_time, 'flow_uuid' : flow_uuid, 'result': self.result}
 
     def add(self, point, result_frame):
-        if point in self.result:
-            raise Exception('Same point already Exists!')
-        self.result[point] = result_frame
+        self.result.append((point, result_frame))
 
     def count_result(self):
         return len(self.result)
@@ -45,8 +44,8 @@ class Activity(Datum):
         end_time = datetime.utcnow().replace(tzinfo=timezone.utc)
         end_time_str = end_time.astimezone().strftime('%H:%M:%S')
         # 出力フレームのラベルに終了時刻と所要時間を付加する
-        for frame in self.result.values():
-            if not Frame.exists(frame.uuid):
+        for point, frame in self.result:
+            if type(frame) is not Frame or not Frame.exists(frame.uuid):
                 # Frameが存在しなくてもエラーにはしない
                 continue
             new_label = frame.label + ' 終了時刻' + end_time_str
