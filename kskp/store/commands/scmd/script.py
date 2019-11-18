@@ -566,8 +566,6 @@ class ActivityCommand(Command):
         activity = args['activity']
         points = args['points']
 
-        print('Activiti cmd ran!') 
-
         for port_id, datum in inputs.items():
             point = points[port_id]
             activity.add(point, datum)

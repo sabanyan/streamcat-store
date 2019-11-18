@@ -2,7 +2,7 @@ import os
 import io
 import json
 import unittest
-from kskp.engine import execute, FlowJsonLink
+from kskp.engine import execute, FlowJsonLink, FlowLinkContext
 
 
 class VCmdTestCase(unittest.TestCase):
@@ -104,7 +104,6 @@ class VCmdTestCase(unittest.TestCase):
         }
 
     def test_csvtohtmltable(self):
-        json_str = json.dumps(self.flow_csvtohtmltable)
         preview_args = 	{
 			"d1" : {
                 "args" : {
@@ -114,7 +113,7 @@ class VCmdTestCase(unittest.TestCase):
                 }
 			}
 		}
-        flow_link = FlowJsonLink('CSV to HTML table', json_str, FlowLinkContext(), preview_args=preview_args)
+        flow_link = FlowJsonLink('CSV to HTML table', self.flow_csvtohtmltable, FlowLinkContext(), preview_args=preview_args)
         activity = execute(flow_link, {}, {})
         result = self.convert_from_activity_preview(activity)['d1']
 
