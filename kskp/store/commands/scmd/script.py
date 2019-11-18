@@ -564,9 +564,17 @@ class ActivityCommand(Command):
 
     def run(self, args, inputs):
         activity = args['activity']
+        points = args['points']
+
+        print('Activiti cmd ran!') 
 
         for port_id, datum in inputs.items():
-            point = args['points'][port_id]
+            point = points[port_id]
             activity.add(point, datum)
 
-        return {'o': activity}
+        if activity.count_result() == len(points):
+            # Activityを全て集め終えたら結果を出力Pointに渡し、処理を終了する
+            return {'o': activity}
+        else:
+            # Noneを渡して、再びrun()を実行してもらう
+            return {'o': None}

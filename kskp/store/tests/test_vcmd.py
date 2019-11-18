@@ -145,4 +145,4 @@ class VCmdTestCase(unittest.TestCase):
         execute()の戻り値であるActivityから
         pointのidとpreviewのDictに置き換える
         """
-        return {point.id : preview.result for point, preview in activity.result.items()}
+        return {point.id : preview.result for point, preview in activity.result}
