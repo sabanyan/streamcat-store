@@ -324,7 +324,6 @@ class RunfuncCommand(Command):
         """
         pass
 
-
 class GroupBy2Command(Command):
     def __init__(self):
         super().__init__()
@@ -933,8 +932,7 @@ class GroupBy2Command(Command):
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
         
-    # currently broken
-    def meanfrequency(self, subcmd, **kwargs):
+    def meanfrequency(self, **kwargs):
         # body of this method adapted from:
         # github.com/nysol/nysol_python/blob/master/scripts/sample/mkfeature.py
         try:
@@ -948,8 +946,8 @@ class GroupBy2Command(Command):
 
             headerline = True
 
-            for dlist in subcmd.keyblock(f'{k}', x, header = True):
-                id = ','.join(dlist[0][1:len(k.split(','))+1])
+            for dlist in nm.mstdin().keyblock(f'{k}', x, header = True):
+                id = ','.join(dlist[0][:len(k.split(','))])
 
                 if headerline:
                     header = dlist[0]
@@ -966,7 +964,7 @@ class GroupBy2Command(Command):
 
                         mean = y.dot(np.arange(len(y)))/y.sum()
 
-                        print(f'{id},{fld},{mean}')
+                        print(f'{id},{fld},{mean:.{precision}g}')
             sys.__stdout__.flush()#not needed for bigger data
 
         except Exception as e:
@@ -974,8 +972,7 @@ class GroupBy2Command(Command):
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
 
-    # currently broken
-    def frequencyvar(self, subcmd, **kwargs):
+    def frequencyvar(self, **kwargs):
         # body of this method adapted from:
         # github.com/nysol/nysol_python/blob/master/scripts/sample/mkfeature.py
         try:
@@ -989,8 +986,8 @@ class GroupBy2Command(Command):
 
             headerline = True
 
-            for dlist in subcmd.keyblock(f'{k}', x, header = True):
-                id = ','.join(dlist[0][1:len(k.split(','))+1])
+            for dlist in nm.mstdin().keyblock(f'{k}', x, header = True):
+                id = ','.join(dlist[0][:len(k.split(','))])
 
                 if headerline:
                     header = dlist[0]
@@ -1006,9 +1003,9 @@ class GroupBy2Command(Command):
 
                         mean = y.dot(np.arange(len(y)))/y.sum()
                         moment2 = y.dot(np.arange(len(y))**2)/y.sum()
-                        variance = moment2 - mean ** 2 
+                        variance = moment2 - mean ** 2
 
-                        print(f'{id},{fld},{variance}')
+                        print(f'{id},{fld},{variance:.{precision}g}')
             sys.__stdout__.flush()#not needed for bigger data
 
         except Exception as e:
@@ -1692,7 +1689,7 @@ class GroupBy2Command(Command):
             'ukurt'
         ]
 
-        new_calcs = {
+        nysol_calcs = {
             # 0 fields (input k, a, fld)
             'rows' : self.rows,
             # 1 field (input k, a, f)
@@ -1733,6 +1730,11 @@ class GroupBy2Command(Command):
             'peaks' : self.countpeaks,
             'autocorr' : self.autocorrelation
         }
+
+        python_calcs = [
+            'meanf',
+            'varf'
+        ]
 
         self.header = nm.mread(inputs).getline(header=True)
         self.header = next(self.header)
@@ -1777,7 +1779,7 @@ class GroupBy2Command(Command):
 
                 cs = arglist.pop('c').split(',')
                 cs_msummary = []
-                cs_custom = []
+                cs_custom_nysol = []
 
                 for i,c in enumerate(cs):
                     if ':' in c:
@@ -1788,7 +1790,7 @@ class GroupBy2Command(Command):
                     if c.split(':')[0] in msummaryoptions:
                         cs_msummary.append(cs[i])
                     elif c:
-                        cs_custom.append(cs[i])
+                        cs_custom_nysol.append(cs[i])
 
                 if cs_msummary:
                     calclist.append({'c': ','.join(cs_msummary), 
@@ -1797,7 +1799,7 @@ class GroupBy2Command(Command):
 
                 ns = arglist.get('n')
 
-                for calc in cs_custom:
+                for calc in cs_custom_nysol:
                     if ns:
                         ns = ns.split(',')
                         for n in ns:
@@ -1855,13 +1857,16 @@ class GroupBy2Command(Command):
                     calcdict['a'] = cs
 
                 cmd[i] <<= nm.mread(i=cmd_i)
-                # cmd[i] <<= nm.runfunc(new_calcs[cs], **calcdict)
-                cmd[i] = new_calcs[cs](cmd[i], **calcdict)
+
+                if cs in python_calcs:
+                    cmd[i] <<= nm.runfunc(nysol_calcs[cs], **calcdict)
+                else:
+                    cmd[i] = nysol_calcs[cs](cmd[i], **calcdict)
 
                 if cs == 'autocorr_agg':
                     final_cs = [f'{calcdict["a"]}_{suff}' for suff in ['mean','median','var']]
                 elif n:
-                    final_cs =[f'{calcdict["a"]}_{calcdict["n"]}']
+                    final_cs = [f'{calcdict["a"]}_{calcdict["n"]}']
                 else:
                     final_cs = [calcdict['a']]
 
