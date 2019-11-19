@@ -1343,6 +1343,36 @@ class MvSimCommand(Command):
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
 
+class PlainText2Csv(Command):
+    def __init__(self):
+        super().__init__()
+        self.i_ports = [Port('i', 'frame')]
+        self.o_ports = [Port('o', 'mcmd')]  
+
+    def run(self, args, inputs):
+        def filter(args):
+            try:
+                from kskp.store.commands.pcmd.src import plaintext2csv 
+                plaintext2csv.main(args, sys.stdin, sys.stdout)
+                # flushをする
+                sys.stdout.flush()
+            except Exception as e:
+                import traceback
+                with open('/dev/stderr', 'w') as fpe:
+                    traceback.print_exc(file=fpe)
+
+        # flushをしないと、デバッグ用のprintなども入ってしまう
+        sys.stdout.flush()
+
+        cmd = inputs['i']
+        cmd <<= nm.runfunc(filter, args=args)
+
+        # pass output
+        nysol_module_o= NysolModule()
+        nysol_module_o.set_content(cmd)
+        return {'o': nysol_module_o}
+
+
 class SelRowCommand(RunfuncCommand):
     def __init__(self):
         super().__init__()

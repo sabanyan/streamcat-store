@@ -1,7 +1,5 @@
 {
   "id": "mcross",
-<<<<<<< Updated upstream
-=======
   "groups": [
     {
       "name": "group1",
@@ -34,7 +32,6 @@
       "params": ["tmpPath", "assert_diffSize", "assert_nullout", "assert_nullkey","assert_nullin"]
     }
   ],
->>>>>>> Stashed changes
   "rules" : {
     "f" : {
       "presence": {"allowEmpty": false},
@@ -103,39 +100,35 @@
     {
       "name": "f",
       "type": "string",
-<<<<<<< Updated upstream
-      "label": "指定列の値(必須)"
-=======
       "label": "列名を値に展開する項目名 (必須)",
       "description": "●指定した項目名を値に持つ列が追加される\n●カンマ区切りで複数指定可"
->>>>>>> Stashed changes
-    },
-    {
-      "name": "s",
-      "type": "string",
-      "label": "列名となる元のデータ列(必須)"
     },
     {
       "name": "a",
       "type": "string",
-<<<<<<< Updated upstream
-      "label": "f=で指定した列名がデータとして展開する列名",
+      "label": "項目名列の名前(省略可)",
+      "description":"●省略時は fld ",
       "optional": true
-=======
+    },
+    {
+      "name": "s",
+      "type": "string",
       "label": "値を列名に展開する項目名 (必須)",
-      "description": "●ここで指定した列の値を、項目として展開する\n●複数列指定は不可"
->>>>>>> Stashed changes
+      "description": "●ここで指定した列の値を、項目として展開する\n●複数列指定は不可",
+      "optional": true
     },
     {
       "name": "k",
       "type": "string",
-      "label": "キー列名",
+      "label": "グループ化する項目名",
+      "description": "●カンマ区切りで複数指定可",
       "optional": true
     },
     {
       "name": "v",
       "type": "string",
-      "label": "NULL値置換文字列",
+      "label": "Null値置換文字列",
+      "description": "元データに対応する値がない場合はNullとして出力されるNull値以外の値で置換したい場合には指定が可能",
       "optional": true
     },
     {
@@ -184,6 +177,7 @@
       "name": "q",
       "type": "boolean",
       "label": "自動並べ替えの無効化",
+      "description": "入力データがグループ単位でソート済みの場合、指定すると処理速度が向上",
       "optional": true
     },
     {
@@ -210,6 +204,6 @@
   "version": "0.7.0",
   "label": "クロス集計",
   "classification": "value_crossing",
-  "description": "s=で指定した項目値が項目名となるよう横に展開、k=で指定した値がidとなり、f=で指定した項目がセルに出力される。",
+  "description": "行から列へと、列から行への展開を同時に行う",
   "url": "./static/pdf/mcmd/value_crossing/mcross.pdf"
 }
