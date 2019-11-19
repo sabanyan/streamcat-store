@@ -24,7 +24,7 @@
     {
       "name": "group5",
       "label": "３つの変数に対する特徴量",
-      "params": ["xfcnlist"]
+      "params": ["xfcnlist","sfcnlist"]
     },
     {
       "name": "group6",
@@ -105,7 +105,7 @@
       "name": "xfcnlist",
       "type": "list",
       "label": "時系列の特徴量",
-      "description": "peaks\nautocorr\n追加・順序変更・削除　可",
+      "description": "imq   index_mass_quantile\ncrossing_m   number of crossings on m\npeaks\nautocorr\n追加・順序変更・削除　可",
       "elements": [
         {
           "name": "x",
@@ -129,6 +129,35 @@
         }
       ],
       "default": [{"x": "", "f": "", "c": "", "n" : ""}]
+    },
+    {
+      "name": "sfcnlist",
+      "type": "list",
+      "label": "時系列の特徴量",
+      "description": "imq   index_mass_quantile\n追加・順序変更・削除　可",
+      "elements": [
+        {
+          "name": "s",
+          "type": "string",
+          "label": "順序の項目名"
+        },
+        {
+          "name": "f",
+          "type": "string",
+          "label": "対象とする項目名"
+        },
+        {
+          "name": "n",
+          "type": "string",
+          "label": "window"
+        },
+        {
+          "name": "c",
+          "type": "string",
+          "label": "統計量"
+        }
+      ],
+      "default": [{"s": "", "f": "", "c": "", "n" : ""}]
     },
     {
       "name": "dateformat",
