@@ -343,7 +343,6 @@ class GroupBy2Command(Command):
         
         return flow
 
-
     def rows(self, subcmd, **kwargs):
         try:
             a = kwargs.get('a')
@@ -504,6 +503,40 @@ class GroupBy2Command(Command):
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
 
+    def large_sd(self, subcmd, **kwargs):
+        try:
+            f = kwargs.get('f')
+            a = kwargs.get('a')
+            k = kwargs.get('k')
+            
+            # fs = f.split(',')
+
+            subcmd <<= nm.msummary(k = k, f = f, c = 'var:__var,sd:__sd')
+            subcmd <<= nm.mcal(c = '${__var}>${__sd}', a = a)
+            subcmd <<= nm.mcut(f = f'{k},fld,{a}')
+
+            return subcmd
+            # targets = [None] * len(fs)
+            # msummary = [None] * len(fs)
+
+            # subcmd_o = None
+
+            # for i, fld in enumerate(fs):
+            #     targets[i] <<= nm.msummary(k = k, f = fld, i = subcmd,
+            #                                 c = 'var:__var,sd:__sd')
+            #     targets[i] <<= nm.mcal(c ='${__var} > ${__sd}', a = a)
+            #     targets[i] <<= 
+
+            # subcmd_o <<= nm.m2cat(i = targets)
+            # subcmd_o <<= nm.mcut(f = f'{k},fld,{a}')
+
+            # return subcmd_o
+
+        except Exception as e:
+            import traceback
+            with open('/dev/stderr', 'w') as fpe:
+                traceback.print_exc(file=fpe)
+                
     def strmax(self, subcmd, **kwargs):
         try:
             f = kwargs.get('f')
@@ -884,6 +917,7 @@ class GroupBy2Command(Command):
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
 
+        
     # --------------- 2 vars -----------------------
 
     def integral(self, subcmd, **kwargs):
@@ -1554,6 +1588,96 @@ class GroupBy2Command(Command):
 
     # --------------- 3 vars -----------------------
 
+    def index_mass_quantile(self,subcmd, **kwargs):
+        try:
+            f = kwargs.get('f')
+            a = kwargs.get('a')
+            k = kwargs.get('k')
+            x = kwargs.get('x')
+            n = kwargs.get('n')
+            precision = kwargs.get('precision')
+
+            dateformat = kwargs.pop('dateformat')
+
+            fs = f.split(',')
+            targets = [None] * len(fs)
+            mcal = [None] * len(fs)
+            msum = [None] * len(fs)
+            msummary = [None] * len(fs)
+
+            subcmd_o = None
+
+            # fix time column
+            # subcmd = self.fixtimecolumn(subcmd, x, dateformat)
+
+            for i, fld in enumerate(fs):
+                mcal[i] <<= nm.mcal(c = f'abs(${{{fld}}})', a = f'__abs{fld}', 
+                                    i = subcmd)
+                msum[i] <<= mcal[i].msum(k = k, f = f'__abs{fld}')
+                msummary[i] <<= nm.msummary(k = k, f = fld, i = subcmd,
+                                            c = 'count:__count')
+
+                targets[i] <<= nm.maccum(k = k, s = x, f = f'__abs{fld}:__abs{fld}_a',
+                                         i = mcal[i])
+                targets[i] <<= nm.mjoin(k = k, f = f'__abs{fld}:__abs{fld}_ttl',
+                                        m = msum[i])
+                targets[i] <<= nm.mjoin(k = k, f = f'__count', m = msummary[i])
+                targets[i] <<= nm.mcal(c = f'(${{__abs{fld}_a}}/${{__abs{fld}_ttl}})>={float(n):.3g}',
+                                       a = '__mc')
+                targets[i] <<= nm.mbest(k = k, s = f'__mc%nr,{x}%n', size = 1)
+                targets[i] <<= nm.mcal(c = f'(${{{x}}} + 1)/${{__count}}', a = f'{a}_{n}',
+                                       precision = precision)
+
+                targets[i] <<= nm.msetstr(a = 'fld', v = fld)
+                targets[i] <<= nm.mcut(f = f'{k},fld,{a}_{n}')
+
+            subcmd_o <<= nm.m2cat(i = targets)
+
+            return subcmd_o
+
+        except Exception as e:
+            import traceback
+            with open('/dev/stderr', 'w') as fpe:
+                traceback.print_exc(file=fpe)
+
+    def numbercrossing(self, subcmd, **kwargs):
+        try:
+            f = kwargs.get('f')
+            a = kwargs.get('a')
+            x = kwargs.get('x')
+            k = kwargs.get('k')
+            n = kwargs.get('n')
+
+            dateformat = kwargs.pop('dateformat')
+
+            subcmd_o = None
+
+            fs = f.split(',')
+            targets = [None] * len(fs) 
+
+            # fix time column
+            subcmd = self.fixtimecolumn(subcmd, x, dateformat)
+
+            for i, fld in enumerate(fs):
+                targets[i] <<= nm.mcal(c = f'${{{fld}}}>{n}', a = '__pos', 
+                                   i = subcmd)
+                targets[i] <<= nm.mslide(k = k, s = 'uxt', f = '__pos:__posN')
+                targets[i] <<= nm.mcal(c = '${__pos}!=${__posN}', a = '__diffT')
+                targets[i] <<= nm.mcount(k = k + ',__diffT', a = '__cnt')
+                targets[i] <<= nm.mbest(k = k, s = '__diffT%nr', size = 1)
+                targets[i] <<= nm.mcal(c = 'if(${__diffT}==0,0,${__cnt})', 
+                                      a = f'{a}_{n}')
+                targets[i] <<= nm.msetstr(a = 'fld', v = fld)
+
+            subcmd_o <<= nm.mcut(i = targets, f = f'{k},fld,{a}_{n}')
+
+            return subcmd_o
+
+        except Exception as e:
+            import traceback
+            with open('/dev/stderr', 'w') as fpe:
+                traceback.print_exc(file=fpe)
+
     def countpeaks(self, subcmd, **kwargs):
         try:
             f = kwargs.get('f')
@@ -1697,6 +1821,7 @@ class GroupBy2Command(Command):
             'rms' : self.rootmeansquare,
             'hmean' : self.harmonicmean,
             'gmean' : self.geometricmean,
+            'large_sd' : self.large_sd,
             'strmax' : self.strmax,
             'strmin' : self.strmin,
             'strucount' : self.strucount,
@@ -1727,6 +1852,8 @@ class GroupBy2Command(Command):
             'longest_strike_below_mean' : self.longeststrikebelowmean,
             'mean_second_derivative_central' : self.mean2ndderivative_central,
             # 3 fields
+            'imq' : self.index_mass_quantile,
+            'crossing_m' : self.numbercrossing,
             'peaks' : self.countpeaks,
             'autocorr' : self.autocorrelation
         }
@@ -1751,7 +1878,8 @@ class GroupBy2Command(Command):
                   args.get('fclist') +
                   args.get('xfclist') + 
                   args.get('sfclist') + 
-                  args.get('xfcnlist'))
+                  args.get('xfcnlist')+ 
+                  args.get('sfcnlist'))
 
         # parse inputs into list-of-dictionaries form
         for arglist in allargs:
