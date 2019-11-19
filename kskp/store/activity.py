@@ -28,6 +28,7 @@ class Activity(Datum):
         start_time = datetime.utcnow().replace(tzinfo=timezone.utc)
 
         # data列の値を作成する
+        # (同じインスタンスのpointの場合もあることに注意)
         # [(point, frame)]
         self.result = []
         self.data = {'start_time' : start_time, 'flow_uuid' : flow_uuid, 'result': self.result}

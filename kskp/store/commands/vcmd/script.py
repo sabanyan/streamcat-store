@@ -32,17 +32,6 @@ class CsvToTableCommand2(VisualizersHtml):
         csvのファイルパスから、
         HTMLのテーブル形式にして返す
         """
-        # # offset対応
-        # offset = int(args.get('offset')) if args.get('offset') else 0
-        # limit = int(args.get('limit')) if args.get('limit') else 999999
-        # offset_limit = offset + limit
-
-        # nysol_result = []
-        # # inputs['i']にはNysolPythonコマンドが来る
-        # cmd = inputs['i']
-        # cmd <<= nm.msel(c=f'{offset}<=line() && line()<{offset_limit}')
-        # cmd <<= nm.writelist(header=True, o=nysol_result)
-
         # 結果はPreviewに入れて返す
         from kskp.store import Preview
         preview = Preview(None, 'csv_to_table')
@@ -132,28 +121,12 @@ class CsvToLineGraphCommand2(VisualizersBokehPlot):
         """
         ビジュアライズを描画、保存する。
         """
-        # # offset対応
-        # offset = int(args.get('offset')) if args.get('offset') else 0
-        # limit = int(args.get('limit')) if args.get('limit') else 999999
-        # offset_limit = offset + limit
-       
-        # # inputs['i']にはNysolPythonコマンドが来る
-        # nysol_result = []
-        # cmd = inputs['i']
-        # cmd <<= nm.msel(c=f'{offset}<=line() && line()<{offset_limit}')
-        # cmd <<= nm.writelist(header=True, o=nysol_result)
-        # cmd.run(msg='on')
-
         nysol_result = inputs['i']
 
         # NysolPythonの結果をpandasのDataFrameに変換する
         df = pd.DataFrame(nysol_result[1:], columns=nysol_result[0])
 
         # dfの作成
-        # TODO:愚直にdfを加工しており、高速化・メモリ管理等の工夫は何もしていない
-        time_series_column = args.get('time_series_column') if args.get('time_series_column') else False
-        # df = pd.read_csv(file_path, parse_dates=[time_series_column], nrows=limit, skiprows=range(1, offset))
-        # df = frame.get_dataframe(limit, offset, [time_series_column])
         df[args.get('data_column')] = df[args.get('data_column')].astype(str)
 
         # ここstartがdfの最大行数を越えるとエラーが出る
@@ -193,26 +166,10 @@ class CsvToHistogramCommand2(VisualizersBokehPlot):
         csvのファイルパスから、
         plotのヒストグラムを作成する
         """
-        # # offset対応
-        # offset = int(args.get('offset')) if args.get('offset') else 0
-        # limit = int(args.get('limit')) if args.get('limit') else 999999
-        # offset_limit = offset + limit
-
-        # # inputs['i']にはNysolPythonコマンドが来る
-        # nysol_result = []
-        # cmd = inputs['i']
-        # cmd <<= nm.msel(c=f'{offset}<=line() && line()<{offset_limit}')
-        # cmd <<= nm.writelist(header=True, o=nysol_result)
-        # cmd.run(msg='on')
-
         nysol_result = inputs['i']
 
         # NysolPythonの結果をpandasのDataFrameに変換する
         df = pd.DataFrame(nysol_result[1:], columns=nysol_result[0])
-
-        # frame = Library.load_frame(inputs.get('i'))
-        # df = pd.read_csv(file_path, nrows=limit, skiprows=range(1, offset))
-        # df = frame.get_dataframe(limit, offset)
         df[args.get('data_column')] = df[args.get('data_column')].astype(str)
         df[args.get('x_axis')] = df[args.get('x_axis')].astype(int)
 
@@ -253,30 +210,10 @@ class CsvToScatterCommand2(VisualizersBokehPlot):
         csvのファイルパスから、
         plotの散布図を作成する
         """
-        # # offset対応
-        # offset = int(args.get('offset')) if args.get('offset') else 0
-        # limit = int(args.get('limit')) if args.get('limit') else 999999
-        # offset_limit = offset + limit
-
-        # # inputs['i']にはNysolPythonコマンドが来る
-        # nysol_result = []
-        # cmd = inputs['i']
-        # cmd <<= nm.msel(c=f'{offset}<=line() && line()<{offset_limit}')
-        # cmd <<= nm.writelist(header=True, o=nysol_result)
-        # cmd.run(msg='on')
-
         nysol_result = inputs['i']
 
         # NysolPythonの結果をpandasのDataFrameに変換する
         df = pd.DataFrame(nysol_result[1:], columns=nysol_result[0])
-
-        # frame = Library.load_frame(inputs.get('i'))
-        # df = pd.read_csv(file_path, nrows=limit, skiprows=range(1, offset))
-        # df = frame.get_dataframe(limit, offset)
-
-        # ブロック句
-        # if not frame.file_exists:
-        #     return ''
 
         # ここstartがdfの最大行数を越えるとエラーが出る
         # if len(df) < start:
@@ -320,26 +257,10 @@ class CsvToBoxplotCommand2(VisualizersBokehPlot):
         csvのファイルパスから、
         plotの箱ひげ図を作成する
         """
-        # # offset対応
-        # offset = int(args.get('offset')) if args.get('offset') else 0
-        # limit = int(args.get('limit')) if args.get('limit') else 999999
-        # offset_limit = offset + limit
-
-        # # inputs['i']にはNysolPythonコマンドが来る
-        # nysol_result = []
-        # cmd = inputs['i']
-        # cmd <<= nm.msel(c=f'{offset}<=line() && line()<{offset_limit}')
-        # cmd <<= nm.writelist(header=True, o=nysol_result)
-        # cmd.run(msg='on')
-
         nysol_result = inputs['i']
 
         # NysolPythonの結果をpandasのDataFrameに変換する
         df = pd.DataFrame(nysol_result[1:], columns=nysol_result[0])
-
-        # frame = Library.load_frame(inputs.get('i'))
-        # df = pd.read_csv(file_path, nrows=limit, skiprows=range(1, offset))
-        # df = frame.get_dataframe(limit, offset)
 
         # ここstartがdfの最大行数を越えるとエラーが出る
         # if len(df) < start:
@@ -400,19 +321,6 @@ class CsvtoRepetitivieWaveform2(VisualizersBokehPlot):
         
       
     def init(self, args, inputs):
-    
-        # # データ表示範囲の設定
-        # offset = int(args.get('offset')) if args.get('offset') else 0
-        # limit = int(args.get('limit')) if args.get('limit') else 999999
-        # offset_limit = offset + limit
-
-        # # inputs['i']にはNysolPythonコマンドが来る
-        # nysol_result = []
-        # cmd = inputs['i']
-        # cmd <<= nm.msel(c=f'{offset}<=line() && line()<{offset_limit}')
-        # cmd <<= nm.writelist(header=True, o=nysol_result)
-        # cmd.run(msg='on')
-
         nysol_result = inputs['i']
         
         # NysolPythonの結果をpandasのDataFrameに変換する
@@ -430,12 +338,6 @@ class CsvtoRepetitivieWaveform2(VisualizersBokehPlot):
         self.keys = args.get('datas') if args.get('datas') else None
         self.group = args.get('group')
 
-        # データ表示範囲の設定
-        # offset = int(args.get('offset')) if args.get('offset') else 0
-        # limit = int(args.get('limit')) if args.get('limit') else None
-        
-        # frame = Library.load_frame(frame_uuid)
-        # df = frame.get_dataframe(limit, offset)
         self.df = df.sort_values(by = self.column_name_x_axis)
         self.groups = self.df[self.group].unique().tolist()
         

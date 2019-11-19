@@ -106,7 +106,7 @@ class CommandTest(unittest.TestCase):
         """
         DBローダーコマンドが正しくデータを取得できること
         """
-        flow_link = FlowJsonLink(self.flow_data['label'], FlowLinkContext(), self.flow_data)
+        flow_link = FlowJsonLink(self.flow_data['label'], self.flow_data, FlowLinkContext())
         lasts = execute(flow_link, {}, {})
 
         correct = {'d': [['1', 'a   ', 'b', '1900-12-31', '1900-12-31 01:01:01.123456', '1:10:00']]}
