@@ -1,5 +1,40 @@
 {
   "id": "mcross",
+<<<<<<< Updated upstream
+=======
+  "groups": [
+    {
+      "name": "group1",
+      "label": "グループの設定 (省略可)",
+      "params": ["k"]
+    },
+    {
+      "name": "group5",
+      "label": "行展開の設定 (必須)",
+      "params": ["f","a"]
+    },
+    {
+      "name": "group2",
+      "label": "列展開の設定（必須)",
+      "params": ["s"]
+    },
+    {
+      "name": "group10",
+      "label": "その他 (省略可)",
+      "params": ["q","v"]
+    },
+    {
+      "name": "group15",
+      "label": "項目名・項目番号についての設定（省略可）",
+      "params": ["x", "nfn", "nfno"]
+    },
+    {
+      "name": "group20",
+      "label": "システム管理用設定（作業領域・ログ出力）",
+      "params": ["tmpPath", "assert_diffSize", "assert_nullout", "assert_nullkey","assert_nullin"]
+    }
+  ],
+>>>>>>> Stashed changes
   "rules" : {
     "f" : {
       "presence": {"allowEmpty": false},
@@ -68,7 +103,12 @@
     {
       "name": "f",
       "type": "string",
+<<<<<<< Updated upstream
       "label": "指定列の値(必須)"
+=======
+      "label": "列名を値に展開する項目名 (必須)",
+      "description": "●指定した項目名を値に持つ列が追加される\n●カンマ区切りで複数指定可"
+>>>>>>> Stashed changes
     },
     {
       "name": "s",
@@ -78,8 +118,13 @@
     {
       "name": "a",
       "type": "string",
+<<<<<<< Updated upstream
       "label": "f=で指定した列名がデータとして展開する列名",
       "optional": true
+=======
+      "label": "値を列名に展開する項目名 (必須)",
+      "description": "●ここで指定した列の値を、項目として展開する\n●複数列指定は不可"
+>>>>>>> Stashed changes
     },
     {
       "name": "k",
