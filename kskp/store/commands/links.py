@@ -44,8 +44,6 @@ class CommandLink:
         "mcsv2arff": Mcsv2arffCommand(),
         "mdelnull": MdelnullCommand(),
         "mduprec": MduprecCommand(),
-        "merge_FS": Merge_FSCommand(),
-        "merge_ibutsu": Merge_ibutsuCommand(),
         "mfsort": MfsortCommand(),
         "mhashavg": MhashavgCommand(),
         "mhashsum": MhashsumCommand(),

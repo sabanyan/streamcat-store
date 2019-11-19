@@ -451,32 +451,6 @@ class MduprecCommand(Command):
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
 
-class Merge_FSCommand(Command):
-    def __init__(self):
-        super().__init__()
-        self.i_ports = [Port('i', 'frame')]
-        self.o_ports = [Port('o', 'frame')]
-
-    def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        cmd_o = nm.merge_FS(args)
-        nysol_module_o= NysolModule()
-        nysol_module_o.set_content(cmd_o)
-        return {'o': nysol_module_o}
-
-class Merge_ibutsuCommand(Command):
-    def __init__(self):
-        super().__init__()
-        self.i_ports = [Port('i', 'frame')]
-        self.o_ports = [Port('o', 'frame')]
-
-    def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        cmd_o = nm.merge_ibutsu(args)
-        nysol_module_o= NysolModule()
-        nysol_module_o.set_content(cmd_o)
-        return {'o': nysol_module_o}
-
 class MfsortCommand(Command):
     def __init__(self):
         super().__init__()
