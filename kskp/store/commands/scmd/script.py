@@ -525,6 +525,39 @@ class DbSaverCommand(Command):
         if self._tmp_file_path is not None and self._tmp_file_path.exists():
             self._tmp_file_path.unlink()
 
+
+class RemoteFolderLoaderCommand(Command):
+    """
+    指定したリモートフォルダからデータを取得するLoaderコマンド
+    """
+    def __init__(self):
+        super().__init__()
+        self.i_ports = [Port('i', 'store')]
+        self.o_ports = [Port('o', 'mcmd')]
+        self.name = 'remotefolder_loader'
+
+    def run(self, args, inputs):
+        DbLoaderCommand._write_log('START')
+
+        from kskp.store import Datum, RemoteFolder
+        if inputs['i'].type != Datum.RFOLDER_TYPE:
+            t = type(inputs['i'])
+            raise Exception(f'Remotefolder_loaderの入力にRemote Folder Store以外のデータ型({t})が入力されました')
+        else:
+            folder = RemoteFolder.convert_to_database(inputs['i'])
+
+        # 接続情報に漏れがないか確認し、漏れがあれば例外を送出する
+        folder.valid_or_raise()
+
+        # ファイル名を取得する
+        if 'file_path' not in args:
+            raise Exception('リモートフォルダ接続の取得元ファイル名が必要です')
+        file_path = args['file_path']
+
+        # 
+        # 以下工事中!!
+        # 
+
 class RunsCommand(Command):
     def __init__(self):
         super().__init__()
