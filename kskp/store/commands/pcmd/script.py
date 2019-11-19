@@ -324,6 +324,7 @@ class RunfuncCommand(Command):
         """
         pass
 
+
 class GroupBy2Command(Command):
     def __init__(self):
         super().__init__()
@@ -853,6 +854,33 @@ class GroupBy2Command(Command):
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
     
+    def ratio_value_number_to_series_length(self, subcmd, **kwargs):
+        try:
+            f = kwargs.get('f')
+            a = kwargs.get('a')
+            k = kwargs.get('k')
+
+            fs = f.split(',')
+            targets = [None] * len(fs)
+
+            subcmd_o = None
+
+            for i, fld in enumerate(fs):
+                targets[i] <<= nm.msummary(k = k, f = fld, i = subcmd, a = '__tmp',
+                                           c = 'count:__count,ucount:__ucount')
+                targets[i] <<= nm.mcal(c = '${__ucount}/${__count}', a = a)
+                targets[i] <<= nm.msetstr(a = 'fld', v = fld)
+                targets[i] <<= nm.mcut(f = f'{k},fld,{a}')
+
+            subcmd_o <<= nm.m2cat(i = targets)
+
+            return subcmd_o
+
+        except Exception as e:
+            import traceback
+            with open('/dev/stderr', 'w') as fpe:
+                traceback.print_exc(file=fpe)
+
     def countabovemean(self, subcmd, **kwargs):
         try:
             f = kwargs.get('f')
@@ -1597,8 +1625,6 @@ class GroupBy2Command(Command):
             n = kwargs.get('n')
             precision = kwargs.get('precision')
 
-            dateformat = kwargs.pop('dateformat')
-
             fs = f.split(',')
             targets = [None] * len(fs)
             mcal = [None] * len(fs)
@@ -1832,6 +1858,7 @@ class GroupBy2Command(Command):
             'repeatvalues' : self.reoccurringvalues,
             'sum_repeatdata' : self.sumofreoccurringdatapoints,
             'sum_repeatvalues' : self.sumofreoccurringvalues,
+            'ratio_unique' : self.ratio_value_number_to_series_length,
             'count_above_mean' : self.countabovemean,
             'count_below_mean' : self.countbelowmean,
             # 1 field + time (input k, a, f, x)
