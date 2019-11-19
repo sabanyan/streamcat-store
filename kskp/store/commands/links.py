@@ -1,8 +1,13 @@
 import json
 import os
-from . import *
 from pathlib import Path
-# from kskp.core import Command
+from kskp.core import Command
+
+from kskp.store.commands.mcmd.script import *
+from kskp.store.commands.kcmd.script import *
+from kskp.store.commands.pcmd.script import *
+from kskp.store.commands.scmd.script import *
+from kskp.store.commands.vcmd.script import *
 
 class CommandLink:
     """

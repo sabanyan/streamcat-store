@@ -1,0 +1,35 @@
+{
+    "id": "remotefolder_loader",
+    "rules" : {
+      "file_path" : {
+        "presence": {"allowEmpty": false}
+      }
+    },
+    "params": [
+      {
+        "name": "file_path",
+        "type": "string",
+        "label": "取得するファイル名"
+      }
+    ],
+    "ports": [
+      [
+        {
+          "name": "i",
+          "type": "store"
+        }
+      ],
+      [
+        {
+          "name": "o",
+          "type": "frame"
+        }
+      ]
+    ],
+    "version": "0.0.0",
+    "label": "リモートフォルダからの読み込み",
+    "classification": "data_source",
+    "description": "指定するリモートフォルダに接続し、指定するファイルから値を取得する",
+    "url": ""
+  }
+  
