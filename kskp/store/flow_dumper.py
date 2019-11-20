@@ -256,7 +256,8 @@ class FlowDumper:
         type_labels = {}
         try:
             with file.open('r') as f:
-                line = f.readline()
+                import os
+                line = f.readline().rstrip(os.linesep)
                 while line:
                     columns = line.split(',', maxsplit=2)
                     # uuidを読み込む
@@ -267,7 +268,7 @@ class FlowDumper:
                     label = columns[2]
                     type_labels[uuid] = (type, label)
                     # 次の行を読み込む
-                    line = f.readline()
+                    line = f.readline().rstrip(os.linesep)
                 return type_labels
         except Exception as e:
             raise Exception(f'ERROR! at {file.name} : {str(e)}')
