@@ -34,8 +34,9 @@ class CsvToTableCommand2(VisualizersHtml):
         """
         # 結果はPreviewに入れて返す
         from kskp.store import Preview
+        column_names = inputs['i'][0]
         preview = Preview(None, 'csv_to_table')
-        # preview.set_content(cmd)
+        preview.column_names = column_names
         preview.nysol_result = inputs['i']
 
         return {'o': preview}  
@@ -48,6 +49,7 @@ class VisualizersBokehPlot(VisualizersCommand):
         super().__init__()
 
     def run(self, args, inputs):
+        column_names = inputs['i'][0]
         p = self.plot(args, inputs)
         script1, div1  = components(p)
 
@@ -59,9 +61,9 @@ class VisualizersBokehPlot(VisualizersCommand):
 
         preview.script = script1
         preview.div = div1
+        preview.column_names = column_names
 
         return {'o': preview} 
-
 
     def direct_product_by_keys(self, df, keys):
         """
@@ -89,7 +91,47 @@ class VisualizersBokehPlot(VisualizersCommand):
             df_dict['-'.join(map(str, list(result.values())))] = _df
         return df_dict
 
+    def _get_proper_column(self, columns, index):
+        if index > len(columns) -1:
+            return columns[len(columns) -1]
+        else:
+            return columns[index]
 
+    def _get_proper_data_columns(self, columns, data_columns):
+        if data_columns is None or len(data_columns) == 0:
+            return [self._get_proper_column(columns, 2)]
+        else:
+            return data_columns
+
+    def _get_proper_time_series_column(self, columns, time_series_column):
+        """
+        X軸になりそうなデータ列を取得する
+        """
+        return time_series_column or self._get_proper_column(columns, 3)
+
+    def _get_proper_y_axis_column(self, columns, y_axis_column):
+        """
+        Y軸になりそうなデータ列を取得する
+        """
+        return y_axis_column or self._get_proper_column(columns, 3)
+
+    def _get_proper_x_size_column(self, x_size):
+        """
+        X軸のサイズを決定する
+        """
+        if x_size is None or int(x_size) < 0:
+            return 1000
+        else:
+            int(x_size)
+
+    def _get_proper_y_size_column(self, y_size):
+        """
+        Y軸のサイズを決定する
+        """
+        if y_size is None or int(y_size) < 0:
+            return 600
+        else:
+            int(y_size)
 
 # グラフ化に必要なものの準備
 import matplotlib.pyplot as plt
@@ -124,10 +166,12 @@ class CsvToLineGraphCommand2(VisualizersBokehPlot):
         nysol_result = inputs['i']
 
         # NysolPythonの結果をpandasのDataFrameに変換する
-        df = pd.DataFrame(nysol_result[1:], columns=nysol_result[0])
+        columns = nysol_result[0]
+        df = pd.DataFrame(nysol_result[1:], columns=columns)
 
         # dfの作成
-        df[args.get('data_column')] = df[args.get('data_column')].astype(str)
+        data_columns = self._get_proper_data_columns(columns, args.get('data_column'))
+        df[data_columns] = df[data_columns].astype(str)
 
         # ここstartがdfの最大行数を越えるとエラーが出る
         # if len(df) < start:
@@ -135,7 +179,7 @@ class CsvToLineGraphCommand2(VisualizersBokehPlot):
             # pass
         hv.extension('bokeh')
 
-        keys = args.get('data_column')
+        keys = data_columns
 
         if len(keys) > 0:
             results = self.direct_product_by_keys(df, keys)
@@ -146,10 +190,14 @@ class CsvToLineGraphCommand2(VisualizersBokehPlot):
 
         line_list = {}
         for label, df in named_dfs.items():
-            line_list[label] = hv.Curve(df, args.get('time_series_column'), args.get('y_axis_column')).opts(width=1040, height=600)
+            time_series_column = self._get_proper_time_series_column(columns, args.get('time_series_column'))
+            y_axis_column = self._get_proper_y_axis_column(columns, args.get('y_axis_column'))
+            line_list[label] = hv.Curve(df, time_series_column, y_axis_column).opts(width=1040, height=600)
 
+        x_size = self._get_proper_x_size_column(args.get('x_size'))
+        y_size = self._get_proper_y_size_column(args.get('y_size'))
         ndoverlay = hv.NdOverlay(line_list).opts(legend_position='top',
-                                                 width=int(args.get('x_size')), height=int(args.get('y_size')),
+                                                 width=x_size, height=y_size,
                                                  xlabel=args.get('x_label'), ylabel=args.get('y_label'))
 
         renderer = hv.renderer('bokeh')
