@@ -322,6 +322,7 @@ class DbSaverCommand(Command):
         # self._tmp_file_path = DbSaverCommand._get_tmp_file_name()
 
         # 指定されたテーブルがデータを格納可能か判定する → どうやって？
+        # (所定の列が存在して、それら列が所定の順序に並んでいて、、)
 
         def bulk_inserter(database, schema_name, table_name):
             try:
