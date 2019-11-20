@@ -13,6 +13,8 @@ class Preview(Datum):
         # data列の値を作成する
         self.data = None
         self.nysol_result = []
+        # 列名一覧を保持する
+        self.column_names = []
 
     @property
     def result(self):
