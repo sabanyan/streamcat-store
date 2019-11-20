@@ -442,7 +442,9 @@ class DbSaverCommand(Command):
         import io, psycopg2
         with psycopg2.connect(db_uri) as conn:
             with conn.cursor() as cursor:
-                cursor.copy_from(csv_input, schema_and_table_name, sep=',', null=r'', size=8192, columns=csv_columns)       
+                column_name_list = ','.join(csv_columns)
+                sql = f'COPY {schema_and_table_name} ({column_name_list}) FROM STDIN WITH CSV HEADER'
+                cursor.copy_expert(sql, sys.stdin, size=8192)
 
         # 入力データを標準入力へ渡す
         for line in csv_input:
