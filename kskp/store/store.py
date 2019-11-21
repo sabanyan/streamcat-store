@@ -89,7 +89,7 @@ class NysolModule(Datum):
         return self._content
 
     def __ilshift__(self, other):
-        raise Exception(f'NysolModule({str(self._content)})に"<<="演算子は使えません ( ´Д`)/')
+        raise Exception(f'NysolModule({str(self._content)})に"<<="演算子は使えません')
 
 class List(Datum):
     """
@@ -108,7 +108,7 @@ class List(Datum):
         return self._content
 
     def __ilshift__(self, other):
-        raise Exception(f'List({str(self._content)})に"<<="演算子は使えません ( ´Д`)/')
+        raise Exception(f'List({str(self._content)})に"<<="演算子は使えません')
 
     def __getitem__(self, index):
         return self._content[index]
