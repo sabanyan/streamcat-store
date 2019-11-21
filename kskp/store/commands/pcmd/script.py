@@ -1997,7 +1997,7 @@ class GroupBy2Command(Command):
 
                 targets[i] <<= nm.mcal(c=f'${{{fld}}}*${{{fld}_L}}*${{{fld}_L2}}',
                                        a = '__tmp')
-                targets[i] <<= nm.mcut(f = fld, r = True)
+                targets[i] <<= nm.mcut(f = f'{fld}*', r = True)
                 targets[i] <<= nm.mfldname(f = f'__tmp:{fld}')
 
             subcmd_o <<= nm.msummary(k = k, c = f'mean:{a}_{n}', f = f, 
