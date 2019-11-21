@@ -1120,6 +1120,45 @@ class GroupBy2Command(Command):
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
 
+    def quantile(self,subcmd, **kwargs):
+        try:
+            f = kwargs.get('f')
+            a = kwargs.get('a')
+            k = kwargs.get('k')
+            n = kwargs.get('n')
+
+            fs = f.split(',')
+            targets = [None] * len(fs)
+            precalcs = [None] * len(fs)
+            tcalcs = None
+            subcmd_o = None
+
+            tcalcs <<= nm.msummary(f = f, c = 'count:__count',
+                                     k = k, i = subcmd)
+            tcalcs <<= nm.msetstr(a = '__qtRate', v = n)
+            tcalcs <<= nm.mcal(a = '__T', c = '1-${__qtRate}+${__count}*${__qtRate}')
+            tcalcs <<= nm.mcal(a = '__T1', c = 'int(${__T})')
+            tcalcs <<= nm.mcal(a = '__T2', c = 'if(fract(${__T})==0,${__T1},${__T1}+1)')
+
+            for i, fld in enumerate(fs):
+                precalcs[i] <<= nm.mnumber(i = subcmd, s = f'{fld}%n', k = k, 
+                                          a = '__qtNo', S = 1)
+                precalcs[i] <<= nm.msortf(f = f'{k},__qtNo')
+
+                targets[i] <<= nm.mjoin(i = tcalcs, k = f'{k},__T1', K = f'{k},__qtNo',
+                                        f = f'{fld}:__{fld}X1', m = precalcs[i])
+                targets[i] <<= nm.mjoin(k = f'{k},__T2', K = f'{k},__qtNo',
+                                        f = f'{fld}:__{fld}X2', m = precalcs[i])
+                targets[i] <<= nm.mcal(a = f'{a}_{n}', c = f'if(${{__T1}}==${{__T2}},${{__{fld}X1}},(${{__T2}}-${{__T}})*${{__{fld}X1}}+(${{__T}}-${{__T1}})*${{__{fld}X2}})')
+
+            subcmd_o <<= nm.mcut(f = f'{k},fld,{a}_{n}', i = targets)
+
+            return subcmd_o
+
+        except Exception as e:
+            import traceback
+            with open('/dev/stderr', 'w') as fpe:
+                traceback.print_exc(file=fpe)
     # --------------- 2 vars -----------------------
 
     def integral(self, subcmd, **kwargs):
@@ -2076,6 +2115,7 @@ class GroupBy2Command(Command):
             'large_sd' : self.large_standard_dev,
             'value_count' : self.value_count,
             'ratio_beyond_rsigma' : self.ratio_beyond_rsigma,
+            'quantile' : self.quantile,
             # 1 field + time (input k, a, f, x)
             'integral' : self.integral,
             'meanf' : self.meanfrequency,
