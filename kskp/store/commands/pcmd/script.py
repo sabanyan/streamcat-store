@@ -367,20 +367,16 @@ class GroupBy2Command(Command):
             f = kwargs.get('f')
             a = kwargs.get('a')
             k = kwargs.get('k')
-            precision = kwargs.get('precision')
 
             allrows = None
             
-            allrows <<= nm.mcount(i = subcmd, k = k, a = 'allrows')
+            allrows <<= nm.mcount(i = subcmd, k = k, a = '__allrows')
 
-            subcmd <<= nm.msummary(k = k, f = f, c = 'count')
-            subcmd <<= nm.mjoin(k = k, m = allrows, f = 'allrows', K = k)
+            subcmd <<= nm.msummary(k = k, f = f, c = '__count')
+            subcmd <<= nm.mjoin(k = k, m = allrows, f = '__allrows', K = k)
 
-            subcmd <<= nm.mcal(a = 'missingcount', c = '${allrows}-${count}')
-            subcmd <<= nm.mcal(a = 'missingpercent', 
-                            c = '((${allrows}-${count})/${allrows})*100',
-                            precision = 3)
-            subcmd <<= nm.mcal(a = a, c = '$s{missingcount}+"("+$s{missingpercent}+"%)"')
+            subcmd <<= nm.mcal(a = '__missingcount', c = '${__allrows}-${__count}')
+            subcmd <<= nm.mcal(a = a, c = '$s{__missingcount}')
 
             subcmd <<= nm.mcut(f = f'{k},fld,{a}')
 
@@ -1078,9 +1074,9 @@ class GroupBy2Command(Command):
 
             for i, fld in enumerate(fs):
                 targets[i] <<= nm.mcal(c = f'$s{{{fld}}}=="{n}"', a = f'{a}_{n}',
-                                       i = subcmd, o = 'afterequalitycheck.csv')
+                                       i = subcmd)
                 targets[i] <<= nm.msetstr(a = 'fld', v = fld)
-                targets[i] <<= nm.msum(k = f'{k}', f = f'{a}_{n}', o = 'aftermsum.csv')
+                targets[i] <<= nm.msum(k = f'{k}', f = f'{a}_{n}')
 
             subcmd_o <<= nm.mcut(f = f'{k},fld,{a}_{n}', i = targets)
 
@@ -1091,6 +1087,38 @@ class GroupBy2Command(Command):
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
 
+    def ratio_beyond_rsigma(self,subcmd, **kwargs):
+        try:
+            f = kwargs.get('f')
+            a = kwargs.get('a')
+            k = kwargs.get('k')
+            n = kwargs.get('n')
+
+            fs = f.split(',')
+            targets = [None] * len(fs)
+            msummary = None
+            subcmd_o = None
+
+            msummary <<= nm.msummary(f = f, c = 'mean:__mean,sd:__sd,count:__count',
+                                     k = k, i = subcmd)
+            subcmd <<= nm.mnjoin(k = k, m = msummary, f = 'fld,__mean,__sd,__count')
+
+            for i, fld in enumerate(fs):
+                targets[i] <<= nm.msel(c = f'$s{{fld}}=="{fld}"', i = subcmd)
+                targets[i] <<= nm.mcal(c = f'(abs(${{{fld}}}-${{__mean}}))>=({n}*${{__sd}})', 
+                                       a = f'__ratio')
+
+            subcmd_o <<= nm.msum(k = f'{k},fld', f = f'__ratio', i = targets)
+            subcmd_o <<= nm.mcal(c = '${__ratio}/${__count}', a = f'{a}_{n}')
+
+            subcmd_o <<= nm.mcut(f = f'{k},fld,{a}_{n}')
+
+            return subcmd_o
+
+        except Exception as e:
+            import traceback
+            with open('/dev/stderr', 'w') as fpe:
+                traceback.print_exc(file=fpe)
     # --------------- 2 vars -----------------------
 
     def integral(self, subcmd, **kwargs):
@@ -2012,6 +2040,7 @@ class GroupBy2Command(Command):
             'sym_looking' : self.symmetry_looking,
             'large_sd' : self.large_standard_dev,
             'value_count' : self.value_count,
+            'ratio_beyond_rsigma' : self.ratio_beyond_rsigma,
             # 1 field + time (input k, a, f, x)
             'integral' : self.integral,
             'meanf' : self.meanfrequency,
