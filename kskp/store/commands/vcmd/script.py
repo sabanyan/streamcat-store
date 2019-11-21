@@ -10,7 +10,7 @@ class VisualizersCommand(Command):
     def __init__(self):
         super().__init__()
         self.i_ports = [Port('i', 'list')]
-        self.o_ports = [Port('o', 'preview')]
+        self.o_ports = [Port('o', 'vis')]
 
     def run(self, args, inputs):
         pass
@@ -32,14 +32,14 @@ class CsvToTableCommand2(VisualizersHtml):
         csvのファイルパスから、
         HTMLのテーブル形式にして返す
         """
-        # 結果はPreviewに入れて返す
-        from kskp.store import Preview
+        # 結果はVisに入れて返す
+        from kskp.store import Vis
         column_names = inputs['i'][0]
-        preview = Preview(None, 'csv_to_table')
-        preview.column_names = column_names
-        preview.nysol_result = inputs['i']
+        vis = Vis(None, 'csv_to_table')
+        vis.column_names = column_names
+        vis.nysol_result = inputs['i']
 
-        return {'o': preview}  
+        return {'o': vis}  
 
 class VisualizersBokehPlot(VisualizersCommand):
     """
@@ -53,17 +53,17 @@ class VisualizersBokehPlot(VisualizersCommand):
         p = self.plot(args, inputs)
         script1, div1  = components(p)
 
-        from kskp.store import BokehPlotPreview
-        preview = BokehPlotPreview(None, self.__class__.__name__)
+        from kskp.store import BokehPlotVis
+        vis = BokehPlotVis(None, self.__class__.__name__)
 
         # とりあえず動くようにするため
-        preview.data = nm.runfunc(lambda : None) 
+        vis.data = nm.runfunc(lambda : None) 
 
-        preview.script = script1
-        preview.div = div1
-        preview.column_names = column_names
+        vis.script = script1
+        vis.div = div1
+        vis.column_names = column_names
 
-        return {'o': preview} 
+        return {'o': vis} 
 
     def direct_product_by_keys(self, df, keys):
         """

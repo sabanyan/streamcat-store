@@ -95,6 +95,32 @@ class Flow(Datum):
         flow.modified_at = datum.modified_at
         return flow
 
+    @staticmethod
+    def create_simple_flow(parent_uuid, label, data_source, creator=None):
+        flow_data = {
+                        "label": label,
+                        "nodes": [
+                            {
+                                "id": "d",
+                                "type": "frame",
+                                "uuid": data_source.uuid,
+                                "error": {},
+                                "label": data_source.label,
+                                "invalid": {},
+                                "makeCache": False,
+                                "dataSource": "csv",
+                                "cacheCreatedAt": None
+                            }
+                        ],
+                        "ports": [[],[]],
+                        "params": [],
+                        "creator": "",
+                        "createdAt": data_source.created_at_str,
+                        "projectId": None,
+                        "description": ""
+                    }
+        return Flow(parent_uuid, label, flow_data, creator)
+
     def save(self):
         """
         Flowを保存する

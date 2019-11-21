@@ -3,7 +3,7 @@ import os
 import sys
 import nysol.mcmd as nm
 
-from kskp.store import NysolModule, Datum, Folder, Frame
+from kskp.store import NysolModule, Datum, Store, Folder, Frame
 from kskp.core import Command, Port
 
 class SaverCommand(Command):
@@ -137,11 +137,17 @@ class LoaderCommand(Command):
         super().__init__()
         self.i_ports = [Port('store', 'store')]
         self.o_ports = [Port('o', 'mcmd')]
+        self.name = 'loader'
 
     def run(self, args, inputs):
-        nysol_module = NysolModule()
-        nysol_module.set_content(inputs['store'].load_frame(args['uuid']))
-        return {'o': nysol_module}
+        if not isinstance(inputs['store'], Store):
+            t = type(inputs['store'])
+            raise Exception(f'Loaderの入力にStore以外のデータ型({t})が入力されました')
+        folder = Folder.convert_to_folder(inputs['store'])
+        if not folder.path_exists:
+            raise Exception(f'ディレクトリ({folder.path})が存在しません')
+        cmd = folder.load_frame(args['uuid'])
+        return {'o': NysolModule(cmd)}
 
 
 class DbLoaderCommand(Command):
@@ -397,11 +403,11 @@ class DbSaverCommand(Command):
 
         column_defs = ''
         if dbms.upper() == 'POSTGRESQL':
-            column_defs = 'id_kskp SERIAL'
+            column_defs = 'id_kskp SERIAL, activity_uuid_kskp UUID'
             for column in csv_columns:
                 column_defs += f',"{column}" TEXT'
         elif dbms.upper() == 'ORACLE':
-            column_defs = 'id_kskp NUMBER GENERATED ALWAYS AS IDENTITY'
+            column_defs = 'id_kskp NUMBER GENERATED ALWAYS AS IDENTITY, activity_uuid_kskp CHAR(36)'
             for column in csv_columns:
                 column_defs += f',"{column}" VARCHAR2(4000 BYTE)'
         else:
