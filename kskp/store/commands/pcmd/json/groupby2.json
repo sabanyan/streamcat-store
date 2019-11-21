@@ -19,7 +19,7 @@
     {
       "name": "group4",
       "label": "２つの変数に対する特徴量",
-      "params": ["xfclist", "dateformat","sfclist","xfcnlist"]
+      "params": ["xfclist", "dateformat","sfclist","xfcnlist","sfcnlist"]
     },
     {
       "name": "group5",
@@ -155,6 +155,35 @@
       "default": [{"x": "", "f": "", "c": "", "n" : ""}]
     },
     {
+      "name": "sfcnlist",
+      "type": "list",
+      "label": "順序関係による特徴量（パラメーター有り）",
+      "description": "c3\n追加・順序変更・削除　可",
+      "elements": [
+        {
+          "name": "s",
+          "type": "string",
+          "label": "順序の項目名"
+        },
+        {
+          "name": "f",
+          "type": "string",
+          "label": "対象とする項目名"
+        },
+        {
+          "name": "n",
+          "type": "string",
+          "label": "パラメーター"
+        },
+        {
+          "name": "c",
+          "type": "string",
+          "label": "統計量"
+        }
+      ],
+      "default": [{"x": "", "f": "", "c": "", "n" : ""}]
+    },
+    {
       "name": "dateformat",
       "type": "select",
       "label":  "時間軸項目のフォーマット",
@@ -173,7 +202,7 @@
         {
           "name": "s",
           "type": "string",
-          "label": "順序の項目名"
+          "label": ""
         },
         {
           "name": "f",
