@@ -81,7 +81,7 @@
       "name": "nfclist",
       "type": "list",
       "label": "パラメーター有りの計算",
-      "description": "指定可能統計量:\nsym_looking n=% of range to compare\nlarge_sd  n=% of range to compare\n追加・順序変更・削除　可",
+      "description": "指定可能統計量:\nsym_looking n=% of range to compare\nlarge_sd  n=% of range to compare\nvalue_count n=value to search\n追加・順序変更・削除　可",
       "elements": [
         {
           "name": "n",
