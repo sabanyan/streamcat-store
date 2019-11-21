@@ -14,12 +14,12 @@
     {
       "name": "group3",
       "label": "１つの変数に対する特徴量",
-      "params": ["fclist"]
+      "params": ["fclist","nfclist"]
     },
     {
       "name": "group4",
       "label": "２つの変数に対する特徴量",
-      "params": ["xfclist", "dateformat","sfclist","xfcnlist","xfcnlist2","sfcnlist"]
+      "params": ["xfclist", "dateformat","sfclist","xfcnlist"]
     },
     {
       "name": "group5",
@@ -62,7 +62,7 @@
       "name": "fclist",
       "type": "list",
       "label": "計算対象の設定（追加・順序変更・削除　可）",
-      "description": "指定可能統計量:\ncount　・・・　集計｜件数\nucount　・・・　集計｜種類数\nsum　・・・　集計｜合計\nmin　・・・　集計｜最小値\nmax　・・・　集計｜最大値\nmean　・・・　平均・分散｜算術平均\nmedian　・・・　平均・分散|中央値\nmode　・・・　平均・分散｜最頻値\nvar　・・・　平均・分散｜標本分散\nuvar　・・・　平均・分散｜不偏分散\nsd　・・・　平均・分散｜標準偏差\nusd　・・・　平均・分散｜標準偏差（不偏推定値）\ndevsq　・・・　平均・分散｜偏差平方和\ncv　・・・　平均・分散｜変動係数\nrange　・・・　範囲｜範囲\nqrange　・・・　範囲｜２５％〜７５％分位点の範囲\nqtile1　・・・　範囲｜２５％分位点\nqtile3　・・・　範囲｜７５％分位点\nskew　・・・　３次モーメント｜歪度\nuskew　・・・　３次モーメント｜歪度（不偏推定値）\nkurt　・・・　４次モーメント｜尖度\nukurt　・・・　４次モーメント｜尖度（不偏推定値）\n - - - - - -\nmiss　・・・　欠損値\nstrmin　・・・　文字列最小値\nstrmax　・・・　文字列最大値\nstrucount ・・・　文字列種類数\nrms　・・・　二乗平均平方根\nhmean　・・・　調和平均\ngmean　・・・　幾何平均（０以上の正数のみ）\nmean_ad　・・・　平均絶対偏差\nmedian_ad　・・・　中央絶対偏差\nabs_energy\nrepeatdata\nrepeatvalues\nsum_repeatdata\nsum_repeatvalues\nratio_unique\ncount_above_mean\ncount_below_mean\n【対象項目】項目名時:*,？,[...]のワイルドカードを使用可\n【統計量】「統計量：別名」の表記(：別名は省略可、統計量 or 別名を項目名に付加)、カンマ区切りで複数指定可。",
+      "description": "指定可能統計量:\ncount　・・・　集計｜件数\nucount　・・・　集計｜種類数\nsum　・・・　集計｜合計\nmin　・・・　集計｜最小値\nmax　・・・　集計｜最大値\nmean　・・・　平均・分散｜算術平均\nmedian　・・・　平均・分散|中央値\nmode　・・・　平均・分散｜最頻値\nvar　・・・　平均・分散｜標本分散\nuvar　・・・　平均・分散｜不偏分散\nsd　・・・　平均・分散｜標準偏差\nusd　・・・　平均・分散｜標準偏差（不偏推定値）\ndevsq　・・・　平均・分散｜偏差平方和\ncv　・・・　平均・分散｜変動係数\nrange　・・・　範囲｜範囲\nqrange　・・・　範囲｜２５％〜７５％分位点の範囲\nqtile1　・・・　範囲｜２５％分位点\nqtile3　・・・　範囲｜７５％分位点\nskew　・・・　３次モーメント｜歪度\nuskew　・・・　３次モーメント｜歪度（不偏推定値）\nkurt　・・・　４次モーメント｜尖度\nukurt　・・・　４次モーメント｜尖度（不偏推定値）\n - - - - - -\nmiss　・・・　欠損値\nstrmin　・・・　文字列最小値\nstrmax　・・・　文字列最大値\nstrucount ・・・　文字列種類数\nrms　・・・　二乗平均平方根\nhmean　・・・　調和平均\ngmean　・・・　幾何平均（０以上の正数のみ）\nmean_ad　・・・　平均絶対偏差\nmedian_ad　・・・　中央絶対偏差\nvar_gt_sd\nhas_dup\nhas_dup_min\nhas_dup_max\nabs_energy\nrepeatdata\nrepeatvalues\nsum_repeatdata\nsum_repeatvalues\nratio_unique\ncount_above_mean\ncount_below_mean\n【対象項目】項目名時:*,？,[...]のワイルドカードを使用可\n【統計量】「統計量：別名」の表記(：別名は省略可、統計量 or 別名を項目名に付加)、カンマ区切りで複数指定可。",
       "elements": [
         {
           "name": "f",
@@ -76,6 +76,30 @@
         }
       ],
       "default": [{"f": "", "c": ""}]
+    },
+    {
+      "name": "nfclist",
+      "type": "list",
+      "label": "パラメーター有りの計算",
+      "description": "指定可能統計量:\nsym_looking n=% of range to compare\nlarge_sd  n=% of range to compare\n追加・順序変更・削除　可",
+      "elements": [
+        {
+          "name": "n",
+          "type": "string",
+          "label": "パラメーター"
+        },
+        {
+          "name": "f",
+          "type": "string",
+          "label": "対象とする項目名"
+        },
+        {
+          "name": "c",
+          "type": "string",
+          "label": "統計量"
+        }
+      ],
+      "default": [{"x": "", "f": "", "c": ""}]
     },
     {
       "name": "xfclist",
@@ -104,8 +128,8 @@
     {
       "name": "xfcnlist",
       "type": "list",
-      "label": "時系列の特徴量",
-      "description": "imq   index_mass_quantile\ncrossing_m   number of crossings on m\npeaks\nautocorr\n追加・順序変更・削除　可",
+      "label": "時系列の特徴量（パラメーター有り）",
+      "description": "imq   index_mass_quantile　n=\ncrossing_m   number of crossings on m (n=m)\npeaks (n=support of peaks)\nautocorr (n=lag)\n追加・順序変更・削除　可",
       "elements": [
         {
           "name": "x",
@@ -120,7 +144,7 @@
         {
           "name": "n",
           "type": "string",
-          "label": "window"
+          "label": "パラメーター"
         },
         {
           "name": "c",
@@ -129,59 +153,6 @@
         }
       ],
       "default": [{"x": "", "f": "", "c": "", "n" : ""}]
-    },
-    {
-      "name": "xfcnlist2",
-      "type": "list",
-      "label": "時系列の特徴量",
-      "description": "imq   index_mass_quantile\ncrossing_m   number of crossings on m\npeaks\nautocorr\n追加・順序変更・削除　可",
-      "elements": [
-        {
-          "name": "x",
-          "type": "string",
-          "label": "時間軸の項目名"
-        },
-        {
-          "name": "f",
-          "type": "string",
-          "label": "対象とする項目名"
-        },
-        {
-          "name": "c",
-          "type": "string",
-          "label": "統計量＿変数"
-        }
-      ],
-      "default": [{"x": "", "f": "", "c": ""}]
-    },
-    {
-      "name": "sfcnlist",
-      "type": "list",
-      "label": "時系列の特徴量",
-      "description": "imq   index_mass_quantile\n追加・順序変更・削除　可",
-      "elements": [
-        {
-          "name": "s",
-          "type": "string",
-          "label": "順序の項目名"
-        },
-        {
-          "name": "f",
-          "type": "string",
-          "label": "対象とする項目名"
-        },
-        {
-          "name": "n",
-          "type": "string",
-          "label": "window"
-        },
-        {
-          "name": "c",
-          "type": "string",
-          "label": "統計量"
-        }
-      ],
-      "default": [{"s": "", "f": "", "c": "", "n" : ""}]
     },
     {
       "name": "dateformat",
