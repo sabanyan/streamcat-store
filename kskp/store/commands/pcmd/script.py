@@ -1065,6 +1065,32 @@ class GroupBy2Command(Command):
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
 
+    def value_count(self,subcmd, **kwargs):
+        try:
+            f = kwargs.get('f')
+            a = kwargs.get('a')
+            k = kwargs.get('k')
+            n = kwargs.get('n')
+
+            fs = f.split(',')
+            targets = [None] * len(fs)
+            subcmd_o = None
+
+            for i, fld in enumerate(fs):
+                targets[i] <<= nm.mcal(c = f'$s{{{fld}}}=="{n}"', a = f'{a}_{n}',
+                                       i = subcmd, o = 'afterequalitycheck.csv')
+                targets[i] <<= nm.msetstr(a = 'fld', v = fld)
+                targets[i] <<= nm.msum(k = f'{k}', f = f'{a}_{n}', o = 'aftermsum.csv')
+
+            subcmd_o <<= nm.mcut(f = f'{k},fld,{a}_{n}', i = targets)
+
+            return subcmd_o
+
+        except Exception as e:
+            import traceback
+            with open('/dev/stderr', 'w') as fpe:
+                traceback.print_exc(file=fpe)
+
     # --------------- 2 vars -----------------------
 
     def integral(self, subcmd, **kwargs):
@@ -1985,6 +2011,7 @@ class GroupBy2Command(Command):
             'count_below_mean' : self.countbelowmean,
             'sym_looking' : self.symmetry_looking,
             'large_sd' : self.large_standard_dev,
+            'value_count' : self.value_count,
             # 1 field + time (input k, a, f, x)
             'integral' : self.integral,
             'meanf' : self.meanfrequency,
