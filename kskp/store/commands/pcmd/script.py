@@ -391,6 +391,95 @@ class GroupBy2Command(Command):
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
 
+    def hasduplicate(self, subcmd, **kwargs):
+        try:
+            f = kwargs.get('f')
+            a = kwargs.get('a')
+            k = kwargs.get('k')
+
+            fs = f.split(',')
+            total = [None] * len(fs)
+            targets = [None] * len(fs)
+            count = [None] * len(fs)
+            subcmd_o = None
+
+            for i, fld in enumerate(fs):
+
+                total[i] <<= nm.mcount(k = f'{k},{fld}', a = '__dcnt', i = subcmd)
+                count[i] <<= nm.msummary(k = k, f = fld, c = 'count:__count',
+                                            i = subcmd)
+
+                targets[i] <<= nm.mcount(k = k, a = '__ddcnt', i = total[i])
+                targets[i] <<= nm.mjoin(k = k, f = '__count', m = count[i])
+                targets[i] <<= nm.mcal(c = '${__ddcnt}!=${__count}', a = a)
+                targets[i] <<= nm.msetstr(a = 'fld', v = fld)
+                targets[i] <<= nm.mcut(f = f'{k},fld,{a}')
+
+            subcmd_o <<= nm.m2cat(i = targets)
+
+            return subcmd_o
+
+        except Exception as e:
+            import traceback
+            with open('/dev/stderr', 'w') as fpe:
+                traceback.print_exc(file=fpe)
+
+    def hasduplicatemin(self, subcmd, **kwargs):
+        try:
+            f = kwargs.get('f')
+            a = kwargs.get('a')
+            k = kwargs.get('k')
+
+            fs = f.split(',')
+            targets = [None] * len(fs)
+            subcmd_o = None
+
+            for i, fld in enumerate(fs):
+
+                targets[i] <<= nm.mcount(k = f'{k},{fld}', a = '__dcnt', 
+                                         i = subcmd)
+                targets[i] <<= nm.mbest(k = k, f = f'{fld}%n', size = 1)    
+                targets[i] <<= nm.mcal(c = '${__dcnt}>1', a = a)
+                targets[i] <<= nm.msetstr(a = 'fld', v = fld)
+                targets[i] <<= nm.mcut(f = f'{k},fld,{a}')
+
+            subcmd_o <<= nm.m2cat(i = targets)
+
+            return subcmd_o
+
+        except Exception as e:
+            import traceback
+            with open('/dev/stderr', 'w') as fpe:
+                traceback.print_exc(file=fpe)
+
+    def hasduplicatemax(self, subcmd, **kwargs):
+        try:
+            f = kwargs.get('f')
+            a = kwargs.get('a')
+            k = kwargs.get('k')
+
+            fs = f.split(',')
+            targets = [None] * len(fs)
+            subcmd_o = None
+
+            for i, fld in enumerate(fs):
+
+                targets[i] <<= nm.mcount(k = f'{k},{fld}', a = '__dcnt', 
+                                         i = subcmd)
+                targets[i] <<= nm.mbest(k = k, f = f'{fld}%nr', size = 1)    
+                targets[i] <<= nm.mcal(c = '${__dcnt}>1', a = a)
+                targets[i] <<= nm.msetstr(a = 'fld', v = fld)
+                targets[i] <<= nm.mcut(f = f'{k},fld,{a}')
+
+            subcmd_o <<= nm.m2cat(i = targets)
+
+            return subcmd_o
+
+        except Exception as e:
+            import traceback
+            with open('/dev/stderr', 'w') as fpe:
+                traceback.print_exc(file=fpe)
+
     def rootmeansquare(self, subcmd, **kwargs):
         try:
             f = kwargs.get('f')
@@ -504,7 +593,7 @@ class GroupBy2Command(Command):
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
 
-    def large_sd(self, subcmd, **kwargs):
+    def variance_larger_than_sd(self, subcmd, **kwargs):
         try:
             f = kwargs.get('f')
             a = kwargs.get('a')
@@ -517,21 +606,6 @@ class GroupBy2Command(Command):
             subcmd <<= nm.mcut(f = f'{k},fld,{a}')
 
             return subcmd
-            # targets = [None] * len(fs)
-            # msummary = [None] * len(fs)
-
-            # subcmd_o = None
-
-            # for i, fld in enumerate(fs):
-            #     targets[i] <<= nm.msummary(k = k, f = fld, i = subcmd,
-            #                                 c = 'var:__var,sd:__sd')
-            #     targets[i] <<= nm.mcal(c ='${__var} > ${__sd}', a = a)
-            #     targets[i] <<= 
-
-            # subcmd_o <<= nm.m2cat(i = targets)
-            # subcmd_o <<= nm.mcut(f = f'{k},fld,{a}')
-
-            # return subcmd_o
 
         except Exception as e:
             import traceback
@@ -601,7 +675,6 @@ class GroupBy2Command(Command):
             f = kwargs.get('f')
             a = kwargs.get('a')
             k = kwargs.get('k')
-            precision = kwargs.get('precision')
 
             fs = f.split(',')
 
@@ -945,7 +1018,53 @@ class GroupBy2Command(Command):
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
 
+    def symmetry_looking(self,subcmd, **kwargs):
+        try:
+            f = kwargs.get('f')
+            a = kwargs.get('a')
+            k = kwargs.get('k')
+            n = kwargs.get('n')
+
+            subcmd <<= nm.msummary(f = f, k = k, 
+                        c = 'mean:__mean,median:__median,max:__max,min:__min')
+            subcmd <<= nm.mcal(c = '${__max}-${__min}',
+                               a = 'max_min')
+            subcmd <<= nm.mcal(c = 'abs(${__mean}-${__median})',
+                               a = 'mean_median')
+            subcmd <<= nm.mcal(c = f'${{mean_median}}<${{max_min}}*{n}', 
+                               a = f'{a}_{n}')
+
+            subcmd <<= nm.mcut(f = f'{k},fld,{a}_{n}')
+
+            return subcmd
+
+        except Exception as e:
+            import traceback
+            with open('/dev/stderr', 'w') as fpe:
+                traceback.print_exc(file=fpe)
         
+    def large_standard_dev(self,subcmd, **kwargs):
+        try:
+            f = kwargs.get('f')
+            a = kwargs.get('a')
+            k = kwargs.get('k')
+            n = kwargs.get('n')
+
+            subcmd <<= nm.msummary(f = f, k = k, 
+                        c = 'sd:__sd,max:__max,min:__min')
+            subcmd <<= nm.mcal(c = '${__max}-${__min}', a = '__diff')
+            subcmd <<= nm.mcal(c = f'${{__sd}}>${{__diff}}*{n}', 
+                               a = f'{a}_{n}')
+
+            subcmd <<= nm.mcut(f = f'{k},fld,{a}_{n}')
+
+            return subcmd
+
+        except Exception as e:
+            import traceback
+            with open('/dev/stderr', 'w') as fpe:
+                traceback.print_exc(file=fpe)
+
     # --------------- 2 vars -----------------------
 
     def integral(self, subcmd, **kwargs):
@@ -1847,11 +1966,14 @@ class GroupBy2Command(Command):
             'rms' : self.rootmeansquare,
             'hmean' : self.harmonicmean,
             'gmean' : self.geometricmean,
-            'large_sd' : self.large_sd,
+            'var_gt_sd' : self.variance_larger_than_sd,
             'strmax' : self.strmax,
             'strmin' : self.strmin,
             'strucount' : self.strucount,
             'abs_energy' : self.abs_energy, 
+            'has_dup' : self.hasduplicate,    
+            'has_dup_max' : self.hasduplicatemin,
+            'has_dup_min' : self.hasduplicatemax,
             'mean_ad' : self.meanabsolutedeviation,
             'median_ad' : self.medianabsolutedeviation,
             'repeatdata' : self.reoccurringdatapoints,
@@ -1861,6 +1983,8 @@ class GroupBy2Command(Command):
             'ratio_unique' : self.ratio_value_number_to_series_length,
             'count_above_mean' : self.countabovemean,
             'count_below_mean' : self.countbelowmean,
+            'sym_looking' : self.symmetry_looking,
+            'large_sd' : self.large_standard_dev,
             # 1 field + time (input k, a, f, x)
             'integral' : self.integral,
             'meanf' : self.meanfrequency,
@@ -1903,10 +2027,10 @@ class GroupBy2Command(Command):
         
         allargs = (args.get('clist') + 
                   args.get('fclist') +
+                  args.get('nfclist') +
                   args.get('xfclist') + 
                   args.get('sfclist') + 
-                  args.get('xfcnlist')+ 
-                  args.get('sfcnlist'))
+                  args.get('xfcnlist'))
 
         # parse inputs into list-of-dictionaries form
         for arglist in allargs:
@@ -1953,10 +2077,11 @@ class GroupBy2Command(Command):
                                 **arglist})
 
                 ns = arglist.get('n')
+                if ns:
+                    ns = ns.split(',')
 
                 for calc in cs_custom_nysol:
                     if ns:
-                        ns = ns.split(',')
                         for n in ns:
                             arglist['n'] = n
                             calclist.append({'c': calc, 
