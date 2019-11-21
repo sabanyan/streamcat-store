@@ -1159,6 +1159,48 @@ class GroupBy2Command(Command):
             import traceback
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
+
+    def binned_entropy(self,subcmd, **kwargs):
+        try:
+            f = kwargs.get('f')
+            a = kwargs.get('a')
+            k = kwargs.get('k')
+            n = kwargs.get('n')
+
+            fs = f.split(',')
+            targets = [None] * len(fs)
+            msummary = None
+            subcmd_o = None
+
+
+            msummary <<= nm.msummary(i = subcmd, f = f, k = k, 
+                                     c = 'count:__count')
+
+            subcmd <<= nm.mbucket(k = k, f = [f'{fld}:__{fld}_no' for fld in fs],
+                                  n = n, rng = True)
+
+            for i, fld in enumerate(fs):
+                targets[i] <<= nm.mcount(k = f'{k},__{fld}_no', a = f'__{fld}hcount',
+                                        i = subcmd)
+
+                targets[i] <<= nm.mnjoin(k = k, m = msummary, f = 'fld,__count')
+                targets[i] <<= nm.msel(c = f'$s{{fld}}=="{fld}"')
+                targets[i] <<= nm.mcal(c = f'(${{__{fld}hcount}}/${{__count}})*ln(${{__{fld}hcount}}/${{__count}})',
+                                       a = '__probs')
+                targets[i] <<= nm.mcut(f = f'{k},fld,__probs')
+
+            subcmd_o <<= nm.msum(k = f'{k},fld', f = '__probs', i = targets)
+            subcmd_o <<= nm.mcal(c = '${__probs}*-1', a = f'{a}_{n}')
+
+            subcmd_o <<= nm.mcut(f = f'{k},fld,{a}_{n}')
+
+            return subcmd_o
+
+        except Exception as e:
+            import traceback
+            with open('/dev/stderr', 'w') as fpe:
+                traceback.print_exc(file=fpe)
+
     # --------------- 2 vars -----------------------
 
     def integral(self, subcmd, **kwargs):
@@ -2116,6 +2158,7 @@ class GroupBy2Command(Command):
             'value_count' : self.value_count,
             'ratio_beyond_rsigma' : self.ratio_beyond_rsigma,
             'quantile' : self.quantile,
+            'binned_entropy' : self.binned_entropy,
             # 1 field + time (input k, a, f, x)
             'integral' : self.integral,
             'meanf' : self.meanfrequency,
