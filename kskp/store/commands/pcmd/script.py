@@ -1119,6 +1119,7 @@ class GroupBy2Command(Command):
             import traceback
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
+
     # --------------- 2 vars -----------------------
 
     def integral(self, subcmd, **kwargs):
@@ -1976,6 +1977,40 @@ class GroupBy2Command(Command):
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
     
+    def c3(self,subcmd, **kwargs):
+        try:
+            f = kwargs.get('f')
+            a = kwargs.get('a')
+            k = kwargs.get('k')
+            s = kwargs.get('s')
+            n = kwargs.get('n')
+
+            fs = f.split(',')
+            targets = [None] * len(fs)
+            subcmd_o = None
+
+            for i, fld in enumerate(fs):
+                targets[i] <<= nm.mslide(k = k, s = s, f = f'{fld}:{fld}_L', 
+                                         n = True, l = True, i = subcmd)
+                targets[i] <<= nm.mslide(k = k, s = s, f = f'{fld}:{fld}_L2',
+                                         t = int(n)*2, l = True)
+
+                targets[i] <<= nm.mcal(c=f'${{{fld}}}*${{{fld}_L}}*${{{fld}_L2}}',
+                                       a = '__tmp')
+                targets[i] <<= nm.mcut(f = fld, r = True)
+                targets[i] <<= nm.mfldname(f = f'__tmp:{fld}')
+
+            subcmd_o <<= nm.msummary(k = k, c = f'mean:{a}_{n}', f = f, 
+                                     i = targets)
+
+            subcmd_o <<= nm.mcut(f = f'{k},fld,{a}_{n}')
+
+            return subcmd_o
+
+        except Exception as e:
+            import traceback
+            with open('/dev/stderr', 'w') as fpe:
+                traceback.print_exc(file=fpe)
     
     # ## Template
     # subcmd = None
@@ -2062,7 +2097,8 @@ class GroupBy2Command(Command):
             'imq' : self.index_mass_quantile,
             'crossing_m' : self.numbercrossing,
             'peaks' : self.countpeaks,
-            'autocorr' : self.autocorrelation
+            'autocorr' : self.autocorrelation,
+            'c3' : self.c3
         }
 
         python_calcs = [
@@ -2086,7 +2122,8 @@ class GroupBy2Command(Command):
                   args.get('nfclist') +
                   args.get('xfclist') + 
                   args.get('sfclist') + 
-                  args.get('xfcnlist'))
+                  args.get('xfcnlist')+
+                  args.get('sfcnlist'))
 
         # parse inputs into list-of-dictionaries form
         for arglist in allargs:
