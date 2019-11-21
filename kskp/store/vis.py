@@ -1,14 +1,14 @@
 from kskp.core import Datum
 
-class Preview(Datum):
+class Vis(Datum):
 
-    TYPE = 'preview'
+    TYPE = 'vis'
 
     def __init__(self, parent_uuid, label, creator=None):
         """
-        data : Previewデータを指定する
+        data : Visデータを指定する
         """
-        super().__init__(parent_uuid, Preview.TYPE, label, creator)
+        super().__init__(parent_uuid, Vis.TYPE, label, creator)
 
         # data列の値を作成する
         self.data = None
@@ -35,7 +35,7 @@ class Preview(Datum):
         return render_template('visualize/table.html', header=result['header'], reader=result['reader'])
 
 
-class BokehPlotPreview(Preview):
+class BokehPlotVis(Vis):
     def __init__(self, parent_uuid, label, creator=None):
         super().__init__(parent_uuid, label, creator)
         self.script = None

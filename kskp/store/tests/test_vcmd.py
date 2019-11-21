@@ -51,7 +51,7 @@ class VCmdTestCase(unittest.TestCase):
     def setUp(self):
         # テスト用フローの定義
         self.flow_csvtohtmltable = {
-            "label": "preview",
+            "label": "vis",
             "ports": [[],[]], 
             "params": [], 
             "creator": "開発用", 
@@ -104,7 +104,7 @@ class VCmdTestCase(unittest.TestCase):
         }
 
     def test_csvtohtmltable(self):
-        preview_args = 	{
+        vis_args = 	{
 			"d1" : {
                 "args" : {
                     "visualizer" : "csvtohtmltable",
@@ -113,9 +113,9 @@ class VCmdTestCase(unittest.TestCase):
                 }
 			}
 		}
-        flow_link = FlowJsonLink('CSV to HTML table', self.flow_csvtohtmltable, FlowLinkContext(), preview_args=preview_args)
+        flow_link = FlowJsonLink('CSV to HTML table', self.flow_csvtohtmltable, FlowLinkContext(), vis_args=vis_args)
         activity = execute(flow_link, {}, {})
-        result = self.convert_from_activity_preview(activity)['d1']
+        result = self.convert_from_activity_vis(activity)['d1']
 
         expected_result = {'header': ['customer', 'amount', 'date'], 
                            'reader': [['B', '3500', '20180112'], 
@@ -139,9 +139,9 @@ class VCmdTestCase(unittest.TestCase):
     def test_csvtorepetitiviewaveform(self):
         pass
 
-    def convert_from_activity_preview(self, activity):
+    def convert_from_activity_vis(self, activity):
         """
         execute()の戻り値であるActivityから
-        pointのidとpreviewのDictに置き換える
+        pointのidとvisのDictに置き換える
         """
-        return {point.id : preview.result for point, preview in activity.result}
+        return {point.id : vis.result for point, vis in activity.result}
