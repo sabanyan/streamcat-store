@@ -91,7 +91,8 @@ from .store import Store, NysolModule, ModuleStore, List
 from .database_conn import DatabaseConn
 from .remote_folder_conn import RemoteFolderConn
 from .mountable import Mountable
-from .frame import Frame
+from .lock_manager import LockManager, LockedDatumException
+from .frame import Frame, Cache
 from .flow import Flow
 from .folder import Folder
 from .awss3 import AwsS3
