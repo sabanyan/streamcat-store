@@ -34,10 +34,8 @@ class CsvToTableCommand2(VisualizersHtml):
         """
         # 結果はVisに入れて返す
         from kskp.store import Vis
-        column_names = inputs['i'][0]
-        vis = Vis(None, 'csv_to_table')
-        vis.column_names = column_names
-        vis.nysol_result = inputs['i']
+        column_names = inputs['i'][0] if len(inputs['i']) > 0 else []
+        vis = Vis(None, 'csv_to_table', column_names, inputs['i'])
 
         return {'o': vis}  
 
@@ -49,19 +47,16 @@ class VisualizersBokehPlot(VisualizersCommand):
         super().__init__()
 
     def run(self, args, inputs):
-        column_names = inputs['i'][0]
+        column_names = inputs['i'][0] if len(inputs['i']) > 0 else []
         p = self.plot(args, inputs)
         script1, div1  = components(p)
 
         from kskp.store import BokehPlotVis
-        vis = BokehPlotVis(None, self.__class__.__name__)
+        label = self.__class__.__name__
+        vis = BokehPlotVis(None, label, column_names, script1, div1)
 
         # とりあえず動くようにするため
-        vis.data = nm.runfunc(lambda : None) 
-
-        vis.script = script1
-        vis.div = div1
-        vis.column_names = column_names
+        # vis.data = nm.runfunc(lambda : None)
 
         return {'o': vis} 
 
@@ -122,7 +117,7 @@ class VisualizersBokehPlot(VisualizersCommand):
         if x_size is None or int(x_size) < 0:
             return 1000
         else:
-            int(x_size)
+            return int(x_size)
 
     def _get_proper_y_size_column(self, y_size):
         """
@@ -131,7 +126,7 @@ class VisualizersBokehPlot(VisualizersCommand):
         if y_size is None or int(y_size) < 0:
             return 600
         else:
-            int(y_size)
+            return int(y_size)
 
 # グラフ化に必要なものの準備
 import matplotlib.pyplot as plt
