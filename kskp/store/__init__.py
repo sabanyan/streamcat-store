@@ -92,7 +92,7 @@ from .database_conn import DatabaseConn
 from .remote_folder_conn import RemoteFolderConn
 from .mountable import Mountable
 from .lock_manager import LockManager, LockedDatumException
-from .frame import Frame, Cache
+from .frame import Frame
 from .flow import Flow
 from .folder import Folder
 from .awss3 import AwsS3
