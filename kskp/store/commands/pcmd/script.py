@@ -1087,6 +1087,26 @@ class GroupBy2Command(Command):
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
 
+    def range_count(self,subcmd, **kwargs):
+        try:
+            f = kwargs.get('f')
+            a = kwargs.get('a')
+            k = kwargs.get('k')
+            nmin, nmax = kwargs.get('n').split(';')
+            n = f'{nmin};{nmax}'
+
+            subcmd <<= nm.m2cross(k = k, a = 'fld,__val', f = f)
+            subcmd <<= nm.msel(c = f'${{__val}}>={float(nmin)} && ${{__val}} < {float(nmax)}')
+            subcmd <<= nm.mcount(k = f'{k},fld', a = f'{a}_{n}')
+
+            subcmd <<= nm.mcut(f = f'{k},fld,{a}_{n}')
+
+            return subcmd
+
+        except Exception as e:
+            import traceback
+            with open('/dev/stderr', 'w') as fpe:
+                traceback.print_exc(file=fpe)
     def ratio_beyond_rsigma(self,subcmd, **kwargs):
         try:
             f = kwargs.get('f')
@@ -2070,9 +2090,9 @@ class GroupBy2Command(Command):
             targets = [None] * len(fs)
             subcmd_o = None
 
-            fldsL = [f'{fld}:{fld}_L' for fld in fs]
-            fldsL2 = [f'{fld}:{fld}_L2' for fld in fs]
-            flds_ = [f'{fld}_*' for fld in fs]
+            fldsL = [f'{fld}:__{fld}_L' for fld in fs]
+            fldsL2 = [f'{fld}:__{fld}_L2' for fld in fs]
+            flds_ = [f'__{fld}_*' for fld in fs]
 
             subcmd <<= nm.mslide(k = k, s = s, f = fldsL, 
                                         n = True, l = True)
@@ -2080,7 +2100,7 @@ class GroupBy2Command(Command):
                                         t = int(n)*2, l = True)
 
             for i, fld in enumerate(fs):
-                targets[i] <<= nm.mcal(c=f'${{{fld}}}*${{{fld}_L}}*${{{fld}_L2}}',
+                targets[i] <<= nm.mcal(c=f'${{{fld}}}*${{__{fld}_L}}*${{__{fld}_L2}}',
                                        a = '__tmp', i = subcmd)
                 targets[i] <<= nm.mcut(f = flds_ + [fld], r = True)
                 targets[i] <<= nm.mfldname(f = f'__tmp:{fld}')
@@ -2109,21 +2129,23 @@ class GroupBy2Command(Command):
             targets = [None] * len(fs)
             subcmd_o = None
 
+            fldsn = [f'{fld}:__{fld}n' for fld in fs]
+            fldsnn = [f'{fld}:__{fld}nn' for fld in fs]
+            flds_ = [f'__{fld}*' for fld in fs]
+
+            subcmd <<= nm.mslide(k = k, s = s, f = fldsn, 
+                                 t = n, n = True, l = True)
+            subcmd <<= nm.mslide(k = k, s = s, f = fldsnn,
+                                 t = int(n)*2, l = True)
+
             for i, fld in enumerate(fs):
-                targets[i] <<= nm.mslide(k = k, s = s, f = f'{fld}:{fld}_L', 
-                                         n = True, l = True, i = subcmd)
-                targets[i] <<= nm.mslide(k = k, s = s, f = f'{fld}:{fld}_L2',
-                                         t = int(n)*2, l = True)
+                targets[i] <<= nm.mcal(c=f'${{__{fld}nn}}^2*${{__{fld}n}}-${{{fld}}}^2*${{__{fld}n}}',
+                                       a = f'{a}_{n}', i = subcmd)
+                targets[i] <<= nm.mavg(k = k, f = f'{a}_{n}')
+                targets[i] <<= nm.mcut(f = flds_, r = True)
+                targets[i] <<= nm.msetstr(a = 'fld', v = fld)
 
-                targets[i] <<= nm.mcal(c=f'${{{fld}}}*${{{fld}_L}}*${{{fld}_L2}}',
-                                       a = '__tmp')
-                targets[i] <<= nm.mcut(f = f'{fld}*', r = True)
-                targets[i] <<= nm.mfldname(f = f'__tmp:{fld}')
-
-            subcmd_o <<= nm.msummary(k = k, c = f'mean:{a}_{n}', f = f, 
-                                     i = targets)
-
-            subcmd_o <<= nm.mcut(f = f'{k},fld,{a}_{n}')
+            subcmd_o <<= nm.mcut(f = f'{k},fld,{a}_{n}', i = targets)
 
             return subcmd_o
 
@@ -2195,6 +2217,7 @@ class GroupBy2Command(Command):
             'sym_looking' : self.symmetry_looking,
             'large_sd' : self.large_standard_dev,
             'value_count' : self.value_count,
+            'range_count' : self.range_count,
             'ratio_beyond_rsigma' : self.ratio_beyond_rsigma,
             'quantile' : self.quantile,
             'binned_entropy' : self.binned_entropy,
