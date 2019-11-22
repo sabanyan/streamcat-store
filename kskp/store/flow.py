@@ -4,6 +4,7 @@ import json
 
 from . import ss as session
 from kskp.core import Datum
+from kskp.store import Frame
 
 class Flow(Datum):
 
@@ -149,6 +150,17 @@ class Flow(Datum):
                                     .filter(Datum.type==Datum.FLOW_TYPE).one_or_none()
         if datum is None:
             raise Exception('no flow is found by designated id.')
+        flow = Flow.convert_to_flow(datum)
+
+        # 参照するフレームがライブラリに存在することを確認する
+        for frame_uuid in flow.get_src_frame_uuids():
+            if not Frame.exists(frame_uuid):
+                raise Exception(f'フレーム({frame_uuid})がライブラリにありません')
+
+        # 参照するサブフローがライブラリに存在することを確認する
+        for flow_uuid in flow.get_sub_flow_uuids():
+            if not Flow.exists(flow_uuid):
+                raise Exception(f'フロー({flow_uuid})がライブラリにありません')
 
         # ラベルに'\0'が含まれていれば取り除く
         new_label = Datum.escape_label(label)
@@ -165,7 +177,7 @@ class Flow(Datum):
         finally:
             session.commit()
 
-        return Flow.convert_to_flow(datum)
+        return flow
 
     def move(self, parent_uuid, modifier):
         """
@@ -249,10 +261,15 @@ class Flow(Datum):
         ret = []
         flow_json = self.flow_data
         
+        if 'nodes' not in flow_json:
+            return ret
+
         for node in flow_json['nodes']:
             if node['type'] != 'frame':
                 continue
-            if node['cacheCreatedAt'] is not None and node['cacheCreatedAt'] != '':
+            if 'cacheCreatedAt' is node and\
+                node['cacheCreatedAt'] is not None and\
+                node['cacheCreatedAt'] != '':
                 # cacheCreatedAtに日時が入っている場合はキャッシュである
                 continue
             if node['uuid'] is None or node['uuid'] == '':
@@ -269,10 +286,15 @@ class Flow(Datum):
         ret = []
         flow_json = self.flow_data
         
+        if 'nodes' not in flow_json:
+            return ret
+
         for node in flow_json['nodes']:
             if node['type'] != 'frame':
                 continue
-            if node['cacheCreatedAt'] is None or node['cacheCreatedAt'] == '':
+            if 'cacheCreatedAt' is not node or\
+                node['cacheCreatedAt'] is None or\
+                node['cacheCreatedAt'] == '':
                 # cacheCreatedAtに日時が入っていない場合は入力フレームである
                 continue
             if node['uuid'] is None or node['uuid'] == '':
@@ -288,6 +310,9 @@ class Flow(Datum):
         """
         ret = []
         flow_json = self.flow_data
+
+        if 'nodes' not in flow_json:
+            return ret
 
         for node in flow_json['nodes']:
             if node['type'] != 'flow':

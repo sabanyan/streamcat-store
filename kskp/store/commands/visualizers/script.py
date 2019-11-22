@@ -138,12 +138,16 @@ class CsvToLineGraphCommand(VisualizersBokehPlot):
         offset = int(args.get('offset')) if args.get('offset') else 0
         limit = int(args.get('limit')) if args.get('limit') else None
 
+        # key
+        keys = args.get('data_column') if args.get('data_column') is not None else []
+
+
         # dfの作成
         # TODO:愚直にdfを加工しており、高速化・メモリ管理等の工夫は何もしていない
         time_series_column = args.get('time_series_column') if args.get('time_series_column') else False
         # df = pd.read_csv(file_path, parse_dates=[time_series_column], nrows=limit, skiprows=range(1, offset))
         df = frame.get_dataframe(limit, offset, [time_series_column])
-        df[args.get('data_column')] = df[args.get('data_column')].astype(str)
+        df[keys] = df[keys].astype(str)
 
         # ここstartがdfの最大行数を越えるとエラーが出る
         # if len(df) < start:
@@ -151,8 +155,7 @@ class CsvToLineGraphCommand(VisualizersBokehPlot):
             # pass
         hv.extension('bokeh')
 
-        keys = args.get('data_column')
-
+      
         if len(keys) > 0:
             results = self.direct_product_by_keys(df, keys)
             named_dfs = self.process_df(df, results)
@@ -188,16 +191,17 @@ class CsvToHistogramCommand(VisualizersBokehPlot):
         limit = int(args.get('limit')) if args.get('limit') else None
 
         frame = Library.load_frame(inputs.get('i'))
+        # key
+        keys = args.get('data_column') if args.get('data_column') is not None else []
+
         # df = pd.read_csv(file_path, nrows=limit, skiprows=range(1, offset))
         df = frame.get_dataframe(limit, offset)
-        df[args.get('data_column')] = df[args.get('data_column')].astype(str)
+        df[keys] = df[keys].astype(str)
 
         # ここstartがdfの最大行数を越えるとエラーが出る
         # if len(df) < start:
             # なんかする
             # pass
-
-        keys = args.get('data_column')
 
         if len(keys) > 0:
             results = self.direct_product_by_keys(df, keys)
@@ -246,7 +250,8 @@ class CsvToScatterCommand(VisualizersBokehPlot):
             # なんかする
             # pass
 
-        keys = args.get('data_column')
+                # key
+        keys = args.get('data_column') if args.get('data_column') is not None else []
 
         if len(keys) > 0:
             results = self.direct_product_by_keys(df, keys)
@@ -292,12 +297,15 @@ class CsvToBoxplotCommand(VisualizersBokehPlot):
             # なんかする
             # passd
 
-        hv.extension('bokeh')
-        x_label = args.get('x_label') if args.get('x_label') else ','.join(args.get('x_axis'))
-        y_label = args.get('y_label') if args.get('y_label') else args.get('y_axis')
-        title = args.get('graph_title')
+        # key
+        keys = args.get('x_axis') if args.get('x_axis') is not None else []
 
-        boxwhisker = hv.BoxWhisker(df, kdims=args.get('x_axis'), vdims=args.get('y_axis'), label=title)
+        hv.extension('bokeh')
+        x_label = args.get('x_label') if args.get('x_label') else ','.join(keys)
+        y_label = args.get('y_label') if args.get('y_label') else ''
+        title = args.get('graph_title') if args.get('graph_title') else ''
+
+        boxwhisker = hv.BoxWhisker(df, kdims=keys, vdims=args.get('y_axis'), label=title)
         boxwhisker.opts(width=args.get('x_size'), height=args.get('y_size'), xlabel=x_label, ylabel=y_label)
 
         renderer = hv.renderer('bokeh')
@@ -332,7 +340,7 @@ class CsvtoRepetitivieWaveform(VisualizersBokehPlot):
             statics_source = self.get_statics_source(self.df, disableTooltips=self.disableTooltips)
             if statics_source is not None:
                 statics_colors = self.get_colors(len(statics_source))
-                plot = self.get_plot("反復波形図",graph_plot.x_range,graph_plot.y_range)
+                plot = self.get_plot("反復波形図",graph_plot.x_range,graph_plot.y_range,False)
                 statics_plot = self.get_statics_plot(plot,statics_source, statics_colors)
                 if statics_plot.legend:
                     statics_plot.legend.location = "top_left"
@@ -396,7 +404,7 @@ class CsvtoRepetitivieWaveform(VisualizersBokehPlot):
             data = dict(
                 x = n_df[self.column_name_x_axis].tolist(),
                 y = n_df[self.column_name_values].tolist(),
-                #group = n_df[self.group].tolist(),
+                group = n_df[self.group].tolist(),
                 label = [label] * (len(n_df.index))
             )
             source[label] = data
@@ -471,7 +479,7 @@ class CsvtoRepetitivieWaveform(VisualizersBokehPlot):
 
         return colors
 
-    def get_plot(self, title, x_range=None, y_range=None):
+    def get_plot(self, title, x_range=None, y_range=None, visiableGroup=True):
         
         tooltips = None
         if self.disableTooltips != True:
@@ -479,6 +487,13 @@ class CsvtoRepetitivieWaveform(VisualizersBokehPlot):
                     ("凡例", "@label"),
                     (self.column_name_x_axis, "@x"),
                     (self.column_name_values, "@y"),
+                    ("group", "@group")
+                ]
+            if visiableGroup == False:
+                tooltips = [
+                    ("凡例", "@label"),
+                    (self.column_name_x_axis, "@x"),
+                    (self.column_name_values, "@y")
                 ]
         
         plot = figure(
