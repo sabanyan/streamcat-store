@@ -1358,7 +1358,7 @@ class GroupBy2Command(Command):
             subcmd <<= nm.mcross(f = f'{a}', s = 'tmp_colnames', k = k)
 
             for fld in fs:
-                subcmd <<= nm.mcal(a = fld, 
+                subcmd <<= nm.mcal(a = fld, precision = precision,
                     c = f'(${{{fld}_prod_mean}}-(${{{fld}_mean}}*${{uxt_mean}}))/${{uxt_var}}')
             
             subcmd <<= nm.mcross(f = f, s = 'fld', k = k)
@@ -2070,6 +2070,45 @@ class GroupBy2Command(Command):
             targets = [None] * len(fs)
             subcmd_o = None
 
+            fldsL = [f'{fld}:{fld}_L' for fld in fs]
+            fldsL2 = [f'{fld}:{fld}_L2' for fld in fs]
+            flds_ = [f'{fld}_*' for fld in fs]
+
+            subcmd <<= nm.mslide(k = k, s = s, f = fldsL, 
+                                        n = True, l = True)
+            subcmd <<= nm.mslide(k = k, s = s, f = fldsL2,
+                                        t = int(n)*2, l = True)
+
+            for i, fld in enumerate(fs):
+                targets[i] <<= nm.mcal(c=f'${{{fld}}}*${{{fld}_L}}*${{{fld}_L2}}',
+                                       a = '__tmp', i = subcmd)
+                targets[i] <<= nm.mcut(f = flds_ + [fld], r = True)
+                targets[i] <<= nm.mfldname(f = f'__tmp:{fld}')
+
+            subcmd_o <<= nm.msummary(k = k, c = f'mean:{a}_{n}', f = f, 
+                                     i = targets)
+
+            subcmd_o <<= nm.mcut(f = f'{k},fld,{a}_{n}')
+
+            return subcmd_o
+
+        except Exception as e:
+            import traceback
+            with open('/dev/stderr', 'w') as fpe:
+                traceback.print_exc(file=fpe)
+    
+    def time_reversal_asymmetry(self,subcmd, **kwargs):
+        try:
+            f = kwargs.get('f')
+            a = kwargs.get('a')
+            k = kwargs.get('k')
+            s = kwargs.get('s')
+            n = kwargs.get('n')
+
+            fs = f.split(',')
+            targets = [None] * len(fs)
+            subcmd_o = None
+
             for i, fld in enumerate(fs):
                 targets[i] <<= nm.mslide(k = k, s = s, f = f'{fld}:{fld}_L', 
                                          n = True, l = True, i = subcmd)
@@ -2092,7 +2131,7 @@ class GroupBy2Command(Command):
             import traceback
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
-    
+
     # ## Template
     # subcmd = None
     # subcmd <<= nm.mstdin()
@@ -2176,12 +2215,13 @@ class GroupBy2Command(Command):
             'longest_strike_above_mean' : self.longeststrikeabovemean,
             'longest_strike_below_mean' : self.longeststrikebelowmean,
             'mean_second_derivative_central' : self.mean2ndderivative_central,
-            # 3 fields
+            # 2+1 fields
             'imq' : self.index_mass_quantile,
             'crossing_m' : self.numbercrossing,
             'peaks' : self.countpeaks,
             'autocorr' : self.autocorrelation,
-            'c3' : self.c3
+            'c3' : self.c3,
+            'time_reversal_asymmetry' : self.time_reversal_asymmetry
         }
 
         python_calcs = [
