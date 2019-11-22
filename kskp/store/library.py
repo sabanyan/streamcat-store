@@ -61,9 +61,10 @@ class Library:
 
         Fix it : add_frameに改名した方が良いか？
         """
+        import io
         new_frame = Frame(parent_uuid,
                           label,
-                          None,
+                          io.BytesIO(b''),
                           creator)
         # documentレコードをDBに格納する
         new_frame.add_entry_from_path(path)

@@ -152,6 +152,12 @@ class Flow(Datum):
             raise Exception('no flow is found by designated id.')
         flow = Flow.convert_to_flow(datum)
 
+        # ラベルに'\0'が含まれていれば取り除く
+        new_label = Datum.escape_label(label)
+        # 更新データを作成する
+        data = {'label' : new_label, 'flow' : flow_data}
+        flow.data = data
+
         # 参照するフレームがライブラリに存在することを確認する
         for frame_uuid in flow.get_src_frame_uuids():
             if not Frame.exists(frame_uuid):
@@ -162,12 +168,9 @@ class Flow(Datum):
             if not Flow.exists(flow_uuid):
                 raise Exception(f'フロー({flow_uuid})がライブラリにありません')
 
-        # ラベルに'\0'が含まれていれば取り除く
-        new_label = Datum.escape_label(label)
 
         try:
             # レコードを更新する
-            data = {'label' : new_label, 'flow' : flow_data}
             session.query(Datum).filter(Datum.uuid==uuid).update({'_label'   :new_label,
                                                                   'data'     :data,
                                                                   'modifier' :modifier})

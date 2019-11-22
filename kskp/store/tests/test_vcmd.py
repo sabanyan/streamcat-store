@@ -2,6 +2,7 @@ import os
 import io
 import json
 import unittest
+from kskp.store import Flow
 from kskp.engine import execute, FlowJsonLink, FlowLinkContext
 
 
@@ -113,7 +114,8 @@ class VCmdTestCase(unittest.TestCase):
                 }
 			}
 		}
-        flow_link = FlowJsonLink('CSV to HTML table', self.flow_csvtohtmltable, FlowLinkContext(), vis_args=vis_args)
+        flow = Flow(None, 'CSV to HTML table', self.flow_csvtohtmltable,)
+        flow_link = FlowJsonLink(flow, FlowLinkContext(), vis_args=vis_args)
         activity = execute(flow_link, {}, {})
         result = self.convert_from_activity_vis(activity)['d1']
 
