@@ -1102,6 +1102,7 @@ class GroupBy2Command(Command):
             import traceback
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
+
     def ratio_beyond_rsigma(self,subcmd, **kwargs):
         try:
             f = kwargs.get('f')
@@ -1207,6 +1208,49 @@ class GroupBy2Command(Command):
             subcmd_o <<= nm.msum(k = f'{k},fld', f = '__probs', i = targets)
             subcmd_o <<= nm.mcal(c = '${__probs}*-1', a = f'{a}_{n}')
 
+            subcmd_o <<= nm.mcut(f = f'{k},fld,{a}_{n}')
+
+            return subcmd_o
+
+        except Exception as e:
+            import traceback
+            with open('/dev/stderr', 'w') as fpe:
+                traceback.print_exc(file=fpe)
+
+    def energy_ratio_by_chunks(self,subcmd, **kwargs):
+        try:
+            f = kwargs.get('f')
+            a = kwargs.get('a')
+            k = kwargs.get('k')
+            s = kwargs.get('s')
+            n = kwargs.get('n')
+            segments, focus = n.split(';')
+
+            fs = f.split(',')
+            targets = [None] * len(fs)
+            msummary = None
+            abs_energy = None
+            subcmd_o = None
+
+            msummary <<= nm.msummary(i = subcmd, f = f, k = k, 
+                                     c = 'count:__count,sd:__sd')
+
+            abs_energy = self.abs_energy(subcmd, f = f, k = k, a = '__sqsum')
+
+            subcmd <<= nm.mnjoin(k = k, m = msummary, f ='fld,__count,__sd')
+            subcmd <<= nm.mnjoin(k = f'{k},fld', m = abs_energy, f ='__sqsum')
+
+            subcmd <<= nm.mcal(c = f'int(${{__count}}/{segments})', a = '__sl')
+            subcmd <<= nm.mcal(a = '__st,__ed', 
+                    c = f'{focus}*${{__sl}},min({int(focus)+1}*${{__sl}},${{__count}})')
+            subcmd <<= nm.msel(c = f'${{{s}}}>=${{__st}}&&${{{s}}}<${{__ed}}')
+
+            for i, fld in enumerate(fs):
+                targets[i] <<= nm.msel(c = f'$s{{fld}}=="{fld}"', i = subcmd)
+                targets[i] <<= nm.mcal(c = f'${{{fld}}}^2', a = f'__d2')
+
+            subcmd_o <<= nm.msum(i = targets, k = f'{k},fld', f = '__d2')
+            subcmd_o <<= nm.mcal(c = '${__d2}/${__sqsum}', a = f'{a}_{n}')
             subcmd_o <<= nm.mcut(f = f'{k},fld,{a}_{n}')
 
             return subcmd_o
@@ -2233,6 +2277,7 @@ class GroupBy2Command(Command):
             'longest_strike_above_mean' : self.longeststrikeabovemean,
             'longest_strike_below_mean' : self.longeststrikebelowmean,
             'mean_second_derivative_central' : self.mean2ndderivative_central,
+            'energy_ratio_by_chunks' : self.energy_ratio_by_chunks,
             # 2+1 fields
             'imq' : self.index_mass_quantile,
             'crossing_m' : self.numbercrossing,
