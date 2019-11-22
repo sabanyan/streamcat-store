@@ -272,7 +272,7 @@ class Flow(Datum):
                 node['cacheCreatedAt'] != '':
                 # cacheCreatedAtに日時が入っている場合はキャッシュである
                 continue
-            if node['uuid'] is None or node['uuid'] == '':
+            if 'uuid' not in node or node['uuid'] is None or node['uuid'] == '':
                 continue
             if node['uuid'] in ret:
                 continue
@@ -297,7 +297,7 @@ class Flow(Datum):
                 node['cacheCreatedAt'] == '':
                 # cacheCreatedAtに日時が入っていない場合は入力フレームである
                 continue
-            if node['uuid'] is None or node['uuid'] == '':
+            if 'uuid' not in node or node['uuid'] is None or node['uuid'] == '':
                 continue
             if node['uuid'] in ret:
                 continue
@@ -317,7 +317,7 @@ class Flow(Datum):
         for node in flow_json['nodes']:
             if node['type'] != 'flow':
                 continue
-            if node['uuid'] is None or node['uuid'] == '':
+            if 'uuid' not in node or node['uuid'] is None or node['uuid'] == '':
                 continue
             if node['uuid'] in ret:
                 continue
@@ -334,7 +334,7 @@ class Flow(Datum):
         for node in flow_json['nodes']:
             if node['type'] != 'store':
                 continue
-            if node['uuid'] is None or node['uuid'] == '':
+            if 'uuid' not in node or node['uuid'] is None or node['uuid'] == '':
                 continue
             if node['uuid'] in ret:
                 continue
