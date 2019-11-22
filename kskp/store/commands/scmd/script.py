@@ -359,8 +359,8 @@ class DbSaverCommand(Command):
         cmd = inputs['i'].content
         cmd <<= nm.runfunc(bulk_inserter, database=database, schema_name=schema_name, table_name=table_name)
 
-        # TODO: 'u'には意味のないUUIDを返しているが、正しくはDBの結果を表すUUIDを返したい
-        return {'o': NysolModule(cmd), 'u': 'C7C25162-404F-4300-9547-446651CE69DD'}  
+        # TODO: 'u'には意味のないDatumを返しているが、正しくはDBの結果を表すDatasourceを返したい
+        return {'o': NysolModule(cmd), 'u': Datum.find_root()}  
         
     @staticmethod
     def _connect_to_db(db_uri):

@@ -1,10 +1,6 @@
 # ビジュアライズコマンド
 import os
-
 from kskp.core import Command, Port
-# from kskp.store import Library
-
-import nysol.mcmd as nm
 
 class VisualizersCommand(Command):
     def __init__(self):
@@ -29,8 +25,7 @@ class CsvToTableCommand2(VisualizersHtml):
 
     def run(self, args, inputs):
         """
-        csvのファイルパスから、
-        HTMLのテーブル形式にして返す
+        ListデータをVisデータにして返す
         """
         # 結果はVisに入れて返す
         from kskp.store import Vis
@@ -49,8 +44,9 @@ class VisualizersBokehPlot(VisualizersCommand):
 
     def run(self, args, inputs):
         column_names = inputs['i'][0] if len(inputs['i']) > 0 else []
-        p = self.plot(args, inputs)
-        script1, div1  = components(p)
+        matrix = inputs['i'][1:] if len(inputs['i']) > 1 else [[]]
+        p = self.plot(args, column_names, matrix)
+        script1, div1 = components(p)
 
         from kskp.store import BokehPlotVis
         label = self.__class__.__name__
@@ -87,47 +83,44 @@ class VisualizersBokehPlot(VisualizersCommand):
             df_dict['-'.join(map(str, list(result.values())))] = _df
         return df_dict
 
-    def _get_proper_column(self, columns, index):
-        if index > len(columns) -1:
-            return columns[len(columns) -1]
+    def _get_proper_column(self, column_names, index):
+        if index > len(column_names) -1:
+            return column_names[len(column_names) -1]
         else:
-            return columns[index]
+            return column_names[index]
 
-    def _get_proper_data_columns(self, columns, data_columns):
-        if data_columns is None or len(data_columns) == 0:
-            return [self._get_proper_column(columns, 2)]
-        else:
-            return data_columns
+    def _infer_data_columns(self, column_names):
+        return [self._get_proper_column(column_names, 2)]
 
-    def _get_proper_time_series_column(self, columns, time_series_column):
+    def _infer_time_series_column(self, column_names):
+        """
+        時間軸になりそうなデータ列を取得する
+        """
+        return self._get_proper_column(column_names, 3)
+
+    def _infer_x_axis_column(self, column_names):
         """
         X軸になりそうなデータ列を取得する
         """
-        return time_series_column or self._get_proper_column(columns, 3)
+        return self._get_proper_column(column_names, 3)
 
-    def _get_proper_y_axis_column(self, columns, y_axis_column):
+    def _infer_y_axis_column(self, column_names):
         """
         Y軸になりそうなデータ列を取得する
         """
-        return y_axis_column or self._get_proper_column(columns, 3)
+        return self._get_proper_column(column_names, 4)
 
-    def _get_proper_x_size_column(self, x_size):
+    def _proper_x_size(self):
         """
         X軸のサイズを決定する
         """
-        if x_size is None or int(x_size) < 0:
-            return 1000
-        else:
-            return int(x_size)
+        return 1000
 
-    def _get_proper_y_size_column(self, y_size):
+    def _proper_y_size(self):
         """
         Y軸のサイズを決定する
         """
-        if y_size is None or int(y_size) < 0:
-            return 600
-        else:
-            return int(y_size)
+        return 600
 
 # グラフ化に必要なものの準備
 import matplotlib.pyplot as plt
@@ -139,7 +132,7 @@ import random
 from bokeh.plotting import figure
 from bokeh.resources import CDN
 from bokeh.embed import file_html,components
-from bokeh.palettes import Dark2_5 as palette
+
 from bokeh.layouts import gridplot, column
 from bokeh.models import HoverTool, Select, Legend, ColumnDataSource
 from bokeh.io import output_file, show
@@ -155,18 +148,15 @@ class CsvToLineGraphCommand2(VisualizersBokehPlot):
     def __init__(self):
         super().__init__()
 
-    def plot(self, args, inputs):
+    def plot(self, args, column_names, matrix):
         """
         ビジュアライズを描画、保存する。
         """
-        nysol_result = inputs['i']
-
         # NysolPythonの結果をpandasのDataFrameに変換する
-        columns = nysol_result[0]
-        df = pd.DataFrame(nysol_result[1:], columns=columns)
+        df = pd.DataFrame(matrix, columns=column_names)
 
         # dfの作成
-        data_columns = self._get_proper_data_columns(columns, args.get('data_column'))
+        data_columns = args.get('data_column') or self._infer_data_columns(column_names)
         df[data_columns] = df[data_columns].astype(str)
 
         # ここstartがdfの最大行数を越えるとエラーが出る
@@ -186,12 +176,12 @@ class CsvToLineGraphCommand2(VisualizersBokehPlot):
 
         line_list = {}
         for label, df in named_dfs.items():
-            time_series_column = self._get_proper_time_series_column(columns, args.get('time_series_column'))
-            y_axis_column = self._get_proper_y_axis_column(columns, args.get('y_axis_column'))
+            time_series_column = args.get('time_series_column') or self._infer_time_series_column(column_names)
+            y_axis_column = args.get('y_axis_column') or self._infer_y_axis_column(column_names)
             line_list[label] = hv.Curve(df, time_series_column, y_axis_column).opts(width=1040, height=600)
 
-        x_size = self._get_proper_x_size_column(args.get('x_size'))
-        y_size = self._get_proper_y_size_column(args.get('y_size'))
+        x_size = args.get('x_size') or self._proper_x_size()
+        y_size = args.get('y_size') or self._proper_y_size()
         ndoverlay = hv.NdOverlay(line_list).opts(legend_position='top',
                                                  width=x_size, height=y_size,
                                                  xlabel=args.get('x_label'), ylabel=args.get('y_label'))
@@ -205,24 +195,25 @@ class CsvToHistogramCommand2(VisualizersBokehPlot):
     def __init__(self):
         super().__init__()
 
-    def plot(self, args, inputs):
+    def plot(self, args, column_names, matrix):
         """
-        csvのファイルパスから、
-        plotのヒストグラムを作成する
+        ListデータをVisデータにして返す
         """
-        nysol_result = inputs['i']
-
         # NysolPythonの結果をpandasのDataFrameに変換する
-        df = pd.DataFrame(nysol_result[1:], columns=nysol_result[0])
-        df[args.get('data_column')] = df[args.get('data_column')].astype(str)
-        df[args.get('x_axis')] = df[args.get('x_axis')].astype(int)
+        df = pd.DataFrame(matrix, columns=column_names)
+
+        # dfの作成
+        data_columns = args.get('data_column') or self._infer_data_columns(column_names)
+        x_axis = args.get('x_axis') or self._infer_x_axis_column(column_names)
+        df[data_columns] = df[data_columns].astype(str)
+        df[x_axis] = df[x_axis].astype(int)
 
         # ここstartがdfの最大行数を越えるとエラーが出る
         # if len(df) < start:
             # なんかする
             # pass
 
-        keys = args.get('data_column')
+        keys = data_columns
 
         if len(keys) > 0:
             results = self.direct_product_by_keys(df, keys)
@@ -233,11 +224,14 @@ class CsvToHistogramCommand2(VisualizersBokehPlot):
 
         hist_list = {}
         for label, df in named_dfs.items():
-            hist, edges = np.histogram(df[args.get('x_axis')].tolist(), bins=args.get('bins'))
+            bins = args.get('bins') or self._infer_bins_columns(column_names)
+            hist, edges = np.histogram(df[x_axis].tolist(), bins=bins)
             hist_list[label] = hv.Histogram((edges, hist)).opts(muted_alpha=0.1)
 
+        x_size = args.get('x_size') or self._proper_x_size()
+        y_size = args.get('y_size') or self._proper_y_size()
         ndoverlay = hv.NdOverlay(hist_list).opts(legend_position='top',
-                                                 width=int(args.get('x_size')), height=int(args.get('y_size')),
+                                                 width=x_size, height=y_size,
                                                  xlabel=args.get('x_label'), ylabel=args.get('y_label'))
 
         renderer = hv.renderer('bokeh')
@@ -245,29 +239,72 @@ class CsvToHistogramCommand2(VisualizersBokehPlot):
 
         return plot
 
+    def _infer_bins_columns(self, column_names):
+        """
+        Binsになりそうなデータ列を取得する
+        """
+        return [self._get_proper_column(column_names, 4)]
+
+class CsvToBoxplotCommand2(VisualizersBokehPlot):
+    def __init__(self):
+        super().__init__()
+        
+    def plot(self, args, column_names, matrix):
+        """
+        ListデータをVisデータにして返す
+        """
+        # NysolPythonの結果をpandasのDataFrameに変換する
+        df = pd.DataFrame(matrix, columns=column_names)
+
+        # ここstartがdfの最大行数を越えるとエラーが出る
+        # if len(df) < start:
+            # なんかする
+            # passd
+
+        # dfの作成
+        x_axis = args.get('x_axis') or self._infer_x_axis_column(column_names)
+        y_axis = args.get('y_axis') or self._infer_y_axis_column(column_names)
+        df[x_axis] = df[x_axis].astype(float)
+        df[y_axis] = df[y_axis].astype(float)
+
+        hv.extension('bokeh')
+        title = args.get('graph_title') or ''
+        x_size = args.get('x_size') or self._proper_x_size()
+        y_size = args.get('y_size') or self._proper_y_size()
+        x_label = args.get('x_label') if args.get('x_label') else ','.join(x_axis)
+        y_label = args.get('y_label') if args.get('y_label') else y_axis
+        boxwhisker = hv.BoxWhisker(df, kdims=x_axis, vdims=y_axis, label=title)
+        boxwhisker.opts(width=x_size, height=y_size, xlabel=x_label, ylabel=y_label)
+
+        renderer = hv.renderer('bokeh')
+        plot=renderer.get_plot(boxwhisker).state
+
+        return plot
+
 class CsvToScatterCommand2(VisualizersBokehPlot):
     def __init__(self):
         super().__init__()
 
-    def plot(self, args, inputs):
+    def plot(self, args, column_names, matrix):
         """
-        csvのファイルパスから、
-        plotの散布図を作成する
+        ListデータをVisデータにして返す
         """
-        nysol_result = inputs['i']
-
         # NysolPythonの結果をpandasのDataFrameに変換する
-        df = pd.DataFrame(nysol_result[1:], columns=nysol_result[0])
+        df = pd.DataFrame(matrix, columns=column_names)
 
         # ここstartがdfの最大行数を越えるとエラーが出る
         # if len(df) < start:
             # なんかする
             # pass
 
-        df[args.get('x_axis')] = df[args.get('x_axis')].astype(int)
-        df[args.get('y_axis')] = df[args.get('y_axis')].astype(int)
+        # dfの作成
+        x_axis = args.get('x_axis') or self._infer_x_axis_column(column_names)
+        y_axis = args.get('y_axis') or self._infer_y_axis_column(column_names)
+        df[x_axis] = df[x_axis].astype(int)
+        df[y_axis] = df[y_axis].astype(int)
 
-        keys = args.get('data_column')
+        data_columns = args.get('data_column') or self._infer_data_columns(column_names)
+        keys = data_columns
 
         if len(keys) > 0:
             results = self.direct_product_by_keys(df, keys)
@@ -278,13 +315,15 @@ class CsvToScatterCommand2(VisualizersBokehPlot):
 
         scatter_list = {}
         for label, _df in named_dfs.items():
-            scatter_list[label] = hv.Scatter(_df, args.get('x_axis'), vdims=[args.get('y_axis')]).opts(muted_alpha=0.1)
+            scatter_list[label] = hv.Scatter(_df, x_axis, vdims=[y_axis]).opts(muted_alpha=0.1)
 
+        x_size = args.get('x_size') or self._proper_x_size()
+        y_size = args.get('y_size') or self._proper_y_size()
         ndoverlay = hv.NdOverlay(scatter_list).opts(legend_position='top',
-                                                 width=int(args.get('x_size')), height=int(args.get('y_size')),
-                                                 xlabel=args.get('x_label'), ylabel=args.get('y_label'))
+                                                    width=x_size, height=y_size,
+                                                    xlabel=args.get('x_label'), ylabel=args.get('y_label'))
         if not args.get('b'):
-            b = hv.Bivariate(df[[args.get('x_axis'), args.get('y_axis')]]).opts(show_legend=False, bandwidth=0.5, axiswise=True, line_width=2, colorbar=True)
+            b = hv.Bivariate(df[[x_axis, y_axis]]).opts(show_legend=False, bandwidth=0.5, axiswise=True, line_width=2, colorbar=True)
             ndoverlay = ndoverlay * b
 
         renderer = hv.renderer('bokeh')
@@ -292,52 +331,16 @@ class CsvToScatterCommand2(VisualizersBokehPlot):
 
         return plot
 
-class CsvToBoxplotCommand2(VisualizersBokehPlot):
-    def __init__(self):
-        super().__init__()
-        
-    def plot(self, args, inputs):
-        """
-        csvのファイルパスから、
-        plotの箱ひげ図を作成する
-        """
-        nysol_result = inputs['i']
-
-        # NysolPythonの結果をpandasのDataFrameに変換する
-        df = pd.DataFrame(nysol_result[1:], columns=nysol_result[0])
-
-        # ここstartがdfの最大行数を越えるとエラーが出る
-        # if len(df) < start:
-            # なんかする
-            # passd
-
-        df[args.get('x_axis')] = df[args.get('x_axis')].astype(float)
-        df[args.get('y_axis')] = df[args.get('y_axis')].astype(float)
-
-        hv.extension('bokeh')
-        x_label = args.get('x_label') if args.get('x_label') else ','.join(args.get('x_axis'))
-        y_label = args.get('y_label') if args.get('y_label') else args.get('y_axis')
-        title = args.get('graph_title')
-
-        boxwhisker = hv.BoxWhisker(df, kdims=args.get('x_axis'), vdims=args.get('y_axis'), label=title)
-        boxwhisker.opts(width=args.get('x_size'), height=args.get('y_size'), xlabel=x_label, ylabel=y_label)
-
-        renderer = hv.renderer('bokeh')
-        plot=renderer.get_plot(boxwhisker).state
-
-        return plot
-
 class CsvtoRepetitivieWaveform2(VisualizersBokehPlot):
-
     def __init__(self):
         super().__init__()
 
-    def plot(self, args, inputs):
+    def plot(self, args, column_names, matrix):
         """
         csvのファイルパスから、
         plotの反復波形図を作成する
         """
-        self.init(args, inputs)
+        self.init(args, column_names, matrix)
         
         graph_source = self.get_graph_source(self.df, disableTooltips=self.disableTooltips) 
         graph_colors = self.get_colors(len(graph_source))
@@ -362,13 +365,10 @@ class CsvtoRepetitivieWaveform2(VisualizersBokehPlot):
                 plots.append(statics_plot)          
         
         return gridplot(plots, ncols=1, plot_width=self.graph_width, plot_height=self.graph_height)
-        
-      
-    def init(self, args, inputs):
-        nysol_result = inputs['i']
-        
+
+    def init(self, args, column_names, matrix):
         # NysolPythonの結果をpandasのDataFrameに変換する
-        df = pd.DataFrame(nysol_result[1:], columns=nysol_result[0])
+        df = pd.DataFrame(matrix, columns=column_names)
 
         # 共通パラメーター
         # frame_uuid = inputs.get('i')
@@ -395,7 +395,7 @@ class CsvtoRepetitivieWaveform2(VisualizersBokehPlot):
         
         # グラフサイズの設定
         self.graph_width = args.get('width')
-        self.graph_height = height=args.get('height')
+        self.graph_height = args.get('height')
         
         #共通設定
         self.tools = "pan,wheel_zoom,box_zoom,reset,save,box_select"
@@ -424,6 +424,8 @@ class CsvtoRepetitivieWaveform2(VisualizersBokehPlot):
         return source
 
     def get_statics_source(self, df, disableTooltips=False):
+        import nysol.mcmd as nm
+
         k = self.column_name_x_axis
         f = self.column_name_values
         c = self.statics #"min,mean,max,qtile1,median,qtile3"
@@ -432,7 +434,8 @@ class CsvtoRepetitivieWaveform2(VisualizersBokehPlot):
 
         dtype = "{}:float".format(self.column_name_x_axis)
         result = None
-        result <<= nm.msummary(i=i, k=k, f=f, c=c).writelist(dtype=dtype, header=True)
+        result <<= nm.msummary(i=i, k=k, f=f, c=c)
+        result <<= nm.writelist(dtype=dtype, header=True)
         result = result.run()
 
         name=result.pop(0)
@@ -481,6 +484,7 @@ class CsvtoRepetitivieWaveform2(VisualizersBokehPlot):
         return s
 
     def get_colors(self, size):
+        from bokeh.palettes import Dark2_5 as palette
         i = 0
         colors = []
         for d in itertools.cycle(palette):
