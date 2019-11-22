@@ -81,7 +81,7 @@
       "name": "nfclist",
       "type": "list",
       "label": "パラメーター有りの計算",
-      "description": "指定可能統計量:\nsym_looking n=% of range to compare\nlarge_sd  n=% of range to compare\nvalue_count n=value to search for\nratio_beyond_rsigma n=multiplier for sd\nquantile (calculate n percentile [0-1])\nbinned_entropy  n=max bins\n追加・順序変更・削除　可",
+      "description": "指定可能統計量:\nsym_looking n=% of range to compare\nlarge_sd  n=% of range to compare\nvalue_count n=value to search for\nrange_count  n1;n2 = values between [n1,n2)\nratio_beyond_rsigma n=multiplier for sd\nquantile (calculate n percentile [0-1])\nbinned_entropy  n=max bins\n追加・順序変更・削除　可",
       "elements": [
         {
           "name": "n",
@@ -158,7 +158,7 @@
       "name": "sfcnlist",
       "type": "list",
       "label": "順序関係による特徴量（パラメーター有り）",
-      "description": "c3\n追加・順序変更・削除　可",
+      "description": "c3 n = lag\ntime_reversal_asymmetry  n = lag\n追加・順序変更・削除　可",
       "elements": [
         {
           "name": "s",
