@@ -1068,19 +1068,13 @@ class GroupBy2Command(Command):
             k = kwargs.get('k')
             n = kwargs.get('n')
 
-            fs = f.split(',')
-            targets = [None] * len(fs)
-            subcmd_o = None
+            subcmd <<= nm.m2cross(k = k, a = 'fld,__val', f = f)
+            subcmd <<= nm.mcal(a = '__eq', c = f'${{__val}}=={n}')
+            subcmd <<= nm.msum(k = f'{k},fld', f = f'__eq:{a}_{n}')
 
-            for i, fld in enumerate(fs):
-                targets[i] <<= nm.mcal(c = f'$s{{{fld}}}=="{n}"', a = f'{a}_{n}',
-                                       i = subcmd)
-                targets[i] <<= nm.msetstr(a = 'fld', v = fld)
-                targets[i] <<= nm.msum(k = f'{k}', f = f'{a}_{n}')
+            subcmd <<= nm.mcut(f = f'{k},fld,{a}_{n}')
 
-            subcmd_o <<= nm.mcut(f = f'{k},fld,{a}_{n}', i = targets)
-
-            return subcmd_o
+            return subcmd
 
         except Exception as e:
             import traceback
@@ -1096,8 +1090,9 @@ class GroupBy2Command(Command):
             n = f'{nmin};{nmax}'
 
             subcmd <<= nm.m2cross(k = k, a = 'fld,__val', f = f)
-            subcmd <<= nm.msel(c = f'${{__val}}>={float(nmin)} && ${{__val}} < {float(nmax)}')
-            subcmd <<= nm.mcount(k = f'{k},fld', a = f'{a}_{n}')
+            subcmd <<= nm.mcal(a = '__inrange',
+                c = f'${{__val}}>={float(nmin)} && ${{__val}} < {float(nmax)}')
+            subcmd <<= nm.msum(k = f'{k},fld', f = f'__inrange:{a}_{n}')
 
             subcmd <<= nm.mcut(f = f'{k},fld,{a}_{n}')
 
