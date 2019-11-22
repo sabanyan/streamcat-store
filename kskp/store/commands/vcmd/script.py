@@ -35,7 +35,8 @@ class CsvToTableCommand2(VisualizersHtml):
         # 結果はVisに入れて返す
         from kskp.store import Vis
         column_names = inputs['i'][0] if len(inputs['i']) > 0 else []
-        vis = Vis(None, 'csv_to_table', column_names, inputs['i'])
+        matrix = inputs['i'][1:] if len(inputs['i']) > 1 else [[]]
+        vis = Vis(None, 'csv_to_table', column_names, matrix)
 
         return {'o': vis}  
 
