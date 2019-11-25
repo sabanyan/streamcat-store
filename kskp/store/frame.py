@@ -24,7 +24,7 @@ class Frame(Datum):
         # ファイルストリームを保持する
         self.stream = stream
 
-        self._content = None
+        # self._content = None
 
     @staticmethod
     def find_by_uuid(uuid):
@@ -307,136 +307,113 @@ class Frame(Datum):
     #     else:
     #         return False
 
-    def get_dataframe(self, limit, offset, time_series_columns=False):
-        import pandas as pd
-        return pd.read_csv(self._to_abs_path(self._path), 
-                           nrows=limit,
-                           skiprows=range(1, offset),
-                           parse_dates=time_series_columns)
+    # def get_dataframe(self, limit, offset, time_series_columns=False):
+    #     import pandas as pd
+    #     return pd.read_csv(self._to_abs_path(self._path), 
+    #                        nrows=limit,
+    #                        skiprows=range(1, offset),
+    #                        parse_dates=time_series_columns)
 
-    def get_table(self, limit, offset):
-        result = {}
+    # def get_table(self, limit, offset):
+    #     result = {}
 
-        # テーブル構造
-        with open(self._to_abs_path(self._path), 'r', errors = 'ignore') as f:
-            n = 0
+    #     # テーブル構造
+    #     with open(self._to_abs_path(self._path), 'r', errors = 'ignore') as f:
+    #         n = 0
 
-            result['reader'] = []
-            for line in f:
-                # 指定されたlimitの数だけ要素が達していたら終了
-                if limit is not None and len(result['reader']) == limit:
-                    break
+    #         result['reader'] = []
+    #         for line in f:
+    #             # 指定されたlimitの数だけ要素が達していたら終了
+    #             if limit is not None and len(result['reader']) == limit:
+    #                 break
 
-                if n == 0:
-                    # 一行目はヘッダとみなす
-                    result['header'] = line.split(',')
-                else:
-                    if offset < n:
-                        result['reader'].append(line.split(','))
+    #             if n == 0:
+    #                 # 一行目はヘッダとみなす
+    #                 result['header'] = line.split(',')
+    #             else:
+    #                 if offset < n:
+    #                     result['reader'].append(line.split(','))
 
-                n += 1
+    #             n += 1
 
-        return result
+    #     return result
 
 
-    def load_as_data_frame(self, offset, limit):
-        """
-        CSVの文字列を受け取り、
-        いわゆるデータフレームの形式にして返す
-        TODO: offsetはつかってない
-        """
-        result_text = ''
-        result_data = {}
-        column_list = []
-        abs_path = Path(Datum._to_abs_path(self._path))
-        with abs_path.open(encoding='utf-8') as f:
-            n = 0
-            limit_count = 0
+    # def load_as_data_frame(self, offset, limit):
+    #     """
+    #     CSVの文字列を受け取り、
+    #     いわゆるデータフレームの形式にして返す
+    #     TODO: offsetはつかってない
+    #     """
+    #     result_text = ''
+    #     result_data = {}
+    #     column_list = []
+    #     abs_path = Path(Datum._to_abs_path(self._path))
+    #     with abs_path.open(encoding='utf-8') as f:
+    #         n = 0
+    #         limit_count = 0
 
-            for line in f:
-                if limit is not None and limit_count == limit:
-                    break
+    #         for line in f:
+    #             if limit is not None and limit_count == limit:
+    #                 break
 
-                if n == 0:
-                    # 一行目はヘッダとみなす
-                    # 重複文字があればインデックスをつける
-                    column_list = Frame._replace_column_name(line.split(','))
-                    for column_name in column_list:
-                        result_data[column_name] = []
-                else:
-                    if offset < n:
-                        for idx, column_data in enumerate(line.split(',')):
-                            result_data[column_list[idx]].append(column_data)
-                        limit_count += 1
-                n += 1
+    #             if n == 0:
+    #                 # 一行目はヘッダとみなす
+    #                 # 重複文字があればインデックスをつける
+    #                 column_list = Frame._replace_column_name(line.split(','))
+    #                 for column_name in column_list:
+    #                     result_data[column_name] = []
+    #             else:
+    #                 if offset < n:
+    #                     for idx, column_data in enumerate(line.split(',')):
+    #                         result_data[column_list[idx]].append(column_data)
+    #                     limit_count += 1
+    #             n += 1
 
-        if n == 0:
-            raise Exception('空のCSVを読み込みました。コマンド実行時にエラーが発生した可能性があります。')
+    #     if n == 0:
+    #         raise Exception('空のCSVを読み込みました。コマンド実行時にエラーが発生した可能性があります。')
 
-        result_len = n
+    #     result_len = n
 
-        # 行数も返すように変更
-        return result_data, result_len
+    #     # 行数も返すように変更
+    #     return result_data, result_len
 
-    @staticmethod
-    def _replace_column_name(column_list):
-        """
-        受け取ったカラム名リストに重複している列名があれば
-        連番をつける
-        """
-        def check_column_overlap(column_list):
-            """
-            受け取ったカラム名リストを走査する
-            """
-            index_dict = {}
-            column_name_overlap = False
+    # @staticmethod
+    # def _replace_column_name(column_list):
+    #     """
+    #     受け取ったカラム名リストに重複している列名があれば
+    #     連番をつける
+    #     """
+    #     def check_column_overlap(column_list):
+    #         """
+    #         受け取ったカラム名リストを走査する
+    #         """
+    #         index_dict = {}
+    #         column_name_overlap = False
 
-            for index, column_name in enumerate(column_list):
-                if not column_name in index_dict:
-                    index_dict[column_name] = []
-                else:
-                    column_name_overlap = True
-                index_dict[column_name].append((index, len(index_dict[column_name])))
+    #         for index, column_name in enumerate(column_list):
+    #             if not column_name in index_dict:
+    #                 index_dict[column_name] = []
+    #             else:
+    #                 column_name_overlap = True
+    #             index_dict[column_name].append((index, len(index_dict[column_name])))
 
-            return index_dict, column_name_overlap
+    #         return index_dict, column_name_overlap
 
-        index_dict, column_name_overlap = check_column_overlap(column_list)
+    #     index_dict, column_name_overlap = check_column_overlap(column_list)
 
-        if not column_name_overlap:
-            return column_list
+    #     if not column_name_overlap:
+    #         return column_list
 
-        for column_name, tuple_list in index_dict.items():
-            if len(tuple_list) < 2:
-                continue
+    #     for column_name, tuple_list in index_dict.items():
+    #         if len(tuple_list) < 2:
+    #             continue
 
-            for tuple in tuple_list:
-                # tuple[0]　インデックス（column_listの）
-                # tuple[1]　連番
-                if tuple[1] > 0:
-                    column_list[tuple[0]] = column_name + '.' + str(tuple[1])
+    #         for tuple in tuple_list:
+    #             # tuple[0]　インデックス（column_listの）
+    #             # tuple[1]　連番
+    #             if tuple[1] > 0:
+    #                 column_list[tuple[0]] = column_name + '.' + str(tuple[1])
 
-        return column_list
+    #     return column_list
 
-# class Cache(Frame):
-#     """
-#     FrameもCacheもどちらも実ファイルを生成するdatumであり、
-#     違いはflowのjsonを書き換えるか書き換えないか（今の所）
-#     ということでFrameを継承したものにしてみた。
-#     """
-#     def __init__(self, parent_uuid, label, stream, creator=None):
-#         super().__init__(parent_uuid, label, stream, creator)
-
-#     def update_flow(self, modifier):
-#         from kskp.store import Flow
-#         if self.context.get('flow_uuid') is None:
-#             return
-#         flow = Flow.find_by_uuid(self.context.get('flow_uuid'))
-#         f = flow.flow_data
-#         self._update_node(f)
-#         Flow.update_data(flow.uuid, flow.label, f, modifier)
-
-#     def _update_node(self, flow_json):
-#         for node in flow_json['nodes']:
-#             if node['id'] == self.context.get('datum_id'):
-#                 node['uuid'] = self.uuid
-#                 node['cacheCreatedAt'] = datetime.now(timezone(timedelta(hours=+9), 'JST')).strftime('%Y-%m-%d %H:%M:%S')

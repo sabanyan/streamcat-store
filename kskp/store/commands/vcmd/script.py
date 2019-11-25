@@ -127,12 +127,10 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 import holoviews as hv
-import random
 
 from bokeh.plotting import figure
 from bokeh.resources import CDN
 from bokeh.embed import file_html,components
-
 from bokeh.layouts import gridplot, column
 from bokeh.models import HoverTool, Select, Legend, ColumnDataSource
 from bokeh.io import output_file, show
