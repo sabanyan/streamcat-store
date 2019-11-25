@@ -1420,7 +1420,7 @@ class RowRangeCommand(Command):
     def run(self, args, inputs):
         # 指定範囲の取得
         offset = int(args.get('offset')) if args.get('offset') else 0
-        limit = int(args.get('limit')) if args.get('limit') else 999999
+        limit = int(args.get('limit')) if args.get('limit') else 0
         offset_limit = offset + limit
        
         cmd = inputs['i'].content

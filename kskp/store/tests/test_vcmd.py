@@ -114,10 +114,8 @@ class VCmdTestCase(unittest.TestCase):
                 }
 			}
 		}
-        flow = Flow(None, 'CSV to HTML table', self.flow_csvtohtmltable,)
-        flow_link = FlowJsonLink(flow, FlowLinkContext(), vis_args=vis_args)
-        activity = execute(flow_link, {}, {})
-        result = self.convert_from_activity_vis(activity)['d1']
+        
+        result = self.exec_flow(vis_args)
 
         expected_result = {'header': ['customer', 'amount', 'date'], 
                            'reader': [['B', '3500', '20180112'], 
@@ -127,19 +125,74 @@ class VCmdTestCase(unittest.TestCase):
         self.assertDictEqual(result, expected_result)
         
     def test_csvtolinegraph(self):
-        pass
+        vis_args = 	{
+			"d1" : {
+                "args" : {
+                    "visualizer" : "csvtolinegraph",
+                    "offset" : 2,
+                    "limit"  : 2
+                }
+			}
+		}
+        result = self.exec_flow(vis_args)
+        self.assertIsInstance(result['div'], str)
+        self.assertIsInstance(result['script'], str)
 
     def test_csvtohistogram(self):
-        pass
+        vis_args = 	{
+			"d1" : {
+                "args" : {
+                    "visualizer" : "csvtohistogram",
+                    "offset" : 2,
+                    "limit"  : 2
+                }
+			}
+		}
+        result = self.exec_flow(vis_args)
+        self.assertIsInstance(result['div'], str)
+        self.assertIsInstance(result['script'], str)
 
     def test_csvtoscatter(self):
-        pass
+        vis_args = 	{
+			"d1" : {
+                "args" : {
+                    "visualizer" : "csvtoscatter",
+                    "offset" : 2,
+                    "limit"  : 2
+                }
+			}
+		}
+        result = self.exec_flow(vis_args)
+        self.assertIsInstance(result['div'], str)
+        self.assertIsInstance(result['script'], str)
 
     def test_csvtoboxplot(self):
-        pass
+        vis_args = 	{
+			"d1" : {
+                "args" : {
+                    "visualizer" : "csvtoboxplot",
+                    "offset" : 2,
+                    "limit"  : 2
+                }
+			}
+		}
+        result = self.exec_flow(vis_args)
+        self.assertIsInstance(result['div'], str)
+        self.assertIsInstance(result['script'], str)
 
     def test_csvtorepetitiviewaveform(self):
-        pass
+        vis_args = 	{
+			"d1" : {
+                "args" : {
+                    "visualizer" : "csvtorepetitiviewaveform",
+                    "offset" : 2,
+                    "limit"  : 2
+                }
+			}
+		}
+        result = self.exec_flow(vis_args)
+        self.assertIsInstance(result['div'], str)
+        self.assertIsInstance(result['script'], str)
 
     def convert_from_activity_vis(self, activity):
         """
@@ -147,3 +200,10 @@ class VCmdTestCase(unittest.TestCase):
         pointのidとvisのDictに置き換える
         """
         return {point.id : vis.result for point, vis in activity.result}
+
+    def exec_flow(self, vis_args):
+        flow = Flow(None, 'CSV to graph', self.flow_csvtohtmltable)
+        flow_link = FlowJsonLink(flow, FlowLinkContext(), vis_args=vis_args)
+        activity = execute(flow_link, {}, {})
+        result = self.convert_from_activity_vis(activity)['d1']
+        return result

@@ -6,7 +6,10 @@ import nysol.mcmd as nm
 from kskp.store import NysolModule, Datum, Store, Folder, Frame
 from kskp.core import Command, Port
 
-class SaverCommand(Command):
+class SCommand(Command):
+    pass
+
+class SaverCommand(SCommand):
     """
     指定されているstoreに出力するコマンド（テスト用）
     基本的にはlastsを保存するためにある
@@ -129,7 +132,7 @@ class CacheSaverCommand(SaverCommand):
 
 # 1つ保存のsaverはどうなる？
 # 普通なら、inputsできたものをargs情報を使って保存か
-class LoaderCommand(Command):
+class LoaderCommand(SCommand):
     """
     指定したstoreからデータを取ってくる（テスト用）
     """
@@ -146,11 +149,20 @@ class LoaderCommand(Command):
         folder = Folder.convert_to_folder(inputs['store'])
         if not folder.path_exists:
             raise Exception(f'ディレクトリ({folder.path})が存在しません')
-        cmd = folder.load_frame(args['uuid'])
+
+        # 指定したuuidのframeを取得する
+        frame_uuid = args['uuid']
+        frame = Frame.find_by_uuid(frame_uuid)
+        if frame is None:
+            raise Exception('No frame(%s) is found !' % frame_uuid)
+        path = Datum._to_abs_path(frame.path.as_posix())
+
+        cmd = nm.m2tee({'i':path})
+        # mreadで存在しないファイルパスを指定するとDockerごと落ちる ->　
+        # return nm.mread({'i':path})
         return {'o': NysolModule(cmd)}
 
-
-class DbLoaderCommand(Command):
+class DbLoaderCommand(SCommand):
     """
     指定したDBからデータを取得するLoaderコマンド
     """
@@ -291,13 +303,13 @@ class DbLoaderCommand(Command):
         DbLoaderCommand._write_log('DTOR!')
 
 
-class DbSaverCommand(Command):
+class DbSaverCommand(SCommand):
     """
     指定したDBへデータを格納するSaverコマンド
     """
     def __init__(self):
         super().__init__()
-        self.i_ports = [Port('i', 'frame'), Port('store', 'store')]
+        self.i_ports = [Port('i', 'frame'), Port('store', 'store'), Port('folder', 'store')]
         self.o_ports = [Port('o', 'mcmd'), Port('u', 'frame')]
         self._tmp_file_path = None
 
@@ -310,6 +322,12 @@ class DbSaverCommand(Command):
             raise Exception(f'DbSaverの入力にDatabase Store以外のデータ型({t})が入力されました')
         else:
             database = Database.convert_to_database(inputs['store'])
+
+        if inputs['folder'].type != Datum.FOLDER_TYPE:
+            t = type(inputs['folder'])
+            raise Exception(f'DbSaverの入力にFolder以外のデータ型({t})が入力されました')
+        else:
+            folder = Folder.convert_to_folder(inputs['folder'])
 
         # DB接続情報に漏れがないか確認し、漏れがあれば例外を送出する
         database.valid_or_raise()
@@ -358,6 +376,11 @@ class DbSaverCommand(Command):
         # Nysol Pythonのrunfunc関数を作成する
         cmd = inputs['i'].content
         cmd <<= nm.runfunc(bulk_inserter, database=database, schema_name=schema_name, table_name=table_name)
+
+        # 出力結果を取得するDataSourceをライブラリに登録する
+        # TODO: point_idどっからとってこよう
+        datasource = self._create_data_source(folder.uuid, database, 'point_id', schema_name, table_name, args['activity_uuid'])
+        datasource.save()
 
         # TODO: 'u'には意味のないDatumを返しているが、正しくはDBの結果を表すDatasourceを返したい
         return {'o': NysolModule(cmd), 'u': Datum.find_root()}  
@@ -508,9 +531,14 @@ class DbSaverCommand(Command):
             conn.commit()
 
     @staticmethod
-    def _save_as_data_source(database, label):
-        from kskp.store import Flow
-        pass
+    def _create_data_source(parent_uuid, database, label, schema_name, table_name, activity_uuid):
+        import uuid
+        from kskp.engine import Step
+        from kskp.store.commands import CommandLink
+        from kskp.store import DataSource
+        args = {'schema_name':schema_name, 'table_name':table_name, 'activity_uuid':activity_uuid}
+        loader_step = Step(str(uuid.uuid4()), CommandLink('db_loader').resolve(), args)
+        return DataSource(parent_uuid, label, database, loader_step)
 
     @staticmethod
     def _get_tmp_file_name():
@@ -535,7 +563,7 @@ class DbSaverCommand(Command):
             self._tmp_file_path.unlink()
 
 
-class RemoteFolderLoaderCommand(Command):
+class RemoteFolderLoaderCommand(SCommand):
     """
     指定したリモートフォルダからデータを取得するLoaderコマンド
     """
@@ -567,7 +595,7 @@ class RemoteFolderLoaderCommand(Command):
         # 以下工事中!!
         # 
 
-class RunsCommand(Command):
+class RunsCommand(SCommand):
     def __init__(self):
         super().__init__()
         self.i_ports = [Port('*', 'mcmd')]
@@ -598,7 +626,7 @@ class RunsCommand(Command):
 
 from kskp.store import Activity
 
-class ActivityCommand(Command):
+class ActivityCommand(SCommand):
     def __init__(self):
         super().__init__()
         self.i_ports = [Port('*', 'datum')]
