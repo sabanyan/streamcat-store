@@ -432,7 +432,7 @@ class DbSaverCommand(SCommand):
         elif dbms.upper() == 'ORACLE':
             column_defs = 'id_kskp NUMBER GENERATED ALWAYS AS IDENTITY, activity_uuid_kskp CHAR(36)'
             for column in csv_columns:
-                column_defs += f',"{column}" VARCHAR2(4000 BYTE)'
+                column_defs += f',"{column}" NVARCHAR2(4000 BYTE)'
         else:
             raise Exception('DBMS種別が判定できませんでした')
 

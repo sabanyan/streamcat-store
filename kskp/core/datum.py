@@ -51,6 +51,9 @@ class Datum(BaseModel):
     created_at  = Column(TIMESTAMP, default=text('statement_timestamp()'))
     modified_at = Column(TIMESTAMP, default=text('statement_timestamp()'), onupdate=text('statement_timestamp()'))
 
+    # conver_to_xxx()によるキャスト処理で余分にSQLを発行しないためにparent_uuidを保持する
+    parent_uuid = None
+
     def __init__(self, parent_uuid, datum_type, label, creator=None):
         """
         コンストラクタ
@@ -67,7 +70,9 @@ class Datum(BaseModel):
                 raise Exception('No parent folder is found!')
             else:
                 self.parent_id = parent.id
-                self.parent_uuid = parent_uuid
+                # self.parent_uuid = parent_uuid
+
+        self.parent_uuid = parent_uuid
 
         # UUIDを採番する
         self.uuid = str(uuid.uuid4())

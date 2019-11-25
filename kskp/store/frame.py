@@ -339,81 +339,81 @@ class Frame(Datum):
     #     return result
 
 
-    # def load_as_data_frame(self, offset, limit):
-    #     """
-    #     CSVの文字列を受け取り、
-    #     いわゆるデータフレームの形式にして返す
-    #     TODO: offsetはつかってない
-    #     """
-    #     result_text = ''
-    #     result_data = {}
-    #     column_list = []
-    #     abs_path = Path(Datum._to_abs_path(self._path))
-    #     with abs_path.open(encoding='utf-8') as f:
-    #         n = 0
-    #         limit_count = 0
+    def load_as_data_frame(self, offset, limit):
+        """
+        CSVの文字列を受け取り、
+        いわゆるデータフレームの形式にして返す
+        TODO: offsetはつかってない
+        """
+        result_text = ''
+        result_data = {}
+        column_list = []
+        abs_path = Path(Datum._to_abs_path(self._path))
+        with abs_path.open(encoding='utf-8') as f:
+            n = 0
+            limit_count = 0
 
-    #         for line in f:
-    #             if limit is not None and limit_count == limit:
-    #                 break
+            for line in f:
+                if limit is not None and limit_count == limit:
+                    break
 
-    #             if n == 0:
-    #                 # 一行目はヘッダとみなす
-    #                 # 重複文字があればインデックスをつける
-    #                 column_list = Frame._replace_column_name(line.split(','))
-    #                 for column_name in column_list:
-    #                     result_data[column_name] = []
-    #             else:
-    #                 if offset < n:
-    #                     for idx, column_data in enumerate(line.split(',')):
-    #                         result_data[column_list[idx]].append(column_data)
-    #                     limit_count += 1
-    #             n += 1
+                if n == 0:
+                    # 一行目はヘッダとみなす
+                    # 重複文字があればインデックスをつける
+                    column_list = Frame._replace_column_name(line.split(','))
+                    for column_name in column_list:
+                        result_data[column_name] = []
+                else:
+                    if offset < n:
+                        for idx, column_data in enumerate(line.split(',')):
+                            result_data[column_list[idx]].append(column_data)
+                        limit_count += 1
+                n += 1
 
-    #     if n == 0:
-    #         raise Exception('空のCSVを読み込みました。コマンド実行時にエラーが発生した可能性があります。')
+        if n == 0:
+            raise Exception('空のCSVを読み込みました。コマンド実行時にエラーが発生した可能性があります。')
 
-    #     result_len = n
+        result_len = n
 
-    #     # 行数も返すように変更
-    #     return result_data, result_len
+        # 行数も返すように変更
+        return result_data, result_len
 
-    # @staticmethod
-    # def _replace_column_name(column_list):
-    #     """
-    #     受け取ったカラム名リストに重複している列名があれば
-    #     連番をつける
-    #     """
-    #     def check_column_overlap(column_list):
-    #         """
-    #         受け取ったカラム名リストを走査する
-    #         """
-    #         index_dict = {}
-    #         column_name_overlap = False
+    @staticmethod
+    def _replace_column_name(column_list):
+        """
+        受け取ったカラム名リストに重複している列名があれば
+        連番をつける
+        """
+        def check_column_overlap(column_list):
+            """
+            受け取ったカラム名リストを走査する
+            """
+            index_dict = {}
+            column_name_overlap = False
 
-    #         for index, column_name in enumerate(column_list):
-    #             if not column_name in index_dict:
-    #                 index_dict[column_name] = []
-    #             else:
-    #                 column_name_overlap = True
-    #             index_dict[column_name].append((index, len(index_dict[column_name])))
+            for index, column_name in enumerate(column_list):
+                if not column_name in index_dict:
+                    index_dict[column_name] = []
+                else:
+                    column_name_overlap = True
+                index_dict[column_name].append((index, len(index_dict[column_name])))
 
-    #         return index_dict, column_name_overlap
+            return index_dict, column_name_overlap
 
-    #     index_dict, column_name_overlap = check_column_overlap(column_list)
+        index_dict, column_name_overlap = check_column_overlap(column_list)
 
-    #     if not column_name_overlap:
-    #         return column_list
+        if not column_name_overlap:
+            return column_list
 
-    #     for column_name, tuple_list in index_dict.items():
-    #         if len(tuple_list) < 2:
-    #             continue
+        for column_name, tuple_list in index_dict.items():
+            if len(tuple_list) < 2:
+                continue
 
-    #         for tuple in tuple_list:
-    #             # tuple[0]　インデックス（column_listの）
-    #             # tuple[1]　連番
-    #             if tuple[1] > 0:
-    #                 column_list[tuple[0]] = column_name + '.' + str(tuple[1])
+            for tuple in tuple_list:
+                # tuple[0]　インデックス（column_listの）
+                # tuple[1]　連番
+                if tuple[1] > 0:
+                    column_list[tuple[0]] = column_name + '.' + str(tuple[1])
 
-    #     return column_list
+        return column_list
 

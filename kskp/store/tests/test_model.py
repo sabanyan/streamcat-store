@@ -6,7 +6,7 @@ import pprint
 from pathlib import Path
 from datetime import datetime
 
-from kskp.store import Library, STORE_DIR
+from kskp.store import Library, Flow, STORE_DIR
 
 class LibraryTest(unittest.TestCase):
     # テスト用ユーザID
@@ -538,7 +538,7 @@ class LibraryTest(unittest.TestCase):
             'createdAt': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         }
         # 作成したフローを変更する
-        updated_flow = Library.update_flow_data(flow.uuid, '新しいフロー', new_flow_data, self.USER_ID2)
+        updated_flow = Flow.update_data(flow.uuid, '新しいフロー', new_flow_data, self.USER_ID2)
 
         # ラベルとディレクトリパスのみが変更されることを検証する
         self.assertEqual(updated_flow.id, flow.id)

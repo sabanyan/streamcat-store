@@ -84,8 +84,7 @@ class Flow(Datum):
 
     @staticmethod
     def convert_to_flow(datum):
-        parent_uuid = Datum.get_uuid_by_id(datum.parent_id)
-        # label = json.loads(datum.data, encoding='utf-8')['label']
+        parent_uuid = datum.parent_uuid or Datum.get_uuid_by_id(datum.parent_id)
         flow_data = datum.data2['flow']
         flow = Flow(parent_uuid, datum.label, flow_data, datum.creator)
         flow.id = datum.id
@@ -167,7 +166,6 @@ class Flow(Datum):
         for flow_uuid in flow.get_sub_flow_uuids():
             if not Flow.exists(flow_uuid):
                 raise Exception(f'フロー({flow_uuid})がライブラリにありません')
-
 
         try:
             # レコードを更新する
