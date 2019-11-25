@@ -80,8 +80,8 @@ if _is_unittest():
 from sqlalchemy.ext.declarative import declarative_base
 BaseModel = declarative_base()
 # セッションをつくる
-from sqlalchemy.orm import sessionmaker
-Session = sessionmaker(bind=engine)
+from sqlalchemy.orm import sessionmaker, scoped_session
+Session = scoped_session(sessionmaker(bind=engine))
 # 変数名がsessionだとwebでimportした時にflaskのsessionと被るので、一応ssにしている
 ss = Session()
 
@@ -133,7 +133,7 @@ def receive_after_create(target, connection, tables, **kw):
     if tables:
         # tables were created.
         create_d_view()
-        
+
 def create_d_view():
     """
     データの一覧を表示するVIEWを作成する
