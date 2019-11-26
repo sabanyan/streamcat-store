@@ -6,7 +6,7 @@ import pprint
 from pathlib import Path
 from datetime import datetime
 
-from kskp.store import Library, STORE_DIR
+from kskp.store import Library, STORE_DIR, Flow
 from kskp.engine import execute, FlowJsonLink, FlowLinkContext
 
 class CommandTest(unittest.TestCase):
@@ -106,7 +106,8 @@ class CommandTest(unittest.TestCase):
         """
         DBローダーコマンドが正しくデータを取得できること
         """
-        flow_link = FlowJsonLink(self.flow_data['label'], self.flow_data, FlowLinkContext())
+        flow = Flow(None, self.flow_data['label'], self.flow_data)
+        flow_link = FlowJsonLink(flow, FlowLinkContext())
         lasts = execute(flow_link, {}, {})
 
         correct = {'d': [['1', 'a   ', 'b', '1900-12-31', '1900-12-31 01:01:01.123456', '1:10:00']]}
@@ -172,7 +173,8 @@ class CommandTest(unittest.TestCase):
         """
         DBに接続できない場合は例外を送出すること
         """
-        flow_link = FlowJsonLink(self.flow_data2['label'], self.flow_data2, FlowLinkContext())
+        flow = Flow(None, self.flow_data2['label'], self.flow_data2)
+        flow_link = FlowJsonLink(flow, FlowLinkContext())
 
         from sqlalchemy import exc
         with self.assertRaises(exc.OperationalError):

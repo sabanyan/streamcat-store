@@ -2,7 +2,7 @@ import os
 import io
 import json
 import unittest
-from kskp.store import Flow
+from kskp.store import Library, Flow
 from kskp.engine import execute, FlowJsonLink, FlowLinkContext
 
 
@@ -20,7 +20,7 @@ class VCmdTestCase(unittest.TestCase):
         from kskp.core import Datum
         from kskp.store import Frame
         # ルートフォルダを取得する
-        root = Datum.find_root()
+        root = Library.load_root()
         # テスト用データを作成する
         test_data  = b'customer,date,amount' + b'\n'
         test_data += b'A,20180101,5200' + b'\n'

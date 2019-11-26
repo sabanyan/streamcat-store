@@ -18,8 +18,6 @@ class SaverCommand(SCommand):
         super().__init__()
         self.i_ports = [Port('i', 'frame'), Port('store', 'store')]
         self.o_ports = [Port('o', 'mcmd'), Port('u', 'frame')]
-        self.frame = None
-        self.start_time = None
 
     def run(self, args, inputs):
         # Frameを作成する
@@ -27,26 +25,26 @@ class SaverCommand(SCommand):
         flow_label = args['flow_label']
         point = args['point']
         point_label = point.label if point.label is not None else point.id
-        self.start_time = args['start_time']
+        start_time = args['start_time']
 
         # UTC日時はここで現地時間(環境変数TZの値)に設定される
-        start_time = self.start_time.astimezone()
+        start_time = start_time.astimezone()
         start_time_str1 = start_time.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
         start_time_str2 = start_time.strftime('%Y%m%d.%H%M%S.%f')[:-3]
         folder = self.make_folder(store, flow_label, start_time_str1, start_time_str2)
-        self.frame = self.make_frame(folder, point_label + '.csv')
+        frame = self.make_frame(folder, point_label + '.csv')
         # ラベル名とファイル名はコンストラクタで別々に指定できるようにすれば
         # 改めてupdate_label_only()を行う必要はなくなる
         # もしくは、実行ログ一覧画面さえできれば別々に指定する必要もなくなるか？
-        Frame.update_label_only(self.frame.uuid, point_label, None)
+        Frame.update_label_only(frame.uuid, point_label, None)
 
         # NYSOLコマンドを作成する
         # if not isinstance(inputs['i'], NysolModule):
         #     raise Exception(f"Illegal type : {type(inputs['i'])}")
         cmd = inputs['i'].content
-        cmd = self.append_writecsv_cmd(cmd, self.frame.path)
+        cmd = self.append_writecsv_cmd(cmd, frame.path)
  
-        return {'o': NysolModule(cmd), 'u': self.frame}
+        return {'o': NysolModule(cmd), 'u': frame}
 
     def append_writecsv_cmd(self, cmd, frame_path):
         abs_frame_path = Datum._to_abs_path(frame_path.as_posix())
@@ -84,10 +82,10 @@ class SaverCommand(SCommand):
     def make_frame(self, store, label):
         import io
         f = io.BytesIO(b'')
-        self.frame = Frame(store.uuid, label, f)
+        frame = Frame(store.uuid, label, f)
         # RunsCommandの実行前にFrameを登録する
-        self.frame.save()
-        return self.frame
+        frame.save()
+        return frame
 
 class CacheSaverCommand(SaverCommand):
     """
@@ -102,10 +100,10 @@ class CacheSaverCommand(SaverCommand):
         flow_label = args['flow_label']
         point = args['point']
         point_label = point.label if point.label is not None else point.id
-        self.start_time = args['start_time']
+        start_time = args['start_time']
 
         # UTC日時はここで現地時間(環境変数TZの値)に設定される
-        start_time = self.start_time.astimezone()
+        start_time = start_time.astimezone()
         start_time_str = start_time.strftime('%Y%m%d.%H%M%S.%f')[:-3]
         
         # ラベル名を作成する
@@ -303,7 +301,7 @@ class DbLoaderCommand(SCommand):
         DbLoaderCommand._write_log('DTOR!')
 
 
-class DbSaverCommand(SCommand):
+class DbSaverCommand(SaverCommand):
     """
     指定したDBへデータを格納するSaverコマンド
     """
@@ -377,13 +375,20 @@ class DbSaverCommand(SCommand):
         cmd = inputs['i'].content
         cmd <<= nm.runfunc(bulk_inserter, database=database, schema_name=schema_name, table_name=table_name)
 
+        # DataSourceを保存するフォルダを用意する
+        flow_label = args['flow_label']
+        start_time = args['start_time']
+        start_time_str1 = start_time.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
+        start_time_str2 = start_time.strftime('%Y%m%d.%H%M%S.%f')[:-3]
+        result_folder = self.make_folder(folder, flow_label, start_time_str1, start_time_str2)
+
         # 出力結果を取得するDataSourceをライブラリに登録する
         # TODO: point_idどっからとってこよう
-        datasource = self._create_data_source(folder.uuid, database, 'point_id', schema_name, table_name, args['activity_uuid'])
+        datasource = self._create_data_source(result_folder.uuid, database, 'point_id', schema_name, table_name, args['activity_uuid'])
         datasource.save()
 
         # TODO: 'u'には意味のないDatumを返しているが、正しくはDBの結果を表すDatasourceを返したい
-        return {'o': NysolModule(cmd), 'u': Datum.find_root()}  
+        return {'o': NysolModule(cmd), 'u': datasource}  
         
     @staticmethod
     def _connect_to_db(db_uri):
@@ -591,9 +596,14 @@ class RemoteFolderLoaderCommand(SCommand):
             raise Exception('リモートフォルダ接続の取得元ファイル名が必要です')
         file_path = args['file_path']
 
-        # 
-        # 以下工事中!!
-        # 
+        # マウントされていなければマウントする
+        if not folder.is_mount():
+            folder.remount()
+
+        cmd = nm.m2tee({'i':file_path})
+        # mreadで存在しないファイルパスを指定するとDockerごと落ちる ->　
+        # return nm.mread({'i':path})
+        return {'o': NysolModule(cmd)}
 
 class RunsCommand(SCommand):
     def __init__(self):

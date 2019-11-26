@@ -356,6 +356,7 @@ class Datum(BaseModel):
         sql = """
         select uuid from data
         where type='flow'
+          and uuid<>'{datum_uuid}'
           and to_tsvector(data) @@ to_tsquery('{datum_uuid}')
         """.format(datum_uuid=str(datum_uuid))
         # SQLを発行する
