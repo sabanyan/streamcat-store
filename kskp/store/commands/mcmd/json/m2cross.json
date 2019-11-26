@@ -8,19 +8,23 @@
     },
     {
       "name": "group2",
-      "label": "グループ内のソートの設定（省略可)",
-      "params": ["s"]
+      "label": "項目名の設定 (必須)",
+      "params": ["f"]
+    },
+    {
+      "name": "group3",
+      "label": "列から行ラベルへ展開する場合の設定",
+      "params": ["a"]
     },
     {
       "name": "group5",
-      "label": "〇〇の設定 (必須)",
-      "params": ["v", "a","f"]
+      "label": "行から列ラベルへ展開する場合の設定",
+      "params": ["s"]
     },
-
     {
       "name": "group10",
       "label": "その他 (省略可)",
-      "params": ["q"]
+      "params": ["q","v"]
     },
     {
       "name": "group15",
@@ -97,21 +101,6 @@
   },
   "params": [
     {
-      "name": "f",
-      "type": "string",
-      "label": "組み合わせ列名(必須)"
-    },
-    {
-      "name": "s",
-      "type": "string",
-      "label": "列項目名に展開する列(aとどちらか必須)"
-    },
-    {
-      "name": "a",
-      "type": "string",
-      "label": "２項目指定(sとどちらか必須)"
-    },
-    {
       "name": "k",
       "type": "string",
       "label": "グループ化する項目名",
@@ -119,9 +108,28 @@
       "optional": true
     },
     {
+      "name": "f",
+      "type": "string",
+      "label": "対象とする項目名 (必須)",
+      "description": "●列から行ラベルへ展開する場合 【列ラベルの項目名】を指定\n  コンマ区切りで複数列の指定が可能\n    項目名時:*,？ 使用可    項目番号時:0−3,5,0L 等使用可\n●行から列ラベルへ展開する場合  【値の項目名】を指定\n    １項目のみ指定可能"
+    },
+    {
+      "name": "a",
+      "type": "string",
+      "label": "行ラベルと値を格納する項目名",
+      "description": "●列から行ラベルへ展開する場合は、【行ラベルの項目名】、【値の項目名】を指定\n  カンマ区切りで、上記の順序で指定する  例：fld,val\n●行から列ラベルへ展開する場合は、【設定しない】"
+    },
+    {
+      "name": "s",
+      "type": "string",
+      "label": "行から列ラベルへ展開する項目名",
+      "description": "●列から行ラベルへ展開する場合は、【設定しない】\n●行から列ラベルへ展開する場合は、【行ラベルの項目名】を設定\n  １項目のみ指定可能\n●列ラベルの順序指定が可能\n   表記：【末尾に付与】無しは文字列の昇順、%nは数値の昇順、%rは文字列の降順、%nrは数値の降順\n【注意】グループ単位で値の重複がある列を指定した場合、任意の値が出力されます"
+    },
+    {
       "name": "v",
       "type": "string",
       "label": "NULL値置換文字列",
+      "description":"展開処理で発生したNull値を、別の値で置換する場合に指定",
       "optional": true
     },
     {
@@ -195,8 +203,8 @@
     ]
   ],
   "version": "0.7.0",
-  "label": "1対Nのクロス集計",
+  "label": "1対Nのクロス集計 (展開)",
   "classification": "value_crossing",
-  "description": "行から列へ、もしくは列から行への展開のどちらかを行う",
+  "description": "行ラベルを列ラベルへ\nまたは、列ラベルを行へ展開する",
   "url": "./static/pdf/mcmd/value_crossing/m2cross.pdf"
 }
