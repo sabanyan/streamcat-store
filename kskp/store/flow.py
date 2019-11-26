@@ -157,15 +157,17 @@ class Flow(Datum):
         data = {'label' : new_label, 'flow' : flow_data}
         flow.data = data
 
-        # 参照するフレームがライブラリに存在することを確認する
-        for frame_uuid in flow.get_src_frame_uuids():
-            if not Frame.exists(frame_uuid):
-                raise Exception(f'フレーム({frame_uuid})がライブラリにありません')
+        # フローのインポート処理で引っかかるので以下のチェックを一旦外す
+        # 
+        # # 参照するフレームがライブラリに存在することを確認する
+        # for frame_uuid in flow.get_src_frame_uuids():
+        #     if not Frame.exists(frame_uuid):
+        #         raise Exception(f'フレーム({frame_uuid})がライブラリにありません')
 
-        # 参照するサブフローがライブラリに存在することを確認する
-        for flow_uuid in flow.get_sub_flow_uuids():
-            if not Flow.exists(flow_uuid):
-                raise Exception(f'フロー({flow_uuid})がライブラリにありません')
+        # # 参照するサブフローがライブラリに存在することを確認する
+        # for flow_uuid in flow.get_sub_flow_uuids():
+        #     if not Flow.exists(flow_uuid):
+        #         raise Exception(f'フロー({flow_uuid})がライブラリにありません')
 
         try:
             # レコードを更新する
