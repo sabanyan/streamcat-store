@@ -133,21 +133,34 @@ class CsvToLineGraphCommand(VisualizersBokehPlot):
         """
         ビジュアライズを描画、保存する。
         """
-        # offset対応
+        # 軸の設定
+        x_axis          = args.get('x_axis')
+        x_axis_column   = x_axis[0]['column']
+        x_axis_label    = x_axis[0]['label']
+
+        y_axis          = args.get('y_axis')
+        y_axis_column   = y_axis[0]['column']
+        y_axis_label    = y_axis[0]['label']
+
+        # データ系列の設定
+        data_column     = args.get('data_column')   if args.get('data_column') is not None else []
+
+        # データ表示範囲の設定
+        offset          = int(args.get('offset'))   if args.get('offset')   else 0
+        limit           = int(args.get('limit'))    if args.get('limit')    else None
+
+        # グラフサイズの設定
+        graph_width     = int(args.get('width'))
+        graph_height    = int(args.get('height'))
+        
+
+        # 1. frame_uuidでframeを探す。
         frame = Library.load_frame(inputs.get('i'))
-        offset = int(args.get('offset')) if args.get('offset') else 0
-        limit = int(args.get('limit')) if args.get('limit') else None
 
-        # key
-        keys = args.get('data_column') if args.get('data_column') is not None else []
-
-
-        # dfの作成
+        # 2. pandasnのdataframe作成
         # TODO:愚直にdfを加工しており、高速化・メモリ管理等の工夫は何もしていない
-        time_series_column = args.get('time_series_column') if args.get('time_series_column') else False
-        # df = pd.read_csv(file_path, parse_dates=[time_series_column], nrows=limit, skiprows=range(1, offset))
-        df = frame.get_dataframe(limit, offset, [time_series_column])
-        df[keys] = df[keys].astype(str)
+        df = frame.get_dataframe(limit, offset, [x_axis_column])
+        df[data_column] = df[data_column].astype(str)
 
         # ここstartがdfの最大行数を越えるとエラーが出る
         # if len(df) < start:
@@ -155,21 +168,21 @@ class CsvToLineGraphCommand(VisualizersBokehPlot):
             # pass
         hv.extension('bokeh')
 
-      
-        if len(keys) > 0:
-            results = self.direct_product_by_keys(df, keys)
+        if len(data_column) > 0:
+            results = self.direct_product_by_keys(df, data_column)
             named_dfs = self.process_df(df, results)
         else:
             named_dfs = {}
             named_dfs['all'] = df
 
+        # 3. 折れ線の作成
         line_list = {}
         for label, df in named_dfs.items():
-            line_list[label] = hv.Curve(df, args.get('time_series_column'), args.get('y_axis_column')).opts(width=1040, height=600)
+            line_list[label] = hv.Curve(df, x_axis_column, y_axis_column).opts(width=1040, height=600)
 
         ndoverlay = hv.NdOverlay(line_list).opts(legend_position='top',
-                                                 width=int(args.get('x_size')), height=int(args.get('y_size')),
-                                                 xlabel=args.get('x_label'), ylabel=args.get('y_label'))
+                                                 width=graph_width, height=graph_height,
+                                                 xlabel=x_axis_label, ylabel=y_axis_label)
 
         renderer = hv.renderer('bokeh')
         plot = renderer.get_plot(ndoverlay).state
