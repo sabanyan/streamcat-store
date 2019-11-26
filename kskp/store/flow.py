@@ -178,7 +178,8 @@ class Flow(Datum):
         finally:
             session.commit()
 
-        return flow
+        # ここでflowを返すとtest_model.pyでテストが通らない
+        return Flow.convert_to_flow(datum)
 
     def move(self, parent_uuid, modifier):
         """

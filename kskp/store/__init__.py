@@ -80,6 +80,7 @@ if _is_unittest():
 from sqlalchemy.ext.declarative import declarative_base
 BaseModel = declarative_base()
 # セッションをつくる
+# scoped_sessionでラップすることで、Session()を何回実行しても同一のSessionが返される
 from sqlalchemy.orm import sessionmaker, scoped_session
 Session = scoped_session(sessionmaker(bind=engine))
 # 変数名がsessionだとwebでimportした時にflaskのsessionと被るので、一応ssにしている
