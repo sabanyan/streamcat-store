@@ -7,14 +7,14 @@
       "params": ["k"]
     },
     {
-      "name": "group5",
-      "label": "行展開の設定 (必須)",
-      "params": ["f","a"]
+      "name": "group2",
+      "label": "列ラベルを行ラベルへ移動する設定 (必須)",
+      "params": ["s"]
     },
     {
-      "name": "group2",
-      "label": "列展開の設定（必須)",
-      "params": ["s"]
+      "name": "group5",
+      "label": "行ラベルを列ラベルへ移動する設定 (必須)",
+      "params": ["f","a"]
     },
     {
       "name": "group10",
@@ -98,37 +98,38 @@
   },
   "params": [
     {
+      "name": "k",
+      "type": "string",
+      "label": "グループ化する項目名",
+      "description": "カンマ区切りで複数指定可",
+      "optional": true
+    },
+    {
       "name": "f",
       "type": "string",
-      "label": "列名を値に展開する項目名 (必須)",
-      "description": "●指定した項目名を値に持つ列が追加される\n●カンマ区切りで複数指定可"
+      "label": "列ラベルから行へ移動する項目名(必須)",
+      "description": "指定した列名を値に持つ列が追加される\nカンマ区切りで複数指定可\n 項目名時:*,？ 使用可    項目番号時:0−3,5,0L 等使用可"
     },
     {
       "name": "a",
       "type": "string",
-      "label": "項目名列の名前(省略可)",
-      "description":"●省略時は fld ",
+      "label": "列ラベルから行へ移動したラベルを格納する項目名(省略可）",
+      "description":"必要な場合には指定が可能 【省略時は fld】",
+      "default": "fld",
       "optional": true
     },
     {
       "name": "s",
       "type": "string",
-      "label": "値を列名に展開する項目名 (必須)",
-      "description": "●ここで指定した列の値を、項目として展開する\n●複数列指定は不可",
-      "optional": true
-    },
-    {
-      "name": "k",
-      "type": "string",
-      "label": "グループ化する項目名",
-      "description": "●カンマ区切りで複数指定可",
+      "label": "行から列ラベルへ移動する項目名",
+      "description": "●１項目のみ指定可能\n●列ラベルの順序指定が可能\n   表記：【末尾に付与】無しは文字列の昇順、%nは数値の昇順、%rは文字列の降順、%nrは数値の降順\n【注意】グループ単位で値の重複がある列を指定した場合、任意の値が出力されます",
       "optional": true
     },
     {
       "name": "v",
       "type": "string",
       "label": "Null値置換文字列",
-      "description": "元データに対応する値がない場合はNullとして出力されるNull値以外の値で置換したい場合には指定が可能",
+      "description": "入れ換え処理で発生したNull値を、別の値で置換する場合に指定",
       "optional": true
     },
     {
@@ -202,8 +203,8 @@
     ]
   ],
   "version": "0.7.0",
-  "label": "クロス集計",
+  "label": "クロス集計 (入れ換え)",
   "classification": "value_crossing",
-  "description": "行から列へと、列から行への展開を同時に行う",
+  "description": "行のラベルと列のラベルを入れ替える",
   "url": "./static/pdf/mcmd/value_crossing/mcross.pdf"
 }
