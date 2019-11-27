@@ -199,38 +199,58 @@ class CsvToHistogramCommand(VisualizersBokehPlot):
         plotのヒストグラムを作成する
         """
 
-        # offset対応
-        offset = int(args.get('offset')) if args.get('offset') else 0
-        limit = int(args.get('limit')) if args.get('limit') else None
+        # 軸の設定
+        x_axis          = args.get('x_axis')
+        x_axis_column   = x_axis[0]['column']
+        x_axis_label    = x_axis[0]['label']
 
+        # 縦軸列：頻度
+        y_axis_label    = ""
+
+        # データ系列の設定
+        data_column     = args.get('data_column')   if args.get('data_column') is not None else []
+
+        # データ表示範囲の設定
+        offset          = int(args.get('offset'))   if args.get('offset')   else 0
+        limit           = int(args.get('limit'))    if args.get('limit')    else None
+
+        # グラフ表示要素の設定
+        bins            = int(args.get('bins'))   if args.get('bins') else None
+        
+        # グラフサイズの設定
+        graph_width     = int(args.get('width'))
+        graph_height    = int(args.get('height'))
+        
+        # 1. frame_uuidでframeを探す。
         frame = Library.load_frame(inputs.get('i'))
-        # key
-        keys = args.get('data_column') if args.get('data_column') is not None else []
 
-        # df = pd.read_csv(file_path, nrows=limit, skiprows=range(1, offset))
+        # 2. pandasnのdataframe作成
+        # TODO:愚直にdfを加工しており、高速化・メモリ管理等の工夫は何もしていない
         df = frame.get_dataframe(limit, offset)
-        df[keys] = df[keys].astype(str)
+        df[data_column] = df[data_column].astype(str)
 
         # ここstartがdfの最大行数を越えるとエラーが出る
         # if len(df) < start:
             # なんかする
             # pass
+        hv.extension('bokeh')
 
-        if len(keys) > 0:
-            results = self.direct_product_by_keys(df, keys)
+        if len(data_column) > 0:
+            results = self.direct_product_by_keys(df, data_column)
             named_dfs = self.process_df(df, results)
         else:
             named_dfs = {}
             named_dfs['all'] = df
 
+        # 3. ヒストグラムの作成3
         hist_list = {}
         for label, df in named_dfs.items():
-            hist, edges = np.histogram(df[args.get('x_axis')].tolist(), bins=args.get('bins'))
+            hist, edges = np.histogram(df[x_axis_column].tolist(), bins=bins)
             hist_list[label] = hv.Histogram((edges, hist)).opts(muted_alpha=0.1)
 
         ndoverlay = hv.NdOverlay(hist_list).opts(legend_position='top',
-                                                 width=int(args.get('x_size')), height=int(args.get('y_size')),
-                                                 xlabel=args.get('x_label'), ylabel=args.get('y_label'))
+                                                 width=graph_width, height=graph_height,
+                                                 xlabel=x_axis_label, ylabel=y_axis_label)
 
         renderer = hv.renderer('bokeh')
         plot = renderer.get_plot(ndoverlay).state
