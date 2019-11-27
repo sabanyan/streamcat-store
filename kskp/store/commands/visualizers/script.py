@@ -266,42 +266,57 @@ class CsvToScatterCommand(VisualizersBokehPlot):
         csvのファイルパスから、
         plotの散布図を作成する
         """
-        # offset対応
-        offset = int(args.get('offset')) if args.get('offset') else 0
-        limit = int(args.get('limit')) if args.get('limit') else None
+        
+        # 軸の設定
+        x_axis          = args.get('x_axis')
+        x_axis_column   = x_axis[0]['column']
+        x_axis_label    = x_axis[0]['label']
 
+        y_axis          = args.get('y_axis')
+        y_axis_column   = y_axis[0]['column']
+        y_axis_label    = y_axis[0]['label']
+
+        # データ系列の設定
+        data_column     = args.get('data_column')   if args.get('data_column') is not None else []
+
+        # データ表示範囲の設定
+        offset          = int(args.get('offset'))   if args.get('offset')   else 0
+        limit           = int(args.get('limit'))    if args.get('limit')    else None
+
+        # グラフ表示要素の設定
+        withoutContourLine  = args.get('withoutContourLine') if args.get('withoutContourLine') else False
+        
+        # グラフサイズの設定
+        graph_width     = int(args.get('width'))
+        graph_height    = int(args.get('height'))
+
+        # 1. frame_uuidでframeを探す。
         frame = Library.load_frame(inputs.get('i'))
-        # df = pd.read_csv(file_path, nrows=limit, skiprows=range(1, offset))
+
+        # 2. pandasnのdataframe作成
+        # TODO:愚直にdfを加工しており、高速化・メモリ管理等の工夫は何もしていない
         df = frame.get_dataframe(limit, offset)
-
-        # ブロック句
-        if not frame.file_exists:
-            return ''
-
-        # ここstartがdfの最大行数を越えるとエラーが出る
-        # if len(df) < start:
-            # なんかする
-            # pass
-
-                # key
-        keys = args.get('data_column') if args.get('data_column') is not None else []
-
-        if len(keys) > 0:
-            results = self.direct_product_by_keys(df, keys)
+        
+        hv.extension('bokeh')
+        
+        if len(data_column) > 0:
+            results = self.direct_product_by_keys(df, data_column)
             named_dfs = self.process_df(df, results)
         else:
             named_dfs = {}
             named_dfs['all'] = df
-
+        
+        # 3. 散布図の作成
         scatter_list = {}
         for label, _df in named_dfs.items():
-            scatter_list[label] = hv.Scatter(_df, args.get('x_axis'), vdims=[args.get('y_axis')]).opts(muted_alpha=0.1)
+            scatter_list[label] = hv.Scatter(_df, x_axis_column, vdims=[y_axis_column]).opts(muted_alpha=0.1)
 
         ndoverlay = hv.NdOverlay(scatter_list).opts(legend_position='top',
-                                                 width=int(args.get('x_size')), height=int(args.get('y_size')),
-                                                 xlabel=args.get('x_label'), ylabel=args.get('y_label'))
-        if not args.get('b'):
-            b = hv.Bivariate(df[[args.get('x_axis'), args.get('y_axis')]]).opts(show_legend=False, bandwidth=0.5, axiswise=True, line_width=2, colorbar=True)
+                                                 width=int(graph_width), height=int(graph_height),
+                                                 xlabel=x_axis_label, ylabel=y_axis_label)
+
+        if not withoutContourLine:
+            b = hv.Bivariate(df[[x_axis_column, y_axis_column]]).opts(show_legend=False, bandwidth=0.5, axiswise=True, line_width=2, colorbar=True)
             ndoverlay = ndoverlay * b
 
         renderer = hv.renderer('bokeh')
@@ -341,7 +356,7 @@ class CsvToBoxplotCommand(VisualizersBokehPlot):
 
         graph_title     = ""
 
-         # 1. frame_uuidでframeを探す。
+        # 1. frame_uuidでframeを探す。
         frame = Library.load_frame(inputs.get('i'))
 
         # 2. pandasnのdataframe作成
