@@ -35,7 +35,7 @@
           "label" :"横軸名"
         }
       ],
-      "default":[{"column":"", "label":""}],
+      "default":[{"column":null, "label":""}],
       "options":{
         "visiable_button_add"  : false,
         "visiable_button_delete": false,
@@ -57,7 +57,7 @@
           "label" :"縦軸名"
         }
       ],
-      "default":[{"column":"", "label":""}],
+      "default":[{"column":null, "label":""}],
       "options":{
         "visiable_button_add"  : false,
         "visiable_button_delete": false,
