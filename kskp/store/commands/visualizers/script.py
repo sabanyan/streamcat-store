@@ -318,28 +318,40 @@ class CsvToBoxplotCommand(VisualizersBokehPlot):
         csvのファイルパスから、
         plotの箱ひげ図を作成する
         """
-        offset = int(args.get('offset')) if args.get('offset') else 0
-        limit = int(args.get('limit')) if args.get('limit') else None
+        # 縦軸列：観測値
+        y_axis          = args.get('y_axis')
+        y_axis_column   = y_axis[0]['column']
+        y_axis_label    = y_axis[0]['label']
 
+        x_axis_label    = ""
+
+        # データ系列の設定
+        data_column     = args.get('data_column')   if args.get('data_column') is not None else []
+
+        # データ表示範囲の設定
+        offset          = int(args.get('offset'))   if args.get('offset')   else 0
+        limit           = int(args.get('limit'))    if args.get('limit')    else None
+
+        # グラフ表示要素の設定
+        bins            = int(args.get('bins'))   if args.get('bins') else None
+        
+        # グラフサイズの設定
+        graph_width     = int(args.get('width'))
+        graph_height    = int(args.get('height'))
+
+        graph_title     = ""
+
+         # 1. frame_uuidでframeを探す。
         frame = Library.load_frame(inputs.get('i'))
-        # df = pd.read_csv(file_path, nrows=limit, skiprows=range(1, offset))
+
+        # 2. pandasnのdataframe作成
+        # TODO:愚直にdfを加工しており、高速化・メモリ管理等の工夫は何もしていない
         df = frame.get_dataframe(limit, offset)
-
-        # ここstartがdfの最大行数を越えるとエラーが出る
-        # if len(df) < start:
-            # なんかする
-            # passd
-
-        # key
-        keys = args.get('x_axis') if args.get('x_axis') is not None else []
-
         hv.extension('bokeh')
-        x_label = args.get('x_label') if args.get('x_label') else ','.join(keys)
-        y_label = args.get('y_label') if args.get('y_label') else ''
-        title = args.get('graph_title') if args.get('graph_title') else ''
 
-        boxwhisker = hv.BoxWhisker(df, kdims=keys, vdims=args.get('y_axis'), label=title)
-        boxwhisker.opts(width=args.get('x_size'), height=args.get('y_size'), xlabel=x_label, ylabel=y_label)
+        # 3. 箱ひげ図の作成
+        boxwhisker = hv.BoxWhisker(df, kdims=data_column, vdims=y_axis_column, label=graph_title)
+        boxwhisker.opts(width=graph_width, height=graph_height, xlabel=x_axis_label, ylabel=y_axis_label)
 
         renderer = hv.renderer('bokeh')
         plot=renderer.get_plot(boxwhisker).state
