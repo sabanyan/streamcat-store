@@ -1,6 +1,9 @@
 # 独自コマンド
 import sys
 import nysol.mcmd as nm
+import numpy as np
+import nysol.util.mtemp as mtemp
+from nysol.util._utillib import mcsvout as mcsvout
 from pathlib import Path
 
 from kskp.store import NysolModule
@@ -1336,7 +1339,7 @@ class GroupBy2Command(Command):
 
                         targetcol = [float(xdlist[f_loc]) for xdlist in dlist]
 
-                        y = np.abs(np.fft.rfft(targetcol))**2
+                        y = np.abs(np.fft.rfft(targetcol))
 
                         mean = y.dot(np.arange(len(y)))/y.sum()
 
@@ -1375,13 +1378,65 @@ class GroupBy2Command(Command):
                         f_loc = header.index(fld)
 
                         y = np.abs(np.fft.rfft([float(xdlist[f_loc]) 
-                                                for xdlist in dlist]))**2
+                                                for xdlist in dlist]))
 
                         mean = y.dot(np.arange(len(y)))/y.sum()
                         moment2 = y.dot(np.arange(len(y))**2)/y.sum()
                         variance = moment2 - mean ** 2
 
                         print(f'{id},{fld},{variance:.{precision}g}')
+            sys.__stdout__.flush()#not needed for bigger data
+
+        except Exception as e:
+            import traceback
+            with open('/dev/stderr', 'w') as fpe:
+                traceback.print_exc(file=fpe)
+
+    def fft_agg(self, **kwargs):
+        # body of this method adapted from:
+        # github.com/nysol/nysol_python/blob/master/scripts/sample/mkfeature.py
+        try:
+            import numpy as np
+            
+            f = kwargs.get('f')
+            a = kwargs.get('a')
+            x = kwargs.get('x')
+            k = kwargs.get('k')
+            precision = kwargs.get('precision')
+
+            headerline = True
+
+            for dlist in nm.mstdin().keyblock(k, x, header = True):
+                id = ','.join(dlist[0][:len(k.split(','))])
+
+                if headerline:
+                    header = dlist[0]
+                    print(f'{k},fld,{a}_centroid,{a}_var,{a}_skew,{a}_kurtosis')
+                    headerline = False
+
+                else:
+                    for fld in f.split(','):
+                        f_loc = header.index(fld)
+
+                        y = np.abs(np.fft.rfft([float(xdlist[f_loc]) 
+                                                for xdlist in dlist]))
+
+                        centroid = y.dot(np.arange(len(y)))/y.sum()
+                        moment2 = y.dot(np.arange(len(y))**2)/y.sum()
+                        variance = moment2 - centroid ** 2
+
+                        if variance < 0.5:
+                            skew = np.nan
+                            kurtosis = np.nan
+                        else:
+                            moment3 = y.dot(np.arange(len(y))**3) / y.sum()
+                            skew = ( moment3 - 3 * centroid * variance - centroid**3 ) / variance**(1.5)
+                                        
+                            kurtosis =( (y.dot(np.arange(len(y))**4) / y.sum()) - 4 * centroid * moment3
+                                + 6 * moment2 * centroid**2 - 3*centroid) / variance**2
+
+
+                        print(f'{id},{fld},{centroid:.{precision}g},{variance:.{precision}g},{skew:.{precision}g},{kurtosis:.{precision}g}')
             sys.__stdout__.flush()#not needed for bigger data
 
         except Exception as e:
@@ -1464,6 +1519,99 @@ class GroupBy2Command(Command):
             subcmd <<= nm.mcut(f = f'{k},fld,{a}')
 
             return subcmd
+            
+        except Exception as e:
+            import traceback
+            with open('/dev/stderr', 'w') as fpe:
+                traceback.print_exc(file=fpe)
+
+    # not done
+    def linear_trend(self, subcmd, **kwargs):
+        try:
+            _temp = mtemp.Mtemp().file()
+
+            f = kwargs.get('f')
+            a = kwargs.get('a')
+            x = kwargs.get('x')
+            k = kwargs.get('k')
+            precision = kwargs.get('precision')
+            
+            dateformat = kwargs.pop('dateformat')
+
+            fs = f.split(',')
+            targets = [None] * len(fs)
+            covars = [None] * len(fs)
+            counts = [None] * len(fs)
+            subcmd_mid = None
+            subcmd_o = None
+
+            # fix time column
+            subcmd = self.fixtimecolumn(subcmd, x, dateformat)
+
+            meanval = nm.mstats(k = k, i = subcmd, f = f'uxt,{f}', c = 'mean')
+
+            for i, fld in enumerate(fs):
+                counts[i] <<= nm.msummary(i = subcmd, c = 'count:__count', 
+                                          f = fld, k = k)
+
+                covars[i] <<= nm.msim(k = k, i = subcmd, f = f'uxt,{fld}', 
+                                   c = 'covar:__covar')
+
+                targets[i] <<= nm.mstats(k = k, i = subcmd, c = 'var',
+                                         f = f'uxt:__Sxx,{fld}:__Syy')
+                targets[i] <<= nm.mcal(c = 'sqrt(${__Sxx}*${__Syy})', a = '__rden')
+                targets[i] <<= nm.mjoin(k = k, m = covars[i], f = '__covar')
+                targets[i] <<= nm.mjoin(k = k, m = counts[i], f = 'fld,__count')
+                targets[i] <<= nm.mjoin(k = k, m = meanval, f = f'uxt:__xmean,{fld}:__ymean')
+                targets[i] <<= nm.mcal(c = '${__count}-2', a = '__df')
+                targets[i] <<= nm.mcal(c = 'if(${__rden}==0,0,${__covar}/${__rden})',
+                                       a = f'{a}_rvalue',
+                                       precision = precision)
+                targets[i] <<= nm.mcal(c = '${__covar}/${__Sxx}', 
+                                       a = f'{a}_slope',
+                                       precision = precision)
+                targets[i] <<= nm.mcal(c = f'${{__ymean}}-(${{{a}_slope}}*${{__xmean}})',
+                                       a = f'{a}_intercept',
+                                       precision = precision)
+                targets[i] <<= nm.mcal(c = f'${{{a}_rvalue}}*sqrt(${{__df}}/((1-${{{a}_rvalue}})*(1+${{{a}_rvalue}})))',
+                                       a = '__t',
+                                       precision = precision)
+                targets[i] <<= nm.mcal(c = f'sqrt((1-${{{a}_rvalue}}^2)*${{__Syy}}/${{__Sxx}}/${{__df}})',
+                                       a = f'{a}_stderr',
+                                       precision = precision)
+
+                _cval = ['fld', '__Syy', '__Sxx', '__rden', '__covar', 
+                         '__count', '__xmean', '__ymean', '__df', f'{a}_rvalue', 
+                         f'{a}_slope', f'{a}_intercept', '__t', f'{a}_stderr']
+                targets[i] <<= nm.mcut(f= k.split(',') + _cval)
+
+            subcmd_mid <<= nm.mread(i = targets)
+
+            # with nm.mstdout() as tmpfile:
+            with mcsvout(_temp, f = k.split(',') + _cval + [f'{a}_pvalue']) as tmpfile:
+                from scipy.stats import distributions
+                headerline = True
+                for line in subcmd_mid.getline(header = True):
+                    if headerline:
+                        header = line
+                        headerline = False
+                        # _temp, f = k.split(',') + _cval + [f'{a}_pvalue']
+                        # sys.__stderr__.write(repr(line)+'\n')
+                    else:
+                        # sys.__stderr__.write(repr(line)+'\n')
+                        # sys.__stderr__.write(repr(line[header.index('__t')]))
+                        t = float(line[header.index('__t')])
+                        df = float(line[header.index('__df')])
+                        
+                        line.append(2 * distributions.t.sf(np.abs(t),df))
+                        
+                        tmpfile.write(line)
+                        # strline = [str(elem) for elem in line]
+                        # sys.__stdout__.write(','.join(strline))
+            
+            subcmd_o <<= nm.mcut(i = _temp, f = f'{k},fld,{a}_rvalue,{a}_slope,{a}_intercept,{a}_stderr,{a}_pvalue')
+
+            return subcmd_o
             
         except Exception as e:
             import traceback
@@ -1799,7 +1947,7 @@ class GroupBy2Command(Command):
                 targets[i] <<= nm.msummary(k = k, f = fld, precision = precision,
                         c = f'mean:{a}_mean,median:{a}_median,var:{a}_var')
 
-            # subcmd_o <<= nm.mcut(i = targets, f = f'{k},fld,{a}_{n}')
+            subcmd_o <<= nm.mcut(i = targets, f = f'{k},fld,{a}_*')
 
             return subcmd_o
 
@@ -2264,8 +2412,10 @@ class GroupBy2Command(Command):
             'integral' : self.integral,
             'meanf' : self.meanfrequency,
             'varf' : self.frequencyvar,
+            'fft_agg' : self.fft_agg,
             'slope' : self.slope,
             '__slope' : self.slopebyorder,
+            'linregress' : self.linear_trend,
             'firstmin' : self.firstmin,
             'firstmax' : self.firstmax,
             'lastmin' : self.lastmin,
@@ -2289,7 +2439,8 @@ class GroupBy2Command(Command):
 
         python_calcs = [
             'meanf',
-            'varf'
+            'varf',
+            'fft_agg'
         ]
 
         self.header = nm.mread(inputs).getline(header=True)
@@ -2424,6 +2575,10 @@ class GroupBy2Command(Command):
 
                 if cs == 'autocorr_agg':
                     final_cs = [f'{calcdict["a"]}_{suff}' for suff in ['mean','median','var']]
+                elif cs == 'fft_agg':
+                    final_cs = [f'{calcdict["a"]}_{suff}' for suff in ['centroid','var','skew','kurtosis']]
+                elif cs == 'linregress':
+                    final_cs = [f'{calcdict["a"]}_{suff}' for suff in ['rvalue','slope','intercept','stderr','pvalue']]
                 elif n:
                     final_cs = [f'{calcdict["a"]}_{calcdict["n"]}']
                 else:
@@ -2432,6 +2587,7 @@ class GroupBy2Command(Command):
             cmd[i] <<= nm.m2cross(k = expanded_k, f= final_cs, 
                     a = '__type__,__val__')
 
+        
         # cmd_o <<= nm.m2cat(i = cmd)
         cmd_o <<= nm.mdelnull(i = cmd, f = '__val__')
 
