@@ -82,7 +82,7 @@
       "name": "limit",
       "type": "number",
       "label": "表示の件数",
-      "default": 1000
+      "default": 100
     },
     {
       "name": "width",

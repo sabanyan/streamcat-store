@@ -309,14 +309,14 @@ class CsvToScatterCommand(VisualizersBokehPlot):
         # 3. 散布図の作成
         scatter_list = {}
         for label, _df in named_dfs.items():
-            scatter_list[label] = hv.Scatter(_df, x_axis_column, vdims=[y_axis_column]).opts(muted_alpha=0.1)
+            scatter_list[label] = hv.Scatter(_df, x_axis_column, vdims=[y_axis_column]).opts(muted_alpha=0.1, size=6)
 
         ndoverlay = hv.NdOverlay(scatter_list).opts(legend_position='top',
                                                  width=int(graph_width), height=int(graph_height),
                                                  xlabel=x_axis_label, ylabel=y_axis_label)
 
         if not withoutContourLine:
-            b = hv.Bivariate(df[[x_axis_column, y_axis_column]]).opts(show_legend=False, bandwidth=0.5, axiswise=True, line_width=2, colorbar=True)
+            b = hv.Bivariate(df[[x_axis_column, y_axis_column]]).opts(show_legend=False, bandwidth=0.5, axiswise=True, line_width=2, colorbar=False, alpha=0.1)
             ndoverlay = ndoverlay * b
 
         renderer = hv.renderer('bokeh')
@@ -393,7 +393,7 @@ class CsvtoRepetitivieWaveform(VisualizersBokehPlot):
         graph_plot.legend.click_policy = "mute"
 
         select = self.get_select(graph_plot)
-        plots = [graph_plot, select]
+        plots = [select, graph_plot]
         
         statics_plot = None
         if self.disableStatics == False:
