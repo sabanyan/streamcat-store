@@ -5,6 +5,7 @@ import uuid
 from pathlib import Path
 from kskp.store import Library, CommandLink
 
+@unittest.skip('test_vcmdに移行する')
 class ExecuteViualizeTestCase(unittest.TestCase):
     """
     visualize用コマンドの実行テスト
