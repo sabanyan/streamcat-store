@@ -2457,9 +2457,7 @@ class GroupBy2Command(Command):
                   args.get('fclist') +
                   args.get('nfclist') +
                   args.get('xfclist') + 
-                  args.get('sfclist') + 
-                  args.get('xfcnlist')+
-                  args.get('sfcnlist'))
+                  args.get('xfcnlist'))
 
         # parse inputs into list-of-dictionaries form
         for arglist in allargs:
