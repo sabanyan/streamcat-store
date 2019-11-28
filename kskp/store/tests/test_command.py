@@ -42,7 +42,7 @@ class CommandTest(unittest.TestCase):
     def tearDownClass(cls):
         # ライブラリフォルダを削除する
         from kskp.core import Datum
-        library_path = STORE_DIR.parent / Datum.find_root().path
+        library_path = STORE_DIR.parent / Library.load_root().path 
         import shutil
         shutil.rmtree(library_path.as_posix())
         # Sessionを閉じる
