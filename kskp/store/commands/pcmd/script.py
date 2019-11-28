@@ -1489,7 +1489,7 @@ class GroupBy2Command(Command):
         try:
             f = kwargs.get('f')
             a = kwargs.get('a')
-            x = kwargs.get('s')
+            x = kwargs.get('x')
             k = kwargs.get('k')
             precision = kwargs.get('precision')
 
@@ -1497,7 +1497,7 @@ class GroupBy2Command(Command):
 
             # fix "time" column
             ordercol = '__order__'
-            subcmd <<= nm.mnumber(k = k, a = f'{ordercol}', s = f'{k},{x}', S = '1')
+            subcmd <<= nm.mnumber(k = k, a = f'{ordercol}', s = f'{k},{x}%n', S = '1')
 
             for fld in fs: 
                 subcmd <<= nm.mcal(a = f'{fld}_prod',c = f'${{{fld}}}*${{{ordercol}}}')
@@ -1525,7 +1525,6 @@ class GroupBy2Command(Command):
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
 
-    # not done
     def linear_trend(self, subcmd, **kwargs):
         try:
             _temp = mtemp.Mtemp().file()
@@ -2414,7 +2413,7 @@ class GroupBy2Command(Command):
             'varf' : self.frequencyvar,
             'fft_agg' : self.fft_agg,
             'slope' : self.slope,
-            '__slope' : self.slopebyorder,
+            'slope_pearson' : self.slopebyorder,
             'linregress' : self.linear_trend,
             'firstmin' : self.firstmin,
             'firstmax' : self.firstmax,
