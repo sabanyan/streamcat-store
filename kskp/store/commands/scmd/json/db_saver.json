@@ -26,6 +26,10 @@
         {
           "name": "store",
           "type": "store"
+        },
+        {
+          "name": "folder",
+          "type": "store"
         }
       ],
       [

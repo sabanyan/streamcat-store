@@ -180,6 +180,7 @@ class LibraryTest(unittest.TestCase):
         Library.delete_folder(folder.uuid)
 
 
+    @unittest.skip('AWS S3のパスワードないのでエラーになる')
     def test_get_awss3(self):
         """
         AWS S3フォルダを取得する
@@ -206,6 +207,7 @@ class LibraryTest(unittest.TestCase):
             # 作成したフォルダを削除する
             Library.delete_awss3(folder.uuid)
 
+    @unittest.skip('AWS S3のパスワードないのでエラーになる')
     def test_update_awss3(self):
         """
         AWS S3フォルダのラベルを変更する
@@ -235,6 +237,7 @@ class LibraryTest(unittest.TestCase):
             # 作成したフォルダを削除する
             Library.delete_awss3(folder.uuid)
 
+    @unittest.skip('AWS S3のパスワードないのでエラーになる')
     def test_save_awss3(self):
         """
         AWS S3フォルダを作成する
