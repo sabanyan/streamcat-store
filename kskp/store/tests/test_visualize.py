@@ -3,7 +3,7 @@ import nysol.mcmd as nm
 import uuid
 
 from pathlib import Path
-from kskp.store import Library, CommandLink
+# from kskp.store import Library, CommandLink
 
 @unittest.skip('test_vcmdに移行する')
 class ExecuteViualizeTestCase(unittest.TestCase):
