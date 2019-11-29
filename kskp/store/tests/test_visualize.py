@@ -4,6 +4,7 @@ import uuid
 
 from pathlib import Path
 from kskp.store import Library, CommandLink
+from kskp.store import NysolModule
 
 class ExecuteViualizeTestCase(unittest.TestCase):
     """
@@ -221,30 +222,28 @@ class ExecuteViualizeTestCase(unittest.TestCase):
         table_command = CommandLink('csvtolinegraph').resolve()
         # テストデータ作成
         data = [
-            ['datetime', 'stockprice', 'price'],
-            ['2018/1/4', 'openingprice', 7300],
-            ['2018/1/4', 'closingprice', 7419],
-            ['2018/1/5', 'openingprice', 7450],
-            ['2018/1/5', 'closingprice', 7552]
+            ['TIME','S1','層別属性'],
+            ['0','0.28','OK'],
+            ['0.1','1.20','OK'],
+            ['0.2','0.74','OK'],
+            ['0.3','1.56','NG'],
+            ['0.4','1.94','OK'],
+            ['0.5','2.71','NG'],
+            ['0.6','3.05','OK'],
+            ['0.7','2.84','OK'],
+            ['0.8','2.71','NG'],
+            ['0.9','3.18','OK'],
         ]
         frame_path = Path(self.TESTDATA_DIR) / 'test_data.csv'
         frame_uuid = create_data(frame_path, data)
 
         args = {
-            'alpha': 1,
-            'data_column': 'stockprice',
-            'graph_title': "",
-            'limit': 100,
-            'offset': None,
-            'time_series_column': [
-                'datetime'
-            ],
-            'x_axis_column': 'datetime',
-            'y_axis_column': 'price',
-            'x_label': '',
-            'x_size': 1000,
-            'y_label': '',
-            'y_size': 1000
+            'data_column'   : ['層別属性'],
+            'height'        : 600,
+            'limit'         : 100,
+            'width'         : 1000,
+            'x_axis'        : [{'column': 'TIME', 'label': ''}],
+            'y_axis'        : [{'column': 'S1', 'label': ''}],
         }
 
         inputs = {
@@ -268,28 +267,28 @@ class ExecuteViualizeTestCase(unittest.TestCase):
         table_command = CommandLink('csvtohistogram').resolve()
         # テストデータ作成
         data = [
-            ['顧客', '数量', '金額'],
-            ['A', 1, 10],
-            ['A', 2, 20],
-            ['B', 1, 30],
-            ['B', 3, 40],
-            ['B', 1, 50]
+            ['TIME','S1','層別属性'],
+            ['0','0.28','OK'],
+            ['0.1','1.20','OK'],
+            ['0.2','0.74','OK'],
+            ['0.3','1.56','NG'],
+            ['0.4','1.94','OK'],
+            ['0.5','2.71','NG'],
+            ['0.6','3.05','OK'],
+            ['0.7','2.84','OK'],
+            ['0.8','2.71','NG'],
+            ['0.9','3.18','OK'],
         ]
         frame_path = Path(self.TESTDATA_DIR) / 'test_data.csv'
         frame_uuid = create_data(frame_path, data)
 
         args = {
-            'alpha': 1,
-            'bins': 20,
-            'data_column': '顧客',
-            'graph_title': "",
-            'limit': 100,
-            'offset': None,
-            'x_axis': '金額',
-            'x_label': '',
-            'x_size': 1000,
-            'y_label': '',
-            'y_size': 1000
+            'data_column'   : [],
+            'bins'          : 20,
+            'height'        : 600,
+            'limit'         : 100,
+            'width'         : 1000,
+            'x_axis'        : [{'column': 'TIME', 'label': ''}],
         }
 
         inputs = {
@@ -312,27 +311,28 @@ class ExecuteViualizeTestCase(unittest.TestCase):
         table_command = CommandLink('csvtoscatter').resolve()
         # テストデータ作成
         data = [
-            ['顧客', '数量', '金額'],
-            ['A', 1, 10],
-            ['A', 2, 20],
-            ['B', 1, 30],
-            ['B', 3, 40],
-            ['B', 1, 50]
+            ['TIME','S1','層別属性'],
+            ['0','0.28','OK'],
+            ['0.1','1.20','OK'],
+            ['0.2','0.74','OK'],
+            ['0.3','1.56','NG'],
+            ['0.4','1.94','OK'],
+            ['0.5','2.71','NG'],
+            ['0.6','3.05','OK'],
+            ['0.7','2.84','OK'],
+            ['0.8','2.71','NG'],
+            ['0.9','3.18','OK'],
         ]
         frame_path = Path(self.TESTDATA_DIR) / 'test_data.csv'
         frame_uuid = create_data(frame_path, data)
 
         args = {
-            'alpha': 1,
-            'graph_title': "",
-            'limit': 100,
-            'offset': None,
-            'x_axis': "数量",
-            'x_label': "",
-            'x_size': 1000,
-            'y_axis': "金額",
-            'y_label': "",
-            'y_size': 600
+            'data_column'   : ['層別属性'],
+            'height'        : 600,
+            'limit'         : 100,
+            'width'         : 1000,
+            'x_axis'        : [{'column': 'TIME', 'label': ''}],
+            'y_axis'        : [{'column': 'S1', 'label': ''}],
         }
 
         inputs = {
@@ -355,26 +355,27 @@ class ExecuteViualizeTestCase(unittest.TestCase):
         table_command = CommandLink('csvtoboxplot').resolve()
         # テストデータ作成
         data = [
-            ['顧客', '数量', '金額'],
-            ['A', 1, 10],
-            ['A', 2, 20],
-            ['B', 1, 30],
-            ['B', 3, 40],
-            ['B', 1, 50]
+            ['TIME','S1','層別属性'],
+            ['0','0.28','OK'],
+            ['0.1','1.20','OK'],
+            ['0.2','0.74','OK'],
+            ['0.3','1.56','NG'],
+            ['0.4','1.94','OK'],
+            ['0.5','2.71','NG'],
+            ['0.6','3.05','OK'],
+            ['0.7','2.84','OK'],
+            ['0.8','2.71','NG'],
+            ['0.9','3.18','OK'],
         ]
         frame_path = Path(self.TESTDATA_DIR) / 'test_data.csv'
         frame_uuid = create_data(frame_path, data)
 
         args = {
-            'graph_title': "",
-            'limit': 100,
-            'offset': None,
-            'x_axis': ["顧客"],
-            'x_label': "",
-            'x_size': 1000,
-            'y_axis': "金額",
-            'y_label': "",
-            'y_size': 600
+            'data_column'   : [],
+            'height'        : 600,
+            'limit'         : 100,
+            'width'         : 1000,
+            'y_axis'        : [{'column': 'S1', 'label': ''}],
         }
 
         inputs = {
