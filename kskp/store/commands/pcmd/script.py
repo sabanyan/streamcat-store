@@ -622,8 +622,6 @@ class GroupBy2Command(Command):
 
             subcmd_o = None
 
-            subcmd <<= nm.mstdin()
-
             for i, fld in enumerate(fs):
                 targets[i] <<= nm.mkeybreak(i = subcmd, k = k, s = fld)
                 targets[i] <<= nm.mcal(a = 'fld', c = f'if($s{{bot}}=="1","{fld}",nulls())')
@@ -650,8 +648,6 @@ class GroupBy2Command(Command):
             targets = [None] * len(fs)
 
             subcmd_o = None
-
-            subcmd <<= nm.mstdin()
 
             for i, fld in enumerate(fs):
                 targets[i] <<= nm.mkeybreak(i = subcmd, k = k, s = fld)
@@ -726,9 +722,9 @@ class GroupBy2Command(Command):
             
             meancalc = None
 
-            meancalc <<= nm.msummary(i = subcmd, k = k, f = f, c = 'mean',
+            meancalc <<= nm.msummary(i = subcmd, k = k, f = f, c = '__mean',
                                     precision = precision)
-            meancalc <<= nm.m2cross(f = 'mean', a = 'type,value', k = k + ',fld')
+            meancalc <<= nm.m2cross(f = '__mean', a = 'type,value', k = k + ',fld')
             meancalc <<= nm.mcal(a = 'colnames', c = '$s{fld}+"_mean"',
                                 precision = precision)
             meancalc <<= nm.mcross(f = 'value', s= 'colnames', k = k)
@@ -764,9 +760,9 @@ class GroupBy2Command(Command):
             
             meancalc = None
 
-            meancalc <<= nm.msummary(i = subcmd, k = k, f = f, c = 'median',
+            meancalc <<= nm.msummary(i = subcmd, k = k, f = f, c = '__median',
                                     precision = precision)
-            meancalc <<= nm.m2cross(f = 'median', a = 'type,value', k = k + ',fld')
+            meancalc <<= nm.m2cross(f = '__median', a = 'type,value', k = k + ',fld')
             meancalc <<= nm.mcal(a = 'colnames', c = '$s{fld}+"_median"',
                                 precision = precision)
             meancalc <<= nm.mcross(f = 'value', s= 'colnames', k = k)
@@ -2441,6 +2437,34 @@ class GroupBy2Command(Command):
             'varf',
             'fft_agg'
         ]
+
+        dependencies = {
+            'miss' : ['count'], 
+            'has_dup' : ['count'], 
+            'var_gt_sd' : ['var','sd'],
+            'mean_ad' : ['mean'], 
+            'median_ad' : ['median'], 
+            'ratio_unique' : ['count', 'ucount'], 
+            'count_above_mean' : ['mean'], 
+            'count_below_mean' : ['mean'], 
+            'sym_looking' : ['mean', 'median', 'max', 'min'],
+            'large_sd' : ['sd', 'max', 'min'],
+            'ratio_beyond_rsigma' : ['mean', 'sd', 'count'],
+            'quantile' : ['count'],
+            'binned_entropy' : ['count'],
+            'energy_ratio_by_chunks': ['count','sd'],
+            'firstmin' : ['min', 'range'],
+            'firstmax' : ['min', 'range'],
+            'lastmin' : ['min', 'range'],
+            'lastmax' : ['min', 'range'],
+            'longest_strike_above_mean' : ['mean'],
+            'longest_strike_below_mean' : ['mean'],
+            'imq' : ['count'],
+            'autocorr' : ['mean', 'var', 'count']
+        } 
+
+        msum_prereqs = set()
+
 
         self.header = nm.mread(inputs).getline(header=True)
         self.header = next(self.header)
