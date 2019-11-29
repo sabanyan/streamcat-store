@@ -622,8 +622,6 @@ class GroupBy2Command(Command):
 
             subcmd_o = None
 
-            subcmd <<= nm.mstdin()
-
             for i, fld in enumerate(fs):
                 targets[i] <<= nm.mkeybreak(i = subcmd, k = k, s = fld)
                 targets[i] <<= nm.mcal(a = 'fld', c = f'if($s{{bot}}=="1","{fld}",nulls())')
@@ -650,8 +648,6 @@ class GroupBy2Command(Command):
             targets = [None] * len(fs)
 
             subcmd_o = None
-
-            subcmd <<= nm.mstdin()
 
             for i, fld in enumerate(fs):
                 targets[i] <<= nm.mkeybreak(i = subcmd, k = k, s = fld)
