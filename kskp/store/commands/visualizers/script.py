@@ -159,7 +159,7 @@ class CsvToLineGraphCommand(VisualizersBokehPlot):
 
         # 2. pandasnのdataframe作成
         # TODO:愚直にdfを加工しており、高速化・メモリ管理等の工夫は何もしていない
-        df = frame.get_dataframe(limit, offset, [x_axis_column])
+        df = frame.get_dataframe(limit, offset)
         df[data_column] = df[data_column].astype(str)
 
         # ここstartがdfの最大行数を越えるとエラーが出る
