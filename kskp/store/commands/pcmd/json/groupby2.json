@@ -14,15 +14,15 @@
     {
       "name": "group3",
       "label": "１つの変数に対する特徴量",
-      "params": ["fclist"]
+      "params": ["fclist","nfclist"]
     },
     {
       "name": "group4",
       "label": "２つの変数に対する特徴量",
-      "params": ["xfclist", "dateformat"]
+      "params": ["dateformat", "xfclist", "xfcnlist"]
     },
     {
-      "name": "group5",
+      "name": "group6",
       "label": "その他（省略可）",
       "params": ["nfno","precision"]
     }
@@ -38,7 +38,7 @@
       "name": "clist",
       "type": "list",
       "label": "計算対象の設定（追加・順序変更・削除　可）",
-      "description": "指定可能統計量:\nrows　・・・　集計｜件数（NULL行込み）",
+      "description": "指定可能統計量:\nrows　・・・　集計｜件数（NULL行含む）",
       "elements": [
         {
           "name": "c",
@@ -57,7 +57,7 @@
       "name": "fclist",
       "type": "list",
       "label": "計算対象の設定（追加・順序変更・削除　可）",
-      "description": "指定可能統計量:\ncount　・・・　集計｜件数\nucount　・・・　集計｜種類数\nsum　・・・　集計｜合計\nmin　・・・　集計｜最小値\nmax　・・・　集計｜最大値\nmean　・・・　平均・分散｜算術平均\nmedian　・・・　平均・分散|中央値\nmode　・・・　平均・分散｜最頻値\nvar　・・・　平均・分散｜標本分散\nuvar　・・・　平均・分散｜不偏分散\nsd　・・・　平均・分散｜標準偏差\nusd　・・・　平均・分散｜標準偏差（不偏推定値）\ndevsq　・・・　平均・分散｜偏差平方和\ncv　・・・　平均・分散｜変動係数\nrange　・・・　範囲｜範囲\nqrange　・・・　範囲｜２５％〜７５％分位点の範囲\nqtile1　・・・　範囲｜２５％分位点\nqtile3　・・・　範囲｜７５％分位点\nskew　・・・　３次モーメント｜歪度\nuskew　・・・　３次モーメント｜歪度（不偏推定値）\nkurt　・・・　４次モーメント｜尖度\nukurt　・・・　４次モーメント｜尖度（不偏推定値）\n - - - - - -\nmiss　・・・　欠損値\nstrmin　・・・　文字列最小値\nstrmax　・・・　文字列最大値\nstrucount ・・・　文字列種類数\nrms　・・・　二乗平均平方根\nhmean　・・・　調和平均\ngmean　・・・　幾何平均（０以上の正数のみ）\nmean_ad　・・・　平均絶対偏差\nmedian_ad　・・・　中央絶対偏差\n【対象項目】項目名時:*,？,[...]のワイルドカードを使用可\n【統計量】「統計量：別名」の表記(：別名は省略可、統計量 or 別名を項目名に付加)、カンマ区切りで複数指定可。",
+      "description": "指定可能統計量:\nstrmin　・・・　文字列｜文字列最小値\nstrmax　・・・　文字列｜文字列最大値\nstrucount ・・・　文字列｜種類数\ncount　・・・　集計｜件数\nucount　・・・　集計｜種類数\nmiss　・・・　集計｜欠損値\nsum　・・・　集計｜合計\nmin　・・・　集計｜最小値\nmax　・・・　集計｜最大値\nrepeatdata　・・・　集計｜反復値の割合（データ件数比）\nrepeatvalues　・・・　集計｜反復値の割合（値の種類数比）\nsum_repeatdata　・・・　集計｜反復値の合計（頻度で重み付け）\nsum_repeatvalues　・・・　集計｜反復値の合計\nratio_unique　・・・　集計｜一意値の割合（データ件数比）\ncount_above_mean　・・・　集計｜平均値以上の件数\ncount_below_mean　・・・　集計｜平均値以下の件数\nhas_dup　・・・　集計｜重複値有フラグ\nhas_dup_min　・・・　集計｜最小値の反復有フラグ\nhas_dup_max　・・・　集計｜最小値の反復有フラグ\nmean　・・・　平均・分散｜算術平均\nmedian　・・・　平均・分散|中央値\nhmean　・・・　平均・分散｜調和平均\ngmean　・・・　平均・分散｜幾何平均\nmode　・・・　平均・分散｜最頻値\nvar　・・・　平均・分散｜標本分散\nuvar　・・・　平均・分散｜不偏分散\nsd　・・・　平均・分散｜標準偏差\nusd　・・・　平均・分散｜標準偏差（不偏推定値）\ndevsq　・・・　平均・分散｜偏差平方和\ncv　・・・　平均・分散｜変動係数\nabs_energy　・・・　平均・分散｜２乗和（エネルギー）\nrms　・・・　平均・分散｜二乗平均平方根\nmedian_ad　・・・　平均・分散｜中央絶対偏差\nmean_ad　・・・　平均・分散｜平均絶対偏差\nvar_gt_sd　・・・　平均・分散｜分散＞σフラグ\nrange　・・・　範囲｜範囲\nqrange　・・・　範囲｜２５％〜７５％分位点の範囲\nqtile1　・・・　範囲｜２５％分位点\nqtile3　・・・　範囲｜７５％分位点\nskew　・・・　３次モーメント｜歪度\nuskew　・・・　３次モーメント｜歪度（不偏推定値）\nkurt　・・・　４次モーメント｜尖度\nukurt　・・・　４次モーメント｜尖度（不偏推定値）\n【対象項目】項目名時:*,？,[...]のワイルドカードを使用可\n【統計量】「統計量：別名」の表記(：別名は省略可、統計量 or 別名を項目名に付加)、カンマ区切りで複数指定可。",
       "elements": [
         {
           "name": "f",
@@ -73,20 +73,44 @@
       "default": [{"f": "", "c": ""}]
     },
     {
-      "name": "xfclist",
+      "name": "nfclist",
       "type": "list",
-      "label": "計算対象の設定（追加・順序変更・削除　可）",
-      "description": "指定可能統計量:\nintegral　・・・　積分値\nslope　・・・　傾き\nmeanf　・・・　周波数平均\nvarf ・・・　周波数分散",
+      "label": "計算対象の設定（パラメータ指定有）",
+      "description": "指定可能統計量:\nsym_looking　・・・　分布形状｜対称性フラグ\nlarge_sd　・・・　分布形状｜値域とσとの比が閾値以上フラグ\nvalue_count　・・・　集計｜指定した値の出現数\nratio_beyond_rsigma　・・・　外れ値｜μ+r×σ以上の割合（データ件数比）\nbinned_entropy　・・・　情報量｜ビン分割したエントロピー\nquantile　・・・　範囲｜指定した分位点の値\nrange_count　・・・　範囲｜指定した値域の件数\n追加・順序変更・削除　可",
       "elements": [
         {
-          "name": "x",
+          "name": "n",
           "type": "string",
-          "label": "時系項目（横軸）"
+          "label": "パラメーター"
         },
         {
           "name": "f",
           "type": "string",
-          "label": "値項目（縦軸）"
+          "label": "対象とする項目名"
+        },
+        {
+          "name": "c",
+          "type": "string",
+          "label": "統計量"
+        }
+      ],
+      "default": [{"n": "", "f": "", "c": ""}]
+    },
+    {
+      "name": "xfclist",
+      "type": "list",
+      "label": "時系列の特徴量",
+        "description": "指定可能統計量:\nslope　・・・　傾き｜傾き（偏回帰係数）\nslope_pearson　・・・　傾き｜傾き（時系列順位と値の相関係数）\nmean_second_derivative_central　・・・　傾き｜２階微分の中心差分近似の平均\nmean_change　・・・　傾き｜階差平均\nmean_abs_change　・・・　傾き｜絶対階差平均\nabs_sum_changes　・・・　傾き｜絶対階差合計\nintegral　・・・　面積｜積分値\nmeanf　・・・　周期｜周波数平均\nvarf ・・・　周期｜周波数分散\nfirstmin　・・・　位置｜最初の最小値の出現位置（正規化）\nfirstmax　・・・　位置｜最初の最大値の出現位置（正規化）\nlastmin　・・・　位置｜最後の最小値の出現位置（正規化）\nlastmax　・・・　位置｜最後の最大値の出現位置（正規化）\nlongest_strike_above_mean　・・・　期間｜平均値以上の最長区間の長さ\nlongest_strike_below_mean　・・・　期間｜平均値以下の最長区間の長さ\n追加・順序変更・削除　可",
+      "elements": [
+        {
+          "name": "x",
+          "type": "string",
+          "label": "時間軸の項目名"
+        },
+        {
+          "name": "f",
+          "type": "string",
+          "label": "対象とする項目名"
         },
         {
           "name": "c",
@@ -97,9 +121,38 @@
       "default": [{"x": "", "f": "", "c": ""}]
     },
     {
+      "name": "xfcnlist",
+      "type": "list",
+      "label": "時系列の特徴量（パラメーター有り）",
+      "description": "指定可能統計量:\nautocorr　・・・　周期｜自己相関\ncrossing_m　・・・　波形形状｜指定した値に対するクロス回数\npeaks　・・・　波形形状｜指定窓幅によるピーク数\nimq　・・・　位置｜指定した分位点の出現位置（正規化）\n追加・順序変更・削除　可",
+      "elements": [
+        {
+          "name": "x",
+          "type": "string",
+          "label": "時間軸の項目名"
+        },
+        {
+          "name": "f",
+          "type": "string",
+          "label": "対象とする項目名"
+        },
+        {
+          "name": "n",
+          "type": "string",
+          "label": "パラメーター"
+        },
+        {
+          "name": "c",
+          "type": "string",
+          "label": "統計量"
+        }
+      ],
+      "default": [{"x": "", "f": "", "c": "", "n" : ""}]
+    },
+    {
       "name": "dateformat",
       "type": "select",
-      "label":  "時間項目のフォーマット",
+      "label":  "時間軸項目のフォーマット",
       "options":{
         "labels": ["暦型（14桁[.6桁]）","数値"],
         "values": ["date","num"]
