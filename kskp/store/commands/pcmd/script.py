@@ -399,19 +399,18 @@ class GroupBy2Command(Command):
             fs = f.split(',')
             total = [None] * len(fs)
             targets = [None] * len(fs)
-            count = [None] * len(fs)
             subcmd_o = None
 
             for i, fld in enumerate(fs):
 
                 total[i] <<= nm.mcount(k = f'{k},{fld}', a = '__dcnt', i = subcmd)
-                count[i] <<= nm.msummary(k = k, f = fld, c = 'count:__count',
-                                            i = subcmd)
+                # count[i] <<= nm.msummary(k = k, f = fld, c = 'count:__count',
+                #                             i = subcmd)
 
                 targets[i] <<= nm.mcount(k = k, a = '__ddcnt', i = total[i])
-                targets[i] <<= nm.mjoin(k = k, f = '__count', m = count[i])
-                targets[i] <<= nm.mcal(c = '${__ddcnt}!=${__count}', a = a)
                 targets[i] <<= nm.msetstr(a = 'fld', v = fld)
+                targets[i] <<= nm.mnjoin(k = f'{k},fld', f = '__count', m = self.all_msums)
+                targets[i] <<= nm.mcal(c = '${__ddcnt}!=${__count}', a = a)
                 targets[i] <<= nm.mcut(f = f'{k},fld,{a}')
 
             subcmd_o <<= nm.m2cat(i = targets)
@@ -599,12 +598,14 @@ class GroupBy2Command(Command):
             k = kwargs.get('k')
             
             # fs = f.split(',')
+            subcmd_o = None
+            # subcmd <<= nm.msummary(k = k, f = f, c = 'var:__var,sd:__sd')
+            condition = [f'($s{{fld}}=="{fld}")' for fld in f.split(',')]
+            subcmd_o <<= nm.msel(i = self.all_msums, c = '||'.join(condition))
+            subcmd_o <<= nm.mcal(c = '${__var}>${__sd}', a = a)
+            subcmd_o <<= nm.mcut(f = f'{k},fld,{a}')
 
-            subcmd <<= nm.msummary(k = k, f = f, c = 'var:__var,sd:__sd')
-            subcmd <<= nm.mcal(c = '${__var}>${__sd}', a = a)
-            subcmd <<= nm.mcut(f = f'{k},fld,{a}')
-
-            return subcmd
+            return subcmd_o
 
         except Exception as e:
             import traceback
@@ -722,8 +723,10 @@ class GroupBy2Command(Command):
             
             meancalc = None
 
-            meancalc <<= nm.msummary(i = subcmd, k = k, f = f, c = '__mean',
-                                    precision = precision)
+            # meancalc <<= nm.msummary(i = subcmd, k = k, f = f, c = '__mean',
+            #                         precision = precision)
+            condition = [f'($s{{fld}}=="{fld}")' for fld in f.split(',')]
+            meancalc <<= nm.msel(i = self.all_msums, c = '||'.join(condition))
             meancalc <<= nm.m2cross(f = '__mean', a = 'type,value', k = k + ',fld')
             meancalc <<= nm.mcal(a = 'colnames', c = '$s{fld}+"_mean"',
                                 precision = precision)
@@ -760,8 +763,8 @@ class GroupBy2Command(Command):
             
             meancalc = None
 
-            meancalc <<= nm.msummary(i = subcmd, k = k, f = f, c = '__median',
-                                    precision = precision)
+            condition = [f'($s{{fld}}=="{fld}")' for fld in f.split(',')]
+            meancalc <<= nm.msel(i = self.all_msums, c = '||'.join(condition))
             meancalc <<= nm.m2cross(f = '__median', a = 'type,value', k = k + ',fld')
             meancalc <<= nm.mcal(a = 'colnames', c = '$s{fld}+"_median"',
                                 precision = precision)
@@ -933,14 +936,10 @@ class GroupBy2Command(Command):
 
             subcmd_o = None
 
-            for i, fld in enumerate(fs):
-                targets[i] <<= nm.msummary(k = k, f = fld, i = subcmd, a = '__tmp',
-                                           c = 'count:__count,ucount:__ucount')
-                targets[i] <<= nm.mcal(c = '${__ucount}/${__count}', a = a)
-                targets[i] <<= nm.msetstr(a = 'fld', v = fld)
-                targets[i] <<= nm.mcut(f = f'{k},fld,{a}')
-
-            subcmd_o <<= nm.m2cat(i = targets)
+            condition = [f'($s{{fld}}=="{fld}")' for fld in f.split(',')]
+            subcmd_o <<= nm.msel(i = self.all_msums, c = '||'.join(condition))
+            subcmd_o <<= nm.mcal(c = '${__ucount}/${__count}', a = a)
+            subcmd_o <<= nm.mcut(f = f'{k},fld,{a}')
 
             return subcmd_o
 
@@ -957,22 +956,20 @@ class GroupBy2Command(Command):
 
             fs = f.split(',')
             targets = [None] * len(fs)
-            msummary = [None] * len(fs)
+            msumres = None
 
             subcmd_o = None
 
+            condition = [f'($s{{fld}}=="{fld}")' for fld in f.split(',')]
+            msumres <<= nm.msel(i = self.all_msums, c = '||'.join(condition))
+
+            subcmd <<= nm.mnjoin(k = k, f = 'fld,__mean', m = msumres)
+
             for i, fld in enumerate(fs):
-                msummary[i] <<= nm.msummary(i = subcmd, k = k, f = fld, 
-                                            c = 'mean:__mean')
-
-                targets[i] <<= nm.mjoin(i = subcmd, m = msummary[i], k = k, 
-                                        f = '__mean')
-                targets[i] <<= nm.mcal(c = f'${{{fld}}}>${{__mean}}', a = a)
-                targets[i] <<= nm.msum(k = k, f = a)
-                targets[i] <<= nm.msetstr(a = 'fld', v = fld)
-                targets[i] <<= nm.mcut(f = f'{k},fld,{a}')
-
-            subcmd_o <<= nm.m2cat(i = targets)
+                targets[i] <<= nm.mcal(i = subcmd, c = f'${{{fld}}}>${{__mean}}', a = a, o = 'countabovemean.csv')
+                targets[i] <<= nm.msum(k = f'{k},fld', f = a)
+                
+            subcmd_o <<= nm.mcut(i = targets, f = f'{k},fld,{a}')
 
             return subcmd_o
 
@@ -989,22 +986,20 @@ class GroupBy2Command(Command):
 
             fs = f.split(',')
             targets = [None] * len(fs)
-            msummary = [None] * len(fs)
+            msumres = None
 
             subcmd_o = None
 
+            condition = [f'($s{{fld}}=="{fld}")' for fld in f.split(',')]
+            msumres <<= nm.msel(i = self.all_msums, c = '||'.join(condition))
+
+            subcmd <<= nm.mnjoin(k = k, f = 'fld,__mean', m = msumres)
+
             for i, fld in enumerate(fs):
-                msummary[i] <<= nm.msummary(i = subcmd, k = k, f = fld, 
-                                            c = 'mean:__mean')
-
-                targets[i] <<= nm.mjoin(i = subcmd, m = msummary[i], k = k, 
-                                        f = '__mean')
-                targets[i] <<= nm.mcal(c = f'${{{fld}}}<${{__mean}}', a = a)
-                targets[i] <<= nm.msum(k = k, f = a)
-                targets[i] <<= nm.msetstr(a = 'fld', v = fld)
-                targets[i] <<= nm.mcut(f = f'{k},fld,{a}')
-
-            subcmd_o <<= nm.m2cat(i = targets)
+                targets[i] <<= nm.mcal(i = subcmd, c = f'${{{fld}}}<${{__mean}}', a = a, o = 'countbelowmean.csv')
+                targets[i] <<= nm.msum(k = f'{k},fld', f = a)
+                
+            subcmd_o <<= nm.mcut(i = targets, f = f'{k},fld,{a}')
 
             return subcmd_o
 
@@ -2439,7 +2434,6 @@ class GroupBy2Command(Command):
         ]
 
         dependencies = {
-            'miss' : ['count'], 
             'has_dup' : ['count'], 
             'var_gt_sd' : ['var','sd'],
             'mean_ad' : ['mean'], 
@@ -2513,14 +2507,19 @@ class GroupBy2Command(Command):
 
                 for i,c in enumerate(cs):
                     if ':' in c:
-                        final_fs.append(c.split(':')[-1])
+                        cleft, cright = c.split(':')
+                        final_fs.append(cright)
                     elif c:
-                        final_fs.append(c)
+                        cleft = c
+                        final_fs.append(cleft)
                     
-                    if c.split(':')[0] in msummaryoptions:
+                    if cleft in msummaryoptions:
                         cs_msummary.append(cs[i])
-                    elif c:
+                    elif cleft:
                         cs_custom_nysol.append(cs[i])
+
+                        if cleft in dependencies:
+                            msum_prereqs.update(dependencies[cleft])
 
                 if cs_msummary:
                     calclist.append({'c': ','.join(cs_msummary), 
@@ -2549,7 +2548,13 @@ class GroupBy2Command(Command):
         cmd = [None] * len(calclist)
         cmd_o = None
 
+
         cmd_i <<= nm.mread(inputs)
+
+        self.all_msums = None
+        premsums = [f'{f}:__{f}' for f in msum_prereqs]
+        self.all_msums <<= nm.msummary(i = cmd_i, k = k, f = all_fs, 
+                            c = premsums, precision = prec)
         # take the wanted columns only (the key columns and the value columns)
         # generate string of columns to cut
 
