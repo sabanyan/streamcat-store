@@ -193,11 +193,15 @@ class DbLoaderCommand(SCommand):
             raise Exception('DB接続の取得元テーブル名が必要です')
         table_name = args['table_name']
 
+        activity_uuid_kskp = None
+        if 'activity_uuid_kskp' in args:
+            activity_uuid_kskp = args['activity_uuid_kskp']
+
         # DBへの接続URIを作成する
         db_uri = database.conn.get_database_uri()
 
         # SQL文を作成する
-        sql = DbLoaderCommand._make_sql(schema_name, table_name)
+        sql = DbLoaderCommand._make_sql(schema_name, table_name, activity_uuid_kskp)
 
         # runfunc()へ渡す関数の定義
         def results_getter(db_uri, dbms, sql):
@@ -240,12 +244,20 @@ class DbLoaderCommand(SCommand):
         return {'o': NysolModule(cmd)}
 
     @staticmethod
-    def _make_sql(schema_name, table_name):
+    def _make_sql(schema_name, table_name, activity_uuid_kskp):
         if schema_name == '':
             schema_and_table_name = table_name
         else:
             schema_and_table_name = schema_name + '.' + table_name
-        return f'SELECT * FROM {schema_and_table_name}'
+
+        sql = f'SELECT * FROM {schema_and_table_name}'
+
+        if activity_uuid_kskp is None:
+            where = ''
+        else:
+            where = f" WHERE activity_uuid_kskp='{activity_uuid_kskp}'"
+
+        return sql + where
 
     @staticmethod
     def _connect_to_db(db_uri):
@@ -373,11 +385,12 @@ class DbSaverCommand(SaverCommand):
 
         # Nysol Pythonのrunfunc関数を作成する
         cmd = inputs['i'].content
+        cmd <<= nm.msetstr(v=args["activity_uuid"], a='activity_uuid_kskp')
         cmd <<= nm.runfunc(bulk_inserter, database=database, schema_name=schema_name, table_name=table_name)
 
         # DataSourceを保存するフォルダを用意する
         flow_label = args['flow_label']
-        start_time = args['start_time']
+        start_time = args['start_time'].astimezone()
         start_time_str1 = start_time.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
         start_time_str2 = start_time.strftime('%Y%m%d.%H%M%S.%f')[:-3]
         result_folder = self.make_folder(folder, flow_label, start_time_str1, start_time_str2)
@@ -431,11 +444,11 @@ class DbSaverCommand(SaverCommand):
 
         column_defs = ''
         if dbms.upper() == 'POSTGRESQL':
-            column_defs = 'id_kskp SERIAL, activity_uuid_kskp UUID'
+            column_defs = 'id_kskp SERIAL'
             for column in csv_columns:
                 column_defs += f',"{column}" TEXT'
         elif dbms.upper() == 'ORACLE':
-            column_defs = 'id_kskp NUMBER GENERATED ALWAYS AS IDENTITY, activity_uuid_kskp CHAR(36)'
+            column_defs = 'id_kskp NUMBER GENERATED ALWAYS AS IDENTITY'
             for column in csv_columns:
                 column_defs += f',"{column}" NVARCHAR2(4000 BYTE)'
         else:
@@ -541,7 +554,7 @@ class DbSaverCommand(SaverCommand):
         from kskp.engine import Step
         from kskp.store.commands import CommandLink
         from kskp.store import DataSource
-        args = {'schema_name':schema_name, 'table_name':table_name, 'activity_uuid':activity_uuid}
+        args = {'schema_name':schema_name, 'table_name':table_name, 'activity_uuid_kskp':activity_uuid}
         loader_step = Step(str(uuid.uuid4()), CommandLink('db_loader').resolve(), args)
         return DataSource(parent_uuid, label, database, loader_step)
 

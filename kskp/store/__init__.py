@@ -99,9 +99,9 @@ from .folder import Folder
 from .awss3 import AwsS3
 from .remote_folder import RemoteFolder
 from .vis import Vis, BokehPlotVis
+from .datasource import DataSource
 from .activity import Activity
 from .database import Database
-from .datasource import DataSource
 from .children_getter import ChildrenGetter
 from .flow_dumper import FlowDumper
 

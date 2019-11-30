@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 
 from . import ss as session
 from kskp.core import Datum
-from kskp.store import Frame
+from kskp.store import Frame, DataSource
 
 class Activity(Datum):
     """
@@ -45,11 +45,8 @@ class Activity(Datum):
         end_time = datetime.utcnow().replace(tzinfo=timezone.utc)
         end_time_str = end_time.astimezone().strftime('%H:%M:%S')
         # 出力フレームのラベルに終了時刻と所要時間を付加する
-        for point, frame in self.result:
-            if type(frame) is not Frame or not Frame.exists(frame.uuid):
-                # Frameが存在しなくてもエラーにはしない
-                continue
-            new_label = frame.label + ' 終了時刻' + end_time_str
+        for point, datum in self.result:
+            new_label = datum.label + ' 終了時刻' + end_time_str
             elapsed_time = (end_time - self.data['start_time']).total_seconds()
             if elapsed_time < 60.0:
                 elapsed_time_str = str(round(elapsed_time))
@@ -57,7 +54,12 @@ class Activity(Datum):
             else:
                 elapsed_time_str = str(round(elapsed_time / 60, 2))
                 new_label = new_label + ' 全体処理時間' + elapsed_time_str + '分'
-            Frame.update_label_only(frame.uuid, new_label, None)
+
+            if type(datum) is Frame and Frame.exists(datum.uuid):
+                # Frameの場合
+                Frame.update_label_only(datum.uuid, new_label, None)
+            elif type(datum) is DataSource:
+                DataSource.update_data(datum.uuid, new_label, datum.flow_data, None)
 
 
 
