@@ -956,17 +956,17 @@ class GroupBy2Command(Command):
 
             fs = f.split(',')
             targets = [None] * len(fs)
-            msumres = None
 
             subcmd_o = None
 
-            condition = [f'($s{{fld}}=="{fld}")' for fld in f.split(',')]
-            msumres <<= nm.msel(i = self.all_msums, c = '||'.join(condition))
+            # condition = [f'($s{{fld}}=="{fld}")' for fld in f.split(',')]
+            # msumres <<= nm.msel(i = self.all_msums, c = '||'.join(condition))
 
-            subcmd <<= nm.mnjoin(k = k, f = 'fld,__mean', m = msumres)
+            subcmd <<= nm.mnjoin(k = k, f = 'fld,__mean', m = self.all_msums)
 
             for i, fld in enumerate(fs):
-                targets[i] <<= nm.mcal(i = subcmd, c = f'${{{fld}}}>${{__mean}}', a = a, o = 'countabovemean.csv')
+                targets[i] <<= nm.msel(i = subcmd, c = f'$s{{fld}}=="{fld}"')
+                targets[i] <<= nm.mcal(c = f'${{{fld}}}>${{__mean}}', a = a)
                 targets[i] <<= nm.msum(k = f'{k},fld', f = a)
                 
             subcmd_o <<= nm.mcut(i = targets, f = f'{k},fld,{a}')
@@ -986,17 +986,15 @@ class GroupBy2Command(Command):
 
             fs = f.split(',')
             targets = [None] * len(fs)
-            msumres = None
 
             subcmd_o = None
 
-            condition = [f'($s{{fld}}=="{fld}")' for fld in f.split(',')]
-            msumres <<= nm.msel(i = self.all_msums, c = '||'.join(condition))
 
-            subcmd <<= nm.mnjoin(k = k, f = 'fld,__mean', m = msumres)
+            subcmd <<= nm.mnjoin(k = k, f = 'fld,__mean', m = self.all_msums)
 
             for i, fld in enumerate(fs):
-                targets[i] <<= nm.mcal(i = subcmd, c = f'${{{fld}}}<${{__mean}}', a = a, o = 'countbelowmean.csv')
+                targets[i] <<= nm.msel(i = subcmd, c = f'$s{{fld}}=="{fld}"')
+                targets[i] <<= nm.mcal(c = f'${{{fld}}}<${{__mean}}', a = a)
                 targets[i] <<= nm.msum(k = f'{k},fld', f = a)
                 
             subcmd_o <<= nm.mcut(i = targets, f = f'{k},fld,{a}')
@@ -1015,8 +1013,14 @@ class GroupBy2Command(Command):
             k = kwargs.get('k')
             n = kwargs.get('n')
 
-            subcmd <<= nm.msummary(f = f, k = k, 
-                        c = 'mean:__mean,median:__median,max:__max,min:__min')
+            msumres = None
+            condition = [f'($s{{fld}}=="{fld}")' for fld in f.split(',')]
+            msumres <<= nm.msel(i = self.all_msums, c = '||'.join(condition))
+
+            subcmd <<= nm.mnjoin(k = k, f = 'fld,__mean,__median,__max,__min',
+                                 m = msumres)
+            # subcmd <<= nm.msummary(f = f, k = k, 
+            #             c = 'mean:__mean,median:__median,max:__max,min:__min')
             subcmd <<= nm.mcal(c = '${__max}-${__min}',
                                a = 'max_min')
             subcmd <<= nm.mcal(c = 'abs(${__mean}-${__median})',
@@ -1040,8 +1044,14 @@ class GroupBy2Command(Command):
             k = kwargs.get('k')
             n = kwargs.get('n')
 
-            subcmd <<= nm.msummary(f = f, k = k, 
-                        c = 'sd:__sd,max:__max,min:__min')
+            msumres = None
+            condition = [f'($s{{fld}}=="{fld}")' for fld in f.split(',')]
+            msumres <<= nm.msel(i = self.all_msums, c = '||'.join(condition))
+
+            subcmd <<= nm.mnjoin(k = k, f = 'fld,__sd,__max,__min',
+                                 m = msumres)
+            # subcmd <<= nm.msummary(f = f, k = k, 
+            #             c = 'sd:__sd,max:__max,min:__min')
             subcmd <<= nm.mcal(c = '${__max}-${__min}', a = '__diff')
             subcmd <<= nm.mcal(c = f'${{__sd}}>${{__diff}}*{n}', 
                                a = f'{a}_{n}')
@@ -1106,12 +1116,9 @@ class GroupBy2Command(Command):
 
             fs = f.split(',')
             targets = [None] * len(fs)
-            msummary = None
             subcmd_o = None
 
-            msummary <<= nm.msummary(f = f, c = 'mean:__mean,sd:__sd,count:__count',
-                                     k = k, i = subcmd)
-            subcmd <<= nm.mnjoin(k = k, m = msummary, f = 'fld,__mean,__sd,__count')
+            subcmd <<= nm.mnjoin(k = k, m = self.all_msums, f = 'fld,__mean,__sd,__count')
 
             for i, fld in enumerate(fs):
                 targets[i] <<= nm.msel(c = f'$s{{fld}}=="{fld}"', i = subcmd)
@@ -1143,8 +1150,14 @@ class GroupBy2Command(Command):
             tcalcs = None
             subcmd_o = None
 
-            tcalcs <<= nm.msummary(f = f, c = 'count:__count',
-                                     k = k, i = subcmd)
+            # tcalcs <<= nm.msummary(f = f, c = 'count:__count',
+            #                          k = k, i = subcmd)
+            msumres = None
+            condition = [f'($s{{fld}}=="{fld}")' for fld in f.split(',')]
+            msumres <<= nm.msel(i = self.all_msums, c = '||'.join(condition))
+
+            tcalcs <<= nm.mnjoin(i = subcmd, k = k, f = 'fld,__count',
+                                 m = msumres)
             tcalcs <<= nm.msetstr(a = '__qtRate', v = n)
             tcalcs <<= nm.mcal(a = '__T', c = '1-${__qtRate}+${__count}*${__qtRate}')
             tcalcs <<= nm.mcal(a = '__T1', c = 'int(${__T})')
@@ -1159,9 +1172,11 @@ class GroupBy2Command(Command):
                                         f = f'{fld}:__{fld}X1', m = precalcs[i])
                 targets[i] <<= nm.mjoin(k = f'{k},__T2', K = f'{k},__qtNo',
                                         f = f'{fld}:__{fld}X2', m = precalcs[i])
+                targets[i] <<= nm.msel(c = f'$s{{fld}}=="{fld}"')
                 targets[i] <<= nm.mcal(a = f'{a}_{n}', c = f'if(${{__T1}}==${{__T2}},${{__{fld}X1}},(${{__T2}}-${{__T}})*${{__{fld}X1}}+(${{__T}}-${{__T1}})*${{__{fld}X2}})')
+                targets[i] <<= nm.mcut(f = f'{k},fld,{a}_{n}')
 
-            subcmd_o <<= nm.mcut(f = f'{k},fld,{a}_{n}', i = targets)
+            subcmd_o <<= nm.m2cat(i = targets)
 
             return subcmd_o
 
