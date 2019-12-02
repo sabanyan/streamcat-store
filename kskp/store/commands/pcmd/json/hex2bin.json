@@ -1,9 +1,6 @@
 {
   "id": "hex2bin",
   "rules" : {
-    "file_path" : {
-      "presence": {"allowEmpty": false}
-    },
     "hex": {
       "presence": {"allowEmpty": false},
       "checkSeveralSpecifiedFormats" : {
@@ -11,7 +8,7 @@
           "pattern" : "^[^,]+$|^$",
           "message" : "1項目のみ入力してください"
         }
-      }
+    }
     },
     "f" : {
       "presence": {"allowEmpty": false},
@@ -24,11 +21,6 @@
     }
   },
   "params": [
-    {
-      "name": "file_path",
-      "type": "string",
-      "label": "バイナリ項目名取得パス"
-    },  
     {
       "name": "hex",
       "type": "string",
@@ -51,6 +43,10 @@
       {
         "name": "i",
         "type": "frame"
+      },
+      {
+        "name": "m",
+        "type": "frame"
       }
     ],
     [
@@ -63,6 +59,6 @@
   "version": "0.3.0",
   "label": "項目名による16進数ビット列抽出",
   "classification": "value_transform",
-  "description": "16進数項目をビット列に変換し、mの項目名と照合して、指定列を抽出する。（異常値はNullに置換される。）",
+  "description": "2_16進数項目をビット列に変換し、mの項目名と照合して、指定列を抽出する。（異常値はNullに置換される。）",
   "url": ""
 }
