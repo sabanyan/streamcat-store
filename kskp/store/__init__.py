@@ -91,6 +91,7 @@ from .store import Store, FrameStore, NysolModule, ModuleStore
 from .database_conn import DatabaseConn
 from .remote_folder_conn import RemoteFolderConn
 from .mountable import Mountable
+from .lock_manager import LockManager, LockedDatumException
 from .frame import Frame, Cache
 from .flow import Flow
 from .folder import Folder
@@ -98,6 +99,7 @@ from .awss3 import AwsS3
 from .remote_folder import RemoteFolder
 from .database import Database
 from .children_getter import ChildrenGetter
+from .flow_dumper import FlowDumper
 
 from .library import Library
 from .store_model import Store as StoreModel
@@ -114,10 +116,10 @@ sql1 = """
 ALTER TABLE data 
 ADD COLUMN label VARCHAR;
 """
-try:
-    engine.execute(sql1)
-except Exception as e:
-    pass
+#try:
+#    engine.execute(sql)
+#except Exception as e:
+#    pass
 
 from sqlalchemy import event, DDL
 
