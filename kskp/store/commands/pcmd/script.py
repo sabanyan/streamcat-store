@@ -2110,21 +2110,21 @@ class GroupBy2Command(Command):
                 mcal[i] <<= nm.mcal(c = f'abs(${{{fld}}})', a = f'__abs{fld}', 
                                     i = subcmd)
                 msum[i] <<= mcal[i].msum(k = k, f = f'__abs{fld}')
-                msummary[i] <<= nm.msummary(k = k, f = fld, i = subcmd,
-                                            c = 'count:__count')
+
+                msummary[i] <<= nm.msel(i = self.all_msums, 
+                                        c = f'$s{{fld}}=="{fld}"')
 
                 targets[i] <<= nm.maccum(k = k, s = x, f = f'__abs{fld}:__abs{fld}_a',
                                          i = mcal[i])
                 targets[i] <<= nm.mjoin(k = k, f = f'__abs{fld}:__abs{fld}_ttl',
                                         m = msum[i])
-                targets[i] <<= nm.mjoin(k = k, f = f'__count', m = msummary[i])
+                targets[i] <<= nm.mjoin(k = k, f = f'fld,__count', m = msummary[i])
                 targets[i] <<= nm.mcal(c = f'(${{__abs{fld}_a}}/${{__abs{fld}_ttl}})>={float(n):.3g}',
                                        a = '__mc')
                 targets[i] <<= nm.mbest(k = k, s = f'__mc%nr,{x}%n', size = 1)
                 targets[i] <<= nm.mcal(c = f'(${{{x}}} + 1)/${{__count}}', a = f'{a}_{n}',
                                        precision = precision)
 
-                targets[i] <<= nm.msetstr(a = 'fld', v = fld)
                 targets[i] <<= nm.mcut(f = f'{k},fld,{a}_{n}')
 
             subcmd_o <<= nm.m2cat(i = targets)
@@ -2248,11 +2248,11 @@ class GroupBy2Command(Command):
                     targets[i] <<= nm.msetstr(v = fld, a = 'fld') 
                     targets[i] <<= nm.msetstr(v = 1, a = a)
                 else:
-                    msummary[i] <<= nm.msummary(i = subcmd, k = k, f = fld,
-                            c = 'mean:__mean,var:__var,count:__count')
+                    msummary[i] <<= nm.msel(i = self.all_msums, 
+                                        c = f'$s{{fld}}=="{fld}"')
 
                     targets[i] <<= nm.mjoin(i = subcmd, m = msummary[i], k = k,
-                            f = '__mean,__var,__count')
+                            f = 'fld,__mean,__var,__count')
 
                     targets[i] <<= nm.mslide(k = k, s = 'uxt', t = n, l = True, 
                                             f = f'{fld}:__{fld}_L')
@@ -2260,7 +2260,6 @@ class GroupBy2Command(Command):
                                            a = f'__{fld}_m')
                     targets[i] <<= nm.msum(k = k, f = f'__{fld}_m')
                     targets[i] <<= nm.msetstr(a = '__lag', v = n)
-                    targets[i] <<= nm.msetstr(a = 'fld', v = fld)
                     targets[i] <<= nm.mcal(a = f'{a}_{n}', precision = precision,
                         c = f'${{__{fld}_m}}/(${{__count}}-${{__lag}})/${{__var}}')
 
