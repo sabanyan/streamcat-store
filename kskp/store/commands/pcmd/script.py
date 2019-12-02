@@ -404,12 +404,11 @@ class GroupBy2Command(Command):
             for i, fld in enumerate(fs):
 
                 total[i] <<= nm.mcount(k = f'{k},{fld}', a = '__dcnt', i = subcmd)
-                # count[i] <<= nm.msummary(k = k, f = fld, c = 'count:__count',
-                #                             i = subcmd)
 
                 targets[i] <<= nm.mcount(k = k, a = '__ddcnt', i = total[i])
                 targets[i] <<= nm.msetstr(a = 'fld', v = fld)
-                targets[i] <<= nm.mnjoin(k = f'{k},fld', f = '__count', m = self.all_msums)
+                targets[i] <<= nm.mnjoin(k = f'{k},fld', f = '__count', 
+                                         m = self.all_msums)
                 targets[i] <<= nm.mcal(c = '${__ddcnt}!=${__count}', a = a)
                 targets[i] <<= nm.mcut(f = f'{k},fld,{a}')
 
@@ -701,9 +700,9 @@ class GroupBy2Command(Command):
             fs = f.split(',')
 
             for fld in fs:
-                subcmd <<= nm.mcal(c = f'${{{fld}}}*${{{fld}}}', a = f'__tmp{fld}__')
+                subcmd <<= nm.mcal(c = f'${{{fld}}}*${{{fld}}}', a = f'__tmp{fld}')
                 subcmd <<= nm.mcut(f = fld, r = True)
-                subcmd <<= nm.mfldname(f = f'__tmp{fld}__:{fld}')
+                subcmd <<= nm.mfldname(f = f'__tmp{fld}:{fld}')
             
             subcmd <<= nm.msummary(k = k, c = f'sum:{a}', f = f, precision = precision)
 
@@ -1318,7 +1317,7 @@ class GroupBy2Command(Command):
             import traceback
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
-        
+
     def meanfrequency(self, **kwargs):
         # body of this method adapted from:
         # github.com/nysol/nysol_python/blob/master/scripts/sample/mkfeature.py
@@ -1981,12 +1980,12 @@ class GroupBy2Command(Command):
             # fix time column
             subcmd = self.fixtimecolumn(subcmd, x, dateformat)
 
-            condition = [f'($s{{fld}}=="{fld}")' for fld in f.split(',')]
+            condition = [f'($s{{fld}}=="{fld}")' for fld in fs]
             msummary <<= nm.msel(i = self.all_msums, c = '||'.join(condition))
 
             for i, fld in enumerate(fs):
 
-                targets[i] <<= nm.mjoin(i = subcmd, m = msummary, k = k, 
+                targets[i] <<= nm.mnjoin(i = subcmd, m = msummary, k = k, 
                                         f = 'fld,__mean')
                 targets[i] <<= nm.msel(c = f'$s{{fld}}=="{fld}"')
 
@@ -2024,11 +2023,11 @@ class GroupBy2Command(Command):
             # fix time column
             subcmd = self.fixtimecolumn(subcmd, x, dateformat)
             
-            condition = [f'($s{{fld}}=="{fld}")' for fld in f.split(',')]
-            msummary <<= nm.msel(i = self.all_msums, c = '||'.join(condition))
+            condition = [f'($s{{fld}}=="{fld}")' for fld in fs]
+            msummary <<= nm.msel(i = self.all_msums, c = '||'.join(condition), o = 'takingmsum.csv')
 
             for i, fld in enumerate(fs):
-                targets[i] <<= nm.mjoin(i = subcmd, m = msummary, k = k, 
+                targets[i] <<= nm.mnjoin(i = subcmd, m = msummary, k = k, 
                                         f = 'fld,__mean')
                 targets[i] <<= nm.msel(c = f'$s{{fld}}=="{fld}"')
 
@@ -2451,7 +2450,17 @@ class GroupBy2Command(Command):
             'fft_agg'
         ]
 
-        dependencies = {
+        grouped_calcs = {
+            'linregress': [
+                'linregress_slope',
+                'linregress_intercept',
+                'linregress_pvalue',
+                'linregress_rvalue',
+                'linregress_stderr'
+            ]
+        }
+
+        msum_dependencies = {
             'has_dup' : ['count'], 
             'var_gt_sd' : ['var','sd'],
             'mean_ad' : ['mean'], 
@@ -2486,10 +2495,10 @@ class GroupBy2Command(Command):
         final_fs = []
         
         allargs = (args.get('clist') + 
-                  args.get('fclist') +
-                  args.get('nfclist') +
-                  args.get('xfclist') + 
-                  args.get('xfcnlist'))
+                   args.get('fclist') +
+                   args.get('nfclist') +
+                   args.get('xfclist') + 
+                   args.get('xfcnlist'))
 
         # parse inputs into list-of-dictionaries form
         for arglist in allargs:
@@ -2518,6 +2527,7 @@ class GroupBy2Command(Command):
                 cs = arglist.pop('c').split(',')
                 cs_msummary = []
                 cs_custom_nysol = []
+                cs_grouped = []
 
                 for i,c in enumerate(cs):
                     if ':' in c:
@@ -2529,11 +2539,13 @@ class GroupBy2Command(Command):
                     
                     if cleft in msummaryoptions:
                         cs_msummary.append(cs[i])
+                    if cleft in (x for y in grouped_calcs.values() for x in y):
+                        cs_grouped.append(cs[i])
                     elif cleft:
                         cs_custom_nysol.append(cs[i])
 
-                        if cleft in dependencies:
-                            msum_prereqs.update(dependencies[cleft])
+                        if cleft in msum_dependencies:
+                            msum_prereqs.update(msum_dependencies[cleft])
 
                 if cs_msummary:
                     calclist.append({'c': ','.join(cs_msummary), 
@@ -2555,6 +2567,17 @@ class GroupBy2Command(Command):
                         calclist.append({'c': calc, 
                                     'optype' : 'custom',
                                     **arglist})
+                
+                for calc in cs_grouped:
+                    for group in grouped_calcs:
+                        if ns:
+                            for n in ns:
+                                # construct dict 
+                                pass
+                        else:
+                            # construct dict
+                            pass
+
 
         # sys.__stderr__.write(repr(calclist))
 
@@ -3021,6 +3044,7 @@ class MvSimCommand(Command):
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
+
 
 class PlainText2Csv(Command):
     def __init__(self):
