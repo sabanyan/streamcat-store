@@ -21,61 +21,102 @@
   ],
   "params": [
     {
+      "name": "x_axis",
+      "type": "list",
+      "elements": [
+        {
+          "name"  :"column",
+          "type"  :"column",
+          "label" :"横軸列：時間軸"
+        },
+        {
+          "name"  :"label",
+          "type"  :"string",
+          "label" :"横軸名"
+        }
+      ],
+      "default":[{"column":null, "label":""}],
+      "options":{
+        "visiable_button_add"  : false,
+        "visiable_button_delete": false,
+        "draggable" : false
+      }
+    },
+    {
+      "name": "y_axis",
+      "type": "list",
+      "elements": [
+        {
+          "name"  :"column",
+          "type"  :"column",
+          "label" :"縦軸列：データ"
+        },
+        {
+          "name"  :"label",
+          "type"  :"string",
+          "label" :"縦軸名"
+        }
+      ],
+      "default":[{"column":null, "label":""}],
+      "options":{
+        "visiable_button_add"  : false,
+        "visiable_button_delete": false,
+        "draggable" : false
+      }
+    },
+    {
       "name": "data_column",
       "type": "column",
       "options":{
         "multiple": true
       },
-      "label": "キー項目列名"
-    },
-    {
-      "name": "time_series_column",
-      "type": "column",
-      "options":{
-        "multiple": false
-      },
-      "label": "時系列データ列"
-    },
-    {
-      "name": "y_axis_column",
-      "type": "column",
-      "options":{
-        "multiple": false
-      },
-      "label": "データ列"
+      "label": "データ系列",
+      "default": []
     },
     {
       "name": "offset",
       "type": "number",
-      "label": "ビジュアライズを行う開始行"
+      "label": "表示の開始（１始まりの行番号）"
     },
     {
       "name": "limit",
       "type": "number",
-      "label": "ビジュアライズ対象のデータ数",
+      "label": "表示の件数",
+      "default": 100
+    },
+    {
+      "name": "width",
+      "type": "number",
+      "label": "横軸（ドット）",
       "default": 1000
     },
     {
-      "name": "x_size",
+      "name": "height",
       "type": "number",
-      "label": "ビジュアライズの横サイズ",
-      "default": 1000
-    },
-    {
-      "name": "y_size",
-      "type": "number",
-      "label": "ビジュアライズの縦サイズ",
+      "label": "縦軸（ドット）",
       "default": 600
+    }
+  ],
+  "groups": [
+    {
+      "name": "axis_group",
+      "label": "軸の設定",
+      "params": ["x_axis","y_axis"]
     },
     {
-      "name": "x_label",
-      "type": "string",
-      "label": "x軸のラベル"
+      "name": "data_group",
+      "label": "データ系列の設定",
+      "params": ["data_column"]
     },
     {
-      "name": "y_label",
-      "type": "string",
-      "label": "y軸のラベル"
+      "name": "offset_group",
+      "label": "データ表示範囲の設定",
+      "params": ["offset","limit"]
+    },
+    {
+      "name": "graph_size",
+      "label": "グラフサイズの設定",
+      "params": ["width","height"]
     }
   ],
   "url": ""
