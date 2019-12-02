@@ -10,9 +10,9 @@ CACHE_FOLDER_LABEL  = 'キャッシュ'
 
 # フローがDBに保存されるようになるまでは下記のパスをstoreが持っておく
 STORE_DIR = Path(__file__).parent.parent / 'depo'
-FLOW_PATH = (STORE_DIR / 'flows/json').as_posix()
-if not os.path.exists(FLOW_PATH):
-    os.makedirs(FLOW_PATH)
+# FLOW_PATH = (STORE_DIR / 'flows/json').as_posix()
+# if not os.path.exists(FLOW_PATH):
+#     os.makedirs(FLOW_PATH)
 
 def _is_unittest():
     # python3 -m unittestで実行した場合は、is_unittest=Trueとなる
