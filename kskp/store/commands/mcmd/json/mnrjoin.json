@@ -149,7 +149,7 @@
     {
       "name": "K",
       "type": "string",
-      "label": "参照データの結合キー名",
+      "label": "入力m  のキー項目名",
       "description": "●入力i の指定項目と、1対1に対応させて指定",
       "optional": true
     },
