@@ -2262,8 +2262,9 @@ class GroupBy2Command(Command):
                     targets[i] <<= nm.msetstr(a = '__lag', v = n)
                     targets[i] <<= nm.mcal(a = f'{a}_{n}', precision = precision,
                         c = f'${{__{fld}_m}}/(${{__count}}-${{__lag}})/${{__var}}')
+                    targets[i] <<= nm.mcut(f = f'{k},fld,{a}_{n}')
 
-            subcmd_o <<= nm.mcut(i = targets, f = f'{k},fld,{a}_{n}')
+            subcmd_o <<= nm.m2cat(i = targets)
 
             return subcmd_o
 
