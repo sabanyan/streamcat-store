@@ -1197,9 +1197,9 @@ class GroupBy2Command(Command):
             msummary = None
             subcmd_o = None
 
-
-            msummary <<= nm.msummary(i = subcmd, f = f, k = k, 
-                                     c = 'count:__count')
+            # msummary <<= nm.mcut(i = self.all_msums, f = f'{k},fld,__count')
+            condition = [f'($s{{fld}}=="{fld}")' for fld in f.split(',')]
+            msummary <<= nm.msel(i = self.all_msums, c = '||'.join(condition))
 
             subcmd <<= nm.mbucket(k = k, f = [f'{fld}:__{fld}_no' for fld in fs],
                                   n = n, rng = True)
@@ -1241,8 +1241,10 @@ class GroupBy2Command(Command):
             abs_energy = None
             subcmd_o = None
 
-            msummary <<= nm.msummary(i = subcmd, f = f, k = k, 
-                                     c = 'count:__count,sd:__sd')
+            # msummary <<= nm.msummary(i = subcmd, f = f, k = k, 
+            #                          c = 'count:__count,sd:__sd')
+            condition = [f'($s{{fld}}=="{fld}")' for fld in f.split(',')]
+            msummary <<= nm.msel(i = self.all_msums, c = '||'.join(condition))
 
             abs_energy = self.abs_energy(subcmd, f = f, k = k, a = '__sqsum')
 
@@ -1972,26 +1974,27 @@ class GroupBy2Command(Command):
 
             fs = f.split(',')
             targets = [None] * len(fs)
-            msummary = [None] * len(fs)
+            msummary = None
 
             subcmd_o = None
 
             # fix time column
             subcmd = self.fixtimecolumn(subcmd, x, dateformat)
 
-            for i, fld in enumerate(fs):
-                msummary[i] <<= nm.msummary(i = subcmd, k = k, f = fld, 
-                                            c = 'mean:__mean')
+            condition = [f'($s{{fld}}=="{fld}")' for fld in f.split(',')]
+            msummary <<= nm.msel(i = self.all_msums, c = '||'.join(condition))
 
-                targets[i] <<= nm.mjoin(i = subcmd, m = msummary[i], k = k, 
-                                        f = '__mean')
+            for i, fld in enumerate(fs):
+
+                targets[i] <<= nm.mjoin(i = subcmd, m = msummary, k = k, 
+                                        f = 'fld,__mean')
+                targets[i] <<= nm.msel(c = f'$s{{fld}}=="{fld}"')
 
                 targets[i] <<= nm.msortf(f = f'{k},uxt')
                 targets[i] <<= nm.mcal(c = f'${{__mean}}<=${{{fld}}}', a = '__above')
                 targets[i] <<= nm.mcount(q = True, k = f'{k},__above', a = '__a_count')
                 targets[i] <<= nm.mbest(k = k, s = '__above%nr,__a_count%nr', size = 1)
                 targets[i] <<= nm.mcal(c = 'if(${__above}==0,0,${__a_count})', a = a)
-                targets[i] <<= nm.msetstr(a = 'fld', v = fld)
                 targets[i] <<= nm.mcut(f = f'{k},fld,{a}')
 
             subcmd_o <<= nm.m2cat(i = targets)
@@ -2014,26 +2017,26 @@ class GroupBy2Command(Command):
 
             fs = f.split(',')
             targets = [None] * len(fs)
-            msummary = [None] * len(fs)
+            msummary = None
 
             subcmd_o = None
 
             # fix time column
             subcmd = self.fixtimecolumn(subcmd, x, dateformat)
+            
+            condition = [f'($s{{fld}}=="{fld}")' for fld in f.split(',')]
+            msummary <<= nm.msel(i = self.all_msums, c = '||'.join(condition))
 
             for i, fld in enumerate(fs):
-                msummary[i] <<= nm.msummary(i = subcmd, k = k, f = fld, 
-                                            c = 'mean:__mean')
-
-                targets[i] <<= nm.mjoin(i = subcmd, m = msummary[i], k = k, 
-                                        f = '__mean')
+                targets[i] <<= nm.mjoin(i = subcmd, m = msummary, k = k, 
+                                        f = 'fld,__mean')
+                targets[i] <<= nm.msel(c = f'$s{{fld}}=="{fld}"')
 
                 targets[i] <<= nm.msortf(f = f'{k},uxt')
                 targets[i] <<= nm.mcal(c = f'${{__mean}}<=${{{fld}}}', a = '__below')
                 targets[i] <<= nm.mcount(q = True, k = f'{k},__below', a = '__b_count')
                 targets[i] <<= nm.mbest(k = k, s = '__below%nr,__b_count%nr', size = 1)
                 targets[i] <<= nm.mcal(c = 'if(${__below}==0,0,${__b_count})', a = a)
-                targets[i] <<= nm.msetstr(a = 'fld', v = fld)
                 targets[i] <<= nm.mcut(f = f'{k},fld,{a}')
 
             subcmd_o <<= nm.m2cat(i = targets)
@@ -2462,10 +2465,6 @@ class GroupBy2Command(Command):
             'quantile' : ['count'],
             'binned_entropy' : ['count'],
             'energy_ratio_by_chunks': ['count','sd'],
-            'firstmin' : ['min', 'range'],
-            'firstmax' : ['min', 'range'],
-            'lastmin' : ['min', 'range'],
-            'lastmax' : ['min', 'range'],
             'longest_strike_above_mean' : ['mean'],
             'longest_strike_below_mean' : ['mean'],
             'imq' : ['count'],
