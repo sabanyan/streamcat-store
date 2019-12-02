@@ -104,9 +104,9 @@ from .flow_dumper import FlowDumper
 from .library import Library
 from .store_model import Store as StoreModel
 from .flows import FlowLink
-from .commands import CommandLink, CommandsPathLink, CommandsPathFileSource, RunfuncCommand
-from .model import *
 
+from ..depo.commands import CommandLink, CommandsPathLink, CommandsPathFileSource, RunfuncCommand
+from .model import *
 
 # テーブルを作成する
 BaseModel.metadata.create_all(bind=engine, checkfirst=True)

@@ -22,7 +22,7 @@ class CommandLink:
         from kskp.engine.tests.square_command import Square
 
         # runfunc用の関数のimport
-        from kskp.store.commands.pcmd.src import (
+        from kskp.depo.commands.pcmd.src import (
             hex2bin
         )
 
