@@ -1540,6 +1540,10 @@ class GroupBy2Command(Command):
             a = kwargs.get('a')
             x = kwargs.get('x')
             k = kwargs.get('k')
+            
+            flags = kwargs.get('flags')
+            finalcols = [a[flag] for flag in flags]
+
             precision = kwargs.get('precision')
             
             dateformat = kwargs.pop('dateformat')
@@ -1570,54 +1574,53 @@ class GroupBy2Command(Command):
                 targets[i] <<= nm.mjoin(k = k, m = counts[i], f = 'fld,__count')
                 targets[i] <<= nm.mjoin(k = k, m = meanval, f = f'uxt:__xmean,{fld}:__ymean')
                 targets[i] <<= nm.mcal(c = '${__count}-2', a = '__df')
+
                 targets[i] <<= nm.mcal(c = 'if(${__rden}==0,0,${__covar}/${__rden})',
-                                       a = f'{a}_rvalue',
+                                       a = f'{a["linregress_rvalue"]}',
                                        precision = precision)
                 targets[i] <<= nm.mcal(c = '${__covar}/${__Sxx}', 
-                                       a = f'{a}_slope',
+                                       a = f'{a["slope"]}',
                                        precision = precision)
-                targets[i] <<= nm.mcal(c = f'${{__ymean}}-(${{{a}_slope}}*${{__xmean}})',
-                                       a = f'{a}_intercept',
+                targets[i] <<= nm.mcal(c = f'${{__ymean}}-(${{{a["slope"]}}}*${{__xmean}})',
+                                       a = f'{a["y_intercept"]}',
                                        precision = precision)
-                targets[i] <<= nm.mcal(c = f'${{{a}_rvalue}}*sqrt(${{__df}}/((1-${{{a}_rvalue}})*(1+${{{a}_rvalue}})))',
+                targets[i] <<= nm.mcal(c = f'${{{a["linregress_rvalue"]}}}*sqrt(${{__df}}/((1-${{{a["linregress_rvalue"]}}})*(1+${{{a["linregress_rvalue"]}}})))',
                                        a = '__t',
                                        precision = precision)
-                targets[i] <<= nm.mcal(c = f'sqrt((1-${{{a}_rvalue}}^2)*${{__Syy}}/${{__Sxx}}/${{__df}})',
-                                       a = f'{a}_stderr',
+                targets[i] <<= nm.mcal(c = f'sqrt((1-${{{a["linregress_rvalue"]}}}^2)*${{__Syy}}/${{__Sxx}}/${{__df}})',
+                                       a = f'{a["linregress_stderr"]}',
                                        precision = precision)
 
                 _cval = ['fld', '__Syy', '__Sxx', '__rden', '__covar', 
-                         '__count', '__xmean', '__ymean', '__df', f'{a}_rvalue', 
-                         f'{a}_slope', f'{a}_intercept', '__t', f'{a}_stderr']
+                         '__count', '__xmean', '__ymean', '__df', f'{a["linregress_rvalue"]}', 
+                         f'{a["slope"]}', f'{a["y_intercept"]}', '__t', f'{a["linregress_stderr"]}']
                 targets[i] <<= nm.mcut(f= k.split(',') + _cval)
 
-            subcmd_mid <<= nm.mread(i = targets)
+            if 'linregress_pvalue' in flags:
+                subcmd_mid <<= nm.mread(i = targets)
 
-            # with nm.mstdout() as tmpfile:
-            with mcsvout(_temp, f = k.split(',') + _cval + [f'{a}_pvalue']) as tmpfile:
-                from scipy.stats import distributions
-                headerline = True
-                for line in subcmd_mid.getline(header = True):
-                    if headerline:
-                        header = line
-                        headerline = False
-                        # _temp, f = k.split(',') + _cval + [f'{a}_pvalue']
-                        # sys.__stderr__.write(repr(line)+'\n')
-                    else:
-                        # sys.__stderr__.write(repr(line)+'\n')
-                        # sys.__stderr__.write(repr(line[header.index('__t')]))
-                        t = float(line[header.index('__t')])
-                        df = float(line[header.index('__df')])
-                        
-                        line.append(2 * distributions.t.sf(np.abs(t),df))
-                        
-                        tmpfile.write(line)
-                        # strline = [str(elem) for elem in line]
-                        # sys.__stdout__.write(','.join(strline))
-            
-            subcmd_o <<= nm.mcut(i = _temp, f = f'{k},fld,{a}_rvalue,{a}_slope,{a}_intercept,{a}_stderr,{a}_pvalue')
+                # with nm.mstdout() as tmpfile:
+                with mcsvout(_temp, f = k.split(',') + _cval + [f'{a}_pvalue']) as tmpfile:
+                    from scipy.stats import distributions
+                    headerline = True
+                    for line in subcmd_mid.getline(header = True):
+                        if headerline:
+                            header = line
+                            headerline = False
+                        else:
+                            t = float(line[header.index('__t')])
+                            df = float(line[header.index('__df')])
+                            
+                            line.append(2 * distributions.t.sf(np.abs(t),df))
+                            
+                            tmpfile.write(line)
+                
+                subcmd_o <<= nm.mcut(i = _temp, f = [k, 'fld'] + finalcols)
 
-            return subcmd_o
+                return subcmd_o
+            else:
+                subcmd_o <<= nm.mcut(i = targets, f = [k, 'fld'] + finalcols)
+                return subcmd_o
             
         except Exception as e:
             import traceback
@@ -2422,7 +2425,6 @@ class GroupBy2Command(Command):
             'fft_agg' : self.fft_agg,
             'slope' : self.slope,
             'slope_pearson' : self.slopebyorder,
-            'linregress' : self.linear_trend,
             'firstmin' : self.firstmin,
             'firstmax' : self.firstmax,
             'lastmin' : self.lastmin,
@@ -2441,7 +2443,9 @@ class GroupBy2Command(Command):
             'peaks' : self.countpeaks,
             'autocorr' : self.autocorrelation,
             'c3' : self.c3,
-            'time_reversal_asymmetry' : self.time_reversal_asymmetry
+            'time_reversal_asymmetry' : self.time_reversal_asymmetry,
+            # aggregate functions
+            'linregress' : self.linear_trend
         }
 
         python_calcs = [
@@ -2452,8 +2456,8 @@ class GroupBy2Command(Command):
 
         grouped_calcs = {
             'linregress': [
-                'linregress_slope',
-                'linregress_intercept',
+                'slope',
+                'y_intercept',
                 'linregress_pvalue',
                 'linregress_rvalue',
                 'linregress_stderr'
@@ -2568,15 +2572,23 @@ class GroupBy2Command(Command):
                                     'optype' : 'custom',
                                     **arglist})
                 
-                for calc in cs_grouped:
-                    for group in grouped_calcs:
-                        if ns:
-                            for n in ns:
-                                # construct dict 
-                                pass
-                        else:
-                            # construct dict
-                            pass
+                for group in grouped_calcs:
+                    arglist['group'] = group
+                    _thisgroup = []
+                    for calc in cs_grouped:
+                        if calc.split(':')[0] in grouped_calcs[group]:
+                            _thisgroup.append(calc)
+
+                    if ns:
+                        for n in ns:
+                            arglist['n'] = n
+                            calclist.append({'c': _thisgroup, 
+                                        'optype' : 'aggregate',
+                                        **arglist})
+                    else:
+                        calclist.append({'c': _thisgroup, 
+                                    'optype' : 'aggregate',
+                                    **arglist})
 
 
         # sys.__stderr__.write(repr(calclist))
@@ -2608,7 +2620,6 @@ class GroupBy2Command(Command):
         ##### calculation portion:
 
         for i, calcdict in enumerate(calclist):
-            # sys.__stderr__.write(repr(calcdict)+'\n')
 
             cs = calcdict.get('c')
             n = calcdict.get('n')
@@ -2646,6 +2657,29 @@ class GroupBy2Command(Command):
                     final_cs = [f'{calcdict["a"]}_{calcdict["n"]}']
                 else:
                     final_cs = [calcdict['a']]
+            
+            elif optype == 'aggregate':
+                _grp = calcdict.pop('group')
+                calcdict['a'] = {out : out for out in grouped_calcs[_grp]}
+                calcdict['flags'] = []
+
+                for c in cs:
+                    if ':' in c:
+                        cleft, cright = c.split(':')
+                        calcdict['a'][cleft] = cright
+                    else:
+                        cleft = c
+                        calcdict['a'][cleft] = cleft
+                    calcdict['flags'].append(cleft)
+
+                cmd[i] <<= nm.mread(i=cmd_i)
+
+                # run thing
+                cmd[i] = nysol_calcs[_grp](cmd[i], **calcdict)                
+                
+                # prep final_fs
+                final_cs = [calcdict['a'][col] for col in calcdict['flags']]
+                    
 
             cmd[i] <<= nm.m2cross(k = expanded_k, f= final_cs, 
                     a = '__type__,__val__')
