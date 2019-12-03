@@ -2024,7 +2024,7 @@ class GroupBy2Command(Command):
             subcmd = self.fixtimecolumn(subcmd, x, dateformat)
             
             condition = [f'($s{{fld}}=="{fld}")' for fld in fs]
-            msummary <<= nm.msel(i = self.all_msums, c = '||'.join(condition), o = 'takingmsum.csv')
+            msummary <<= nm.msel(i = self.all_msums, c = '||'.join(condition))
 
             for i, fld in enumerate(fs):
                 targets[i] <<= nm.mnjoin(i = subcmd, m = msummary, k = k, 
