@@ -57,7 +57,7 @@ else:
 # echo=TrueでSQLログがコンソールに出力される
 from sqlalchemy import create_engine
 # SQLite用
-os.environ['SQLITE_PATH'] = os.getenv('SQLITE_PATH', (STORE_DIR.parent / 'kskp.db').as_posix())
+os.environ['SQLITE_PATH'] = os.getenv('SQLITE_PATH', (Path(__file__).parent.parent.parent / 'kskp.db').as_posix())
 # os.environ['DATABASE_URI'] = "sqlite:///" + os.environ['SQLITE_PATH']
 # check_same_threadをFalseにすることで、sessionをスレッドをまたいで使うことができるようになる（デフォルトはTrue）
 # -> PostgreSQLにはこのオプションはない
