@@ -1,5 +1,33 @@
 {
   "id": "mdformat",
+  "groups": [
+    {
+      "name": "group0",
+      "label": "コマンドの概要",
+      "description": "【名前】 日付時刻要素の抽出\n【概要】 日付要素が含まれた文字列から、各要素を抽出して、既定の日付型、時刻型に変換する",
+      "params": []
+    },
+    {
+      "name": "group1",
+      "label": "出力項目の設定 (省略可)",
+      "params": ["A"]
+    },
+    {
+      "name": "group5",
+      "label": "日付要素抽出の設定 (必須)",
+      "params": ["f","c"]
+    },
+    {
+      "name": "group15",
+      "label": "項目名・項目番号についての設定（省略可）",
+      "params": ["x", "nfn", "nfno"]
+    },
+    {
+      "name": "group20",
+      "label": "システム管理用設定（作業領域・ログ出力）",
+      "params": ["tmpPath", "assert_diffSize", "assert_nullout","assert_nullin"]
+    }
+  ],
   "rules" : {
     "c" : {
       "presence": {"allowEmpty": false}
@@ -30,17 +58,20 @@
     {
       "name": "c",
       "type": "string",
-      "label": "文字列のフォーマット(必須)"
+      "label": "抽出の指定 (必須)",
+      "description": "対象項目の日付時刻要素を、プレースホルダで置き換えた文字列を指定してください\n●プレースホルダ記号の一覧\n   日付時刻の要素 ：プレースホルダ記号 (条件）\n         年                  : %Y (西暦4桁以内),  %y(西暦2桁以内)\n         月                  : %m (2桁以内)\n         日                  : %d  (2桁以内)\n       時間                : %H  (24時間表記で2桁以内)\n         分                 : %M  (2桁以内)\n         秒                 : %S  (2桁以内),  %s (秒と秒以下でピリオド区切り) \n●抽出指定の例\n   入力                              ：抽出の指定\n   yyyy-mm-dd HH:MM:SS   :%Y-%m-%d %H:%M:%S\n   yyyymmdd HHMMSS        :%Y%m%d %H%M%S"
     },
     {
       "name": "f",
       "type": "string",
-      "label": "対象列名(必須)"
+      "label": "対象とする項目名 (必須）",
+      "description": "コンマ区切りで復数項目の指定が可能 【例 列A,列B】\n●新しい列に追加する場合\n  対象とする項目名、新しい列名の順で、コロン区切りで指定して下さい 【例 列A:列B】"
     },
     {
       "name": "A",
       "type": "boolean",
-      "label": "指定した項目を置き換えるのではなく、新たに項目が追加される。",
+      "label": "対象の項目を置き換えるのではなく、新しい列に追加する",
+      "description": " 対象とする項目名に、新しい列名も指定して下さい",
       "optional": true
     },
     {
@@ -101,8 +132,8 @@
     ]
   ],
   "version": "0.7.0",
-  "label": "日付時刻抽出",
+  "label": "日付時刻要素の抽出",
   "classification": "value_transform",
-  "description": "f=で指定した日付や時刻の項目を、c=で指定した形式に従って抜き出して変換する。",
+  "description": "日付要素が含まれた文字列から、各要素を抽出して、既定の日付型、時刻型に変換する",
   "url": "./static/pdf/mcmd/value_transform/mdformat.pdf"
 }
