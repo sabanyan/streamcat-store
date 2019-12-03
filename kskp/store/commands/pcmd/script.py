@@ -404,12 +404,11 @@ class GroupBy2Command(Command):
             for i, fld in enumerate(fs):
 
                 total[i] <<= nm.mcount(k = f'{k},{fld}', a = '__dcnt', i = subcmd)
-                # count[i] <<= nm.msummary(k = k, f = fld, c = 'count:__count',
-                #                             i = subcmd)
 
                 targets[i] <<= nm.mcount(k = k, a = '__ddcnt', i = total[i])
                 targets[i] <<= nm.msetstr(a = 'fld', v = fld)
-                targets[i] <<= nm.mnjoin(k = f'{k},fld', f = '__count', m = self.all_msums)
+                targets[i] <<= nm.mnjoin(k = f'{k},fld', f = '__count', 
+                                         m = self.all_msums)
                 targets[i] <<= nm.mcal(c = '${__ddcnt}!=${__count}', a = a)
                 targets[i] <<= nm.mcut(f = f'{k},fld,{a}')
 
@@ -701,9 +700,9 @@ class GroupBy2Command(Command):
             fs = f.split(',')
 
             for fld in fs:
-                subcmd <<= nm.mcal(c = f'${{{fld}}}*${{{fld}}}', a = f'__tmp{fld}__')
+                subcmd <<= nm.mcal(c = f'${{{fld}}}*${{{fld}}}', a = f'__tmp{fld}')
                 subcmd <<= nm.mcut(f = fld, r = True)
-                subcmd <<= nm.mfldname(f = f'__tmp{fld}__:{fld}')
+                subcmd <<= nm.mfldname(f = f'__tmp{fld}:{fld}')
             
             subcmd <<= nm.msummary(k = k, c = f'sum:{a}', f = f, precision = precision)
 
@@ -1318,7 +1317,7 @@ class GroupBy2Command(Command):
             import traceback
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
-        
+
     def meanfrequency(self, **kwargs):
         # body of this method adapted from:
         # github.com/nysol/nysol_python/blob/master/scripts/sample/mkfeature.py
@@ -1541,6 +1540,10 @@ class GroupBy2Command(Command):
             a = kwargs.get('a')
             x = kwargs.get('x')
             k = kwargs.get('k')
+            
+            flags = kwargs.get('flags')
+            finalcols = [a[flag] for flag in flags]
+
             precision = kwargs.get('precision')
             
             dateformat = kwargs.pop('dateformat')
@@ -1571,54 +1574,53 @@ class GroupBy2Command(Command):
                 targets[i] <<= nm.mjoin(k = k, m = counts[i], f = 'fld,__count')
                 targets[i] <<= nm.mjoin(k = k, m = meanval, f = f'uxt:__xmean,{fld}:__ymean')
                 targets[i] <<= nm.mcal(c = '${__count}-2', a = '__df')
+
                 targets[i] <<= nm.mcal(c = 'if(${__rden}==0,0,${__covar}/${__rden})',
-                                       a = f'{a}_rvalue',
+                                       a = f'{a["linregress_rvalue"]}',
                                        precision = precision)
                 targets[i] <<= nm.mcal(c = '${__covar}/${__Sxx}', 
-                                       a = f'{a}_slope',
+                                       a = f'{a["slope"]}',
                                        precision = precision)
-                targets[i] <<= nm.mcal(c = f'${{__ymean}}-(${{{a}_slope}}*${{__xmean}})',
-                                       a = f'{a}_intercept',
+                targets[i] <<= nm.mcal(c = f'${{__ymean}}-(${{{a["slope"]}}}*${{__xmean}})',
+                                       a = f'{a["y_int"]}',
                                        precision = precision)
-                targets[i] <<= nm.mcal(c = f'${{{a}_rvalue}}*sqrt(${{__df}}/((1-${{{a}_rvalue}})*(1+${{{a}_rvalue}})))',
+                targets[i] <<= nm.mcal(c = f'${{{a["linregress_rvalue"]}}}*sqrt(${{__df}}/((1-${{{a["linregress_rvalue"]}}})*(1+${{{a["linregress_rvalue"]}}})))',
                                        a = '__t',
                                        precision = precision)
-                targets[i] <<= nm.mcal(c = f'sqrt((1-${{{a}_rvalue}}^2)*${{__Syy}}/${{__Sxx}}/${{__df}})',
-                                       a = f'{a}_stderr',
+                targets[i] <<= nm.mcal(c = f'sqrt((1-${{{a["linregress_rvalue"]}}}^2)*${{__Syy}}/${{__Sxx}}/${{__df}})',
+                                       a = f'{a["linregress_stderr"]}',
                                        precision = precision)
 
                 _cval = ['fld', '__Syy', '__Sxx', '__rden', '__covar', 
-                         '__count', '__xmean', '__ymean', '__df', f'{a}_rvalue', 
-                         f'{a}_slope', f'{a}_intercept', '__t', f'{a}_stderr']
+                         '__count', '__xmean', '__ymean', '__df', f'{a["linregress_rvalue"]}', 
+                         f'{a["slope"]}', f'{a["y_int"]}', '__t', f'{a["linregress_stderr"]}']
                 targets[i] <<= nm.mcut(f= k.split(',') + _cval)
 
-            subcmd_mid <<= nm.mread(i = targets)
+            if 'linregress_pvalue' in flags:
+                subcmd_mid <<= nm.mread(i = targets)
 
-            # with nm.mstdout() as tmpfile:
-            with mcsvout(_temp, f = k.split(',') + _cval + [f'{a}_pvalue']) as tmpfile:
-                from scipy.stats import distributions
-                headerline = True
-                for line in subcmd_mid.getline(header = True):
-                    if headerline:
-                        header = line
-                        headerline = False
-                        # _temp, f = k.split(',') + _cval + [f'{a}_pvalue']
-                        # sys.__stderr__.write(repr(line)+'\n')
-                    else:
-                        # sys.__stderr__.write(repr(line)+'\n')
-                        # sys.__stderr__.write(repr(line[header.index('__t')]))
-                        t = float(line[header.index('__t')])
-                        df = float(line[header.index('__df')])
-                        
-                        line.append(2 * distributions.t.sf(np.abs(t),df))
-                        
-                        tmpfile.write(line)
-                        # strline = [str(elem) for elem in line]
-                        # sys.__stdout__.write(','.join(strline))
-            
-            subcmd_o <<= nm.mcut(i = _temp, f = f'{k},fld,{a}_rvalue,{a}_slope,{a}_intercept,{a}_stderr,{a}_pvalue')
+                # with nm.mstdout() as tmpfile:
+                with mcsvout(_temp, f = k.split(',') + _cval + [f'{a}_pvalue']) as tmpfile:
+                    from scipy.stats import distributions
+                    headerline = True
+                    for line in subcmd_mid.getline(header = True):
+                        if headerline:
+                            header = line
+                            headerline = False
+                        else:
+                            t = float(line[header.index('__t')])
+                            df = float(line[header.index('__df')])
+                            
+                            line.append(2 * distributions.t.sf(np.abs(t),df))
+                            
+                            tmpfile.write(line)
+                
+                subcmd_o <<= nm.mcut(i = _temp, f = [k, 'fld'] + finalcols)
 
-            return subcmd_o
+                return subcmd_o
+            else:
+                subcmd_o <<= nm.mcut(i = targets, f = [k, 'fld'] + finalcols)
+                return subcmd_o
             
         except Exception as e:
             import traceback
@@ -1981,12 +1983,12 @@ class GroupBy2Command(Command):
             # fix time column
             subcmd = self.fixtimecolumn(subcmd, x, dateformat)
 
-            condition = [f'($s{{fld}}=="{fld}")' for fld in f.split(',')]
+            condition = [f'($s{{fld}}=="{fld}")' for fld in fs]
             msummary <<= nm.msel(i = self.all_msums, c = '||'.join(condition))
 
             for i, fld in enumerate(fs):
 
-                targets[i] <<= nm.mjoin(i = subcmd, m = msummary, k = k, 
+                targets[i] <<= nm.mnjoin(i = subcmd, m = msummary, k = k, 
                                         f = 'fld,__mean')
                 targets[i] <<= nm.msel(c = f'$s{{fld}}=="{fld}"')
 
@@ -2024,11 +2026,11 @@ class GroupBy2Command(Command):
             # fix time column
             subcmd = self.fixtimecolumn(subcmd, x, dateformat)
             
-            condition = [f'($s{{fld}}=="{fld}")' for fld in f.split(',')]
+            condition = [f'($s{{fld}}=="{fld}")' for fld in fs]
             msummary <<= nm.msel(i = self.all_msums, c = '||'.join(condition))
 
             for i, fld in enumerate(fs):
-                targets[i] <<= nm.mjoin(i = subcmd, m = msummary, k = k, 
+                targets[i] <<= nm.mnjoin(i = subcmd, m = msummary, k = k, 
                                         f = 'fld,__mean')
                 targets[i] <<= nm.msel(c = f'$s{{fld}}=="{fld}"')
 
@@ -2423,7 +2425,6 @@ class GroupBy2Command(Command):
             'fft_agg' : self.fft_agg,
             'slope' : self.slope,
             'slope_pearson' : self.slopebyorder,
-            'linregress' : self.linear_trend,
             'firstmin' : self.firstmin,
             'firstmax' : self.firstmax,
             'lastmin' : self.lastmin,
@@ -2442,7 +2443,9 @@ class GroupBy2Command(Command):
             'peaks' : self.countpeaks,
             'autocorr' : self.autocorrelation,
             'c3' : self.c3,
-            'time_reversal_asymmetry' : self.time_reversal_asymmetry
+            'time_reversal_asymmetry' : self.time_reversal_asymmetry,
+            # aggregate functions
+            'linregress' : self.linear_trend
         }
 
         python_calcs = [
@@ -2451,7 +2454,17 @@ class GroupBy2Command(Command):
             'fft_agg'
         ]
 
-        dependencies = {
+        grouped_calcs = {
+            'linregress': [
+                'slope',
+                'y_int',
+                'linregress_pvalue',
+                'linregress_rvalue',
+                'linregress_stderr'
+            ]
+        }
+
+        msum_dependencies = {
             'has_dup' : ['count'], 
             'var_gt_sd' : ['var','sd'],
             'mean_ad' : ['mean'], 
@@ -2486,10 +2499,10 @@ class GroupBy2Command(Command):
         final_fs = []
         
         allargs = (args.get('clist') + 
-                  args.get('fclist') +
-                  args.get('nfclist') +
-                  args.get('xfclist') + 
-                  args.get('xfcnlist'))
+                   args.get('fclist') +
+                   args.get('nfclist') +
+                   args.get('xfclist') + 
+                   args.get('xfcnlist'))
 
         # parse inputs into list-of-dictionaries form
         for arglist in allargs:
@@ -2518,6 +2531,7 @@ class GroupBy2Command(Command):
                 cs = arglist.pop('c').split(',')
                 cs_msummary = []
                 cs_custom_nysol = []
+                cs_grouped = []
 
                 for i,c in enumerate(cs):
                     if ':' in c:
@@ -2529,11 +2543,13 @@ class GroupBy2Command(Command):
                     
                     if cleft in msummaryoptions:
                         cs_msummary.append(cs[i])
+                    if cleft in (x for y in grouped_calcs.values() for x in y):
+                        cs_grouped.append(cs[i])
                     elif cleft:
                         cs_custom_nysol.append(cs[i])
 
-                        if cleft in dependencies:
-                            msum_prereqs.update(dependencies[cleft])
+                        if cleft in msum_dependencies:
+                            msum_prereqs.update(msum_dependencies[cleft])
 
                 if cs_msummary:
                     calclist.append({'c': ','.join(cs_msummary), 
@@ -2555,6 +2571,25 @@ class GroupBy2Command(Command):
                         calclist.append({'c': calc, 
                                     'optype' : 'custom',
                                     **arglist})
+                
+                for group in grouped_calcs:
+                    arglist['group'] = group
+                    _thisgroup = []
+                    for calc in cs_grouped:
+                        if calc.split(':')[0] in grouped_calcs[group]:
+                            _thisgroup.append(calc)
+
+                    if ns:
+                        for n in ns:
+                            arglist['n'] = n
+                            calclist.append({'c': _thisgroup, 
+                                        'optype' : 'aggregate',
+                                        **arglist})
+                    else:
+                        calclist.append({'c': _thisgroup, 
+                                    'optype' : 'aggregate',
+                                    **arglist})
+
 
         # sys.__stderr__.write(repr(calclist))
 
@@ -2585,7 +2620,6 @@ class GroupBy2Command(Command):
         ##### calculation portion:
 
         for i, calcdict in enumerate(calclist):
-            # sys.__stderr__.write(repr(calcdict)+'\n')
 
             cs = calcdict.get('c')
             n = calcdict.get('n')
@@ -2617,12 +2651,34 @@ class GroupBy2Command(Command):
                     final_cs = [f'{calcdict["a"]}_{suff}' for suff in ['mean','median','var']]
                 elif cs == 'fft_agg':
                     final_cs = [f'{calcdict["a"]}_{suff}' for suff in ['centroid','var','skew','kurtosis']]
-                elif cs == 'linregress':
-                    final_cs = [f'{calcdict["a"]}_{suff}' for suff in ['rvalue','slope','intercept','stderr','pvalue']]
                 elif n:
                     final_cs = [f'{calcdict["a"]}_{calcdict["n"]}']
                 else:
                     final_cs = [calcdict['a']]
+            
+            elif optype == 'aggregate':
+                _grp = calcdict.pop('group')
+                calcdict['a'] = {out : out for out in grouped_calcs[_grp]}
+                calcdict['flags'] = []
+
+                for c in cs:
+                    if ':' in c:
+                        cleft, cright = c.split(':')
+                        calcdict['a'][cleft] = cright
+                    else:
+                        cleft = c
+                        calcdict['a'][cleft] = cleft
+                    calcdict['flags'].append(cleft)
+                # sys.__stderr__.write(repr(calcdict))
+
+                cmd[i] <<= nm.mread(i=cmd_i)
+
+                # run thing
+                cmd[i] = nysol_calcs[_grp](cmd[i], **calcdict)                
+                
+                # prep final_fs
+                final_cs = [calcdict['a'][col] for col in calcdict['flags']]
+                    
 
             cmd[i] <<= nm.m2cross(k = expanded_k, f= final_cs, 
                     a = '__type__,__val__')
@@ -3021,6 +3077,7 @@ class MvSimCommand(Command):
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
+
 
 class PlainText2Csv(Command):
     def __init__(self):
