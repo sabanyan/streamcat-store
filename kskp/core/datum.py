@@ -261,7 +261,8 @@ class Datum(BaseModel):
         if path.startswith('/'):
             return path
         else:
-            return (STORE_DIR.parent / path).as_posix()
+            # return (STORE_DIR.parent / path).as_posix()
+            return (STORE_DIR / path).as_posix()
 
     @staticmethod
     def _to_rel_path(path):
