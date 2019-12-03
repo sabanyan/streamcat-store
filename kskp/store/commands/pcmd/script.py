@@ -1582,7 +1582,7 @@ class GroupBy2Command(Command):
                                        a = f'{a["slope"]}',
                                        precision = precision)
                 targets[i] <<= nm.mcal(c = f'${{__ymean}}-(${{{a["slope"]}}}*${{__xmean}})',
-                                       a = f'{a["y_intercept"]}',
+                                       a = f'{a["y_int"]}',
                                        precision = precision)
                 targets[i] <<= nm.mcal(c = f'${{{a["linregress_rvalue"]}}}*sqrt(${{__df}}/((1-${{{a["linregress_rvalue"]}}})*(1+${{{a["linregress_rvalue"]}}})))',
                                        a = '__t',
@@ -1593,7 +1593,7 @@ class GroupBy2Command(Command):
 
                 _cval = ['fld', '__Syy', '__Sxx', '__rden', '__covar', 
                          '__count', '__xmean', '__ymean', '__df', f'{a["linregress_rvalue"]}', 
-                         f'{a["slope"]}', f'{a["y_intercept"]}', '__t', f'{a["linregress_stderr"]}']
+                         f'{a["slope"]}', f'{a["y_int"]}', '__t', f'{a["linregress_stderr"]}']
                 targets[i] <<= nm.mcut(f= k.split(',') + _cval)
 
             if 'linregress_pvalue' in flags:
@@ -2457,7 +2457,7 @@ class GroupBy2Command(Command):
         grouped_calcs = {
             'linregress': [
                 'slope',
-                'y_intercept',
+                'y_int',
                 'linregress_pvalue',
                 'linregress_rvalue',
                 'linregress_stderr'
@@ -2651,8 +2651,6 @@ class GroupBy2Command(Command):
                     final_cs = [f'{calcdict["a"]}_{suff}' for suff in ['mean','median','var']]
                 elif cs == 'fft_agg':
                     final_cs = [f'{calcdict["a"]}_{suff}' for suff in ['centroid','var','skew','kurtosis']]
-                elif cs == 'linregress':
-                    final_cs = [f'{calcdict["a"]}_{suff}' for suff in ['rvalue','slope','intercept','stderr','pvalue']]
                 elif n:
                     final_cs = [f'{calcdict["a"]}_{calcdict["n"]}']
                 else:
@@ -2671,6 +2669,7 @@ class GroupBy2Command(Command):
                         cleft = c
                         calcdict['a'][cleft] = cleft
                     calcdict['flags'].append(cleft)
+                # sys.__stderr__.write(repr(calcdict))
 
                 cmd[i] <<= nm.mread(i=cmd_i)
 
