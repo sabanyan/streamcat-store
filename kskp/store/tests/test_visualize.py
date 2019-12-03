@@ -11,7 +11,7 @@ class ExecuteViualizeTestCase(unittest.TestCase):
     """
     RESULT_DIR = 'kskp/store/frames/csv/フロー実行結果/'
     CACHE_DIR = 'kskp/store/frames/csv/フロー実行キャッシュ/'
-    TESTDATA_DIR = 'kskp/store/frames'
+    TESTDATA_DIR = 'store/frames'
 
     def setUp(self):
         pass
@@ -396,6 +396,8 @@ def create_data(file_path_obj, data=None):
     """
     root = Library.load_root()
     if data is not None:
-        nm.mread(i=data, o=file_path_obj.as_posix()).run()
+        print('file_path_obj.as_posix(): ' + file_path_obj.as_posix())
+        print('file_path_obj.resolve(): ' + file_path_obj.resolve().as_posix())
+        nm.mread(i=data, o=file_path_obj.resolve().as_posix()).run()
     frame = Library.save_frame(root.uuid, str(uuid.uuid4()), file_path_obj)
     return frame.uuid
