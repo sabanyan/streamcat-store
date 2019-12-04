@@ -27,7 +27,7 @@
         {
           "name"  :"column",
           "type"  :"column",
-          "label" :"横軸列：時間軸"
+          "label" :"横軸列：x軸"
         },
         {
           "name"  :"label",
@@ -49,7 +49,7 @@
         {
           "name"  :"column",
           "type"  :"column",
-          "label" :"縦軸列：データ"
+          "label" :"縦軸列：y軸"
         },
         {
           "name"  :"label",
