@@ -159,7 +159,7 @@ class CsvToLineGraphCommand(VisualizersBokehPlot):
 
         # 2. pandasnのdataframe作成
         # TODO:愚直にdfを加工しており、高速化・メモリ管理等の工夫は何もしていない
-        df = frame.get_dataframe(limit, offset, True)
+        df = frame.get_dataframe(limit, offset, [x_axis_column])
         df[data_column] = df[data_column].astype(str)
 
         # ここstartがdfの最大行数を越えるとエラーが出る
@@ -295,7 +295,7 @@ class CsvToScatterCommand(VisualizersBokehPlot):
 
         # 2. pandasnのdataframe作成
         # TODO:愚直にdfを加工しており、高速化・メモリ管理等の工夫は何もしていない
-        df = frame.get_dataframe(limit, offset, True)
+        df = frame.get_dataframe(limit, offset)
         
         hv.extension('bokeh')
         
@@ -429,7 +429,7 @@ class CsvtoRepetitivieWaveform(VisualizersBokehPlot):
         limit = int(args.get('limit')) if args.get('limit') else None
         
         frame = Library.load_frame(frame_uuid)
-        df = frame.get_dataframe(limit, offset, True)
+        df = frame.get_dataframe(limit, offset, [self.column_name_x_axis])
         self.df = df.sort_values(by = self.column_name_x_axis)
         self.groups = self.df[self.group].unique().tolist()
         
