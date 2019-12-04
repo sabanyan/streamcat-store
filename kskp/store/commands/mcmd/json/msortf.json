@@ -154,6 +154,6 @@
   "version": "0.7.0",
   "label": "レコードの並び替え",
   "classification": "row_sort",
-  "description": "f=で指定した項目を基準として、クイックソートを用いてレコードを並び替える。",
+  "description": "クイックソートを用いてレコードを並び替える。",
   "url": "./static/pdf/mcmd/row_sort/msortf.pdf"
 }

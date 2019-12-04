@@ -1,5 +1,33 @@
 {
   "id": "mrjoin",
+  "groups": [
+    {
+      "name": "group1",
+      "label": "グループの設定 (省略可)",
+      "params": ["k"]
+    },
+    {
+      "name": "group5",
+      "label": "〇〇の設定 (必須)",
+      "params": ["f","n", "lo", "K", "R", "rf"]
+    },
+
+    {
+      "name": "group10",
+      "label": "その他 (省略可)",
+      "params": ["q"]
+    },
+    {
+      "name": "group15",
+      "label": "項目名・項目番号についての設定（省略可）",
+      "params": ["x", "nfn", "nfno"]
+    },
+    {
+      "name": "group20",
+      "label": "システム管理用設定（作業領域・ログ出力）",
+      "params": ["tmpPath", "assert_diffSize", "assert_nullout", "assert_nullkey","assert_nullin"]
+    }
+  ],
   "rules" : {
     "f" : {
       "checkSeveralSpecifiedFormats" : {

@@ -134,7 +134,7 @@ class CommandLink:
             'multi_mvavg': MvAvgCommand(),
             'multi_mvstats': MvStatsCommand(),
             'multi_mvsim': MvSimCommand(),
-            'selrow': SelRowCommand(),
+            'plaintext2csv': PlainText2Csv(),
             # ビジュアライズ
             'csvtohtmltable': CsvToTableCommand(),
             'csvtolinegraph': CsvToLineGraphCommand(),
