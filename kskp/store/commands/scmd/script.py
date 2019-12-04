@@ -84,6 +84,9 @@ class SaverCommand(SCommand):
         f = io.BytesIO(b'')
         frame = Frame(store.uuid, label, f)
         # RunsCommandの実行前にFrameを登録する
+        
+        # raise Exception('!!')
+
         frame.save()
         return frame
 
@@ -157,7 +160,7 @@ class LoaderCommand(SCommand):
 
         cmd = nm.m2tee({'i':path})
         # mreadで存在しないファイルパスを指定するとDockerごと落ちる ->　
-        # return nm.mread({'i':path})
+        # cmd = nm.mread({'i':path})
         return {'o': NysolModule(cmd)}
 
 class DbLoaderCommand(SCommand):
@@ -629,9 +632,10 @@ class RunsCommand(SCommand):
         for nysol_module in inputs.values():
             nm_list.append(nysol_module.content)
 
-        # NYSOL Pythonを実行する
         import nysol.mcmd as nm
-        # nm_list[0].drawModelsD3('aaa.html').run()
+        nm.drawModelsD3(fname='aaabbbccc.html', val=nm_list)
+
+        # NYSOL Pythonを実行する
         results = nm.runs(nm_list, msg='on')
 
         if len(results) != len(inputs):
