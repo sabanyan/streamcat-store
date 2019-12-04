@@ -931,11 +931,10 @@ class GroupBy2Command(Command):
             k = kwargs.get('k')
 
             fs = f.split(',')
-            targets = [None] * len(fs)
 
             subcmd_o = None
 
-            condition = [f'($s{{fld}}=="{fld}")' for fld in f.split(',')]
+            condition = [f'($s{{fld}}=="{fld}")' for fld in fs]
             subcmd_o <<= nm.msel(i = self.all_msums, c = '||'.join(condition))
             subcmd_o <<= nm.mcal(c = '${__ucount}/${__count}', a = a)
             subcmd_o <<= nm.mcut(f = f'{k},fld,{a}')
@@ -2351,7 +2350,133 @@ class GroupBy2Command(Command):
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
 
-    # ## Template
+    def change_quantiles(self, subcmd, **kwargs):
+        try:
+            f = kwargs.get('f')
+            a = kwargs.get('a')
+            k = kwargs.get('k')
+            x = kwargs.get('x')
+            n = kwargs.get('n')
+            flags = kwargs.get('flags')
+
+            finalcols = [a[flag] for flag in flags]
+            ops = [op.replace('_change_quantiles', '') for op in flags]
+
+            fs = f.split(',')
+            ql, qh = n.split(';')
+
+            # stitch together the final list of column names here
+            # something along the lines of
+            # [f'{calc}:{finalcol} for calc in /someparsedlist/ for finalcol in flags]
+            finalops = [f'{op}:{col}' for op,col in zip(ops, finalcols)]
+
+
+            precalc = [None] * len(fs)
+            targets = [None] * len(fs)
+            subcmd_i = None
+            subcmd_o = None
+            msummary = None
+
+            condition = [f'($s{{fld}}=="{fld}")' for fld in f.split(',')]
+            msummary <<= nm.msel(i = self.all_msums, c = '||'.join(condition))
+
+            subcmd_i <<= nm.mnjoin(i = subcmd, k = k, f = 'fld,__count', 
+                                   m = msummary)
+
+            for i, fld in enumerate(fs):
+                precalc[i] <<= nm.msel(i = subcmd_i, c = f'$s{{fld}}=="{fld}"')
+                precalc[i] <<= nm.mnumber(k = k, s = f'{fld}%n', a = '__qt',
+                                          e = 'skip')
+                precalc[i] <<= nm.mcal(c = f'${{__count}}*{ql}<=${{__qt}}&&${{__count}}*{qh}>${{__qt}}',
+                                       a = '__qtbool')
+                precalc[i] <<= nm.mslide(k = k, s = x, r = True, f = '__qtbool:__qtbool1')
+                precalc[i] <<= nm.mcal(c = '${__qtbool}*${__qtbool1}', a = '__ind')
+
+
+                targets[i] <<= nm.mslide(k = k, s = x, r = True, i = subcmd,
+                                         f = f'{fld}:__{fld}x')
+                targets[i] <<= nm.mcal(c = f'${{{fld}}}-${{__{fld}x}}', a = '__diff')
+                targets[i] <<= nm.mjoin(k = f'{k},{x}', f = '__ind', m = precalc[i])
+
+                targets[i] <<= nm.mtonull(f = '__ind', v = 0)
+                targets[i] <<= nm.mcut(f = fld, r = True)
+                targets[i] <<= nm.mcal(c = '${__diff}*${__ind}', a = fld)
+
+                targets[i] <<= nm.msummary(k = k, f = fld, c = ','.join(finalops)) 
+
+            subcmd_o <<= nm.mcut(f = [k,'fld'] + finalcols, i = targets)
+
+            return subcmd_o
+
+        except Exception as e:
+            import traceback
+            with open('/dev/stderr', 'w') as fpe:
+                traceback.print_exc(file=fpe)
+
+    def abs_change_quantiles(self, subcmd, **kwargs):
+        try:
+            f = kwargs.get('f')
+            a = kwargs.get('a')
+            k = kwargs.get('k')
+            x = kwargs.get('x')
+            n = kwargs.get('n')
+            flags = kwargs.get('flags')
+
+            finalcols = [a[flag] for flag in flags]
+            ops = [op.replace('_abs_change_quantiles', '') for op in flags]
+
+            fs = f.split(',')
+            ql, qh = n.split(';')
+
+            # stitch together the final list of column names here
+            # something along the lines of
+            # [f'{calc}:{finalcol} for calc in /someparsedlist/ for finalcol in flags]
+            finalops = [f'{op}:{col}' for op,col in zip(ops, finalcols)]
+
+
+            precalc = [None] * len(fs)
+            targets = [None] * len(fs)
+            subcmd_i = None
+            subcmd_o = None
+            msummary = None
+
+            condition = [f'($s{{fld}}=="{fld}")' for fld in f.split(',')]
+            msummary <<= nm.msel(i = self.all_msums, c = '||'.join(condition))
+
+            subcmd_i <<= nm.mnjoin(i = subcmd, k = k, f = 'fld,__count', 
+                                   m = msummary)
+
+            for i, fld in enumerate(fs):
+                precalc[i] <<= nm.msel(i = subcmd_i, c = f'$s{{fld}}=="{fld}"')
+                precalc[i] <<= nm.mnumber(k = k, s = f'{fld}%n', a = '__qt',
+                                          e = 'skip')
+                precalc[i] <<= nm.mcal(c = f'${{__count}}*{ql}<=${{__qt}}&&${{__count}}*{qh}>${{__qt}}',
+                                       a = '__qtbool')
+                precalc[i] <<= nm.mslide(k = k, s = x, r = True, f = '__qtbool:__qtbool1')
+                precalc[i] <<= nm.mcal(c = '${__qtbool}*${__qtbool1}', a = '__ind')
+
+
+                targets[i] <<= nm.mslide(k = k, s = x, r = True, i = subcmd,
+                                         f = f'{fld}:__{fld}x')
+                targets[i] <<= nm.mcal(c = f'abs(${{{fld}}}-${{__{fld}x}})', a = '__diff')
+                targets[i] <<= nm.mjoin(k = f'{k},{x}', f = '__ind', m = precalc[i])
+
+                targets[i] <<= nm.mtonull(f = '__ind', v = 0)
+                targets[i] <<= nm.mcut(f = fld, r = True)
+                targets[i] <<= nm.mcal(c = '${__diff}*${__ind}', a = fld)
+
+                targets[i] <<= nm.msummary(k = k, f = fld, c = ','.join(finalops)) 
+
+            subcmd_o <<= nm.mcut(f = [k,'fld'] + finalcols, i = targets)
+
+            return subcmd_o
+
+        except Exception as e:
+            import traceback
+            with open('/dev/stderr', 'w') as fpe:
+                traceback.print_exc(file=fpe)
+
+    #  ## Template
     # subcmd = None
     # subcmd <<= nm.mstdin()
 
@@ -2445,7 +2570,9 @@ class GroupBy2Command(Command):
             'c3' : self.c3,
             'time_reversal_asymmetry' : self.time_reversal_asymmetry,
             # aggregate functions
-            'linregress' : self.linear_trend
+            'linregress' : self.linear_trend,
+            'change_quantiles' : self.change_quantiles,
+            'abs_change_quantiles' : self.abs_change_quantiles
         }
 
         python_calcs = [
@@ -2461,7 +2588,11 @@ class GroupBy2Command(Command):
                 'linregress_pvalue',
                 'linregress_rvalue',
                 'linregress_stderr'
-            ]
+            ],
+            'change_quantiles': 
+                [f'{op}_change_quantiles' for op in msummaryoptions],
+            'abs_change_quantiles': 
+                [f'{op}_abs_change_quantiles' for op in msummaryoptions]
         }
 
         msum_dependencies = {
@@ -2481,7 +2612,9 @@ class GroupBy2Command(Command):
             'longest_strike_above_mean' : ['mean'],
             'longest_strike_below_mean' : ['mean'],
             'imq' : ['count'],
-            'autocorr' : ['mean', 'var', 'count']
+            'autocorr' : ['mean', 'var', 'count'],
+            'change_quantiles' : ['count'],
+            'abs_change_quantiles' : ['count']
         } 
 
         msum_prereqs = set()
@@ -2543,13 +2676,13 @@ class GroupBy2Command(Command):
                     
                     if cleft in msummaryoptions:
                         cs_msummary.append(cs[i])
-                    if cleft in (x for y in grouped_calcs.values() for x in y):
+                    elif cleft in (x for y in grouped_calcs.values() for x in y):
                         cs_grouped.append(cs[i])
-                    elif cleft:
+                    else:
                         cs_custom_nysol.append(cs[i])
 
-                        if cleft in msum_dependencies:
-                            msum_prereqs.update(msum_dependencies[cleft])
+                    if cleft in msum_dependencies:
+                        msum_prereqs.update(msum_dependencies[cleft])
 
                 if cs_msummary:
                     calclist.append({'c': ','.join(cs_msummary), 
@@ -2579,16 +2712,20 @@ class GroupBy2Command(Command):
                         if calc.split(':')[0] in grouped_calcs[group]:
                             _thisgroup.append(calc)
 
-                    if ns:
-                        for n in ns:
-                            arglist['n'] = n
+                    if _thisgroup:
+                        if group in grouped_calcs:
+                            msum_prereqs.update(msum_dependencies[group])
+
+                        if ns:
+                            for n in ns:
+                                arglist['n'] = n
+                                calclist.append({'c': _thisgroup, 
+                                            'optype' : 'aggregate',
+                                            **arglist})
+                        else:
                             calclist.append({'c': _thisgroup, 
                                         'optype' : 'aggregate',
                                         **arglist})
-                    else:
-                        calclist.append({'c': _thisgroup, 
-                                    'optype' : 'aggregate',
-                                    **arglist})
 
 
         # sys.__stderr__.write(repr(calclist))
