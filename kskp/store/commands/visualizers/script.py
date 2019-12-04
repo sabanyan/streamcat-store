@@ -133,17 +133,34 @@ class CsvToLineGraphCommand(VisualizersBokehPlot):
         """
         ビジュアライズを描画、保存する。
         """
-        # offset対応
-        frame = Library.load_frame(inputs.get('i'))
-        offset = int(args.get('offset')) if args.get('offset') else 0
-        limit = int(args.get('limit')) if args.get('limit') else None
+        # 軸の設定
+        x_axis          = args.get('x_axis')
+        x_axis_column   = x_axis[0]['column']
+        x_axis_label    = x_axis[0]['label']
 
-        # dfの作成
+        y_axis          = args.get('y_axis')
+        y_axis_column   = y_axis[0]['column']
+        y_axis_label    = y_axis[0]['label']
+
+        # データ系列の設定
+        data_column     = args.get('data_column')   if args.get('data_column') is not None else []
+
+        # データ表示範囲の設定
+        offset          = int(args.get('offset'))   if args.get('offset')   else 0
+        limit           = int(args.get('limit'))    if args.get('limit')    else None
+
+        # グラフサイズの設定
+        graph_width     = int(args.get('width'))
+        graph_height    = int(args.get('height'))
+        
+
+        # 1. frame_uuidでframeを探す。
+        frame = Library.load_frame(inputs.get('i'))
+
+        # 2. pandasnのdataframe作成
         # TODO:愚直にdfを加工しており、高速化・メモリ管理等の工夫は何もしていない
-        time_series_column = args.get('time_series_column') if args.get('time_series_column') else False
-        # df = pd.read_csv(file_path, parse_dates=[time_series_column], nrows=limit, skiprows=range(1, offset))
-        df = frame.get_dataframe(limit, offset, [time_series_column])
-        df[args.get('data_column')] = df[args.get('data_column')].astype(str)
+        df = frame.get_dataframe(limit, offset)
+        df[data_column] = df[data_column].astype(str)
 
         # ここstartがdfの最大行数を越えるとエラーが出る
         # if len(df) < start:
@@ -151,22 +168,21 @@ class CsvToLineGraphCommand(VisualizersBokehPlot):
             # pass
         hv.extension('bokeh')
 
-        keys = args.get('data_column')
-
-        if len(keys) > 0:
-            results = self.direct_product_by_keys(df, keys)
+        if len(data_column) > 0:
+            results = self.direct_product_by_keys(df, data_column)
             named_dfs = self.process_df(df, results)
         else:
             named_dfs = {}
             named_dfs['all'] = df
 
+        # 3. 折れ線の作成
         line_list = {}
         for label, df in named_dfs.items():
-            line_list[label] = hv.Curve(df, args.get('time_series_column'), args.get('y_axis_column')).opts(width=1040, height=600)
+            line_list[label] = hv.Curve(df, x_axis_column, y_axis_column).opts(width=1040, height=600)
 
         ndoverlay = hv.NdOverlay(line_list).opts(legend_position='top',
-                                                 width=int(args.get('x_size')), height=int(args.get('y_size')),
-                                                 xlabel=args.get('x_label'), ylabel=args.get('y_label'))
+                                                 width=graph_width, height=graph_height,
+                                                 xlabel=x_axis_label, ylabel=y_axis_label)
 
         renderer = hv.renderer('bokeh')
         plot = renderer.get_plot(ndoverlay).state
@@ -183,37 +199,58 @@ class CsvToHistogramCommand(VisualizersBokehPlot):
         plotのヒストグラムを作成する
         """
 
-        # offset対応
-        offset = int(args.get('offset')) if args.get('offset') else 0
-        limit = int(args.get('limit')) if args.get('limit') else None
+        # 軸の設定
+        x_axis          = args.get('x_axis')
+        x_axis_column   = x_axis[0]['column']
+        x_axis_label    = x_axis[0]['label']
 
+        # 縦軸列：頻度
+        y_axis_label    = ""
+
+        # データ系列の設定
+        data_column     = args.get('data_column')   if args.get('data_column') is not None else []
+
+        # データ表示範囲の設定
+        offset          = int(args.get('offset'))   if args.get('offset')   else 0
+        limit           = int(args.get('limit'))    if args.get('limit')    else None
+
+        # グラフ表示要素の設定
+        bins            = int(args.get('bins'))   if args.get('bins') else None
+        
+        # グラフサイズの設定
+        graph_width     = int(args.get('width'))
+        graph_height    = int(args.get('height'))
+        
+        # 1. frame_uuidでframeを探す。
         frame = Library.load_frame(inputs.get('i'))
-        # df = pd.read_csv(file_path, nrows=limit, skiprows=range(1, offset))
+
+        # 2. pandasnのdataframe作成
+        # TODO:愚直にdfを加工しており、高速化・メモリ管理等の工夫は何もしていない
         df = frame.get_dataframe(limit, offset)
-        df[args.get('data_column')] = df[args.get('data_column')].astype(str)
+        df[data_column] = df[data_column].astype(str)
 
         # ここstartがdfの最大行数を越えるとエラーが出る
         # if len(df) < start:
             # なんかする
             # pass
+        hv.extension('bokeh')
 
-        keys = args.get('data_column')
-
-        if len(keys) > 0:
-            results = self.direct_product_by_keys(df, keys)
+        if len(data_column) > 0:
+            results = self.direct_product_by_keys(df, data_column)
             named_dfs = self.process_df(df, results)
         else:
             named_dfs = {}
             named_dfs['all'] = df
 
+        # 3. ヒストグラムの作成3
         hist_list = {}
         for label, df in named_dfs.items():
-            hist, edges = np.histogram(df[args.get('x_axis')].tolist(), bins=args.get('bins'))
+            hist, edges = np.histogram(df[x_axis_column].tolist(), bins=bins)
             hist_list[label] = hv.Histogram((edges, hist)).opts(muted_alpha=0.1)
 
         ndoverlay = hv.NdOverlay(hist_list).opts(legend_position='top',
-                                                 width=int(args.get('x_size')), height=int(args.get('y_size')),
-                                                 xlabel=args.get('x_label'), ylabel=args.get('y_label'))
+                                                 width=graph_width, height=graph_height,
+                                                 xlabel=x_axis_label, ylabel=y_axis_label)
 
         renderer = hv.renderer('bokeh')
         plot = renderer.get_plot(ndoverlay).state
@@ -229,41 +266,57 @@ class CsvToScatterCommand(VisualizersBokehPlot):
         csvのファイルパスから、
         plotの散布図を作成する
         """
-        # offset対応
-        offset = int(args.get('offset')) if args.get('offset') else 0
-        limit = int(args.get('limit')) if args.get('limit') else None
+        
+        # 軸の設定
+        x_axis          = args.get('x_axis')
+        x_axis_column   = x_axis[0]['column']
+        x_axis_label    = x_axis[0]['label']
 
+        y_axis          = args.get('y_axis')
+        y_axis_column   = y_axis[0]['column']
+        y_axis_label    = y_axis[0]['label']
+
+        # データ系列の設定
+        data_column     = args.get('data_column')   if args.get('data_column') is not None else []
+
+        # データ表示範囲の設定
+        offset          = int(args.get('offset'))   if args.get('offset')   else 0
+        limit           = int(args.get('limit'))    if args.get('limit')    else None
+
+        # グラフ表示要素の設定
+        withoutContourLine  = args.get('withoutContourLine') if args.get('withoutContourLine') else False
+        
+        # グラフサイズの設定
+        graph_width     = int(args.get('width'))
+        graph_height    = int(args.get('height'))
+
+        # 1. frame_uuidでframeを探す。
         frame = Library.load_frame(inputs.get('i'))
-        # df = pd.read_csv(file_path, nrows=limit, skiprows=range(1, offset))
+
+        # 2. pandasnのdataframe作成
+        # TODO:愚直にdfを加工しており、高速化・メモリ管理等の工夫は何もしていない
         df = frame.get_dataframe(limit, offset)
-
-        # ブロック句
-        if not frame.file_exists:
-            return ''
-
-        # ここstartがdfの最大行数を越えるとエラーが出る
-        # if len(df) < start:
-            # なんかする
-            # pass
-
-        keys = args.get('data_column')
-
-        if len(keys) > 0:
-            results = self.direct_product_by_keys(df, keys)
+        
+        hv.extension('bokeh')
+        
+        if len(data_column) > 0:
+            results = self.direct_product_by_keys(df, data_column)
             named_dfs = self.process_df(df, results)
         else:
             named_dfs = {}
             named_dfs['all'] = df
-
+        
+        # 3. 散布図の作成
         scatter_list = {}
         for label, _df in named_dfs.items():
-            scatter_list[label] = hv.Scatter(_df, args.get('x_axis'), vdims=[args.get('y_axis')]).opts(muted_alpha=0.1)
+            scatter_list[label] = hv.Scatter(_df, x_axis_column, vdims=[y_axis_column]).opts(muted_alpha=0.1, size=6)
 
         ndoverlay = hv.NdOverlay(scatter_list).opts(legend_position='top',
-                                                 width=int(args.get('x_size')), height=int(args.get('y_size')),
-                                                 xlabel=args.get('x_label'), ylabel=args.get('y_label'))
-        if not args.get('b'):
-            b = hv.Bivariate(df[[args.get('x_axis'), args.get('y_axis')]]).opts(show_legend=False, bandwidth=0.5, axiswise=True, line_width=2, colorbar=True)
+                                                 width=int(graph_width), height=int(graph_height),
+                                                 xlabel=x_axis_label, ylabel=y_axis_label)
+
+        if not withoutContourLine:
+            b = hv.Bivariate(df[[x_axis_column, y_axis_column]]).opts(show_legend=False, bandwidth=0.5, axiswise=True, line_width=2, colorbar=False, alpha=0.1)
             ndoverlay = ndoverlay * b
 
         renderer = hv.renderer('bokeh')
@@ -280,25 +333,40 @@ class CsvToBoxplotCommand(VisualizersBokehPlot):
         csvのファイルパスから、
         plotの箱ひげ図を作成する
         """
-        offset = int(args.get('offset')) if args.get('offset') else 0
-        limit = int(args.get('limit')) if args.get('limit') else None
+        # 縦軸列：観測値
+        y_axis          = args.get('y_axis')
+        y_axis_column   = y_axis[0]['column']
+        y_axis_label    = y_axis[0]['label']
 
+        x_axis_label    = ""
+
+        # データ系列の設定
+        data_column     = args.get('data_column')   if args.get('data_column') is not None else []
+
+        # データ表示範囲の設定
+        offset          = int(args.get('offset'))   if args.get('offset')   else 0
+        limit           = int(args.get('limit'))    if args.get('limit')    else None
+
+        # グラフ表示要素の設定
+        bins            = int(args.get('bins'))   if args.get('bins') else None
+        
+        # グラフサイズの設定
+        graph_width     = int(args.get('width'))
+        graph_height    = int(args.get('height'))
+
+        graph_title     = ""
+
+        # 1. frame_uuidでframeを探す。
         frame = Library.load_frame(inputs.get('i'))
-        # df = pd.read_csv(file_path, nrows=limit, skiprows=range(1, offset))
+
+        # 2. pandasnのdataframe作成
+        # TODO:愚直にdfを加工しており、高速化・メモリ管理等の工夫は何もしていない
         df = frame.get_dataframe(limit, offset)
-
-        # ここstartがdfの最大行数を越えるとエラーが出る
-        # if len(df) < start:
-            # なんかする
-            # passd
-
         hv.extension('bokeh')
-        x_label = args.get('x_label') if args.get('x_label') else ','.join(args.get('x_axis'))
-        y_label = args.get('y_label') if args.get('y_label') else args.get('y_axis')
-        title = args.get('graph_title')
 
-        boxwhisker = hv.BoxWhisker(df, kdims=args.get('x_axis'), vdims=args.get('y_axis'), label=title)
-        boxwhisker.opts(width=args.get('x_size'), height=args.get('y_size'), xlabel=x_label, ylabel=y_label)
+        # 3. 箱ひげ図の作成
+        boxwhisker = hv.BoxWhisker(df, kdims=data_column, vdims=y_axis_column, label=graph_title)
+        boxwhisker.opts(width=graph_width, height=graph_height, xlabel=x_axis_label, ylabel=y_axis_label)
 
         renderer = hv.renderer('bokeh')
         plot=renderer.get_plot(boxwhisker).state
@@ -325,14 +393,14 @@ class CsvtoRepetitivieWaveform(VisualizersBokehPlot):
         graph_plot.legend.click_policy = "mute"
 
         select = self.get_select(graph_plot)
-        plots = [graph_plot, select]
+        plots = [select, graph_plot]
         
         statics_plot = None
         if self.disableStatics == False:
             statics_source = self.get_statics_source(self.df, disableTooltips=self.disableTooltips)
             if statics_source is not None:
                 statics_colors = self.get_colors(len(statics_source))
-                plot = self.get_plot("反復波形図",graph_plot.x_range,graph_plot.y_range)
+                plot = self.get_plot("反復波形図",graph_plot.x_range,graph_plot.y_range,False)
                 statics_plot = self.get_statics_plot(plot,statics_source, statics_colors)
                 if statics_plot.legend:
                     statics_plot.legend.location = "top_left"
@@ -396,7 +464,7 @@ class CsvtoRepetitivieWaveform(VisualizersBokehPlot):
             data = dict(
                 x = n_df[self.column_name_x_axis].tolist(),
                 y = n_df[self.column_name_values].tolist(),
-                #group = n_df[self.group].tolist(),
+                group = n_df[self.group].tolist(),
                 label = [label] * (len(n_df.index))
             )
             source[label] = data
@@ -471,7 +539,7 @@ class CsvtoRepetitivieWaveform(VisualizersBokehPlot):
 
         return colors
 
-    def get_plot(self, title, x_range=None, y_range=None):
+    def get_plot(self, title, x_range=None, y_range=None, visiableGroup=True):
         
         tooltips = None
         if self.disableTooltips != True:
@@ -479,6 +547,13 @@ class CsvtoRepetitivieWaveform(VisualizersBokehPlot):
                     ("凡例", "@label"),
                     (self.column_name_x_axis, "@x"),
                     (self.column_name_values, "@y"),
+                    ("group", "@group")
+                ]
+            if visiableGroup == False:
+                tooltips = [
+                    ("凡例", "@label"),
+                    (self.column_name_x_axis, "@x"),
+                    (self.column_name_values, "@y")
                 ]
         
         plot = figure(
