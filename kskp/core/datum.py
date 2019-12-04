@@ -268,7 +268,7 @@ class Datum(BaseModel):
     def _to_rel_path(path):
         if path.startswith('/'):
             # ディレクトリトラバーサルには対応していない
-            return Path(path).relative_to(STORE_DIR.parent).as_posix()
+            return Path(path).relative_to(STORE_DIR).as_posix()
         else:
             return path
 
