@@ -2115,12 +2115,12 @@ class GroupBy2Command(Command):
                 msummary[i] <<= nm.msel(i = self.all_msums, 
                                         c = f'$s{{fld}}=="{fld}"')
 
-                targets[i] <<= nm.maccum(k = k, s = x, f = f'__abs{fld}:__abs{fld}_a',
+                targets[i] <<= nm.maccum(k = k, s = f'{x}%n', f = f'__abs{fld}:__abs{fld}_a',
                                          i = mcal[i])
                 targets[i] <<= nm.mjoin(k = k, f = f'__abs{fld}:__abs{fld}_ttl',
                                         m = msum[i])
-                targets[i] <<= nm.mjoin(k = k, f = f'fld,__count', m = msummary[i])
-                targets[i] <<= nm.mcal(c = f'(${{__abs{fld}_a}}/${{__abs{fld}_ttl}})>={float(n):.3g}',
+                targets[i] <<= nm.mnjoin(k = k, f = f'fld,__count', m = msummary[i])
+                targets[i] <<= nm.mcal(c = f'(${{__abs{fld}_a}}/${{__abs{fld}_ttl}})>={n}',
                                        a = '__mc')
                 targets[i] <<= nm.mbest(k = k, s = f'__mc%nr,{x}%n', size = 1)
                 targets[i] <<= nm.mcal(c = f'(${{{x}}} + 1)/${{__count}}', a = f'{a}_{n}',
