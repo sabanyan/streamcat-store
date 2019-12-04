@@ -2486,6 +2486,7 @@ class GroupBy2Command(Command):
 
         msum_prereqs = set()
 
+        sys.setrecursionlimit(2**20)
 
         self.header = nm.mread(inputs).getline(header=True)
         self.header = next(self.header)
