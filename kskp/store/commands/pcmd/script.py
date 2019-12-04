@@ -2579,16 +2579,17 @@ class GroupBy2Command(Command):
                         if calc.split(':')[0] in grouped_calcs[group]:
                             _thisgroup.append(calc)
 
-                    if ns:
-                        for n in ns:
-                            arglist['n'] = n
+                    if _thisgroup:
+                        if ns:
+                            for n in ns:
+                                arglist['n'] = n
+                                calclist.append({'c': _thisgroup, 
+                                            'optype' : 'aggregate',
+                                            **arglist})
+                        else:
                             calclist.append({'c': _thisgroup, 
                                         'optype' : 'aggregate',
                                         **arglist})
-                    else:
-                        calclist.append({'c': _thisgroup, 
-                                    'optype' : 'aggregate',
-                                    **arglist})
 
 
         # sys.__stderr__.write(repr(calclist))
