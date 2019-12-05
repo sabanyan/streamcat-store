@@ -2106,6 +2106,7 @@ class GroupBy2Command(Command):
 
             # fix time column
             # subcmd = self.fixtimecolumn(subcmd, x, dateformat)
+            subcmd <<= nm.mnumber(a = '__seq', s = f'{x}%n', k = k, e = 'seq')
 
             for i, fld in enumerate(fs):
                 mcal[i] <<= nm.mcal(c = f'abs(${{{fld}}})', a = f'__abs{fld}', 
@@ -2115,15 +2116,15 @@ class GroupBy2Command(Command):
                 msummary[i] <<= nm.msel(i = self.all_msums, 
                                         c = f'$s{{fld}}=="{fld}"')
 
-                targets[i] <<= nm.maccum(k = k, s = f'{x}%n', f = f'__abs{fld}:__abs{fld}_a',
+                targets[i] <<= nm.maccum(k = k, s = '__seq%n', f = f'__abs{fld}:__abs{fld}_a',
                                          i = mcal[i])
                 targets[i] <<= nm.mjoin(k = k, f = f'__abs{fld}:__abs{fld}_ttl',
                                         m = msum[i])
                 targets[i] <<= nm.mnjoin(k = k, f = f'fld,__count', m = msummary[i])
                 targets[i] <<= nm.mcal(c = f'(${{__abs{fld}_a}}/${{__abs{fld}_ttl}})>={n}',
                                        a = '__mc')
-                targets[i] <<= nm.mbest(k = k, s = f'__mc%nr,{x}%n', size = 1)
-                targets[i] <<= nm.mcal(c = f'(${{{x}}} + 1)/${{__count}}', a = f'{a}_{n}',
+                targets[i] <<= nm.mbest(k = k, s = '__mc%nr,__seq%n', size = 1)
+                targets[i] <<= nm.mcal(c = '(${__seq} + 1)/${__count}', a = f'{a}_{n}',
                                        precision = precision)
 
                 targets[i] <<= nm.mcut(f = f'{k},fld,{a}_{n}')
@@ -2476,6 +2477,85 @@ class GroupBy2Command(Command):
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
 
+    def max_langevin_fp(self, subcmd, **kwargs):
+        try:
+            f = kwargs.get('f')
+            a = kwargs.get('a')
+            k = kwargs.get('k')
+            x = kwargs.get('x')
+            n = kwargs.get('n')
+            m, r = n.split(';')
+            precision = kwargs.get('precision')
+
+            dateformat = kwargs.pop('dateformat')
+
+            ks = k.split(',')
+            fs = f.split(',')
+            subcmd_0 = [None] * len(fs)
+            subcmd_1 = [None] * len(fs)
+            subcmd_2 = [None] * len(fs)
+            subcmd_3 = [None] * len(fs)
+            _temp = [mtemp.Mtemp().file()] * len(fs)
+            subcmd_o = None
+
+            subcmd = self.fixtimecolumn(subcmd, x, dateformat)
+
+            for i, fld in enumerate(fs):
+
+                subcmd_0[i] <<= nm.mslide(k = k, s = 'uxt', f = f'{fld}:__{fld}n', 
+                                         i = subcmd)
+                subcmd_0[i] <<= nm.mcal(c = f'${{__{fld}n}}', a = '__diff')
+                subcmd_0[i] <<= nm.mbucket(k = k, f = f'{fld}:__{fld}no', n = r)
+
+                subcmd_1[i] <<= nm.mcount(k = f'{k},__{fld}no', i = subcmd_0[i],
+                                          a = '__maxcnt')
+                subcmd_1[i] <<= nm.mbest(k = k, s = '__maxcnt%nr', size = 1)
+                
+                subcmd_2[i] <<= nm.mcount(k = k, i = subcmd_0[i], a = '__tcnt')
+                subcmd_2[i] <<= nm.mnjoin(k = k, f = '__maxcnt', m = subcmd_1[i])
+                subcmd_2[i] <<= nm.msel(c =f'${{__tcnt}}<{r}&&${{__maxcnt}}!=1')
+                
+                subcmd_3[i] <<= nm.mcommon(k = k, m = subcmd_2[i], i = subcmd_0[i],
+                                           r = True)
+                subcmd_3[i] <<= nm.mavg(k = f'{k},__{fld}no', f = f'{fld},__diff')
+                subcmd_3[i] <<= nm.mcut(f = f'{k},__{fld}no,{fld},__diff')
+                
+                head = k.split(',')
+                
+                # for q in range(m, -1, -1):
+                #     head.append(f'fri_coeff_m{m}_r{r}_c{q}')
+                head.extend(['fld',f'{a}_{n}'])
+                
+                with mcsvout(_temp[i], f = head) as tmpfile:
+                    for dlist in subcmd_3[i].keyblock(k,f'__{fld}no%n'):
+
+                        _newline = dlist[0][0:len(ks)] + [fld]
+                        try:
+                            _x = [float(xdlist[len(ks)+1]) for xdlist in dlist] 
+                            _y = [float(xdlist[len(ks)+2]) for xdlist in dlist] 
+                            _res = np.polyfit(_x, _y, deg = int(m))
+                        except(np.linalg.LinAlgError, ValueError):
+                            _res = [np.NaN] * (m + 1)
+                            
+                        # _newline.extend(_res)
+
+                        try:
+                            _maxlfp = np.max(np.real(np.roots(_res)))
+                            _newline.append(f'{_maxlfp:.{precision}g}')
+                        except (np.linalg.LinAlgError, ValueError):
+                            pass
+                        
+                        tmpfile.write(_newline)
+
+            subcmd_o <<= nm.mread(i = _temp)
+
+            return subcmd_o
+
+        except Exception as e:
+            import traceback
+            with open('/dev/stderr', 'w') as fpe:
+                traceback.print_exc(file=fpe)
+
     #  ## Template
     # subcmd = None
     # subcmd <<= nm.mstdin()
@@ -2562,6 +2642,7 @@ class GroupBy2Command(Command):
             'longest_strike_below_mean' : self.longeststrikebelowmean,
             'mean_second_derivative_central' : self.mean2ndderivative_central,
             'energy_ratio_by_chunks' : self.energy_ratio_by_chunks,
+            'max_lfp' : self.max_langevin_fp,
             # 2+1 fields
             'imq' : self.index_mass_quantile,
             'crossing_m' : self.numbercrossing,
