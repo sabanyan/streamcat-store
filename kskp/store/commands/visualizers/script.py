@@ -429,7 +429,7 @@ class CsvtoRepetitivieWaveform(VisualizersBokehPlot):
         limit = int(args.get('limit')) if args.get('limit') else None
         
         frame = Library.load_frame(frame_uuid)
-        df = frame.get_dataframe(limit, offset, [self.column_name_x_axis])
+        df = frame.get_dataframe(limit, offset)
         self.df = df.sort_values(by = self.column_name_x_axis)
         self.groups = self.df[self.group].unique().tolist()
         
