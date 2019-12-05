@@ -2495,7 +2495,7 @@ class GroupBy2Command(Command):
             subcmd_1 = [None] * len(fs)
             subcmd_2 = [None] * len(fs)
             subcmd_3 = [None] * len(fs)
-            _temp = [mtemp.Mtemp().file()] * len(fs)
+            _temps = [None] * len(fs) 
             subcmd_o = None
 
             subcmd = self.fixtimecolumn(subcmd, x, dateformat)
@@ -2526,7 +2526,8 @@ class GroupBy2Command(Command):
                 #     head.append(f'fri_coeff_m{m}_r{r}_c{q}')
                 head.extend(['fld',f'{a}_{n}'])
                 
-                with mcsvout(_temp[i], f = head) as tmpfile:
+                _temp = mtemp.Mtemp().file()
+                with mcsvout(_temp, f = head) as tmpfile:
                     for dlist in subcmd_3[i].keyblock(k,f'__{fld}no%n'):
 
                         _newline = dlist[0][0:len(ks)] + [fld]
@@ -2547,7 +2548,9 @@ class GroupBy2Command(Command):
                         
                         tmpfile.write(_newline)
 
-            subcmd_o <<= nm.mread(i = _temp)
+                _temps[i] = _temp
+
+            subcmd_o <<= nm.mread(i = _temps, o = 'aftermread.csv')
 
             return subcmd_o
 
