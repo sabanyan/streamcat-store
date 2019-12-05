@@ -21,7 +21,7 @@ class Datum(BaseModel):
     # csv以外も出た時は改めて考えねば
     # DEFAULT_LIBRARY_PATH = (STORE_DIR / 'frames/csv').relative_to(STORE_DIR.parent.parent).as_posix()
     # DEFAULT_LIBRARY_PATH = (STORE_DIR / 'frames/csv').as_posix()
-    DEFAULT_LIBRARY_PATH = STORE_DIR.name + '/lib'
+    DEFAULT_LIBRARY_PATH = 'lib'
     FOLDER_TYPE = 'folder'
     AWSS3_TYPE  = 'awss3'
     RFOLDER_TYPE = 'rfolder'
