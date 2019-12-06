@@ -84,9 +84,6 @@ class SaverCommand(SCommand):
         f = io.BytesIO(b'')
         frame = Frame(store.uuid, label, f)
         # RunsCommandの実行前にFrameを登録する
-        
-        # raise Exception('!!')
-
         frame.save()
         return frame
 
@@ -405,7 +402,6 @@ class DbSaverCommand(SaverCommand):
         datasource = self._create_data_source(result_folder.uuid, database, 'point_id', schema_name, table_name, args['activity_uuid'])
         datasource.save()
 
-        # TODO: 'u'には意味のないDatumを返しているが、正しくはDBの結果を表すDatasourceを返したい
         return {'o': NysolModule(cmd), 'u': datasource}  
         
     @staticmethod
@@ -597,14 +593,12 @@ class RemoteFolderLoaderCommand(SCommand):
         self.name = 'remotefolder_loader'
 
     def run(self, args, inputs):
-        DbLoaderCommand._write_log('START')
-
         from kskp.store import Datum, RemoteFolder
         if inputs['i'].type != Datum.RFOLDER_TYPE:
             t = type(inputs['i'])
             raise Exception(f'Remotefolder_loaderの入力にRemote Folder Store以外のデータ型({t})が入力されました')
         else:
-            folder = RemoteFolder.convert_to_database(inputs['i'])
+            folder = RemoteFolder.convert_to_remote_folder(inputs['i'])
 
         # 接続情報に漏れがないか確認し、漏れがあれば例外を送出する
         folder.valid_or_raise()
@@ -614,14 +608,78 @@ class RemoteFolderLoaderCommand(SCommand):
             raise Exception('リモートフォルダ接続の取得元ファイル名が必要です')
         file_path = args['file_path']
 
-        # マウントされていなければマウントする
-        if not folder.is_mount():
-            folder.remount()
+        # ファイルパスを取得する
+        path = folder.path / file_path.lstrip('/')
+        path_str = Datum._to_abs_path(path.as_posix())
 
-        cmd = nm.m2tee({'i':file_path})
+        cmd = nm.m2tee({'i':path_str})
         # mreadで存在しないファイルパスを指定するとDockerごと落ちる ->　
         # return nm.mread({'i':path})
         return {'o': NysolModule(cmd)}
+
+class RemoteFolderSaverCommand(SaverCommand):
+    """
+    指定したリモートフォルダへデータを格納するSaverコマンド
+    """
+    def __init__(self):
+        super().__init__()
+        self.i_ports = [Port('i', 'frame'), Port('store', 'store'), Port('folder', 'store')]
+        self.o_ports = [Port('o', 'mcmd'), Port('u', 'frame')]
+
+    def run(self, args, inputs):
+        from kskp.store import Datum, RemoteFolder
+        if inputs['store'].type != Datum.RFOLDER_TYPE:
+            t = type(inputs['store'])
+            raise Exception(f'RemoteFolderSaverの入力にRemoteFolderStore以外のデータ型({t})が入力されました')
+        else:
+            rfolder = RemoteFolder.convert_to_remote_folder(inputs['store'])
+
+        if inputs['folder'].type != Datum.FOLDER_TYPE:
+            t = type(inputs['folder'])
+            raise Exception(f'RemoteFolderSaverの入力にFolder以外のデータ型({t})が入力されました')
+        else:
+            folder = Folder.convert_to_folder(inputs['folder'])
+
+        # 接続情報に漏れがないか確認し、漏れがあれば例外を送出する
+        rfolder.valid_or_raise()
+
+        # ファイル名を取得する
+        if 'dir_path' not in args:
+            raise Exception('リモートフォルダ接続の格納先ディレクトリ名が必要です')
+        dir_path = args['dir_path']
+
+        # 出力ファイルパスを作成する
+        file_path = rfolder.path / dir_path.strip('/') / 'point_id' 
+        file_path = Datum.get_another_file_path(file_path.as_posix())
+        path_str = Datum._to_abs_path(file_path)
+
+        # Nysol Python
+        cmd = inputs['i'].content
+        cmd <<= nm.writecsv(o=path_str)
+
+        # DataSourceを保存するフォルダを用意する
+        flow_label = args['flow_label']
+        start_time = args['start_time'].astimezone()
+        start_time_str1 = start_time.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
+        start_time_str2 = start_time.strftime('%Y%m%d.%H%M%S.%f')[:-3]
+        result_folder = self.make_folder(folder, flow_label, start_time_str1, start_time_str2)
+
+        # 出力結果を取得するDataSourceをライブラリに登録する
+        # TODO: point_idどっからとってこよう
+        datasource = self._create_data_source(result_folder.uuid, rfolder, 'point_id', path_str)
+        datasource.save()
+
+        return {'o': NysolModule(cmd), 'u': datasource}  
+
+    @staticmethod
+    def _create_data_source(parent_uuid, rfolder, label, file_path):
+        import uuid
+        from kskp.engine import Step
+        from kskp.store.commands import CommandLink
+        from kskp.store import DataSource
+        args = {'file_path':file_path}
+        loader_step = Step(str(uuid.uuid4()), CommandLink('remotefolder_loader').resolve(), args)
+        return DataSource(parent_uuid, label, rfolder, loader_step)
 
 class RunsCommand(SCommand):
     def __init__(self):

@@ -136,6 +136,8 @@ class CommandLink:
         'loader': LoaderCommand(),
         'db_loader' : DbLoaderCommand(),
         'db_saver'  : DbSaverCommand(),
+        'remotefolder_loader' : RemoteFolderLoaderCommand(),
+        'remotefolder_saver'  : RemoteFolderSaverCommand(),
         'activity' : ActivityCommand(),
         'runs' : RunsCommand()
     }
