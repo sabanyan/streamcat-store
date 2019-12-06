@@ -670,7 +670,7 @@ class CsvToTimeCompressionCommand(VisualizersBokehPlot):
         # df
         frame_uuid = inputs.get('i')
         frame = Library.load_frame(frame_uuid)
-        df = frame.get_dataframe(limit, offset)
+        df = frame.get_dataframe(limit, offset, [x_axis_column])
         
         # title
         df_x_minmax = self.doMsummary(df, None, x_axis_column, "min,max")
