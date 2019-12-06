@@ -118,11 +118,13 @@ class CacheSaverCommand(SaverCommand):
         self.frame = self.make_frame(store, cache_label)
 
         # FlowのキャッシュUUIDを変更する
+        # テスト実行の場合は実行するFlowをDBに保存していない
         from kskp.store import Flow
-        flow = Flow.find_by_uuid(args['flow_uuid'])
-        node_id = args['datum_id']
-        # TODO: RunsCommand実行前にFlowにキャッシュありの情報を更新すると、同じフローの同時実行に支障があるだろう
-        flow.set_cache(node_id, self.frame.uuid, None)
+        if Flow.exists(args['flow_uuid']):
+            flow = Flow.find_by_uuid(args['flow_uuid'])
+            node_id = args['datum_id']
+            # TODO: RunsCommand実行前にFlowにキャッシュありの情報を更新すると、同じフローの同時実行に支障があるだろう
+            flow.set_cache(node_id, self.frame.uuid, None)
 
         # NYSOLコマンドを作成する
         cmd = inputs['i'].content
@@ -633,7 +635,7 @@ class RunsCommand(SCommand):
             nm_list.append(nysol_module.content)
 
         import nysol.mcmd as nm
-        nm.drawModelsD3(fname='aaabbbccc.html', val=nm_list)
+        # nm.drawModelsD3(fname='aaabbbccc.html', val=nm_list)
 
         # NYSOL Pythonを実行する
         results = nm.runs(nm_list, msg='on')
