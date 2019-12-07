@@ -1372,6 +1372,7 @@ class GroupBy2Command(Command):
             headerline = True
 
             for dlist in nm.mstdin().keyblock(f'{k}', x, header = True):
+                # sys.__stderr__.write(repr(dlist))
                 id = ','.join(dlist[0][:len(k.split(','))])
 
                 if headerline:
@@ -2202,6 +2203,7 @@ class GroupBy2Command(Command):
                 targets[i] <<= nm.mslide(k = k, s = 'uxt', t = n,
                                          f = f'{fld}:{fld}_down_', i = subcmd)
                 
+                
                 targets[i] <<= nm.mjoin(k = f'{k},uxt', f = f'{fld}_up_*',
                                         m = mslide[i])
                 targets[i] <<= nm.mdelnull(f = f'{fld}_up_*,{fld}_down_*')
@@ -2212,9 +2214,10 @@ class GroupBy2Command(Command):
 
                 targets[i] <<= nm.msum(k = k, f = f'{a}_{n}')
                 targets[i] <<= nm.mcal(a = 'fld', c = f'"{fld}"')
+                targets[i] <<= nm.mcut(f = f'{k},fld,{a}_{n}')
 
 
-            subcmd_o <<= nm.mcut(i = targets, f = f'{k},fld,{a}_{n}')
+            subcmd_o <<= nm.mread(i = targets)
 
             return subcmd_o
 
@@ -2724,6 +2727,7 @@ class GroupBy2Command(Command):
         # parse inputs into list-of-dictionaries form
         for arglist in allargs:
             if arglist.get('c'):
+                # sys.__stderr__.write(repr(arglist))
 
                 x = arglist.get('x')
                 s = arglist.get('s')
@@ -2823,8 +2827,9 @@ class GroupBy2Command(Command):
 
         self.all_msums = None
         premsums = [f'{f}:__{f}' for f in msum_prereqs]
+        premsum = ','.join(premsums)
         self.all_msums <<= nm.msummary(i = cmd_i, k = k, f = all_fs, 
-                            c = premsums, precision = prec)
+                            c = premsum, precision = prec)
         # take the wanted columns only (the key columns and the value columns)
         # generate string of columns to cut
 
@@ -2881,7 +2886,7 @@ class GroupBy2Command(Command):
                 _grp = calcdict.pop('group')
                 calcdict['a'] = {out : out for out in grouped_calcs[_grp]}
                 calcdict['flags'] = []
-
+                
                 for c in cs:
                     if ':' in c:
                         cleft, cright = c.split(':')
