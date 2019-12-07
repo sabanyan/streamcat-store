@@ -375,7 +375,7 @@ class GroupBy2Command(Command):
             
             allrows <<= nm.mcount(i = subcmd, k = k, a = '__allrows')
 
-            subcmd <<= nm.msummary(k = k, f = f, c = '__count')
+            subcmd <<= nm.msummary(k = k, f = f, c = 'count:__count')
             subcmd <<= nm.mjoin(k = k, m = allrows, f = '__allrows', K = k)
 
             subcmd <<= nm.mcal(a = '__missingcount', c = '${__allrows}-${__count}')
