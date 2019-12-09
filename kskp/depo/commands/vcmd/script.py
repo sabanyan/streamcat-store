@@ -254,6 +254,55 @@ class CsvToHistogramCommand(VisualizersBokehPlot):
 
         return plot
 
+class CsvToBoxplotCommand(VisualizersBokehPlot):
+    def __init__(self):
+        super().__init__()
+        
+    def plot(self, args, inputs):
+        """
+        csvのファイルパスから、
+        plotの箱ひげ図を作成する
+        """
+        # 縦軸列：観測値
+        y_axis          = args.get('y_axis')
+        y_axis_column   = y_axis[0]['column']
+        y_axis_label    = y_axis[0]['label']
+
+        x_axis_label    = ""
+
+        # データ系列の設定
+        data_column     = args.get('data_column')   if args.get('data_column') is not None else []
+
+        # データ表示範囲の設定
+        offset          = int(args.get('offset'))   if args.get('offset')   else 0
+        limit           = int(args.get('limit'))    if args.get('limit')    else None
+
+        # グラフ表示要素の設定
+        bins            = int(args.get('bins'))   if args.get('bins') else None
+        
+        # グラフサイズの設定
+        graph_width     = int(args.get('width'))
+        graph_height    = int(args.get('height'))
+
+        graph_title     = ""
+
+        # 1. frame_uuidでframeを探す。
+        frame = Library.load_frame(inputs.get('i'))
+
+        # 2. pandasnのdataframe作成
+        # TODO:愚直にdfを加工しており、高速化・メモリ管理等の工夫は何もしていない
+        df = frame.get_dataframe(limit, offset)
+        hv.extension('bokeh')
+
+        # 3. 箱ひげ図の作成
+        boxwhisker = hv.BoxWhisker(df, kdims=data_column, vdims=y_axis_column, label=graph_title)
+        boxwhisker.opts(width=graph_width, height=graph_height, xlabel=x_axis_label, ylabel=y_axis_label)
+
+        renderer = hv.renderer('bokeh')
+        plot=renderer.get_plot(boxwhisker).state
+
+        return plot
+
 class CsvToScatterCommand(VisualizersBokehPlot):
     def __init__(self):
         super().__init__()
@@ -318,55 +367,6 @@ class CsvToScatterCommand(VisualizersBokehPlot):
 
         renderer = hv.renderer('bokeh')
         plot = renderer.get_plot(ndoverlay).state
-
-        return plot
-
-class CsvToBoxplotCommand(VisualizersBokehPlot):
-    def __init__(self):
-        super().__init__()
-        
-    def plot(self, args, inputs):
-        """
-        csvのファイルパスから、
-        plotの箱ひげ図を作成する
-        """
-        # 縦軸列：観測値
-        y_axis          = args.get('y_axis')
-        y_axis_column   = y_axis[0]['column']
-        y_axis_label    = y_axis[0]['label']
-
-        x_axis_label    = ""
-
-        # データ系列の設定
-        data_column     = args.get('data_column')   if args.get('data_column') is not None else []
-
-        # データ表示範囲の設定
-        offset          = int(args.get('offset'))   if args.get('offset')   else 0
-        limit           = int(args.get('limit'))    if args.get('limit')    else None
-
-        # グラフ表示要素の設定
-        bins            = int(args.get('bins'))   if args.get('bins') else None
-        
-        # グラフサイズの設定
-        graph_width     = int(args.get('width'))
-        graph_height    = int(args.get('height'))
-
-        graph_title     = ""
-
-        # 1. frame_uuidでframeを探す。
-        frame = Library.load_frame(inputs.get('i'))
-
-        # 2. pandasnのdataframe作成
-        # TODO:愚直にdfを加工しており、高速化・メモリ管理等の工夫は何もしていない
-        df = frame.get_dataframe(limit, offset)
-        hv.extension('bokeh')
-
-        # 3. 箱ひげ図の作成
-        boxwhisker = hv.BoxWhisker(df, kdims=data_column, vdims=y_axis_column, label=graph_title)
-        boxwhisker.opts(width=graph_width, height=graph_height, xlabel=x_axis_label, ylabel=y_axis_label)
-
-        renderer = hv.renderer('bokeh')
-        plot=renderer.get_plot(boxwhisker).state
 
         return plot
 
