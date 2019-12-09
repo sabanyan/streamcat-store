@@ -1331,7 +1331,7 @@ class GroupBy2Command(Command):
 
             headerline = True
 
-            for dlist in nm.mstdin().keyblock(f'{k}', x, header = True):
+            for dlist in nm.mstdin().keyblock(f'{k}', f'{x}%n', header = True):
                 id = ','.join(dlist[0][:len(k.split(','))])
 
                 if headerline:
@@ -1371,7 +1371,7 @@ class GroupBy2Command(Command):
 
             headerline = True
 
-            for dlist in nm.mstdin().keyblock(f'{k}', x, header = True):
+            for dlist in nm.mstdin().keyblock(f'{k}', f'{x}%n', header = True):
                 # sys.__stderr__.write(repr(dlist))
                 id = ','.join(dlist[0][:len(k.split(','))])
 
@@ -1413,7 +1413,7 @@ class GroupBy2Command(Command):
 
             headerline = True
 
-            for dlist in nm.mstdin().keyblock(k, x, header = True):
+            for dlist in nm.mstdin().keyblock(k, f'{x}%n', header = True):
                 id = ','.join(dlist[0][:len(k.split(','))])
 
                 if headerline:
@@ -1441,7 +1441,6 @@ class GroupBy2Command(Command):
                                         
                             kurtosis =( (y.dot(np.arange(len(y))**4) / y.sum()) - 4 * centroid * moment3
                                 + 6 * moment2 * centroid**2 - 3*centroid) / variance**2
-
 
                         print(f'{id},{fld},{centroid:.{precision}g},{variance:.{precision}g},{skew:.{precision}g},{kurtosis:.{precision}g}')
             sys.__stdout__.flush()#not needed for bigger data
@@ -2278,6 +2277,40 @@ class GroupBy2Command(Command):
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
     
+    def partial_autocorrelation(self, **kwargs):
+        try:
+            from statsmodels.tsa.stattools import pacf
+            f = kwargs.get('f')
+            a = kwargs.get('a')
+            x = kwargs.get('x')
+            k = kwargs.get('k')
+            n = kwargs.get('n')
+            precision = kwargs.get('precision')
+
+            fs = f.split(',')
+
+            headerline = True
+            for dlist in nm.mstdin().keyblock(k, f'{x}%n', header = True):
+                if headerline:
+                    header = dlist[0][0]
+                    headerline = False
+                    print(f'{k},fld,{a}_{n}')
+
+                else:
+                    for fld in fs:
+                        targetcol = [float(xdlist[header.index(fld)]) for 
+                                     xdlist in dlist]
+
+                        _pacf_coeff = list(pacf(targetcol, method = 'ld',
+                                                nlags = n))
+                    
+                        print(f'{k},fld,{_pacf_coeff[n]:.{precision}g}')
+                        
+        except Exception as e:
+            import traceback
+            with open('/dev/stderr', 'w') as fpe:
+                traceback.print_exc(file=fpe)
+
     def c3(self,subcmd, **kwargs):
         try:
             f = kwargs.get('f')
@@ -2654,6 +2687,7 @@ class GroupBy2Command(Command):
             'crossing_m' : self.numbercrossing,
             'peaks' : self.countpeaks,
             'autocorr' : self.autocorrelation,
+            'partial_autocorr' : self.partial_autocorrelation,
             'c3' : self.c3,
             'time_reversal_asymmetry' : self.time_reversal_asymmetry,
             # aggregate functions
@@ -2665,7 +2699,8 @@ class GroupBy2Command(Command):
         python_calcs = [
             'meanf',
             'varf',
-            'fft_agg'
+            'fft_agg',
+            'partial_autocorr'
         ]
 
         grouped_calcs = {
