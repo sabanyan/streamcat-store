@@ -19,7 +19,7 @@ class VisualizersHtml(VisualizersCommand):
     def __init__(self):
         super().__init__()
 
-class CsvToTableCommand2(VisualizersHtml):
+class CsvToTableCommand(VisualizersHtml):
     def __init__(self):
         super().__init__()
 
@@ -142,7 +142,7 @@ import itertools
 
 hv.extension('bokeh')
 
-class CsvToLineGraphCommand2(VisualizersBokehPlot):
+class CsvToLineGraphCommand(VisualizersBokehPlot):
     def __init__(self):
         super().__init__()
 
@@ -189,7 +189,7 @@ class CsvToLineGraphCommand2(VisualizersBokehPlot):
 
         return plot
 
-class CsvToHistogramCommand2(VisualizersBokehPlot):
+class CsvToHistogramCommand(VisualizersBokehPlot):
     def __init__(self):
         super().__init__()
 
@@ -243,43 +243,7 @@ class CsvToHistogramCommand2(VisualizersBokehPlot):
         """
         return [self._get_proper_column(column_names, 4)]
 
-class CsvToBoxplotCommand2(VisualizersBokehPlot):
-    def __init__(self):
-        super().__init__()
-        
-    def plot(self, args, column_names, matrix):
-        """
-        ListデータをVisデータにして返す
-        """
-        # NysolPythonの結果をpandasのDataFrameに変換する
-        df = pd.DataFrame(matrix, columns=column_names)
-
-        # ここstartがdfの最大行数を越えるとエラーが出る
-        # if len(df) < start:
-            # なんかする
-            # passd
-
-        # dfの作成
-        x_axis = args.get('x_axis') or self._infer_x_axis_column(column_names)
-        y_axis = args.get('y_axis') or self._infer_y_axis_column(column_names)
-        df[x_axis] = df[x_axis].astype(float)
-        df[y_axis] = df[y_axis].astype(float)
-
-        hv.extension('bokeh')
-        title = args.get('graph_title') or ''
-        x_size = args.get('x_size') or self._proper_x_size()
-        y_size = args.get('y_size') or self._proper_y_size()
-        x_label = args.get('x_label') if args.get('x_label') else ','.join(x_axis)
-        y_label = args.get('y_label') if args.get('y_label') else y_axis
-        boxwhisker = hv.BoxWhisker(df, kdims=x_axis, vdims=y_axis, label=title)
-        boxwhisker.opts(width=x_size, height=y_size, xlabel=x_label, ylabel=y_label)
-
-        renderer = hv.renderer('bokeh')
-        plot=renderer.get_plot(boxwhisker).state
-
-        return plot
-
-class CsvToScatterCommand2(VisualizersBokehPlot):
+class CsvToScatterCommand(VisualizersBokehPlot):
     def __init__(self):
         super().__init__()
 
@@ -329,16 +293,54 @@ class CsvToScatterCommand2(VisualizersBokehPlot):
 
         return plot
 
-class CsvtoRepetitivieWaveform2(VisualizersBokehPlot):
+class CsvToBoxplotCommand(VisualizersBokehPlot):
+    def __init__(self):
+        super().__init__()
+        
+    def plot(self, args, column_names, matrix):
+        """
+        ListデータをVisデータにして返す
+        """
+        # NysolPythonの結果をpandasのDataFrameに変換する
+        df = pd.DataFrame(matrix, columns=column_names)
+
+        # ここstartがdfの最大行数を越えるとエラーが出る
+        # if len(df) < start:
+            # なんかする
+            # passd
+
+        # dfの作成
+        x_axis = args.get('x_axis') or self._infer_x_axis_column(column_names)
+        y_axis = args.get('y_axis') or self._infer_y_axis_column(column_names)
+        df[x_axis] = df[x_axis].astype(float)
+        df[y_axis] = df[y_axis].astype(float)
+
+        hv.extension('bokeh')
+        title = args.get('graph_title') or ''
+        x_size = args.get('x_size') or self._proper_x_size()
+        y_size = args.get('y_size') or self._proper_y_size()
+        x_label = args.get('x_label') if args.get('x_label') else ','.join(x_axis)
+        y_label = args.get('y_label') if args.get('y_label') else y_axis
+        boxwhisker = hv.BoxWhisker(df, kdims=x_axis, vdims=y_axis, label=title)
+        boxwhisker.opts(width=x_size, height=y_size, xlabel=x_label, ylabel=y_label)
+
+        renderer = hv.renderer('bokeh')
+        plot=renderer.get_plot(boxwhisker).state
+
+        return plot
+
+
+class CsvToRepetitivieWaveCommand(VisualizersBokehPlot):
+
     def __init__(self):
         super().__init__()
 
-    def plot(self, args, column_names, matrix):
+    def plot(self, args, inputs):
         """
         csvのファイルパスから、
         plotの反復波形図を作成する
         """
-        self.init(args, column_names, matrix)
+        self.init(args, inputs)
         
         graph_source = self.get_graph_source(self.df, disableTooltips=self.disableTooltips) 
         graph_colors = self.get_colors(len(graph_source))
@@ -348,14 +350,14 @@ class CsvtoRepetitivieWaveform2(VisualizersBokehPlot):
         graph_plot.legend.click_policy = "mute"
 
         select = self.get_select(graph_plot)
-        plots = [graph_plot, select]
+        plots = [select, graph_plot]
         
         statics_plot = None
         if self.disableStatics == False:
             statics_source = self.get_statics_source(self.df, disableTooltips=self.disableTooltips)
             if statics_source is not None:
                 statics_colors = self.get_colors(len(statics_source))
-                plot = self.get_plot("反復波形図",graph_plot.x_range,graph_plot.y_range)
+                plot = self.get_plot("反復波形図",graph_plot.x_range,graph_plot.y_range,False)
                 statics_plot = self.get_statics_plot(plot,statics_source, statics_colors)
                 if statics_plot.legend:
                     statics_plot.legend.location = "top_left"
@@ -363,13 +365,12 @@ class CsvtoRepetitivieWaveform2(VisualizersBokehPlot):
                 plots.append(statics_plot)          
         
         return gridplot(plots, ncols=1, plot_width=self.graph_width, plot_height=self.graph_height)
-
-    def init(self, args, column_names, matrix):
-        # NysolPythonの結果をpandasのDataFrameに変換する
-        df = pd.DataFrame(matrix, columns=column_names)
-
+        
+      
+    def init(self, args, inputs):
+    
         # 共通パラメーター
-        # frame_uuid = inputs.get('i')
+        frame_uuid = inputs.get('i')
         # 軸の設定
         self.column_name_x_axis = args.get('x_axis')[0]['column']
         self.column_name_values = args.get('y_axis')[0]['column']
@@ -380,6 +381,12 @@ class CsvtoRepetitivieWaveform2(VisualizersBokehPlot):
         self.keys = args.get('datas') if args.get('datas') else None
         self.group = args.get('group')
 
+        # データ表示範囲の設定
+        offset = int(args.get('offset')) if args.get('offset') else 0
+        limit = int(args.get('limit')) if args.get('limit') else None
+        
+        frame = Library.load_frame(frame_uuid)
+        df = frame.get_dataframe(limit, offset)
         self.df = df.sort_values(by = self.column_name_x_axis)
         self.groups = self.df[self.group].unique().tolist()
         
@@ -393,7 +400,7 @@ class CsvtoRepetitivieWaveform2(VisualizersBokehPlot):
         
         # グラフサイズの設定
         self.graph_width = args.get('width')
-        self.graph_height = args.get('height')
+        self.graph_height = height=args.get('height')
         
         #共通設定
         self.tools = "pan,wheel_zoom,box_zoom,reset,save,box_select"
@@ -414,7 +421,7 @@ class CsvtoRepetitivieWaveform2(VisualizersBokehPlot):
             data = dict(
                 x = n_df[self.column_name_x_axis].tolist(),
                 y = n_df[self.column_name_values].tolist(),
-                #group = n_df[self.group].tolist(),
+                group = n_df[self.group].tolist(),
                 label = [label] * (len(n_df.index))
             )
             source[label] = data
@@ -422,8 +429,6 @@ class CsvtoRepetitivieWaveform2(VisualizersBokehPlot):
         return source
 
     def get_statics_source(self, df, disableTooltips=False):
-        import nysol.mcmd as nm
-
         k = self.column_name_x_axis
         f = self.column_name_values
         c = self.statics #"min,mean,max,qtile1,median,qtile3"
@@ -432,8 +437,7 @@ class CsvtoRepetitivieWaveform2(VisualizersBokehPlot):
 
         dtype = "{}:float".format(self.column_name_x_axis)
         result = None
-        result <<= nm.msummary(i=i, k=k, f=f, c=c)
-        result <<= nm.writelist(dtype=dtype, header=True)
+        result <<= nm.msummary(i=i, k=k, f=f, c=c).writelist(dtype=dtype, header=True)
         result = result.run()
 
         name=result.pop(0)
@@ -482,7 +486,6 @@ class CsvtoRepetitivieWaveform2(VisualizersBokehPlot):
         return s
 
     def get_colors(self, size):
-        from bokeh.palettes import Dark2_5 as palette
         i = 0
         colors = []
         for d in itertools.cycle(palette):
@@ -493,7 +496,7 @@ class CsvtoRepetitivieWaveform2(VisualizersBokehPlot):
 
         return colors
 
-    def get_plot(self, title, x_range=None, y_range=None):
+    def get_plot(self, title, x_range=None, y_range=None, visiableGroup=True):
         
         tooltips = None
         if self.disableTooltips != True:
@@ -501,6 +504,13 @@ class CsvtoRepetitivieWaveform2(VisualizersBokehPlot):
                     ("凡例", "@label"),
                     (self.column_name_x_axis, "@x"),
                     (self.column_name_values, "@y"),
+                    ("group", "@group")
+                ]
+            if visiableGroup == False:
+                tooltips = [
+                    ("凡例", "@label"),
+                    (self.column_name_x_axis, "@x"),
+                    (self.column_name_values, "@y")
                 ]
         
         plot = figure(
@@ -581,5 +591,172 @@ class CsvtoRepetitivieWaveform2(VisualizersBokehPlot):
             plot = self.add_span_to_plot(plot, self.df)
         if self.disableMarker != True:
             plot = self.add_points_to_plot(plot, source, colors)
-
+   
         return plot
+
+
+class CsvToTimeCompressionCommand(VisualizersBokehPlot):
+
+    def __init__(self):
+        super().__init__()
+
+    def plot(self, args, inputs):
+
+        # 軸の設定
+        x_axis         = args.get('x_axis')
+        x_axis_column  = x_axis[0]['column']
+        x_axis_label   = x_axis[0]['label']
+
+        y_axis              = args.get('y_axis')
+        y_axis_column  = y_axis[0]['column']
+        y_axis_label   = y_axis[0]['label']
+
+        # データ系列の設定
+        data     = args.get('data')   if args.get('data') is not None else []
+
+        # データ表示範囲の設定
+        offset          = int(args.get('offset'))   if args.get('offset')   else 0
+        limit           = int(args.get('limit'))    if args.get('limit')    else None
+
+        # グラフ表示要素の設定
+        division        = args.get('division')
+        statics         = args.get('statics')
+        display_pattern = args.get('display_pattern')
+        
+        # グラフサイズの設定
+        graph_width     = int(args.get('width'))
+        graph_height    = int(args.get('height'))
+
+        # df
+        frame_uuid = inputs.get('i')
+        frame = Library.load_frame(frame_uuid)
+        df = frame.get_dataframe(limit, offset, [x_axis_column])
+        
+        # title
+        df_x_minmax = self.doMsummary(df, None, x_axis_column, "min,max")
+        df_y_minmax = self.doMsummary(df, None, y_axis_column, "min,max")
+
+        x_min = df_x_minmax.iat[0, 1]
+        x_max = df_x_minmax.iat[0, 2]
+
+        y_min = df_y_minmax.iat[0, 1]
+        y_max = df_y_minmax.iat[0, 2]
+
+        if len(data) > 0:
+            results = self.direct_product_by_keys(df, data)
+            named_dfs = self.process_df(df, results)
+        else:
+            named_dfs = {}
+            named_dfs['all'] = df
+   
+        def rangesToPoints(df, column):
+            for index, row in df.iterrows():
+                array = df.at[index, column].split("_")
+                df.at[index, column] = '0' if array[0] == '' else array[0]
+
+        staticsArray = statics.split(",")
+        source = {}
+        for label, _df in named_dfs.items():
+
+            if _df.empty == True:
+                continue
+                            
+            source[label] = {}
+
+            # 分割
+            result_column = x_axis_column + "_"
+            f = "{}:{}".format(x_axis_column, result_column)
+            df_bucket = self.doMbucket(_df, None, f, division)
+
+            # min, max
+            df_x_minmax = self.doMsummary(_df, None, x_axis_column, "min,max")
+            df_y_minmax = self.doMsummary(_df, None, y_axis_column, "min,max")
+            x_min = df_x_minmax.iat[0, 1]
+            x_max = df_x_minmax.iat[0, 2]
+
+            y_min = df_y_minmax.iat[0, 1]
+            y_max = df_y_minmax.iat[0, 2]
+
+            source[label]["x_range"] = [float(x_min),float(x_max)]
+            source[label]["y_range"] = [float(y_min),float(y_max)]
+
+            # 統計量
+            df_summary = self.doMsummary(df_bucket, result_column, y_axis_column, statics)
+            rangesToPoints(df_summary, result_column)
+            df_summary = df_summary.sort_values(result_column)
+
+            source[label][result_column] = df_summary[result_column].tolist()
+            for s in staticsArray:
+                source[label][s] = df_summary[s].tolist()
+ 
+        # Graph Plot
+        plots = []
+        for g in source:
+            title = "時間圧縮図:{}、 期間:{} ~ {}".format(g, source[g]["x_range"][0], source[g]["x_range"][1])
+            tools = "pan,wheel_zoom,box_zoom,reset,save,box_select"
+            plot = figure(
+                title=title,
+                tools=tools,
+                x_range=source[g]["x_range"],
+                y_range=source[g]["y_range"],
+                x_axis_label=x_axis_label,
+                y_axis_label=y_axis_label
+            )
+            colors = self.get_colors(len(staticsArray))
+            index = 0
+            for index in range(len(staticsArray)):
+                color = colors[index]
+                statics = staticsArray[index]
+                plot.line(source[g][result_column], source[g][statics], legend=statics, color=color, alpha=0.75, muted_color=color, muted_alpha=0.2)
+                if display_pattern == "hatch" and index + 1 < len(staticsArray):
+                        x = source[g][result_column]
+                        y1 = source[g][staticsArray[index]]
+                        y2 = source[g][staticsArray[index + 1]]
+                        plot.varea(x=x, y1=y1, y2=y2, fill_color='#cccccc', alpha=0.5)  
+
+            plot.legend.location = "top_left"
+            plot.legend.click_policy = "mute"
+            plots.append(plot)
+
+        result = gridplot(plots, ncols=1, plot_width=graph_width, plot_height=graph_height) 
+        
+        return result
+    
+    def get_colors(self, size):
+        i = 0
+        colors = []
+        for d in itertools.cycle(palette):
+            if i >= size:
+                break
+            colors.append(d)
+            i = i + 1
+
+        return colors
+
+    def doMsummary(self, df, k, f, c):
+
+        i = df.values.tolist()
+        i.insert(0,list(df.columns))
+
+        result = None
+        result <<= nm.msummary(i=i, k=k, f=f, c=c).writelist(header=True)
+        result = result.run()
+
+        name = result.pop(0)
+        result_df = pd.DataFrame(result,columns=name)
+
+        return result_df
+
+    def doMbucket(self, df, k, f, n, F="1", rng=True):
+        
+        i = df.values.tolist()
+        i.insert(0,list(df.columns))
+
+        result = None
+        result <<= nm.mbucket(i=i, k=k, n=n, f=f, F=F, rng=rng).writelist(header=True)
+        result = result.run()
+
+        name = result.pop(0)
+        result_df = pd.DataFrame(result,columns=name)
+
+        return result_df
