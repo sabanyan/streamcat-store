@@ -2508,6 +2508,7 @@ class GroupBy2Command(Command):
         # parse inputs into list-of-dictionaries form
         for arglist in allargs:
             if arglist.get('c'):
+                # sys.__stderr__.write(repr(arglist))
 
                 x = arglist.get('x')
                 s = arglist.get('s')
@@ -2544,7 +2545,7 @@ class GroupBy2Command(Command):
                     
                     if cleft in msummaryoptions:
                         cs_msummary.append(cs[i])
-                    if cleft in (x for y in grouped_calcs.values() for x in y):
+                    elif cleft in (x for y in grouped_calcs.values() for x in y):
                         cs_grouped.append(cs[i])
                     elif cleft:
                         cs_custom_nysol.append(cs[i])
