@@ -74,7 +74,7 @@ class FlowDumper:
                 continue
             tmp_frame_link = parent_tmp_path / (frame.uuid + '.csv')
             if not tmp_frame_link.exists():
-                os.symlink(STORE_DIR.parent / frame.path, tmp_frame_link)
+                os.symlink(STORE_DIR / frame.path, tmp_frame_link)
             uuid_type_label.append((frame.uuid, frame.type, frame.label))
 
         for store_uuid in store_uuids:
