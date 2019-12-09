@@ -2742,6 +2742,7 @@ class GroupBy2Command(Command):
 
         msum_prereqs = set()
 
+        sys.setrecursionlimit(2**20)
 
         self.header = nm.mread(inputs).getline(header=True)
         self.header = next(self.header)
@@ -2861,11 +2862,6 @@ class GroupBy2Command(Command):
 
         cmd_i <<= nm.mread(inputs)
 
-        self.all_msums = None
-        premsums = [f'{f}:__{f}' for f in msum_prereqs]
-        premsum = ','.join(premsums)
-        self.all_msums <<= nm.msummary(i = cmd_i, k = k, f = all_fs, 
-                            c = premsum, precision = prec)
         # take the wanted columns only (the key columns and the value columns)
         # generate string of columns to cut
 
@@ -2876,6 +2872,12 @@ class GroupBy2Command(Command):
             cmd_i <<= nm.mcal(a = k, c = '"all"')
 
         expanded_k = ','.join([k,'fld'])
+
+        self.all_msums = None
+        premsums = [f'{f}:__{f}' for f in msum_prereqs]
+        premsum = ','.join(premsums)
+        self.all_msums <<= nm.msummary(i = cmd_i, k = k, f = all_fs, 
+                            c = premsum, precision = prec)
 
         cmd_i <<= nm.mcut(f = f'{k}{","+",".join(colstocut) if len(colstocut) > 0 else ""}')
 
