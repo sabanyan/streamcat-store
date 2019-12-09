@@ -1560,8 +1560,8 @@ class GroupBy2Command(Command):
             meanval = nm.mstats(k = k, i = subcmd, f = f'uxt,{f}', c = 'mean')
 
             for i, fld in enumerate(fs):
-                counts[i] <<= nm.msummary(i = subcmd, c = 'count:__count', 
-                                          f = fld, k = k)
+                counts[i] <<= nm.msel(i = self.all_msums, 
+                                      c = f'$s{{fld}}=="{fld}"')
 
                 covars[i] <<= nm.msim(k = k, i = subcmd, f = f'uxt,{fld}', 
                                    c = 'covar:__covar')
@@ -1570,7 +1570,7 @@ class GroupBy2Command(Command):
                                          f = f'uxt:__Sxx,{fld}:__Syy')
                 targets[i] <<= nm.mcal(c = 'sqrt(${__Sxx}*${__Syy})', a = '__rden')
                 targets[i] <<= nm.mjoin(k = k, m = covars[i], f = '__covar')
-                targets[i] <<= nm.mjoin(k = k, m = counts[i], f = 'fld,__count')
+                targets[i] <<= nm.mnjoin(k = k, m = counts[i], f = 'fld,__count')
                 targets[i] <<= nm.mjoin(k = k, m = meanval, f = f'uxt:__xmean,{fld}:__ymean')
                 targets[i] <<= nm.mcal(c = '${__count}-2', a = '__df')
 
@@ -2736,6 +2736,7 @@ class GroupBy2Command(Command):
             'imq' : ['count'],
             'autocorr' : ['mean', 'var', 'count'],
             'change_quantiles' : ['count'],
+            'linregress' : ['count'],
             'abs_change_quantiles' : ['count']
         } 
 
