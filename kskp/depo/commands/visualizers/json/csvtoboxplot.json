@@ -21,79 +21,58 @@
   ],
   "params": [
     {
-      "name": "y_axis",
-      "type": "list",
-      "elements": [
-        {
-          "name"  :"column",
-          "type"  :"column",
-          "label" :"縦軸列：観測値"
-        },
-        {
-          "name"  :"label",
-          "type"  :"string",
-          "label" :"縦軸名"
-        }
-      ],
-      "default":[{"column": null, "label":""}],
-      "options":{
-        "visiable_button_add"  : false,
-        "visiable_button_delete": false,
-        "draggable" : false
-      }
-    },
-    {
-      "name": "data_column",
+      "name": "x_axis",
       "type": "column",
       "options":{
         "multiple": true
       },
-      "label": "データ系列"
+      "label": "キー項目列"
+    },
+    {
+      "name": "y_axis",
+      "type": "column",
+      "options":{
+        "multiple": false
+      },
+      "label": "データ列"
     },
     {
       "name": "offset",
       "type": "number",
-      "label": "表示の開始（１始まりの行番号）"
+      "label": "ビジュアライズを行う開始行"
     },
     {
       "name": "limit",
       "type": "number",
-      "label": "表示の件数",
+      "label": "ビジュアライズ対象のデータ数",
       "default": 100
     },
     {
-      "name": "width",
+      "name": "x_size",
       "type": "number",
-      "label": "横幅（ドット）",
+      "label": "ビジュアライズの横サイズ",
       "default": 1000
     },
     {
-      "name": "height",
+      "name": "y_size",
       "type": "number",
-      "label": "縦幅（ドット）",
+      "label": "ビジュアライズの縦サイズ",
       "default": 600
-    }
-  ],
-  "groups": [
-    {
-      "name": "axis_group",
-      "label": "軸の設定",
-      "params": ["y_axis"]
     },
     {
-      "name": "data_group",
-      "label": "データ系列の設定",
-      "params": ["data_column"]
+      "name": "graph_title",
+      "type": "string",
+      "label": "ビジュアライズのタイトル"
     },
     {
-      "name": "offset_group",
-      "label": "データ表示範囲の設定",
-      "params": ["offset","limit"]
+      "name": "x_label",
+      "type": "string",
+      "label": "x軸のラベル"
     },
     {
-      "name": "graph_size",
-      "label": "グラフサイズの設定",
-      "params": ["width","height"]
+      "name": "y_label",
+      "type": "string",
+      "label": "y軸のラベル"
     }
   ],
   "url": ""
