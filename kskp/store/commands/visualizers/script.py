@@ -688,7 +688,7 @@ class CsvToTimeCompressionCommand(VisualizersBokehPlot):
         else:
             named_dfs = {}
             named_dfs['all'] = df
-
+   
         def rangesToPoints(df, column):
             for index, row in df.iterrows():
                 array = df.at[index, column].split("_")
@@ -697,6 +697,10 @@ class CsvToTimeCompressionCommand(VisualizersBokehPlot):
         staticsArray = statics.split(",")
         source = {}
         for label, _df in named_dfs.items():
+
+            if _df.empty == True:
+                continue
+                            
             source[label] = {}
 
             # 分割
@@ -707,7 +711,6 @@ class CsvToTimeCompressionCommand(VisualizersBokehPlot):
             # min, max
             df_x_minmax = self.doMsummary(_df, None, x_axis_column, "min,max")
             df_y_minmax = self.doMsummary(_df, None, y_axis_column, "min,max")
-
             x_min = df_x_minmax.iat[0, 1]
             x_max = df_x_minmax.iat[0, 2]
 
