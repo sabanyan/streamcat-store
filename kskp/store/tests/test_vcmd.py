@@ -206,7 +206,7 @@ class VCmdTestCase(unittest.TestCase):
 
     def exec_flow(self, vis_args):
         flow = Flow(None, 'CSV to graph', self.flow_csvtohtmltable)
-        flow_link = FlowJsonLink(flow, FlowLinkContext(), vis_args=vis_args)
+        flow_link = FlowJsonLink(flow, vis_args=vis_args)
         activity = execute(flow_link, {}, {})
         result = self.convert_from_activity_vis(activity)['d1']
         return result
