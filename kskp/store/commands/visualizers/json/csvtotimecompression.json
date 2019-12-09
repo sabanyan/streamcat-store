@@ -1,10 +1,10 @@
 {
     "version": "0.7.0",
-    "id": "csvtorepetitiviewaveform",
-    "order": 700,
-    "label": "反復波形図",
+    "id": "csvtotimecompressionform",
+    "order": 800,
+    "label": "時間圧縮図",
     "classification": "visualize",
-    "description": "csvファイルから反復波形図を作成する",
+    "description": "csvファイルから時間圧縮図を作成する",
     "ports": [
       [
         {
@@ -21,15 +21,6 @@
     ],
     "params": [
       {
-        "name": "event",
-        "label": "起点列",
-        "type": "column",
-        "options": {
-          "multiple": false
-        },
-        "description": "各反復波形の時間軸の起点を指定n次の横軸列は、この起点からの経過時間を指定"
-      },
-      {
         "name": "x_axis",
         "type": "list",
         "elements": [
@@ -44,7 +35,7 @@
             "label":"横軸名"
           }
         ],
-        "default":[{"column":"", "label":""}],
+        "default":[{"column":null, "label":""}],
         "options":{
           "visiable_button_add"  : false,
           "visiable_button_delete": false,
@@ -58,7 +49,7 @@
           {
             "name":"column",
             "type":"column",
-            "label":"縦軸列：観測軸"
+            "label":"縦軸列：観測値"
           },
           {
             "name":"label",
@@ -66,7 +57,7 @@
             "label":"縦軸名"
           }
         ],
-        "default":[{"column":"", "label":""}],
+        "default":[{"column":null, "label":""}],
         "options":{
           "visiable_button_add"  : false,
           "visiable_button_delete": false,
@@ -74,20 +65,12 @@
         }
       },
       {
-        "name": "datas",
+        "name": "data",
         "type": "column",
         "options":{
           "multiple": true
         },
         "label": "データ系列"
-      },
-      {
-        "name": "group",
-        "type": "column",
-        "options":{
-          "multiple": false
-        },
-        "label": "グループ化属性"
       },
       {
         "name": "offset",
@@ -102,29 +85,11 @@
         "default": 100
       },
       {
-        "name": "disableTooltips",
-        "type": "boolean",
-        "label": "ツールチップを表示しない",
-        "default":false
+        "name": "division",
+        "type": "number",
+        "label": "期間の分割数",
+        "default":100
       },
-      {
-        "name": "disableMarker",
-        "type": "boolean",
-        "label": "マーカーを表示しない",
-        "default":false
-      },  
-      {
-        "name": "disableStatics",
-        "type": "boolean",
-        "label": "統計量グラフを表示しない",
-        "default":false
-      },  
-      {
-        "name": "disableEvent",
-        "type": "boolean",
-        "label": "起点を表示しない",
-        "default":false
-      }, 
       {
         "name": "statics",
         "label": "表示する統計量",
@@ -133,7 +98,19 @@
           "multiple": false,
           "labels": ["最小・平均・最大で表示", "25％分位・中央値・75%分位で表示"],
           "values": ["min,mean,max", "qtile1,median,qtile3"]
-        }
+        },
+        "default": "min,mean,max"
+      },
+      {
+        "name": "display_pattern",
+        "label": "表示する統計量",
+        "type": "select",
+        "options": {
+          "multiple": false,
+          "labels": ["線", "ハッチ掛け"],
+          "values": ["line", "hatch"]
+        },
+        "default": "line"
       },
       {
         "name": "width",
@@ -152,12 +129,12 @@
       {
         "name": "axis_group",
         "label": "軸の設定",
-        "params": ["event","x_axis","y_axis"]
+        "params": ["x_axis","y_axis"]
       },
       {
         "name": "data_group",
         "label": "データ系列の設定",
-        "params": ["datas","group"]
+        "params": ["data"]
       },
       {
         "name": "offset_group",
@@ -167,7 +144,7 @@
       {
         "name": "graph_group",
         "label": "グラフ表示要素の設定",
-        "params": ["disableTooltips","disableMarker","disableStatics","disableEvent","statics"]
+        "params": ["division","statics","display_pattern"]
       },
       {
         "name": "graph_size",

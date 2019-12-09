@@ -142,7 +142,8 @@ class CommandLink:
             'csvtohistogram': CsvToHistogramCommand(),
             'csvtoscatter': CsvToScatterCommand(),
             'csvtoboxplot': CsvToBoxplotCommand(),
-            'csvtorepetitiviewaveform': CsvtoRepetitivieWaveform(),
+            'csvtorepetitiviewaveform': CsvToRepetitivieWaveCommand(),
+            'csvtotimecompressionform': CsvToTimeCompressionCommand(),
             # Storeコマンド
             'saver': SaverCommand(),
             'cachesaver': CacheSaverCommand(),
@@ -152,7 +153,7 @@ class CommandLink:
         }
 
         if runnable_id not in table:
-            raise Exception(f"存在しないcommandId'{runnable_id}'が指定されています")
+            raise Exception("存在しないcommandId'{runnable_id}'が指定されています")
 
         return table[runnable_id]
 
