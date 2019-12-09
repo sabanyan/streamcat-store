@@ -69,7 +69,7 @@ class FlowDumper:
         from kskp.store import STORE_DIR
         for frame_uuid in frame_uuids:
             frame = Frame.find_by_uuid(frame_uuid)
-            if not frame.file_exists:
+            if frame is None or not frame.file_exists:
                 # フレームファイルが存在しない場合はスキップする
                 continue
             tmp_frame_link = parent_tmp_path / (frame.uuid + '.csv')
