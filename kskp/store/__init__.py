@@ -79,27 +79,32 @@ if _is_unittest():
 from sqlalchemy.ext.declarative import declarative_base
 BaseModel = declarative_base()
 # セッションをつくる
-from sqlalchemy.orm import sessionmaker
-Session = sessionmaker(bind=engine)
+# scoped_sessionでラップすることで、Session()を何回実行しても同一のSessionが返される
+from sqlalchemy.orm import sessionmaker, scoped_session
+Session = scoped_session(sessionmaker(bind=engine))
 # 変数名がsessionだとwebでimportした時にflaskのsessionと被るので、一応ssにしている
 ss = Session()
 
 from kskp.core import Datum, Port, Command
 
-from .store import Store, FrameStore, NysolModule, ModuleStore
+from .store import Store, NysolModule, ModuleStore, List
 from .database_conn import DatabaseConn
 from .remote_folder_conn import RemoteFolderConn
 from .mountable import Mountable
 from .lock_manager import LockManager, LockedDatumException
-from .frame import Frame, Cache
+from .frame import Frame
 from .flow import Flow
 from .folder import Folder
 from .awss3 import AwsS3
 from .remote_folder import RemoteFolder
+from .vis import Vis, BokehPlotVis
+from .datasource import DataSource
+from .activity import Activity
 from .database import Database
 from .children_getter import ChildrenGetter
 from .flow_dumper import FlowDumper
 
+# from .commands import CommandLink, CommandsPathLink, CommandsPathFileSource, RunfuncCommand
 from .library import Library
 from .store_model import Store as StoreModel
 from .flows import FlowLink
@@ -115,10 +120,10 @@ sql1 = """
 ALTER TABLE data 
 ADD COLUMN label VARCHAR;
 """
-#try:
-#    engine.execute(sql)
-#except Exception as e:
-#    pass
+# try:
+#     engine.execute(sql1)
+# except Exception as e:
+#     pass
 
 from sqlalchemy import event, DDL
 
@@ -129,7 +134,7 @@ def receive_after_create(target, connection, tables, **kw):
     if tables:
         # tables were created.
         create_d_view()
-        
+
 def create_d_view():
     """
     データの一覧を表示するVIEWを作成する

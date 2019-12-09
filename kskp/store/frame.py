@@ -24,7 +24,7 @@ class Frame(Datum):
         # ファイルストリームを保持する
         self.stream = stream
 
-        self._content = None
+        # self._content = None
 
     @staticmethod
     def find_by_uuid(uuid):
@@ -285,67 +285,58 @@ class Frame(Datum):
                 'createdAt' : self.created_at_str}
 
     # for engine
-    def set_centext(self, params):
-        self.context = params
+    # def set_centext(self, params):
+    #     self.context = params
 
-    def save_result(self):
-        # フレームが作成されているか確認(run後なので作成されているはず、作成されていないと作れない)
-        if not self.created:
-            # とりあえずfalseを返す
-            return False
+    # def save_to_db(self):
+    #     self.data = {'label' : self.context.get('label')}
+    #     relative_path = Datum._to_rel_path(self.context.get('frame_path').as_posix())
+    #     self.add_entry_from_path(Path(relative_path))
 
-        # dbに保存
-        self.save_to_db()
+    # def set_content(self, module):
+    #     self._content = module
 
-    def save_to_db(self):
-        self.data = {'label' : self.context.get('label')}
-        relative_path = Datum._to_rel_path(self.context.get('frame_path').as_posix())
-        self.add_entry_from_path(Path(relative_path))
+    # @property
+    # def content(self):
+    #     return self._content
 
-    def set_content(self, module):
-        self._content = module
+    # @property
+    # def created(self):
+    #     if self.context.get('frame_path') is not None:
+    #         return self.context.get('frame_path').exists()
+    #     else:
+    #         return False
 
-    @property
-    def content(self):
-        return self._content
+    # def get_dataframe(self, limit, offset, time_series_columns=False):
+    #     import pandas as pd
+    #     return pd.read_csv(self._to_abs_path(self._path), 
+    #                        nrows=limit,
+    #                        skiprows=range(1, offset),
+    #                        parse_dates=time_series_columns)
 
-    @property
-    def created(self):
-        if self.context.get('frame_path') is not None:
-            return self.context.get('frame_path').exists()
-        else:
-            return False
+    # def get_table(self, limit, offset):
+    #     result = {}
 
-    def get_dataframe(self, limit, offset, time_series_columns=False):
-        import pandas as pd
-        return pd.read_csv(self._to_abs_path(self._path), 
-                           nrows=limit,
-                           skiprows=range(1, offset),
-                           parse_dates=time_series_columns)
+    #     # テーブル構造
+    #     with open(self._to_abs_path(self._path), 'r', errors = 'ignore') as f:
+    #         n = 0
 
-    def get_table(self, limit, offset):
-        result = {}
+    #         result['reader'] = []
+    #         for line in f:
+    #             # 指定されたlimitの数だけ要素が達していたら終了
+    #             if limit is not None and len(result['reader']) == limit:
+    #                 break
 
-        # テーブル構造
-        with open(self._to_abs_path(self._path), 'r', errors = 'ignore') as f:
-            n = 0
+    #             if n == 0:
+    #                 # 一行目はヘッダとみなす
+    #                 result['header'] = line.split(',')
+    #             else:
+    #                 if offset < n:
+    #                     result['reader'].append(line.split(','))
 
-            result['reader'] = []
-            for line in f:
-                # 指定されたlimitの数だけ要素が達していたら終了
-                if limit is not None and len(result['reader']) == limit:
-                    break
+    #             n += 1
 
-                if n == 0:
-                    # 一行目はヘッダとみなす
-                    result['header'] = line.split(',')
-                else:
-                    if offset < n:
-                        result['reader'].append(line.split(','))
-
-                n += 1
-
-        return result
+    #     return result
 
 
     def load_as_data_frame(self, offset, limit):
@@ -426,39 +417,3 @@ class Frame(Datum):
 
         return column_list
 
-class Cache(Frame):
-    """
-    FrameもCacheもどちらも実ファイルを生成するdatumであり、
-    違いはflowのjsonを書き換えるか書き換えないか（今の所）
-    ということでFrameを継承したものにしてみた。
-    """
-    def __init__(self, parent_uuid, label, stream, creator=None):
-        super().__init__(parent_uuid, label, stream, creator)
-
-    def save_result(self):
-        # キャッシュが作成されているか確認
-        if not self.created:
-            # とりあえずfalseを返す
-            return False
-
-        # dbに保存
-        self.save_to_db()
-
-        # jsonのnodeのuuidを変更
-        # self.update_json_flow()
-        self.update_flow(self.creator)
-
-    def update_flow(self, modifier):
-        from kskp.store import Flow
-        if self.context.get('flow_uuid') is None:
-            return
-        flow = Flow.find_by_uuid(self.context.get('flow_uuid'))
-        f = flow.flow_data
-        self._update_node(f)
-        Flow.update_data(flow.uuid, flow.label, f, modifier)
-
-    def _update_node(self, flow_json):
-        for node in flow_json['nodes']:
-            if node['id'] == self.context.get('datum_id'):
-                node['uuid'] = self.uuid
-                node['cacheCreatedAt'] = datetime.now(timezone(timedelta(hours=+9), 'JST')).strftime('%Y-%m-%d %H:%M:%S')

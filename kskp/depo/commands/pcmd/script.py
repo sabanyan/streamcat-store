@@ -57,7 +57,7 @@ class SmlModelingCommand(PCommand):
 
     def run(self, args, inputs):
         f = None
-        f <<= inputs['i']
+        f <<= inputs['i'].content
 
         args_string = (PCMD_DIR / 'src/sml_modeling.sh').as_posix()
         args_string += ' kcmd_path=' + (PCMD_DIR.parent / 'kcmd/src').as_posix()
@@ -74,7 +74,7 @@ class ColumnListCommand(PCommand):
 
     def run(self, args, inputs):
         f = None
-        f <<= inputs['i']
+        f <<= inputs['i'].content
 
         args_string = (PCMD_DIR / 'src/column_list.sh').as_posix()
         args_string += self.replace_args(args)
@@ -88,7 +88,7 @@ class ColumnGroupingNameCommand(PCommand):
 
     def run(self, args, inputs):
         f = None
-        f <<= inputs['i']
+        f <<= inputs['i'].content
 
         args_string = (PCMD_DIR / 'src/column_grouping_name.sh').as_posix()
         args_string += self.replace_args(args)
@@ -102,7 +102,7 @@ class ColumnBlankNameCommand(PCommand):
 
     def run(self, args, inputs):
         f = None
-        f <<= inputs['i']
+        f <<= inputs['i'].content
 
         args_string = (PCMD_DIR / 'src/column_blank_name.sh').as_posix()
         args_string += self.replace_args(args)
@@ -116,7 +116,7 @@ class ColumnsToRowsCommand(PCommand):
 
     def run(self, args, inputs):
         f = None
-        f <<= inputs['i']
+        f <<= inputs['i'].content
 
         args_string = (PCMD_DIR / 'src/columns_to_rows.sh').as_posix()
         args_string += self.replace_args(args)
@@ -130,7 +130,7 @@ class ColumnUniqueNameCommand(PCommand):
 
     def run(self, args, inputs):
         f = None
-        f <<= inputs['i']
+        f <<= inputs['i'].content
 
         args_string = (PCMD_DIR / 'src/column_unique_name.sh').as_posix()
         args_string += self.replace_args(args)
@@ -144,7 +144,7 @@ class ColumnNameCommand(PCommand):
 
     def run(self, args, inputs):
         f = None
-        f <<= inputs['i']
+        f <<= inputs['i'].content
 
         args_string = (PCMD_DIR / 'src/column_name.sh').as_posix()
         args_string += self.replace_args(args)
@@ -158,7 +158,7 @@ class GroupbyCommand(PCommand):
 
     def run(self, args, inputs):
         f = None
-        f <<= inputs['i']
+        f <<= inputs['i'].content
 
         args_string = (PCMD_DIR / 'src/groupby.sh').as_posix()
         args_string += self.replace_args(args)
@@ -172,7 +172,7 @@ class GroupbyColumnsCommand(PCommand):
 
     def run(self, args, inputs):
         f = None
-        f <<= inputs['i']
+        f <<= inputs['i'].content
 
         args_string = (PCMD_DIR / 'src/groupby_columns.sh').as_posix()
         args_string += self.replace_args(args)
@@ -186,7 +186,7 @@ class CheckDuplicateRowsCommand(PCommand):
 
     def run(self, args, inputs):
         f = None
-        f <<= inputs['i']
+        f <<= inputs['i'].content
 
         args_string = (PCMD_DIR / 'src/check_duplicate_rows.sh').as_posix()
         args_string += self.replace_args(args)
@@ -200,7 +200,7 @@ class MergeFSCommand(PCommand):
 
     def run(self, args, inputs):
         f = None
-        f <<= inputs['i']
+        f <<= inputs['i'].content
 
         args_string = (PCMD_DIR / 'src/merge_FS.sh').as_posix()
         args_string += self.replace_args(args)
@@ -214,7 +214,7 @@ class MergeIbutsuCommand(PCommand):
 
     def run(self, args, inputs):
         f = None
-        f <<= inputs['i']
+        f <<= inputs['i'].content
 
         args_string = (PCMD_DIR / 'src/merge_ibutsu.sh').as_posix()
         args_string += self.replace_args(args)
@@ -227,46 +227,46 @@ class WinCp932ReadCommand(PCommand):
         super().__init__()
 
     def run(self, args, inputs):
-        # f = None
-        # f <<= inputs['i']
-
-        # args_string = (PCMD_DIR / 'src/windows_cp932_csv_read.sh').as_posix()
-        # args_string += self.replace_args(args)
-
-        # return {'o': self.module(f, args_string)}
-
-        # pythonによる変換
-        # 不安定なので無効化しておく
-
-        def Cp932_to_utf8():
-            """
-            ストリームでcp932→utf8に変換するコマンド
-            """
-            import traceback
-            import io
-        
-            try:
-                # stdinのencodingがデフォルトでutf-8なので、設定し直す。
-                input_stream = io.TextIOWrapper(sys.stdin.buffer, encoding='cp932')
-                for line in input_stream:
-                    # 標準出力するときも自動でutf-8に変換されるので、printだけでいい
-                    print(line, end='')
-                # flushをする
-                sys.stdout.flush()
-            except Exception as e:
-                with open('/dev/stderr', 'w') as fpe:
-                    traceback.print_exc(file=fpe)
-        
-        # flushをしないと、デバッグ用のprintなども入ってしまう
-        sys.stdout.flush()
         f = None
         f <<= inputs['i']
-        f <<= nm.runfunc(Cp932_to_utf8)
+
+        args_string = (PCMD_DIR / 'src/windows_cp932_csv_read.sh').as_posix()
+        args_string += self.replace_args(args)
+
+        return {'o': self.module(f, args_string)}
+
+       #pythonによる変換
+       #不安定なので無効化しておく
+
+       #def Cp932_to_utf8():
+       #    """
+       #    ストリームでcp932→utf8に変換するコマンド
+       #    """
+       #    import traceback
+       #    import io
         
-        nysol_module_o= NysolModule()
-        nysol_module_o.set_content(f)
+       #    try:
+       #        # stdinのencodingがデフォルトでutf-8なので、設定し直す。
+       #        input_stream = io.TextIOWrapper(sys.stdin.buffer, encoding='cp932')
+       #        for line in input_stream:
+       #            # 標準出力するときも自動でutf-8に変換されるので、printだけでいい
+       #            print(line, end='')
+       #        # flushをする
+       #        sys.stdout.flush()
+       #    except Exception as e:
+       #        with open('/dev/stderr', 'w') as fpe:
+       #            traceback.print_exc(file=fpe)
         
-        return {'o': nysol_module_o}
+       ## flushをしないと、デバッグ用のprintなども入ってしまう
+       #sys.stdout.flush()
+       #f = None
+       #f <<= inputs['i']
+       #f <<= nm.runfunc(Cp932_to_utf8)
+        
+       #nysol_module_o= NysolModule()
+       #nysol_module_o.set_content(f)
+        
+       #return {'o': nysol_module_o}
 
 
 class Utf8ToCp932Command(PCommand):
@@ -275,7 +275,7 @@ class Utf8ToCp932Command(PCommand):
 
     def run(self, args, inputs):
         f = None
-        f <<= inputs['i']
+        f <<= inputs['i'].content
 
         args_string = (PCMD_DIR / 'src/utf8_to_cp932.sh').as_posix()
         args_string += self.replace_args(args)
@@ -579,6 +579,33 @@ class GroupBy2Command(Command):
                 traceback.print_exc(file=fpe)
         pass
 
+    def strucount(self, k, precision, **kwargs):
+        f = kwargs['f']
+        a = kwargs['a']
+
+        try:
+            fs = f.split(',')
+            subcmd_start = None
+            subcmd = None
+            subcmds = [None] * len(fs)
+            subcmd_start <<= nm.mstdin()
+
+            for i, fld in enumerate(fs):
+                subcmds[i] <<= nm.muniq(i = subcmd_start, k = f'{k},{fld}') 
+                subcmds[i] <<= nm.mcount(k = k, a = f'{a}')
+                subcmds[i] <<= nm.mcal(a = 'fld', c = f'"{fld}"')
+                subcmds[i] <<= nm.mcut(f = f'{k},fld,{a}')
+
+            subcmd <<= nm.m2cat(i = subcmds)
+            subcmd <<= nm.mstdout()
+            subcmd.run()
+
+        except Exception as e:
+            import traceback
+            with open('/dev/stderr', 'w') as fpe:
+                traceback.print_exc(file=fpe)
+        pass
+
     def integral(self, k, precision, **kwargs):
         f = kwargs['f']
         x = kwargs['x']
@@ -707,9 +734,9 @@ class GroupBy2Command(Command):
                 traceback.print_exc(file=fpe)
 
     def slope(self, k, precision, **kwargs):
-        f = kwargs['f']
-        x = kwargs['x']
-        a = kwargs['a']
+        f = kwargs.get('f')
+        x = kwargs.get('x')
+        a = kwargs.get('a')
 
         import traceback
         try:
@@ -803,6 +830,7 @@ class GroupBy2Command(Command):
             'gmean' : self.geometricmean,
             'strmax' : self.strmax,
             'strmin' : self.strmin,            
+            'strucount' : self.strucount,
             'mean_ad' : self.meanabsolutedeviation,
             'median_ad' : self.medianabsolutedeviation,
             # 1 field + time (input k, a, f, x)
@@ -812,10 +840,10 @@ class GroupBy2Command(Command):
             'slope' : self.slope
         }
 
-        self.header = nm.mread(inputs).getline(header=True)
+        self.header = nm.mread(inputs.content).getline(header=True)
         self.header = next(self.header)
 
-        k = args.pop('k')
+        k = args.get('k')
         prec = args.pop('precision')
         xs = []
 
@@ -870,7 +898,7 @@ class GroupBy2Command(Command):
 
         cmd = [None] * len(calclist)
         cmd_o = None
-        cmd[-1] <<= nm.mread(inputs)
+        cmd[-1] <<= nm.mread(inputs.content)
         # take the wanted columns only (the key columns and the value columns)
         # generate string of columns to cut
         if xs:
@@ -878,7 +906,13 @@ class GroupBy2Command(Command):
         else:
             timecols = ''
 
-        cmd[-1] <<= nm.mcut(f = f'{timecols}{k},{",".join(all_fs)}')
+        if not k:
+            k = '__key__'
+            cmd[-1] <<= nm.mcal(a = k, c = '"all"')
+
+        expanded_k = ','.join([k,'fld'])
+
+        cmd[-1] <<= nm.mcut(f = f'{timecols}{k}{","+",".join(all_fs) if len(all_fs) > 0 else ""}')
 
         ##### calculation portion:
 
@@ -894,6 +928,9 @@ class GroupBy2Command(Command):
                 cmd[i] <<= nm.msummary(k = k, precision = prec, **calcdict)
 
                 final_cs = [c.split(':')[-1] for c in cs.split(',')]
+                cmd[i] <<= nm.m2cross(k = expanded_k, f = final_cs, 
+                        a = 'type,value')
+
             elif optype == 'custom':
                 if ':' in cs:
                     cs, calcdict['a'] = cs.split(':')
@@ -906,18 +943,12 @@ class GroupBy2Command(Command):
                 cmd[i] <<= nm.runfunc(new_calcs[cs], k = k,
                                       precision = prec,
                                       **calcdict)
+
                 final_cs = [calcdict['a']]
+                cmd[i] <<= nm.m2cross(k = expanded_k, f= final_cs, 
+                        a = 'type,value')
 
-
-            # make null columns for each missing column
-            for missingcol in final_fs:
-                if missingcol not in final_cs:
-                    cmd[i] <<= nm.mcal(a = missingcol, c = 'nulls()')
-
-        expanded_k = ','.join([k,'fld'])
-
-        cmd_o <<= nm.m2cross(i = cmd, k = expanded_k, f= final_fs, 
-                a = 'type,value')
+        cmd_o <<= nm.m2cat(i = cmd)
         cmd_o <<= nm.mdelnull(f = 'value')
 
         formatstring = args.pop('format')
@@ -939,7 +970,8 @@ class GroupBy2Command(Command):
         
         cmd_o <<= nm.mcal(a = 'unique_cols', c = '+'.join(colformat))
         cmd_o <<= nm.mcross(f = 'value', s = 'unique_cols', k = k)
-        cmd_o <<= nm.mcut(r = True, f = 'fld', nfno = args.get('nfno'))
+        cmd_o <<= nm.mcut(r = True, f = 'fld', 
+                          nfno = args.get('nfno'))
 
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
@@ -1011,7 +1043,7 @@ class MultiMcalWCCommand(Command):
         first = True
 
         # get header list
-        self.header = nm.mread(inputs).getline(header=True)
+        self.header = nm.mread(inputs.content).getline(header=True)
         self.header = next(self.header)
 
         xoption = args.pop('x') if 'x' in args else False
@@ -1078,7 +1110,7 @@ class MvAvgCommand(Command):
         import fnmatch as fn
 
         cmd_o = None
-        cmd_o <<= nm.mread(inputs)
+        cmd_o <<= nm.mread(inputs.content)
 
         if ('s' not in args) or (args['s'] == ''):
             args['q'] = True
@@ -1086,7 +1118,7 @@ class MvAvgCommand(Command):
         xoption = args.pop('x') if 'x' in args else False
 
         # get index of columns
-        self.header = nm.mread(inputs).getline(header=True)
+        self.header = nm.mread(inputs.content).getline(header=True)
         self.header = next(self.header)
 
         fatlist = []
@@ -1164,14 +1196,14 @@ class MvStatsCommand(Command):
 
         cmd_o = None
 
-        cmd_o <<= nm.mread(inputs)
+        cmd_o <<= nm.mread(inputs.content)
             
         # sorting parameters
         if 's' not in args or (args['s'] == ''):
             args['q'] = True
 
         # get index of columns
-        self.header = nm.mread(inputs).getline(header=True)
+        self.header = nm.mread(inputs.content).getline(header=True)
         self.header = next(self.header)
 
         xoption = args.pop('x') if 'x' in args else False
@@ -1252,14 +1284,14 @@ class MvSimCommand(Command):
         import fnmatch as fn
 
         cmd_o = None
-        cmd_o <<= nm.mread(inputs)
+        cmd_o <<= nm.mread(inputs.content)
             
         # sorting parameters
         if 's' not in args or (args['s'] == ''):
             args['q'] = True
 
         # get index of columns
-        self.header = nm.mread(inputs).getline(header=True)
+        self.header = nm.mread(inputs.content).getline(header=True)
         self.header = next(self.header)
 
         xoption = args.pop('x') if 'x' in args else False
@@ -1332,7 +1364,7 @@ class PlainText2Csv(Command):
         # flushをしないと、デバッグ用のprintなども入ってしまう
         sys.stdout.flush()
 
-        cmd = inputs['i']
+        cmd = inputs['i'].content
         cmd <<= nm.runfunc(filter, args=args)
 
         # pass output
@@ -1361,7 +1393,7 @@ class SelRowCommand(RunfuncCommand):
             if oe.errno != errno.EEXIST:
                 raise
 
-        f = inputs['i']
+        f = inputs['i'].content
         f2 = None
 
         f <<= nm.runfunc(mod, FIFO, args)
@@ -1375,3 +1407,44 @@ class SelRowCommand(RunfuncCommand):
         nysol_module_u.set_content(f2)
 
         return {'o': nysol_module_o, 'u': nysol_module_u}
+
+class RowRangeCommand(Command):
+    """
+    指定範囲の行を抽出する
+    """
+    def __init__(self):
+        super().__init__()
+        self.i_ports = [Port('i', 'frame')]
+        self.o_ports = [Port('o', 'frame')]
+
+    def run(self, args, inputs):
+        # 指定範囲の取得
+        offset = int(args.get('offset')) if args.get('offset') else 0
+        limit = int(args.get('limit')) if args.get('limit') else 0
+        offset_limit = offset + limit
+       
+        cmd = inputs['i'].content
+        cmd <<= nm.msel(c=f'{offset}<=line() && line()<{offset_limit}')
+
+        # pass output
+        nysol_module_o= NysolModule()
+        nysol_module_o.set_content(cmd)
+        return {'o': nysol_module_o}
+
+class ToListCommand(Command):
+    """
+    入力データをPython Listに出力する
+    """
+    def __init__(self):
+        super().__init__()
+        self.i_ports = [Port('i', 'frame')]
+        self.o_ports = [Port('o', 'list')]
+
+    def run(self, args, inputs):
+        cmd = inputs['i'].content
+        cmd <<= nm.writelist(header=True)
+
+        # pass output
+        nysol_module_o= NysolModule()
+        nysol_module_o.set_content(cmd)
+        return {'o': nysol_module_o}

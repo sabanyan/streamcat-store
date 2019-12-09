@@ -51,6 +51,9 @@ class Datum(BaseModel):
     created_at  = Column(TIMESTAMP, default=text('statement_timestamp()'))
     modified_at = Column(TIMESTAMP, default=text('statement_timestamp()'), onupdate=text('statement_timestamp()'))
 
+    # conver_to_xxx()によるキャスト処理で余分にSQLを発行しないためにparent_uuidを保持する
+    parent_uuid = None
+
     def __init__(self, parent_uuid, datum_type, label, creator=None):
         """
         コンストラクタ
@@ -67,7 +70,9 @@ class Datum(BaseModel):
                 raise Exception('No parent folder is found!')
             else:
                 self.parent_id = parent.id
-                self.parent_uuid = parent_uuid
+                # self.parent_uuid = parent_uuid
+
+        self.parent_uuid = parent_uuid
 
         # UUIDを採番する
         self.uuid = str(uuid.uuid4())
@@ -172,6 +177,8 @@ class Datum(BaseModel):
 
     @property
     def created_at_str(self):
+        if self.created_at is None:
+            return ''
         # DBに格納されている日時はUTCなので、タイムゾーンをUTCに設定する
         created_at_utc = self.created_at.replace(tzinfo=datetime.timezone.utc)
         # UTC日時はここで現地時間(環境変数TZの値)に設定される
@@ -350,6 +357,7 @@ class Datum(BaseModel):
         sql = """
         select uuid from data
         where type='flow'
+          and uuid<>'{datum_uuid}'
           and to_tsvector(data) @@ to_tsquery('{datum_uuid}')
         """.format(datum_uuid=str(datum_uuid))
         # SQLを発行する
