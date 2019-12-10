@@ -60,7 +60,7 @@ class SmlModelingCommand(PCommand):
 
     def run(self, args, inputs):
         f = None
-        f <<= inputs['i']
+        f <<= inputs['i'].content
 
         args_string = (PCMD_DIR / 'src/sml_modeling.sh').as_posix()
         args_string += ' kcmd_path=' + (PCMD_DIR.parent / 'kcmd/src').as_posix()
@@ -77,7 +77,7 @@ class ColumnListCommand(PCommand):
 
     def run(self, args, inputs):
         f = None
-        f <<= inputs['i']
+        f <<= inputs['i'].content
 
         args_string = (PCMD_DIR / 'src/column_list.sh').as_posix()
         args_string += self.replace_args(args)
@@ -91,7 +91,7 @@ class ColumnGroupingNameCommand(PCommand):
 
     def run(self, args, inputs):
         f = None
-        f <<= inputs['i']
+        f <<= inputs['i'].content
 
         args_string = (PCMD_DIR / 'src/column_grouping_name.sh').as_posix()
         args_string += self.replace_args(args)
@@ -105,7 +105,7 @@ class ColumnBlankNameCommand(PCommand):
 
     def run(self, args, inputs):
         f = None
-        f <<= inputs['i']
+        f <<= inputs['i'].content
 
         args_string = (PCMD_DIR / 'src/column_blank_name.sh').as_posix()
         args_string += self.replace_args(args)
@@ -119,7 +119,7 @@ class ColumnsToRowsCommand(PCommand):
 
     def run(self, args, inputs):
         f = None
-        f <<= inputs['i']
+        f <<= inputs['i'].content
 
         args_string = (PCMD_DIR / 'src/columns_to_rows.sh').as_posix()
         args_string += self.replace_args(args)
@@ -133,7 +133,7 @@ class ColumnUniqueNameCommand(PCommand):
 
     def run(self, args, inputs):
         f = None
-        f <<= inputs['i']
+        f <<= inputs['i'].content
 
         args_string = (PCMD_DIR / 'src/column_unique_name.sh').as_posix()
         args_string += self.replace_args(args)
@@ -147,7 +147,7 @@ class ColumnNameCommand(PCommand):
 
     def run(self, args, inputs):
         f = None
-        f <<= inputs['i']
+        f <<= inputs['i'].content
 
         args_string = (PCMD_DIR / 'src/column_name.sh').as_posix()
         args_string += self.replace_args(args)
@@ -161,7 +161,7 @@ class GroupbyCommand(PCommand):
 
     def run(self, args, inputs):
         f = None
-        f <<= inputs['i']
+        f <<= inputs['i'].content
 
         args_string = (PCMD_DIR / 'src/groupby.sh').as_posix()
         args_string += self.replace_args(args)
@@ -175,7 +175,7 @@ class GroupbyColumnsCommand(PCommand):
 
     def run(self, args, inputs):
         f = None
-        f <<= inputs['i']
+        f <<= inputs['i'].content
 
         args_string = (PCMD_DIR / 'src/groupby_columns.sh').as_posix()
         args_string += self.replace_args(args)
@@ -189,7 +189,7 @@ class CheckDuplicateRowsCommand(PCommand):
 
     def run(self, args, inputs):
         f = None
-        f <<= inputs['i']
+        f <<= inputs['i'].content
 
         args_string = (PCMD_DIR / 'src/check_duplicate_rows.sh').as_posix()
         args_string += self.replace_args(args)
@@ -203,7 +203,7 @@ class MergeFSCommand(PCommand):
 
     def run(self, args, inputs):
         f = None
-        f <<= inputs['i']
+        f <<= inputs['i'].content
 
         args_string = (PCMD_DIR / 'src/merge_FS.sh').as_posix()
         args_string += self.replace_args(args)
@@ -217,7 +217,7 @@ class MergeIbutsuCommand(PCommand):
 
     def run(self, args, inputs):
         f = None
-        f <<= inputs['i']
+        f <<= inputs['i'].content
 
         args_string = (PCMD_DIR / 'src/merge_ibutsu.sh').as_posix()
         args_string += self.replace_args(args)
@@ -278,7 +278,7 @@ class Utf8ToCp932Command(PCommand):
 
     def run(self, args, inputs):
         f = None
-        f <<= inputs['i']
+        f <<= inputs['i'].content
 
         args_string = (PCMD_DIR / 'src/utf8_to_cp932.sh').as_posix()
         args_string += self.replace_args(args)
@@ -375,7 +375,7 @@ class GroupBy2Command(Command):
             
             allrows <<= nm.mcount(i = subcmd, k = k, a = '__allrows')
 
-            subcmd <<= nm.msummary(k = k, f = f, c = '__count')
+            subcmd <<= nm.msummary(k = k, f = f, c = 'count:__count')
             subcmd <<= nm.mjoin(k = k, m = allrows, f = '__allrows', K = k)
 
             subcmd <<= nm.mcal(a = '__missingcount', c = '${__allrows}-${__count}')
@@ -1372,7 +1372,7 @@ class GroupBy2Command(Command):
 
             headerline = True
 
-            for dlist in nm.mstdin().keyblock(f'{k}', x, header = True):
+            for dlist in nm.mstdin().keyblock(f'{k}', f'{x}%n', header = True):
                 id = ','.join(dlist[0][:len(k.split(','))])
 
                 if headerline:
@@ -1561,8 +1561,8 @@ class GroupBy2Command(Command):
             meanval = nm.mstats(k = k, i = subcmd, f = f'uxt,{f}', c = 'mean')
 
             for i, fld in enumerate(fs):
-                counts[i] <<= nm.msummary(i = subcmd, c = 'count:__count', 
-                                          f = fld, k = k)
+                counts[i] <<= nm.msel(i = self.all_msums, 
+                                      c = f'$s{{fld}}=="{fld}"')
 
                 covars[i] <<= nm.msim(k = k, i = subcmd, f = f'uxt,{fld}', 
                                    c = 'covar:__covar')
@@ -1571,7 +1571,7 @@ class GroupBy2Command(Command):
                                          f = f'uxt:__Sxx,{fld}:__Syy')
                 targets[i] <<= nm.mcal(c = 'sqrt(${__Sxx}*${__Syy})', a = '__rden')
                 targets[i] <<= nm.mjoin(k = k, m = covars[i], f = '__covar')
-                targets[i] <<= nm.mjoin(k = k, m = counts[i], f = 'fld,__count')
+                targets[i] <<= nm.mnjoin(k = k, m = counts[i], f = 'fld,__count')
                 targets[i] <<= nm.mjoin(k = k, m = meanval, f = f'uxt:__xmean,{fld}:__ymean')
                 targets[i] <<= nm.mcal(c = '${__count}-2', a = '__df')
 
@@ -2212,9 +2212,10 @@ class GroupBy2Command(Command):
 
                 targets[i] <<= nm.msum(k = k, f = f'{a}_{n}')
                 targets[i] <<= nm.mcal(a = 'fld', c = f'"{fld}"')
+                targets[i] <<= nm.mcut(f = f'{k},fld,{a}_{n}')
 
 
-            subcmd_o <<= nm.mcut(i = targets, f = f'{k},fld,{a}_{n}')
+            subcmd_o <<= nm.mread(i = targets)
 
             return subcmd_o
 
@@ -2431,7 +2432,7 @@ class GroupBy2Command(Command):
             'lastmax' : self.lastmax,
             'mean_change' : self.meanchange,
             'mean_abs_change' : self.meanabschange,
-            'abs_sum_of_changes' : self.abs_sum_of_changes, 
+            'abs_sum_changes' : self.abs_sum_of_changes, 
             'autocorr_agg' : self.autocorrelation_agg,
             'longest_strike_above_mean' : self.longeststrikeabovemean,
             'longest_strike_below_mean' : self.longeststrikebelowmean,
@@ -2481,18 +2482,19 @@ class GroupBy2Command(Command):
             'longest_strike_above_mean' : ['mean'],
             'longest_strike_below_mean' : ['mean'],
             'imq' : ['count'],
-            'autocorr' : ['mean', 'var', 'count']
+            'autocorr' : ['mean', 'var', 'count'],
+            'linregress': ['count']
         } 
 
         msum_prereqs = set()
 
         sys.setrecursionlimit(2**20)
 
-        self.header = nm.mread(inputs).getline(header=True)
+        self.header = inputs['i'].content.getline(header=True)
         self.header = next(self.header)
 
         k = args.get('k')
-        prec = args.pop('precision')
+        prec = args.get('precision')
         xs = []
 
         calclist = []
@@ -2508,6 +2510,7 @@ class GroupBy2Command(Command):
         # parse inputs into list-of-dictionaries form
         for arglist in allargs:
             if arglist.get('c'):
+                # sys.__stderr__.write(repr(arglist))
 
                 x = arglist.get('x')
                 s = arglist.get('s')
@@ -2544,13 +2547,13 @@ class GroupBy2Command(Command):
                     
                     if cleft in msummaryoptions:
                         cs_msummary.append(cs[i])
-                    if cleft in (x for y in grouped_calcs.values() for x in y):
+                    elif cleft in (x for y in grouped_calcs.values() for x in y):
                         cs_grouped.append(cs[i])
                     elif cleft:
                         cs_custom_nysol.append(cs[i])
 
-                        if cleft in msum_dependencies:
-                            msum_prereqs.update(msum_dependencies[cleft])
+                    if cleft in msum_dependencies:
+                        msum_prereqs.update(msum_dependencies[cleft])
 
                 if cs_msummary:
                     calclist.append({'c': ','.join(cs_msummary), 
@@ -2581,6 +2584,9 @@ class GroupBy2Command(Command):
                             _thisgroup.append(calc)
 
                     if _thisgroup:
+                        if group in grouped_calcs:
+                            msum_prereqs.update(msum_dependencies[group])
+
                         if ns:
                             for n in ns:
                                 arglist['n'] = n
@@ -2595,17 +2601,12 @@ class GroupBy2Command(Command):
 
         # sys.__stderr__.write(repr(calclist))
 
-        cmd_i = None
         cmd = [None] * len(calclist)
         cmd_o = None
 
 
-        cmd_i <<= nm.mread(inputs)
+        cmd_i = inputs['i'].content
 
-        self.all_msums = None
-        premsums = [f'{f}:__{f}' for f in msum_prereqs]
-        self.all_msums <<= nm.msummary(i = cmd_i, k = k, f = all_fs, 
-                            c = premsums, precision = prec)
         # take the wanted columns only (the key columns and the value columns)
         # generate string of columns to cut
 
@@ -2616,6 +2617,12 @@ class GroupBy2Command(Command):
             cmd_i <<= nm.mcal(a = k, c = '"all"')
 
         expanded_k = ','.join([k,'fld'])
+
+        self.all_msums = None
+        premsums = [f'{f}:__{f}' for f in msum_prereqs]
+        # sys.__stderr__.write(repr(premsums)+'\n\n')
+        self.all_msums = nm.msummary(i = cmd_i, k = k, f = all_fs, 
+                            c = premsums, precision = prec)
 
         cmd_i <<= nm.mcut(f = f'{k}{","+",".join(colstocut) if len(colstocut) > 0 else ""}')
 
@@ -2645,6 +2652,7 @@ class GroupBy2Command(Command):
                 cmd[i] <<= nm.mread(i=cmd_i)
 
                 if cs in python_calcs:
+                    # sys.__stderr__.write(repr(calcdict)+'\n')
                     cmd[i] <<= nm.runfunc(nysol_calcs[cs], **calcdict)
                 else:
                     cmd[i] = nysol_calcs[cs](cmd[i], **calcdict)
@@ -2687,6 +2695,7 @@ class GroupBy2Command(Command):
 
         
         # cmd_o <<= nm.m2cat(i = cmd)
+        # sys.__stderr__.write(repr(cmd)+'\n\n')
         cmd_o <<= nm.mdelnull(i = cmd, f = '__val__')
 
         formatstring = args.pop('format')
@@ -2740,7 +2749,7 @@ class MultiMcalCommand(Command):
             # one mcal will be added to cmd_o for every pair of c and a arguments passed in a list
 
             if first:
-                cmd_o <<= nm.mcal({**inputs, **acarg, **args}) # {'i' : input, 'c': 'cal1', 'a' : 'col1'}
+                cmd_o <<= nm.mcal(i=inputs['i'].content, **acarg, **args) # {'i' : input, 'c': 'cal1', 'a' : 'col1'}
                 first = False
             else:
                 cmd_o <<= nm.mcal({**acarg,**args})
@@ -2780,7 +2789,8 @@ class MultiMcalWCCommand(Command):
         first = True
 
         # get header list
-        self.header = nm.mread(inputs).getline(header=True)
+        # self.header <<= nm.mread(inputs['i'].content).getline(header=True)
+        self.header = inputs['i'].content.getline(header=True)
         self.header = next(self.header)
 
         xoption = args.pop('x') if 'x' in args else False
@@ -2809,12 +2819,13 @@ class MultiMcalWCCommand(Command):
         #iterate over entire list and replace the '&' in c and a inputs with column number/name
         for target in targets_final:
             arg = args.copy()
+            # sys.__stderr__.write(repr(arg)+'\n')
 
             arg['a'] = arg['a'].replace('&', target)
             arg['c'] = arg['c'].replace('&',str(target))
 
             if first:
-                cmd_o <<= nm.mcal({**inputs, **arg})
+                cmd_o <<= nm.mcal(i = inputs['i'].content, **arg)
                 first = False
             else:
                 cmd_o <<= nm.mcal(arg)
@@ -2847,7 +2858,7 @@ class MvAvgCommand(Command):
         import fnmatch as fn
 
         cmd_o = None
-        cmd_o <<= nm.mread(inputs)
+        cmd_o <<= nm.mread(inputs['i'].content)
 
         if ('s' not in args) or (args['s'] == ''):
             args['q'] = True
@@ -2855,7 +2866,7 @@ class MvAvgCommand(Command):
         xoption = args.pop('x') if 'x' in args else False
 
         # get index of columns
-        self.header = nm.mread(inputs).getline(header=True)
+        self.header = nm.mread(inputs['i'].content).getline(header=True)
         self.header = next(self.header)
 
         fatlist = []
@@ -2933,14 +2944,14 @@ class MvStatsCommand(Command):
 
         cmd_o = None
 
-        cmd_o <<= nm.mread(inputs)
+        cmd_o <<= nm.mread(inputs['i'].content)
             
         # sorting parameters
         if 's' not in args or (args['s'] == ''):
             args['q'] = True
 
         # get index of columns
-        self.header = nm.mread(inputs).getline(header=True)
+        self.header = inputs['i'].content.getline(header=True)
         self.header = next(self.header)
 
         xoption = args.pop('x') if 'x' in args else False
@@ -3021,14 +3032,14 @@ class MvSimCommand(Command):
         import fnmatch as fn
 
         cmd_o = None
-        cmd_o <<= nm.mread(inputs)
+        cmd_o <<= nm.mread(inputs['i'].content)
             
         # sorting parameters
         if 's' not in args or (args['s'] == ''):
             args['q'] = True
 
         # get index of columns
-        self.header = nm.mread(inputs).getline(header=True)
+        self.header = inputs['i'].content.getline(header=True)
         self.header = next(self.header)
 
         xoption = args.pop('x') if 'x' in args else False
@@ -3080,6 +3091,7 @@ class MvSimCommand(Command):
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
 
+
 class PlainText2Csv(Command):
     def __init__(self):
         super().__init__()
@@ -3089,7 +3101,7 @@ class PlainText2Csv(Command):
     def run(self, args, inputs):
         def filter(args):
             try:
-                from kskp.store.commands.pcmd.src import plaintext2csv 
+                from kskp.depo.std.commands.pcmd.src import plaintext2csv 
                 plaintext2csv.main(args, sys.stdin, sys.stdout)
                 # flushをする
                 sys.stdout.flush()
@@ -3101,7 +3113,7 @@ class PlainText2Csv(Command):
         # flushをしないと、デバッグ用のprintなども入ってしまう
         sys.stdout.flush()
 
-        cmd = inputs['i']
+        cmd = inputs['i'].content
         cmd <<= nm.runfunc(filter, args=args)
 
         # pass output
@@ -3109,3 +3121,79 @@ class PlainText2Csv(Command):
         nysol_module_o.set_content(cmd)
         return {'o': nysol_module_o}
 
+
+class SelRowCommand(RunfuncCommand):
+    def __init__(self):
+        super().__init__()
+        self.i_ports = [Port('i', 'frame')]
+        self.o_ports = [Port('o', 'mcmd'), Port('u', 'mcmd')]
+
+    def run(self, args, inputs):
+        from .src import mod
+
+        import uuid
+        import os
+        import errno
+
+        FIFO = str(uuid.uuid4())
+        try:
+            os.mkfifo(FIFO)
+        except OSError as oe:
+            if oe.errno != errno.EEXIST:
+                raise
+
+        f = inputs['i'].content
+        f2 = None
+
+        f <<= nm.runfunc(mod, FIFO, args)
+        # runfuncの後にm2teeをしないと、f（ここでのport名はo)を使わなかった時にコンソール上に表示されてしまう
+        f <<= nm.m2tee()
+        f2 <<= nm.m2tee(i=FIFO)
+
+        nysol_module_o= NysolModule()
+        nysol_module_o.set_content(f)
+        nysol_module_u= NysolModule()
+        nysol_module_u.set_content(f2)
+
+        return {'o': nysol_module_o, 'u': nysol_module_u}
+
+class RowRangeCommand(Command):
+    """
+    指定範囲の行を抽出する
+    """
+    def __init__(self):
+        super().__init__()
+        self.i_ports = [Port('i', 'frame')]
+        self.o_ports = [Port('o', 'frame')]
+
+    def run(self, args, inputs):
+        # 指定範囲の取得
+        offset = int(args.get('offset')) if args.get('offset') else 0
+        limit = int(args.get('limit')) if args.get('limit') else 0
+        offset_limit = offset + limit
+       
+        cmd = inputs['i'].content
+        cmd <<= nm.msel(c=f'{offset}<=line() && line()<{offset_limit}')
+
+        # pass output
+        nysol_module_o= NysolModule()
+        nysol_module_o.set_content(cmd)
+        return {'o': nysol_module_o}
+
+class ToListCommand(Command):
+    """
+    入力データをPython Listに出力する
+    """
+    def __init__(self):
+        super().__init__()
+        self.i_ports = [Port('i', 'frame')]
+        self.o_ports = [Port('o', 'list')]
+
+    def run(self, args, inputs):
+        cmd = inputs['i'].content
+        cmd <<= nm.writelist(header=True)
+
+        # pass output
+        nysol_module_o= NysolModule()
+        nysol_module_o.set_content(cmd)
+        return {'o': nysol_module_o}

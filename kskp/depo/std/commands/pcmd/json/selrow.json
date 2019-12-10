@@ -1,0 +1,33 @@
+{
+  "id": "selrow",
+  "params": [
+    {
+      "name": "f",
+      "type": "number",
+      "label": "切り取る行の数（必須）"
+    }
+  ],
+  "ports": [
+    [
+      {
+        "name": "i",
+        "type": "frame"
+      }
+    ],
+    [
+      {
+        "name": "o",
+        "type": "frame"
+      },
+      {
+        "name": "u",
+        "type": "frame"
+      }
+    ]
+  ],
+  "version": "0.7.0",
+  "label": "行の切り取り",
+  "classification": "row_edit",
+  "description": "行の切り取りを行う",
+  "url": ""
+}

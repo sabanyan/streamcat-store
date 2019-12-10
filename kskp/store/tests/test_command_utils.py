@@ -1,7 +1,7 @@
 import unittest
 import nysol.mcmd as nm
 
-from kskp.store.commands.pcmd import copy_nm
+from kskp.depo.std.commands.pcmd import copy_nm
 
 
 class CommandUtilsTestCase(unittest.TestCase):

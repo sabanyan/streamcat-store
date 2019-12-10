@@ -126,7 +126,8 @@ class Mountable():
             session.rollback()
             raise e
         finally:
-            session.commit()
+            # session.commit()
+            pass
 
         for result in results:
             mount_point_dir = result[1]

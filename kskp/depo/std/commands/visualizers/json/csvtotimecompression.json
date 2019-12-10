@@ -1,0 +1,157 @@
+{
+    "version": "0.7.0",
+    "id": "csvtotimecompressionform",
+    "order": 800,
+    "label": "時間圧縮図",
+    "classification": "visualize",
+    "description": "csvファイルから時間圧縮図を作成する",
+    "ports": [
+      [
+        {
+          "name": "i",
+          "type": "frame"
+        }
+      ],
+      [
+        {
+          "name": "o",
+          "type": "frame"
+        }
+      ]
+    ],
+    "params": [
+      {
+        "name": "x_axis",
+        "type": "list",
+        "elements": [
+          {
+            "name":"column",
+            "type":"column",
+            "label":"横軸列：時間軸"
+          },
+          {
+            "name":"label",
+            "type":"string",
+            "label":"横軸名"
+          }
+        ],
+        "default":[{"column":null, "label":""}],
+        "options":{
+          "visiable_button_add"  : false,
+          "visiable_button_delete": false,
+          "draggable" : false
+        }
+      },
+      {
+        "name": "y_axis",
+        "type": "list",
+        "elements": [
+          {
+            "name":"column",
+            "type":"column",
+            "label":"縦軸列：観測値"
+          },
+          {
+            "name":"label",
+            "type":"string",
+            "label":"縦軸名"
+          }
+        ],
+        "default":[{"column":null, "label":""}],
+        "options":{
+          "visiable_button_add"  : false,
+          "visiable_button_delete": false,
+          "draggable" : false
+        }
+      },
+      {
+        "name": "data",
+        "type": "column",
+        "options":{
+          "multiple": true
+        },
+        "label": "データ系列"
+      },
+      {
+        "name": "offset",
+        "type": "number",
+        "label": "表示の開始（１始まりの行番号）",
+        "default": 1
+      },
+      {
+        "name": "limit",
+        "type": "number",
+        "label": "表示の件数",
+        "default": 100
+      },
+      {
+        "name": "division",
+        "type": "number",
+        "label": "期間の分割数",
+        "default":100
+      },
+      {
+        "name": "statics",
+        "label": "表示する統計量",
+        "type": "select",
+        "options": {
+          "multiple": false,
+          "labels": ["最小・平均・最大で表示", "25％分位・中央値・75%分位で表示"],
+          "values": ["min,mean,max", "qtile1,median,qtile3"]
+        },
+        "default": "min,mean,max"
+      },
+      {
+        "name": "display_pattern",
+        "label": "表示する統計量",
+        "type": "select",
+        "options": {
+          "multiple": false,
+          "labels": ["線", "ハッチ掛け"],
+          "values": ["line", "hatch"]
+        },
+        "default": "line"
+      },
+      {
+        "name": "width",
+        "type": "number",
+        "label": "横幅（ドット）",
+        "default": 1000
+      },
+      {
+        "name": "height",
+        "type": "number",
+        "label": "縦幅（ドット）",
+        "default": 600
+      }
+    ],
+    "groups": [
+      {
+        "name": "axis_group",
+        "label": "軸の設定",
+        "params": ["x_axis","y_axis"]
+      },
+      {
+        "name": "data_group",
+        "label": "データ系列の設定",
+        "params": ["data"]
+      },
+      {
+        "name": "offset_group",
+        "label": "データ表示範囲の設定",
+        "params": ["offset","limit"]
+      },
+      {
+        "name": "graph_group",
+        "label": "グラフ表示要素の設定",
+        "params": ["division","statics","display_pattern"]
+      },
+      {
+        "name": "graph_size",
+        "label": "グラフサイズの設定",
+        "params": ["width","height"]
+      }
+    ],
+    "url": ""
+  }
+  
