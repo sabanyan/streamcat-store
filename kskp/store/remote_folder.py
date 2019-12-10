@@ -145,6 +145,13 @@ class RemoteFolder(Folder, Mountable):
         finally:
             session.commit()
 
+    def valid_or_raise(self):
+        """
+        接続情報の形式チェックを行い、NGの場合は例外を送出する
+        """
+        database_conn = RemoteFolderConn.from_json(self.data2['conn'])
+        return database_conn.valid_or_raise()
+
     def _get_mount_cmd(self, mount_point_path):
         remote_folder_conn = RemoteFolderConn.from_json(self.data2['conn'])
         return remote_folder_conn.get_mount_cmd(mount_point_path)
