@@ -5,9 +5,6 @@ from kskp.core import Command, Port
 from kskp.store import Library
 
 import nysol.mcmd as nm
-import pprint
-pp = pprint.PrettyPrinter(indent=4)
-
 
 class VisualizersCommand(Command):
     def __init__(self):
@@ -373,7 +370,7 @@ class CsvToBoxplotCommand(VisualizersBokehPlot):
 
         return plot
 
-class CsvtoRepetitivieWaveform(VisualizersBokehPlot):
+class CsvToRepetitivieWaveCommand(VisualizersBokehPlot):
 
     def __init__(self):
         super().__init__()
@@ -429,7 +426,7 @@ class CsvtoRepetitivieWaveform(VisualizersBokehPlot):
         limit = int(args.get('limit')) if args.get('limit') else None
         
         frame = Library.load_frame(frame_uuid)
-        df = frame.get_dataframe(limit, offset, [self.column_name_x_axis])
+        df = frame.get_dataframe(limit, offset)
         self.df = df.sort_values(by = self.column_name_x_axis)
         self.groups = self.df[self.group].unique().tolist()
         
@@ -635,6 +632,170 @@ class CsvtoRepetitivieWaveform(VisualizersBokehPlot):
         if self.disableMarker != True:
             plot = self.add_points_to_plot(plot, source, colors)
    
-        
-
         return plot
+
+class CsvToTimeCompressionCommand(VisualizersBokehPlot):
+
+    def __init__(self):
+        super().__init__()
+
+    def plot(self, args, inputs):
+
+        # 軸の設定
+        x_axis         = args.get('x_axis')
+        x_axis_column  = x_axis[0]['column']
+        x_axis_label   = x_axis[0]['label']
+
+        y_axis              = args.get('y_axis')
+        y_axis_column  = y_axis[0]['column']
+        y_axis_label   = y_axis[0]['label']
+
+        # データ系列の設定
+        data     = args.get('data')   if args.get('data') is not None else []
+
+        # データ表示範囲の設定
+        offset          = int(args.get('offset'))   if args.get('offset')   else 0
+        limit           = int(args.get('limit'))    if args.get('limit')    else None
+
+        # グラフ表示要素の設定
+        division        = args.get('division')
+        statics         = args.get('statics')
+        display_pattern = args.get('display_pattern')
+        
+        # グラフサイズの設定
+        graph_width     = int(args.get('width'))
+        graph_height    = int(args.get('height'))
+
+        # df
+        frame_uuid = inputs.get('i')
+        frame = Library.load_frame(frame_uuid)
+        df = frame.get_dataframe(limit, offset, [x_axis_column])
+        
+        # title
+        df_x_minmax = self.doMsummary(df, None, x_axis_column, "min,max")
+        df_y_minmax = self.doMsummary(df, None, y_axis_column, "min,max")
+
+        x_min = df_x_minmax.iat[0, 1]
+        x_max = df_x_minmax.iat[0, 2]
+
+        y_min = df_y_minmax.iat[0, 1]
+        y_max = df_y_minmax.iat[0, 2]
+
+        if len(data) > 0:
+            results = self.direct_product_by_keys(df, data)
+            named_dfs = self.process_df(df, results)
+        else:
+            named_dfs = {}
+            named_dfs['all'] = df
+   
+        def rangesToPoints(df, column):
+            for index, row in df.iterrows():
+                array = df.at[index, column].split("_")
+                df.at[index, column] = '0' if array[0] == '' else array[0]
+
+        staticsArray = statics.split(",")
+        source = {}
+        for label, _df in named_dfs.items():
+
+            if _df.empty == True:
+                continue
+                            
+            source[label] = {}
+
+            # 分割
+            result_column = x_axis_column + "_"
+            f = "{}:{}".format(x_axis_column, result_column)
+            df_bucket = self.doMbucket(_df, None, f, division)
+
+            # min, max
+            df_x_minmax = self.doMsummary(_df, None, x_axis_column, "min,max")
+            df_y_minmax = self.doMsummary(_df, None, y_axis_column, "min,max")
+            x_min = df_x_minmax.iat[0, 1]
+            x_max = df_x_minmax.iat[0, 2]
+
+            y_min = df_y_minmax.iat[0, 1]
+            y_max = df_y_minmax.iat[0, 2]
+
+            source[label]["x_range"] = [float(x_min),float(x_max)]
+            source[label]["y_range"] = [float(y_min),float(y_max)]
+
+            # 統計量
+            df_summary = self.doMsummary(df_bucket, result_column, y_axis_column, statics)
+            rangesToPoints(df_summary, result_column)
+            df_summary = df_summary.sort_values(result_column)
+
+            source[label][result_column] = df_summary[result_column].tolist()
+            for s in staticsArray:
+                source[label][s] = df_summary[s].tolist()
+ 
+        # Graph Plot
+        plots = []
+        for g in source:
+            title = "時間圧縮図:{}、 期間:{} ~ {}".format(g, source[g]["x_range"][0], source[g]["x_range"][1])
+            tools = "pan,wheel_zoom,box_zoom,reset,save,box_select"
+            plot = figure(
+                title=title,
+                tools=tools,
+                x_range=source[g]["x_range"],
+                y_range=source[g]["y_range"],
+                x_axis_label=x_axis_label,
+                y_axis_label=y_axis_label
+            )
+            colors = self.get_colors(len(staticsArray))
+            index = 0
+            for index in range(len(staticsArray)):
+                color = colors[index]
+                statics = staticsArray[index]
+                plot.line(source[g][result_column], source[g][statics], legend=statics, color=color, alpha=0.75, muted_color=color, muted_alpha=0.2)
+                if display_pattern == "hatch" and index + 1 < len(staticsArray):
+                        x = source[g][result_column]
+                        y1 = source[g][staticsArray[index]]
+                        y2 = source[g][staticsArray[index + 1]]
+                        plot.varea(x=x, y1=y1, y2=y2, fill_color='#cccccc', alpha=0.5)  
+
+            plot.legend.location = "top_left"
+            plot.legend.click_policy = "mute"
+            plots.append(plot)
+
+        result = gridplot(plots, ncols=1, plot_width=graph_width, plot_height=graph_height) 
+        
+        return result
+    
+    def get_colors(self, size):
+        i = 0
+        colors = []
+        for d in itertools.cycle(palette):
+            if i >= size:
+                break
+            colors.append(d)
+            i = i + 1
+
+        return colors
+
+    def doMsummary(self, df, k, f, c):
+
+        i = df.values.tolist()
+        i.insert(0,list(df.columns))
+
+        result = None
+        result <<= nm.msummary(i=i, k=k, f=f, c=c).writelist(header=True)
+        result = result.run()
+
+        name = result.pop(0)
+        result_df = pd.DataFrame(result,columns=name)
+
+        return result_df
+
+    def doMbucket(self, df, k, f, n, F="1", rng=True):
+        
+        i = df.values.tolist()
+        i.insert(0,list(df.columns))
+
+        result = None
+        result <<= nm.mbucket(i=i, k=k, n=n, f=f, F=F, rng=rng).writelist(header=True)
+        result = result.run()
+
+        name = result.pop(0)
+        result_df = pd.DataFrame(result,columns=name)
+
+        return result_df

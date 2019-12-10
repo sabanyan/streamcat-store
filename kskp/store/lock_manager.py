@@ -55,4 +55,7 @@ class LockManager():
             except KeyError:
                 raise Exception('No lock is found!')
 
-            
+    def unlock_all(self):
+        with self._lock:
+            # ロックを削除する
+            self._lock_data = {}

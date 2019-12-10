@@ -6,7 +6,8 @@ import pprint
 from pathlib import Path
 from datetime import datetime
 
-from kskp.store import Library, STORE_DIR
+from kskp.core import Datum
+from kskp.store import Library, Flow, STORE_DIR, Library
 
 class LibraryTest(unittest.TestCase):
     # テスト用ユーザID
@@ -23,7 +24,7 @@ class LibraryTest(unittest.TestCase):
     def tearDownClass(cls):
         # ライブラリフォルダを削除する
         from kskp.core import Datum
-        library_path = STORE_DIR.parent / Datum.find_root().path
+        library_path = STORE_DIR / Library.load_root().path
         import shutil
         shutil.rmtree(library_path.as_posix())
         # Sessionを閉じる
@@ -35,6 +36,7 @@ class LibraryTest(unittest.TestCase):
         engine.execute(DDL('DROP SCHEMA IF EXISTS %s CASCADE' % os.environ['KSKP_POSTGRESQL_SCHEMA_NAME']))
 
     def save(self, file_path):
+        file_path = Datum._to_abs_path(file_path.as_posix())
         with open(file_path, "w") as f:
             f.write("I am a frame data for test cases.")
 
@@ -419,7 +421,7 @@ class LibraryTest(unittest.TestCase):
         root_path = root.path
         # フレームデータを格納するファイルを作成する
         self.save(root_path / 'aaaa3.csv')
-        with open(root_path / 'aaaa3.csv', mode='rb') as stream:
+        with open(Path(Datum._to_abs_path(root_path.as_posix())) / 'aaaa3.csv', mode='rb') as stream:
             # ルートデータストアの直下にフレームを作成する
             frame = Library.save2_frame(root.uuid, 'フレームデータ', stream, self.USER_ID1)
         # 作成したフレームの値を検証する
@@ -540,7 +542,7 @@ class LibraryTest(unittest.TestCase):
             'createdAt': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         }
         # 作成したフローを変更する
-        updated_flow = Library.update_flow_data(flow.uuid, '新しいフロー', new_flow_data, self.USER_ID2)
+        updated_flow = Flow.update_data(flow.uuid, '新しいフロー', new_flow_data, self.USER_ID2)
 
         # ラベルとディレクトリパスのみが変更されることを検証する
         self.assertEqual(updated_flow.id, flow.id)
@@ -766,7 +768,7 @@ class LibraryTest(unittest.TestCase):
         # フレーム1を削除する
         Library.delete_frame(frame1.uuid)
         # フレーム1,2に対応するCSVファイルが存在することを検証する
-        self.assertTrue((root_path / 'foo.csv').is_file())
+        self.assertTrue((Path(Datum._to_abs_path(root_path.as_posix())) / 'foo.csv').is_file())
         # フレーム2を削除する
         Library.delete_frame(frame2.uuid)
         # フレーム1,2に対応するCSVファイルが存在しないことを検証する
@@ -791,8 +793,8 @@ class LibraryTest(unittest.TestCase):
         # フレーム1のラベル名の変更に従って、CSVファイル名が変更されていることを検証する
         self.assertEqual(frame1.path, root_path / '新しいフレームデータ1')
         self.assertEqual(frame2.path, root_path / '新しいフレームデータ1')
-        self.assertTrue(os.path.isfile(root_path / '新しいフレームデータ1'))
-        self.assertFalse(os.path.isfile(root_path / 'abc.csv'))
+        self.assertTrue (os.path.isfile(Path(Datum._to_abs_path(root_path.as_posix())) / '新しいフレームデータ1'))
+        self.assertFalse(os.path.isfile(Path(Datum._to_abs_path(root_path.as_posix())) / 'abc.csv'))
         # フレーム1を削除する
         Library.delete_frame(frame1.uuid)
         # フレーム2を削除する
@@ -807,7 +809,7 @@ class LibraryTest(unittest.TestCase):
         root_path = root.path
         # フレームデータを格納するファイルを作成する
         self.save(root_path / 'bar.csv')
-        with open(root_path / 'bar.csv', mode='rb') as stream:
+        with open( Path(Datum._to_abs_path(root_path.as_posix())) / 'bar.csv', mode='rb') as stream:
             # ルートデータストアの直下にフレーム1を作成する
             frame1 = Library.save2_frame(root.uuid, 'フレームデータ', stream, self.USER_ID1)
             # ルートデータストアの直下にフレーム2を作成する

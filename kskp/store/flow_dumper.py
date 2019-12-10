@@ -69,12 +69,12 @@ class FlowDumper:
         from kskp.store import STORE_DIR
         for frame_uuid in frame_uuids:
             frame = Frame.find_by_uuid(frame_uuid)
-            if not frame.file_exists:
+            if frame is None or not frame.file_exists:
                 # フレームファイルが存在しない場合はスキップする
                 continue
             tmp_frame_link = parent_tmp_path / (frame.uuid + '.csv')
             if not tmp_frame_link.exists():
-                os.symlink(STORE_DIR.parent / frame.path, tmp_frame_link)
+                os.symlink(STORE_DIR / frame.path, tmp_frame_link)
             uuid_type_label.append((frame.uuid, frame.type, frame.label))
 
         for store_uuid in store_uuids:
@@ -101,7 +101,7 @@ class FlowDumper:
                 f.write(type)
                 f.write(',')
                 f.write(label)
-                # f.write('\n')
+                f.write('\n')
 
         return gathered_uuids
 
@@ -256,7 +256,8 @@ class FlowDumper:
         type_labels = {}
         try:
             with file.open('r') as f:
-                line = f.readline()
+                import os
+                line = f.readline().rstrip(os.linesep)
                 while line:
                     columns = line.split(',', maxsplit=2)
                     # uuidを読み込む
@@ -267,7 +268,7 @@ class FlowDumper:
                     label = columns[2]
                     type_labels[uuid] = (type, label)
                     # 次の行を読み込む
-                    line = f.readline()
+                    line = f.readline().rstrip(os.linesep)
                 return type_labels
         except Exception as e:
             raise Exception(f'ERROR! at {file.name} : {str(e)}')
