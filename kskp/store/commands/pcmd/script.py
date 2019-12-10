@@ -2595,6 +2595,107 @@ class GroupBy2Command(Command):
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
 
+    def linear_trend_chunk(self, subcmd, **kwargs):
+        try:
+            _temp = mtemp.Mtemp().file()
+
+            f = kwargs.get('f')
+            a = kwargs.get('a')
+            x = kwargs.get('x')
+            n = kwargs.get('n')
+            k = kwargs.get('k')
+            
+            flags = kwargs.get('flags')
+            finalcols = [a[flag] for flag in flags]
+
+            precision = kwargs.get('precision')
+            
+            dateformat = kwargs.pop('dateformat')
+
+            fs = f.split(',')
+            targets = [None] * len(fs)
+            covars = [None] * len(fs)
+            counts = [None] * len(fs)
+            subcmd_mid = None
+            subcmd_o = None
+
+            # create sequence column mnumber
+            # mcal with sequence/chunksize to group them into chunks
+            # take the average time, value for every relevant
+             
+
+            # fix time column
+            subcmd = self.fixtimecolumn(subcmd, x, dateformat)
+
+            meanval = nm.mstats(k = k, i = subcmd, f = f'uxt,{f}', c = 'mean')
+
+            for i, fld in enumerate(fs):
+                counts[i] <<= nm.msel(i = self.all_msums, 
+                                      c = f'$s{{fld}}=="{fld}"')
+
+                covars[i] <<= nm.msim(k = k, i = subcmd, f = f'uxt,{fld}', 
+                                   c = 'covar:__covar')
+
+                targets[i] <<= nm.mstats(k = k, i = subcmd, c = 'var',
+                                         f = f'uxt:__Sxx,{fld}:__Syy')
+                targets[i] <<= nm.mcal(c = 'sqrt(${__Sxx}*${__Syy})', a = '__rden')
+                targets[i] <<= nm.mjoin(k = k, m = covars[i], f = '__covar')
+                targets[i] <<= nm.mnjoin(k = k, m = counts[i], f = 'fld,__count')
+                targets[i] <<= nm.mjoin(k = k, m = meanval, f = f'uxt:__xmean,{fld}:__ymean')
+                targets[i] <<= nm.mcal(c = '${__count}-2', a = '__df')
+
+                targets[i] <<= nm.mcal(c = 'if(${__rden}==0,0,${__covar}/${__rden})',
+                                       a = f'{a["linregress_rvalue"]}',
+                                       precision = precision)
+                targets[i] <<= nm.mcal(c = '${__covar}/${__Sxx}', 
+                                       a = f'{a["slope"]}',
+                                       precision = precision)
+                targets[i] <<= nm.mcal(c = f'${{__ymean}}-(${{{a["slope"]}}}*${{__xmean}})',
+                                       a = f'{a["y_int"]}',
+                                       precision = precision)
+                targets[i] <<= nm.mcal(c = f'${{{a["linregress_rvalue"]}}}*sqrt(${{__df}}/((1-${{{a["linregress_rvalue"]}}})*(1+${{{a["linregress_rvalue"]}}})))',
+                                       a = '__t',
+                                       precision = precision)
+                targets[i] <<= nm.mcal(c = f'sqrt((1-${{{a["linregress_rvalue"]}}}^2)*${{__Syy}}/${{__Sxx}}/${{__df}})',
+                                       a = f'{a["linregress_stderr"]}',
+                                       precision = precision)
+
+                _cval = ['fld', '__Syy', '__Sxx', '__rden', '__covar', 
+                         '__count', '__xmean', '__ymean', '__df', f'{a["linregress_rvalue"]}', 
+                         f'{a["slope"]}', f'{a["y_int"]}', '__t', f'{a["linregress_stderr"]}']
+                targets[i] <<= nm.mcut(f= k.split(',') + _cval)
+
+            if 'linregress_pvalue' in flags:
+                subcmd_mid <<= nm.mread(i = targets)
+
+                # with nm.mstdout() as tmpfile:
+                with mcsvout(_temp, f = k.split(',') + _cval + [f'{a}_pvalue']) as tmpfile:
+                    from scipy.stats import distributions
+                    headerline = True
+                    for line in subcmd_mid.getline(header = True):
+                        if headerline:
+                            header = line
+                            headerline = False
+                        else:
+                            t = float(line[header.index('__t')])
+                            df = float(line[header.index('__df')])
+                            
+                            line.append(2 * distributions.t.sf(np.abs(t),df))
+                            
+                            tmpfile.write(line)
+                
+                subcmd_o <<= nm.mcut(i = _temp, f = [k, 'fld'] + finalcols)
+
+                return subcmd_o
+            else:
+                subcmd_o <<= nm.mcut(i = targets, f = [k, 'fld'] + finalcols)
+                return subcmd_o
+            
+        except Exception as e:
+            import traceback
+            with open('/dev/stderr', 'w') as fpe:
+                traceback.print_exc(file=fpe)
+
     #  ## Template
     # subcmd = None
     # subcmd <<= nm.mstdin()
@@ -3002,7 +3103,7 @@ class MultiMcalCommand(Command):
             # one mcal will be added to cmd_o for every pair of c and a arguments passed in a list
 
             if first:
-                cmd_o <<= nm.mcal({**inputs, **acarg, **args}) # {'i' : input, 'c': 'cal1', 'a' : 'col1'}
+                cmd_o <<= nm.mcal({inputs['i'].contents, **acarg, **args}) # {'i' : input, 'c': 'cal1', 'a' : 'col1'}
                 first = False
             else:
                 cmd_o <<= nm.mcal({**acarg,**args})
@@ -3074,9 +3175,14 @@ class MultiMcalWCCommand(Command):
 
             arg['a'] = arg['a'].replace('&', target)
             arg['c'] = arg['c'].replace('&',str(target))
+            # inputs = {'i': laksdjflj}
+            # inputs['i'].contents = alskjfj
+            # inputs = {'i' : NysolModule,
+            #  'm',}
 
             if first:
-                cmd_o <<= nm.mcal({**inputs, **arg})
+                # cmd_o <<= nm.mcal({**inputs, **arg})
+                cmd_o <<= nm.mcal({inputs['i'].contents, **arg})
                 first = False
             else:
                 cmd_o <<= nm.mcal(arg)
