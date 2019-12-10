@@ -397,7 +397,7 @@ class CsvToRepetitivieWaveCommand(VisualizersBokehPlot):
         graph_plot.legend.click_policy = "mute"
 
         select = self.get_select(graph_plot)
-        plots = [graph_plot, select]
+        plots = [select, graph_plot]
         
         statics_plot = None
         if self.disableStatics == False:
