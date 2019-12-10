@@ -2489,7 +2489,7 @@ class GroupBy2Command(Command):
 
         sys.setrecursionlimit(2**20)
 
-        self.header = nm.mread(inputs.content).getline(header=True)
+        self.header = inputs['i'].content.getline(header=True)
         self.header = next(self.header)
 
         k = args.get('k')
@@ -2743,7 +2743,7 @@ class MultiMcalCommand(Command):
             # one mcal will be added to cmd_o for every pair of c and a arguments passed in a list
 
             if first:
-                cmd_o <<= nm.mcal({**inputs, **acarg, **args}) # {'i' : input, 'c': 'cal1', 'a' : 'col1'}
+                cmd_o <<= nm.mcal(i=inputs['i'].content, **acarg, **args) # {'i' : input, 'c': 'cal1', 'a' : 'col1'}
                 first = False
             else:
                 cmd_o <<= nm.mcal({**acarg,**args})
@@ -2783,7 +2783,8 @@ class MultiMcalWCCommand(Command):
         first = True
 
         # get header list
-        self.header = nm.mread(inputs.content).getline(header=True)
+        # self.header <<= nm.mread(inputs['i'].content).getline(header=True)
+        self.header = inputs['i'].content.getline(header=True)
         self.header = next(self.header)
 
         xoption = args.pop('x') if 'x' in args else False
@@ -2812,12 +2813,13 @@ class MultiMcalWCCommand(Command):
         #iterate over entire list and replace the '&' in c and a inputs with column number/name
         for target in targets_final:
             arg = args.copy()
+            # sys.__stderr__.write(repr(arg)+'\n')
 
             arg['a'] = arg['a'].replace('&', target)
             arg['c'] = arg['c'].replace('&',str(target))
 
             if first:
-                cmd_o <<= nm.mcal({**inputs, **arg})
+                cmd_o <<= nm.mcal(i = inputs['i'].content, **arg)
                 first = False
             else:
                 cmd_o <<= nm.mcal(arg)
@@ -2943,7 +2945,7 @@ class MvStatsCommand(Command):
             args['q'] = True
 
         # get index of columns
-        self.header = nm.mread(inputs.content).getline(header=True)
+        self.header = inputs['i'].content.getline(header=True)
         self.header = next(self.header)
 
         xoption = args.pop('x') if 'x' in args else False
@@ -3031,7 +3033,7 @@ class MvSimCommand(Command):
             args['q'] = True
 
         # get index of columns
-        self.header = nm.mread(inputs.content).getline(header=True)
+        self.header = inputs['i'].content.getline(header=True)
         self.header = next(self.header)
 
         xoption = args.pop('x') if 'x' in args else False
@@ -3082,6 +3084,7 @@ class MvSimCommand(Command):
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
+
 
 class PlainText2Csv(Command):
     def __init__(self):
