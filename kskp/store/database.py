@@ -187,6 +187,6 @@ class Database(Store):
                 'creator'   : Datum.get_user_name_by_user_id(self.creator),
                 'createdAt' : self.created_at_str}
 
-    @property
-    def content(self):
-        return self
+    # @property
+    # def content(self):
+    #     return self

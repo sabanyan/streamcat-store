@@ -21,6 +21,15 @@
     ],
     "params": [
       {
+        "name": "event",
+        "label": "起点列",
+        "type": "column",
+        "options": {
+          "multiple": false
+        },
+        "description": "各反復波形の時間軸の起点を指定n次の横軸列は、この起点からの経過時間を指定"
+      },
+      {
         "name": "x_axis",
         "type": "list",
         "elements": [
@@ -70,8 +79,7 @@
         "options":{
           "multiple": true
         },
-        "label": "データ系列",
-        "description": "データ系列を表す項目名（復数可、順序は指定不可）を指定します\n指定した項目の値（復数項目時はそれぞれの値の組合せ）を系列として設定します"
+        "label": "データ系列"
       },
       {
         "name": "group",
@@ -114,17 +122,9 @@
       {
         "name": "disableEvent",
         "type": "boolean",
-        "label": "イベント発生時点を表示しない",
+        "label": "起点を表示しない",
         "default":false
       }, 
-      {
-        "name": "event",
-        "label": "イベント列",
-        "type": "column",
-        "options": {
-          "multiple": false
-        }
-      },
       {
         "name": "statics",
         "label": "表示する統計量",
@@ -152,7 +152,7 @@
       {
         "name": "axis_group",
         "label": "軸の設定",
-        "params": ["x_axis","y_axis"]
+        "params": ["event","x_axis","y_axis"]
       },
       {
         "name": "data_group",
@@ -167,7 +167,7 @@
       {
         "name": "graph_group",
         "label": "グラフ表示要素の設定",
-        "params": ["disableTooltips","disableMarker","disableStatics","disableEvent","event","statics"]
+        "params": ["disableTooltips","disableMarker","disableStatics","disableEvent","statics"]
       },
       {
         "name": "graph_size",

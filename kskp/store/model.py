@@ -11,10 +11,6 @@ from pathlib import Path
 from flask import g
 from threading import Lock
 
-from kskp.store import (
-    FLOW_PATH
-)
-
 lock = Lock()
 
 def create_user(email, password, name, creator):
@@ -287,12 +283,6 @@ def fetch_flow_by_uuid(flow_uuid):
     from kskp.store import Flow
     return Flow.find_by_uuid(flow_uuid).flow_data
 
-def make_flow_path(file_name):
-    """
-    フローファイルのパス作成用ヘルパー
-    """
-
-    return Path(FLOW_PATH) / Path('%s.json' % file_name)
 #
 # def get_frame_dir_path(user_id):
 #     # フレーム格納フォルダを取得する
