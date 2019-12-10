@@ -2675,7 +2675,7 @@ class GroupBy2Command(Command):
             'lastmax' : self.lastmax,
             'mean_change' : self.meanchange,
             'mean_abs_change' : self.meanabschange,
-            'abs_sum_of_changes' : self.abs_sum_of_changes, 
+            'abs_sum_changes' : self.abs_sum_of_changes, 
             'autocorr_agg' : self.autocorrelation_agg,
             'longest_strike_above_mean' : self.longeststrikeabovemean,
             'longest_strike_below_mean' : self.longeststrikebelowmean,
