@@ -42,7 +42,7 @@ class CommandTest(unittest.TestCase):
     def tearDownClass(cls):
         # ライブラリフォルダを削除する
         from kskp.core import Datum
-        library_path = STORE_DIR.parent / Library.load_root().path 
+        library_path = STORE_DIR / Library.load_root().path 
         import shutil
         shutil.rmtree(library_path.as_posix())
         # Sessionを閉じる
@@ -190,7 +190,7 @@ def get_frame_by_uuid(uuid, header=True):
     import csv
     result = []
     frame = Library.load_frame(uuid)
-    with open(STORE_DIR.parent / frame.path, 'r') as f:
+    with open(STORE_DIR / frame.path, 'r') as f:
         rows = csv.reader(f)
         if header:
             header = next(rows)
