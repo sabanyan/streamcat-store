@@ -3092,7 +3092,7 @@ class PlainText2Csv(Command):
     def run(self, args, inputs):
         def filter(args):
             try:
-                from kskp.depo.commands.pcmd.src import plaintext2csv 
+                from kskp.depo.std.commands.pcmd.src import plaintext2csv 
                 plaintext2csv.main(args, sys.stdin, sys.stdout)
                 # flushをする
                 sys.stdout.flush()
