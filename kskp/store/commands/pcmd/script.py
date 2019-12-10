@@ -2743,7 +2743,7 @@ class MultiMcalCommand(Command):
             # one mcal will be added to cmd_o for every pair of c and a arguments passed in a list
 
             if first:
-                cmd_o <<= nm.mcal({**inputs, **acarg, **args}) # {'i' : input, 'c': 'cal1', 'a' : 'col1'}
+                cmd_o <<= nm.mcal({inputs['i'].content, **acarg, **args}) # {'i' : input, 'c': 'cal1', 'a' : 'col1'}
                 first = False
             else:
                 cmd_o <<= nm.mcal({**acarg,**args})
@@ -2817,7 +2817,7 @@ class MultiMcalWCCommand(Command):
             arg['c'] = arg['c'].replace('&',str(target))
 
             if first:
-                cmd_o <<= nm.mcal({**inputs, **arg})
+                cmd_o <<= nm.mcal({inputs['i'].content, **arg})
                 first = False
             else:
                 cmd_o <<= nm.mcal(arg)
