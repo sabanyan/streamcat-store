@@ -1561,8 +1561,8 @@ class GroupBy2Command(Command):
             meanval = nm.mstats(k = k, i = subcmd, f = f'uxt,{f}', c = 'mean')
 
             for i, fld in enumerate(fs):
-                counts[i] <<= nm.msummary(i = subcmd, c = 'count:__count', 
-                                          f = fld, k = k)
+                counts[i] <<= nm.msel(i = self.all_msums, 
+                                      c = f'$s{{fld}}=="{fld}"')
 
                 covars[i] <<= nm.msim(k = k, i = subcmd, f = f'uxt,{fld}', 
                                    c = 'covar:__covar')
@@ -1571,7 +1571,7 @@ class GroupBy2Command(Command):
                                          f = f'uxt:__Sxx,{fld}:__Syy')
                 targets[i] <<= nm.mcal(c = 'sqrt(${__Sxx}*${__Syy})', a = '__rden')
                 targets[i] <<= nm.mjoin(k = k, m = covars[i], f = '__covar')
-                targets[i] <<= nm.mjoin(k = k, m = counts[i], f = 'fld,__count')
+                targets[i] <<= nm.mnjoin(k = k, m = counts[i], f = 'fld,__count')
                 targets[i] <<= nm.mjoin(k = k, m = meanval, f = f'uxt:__xmean,{fld}:__ymean')
                 targets[i] <<= nm.mcal(c = '${__count}-2', a = '__df')
 
@@ -2431,7 +2431,7 @@ class GroupBy2Command(Command):
             'lastmax' : self.lastmax,
             'mean_change' : self.meanchange,
             'mean_abs_change' : self.meanabschange,
-            'abs_sum_of_changes' : self.abs_sum_of_changes, 
+            'abs_sum_changes' : self.abs_sum_of_changes, 
             'autocorr_agg' : self.autocorrelation_agg,
             'longest_strike_above_mean' : self.longeststrikeabovemean,
             'longest_strike_below_mean' : self.longeststrikebelowmean,
@@ -2481,7 +2481,8 @@ class GroupBy2Command(Command):
             'longest_strike_above_mean' : ['mean'],
             'longest_strike_below_mean' : ['mean'],
             'imq' : ['count'],
-            'autocorr' : ['mean', 'var', 'count']
+            'autocorr' : ['mean', 'var', 'count'],
+            'linregress':['count']
         } 
 
         msum_prereqs = set()
@@ -2603,10 +2604,6 @@ class GroupBy2Command(Command):
 
         cmd_i <<= nm.mread(inputs)
 
-        self.all_msums = None
-        premsums = [f'{f}:__{f}' for f in msum_prereqs]
-        self.all_msums <<= nm.msummary(i = cmd_i, k = k, f = all_fs, 
-                            c = premsums, precision = prec)
         # take the wanted columns only (the key columns and the value columns)
         # generate string of columns to cut
 
@@ -2617,6 +2614,11 @@ class GroupBy2Command(Command):
             cmd_i <<= nm.mcal(a = k, c = '"all"')
 
         expanded_k = ','.join([k,'fld'])
+
+        self.all_msums = None
+        premsums = [f'{f}:__{f}' for f in msum_prereqs]
+        self.all_msums <<= nm.msummary(i = cmd_i, k = k, f = all_fs, 
+                            c = premsums, precision = prec)
 
         cmd_i <<= nm.mcut(f = f'{k}{","+",".join(colstocut) if len(colstocut) > 0 else ""}')
 
