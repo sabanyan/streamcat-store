@@ -2489,7 +2489,7 @@ class GroupBy2Command(Command):
 
         sys.setrecursionlimit(2**20)
 
-        self.header = nm.mread(inputs.content).getline(header=True)
+        self.header = nm.mread(inputs['i'].content).getline(header=True)
         self.header = next(self.header)
 
         k = args.get('k')
@@ -2783,7 +2783,7 @@ class MultiMcalWCCommand(Command):
         first = True
 
         # get header list
-        self.header = nm.mread(inputs.content).getline(header=True)
+        self.header = nm.mread(inputs['i'].content).getline(header=True)
         self.header = next(self.header)
 
         xoption = args.pop('x') if 'x' in args else False
@@ -2850,7 +2850,7 @@ class MvAvgCommand(Command):
         import fnmatch as fn
 
         cmd_o = None
-        cmd_o <<= nm.mread(inputs.content)
+        cmd_o <<= nm.mread(inputs['i'].content)
 
         if ('s' not in args) or (args['s'] == ''):
             args['q'] = True
@@ -2858,7 +2858,7 @@ class MvAvgCommand(Command):
         xoption = args.pop('x') if 'x' in args else False
 
         # get index of columns
-        self.header = nm.mread(inputs.content).getline(header=True)
+        self.header = nm.mread(inputs['i'].content).getline(header=True)
         self.header = next(self.header)
 
         fatlist = []
@@ -2936,14 +2936,14 @@ class MvStatsCommand(Command):
 
         cmd_o = None
 
-        cmd_o <<= nm.mread(inputs.content)
+        cmd_o <<= nm.mread(inputs['i'].content)
             
         # sorting parameters
         if 's' not in args or (args['s'] == ''):
             args['q'] = True
 
         # get index of columns
-        self.header = nm.mread(inputs.content).getline(header=True)
+        self.header = nm.mread(inputs['i'].content).getline(header=True)
         self.header = next(self.header)
 
         xoption = args.pop('x') if 'x' in args else False
@@ -3024,14 +3024,14 @@ class MvSimCommand(Command):
         import fnmatch as fn
 
         cmd_o = None
-        cmd_o <<= nm.mread(inputs.content)
+        cmd_o <<= nm.mread(inputs['i'].content)
             
         # sorting parameters
         if 's' not in args or (args['s'] == ''):
             args['q'] = True
 
         # get index of columns
-        self.header = nm.mread(inputs.content).getline(header=True)
+        self.header = nm.mread(inputs['i'].content).getline(header=True)
         self.header = next(self.header)
 
         xoption = args.pop('x') if 'x' in args else False
