@@ -207,7 +207,8 @@ class Folder(Store):
         """
         try:
             # 同じ名称のファイルが既に存在する場合、末尾に数字を付加したディレクトリ名で作成する
-            if self.path.exists() and len(list(self.path.iterdir())) == 0:
+            abs_path = Path(Datum._to_abs_path(self._path))
+            if abs_path.exists() and len(list(abs_path.iterdir())) == 0:
                 # すでにパスが存在していても、中身がなければ利用する
                 # depo対応のため
                 path = self._path
