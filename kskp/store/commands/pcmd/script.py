@@ -2621,11 +2621,14 @@ class GroupBy2Command(Command):
 
             # create sequence column mnumber
             # mcal with sequence/chunksize to group them into chunks
-            # take the average time, value for every relevant
-             
+            # take the average time, value for every chunk of every relevant
+            # column and use those values for a standard linreg
 
             # fix time column
             subcmd = self.fixtimecolumn(subcmd, x, dateformat)
+            subcmd <<= nm.mcal(c = f'int(${{uxt}}/{n})', a = f'__seq{n}')
+            subcmd <<= nm.msummary(k = f'{k},__seq{n}', f = f, 
+                                   c = 'max:__max,min:__min,mean:__mean,median:__median')
 
             meanval = nm.mstats(k = k, i = subcmd, f = f'uxt,{f}', c = 'mean')
 
@@ -3103,7 +3106,7 @@ class MultiMcalCommand(Command):
             # one mcal will be added to cmd_o for every pair of c and a arguments passed in a list
 
             if first:
-                cmd_o <<= nm.mcal({inputs['i'].contents, **acarg, **args}) # {'i' : input, 'c': 'cal1', 'a' : 'col1'}
+                cmd_o <<= nm.mcal({**inputs, **acarg, **args}) # {'i' : input, 'c': 'cal1', 'a' : 'col1'}
                 first = False
             else:
                 cmd_o <<= nm.mcal({**acarg,**args})
@@ -3175,14 +3178,10 @@ class MultiMcalWCCommand(Command):
 
             arg['a'] = arg['a'].replace('&', target)
             arg['c'] = arg['c'].replace('&',str(target))
-            # inputs = {'i': laksdjflj}
-            # inputs['i'].contents = alskjfj
-            # inputs = {'i' : NysolModule,
-            #  'm',}
 
             if first:
                 # cmd_o <<= nm.mcal({**inputs, **arg})
-                cmd_o <<= nm.mcal({inputs['i'].contents, **arg})
+                cmd_o <<= nm.mcal({**inputs, **arg})
                 first = False
             else:
                 cmd_o <<= nm.mcal(arg)
