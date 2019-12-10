@@ -391,7 +391,7 @@ class CsvToRepetitivieWaveCommand(VisualizersBokehPlot):
         
         graph_source = self.get_graph_source(self.df, disableTooltips=self.disableTooltips) 
         graph_colors = self.get_colors(len(graph_source))
-        graph_plot = self.get_plot("反復波形図")
+        graph_plot = self.get_plot("反復波形図", self.x_range, self.y_range)
         graph_plot = self.get_grpah_plot(graph_plot,graph_source, graph_colors)
         graph_plot.legend.location = "top_left"
         graph_plot.legend.click_policy = "mute"
@@ -404,14 +404,14 @@ class CsvToRepetitivieWaveCommand(VisualizersBokehPlot):
             statics_source = self.get_statics_source(self.df, disableTooltips=self.disableTooltips)
             if statics_source is not None:
                 statics_colors = self.get_colors(len(statics_source))
-                plot = self.get_plot("反復波形図",graph_plot.x_range,graph_plot.y_range)
+                plot = self.get_plot("反復波形図", self.x_range, self.y_range)
                 statics_plot = self.get_statics_plot(plot,statics_source, statics_colors)
                 if statics_plot.legend:
                     statics_plot.legend.location = "top_left"
                     statics_plot.legend.click_policy = "mute"
                 plots.append(statics_plot)          
         
-        return gridplot(plots, ncols=1, plot_width=self.graph_width, plot_height=self.graph_height)
+        return gridplot(plots, ncols=1, plot_width=self.graph_width, plot_height=self.graph_height, toolbar_location="right")
 
     def init(self, args, column_names, matrix):
         # NysolPythonの結果をpandasのDataFrameに変換する
@@ -447,6 +447,18 @@ class CsvToRepetitivieWaveCommand(VisualizersBokehPlot):
         #共通設定
         self.tools = "pan,wheel_zoom,box_zoom,reset,save,box_select"
         self.tooltips = None
+
+        # Range
+        df_x_minmax = self.doMsummary(df, None, self.column_name_x_axis, "min,max")
+        df_y_minmax = self.doMsummary(df, None, self.column_name_values, "min,max")
+
+        x_min = df_x_minmax.iat[0, 1]
+        x_max = df_x_minmax.iat[0, 2]
+        self.x_range = [float(x_min), float(x_max)]
+
+        y_min = df_y_minmax.iat[0, 1]
+        y_max = df_y_minmax.iat[0, 2]
+        self.y_range = [float(y_min), float(y_max)]
 
     def get_graph_source(self, df, disableTooltips=False):
 
@@ -551,18 +563,16 @@ class CsvToRepetitivieWaveCommand(VisualizersBokehPlot):
                     (self.column_name_x_axis, "@x"),
                     (self.column_name_values, "@y"),
                 ]
-        
+
         plot = figure(
             title=title,
             tools=self.tools,
             tooltips=tooltips,
             x_axis_label=self.x_axis_label,
-            y_axis_label=self.y_axis_label
+            y_axis_label=self.y_axis_label,
+            x_range=x_range,
+            y_range=y_range,
         )
-        if x_range is not None:
-            plot.x_range = x_range
-        if y_range is not None:
-            plot.y_range = y_range
 
         return plot
 
@@ -632,6 +642,20 @@ class CsvToRepetitivieWaveCommand(VisualizersBokehPlot):
             plot = self.add_points_to_plot(plot, source, colors)
 
         return plot
+    
+    def doMsummary(self, df, k, f, c):
+
+        i = df.values.tolist()
+        i.insert(0,list(df.columns))
+
+        result = None
+        result <<= nm.msummary(i=i, k=k, f=f, c=c).writelist(header=True)
+        result = result.run()
+
+        name = result.pop(0)
+        result_df = pd.DataFrame(result,columns=name)
+
+        return result_df
 
 
 class CsvToTimeCompressionCommand(VisualizersBokehPlot):
@@ -757,7 +781,7 @@ class CsvToTimeCompressionCommand(VisualizersBokehPlot):
             plot.legend.click_policy = "mute"
             plots.append(plot)
 
-        result = gridplot(plots, ncols=1, plot_width=graph_width, plot_height=graph_height) 
+        result = gridplot(plots, ncols=1, plot_width=graph_width, plot_height=graph_height, toolbar_location="right") 
         
         return result
     
