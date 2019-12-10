@@ -375,7 +375,7 @@ class GroupBy2Command(Command):
             
             allrows <<= nm.mcount(i = subcmd, k = k, a = '__allrows')
 
-            subcmd <<= nm.msummary(k = k, f = f, c = '__count')
+            subcmd <<= nm.msummary(k = k, f = f, c = 'count:__count')
             subcmd <<= nm.mjoin(k = k, m = allrows, f = '__allrows', K = k)
 
             subcmd <<= nm.mcal(a = '__missingcount', c = '${__allrows}-${__count}')
@@ -1372,7 +1372,7 @@ class GroupBy2Command(Command):
 
             headerline = True
 
-            for dlist in nm.mstdin().keyblock(f'{k}', x, header = True):
+            for dlist in nm.mstdin().keyblock(f'{k}', f'{x}%n', header = True):
                 id = ','.join(dlist[0][:len(k.split(','))])
 
                 if headerline:
@@ -2212,9 +2212,10 @@ class GroupBy2Command(Command):
 
                 targets[i] <<= nm.msum(k = k, f = f'{a}_{n}')
                 targets[i] <<= nm.mcal(a = 'fld', c = f'"{fld}"')
+                targets[i] <<= nm.mcut(f = f'{k},fld,{a}_{n}')
 
 
-            subcmd_o <<= nm.mcut(i = targets, f = f'{k},fld,{a}_{n}')
+            subcmd_o <<= nm.mread(i = targets)
 
             return subcmd_o
 
@@ -2482,7 +2483,7 @@ class GroupBy2Command(Command):
             'longest_strike_below_mean' : ['mean'],
             'imq' : ['count'],
             'autocorr' : ['mean', 'var', 'count'],
-            'linregress':['count']
+            'linregress': ['count']
         } 
 
         msum_prereqs = set()
@@ -2493,7 +2494,7 @@ class GroupBy2Command(Command):
         self.header = next(self.header)
 
         k = args.get('k')
-        prec = args.pop('precision')
+        prec = args.get('precision')
         xs = []
 
         calclist = []
@@ -2551,8 +2552,8 @@ class GroupBy2Command(Command):
                     elif cleft:
                         cs_custom_nysol.append(cs[i])
 
-                        if cleft in msum_dependencies:
-                            msum_prereqs.update(msum_dependencies[cleft])
+                    if cleft in msum_dependencies:
+                        msum_prereqs.update(msum_dependencies[cleft])
 
                 if cs_msummary:
                     calclist.append({'c': ','.join(cs_msummary), 
@@ -2583,6 +2584,9 @@ class GroupBy2Command(Command):
                             _thisgroup.append(calc)
 
                     if _thisgroup:
+                        if group in grouped_calcs:
+                            msum_prereqs.update(msum_dependencies[group])
+
                         if ns:
                             for n in ns:
                                 arglist['n'] = n
@@ -2597,12 +2601,11 @@ class GroupBy2Command(Command):
 
         # sys.__stderr__.write(repr(calclist))
 
-        cmd_i = None
         cmd = [None] * len(calclist)
         cmd_o = None
 
 
-        cmd_i <<= nm.mread(inputs.content)
+        cmd_i = inputs['i'].content
 
         # take the wanted columns only (the key columns and the value columns)
         # generate string of columns to cut
@@ -2617,7 +2620,8 @@ class GroupBy2Command(Command):
 
         self.all_msums = None
         premsums = [f'{f}:__{f}' for f in msum_prereqs]
-        self.all_msums <<= nm.msummary(i = cmd_i, k = k, f = all_fs, 
+        # sys.__stderr__.write(repr(premsums)+'\n\n')
+        self.all_msums = nm.msummary(i = cmd_i, k = k, f = all_fs, 
                             c = premsums, precision = prec)
 
         cmd_i <<= nm.mcut(f = f'{k}{","+",".join(colstocut) if len(colstocut) > 0 else ""}')
@@ -2648,6 +2652,7 @@ class GroupBy2Command(Command):
                 cmd[i] <<= nm.mread(i=cmd_i)
 
                 if cs in python_calcs:
+                    # sys.__stderr__.write(repr(calcdict)+'\n')
                     cmd[i] <<= nm.runfunc(nysol_calcs[cs], **calcdict)
                 else:
                     cmd[i] = nysol_calcs[cs](cmd[i], **calcdict)
@@ -2690,6 +2695,7 @@ class GroupBy2Command(Command):
 
         
         # cmd_o <<= nm.m2cat(i = cmd)
+        # sys.__stderr__.write(repr(cmd)+'\n\n')
         cmd_o <<= nm.mdelnull(i = cmd, f = '__val__')
 
         formatstring = args.pop('format')
