@@ -9,7 +9,7 @@ CACHE_FOLDER_UUID   = 'cc9f050d-b007-414e-a6e0-6d31a9c13395'
 CACHE_FOLDER_LABEL  = 'キャッシュ'
 
 # フローがDBに保存されるようになるまでは下記のパスをstoreが持っておく
-STORE_DIR = Path(__file__).parent.parent / 'depo'
+STORE_DIR = Path(__file__).parent.parent / 'depo/files'
 # FLOW_PATH = (STORE_DIR / 'flows/json').as_posix()
 # if not os.path.exists(FLOW_PATH):
 #     os.makedirs(FLOW_PATH)
