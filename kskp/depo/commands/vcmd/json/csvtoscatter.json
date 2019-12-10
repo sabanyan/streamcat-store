@@ -27,7 +27,7 @@
         {
           "name"  :"column",
           "type"  :"column",
-          "label" :"横軸列：時間軸"
+          "label" :"横軸列：x軸"
         },
         {
           "name"  :"label",
@@ -49,7 +49,7 @@
         {
           "name"  :"column",
           "type"  :"column",
-          "label" :"縦軸列：データ"
+          "label" :"縦軸列：y軸"
         },
         {
           "name"  :"label",
@@ -71,7 +71,8 @@
         "multiple": true
       },
       "label": "データ系列",
-      "default": []
+      "default": [],
+      "description": "データ系列を表す項目名（復数可、順序は指定不可）を指定します\n指定した項目の値（復数項目時はそれぞれの値の組合せ）を系列として設定します"
     },
     {
       "name": "offset",

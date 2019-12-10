@@ -88,8 +88,8 @@
     ]
   ],
   "version": "0.7.0",
-  "label": "項目ソート",
-  "classification": "row_sort",
-  "description": "f=で複数指定した項目の値を並べ替える。",
+  "label": "項目名のソート",
+  "classification": "col_edit",
+  "description": "項目名の順序を並べ替える",
   "url": "./static/pdf/mcmd/row_sort/mfsort.pdf"
 }
