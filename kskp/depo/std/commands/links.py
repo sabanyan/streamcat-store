@@ -3,11 +3,11 @@ import os
 from pathlib import Path
 from kskp.core import Command
 
-from kskp.depo.commands.mcmd.script import *
-from kskp.depo.commands.kcmd.script import *
-from kskp.depo.commands.pcmd.script import *
-from kskp.depo.commands.scmd.script import *
-from kskp.depo.commands.vcmd.script import *
+from kskp.depo.std.commands.mcmd.script import *
+from kskp.depo.std.commands.kcmd.script import *
+from kskp.depo.std.commands.pcmd.script import *
+from kskp.depo.std.commands.scmd.script import *
+from kskp.depo.std.commands.vcmd.script import *
 
 class CommandLink:
     """
