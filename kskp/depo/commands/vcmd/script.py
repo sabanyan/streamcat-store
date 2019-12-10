@@ -306,7 +306,7 @@ class CsvToBoxplotCommand(VisualizersBokehPlot):
         # NysolPythonの結果をpandasのDataFrameに変換する
         # dfの作成
         df = pd.DataFrame(matrix, columns=column_names)
-        df[y_axis_column].astype(int)
+        df[y_axis_column] = df[y_axis_column].astype(float)
 
         boxwhisker = hv.BoxWhisker(df, kdims=data_column, vdims=y_axis_column, label=graph_title)
         boxwhisker.opts(width=graph_width, height=graph_height, xlabel=x_axis_label, ylabel=y_axis_label)
@@ -646,7 +646,7 @@ class CsvToTimeCompressionCommand(VisualizersBokehPlot):
         x_axis_column  = x_axis[0]['column']
         x_axis_label   = x_axis[0]['label']
 
-        y_axis              = args.get('y_axis')
+        y_axis         = args.get('y_axis')
         y_axis_column  = y_axis[0]['column']
         y_axis_label   = y_axis[0]['label']
 
@@ -668,6 +668,8 @@ class CsvToTimeCompressionCommand(VisualizersBokehPlot):
 
         # df
         df = pd.DataFrame(matrix, columns=column_names)
+        df[y_axis_column] = df[y_axis_column].astype(float)
+        df[x_axis_column] = df[x_axis_column].astype(float)
 
         # title
         df_x_minmax = self.doMsummary(df, None, x_axis_column, "min,max")
