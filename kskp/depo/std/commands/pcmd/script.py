@@ -2754,6 +2754,8 @@ class MultiMcalCommand(Command):
             else:
                 cmd_o <<= nm.mcal({**acarg,**args})
 
+        args['arglist'] = aclist
+
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
