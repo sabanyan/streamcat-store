@@ -84,8 +84,7 @@ class Flow(Datum):
 
     @staticmethod
     def convert_to_flow(datum):
-        parent_uuid = Datum.get_uuid_by_id(datum.parent_id)
-        # label = json.loads(datum.data, encoding='utf-8')['label']
+        parent_uuid = datum.parent_uuid or Datum.get_uuid_by_id(datum.parent_id)
         flow_data = datum.data2['flow']
         flow = Flow(parent_uuid, datum.label, flow_data, datum.creator)
         flow.id = datum.id
@@ -95,6 +94,32 @@ class Flow(Datum):
         flow.created_at = datum.created_at
         flow.modified_at = datum.modified_at
         return flow
+
+    @staticmethod
+    def create_simple_flow(parent_uuid, label, data_source, creator=None):
+        flow_data = {
+                        "label": label,
+                        "nodes": [
+                            {
+                                "id": "d",
+                                "type": "frame",
+                                "uuid": data_source.uuid,
+                                "error": {},
+                                "label": data_source.label,
+                                "invalid": {},
+                                "makeCache": False,
+                                "dataSource": "csv",
+                                "cacheCreatedAt": None
+                            }
+                        ],
+                        "ports": [[],[]],
+                        "params": [],
+                        "creator": "",
+                        "createdAt": data_source.created_at_str,
+                        "projectId": None,
+                        "description": ""
+                    }
+        return Flow(parent_uuid, label, flow_data, creator)
 
     def save(self):
         """
@@ -138,10 +163,24 @@ class Flow(Datum):
 
         # ラベルに'\0'が含まれていれば取り除く
         new_label = Datum.escape_label(label)
+        # 更新データを作成する
+        data = {'label' : new_label, 'flow' : flow_data}
+        flow.data = data
+
+        # フローのインポート処理で引っかかるので以下のチェックを一旦外す
+        # 
+        # # 参照するフレームがライブラリに存在することを確認する
+        # for frame_uuid in flow.get_src_frame_uuids():
+        #     if not Frame.exists(frame_uuid):
+        #         raise Exception(f'フレーム({frame_uuid})がライブラリにありません')
+
+        # # 参照するサブフローがライブラリに存在することを確認する
+        # for flow_uuid in flow.get_sub_flow_uuids():
+        #     if not Flow.exists(flow_uuid):
+        #         raise Exception(f'フロー({flow_uuid})がライブラリにありません')
 
         try:
             # レコードを更新する
-            data = {'label' : new_label, 'flow' : flow_data}
             session.query(Datum).filter(Datum.uuid==uuid).update({'_label'   :new_label,
                                                                   'data'     :data,
                                                                   'modifier' :modifier})
@@ -324,6 +363,17 @@ class Flow(Datum):
         for node in flow_data['nodes']:
             if 'uuid' in node and node['uuid'] == old_uuid:
                 node['uuid'] = new_uuid
+        Flow.update_data(self.uuid, self.label, flow_data, user_id)
+
+    def set_cache(self, node_id, cache_uuid, user_id):
+        from datetime import datetime, timedelta, timezone
+
+        flow_data = self.flow_data
+        for node in flow_data['nodes']:
+            if node['id'] == node_id:
+                node['uuid'] = cache_uuid
+                # 記録時間はUTC、表示時間は現地時間にすべきでは？？
+                node['cacheCreatedAt'] = datetime.now(timezone(timedelta(hours=+9), 'JST')).strftime('%Y-%m-%d %H:%M:%S')
         Flow.update_data(self.uuid, self.label, flow_data, user_id)
 
     def to_json(self):

@@ -1,0 +1,101 @@
+{
+  "version": "0.7.0",
+  "id": "csvtoboxplot",
+  "order": 400,
+  "label": "箱ひげ図",
+  "classification": "visualize",
+  "description": "csvファイルから箱ひげ図を作成する",
+  "ports": [
+    [
+      {
+        "name": "i",
+        "type": "frame"
+      }
+    ],
+    [
+      {
+        "name": "o",
+        "type": "frame"
+      }
+    ]
+  ],
+  "params": [
+    {
+      "name": "y_axis",
+      "type": "list",
+      "elements": [
+        {
+          "name"  :"column",
+          "type"  :"column",
+          "label" :"縦軸列：観測値"
+        },
+        {
+          "name"  :"label",
+          "type"  :"string",
+          "label" :"縦軸名"
+        }
+      ],
+      "default":[{"column": null, "label":""}],
+      "options":{
+        "visiable_button_add"  : false,
+        "visiable_button_delete": false,
+        "draggable" : false
+      }
+    },
+    {
+      "name": "data_column",
+      "type": "column",
+      "options":{
+        "multiple": true
+      },
+      "label": "データ系列",
+      "description": "データ系列を表す項目名（復数可、順序は指定不可）を指定します\n指定した項目の値（復数項目時はそれぞれの値の組合せ）を系列として設定します"
+    },
+    {
+      "name": "offset",
+      "type": "number",
+      "label": "表示の開始（１始まりの行番号）"
+    },
+    {
+      "name": "limit",
+      "type": "number",
+      "label": "表示の件数",
+      "default": 100
+    },
+    {
+      "name": "width",
+      "type": "number",
+      "label": "横幅（ドット）",
+      "default": 1000
+    },
+    {
+      "name": "height",
+      "type": "number",
+      "label": "縦幅（ドット）",
+      "default": 600
+    }
+  ],
+  "groups": [
+    {
+      "name": "axis_group",
+      "label": "軸の設定",
+      "params": ["y_axis"]
+    },
+    {
+      "name": "data_group",
+      "label": "データ系列の設定",
+      "params": ["data_column"]
+    },
+    {
+      "name": "offset_group",
+      "label": "データ表示範囲の設定",
+      "params": ["offset","limit"]
+    },
+    {
+      "name": "graph_size",
+      "label": "グラフサイズの設定",
+      "params": ["width","height"]
+    }
+  ],
+  "url": ""
+}

@@ -208,6 +208,7 @@ class Folder(Store):
         try:
             # 同じ名称のファイルが既に存在する場合、末尾に数字を付加したディレクトリ名で作成する
             path = Folder.get_another_file_path(self._path)
+
             # フォルダに紐付くディレクトリ(path列で指定されるディレクトリ)がなければ作成する
             if not os.path.isdir(Datum._to_abs_path(path)):
                 os.makedirs(Datum._to_abs_path(path), exist_ok=True)
@@ -276,30 +277,32 @@ class Folder(Store):
                 'creator'   : Datum.get_user_name_by_user_id(self.creator),
                 'createdAt' : self.created_at_str}
 
-    def save_frame(self, command, args, datum, file_name):
-        """
-        engine用
-        保存するframeへのパスを作成する
-        """
-        # args['frame_path'] = (Path(Datum._to_abs_path(self.path)) / (str(uuid.uuid4()) + '.csv'))
-        args['frame_path'] = Path(Datum._to_abs_path(self.path.as_posix())) / file_name
-        return command.module(args, datum)
+    # def save_frame(self, command, args, datum, file_name):
+    #     """
+    #     engine用
+    #     保存するframeへのパスを作成する
+    #     """
+    #     # args['frame_path'] = (Path(Datum._to_abs_path(self.path)) / (str(uuid.uuid4()) + '.csv'))
+    #     args['frame_path'] = Path(Datum._to_abs_path(self.path.as_posix())) / file_name
+    #     return command.module(args, datum)
 
-    @staticmethod
-    def load_frame(uuid):
-        """
-        指定したuuidのframeを取得する
-        """
-        import nysol.mcmd as nm
-        from kskp.store import Library
+    # @staticmethod
+    # def load_frame(uuid):
+    #     """
+    #     指定したuuidのframeを取得する
+    #     """
+    #     import nysol.mcmd as nm
+    #     from kskp.store import Library
 
-        frame = Library.load_frame(uuid)
-        if frame is None:
-            raise Exception('No frame(%s) is found !' % uuid)
-        path = Datum._to_abs_path(frame.path.as_posix())
+    #     frame = Library.load_frame(uuid)
+    #     if frame is None:
+    #         raise Exception('No frame(%s) is found !' % uuid)
+    #     path = Datum._to_abs_path(frame.path.as_posix())
 
-        return nm.m2tee({'i':path})
+    #     return nm.m2tee({'i':path})
+    #     # mreadで存在しないファイルパスを指定するとDockerごと落ちる
+    #     # return nm.mread({'i':path})
 
-    @property
-    def content(self):
-        return self
+    # @property
+    # def content(self):
+    #     return self

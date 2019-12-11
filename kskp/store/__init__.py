@@ -9,11 +9,10 @@ CACHE_FOLDER_UUID   = 'cc9f050d-b007-414e-a6e0-6d31a9c13395'
 CACHE_FOLDER_LABEL  = 'キャッシュ'
 
 # フローがDBに保存されるようになるまでは下記のパスをstoreが持っておく
-# STORE_DIR = Path(__file__).parent.parent / 'store'
-STORE_DIR = Path(__file__).parent.parent.parent / 'store'
-FLOW_PATH = (STORE_DIR / 'flows/json').as_posix()
-if not os.path.exists(FLOW_PATH):
-    os.makedirs(FLOW_PATH)
+STORE_DIR = Path(__file__).parent.parent / 'depo/files'
+# FLOW_PATH = (STORE_DIR / 'flows/json').as_posix()
+# if not os.path.exists(FLOW_PATH):
+#     os.makedirs(FLOW_PATH)
 
 def _is_unittest():
     # python3 -m unittestで実行した場合は、is_unittest=Trueとなる
@@ -58,7 +57,7 @@ else:
 # echo=TrueでSQLログがコンソールに出力される
 from sqlalchemy import create_engine
 # SQLite用
-os.environ['SQLITE_PATH'] = os.getenv('SQLITE_PATH', (STORE_DIR.parent / 'kskp.db').as_posix())
+os.environ['SQLITE_PATH'] = os.getenv('SQLITE_PATH', (Path(__file__).parent.parent.parent / 'kskp.db').as_posix())
 # os.environ['DATABASE_URI'] = "sqlite:///" + os.environ['SQLITE_PATH']
 # check_same_threadをFalseにすることで、sessionをスレッドをまたいで使うことができるようになる（デフォルトはTrue）
 # -> PostgreSQLにはこのオプションはない
@@ -80,33 +79,38 @@ if _is_unittest():
 from sqlalchemy.ext.declarative import declarative_base
 BaseModel = declarative_base()
 # セッションをつくる
-from sqlalchemy.orm import sessionmaker
-Session = sessionmaker(bind=engine)
+# scoped_sessionでラップすることで、Session()を何回実行しても同一のSessionが返される
+from sqlalchemy.orm import sessionmaker, scoped_session
+Session = scoped_session(sessionmaker(bind=engine))
 # 変数名がsessionだとwebでimportした時にflaskのsessionと被るので、一応ssにしている
 ss = Session()
 
 from kskp.core import Datum, Port, Command
 
-from .store import Store, FrameStore, NysolModule, ModuleStore
+from .store import Store, NysolModule, ModuleStore, List
 from .database_conn import DatabaseConn
 from .remote_folder_conn import RemoteFolderConn
 from .mountable import Mountable
 from .lock_manager import LockManager, LockedDatumException
-from .frame import Frame, Cache
+from .frame import Frame
 from .flow import Flow
 from .folder import Folder
 from .awss3 import AwsS3
 from .remote_folder import RemoteFolder
+from .vis import Vis, BokehPlotVis
+from .datasource import DataSource
+from .activity import Activity
 from .database import Database
 from .children_getter import ChildrenGetter
 from .flow_dumper import FlowDumper
 
+# from .commands import CommandLink, CommandsPathLink, CommandsPathFileSource, RunfuncCommand
 from .library import Library
 from .store_model import Store as StoreModel
 from .flows import FlowLink
-from .commands import CommandLink, CommandsPathLink, CommandsPathFileSource, RunfuncCommand
-from .model import *
 
+from ..depo.std.commands import CommandLink, CommandsPathLink, CommandsPathFileSource, RunfuncCommand
+from .model import *
 
 # テーブルを作成する
 BaseModel.metadata.create_all(bind=engine, checkfirst=True)
@@ -116,10 +120,10 @@ sql1 = """
 ALTER TABLE data 
 ADD COLUMN label VARCHAR;
 """
-#try:
-#    engine.execute(sql)
-#except Exception as e:
-#    pass
+# try:
+#     engine.execute(sql1)
+# except Exception as e:
+#     pass
 
 from sqlalchemy import event, DDL
 
@@ -130,7 +134,7 @@ def receive_after_create(target, connection, tables, **kw):
     if tables:
         # tables were created.
         create_d_view()
-        
+
 def create_d_view():
     """
     データの一覧を表示するVIEWを作成する
