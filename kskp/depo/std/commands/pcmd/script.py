@@ -1,5 +1,6 @@
 # 独自コマンド
 import sys
+import copy
 import nysol.mcmd as nm
 import numpy as np
 import nysol.util.mtemp as mtemp
@@ -231,7 +232,7 @@ class WinCp932ReadCommand(PCommand):
 
     def run(self, args, inputs):
         f = None
-        f <<= inputs['i']
+        f <<= inputs['i'].content
 
         args_string = (PCMD_DIR / 'src/windows_cp932_csv_read.sh').as_posix()
         args_string += self.replace_args(args)
@@ -3098,19 +3099,20 @@ class MultiMcalCommand(Command):
         #           ...
         #         ]
         #       }
-
+        _args = copy.deepcopy(args)
         cmd_o = None
         first = True
 
-        aclist = args.pop('arglist')
+        aclist = _args.pop('arglist')
         for acarg in aclist:
             # one mcal will be added to cmd_o for every pair of c and a arguments passed in a list
 
             if first:
-                cmd_o <<= nm.mcal(i=inputs['i'].content, **acarg, **args) # {'i' : input, 'c': 'cal1', 'a' : 'col1'}
+                cmd_o <<= nm.mcal(i=inputs['i'].content, **acarg, **_args) # {'i' : input, 'c': 'cal1', 'a' : 'col1'}
                 first = False
             else:
-                cmd_o <<= nm.mcal({**acarg,**args})
+                cmd_o <<= nm.mcal({**acarg,**_args})
+
 
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
@@ -3142,7 +3144,7 @@ class MultiMcalWCCommand(Command):
         #     a: output column name (string must include &, default is 'new&')
 
         import fnmatch as fn
-
+        _args = copy.deepcopy(args)
         cmd_o = None
         first = True
 
@@ -3151,9 +3153,9 @@ class MultiMcalWCCommand(Command):
         self.header = inputs['i'].content.getline(header=True)
         self.header = next(self.header)
 
-        xoption = args.pop('x') if 'x' in args else False
+        xoption = _args.pop('x') if 'x' in _args else False
         
-        targs = args.pop('targets').split(',')
+        targs = _args.pop('targets').split(',')
         if xoption:
             # parse number expression
 
@@ -3171,12 +3173,12 @@ class MultiMcalWCCommand(Command):
 
         # redundancy check
         targets_final = [a for a in colnames 
-            if args['a'].replace('&',a) not in self.header]
+            if _args['a'].replace('&',a) not in self.header]
         #targets is now a list of column names to hit with calculation
 
         #iterate over entire list and replace the '&' in c and a inputs with column number/name
         for target in targets_final:
-            arg = args.copy()
+            arg = _args.copy()
             # sys.__stderr__.write(repr(arg)+'\n')
 
             arg['a'] = arg['a'].replace('&', target)
@@ -3212,24 +3214,25 @@ class MvAvgCommand(Command):
             return int(exp)
 
     def run(self, args, inputs):
-
         import fnmatch as fn
 
+        _args = copy.deepcopy(args)
+        
         cmd_o = None
-        cmd_o <<= nm.mread(inputs['i'].content)
+        cmd_o <<= inputs['i'].content
 
-        if ('s' not in args) or (args['s'] == ''):
-            args['q'] = True
+        if (not _args.get('s')) or (_args['s'] == ''):
+            _args['q'] = True
 
-        xoption = args.pop('x') if 'x' in args else False
+        xoption = _args.get('x')
 
         # get index of columns
-        self.header = nm.mread(inputs['i'].content).getline(header=True)
+        self.header = inputs['i'].content.getline(header=True)
         self.header = next(self.header)
 
         fatlist = []
 
-        for fatargs in args.pop('fatlist'):
+        for fatargs in _args.pop('fatlist'):
             fs = fatargs.pop('f').split(',')
             aexp = fatargs.pop('a')
             ts = fatargs.pop('t').split(',')
@@ -3254,16 +3257,14 @@ class MvAvgCommand(Command):
                         'a': aexp.replace('&', colname).replace('#', interval), 
                         't': interval})
 
-        mvavgtype = args.pop('type')
+        mvavgtype = _args.pop('type')
         if mvavgtype != 'simple':
-            args[mvavgtype] = True
-        if mvavgtype != 'exp' and 'alpha' in args:
-            del args['alpha']
+            _args[mvavgtype] = True
+        if mvavgtype != 'exp' and 'alpha' in _args:
+            del _args['alpha']
 
         # copy target  column into 'a' field
         for fatdict in fatlist:
-            # arg = args.copy()
-
             cmd_o <<= nm.mcal(a = fatdict['a'], c = f'${{{fatdict["f"]}}}') 
             
             fatdict['f'] = fatdict.pop('a')
@@ -3271,7 +3272,7 @@ class MvAvgCommand(Command):
             # arg['t'] = fatdict['t']
 
             # perform mmvavg on field specified by 'a' field, with skip = 0
-            cmd_o <<= nm.mmvavg({'skip': 0, **args, **fatdict})
+            cmd_o <<= nm.mmvavg({'skip': 0, **_args, **fatdict})
 
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
@@ -3300,25 +3301,26 @@ class MvStatsCommand(Command):
     def run(self, args, inputs):
         import fnmatch as fn
 
+        _args = copy.deepcopy(args)
         cmd_o = None
 
-        cmd_o <<= nm.mread(inputs['i'].content)
+        cmd_o <<= inputs['i'].content
             
         # sorting parameters
-        if 's' not in args or (args['s'] == ''):
-            args['q'] = True
+        if 's' not in _args or (_args['s'] == ''):
+            _args['q'] = True
 
         # get index of columns
         self.header = inputs['i'].content.getline(header=True)
         self.header = next(self.header)
 
-        xoption = args.pop('x') if 'x' in args else False
+        xoption = _args.pop('x') if 'x' in _args else False
 
         # f is a wildcard/number expression
         # a is a colname that may have & in it
         # c specifies the statistic to be taken (list not allowed)
         factlist = []
-        for arglist in args.pop('factlist'):
+        for arglist in _args.pop('factlist'):
             fs = arglist.pop('f').split(',')
             aexp = arglist.pop('a')
             ops = arglist.pop('c').split(',')
@@ -3359,7 +3361,7 @@ class MvStatsCommand(Command):
             factdict['f'] = factdict.pop('a')
 
             # perform mmvstats on field specified by 'a' field, with skip = 0
-            cmd_o <<= nm.mmvstats({'skip': 0, **args, **factdict})
+            cmd_o <<= nm.mmvstats({'skip': 0, **_args, **factdict})
 
         # pass output
         nysol_module_o= NysolModule()
@@ -3388,25 +3390,26 @@ class MvSimCommand(Command):
 
     def run(self, args, inputs):
         import fnmatch as fn
-
+        _args = copy.deepcopy(args)
+        
         cmd_o = None
-        cmd_o <<= nm.mread(inputs['i'].content)
+        cmd_o <<= inputs['i'].content
             
         # sorting parameters
-        if 's' not in args or (args['s'] == ''):
-            args['q'] = True
+        if 's' not in _args or (_args['s'] == ''):
+            _args['q'] = True
 
         # get index of columns
         self.header = inputs['i'].content.getline(header=True)
         self.header = next(self.header)
 
-        xoption = args.pop('x') if 'x' in args else False
+        xoption = _args.pop('x') if 'x' in _args else False
 
         # f is a wildcard/number expression
         # a is a colname that may have & in it
         # c specifies the statistic to be taken 
         factlist = []
-        for arglist in args.pop('factlist'):
+        for arglist in _args.pop('factlist'):
             fs = arglist.pop('f').split(',')
             aexp = arglist.pop('a')
             ops = arglist.pop('c').split(',')
@@ -3442,7 +3445,7 @@ class MvSimCommand(Command):
             # arg = args.copy()
 
             # perform mmvsim on field specified by 'a' field, with skip = 0
-            cmd_o <<= nm.mmvsim({'skip': 0, **args, **factdict})
+            cmd_o <<= nm.mmvsim({'skip': 0, **_args, **factdict})
 
         # pass output
         nysol_module_o= NysolModule()
