@@ -475,7 +475,7 @@ class CsvToRepetitivieWaveCommand(VisualizersBokehPlot):
             data = dict(
                 x = n_df[self.column_name_x_axis].tolist(),
                 y = n_df[self.column_name_values].tolist(),
-                #group = n_df[self.group].tolist(),
+                group = n_df[self.group].tolist(),
                 label = [label] * (len(n_df.index))
             )
             source[label] = data
@@ -562,6 +562,7 @@ class CsvToRepetitivieWaveCommand(VisualizersBokehPlot):
                     ("凡例", "@label"),
                     (self.column_name_x_axis, "@x"),
                     (self.column_name_values, "@y"),
+                    (self.group, "@group")
                 ]
 
         plot = figure(
