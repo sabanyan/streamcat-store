@@ -695,8 +695,15 @@ class RunsCommand(SCommand):
         import nysol.mcmd as nm
         # nm.drawModelsD3(fname='aaabbbccc.html', val=nm_list)
 
-        # NYSOL Pythonを実行する
-        results = nm.runs(nm_list, msg='on')
+        try:
+            # NYSOL Pythonを実行する
+            results = nm.runs(nm_list, msg='on', throwexc=True)
+        except Exception as e:
+            raise Exception('データを表示できませんでした。以下の原因が考えられます\n' + \
+                            '・データが空です\n' + \
+                            '・データがCSV形式ではありません\n' + \
+                            '・最終行が改行コードのみ')
+            # raise e
 
         if len(results) != len(inputs):
             raise Exception('RunsCommandの入力ポートと出力ポートの数が異なります')
