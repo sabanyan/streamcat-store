@@ -1,0 +1,33 @@
+{
+  "version": "0.7.0",
+  "id": "merge_ibutsu",
+  "label": "CSVファイルの集約",
+  "classification": "import",
+  "description": "リストとして与えられたCSVファイル中のレコードの行末に元ファイル名を追加し、1つのファイルに集約して出力する。",
+  "ports": [[
+      {
+        "name": "i",
+        "type": "frame"
+      }
+    ],
+    [
+      {
+        "name": "o",
+        "type": "frame"
+      }
+    ]
+  ],
+  "params": [
+    {
+      "name": "f",
+      "type": "string",
+      "label": "対象となるファイルのパスが、改行区切りで書かれたテキストファイル"
+    },
+    {
+      "name": "p",
+      "type": "string",
+      "label": "作業ファイル格納パス名"
+    }
+  ],
+  "url": ""
+}
