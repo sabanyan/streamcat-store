@@ -276,7 +276,7 @@ class MchkcsvCommand(Command):
         if is_diag:
             # Visで2回実行、かつrunfuncすると?しばしば固まる
             # cmd <<= nm.runfunc(filter)
-            cmd <<= nm.cmd('mchkcsv a=1,2,3,4,5')
+            cmd <<= nm.cmd('mchkcsv a=#,##,###,####,#####')
 
         # output
         return {'o': NysolModule(cmd)}
