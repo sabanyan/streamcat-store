@@ -2609,15 +2609,17 @@ class GroupBy2Command(Command):
             flags = kwargs.get('flags')
             finalcols = [a[flag] for flag in flags]
 
-            precision = kwargs.get('precision')
+            prec = kwargs.get('precision')
             
             dateformat = kwargs.pop('dateformat')
 
             fs = f.split(',')
+            selected = [None] * len(fs)
             targets = [None] * len(fs)
-            covars = [None] * len(fs)
             counts = [None] * len(fs)
-            subcmd_mid = None
+            msum = [None] * len(fs)
+            x_axis = [None] * len(fs)
+            
             subcmd_o = None
 
             # create sequence column mnumber
@@ -2631,69 +2633,47 @@ class GroupBy2Command(Command):
             subcmd <<= nm.msummary(k = f'{k},__seq{n}', f = f, 
                                    c = 'max:__max,min:__min,mean:__mean,median:__median')
 
-            meanval = nm.mstats(k = k, i = subcmd, f = f'uxt,{f}', c = 'mean')
+
+            # meanval = nm.mstats(k = k, i = subcmd, f = f'uxt,{f}', c = 'mean')
 
             for i, fld in enumerate(fs):
-                counts[i] <<= nm.msel(i = self.all_msums, 
-                                      c = f'$s{{fld}}=="{fld}"')
 
-                covars[i] <<= nm.msim(k = k, i = subcmd, f = f'uxt,{fld}', 
-                                   c = 'covar:__covar')
-
-                targets[i] <<= nm.mstats(k = k, i = subcmd, c = 'var',
-                                         f = f'uxt:__Sxx,{fld}:__Syy')
-                targets[i] <<= nm.mcal(c = 'sqrt(${__Sxx}*${__Syy})', a = '__rden')
-                targets[i] <<= nm.mjoin(k = k, m = covars[i], f = '__covar')
-                targets[i] <<= nm.mnjoin(k = k, m = counts[i], f = 'fld,__count')
-                targets[i] <<= nm.mjoin(k = k, m = meanval, f = f'uxt:__xmean,{fld}:__ymean')
-                targets[i] <<= nm.mcal(c = '${__count}-2', a = '__df')
-
-                targets[i] <<= nm.mcal(c = 'if(${__rden}==0,0,${__covar}/${__rden})',
-                                       a = f'{a["linregress_rvalue"]}',
-                                       precision = precision)
-                targets[i] <<= nm.mcal(c = '${__covar}/${__Sxx}', 
-                                       a = f'{a["slope"]}',
-                                       precision = precision)
-                targets[i] <<= nm.mcal(c = f'${{__ymean}}-(${{{a["slope"]}}}*${{__xmean}})',
-                                       a = f'{a["y_int"]}',
-                                       precision = precision)
-                targets[i] <<= nm.mcal(c = f'${{{a["linregress_rvalue"]}}}*sqrt(${{__df}}/((1-${{{a["linregress_rvalue"]}}})*(1+${{{a["linregress_rvalue"]}}})))',
-                                       a = '__t',
-                                       precision = precision)
-                targets[i] <<= nm.mcal(c = f'sqrt((1-${{{a["linregress_rvalue"]}}}^2)*${{__Syy}}/${{__Sxx}}/${{__df}})',
-                                       a = f'{a["linregress_stderr"]}',
-                                       precision = precision)
-
-                _cval = ['fld', '__Syy', '__Sxx', '__rden', '__covar', 
-                         '__count', '__xmean', '__ymean', '__df', f'{a["linregress_rvalue"]}', 
-                         f'{a["slope"]}', f'{a["y_int"]}', '__t', f'{a["linregress_stderr"]}']
-                targets[i] <<= nm.mcut(f= k.split(',') + _cval)
-
-            if 'linregress_pvalue' in flags:
-                subcmd_mid <<= nm.mread(i = targets)
-
-                # with nm.mstdout() as tmpfile:
-                with mcsvout(_temp, f = k.split(',') + _cval + [f'{a}_pvalue']) as tmpfile:
-                    from scipy.stats import distributions
-                    headerline = True
-                    for line in subcmd_mid.getline(header = True):
-                        if headerline:
-                            header = line
-                            headerline = False
-                        else:
-                            t = float(line[header.index('__t')])
-                            df = float(line[header.index('__df')])
-                            
-                            line.append(2 * distributions.t.sf(np.abs(t),df))
-                            
-                            tmpfile.write(line)
+                selected[i] <<= nm.msel(i = subcmd, c = f'$s{{fld}}=="{fld}"')
                 
-                subcmd_o <<= nm.mcut(i = _temp, f = [k, 'fld'] + finalcols)
+                counts[i] <<= nm.mcount(k = k, i = selected[i], a = '__cnt')
+                counts[i] <<= nm.mcal(c = '${__cnt}-2', a = '__df')
 
-                return subcmd_o
-            else:
-                subcmd_o <<= nm.mcut(i = targets, f = [k, 'fld'] + finalcols)
-                return subcmd_o
+                x_axis[i] <<= nm.mnumber(k = k, i = selected[i], q = True, a = '__x')
+                
+                msum[i] <<= nm.msummary(i = x_axis[i], k = k, c = 'var:__var,mean:__mean',
+                                        f = '__x,__max,__min,__mean,__median')
+                msum[i] <<= nm.msortf(f = f'{k},fld')
+
+                targets[i] <<= nm.msim(k = k, i = x_axis[i], c = 'covar:__covar', 
+                                        f = '__x,__max,__min,__mean,__median')
+                targets[i] <<= nm.mselstr(f = 'fld1,fld2', v = '__x')
+                targets[i] <<= nm.mjoin(k = f'{k},fld1', K = f'{k},fld', m = msum[i],
+                                         f = '__var:__var1,__mean:__mean1')
+                targets[i] <<= nm.mjoin(k = f'{k},fld2', K = f'{k},fld', m = msum[i],
+                                         f = '__var:__var2,__mean:__mean2')
+                targets[i] <<= nm.mjoin(k = k, f = 'fld,__df', m = counts[i])
+
+                targets[i] <<= nm.mcal(c = 'sqrt(${__var1}*${__var2})', a = '__mm')
+                targets[i] <<= nm.mcal(c = 'if(${__mm}==0,0,${__covar}/${__mm})',
+                                       a = a["lrchunk_rvalue"], precision = prec)
+                targets[i] <<= nm.mcal(c = f'${{{a["lrchunk_rvalue"]}}}*sqrt(${{__df}}/((1-${{{a["lrchunk_rvalue"]}}})*(1+${{{a["lrchunk_rvalue"]}}})))',
+                                       a = '__t')
+                targets[i] <<= nm.mcal(c = '${__covar}/${__var1}', a = a['lrchunk_slope'],
+                                       precision = prec)
+                targets[i] <<= nm.mcal(c = f'${{__mean2}}-${{{a["lrchunk_slope"]}}}/${{__mean1}}',
+                                       a = a['lrchunk_int'], precision = prec)
+                targets[i] <<= nm.mcal(c = f'sqrt((1-${{{a["lrchunk_rvalue"]}}}^2)*${{__var2}}/${{__var1}}/${{__df}})',
+                                       a = a['lrchunk_stderr'], precision = prec)
+
+                targets[i] <<= nm.mcut(f= [k, 'fld'] + finalcols)
+
+            subcmd_o <<= nm.m2cat(i = targets)
+            return subcmd_o
             
         except Exception as e:
             import traceback
@@ -2797,6 +2777,7 @@ class GroupBy2Command(Command):
             'time_reversal_asymmetry' : self.time_reversal_asymmetry,
             # aggregate functions
             'linregress' : self.linear_trend,
+            'lrchunk' : self.linear_trend_chunk,
             'change_quantiles' : self.change_quantiles,
             'abs_change_quantiles' : self.abs_change_quantiles
         }
@@ -2815,6 +2796,12 @@ class GroupBy2Command(Command):
                 'linregress_pvalue',
                 'linregress_rvalue',
                 'linregress_stderr'
+            ],
+            'lrchunk': [
+                'lrchunk_slope',
+                'lrchunk_int',
+                'lrchunk_rvalue',
+                'lrchunk_stderr'
             ],
             'change_quantiles': 
                 [f'{op}_change_quantiles' for op in msummaryoptions],
@@ -2943,7 +2930,7 @@ class GroupBy2Command(Command):
                             _thisgroup.append(calc)
 
                     if _thisgroup:
-                        if group in grouped_calcs:
+                        if group in msum_dependencies:
                             msum_prereqs.update(msum_dependencies[group])
 
                         if ns:
@@ -3027,16 +3014,22 @@ class GroupBy2Command(Command):
             
             elif optype == 'aggregate':
                 _grp = calcdict.pop('group')
+                
                 calcdict['a'] = {out : out for out in grouped_calcs[_grp]}
+
                 calcdict['flags'] = []
                 
                 for c in cs:
                     if ':' in c:
                         cleft, cright = c.split(':')
-                        calcdict['a'][cleft] = cright
                     else:
                         cleft = c
-                        calcdict['a'][cleft] = cleft
+                        cright = cleft
+
+                    if n:
+                        cright += f'_{calcdict["n"]}'
+
+                    calcdict['a'][cleft] = cright
                     calcdict['flags'].append(cleft)
                 # sys.__stderr__.write(repr(calcdict))
 

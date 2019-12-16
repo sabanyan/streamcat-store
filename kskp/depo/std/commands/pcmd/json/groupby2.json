@@ -139,7 +139,7 @@
       "name": "xfcnlist",
       "type": "list",
       "label": "時系列の特徴量（パラメーター有り）",
-      "description": "指定可能統計量:\nautocorr　・・・　周期｜自己相関\ncrossing_m　・・・　波形形状｜指定した値に対するクロス回数\npeaks　・・・　波形形状｜指定窓幅によるピーク数\nimq　・・・　位置｜指定した分位点の出現位置（正規化）\n---------\n[msummary]_change_quantiles\n[msummary]_abs_change_quantiles\n\n【対象項目】項目名時:*,？,[...]のワイルドカードを使用可\n【統計量】「統計量：別名」の表記\n\t「：別名」は省略可、統計量 or 別名を項目名に付加\n\tカンマ区切りで複数指定可。",
+      "description": "指定可能統計量:\nautocorr　・・・　周期｜自己相関\ncrossing_m　・・・　波形形状｜指定した値に対するクロス回数\npeaks　・・・　波形形状｜指定窓幅によるピーク数\nimq　・・・　位置｜指定した分位点の出現位置（正規化）\n---------\n[msummary]_change_quantiles\n[msummary]_abs_change_quantiles\n\n--Linear Regression by Chunk-----\n| lrchunk_slope\n| lrchunk_int\n| lrchunk_rvalue\n| lrchunk_stderr\n\n【対象項目】項目名時:*,？,[...]のワイルドカードを使用可\n【統計量】「統計量：別名」の表記\n\t「：別名」は省略可、統計量 or 別名を項目名に付加\n\tカンマ区切りで複数指定可。",
       "elements": [
         {
           "name": "x",
