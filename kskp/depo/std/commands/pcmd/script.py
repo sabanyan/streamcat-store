@@ -2363,6 +2363,8 @@ class GroupBy2Command(Command):
     def run(self, args, inputs):
         import fnmatch as fn
 
+        _args = copy.deepcopy(args)
+
         msummaryoptions = [
             'sum',
             'mean',
@@ -2494,19 +2496,19 @@ class GroupBy2Command(Command):
         self.header = inputs['i'].content.getline(header=True)
         self.header = next(self.header)
 
-        k = args.get('k')
-        prec = args.get('precision')
+        k = _args.get('k')
+        prec = _args.get('precision')
         xs = []
 
         calclist = []
         all_fs = []
         final_fs = []
         
-        allargs = (args.get('clist') + 
-                   args.get('fclist') +
-                   args.get('nfclist') +
-                   args.get('xfclist') + 
-                   args.get('xfcnlist'))
+        allargs = (_args.get('clist') + 
+                   _args.get('fclist') +
+                   _args.get('nfclist') +
+                   _args.get('xfclist') + 
+                   _args.get('xfcnlist'))
 
         # parse inputs into list-of-dictionaries form
         for arglist in allargs:
@@ -2516,7 +2518,7 @@ class GroupBy2Command(Command):
                 x = arglist.get('x')
                 s = arglist.get('s')
                 if x or s: 
-                    arglist['dateformat'] = args['dateformat']
+                    arglist['dateformat'] = _args['dateformat']
                     if x and x not in xs:
                         xs.append(x)
                     if s: 
@@ -2699,7 +2701,7 @@ class GroupBy2Command(Command):
         # sys.__stderr__.write(repr(cmd)+'\n\n')
         cmd_o <<= nm.mdelnull(i = cmd, f = '__val__')
 
-        formatstring = args.pop('format')
+        formatstring = _args.pop('format')
         colformat = ['']
 
         for char in formatstring:
@@ -2718,7 +2720,7 @@ class GroupBy2Command(Command):
 
         cmd_o <<= nm.mcal(a = 'unique_cols', c = '+'.join(colformat))
         cmd_o <<= nm.mcross(f = '__val__', s = 'unique_cols', k = k)
-        cmd_o <<= nm.mcut(r = True, f = 'fld', nfno = args.get('nfno'))
+        cmd_o <<= nm.mcut(r = True, f = 'fld', nfno = _args.get('nfno'))
 
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
