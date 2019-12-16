@@ -2586,7 +2586,7 @@ class GroupBy2Command(Command):
 
                 _temps[i] = _temp
 
-            subcmd_o <<= nm.mread(i = _temps, o = 'aftermread.csv')
+            subcmd_o <<= nm.mread(i = _temps)
 
             return subcmd_o
 
@@ -2854,6 +2854,7 @@ class GroupBy2Command(Command):
                    args.get('xfcnlist'))
 
         # parse inputs into list-of-dictionaries form
+        _groupedcalcs = []
         for arglist in allargs:
             if arglist.get('c'):
                 # sys.__stderr__.write(repr(arglist))
@@ -2883,6 +2884,7 @@ class GroupBy2Command(Command):
                 cs_custom_nysol = []
                 cs_grouped = []
 
+                # classify each c in this line to the correct 
                 for i,c in enumerate(cs):
                     if ':' in c:
                         cleft, cright = c.split(':')
@@ -2932,19 +2934,43 @@ class GroupBy2Command(Command):
                     if _thisgroup:
                         if group in msum_dependencies:
                             msum_prereqs.update(msum_dependencies[group])
-
+                        
+                        # check if group with same time axis already exists in
+                        # _groupedcalcs
+                        
+                        _found = False
                         if ns:
                             for n in ns:
-                                arglist['n'] = n
-                                calclist.append({'c': _thisgroup, 
-                                            'optype' : 'aggregate',
-                                            **arglist})
+                                for oldgroup in _groupedcalcs:
+                                    if (oldgroup['group'] == group and 
+                                        oldgroup.get('x') == x and
+                                        oldgroup.get('n') == n):
+
+                                        oldgroup['c'].extend(_thisgroup)  
+                                        _found = True
                         else:
-                            calclist.append({'c': _thisgroup, 
-                                        'optype' : 'aggregate',
-                                        **arglist})
+                            for oldgroup in _groupedcalcs:
+                                if (oldgroup['group'] == group and 
+                                    oldgroup.get('x') == x):
 
+                                    oldgroup['c'].extend(_thisgroup)  
+                                    _found = True
+                                    
+                        if not _found:
+                            if ns:
+                                for n in ns:
+                                    arglist['n'] = n
+                                    _groupedcalcs.append({'c': _thisgroup,
+                                                        'optype' : 'aggregate',
+                                                        **arglist})
+                            else:
+                                _groupedcalcs.append({'c': _thisgroup,
+                                                    'optype' : 'aggregate',
+                                                    **arglist})
 
+        # add grouped dicts to calclist
+        calclist.extend(_groupedcalcs)
+         
         # sys.__stderr__.write(repr(calclist))
 
         cmd = [None] * len(calclist)
@@ -3003,11 +3029,7 @@ class GroupBy2Command(Command):
                 else:
                     cmd[i] = nysol_calcs[cs](cmd[i], **calcdict)
 
-                if cs == 'autocorr_agg':
-                    final_cs = [f'{calcdict["a"]}_{suff}' for suff in ['mean','median','var']]
-                elif cs == 'fft_agg':
-                    final_cs = [f'{calcdict["a"]}_{suff}' for suff in ['centroid','var','skew','kurtosis']]
-                elif n:
+                if n:
                     final_cs = [f'{calcdict["a"]}_{calcdict["n"]}']
                 else:
                     final_cs = [calcdict['a']]
@@ -3031,7 +3053,7 @@ class GroupBy2Command(Command):
 
                     calcdict['a'][cleft] = cright
                     calcdict['flags'].append(cleft)
-                # sys.__stderr__.write(repr(calcdict))
+                # sys.__stderr__.write(repr(calcdict) + '\n')
 
                 cmd[i] <<= nm.mread(i=cmd_i)
 
@@ -3043,7 +3065,7 @@ class GroupBy2Command(Command):
                     
 
             cmd[i] <<= nm.m2cross(k = expanded_k, f= final_cs, 
-                    a = '__type__,__val__')
+                    a = '__type__,__val__')#, o = 'afterm2cross.csv')
 
         
         # cmd_o <<= nm.m2cat(i = cmd)
