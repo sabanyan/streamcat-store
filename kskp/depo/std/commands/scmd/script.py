@@ -700,10 +700,10 @@ class RunsCommand(SCommand):
             results = nm.runs(nm_list, msg='on', throwexc=True)
         except Exception as e:
             # writelistコマンドにCSV形式以外のデータが入力されると例外が送出されるようである
-            raise Exception('データを表示できませんでした。以下の原因が考えられます\n' + \
-                            '・データが空です\n' + \
-                            '・データがCSV形式ではありません\n' + \
-                            '・最終行が改行コードのみ')
+            raise Exception('データを表示できませんでした。次の原因が考えられます ' + \
+                            '(データが空です / ' + \
+                            'データがCSV形式ではありません / ' + \
+                            '最終行が改行コードのみ)')
             # raise e
 
         if len(results) != len(inputs):
