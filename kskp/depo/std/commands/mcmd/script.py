@@ -250,14 +250,13 @@ class MchkcsvCommand(Command):
         def filter():
             import traceback
             try:
+                table = str.maketrans({'"': '""'})
                 for line in sys.stdin:
                     # VisするときにMChkcsvの出力をNYSOL Pythonに渡すので、
                     # CSVデータに変換する
                     line = line.rstrip('\n')
-                    table = str.maketrans({'"': '""'})
                     line = line.translate(table)
-                    print('"' + line + '"', end='')
-                    print('')
+                    print('"' + line + '"')
                 # flushをする
                 sys.stdout.flush()
             except Exception as e:
@@ -275,7 +274,9 @@ class MchkcsvCommand(Command):
         cmd = inputs['i'].content
         cmd <<= nm.cmd(args_str)
         if is_diag:
-            cmd <<= nm.runfunc(filter)
+            # Visで2回実行、かつrunfuncすると?しばしば固まる
+            # cmd <<= nm.runfunc(filter)
+            cmd <<= nm.cmd('mchkcsv a=1,2,3,4,5')
 
         # output
         return {'o': NysolModule(cmd)}
