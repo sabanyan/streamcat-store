@@ -3160,6 +3160,41 @@ class SelRowCommand(RunfuncCommand):
 
         return {'o': nysol_module_o, 'u': nysol_module_u}
 
+class TmcPhase2Loader(Command):
+    """
+    キオクシア様用に急遽作成したローダ
+    """
+    def __init__(self):
+        super().__init__()
+        self.i_ports = []
+        self.o_ports = [Port('o', 'mcmd')]
+        self.name = 'tmc_phase2_loader'
+
+        # ヘッダだけを持つ、1行分のファイル。dtorで消す
+        self.temp_header_file_name = ''
+
+    def run(self, args, inputs):
+        from .src.tmc_phase2_loader import main
+        cmd, head_path = main(args)
+
+        # dtorで使うように
+        self.temp_header_file_name = head_path
+
+        nysol_module_o = NysolModule()
+        nysol_module_o.set_content(cmd)
+        return {'o': nysol_module_o}
+
+    def dtor(self):
+        if self.temp_header_file_name != '':
+            sys.__stderr__.write('TmcPhase2Loader: deleting {}...\n'.format(self.temp_header_file_name))
+            import os
+            if os.path.exists(self.temp_header_file_name):
+                os.remove(self.temp_header_file_name)
+                sys.__stderr__.write('TmcPhase2Loader: HAS DELETED {}! \n'.format(self.temp_header_file_name))
+            else:
+                sys.__stderr__.write('TmcPhase2Loader: NOT EXISTS path:{}!!!! please confirm.\n'.format(self.temp_header_file_name))
+
+
 class RowRangeCommand(Command):
     """
     指定範囲の行を抽出する

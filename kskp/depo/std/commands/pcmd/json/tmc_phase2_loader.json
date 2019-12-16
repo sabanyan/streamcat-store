@@ -1,0 +1,82 @@
+{
+  "id": "tmc_phase2_loader",
+  "rules" : {
+    "target" : {
+      "presence": {"allowEmpty": false}
+    },
+    "tmp_Path" : {
+      "presence": {"allowEmpty": false}
+    }
+  },
+  "groups": [
+    {
+      "name": "group1",
+      "label": "CSV格納場所の指定",
+      "params": ["tmp_Path","target"]
+    },
+    {
+      "name": "group2",
+      "label": "異なる列のマージ指定",
+      "params": ["hasHeaderDiff"]
+    },
+    {
+      "name": "group3",
+      "label": "ファイルの読込順の指定",
+      "params": ["isSort"]
+    },
+    {
+      "name": "group4",
+      "label": "読込結果への列追加の指定",
+      "params": ["needFilenames"]
+    }
+  ],
+  "params": [
+    {
+      "name": "tmp_Path",
+      "type": "string",
+      "label": "フォルダのパス（システム既定）",
+      "optional": true,
+      "default": "/home/kskp"
+    },
+    {
+      "name": "target",
+      "type": "string",
+      "label": "ファイルのパス（パスとファイル名に *,? 指定可)"
+    },
+    {
+      "name": "isSort",
+      "type": "boolean",
+      "label": "ファイル作成日時の昇順",
+      "optional": true,
+      "default": false
+    },
+    {
+      "name": "hasHeaderDiff",
+      "type": "boolean",
+      "label": "異なる列数を列名をキーにマージする",
+      "optional": true,
+      "default": false
+    },
+    {
+      "name": "needFilenames",
+      "type": "boolean",
+      "label": "ファイル名の列を追加",
+      "optional": true,
+      "default": false
+    }
+  ],
+  "ports": [
+    [],
+    [
+      {
+        "name": "o",
+        "type": "frame"
+      }
+    ]
+  ],
+  "version": "0.1.0",
+  "label": "Linux形式CSV  列マージ読込",
+  "classification": "data_source",
+  "description": "",
+  "url": ""
+}

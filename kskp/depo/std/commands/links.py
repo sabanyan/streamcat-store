@@ -121,6 +121,7 @@ class CommandLink:
         'multi_mvstats': MvStatsCommand(),
         'multi_mvsim': MvSimCommand(),
         'plaintext2csv': PlainText2Csv(),
+        'tmc_phase2_loader': TmcPhase2Loader(),
         'rowrange': RowRangeCommand(),
         'to_list' : ToListCommand(),
         # ビジュアライズ
