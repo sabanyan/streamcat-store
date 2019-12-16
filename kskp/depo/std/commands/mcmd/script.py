@@ -206,6 +206,34 @@ class MjoinCommand(Command):
         nysol_module.set_content(nm.mjoin(args))
         return {'o': nysol_module}
 
+# class MchkcsvCommand(Command):
+#     """
+#     Mchkcsvコマンド
+#     nysol_pythonにはないので、nm.cmdでNYSOLのmchkcsvを動かしている
+#     """
+#     def __init__(self):
+#         super().__init__()
+#         self.i_ports = [Port('i', 'frame')]
+#         self.o_ports = [Port('o', 'mcmd')]
+
+#     def run(self, args, inputs):
+#         import nysol.mcmd as nm
+#         f = None
+#         f <<= inputs['i'].content
+
+#         args_string = 'mchkcsv'
+#         for key,value in args.items():
+#             if isinstance(value, bool):
+#                 if value == True:
+#                     args_string +=  ' -' + key
+#             else:
+#                 args_string += ' %s=%s' % (key, value)
+
+#         f <<= nm.cmd(args_string)
+#         nysol_module = NysolModule()
+#         nysol_module.set_content(f)
+#         return {'o': nysol_module}
+
 class MchkcsvCommand(Command):
     """
     Mchkcsvコマンド
@@ -214,13 +242,46 @@ class MchkcsvCommand(Command):
     def __init__(self):
         super().__init__()
         self.i_ports = [Port('i', 'frame')]
-        self.o_ports = [Port('o', 'mcmd')]
-
+        self.o_ports = [Port('o', 'text')]
+    
     def run(self, args, inputs):
-        import nysol.mcmd as nm
-        f = None
-        f <<= inputs['i'].content
+        import sys
 
+        def filter():
+            import traceback
+            try:
+                table = str.maketrans({'"': '""'})
+                for line in sys.stdin:
+                    # VisするときにMChkcsvの出力をNYSOL Pythonに渡すので、
+                    # CSVデータに変換する
+                    line = line.rstrip('\n')
+                    line = line.translate(table)
+                    print('"' + line + '"')
+                # flushをする
+                sys.stdout.flush()
+            except Exception as e:
+                with open('/dev/stderr', 'w') as fpe:
+                    traceback.print_exc(file=fpe)
+
+        # flushをしないと、デバッグ用のprintなども入ってしまう
+        sys.stdout.flush()
+
+        # チェックのみ実行するオプション
+        is_diag = 'diag' in args and args['diag']
+
+        args_str = self.make_args(args)
+
+        cmd = inputs['i'].content
+        cmd <<= nm.cmd(args_str)
+        if is_diag:
+            # Visで2回実行、かつrunfuncすると?しばしば固まる
+            # cmd <<= nm.runfunc(filter)
+            cmd <<= nm.cmd('mchkcsv a=#,##,###,####,#####')
+
+        # output
+        return {'o': NysolModule(cmd)}
+
+    def make_args(self, args):
         args_string = 'mchkcsv'
         for key,value in args.items():
             if isinstance(value, bool):
@@ -228,11 +289,8 @@ class MchkcsvCommand(Command):
                     args_string +=  ' -' + key
             else:
                 args_string += ' %s=%s' % (key, value)
+        return args_string
 
-        f <<= nm.cmd(args_string)
-        nysol_module = NysolModule()
-        nysol_module.set_content(f)
-        return {'o': nysol_module}
 
 class MfldnameCommand(Command):
     def __init__(self):
