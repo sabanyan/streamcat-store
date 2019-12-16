@@ -267,11 +267,15 @@ class MchkcsvCommand(Command):
         # flushをしないと、デバッグ用のprintなども入ってしまう
         sys.stdout.flush()
 
+        # チェックのみ実行するオプション
+        is_diag = 'diag' in args and args['diag']
+
         args_str = self.make_args(args)
 
         cmd = inputs['i'].content
         cmd <<= nm.cmd(args_str)
-        cmd <<= nm.runfunc(filter)
+        if is_diag:
+            cmd <<= nm.runfunc(filter)
 
         # output
         return {'o': NysolModule(cmd)}
