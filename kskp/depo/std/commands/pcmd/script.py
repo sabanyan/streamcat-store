@@ -1585,8 +1585,7 @@ class GroupBy2Command(Command):
                                        a = f'{a["y_int"]}',
                                        precision = precision)
                 targets[i] <<= nm.mcal(c = f'${{{a["linregress_rvalue"]}}}*sqrt(${{__df}}/((1-${{{a["linregress_rvalue"]}}})*(1+${{{a["linregress_rvalue"]}}})))',
-                                       a = '__t',
-                                       precision = precision)
+                                       a = '__t')
                 targets[i] <<= nm.mcal(c = f'sqrt((1-${{{a["linregress_rvalue"]}}}^2)*${{__Syy}}/${{__Sxx}}/${{__df}})',
                                        a = f'{a["linregress_stderr"]}',
                                        precision = precision)
@@ -1600,7 +1599,7 @@ class GroupBy2Command(Command):
                 subcmd_mid <<= nm.mread(i = targets)
 
                 # with nm.mstdout() as tmpfile:
-                with mcsvout(_temp, f = k.split(',') + _cval + [f'{a}_pvalue']) as tmpfile:
+                with mcsvout(_temp, f = k.split(',') + _cval + [a["linregress_pvalue"]]) as tmpfile:
                     from scipy.stats import distributions
                     headerline = True
                     for line in subcmd_mid.getline(header = True):
@@ -2639,11 +2638,12 @@ class GroupBy2Command(Command):
             for i, fld in enumerate(fs):
 
                 selected[i] <<= nm.msel(i = subcmd, c = f'$s{{fld}}=="{fld}"')
-                
+    
                 counts[i] <<= nm.mcount(k = k, i = selected[i], a = '__cnt')
                 counts[i] <<= nm.mcal(c = '${__cnt}-2', a = '__df')
 
-                x_axis[i] <<= nm.mnumber(k = k, i = selected[i], q = True, a = '__x')
+                x_axis[i] <<= nm.mnumber(k = k, i = selected[i], s = f'__seq{n}%n', 
+                                         a = '__x', I = n, S = n)
                 
                 msum[i] <<= nm.msummary(i = x_axis[i], k = k, c = 'var:__var,mean:__mean',
                                         f = '__x,__max,__min,__mean,__median')
@@ -2665,7 +2665,7 @@ class GroupBy2Command(Command):
                                        a = '__t')
                 targets[i] <<= nm.mcal(c = '${__covar}/${__var1}', a = a['lrchunk_slope'],
                                        precision = prec)
-                targets[i] <<= nm.mcal(c = f'${{__mean2}}-${{{a["lrchunk_slope"]}}}/${{__mean1}}',
+                targets[i] <<= nm.mcal(c = f'${{__mean2}}-${{{a["lrchunk_slope"]}}}*${{__mean1}}',
                                        a = a['lrchunk_int'], precision = prec)
                 targets[i] <<= nm.mcal(c = f'sqrt((1-${{{a["lrchunk_rvalue"]}}}^2)*${{__var2}}/${{__var1}}/${{__df}})',
                                        a = a['lrchunk_stderr'], precision = prec)
