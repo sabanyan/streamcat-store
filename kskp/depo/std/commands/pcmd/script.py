@@ -231,7 +231,7 @@ class WinCp932ReadCommand(PCommand):
 
     def run(self, args, inputs):
         f = None
-        f <<= inputs['i']
+        f <<= inputs['i'].content
 
         args_string = (PCMD_DIR / 'src/windows_cp932_csv_read.sh').as_posix()
         args_string += self.replace_args(args)
@@ -2753,6 +2753,8 @@ class MultiMcalCommand(Command):
                 first = False
             else:
                 cmd_o <<= nm.mcal({**acarg,**args})
+
+        args['arglist'] = aclist
 
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
