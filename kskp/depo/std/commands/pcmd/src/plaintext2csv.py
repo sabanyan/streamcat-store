@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# 2019.07.12 Version 0.3
+# 2019.12.13 Version 0.4
 
 """
 CSV要素の抽出コマンド
@@ -231,8 +231,9 @@ def processAndwriteline(gen_reader, args, out_file):
                     # 属性を分けて出力できるようになったら、ここに出力を書く。
                     pass
         else: #観測値の範囲内
+            # exceptline フラグが立っていないときは、除外開始条件判断をする
             if not exceptline:
-                # 不要範囲開始条件一致を判断
+                # 条件一致フラグ matchを立てる
                 if except_chr is not None:#空で正規表現マッチすると、常にマッチするので、除外している
                     match = re.search(except_chr,','.join(line))
                 elif except_null:
@@ -240,12 +241,19 @@ def processAndwriteline(gen_reader, args, out_file):
                 else:
                     match = None #指定がなかったとき。matchがないと、書き出し条件判断で失敗して例外がでる
                     # pass
-                
+                # match しない場合は、出力する
                 if not match:#書き出し条件判断
                     writer.writerow(line) # 一致していない場合は出力
                 else:
                     exceptline = True #一致していたら出力しないで、除外フラグをたてる
-                    count_exceptline = 1
+
+                    # 開始からの行数指定で削除する場合
+                    # 指定行数が１なら、その行のみ削除したいとみなして、除外フラグを戻す
+                    if except_end_range == 1:
+                        exceptline = False
+                    else:
+                        count_exceptline = 1 # 範囲判断用のカウンタを設定
+
 
             else:
                 count_exceptline += 1
