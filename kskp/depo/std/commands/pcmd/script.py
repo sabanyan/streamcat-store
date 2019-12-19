@@ -1136,6 +1136,45 @@ class GroupBy2Command(Command):
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
 
+    def quantile_sortonly(self,subcmd, **kwargs):
+        try:
+            f = kwargs.get('f')
+            a = kwargs.get('a')
+            k = kwargs.get('k')
+            n = kwargs.get('n')
+
+            fs = f.split(',')
+            targets = [None] * len(fs)
+            tcalcs = None
+            subcmd_o = None
+
+            # tcalcs <<= nm.msummary(f = f, c = 'count:__count',
+            #                          k = k, i = subcmd)
+            msumres = None
+            condition = [f'($s{{fld}}=="{fld}")' for fld in f.split(',')]
+            msumres <<= nm.msel(i = self.all_msums, c = '||'.join(condition))
+
+            tcalcs <<= nm.mnjoin(i = subcmd, k = k, f = 'fld,__count',
+                                 m = msumres)
+
+            for i, fld in enumerate(fs):
+                targets[i] <<= nm.mnumber(i = subcmd, s = f'{fld}%n', k = k, a = '__qtNo', S = 1)
+                targets[i] <<= nm.msortf(f = f'{k},__qtNo%n')
+
+                targets[i] <<= nm.msummary(k = k, c = f'count:{a}_{n}', f = '__qtNo')
+                # targets[i] <<= nm.mcal(c = fld, a = 'fld')
+                # targets[i] <<= nm.mcal(a = f'{a}_{n}', c = '1')
+                targets[i] <<= nm.mcut(f = f'{k},fld,{a}_{n}')
+
+            subcmd_o <<= nm.m2cat(i = targets)
+
+            return subcmd_o
+
+        except Exception as e:
+            import traceback
+            with open('/dev/stderr', 'w') as fpe:
+                traceback.print_exc(file=fpe)
+
     def quantile(self,subcmd, **kwargs):
         try:
             f = kwargs.get('f')
@@ -1165,7 +1204,7 @@ class GroupBy2Command(Command):
             for i, fld in enumerate(fs):
                 precalcs[i] <<= nm.mnumber(i = subcmd, s = f'{fld}%n', k = k, 
                                           a = '__qtNo', S = 1)
-                precalcs[i] <<= nm.msortf(f = f'{k},__qtNo')
+                precalcs[i] <<= nm.msortf(f = f'{k},__qtNo%n')
 
                 targets[i] <<= nm.mjoin(i = tcalcs, k = f'{k},__T1', K = f'{k},__qtNo',
                                         f = f'{fld}:__{fld}X1', m = precalcs[i])
@@ -2748,6 +2787,7 @@ class GroupBy2Command(Command):
             'range_count' : self.range_count,
             'ratio_beyond_rsigma' : self.ratio_beyond_rsigma,
             'quantile' : self.quantile,
+            'quantile_so' : self.quantile_sortonly,
             'binned_entropy' : self.binned_entropy,
             # 1 field + time (input k, a, f, x)
             'integral' : self.integral,
@@ -2823,6 +2863,7 @@ class GroupBy2Command(Command):
             'large_sd' : ['sd', 'max', 'min'],
             'ratio_beyond_rsigma' : ['mean', 'sd', 'count'],
             'quantile' : ['count'],
+            'quantile_so' : ['count'],
             'binned_entropy' : ['count'],
             'energy_ratio_by_chunks': ['count','sd'],
             'longest_strike_above_mean' : ['mean'],
