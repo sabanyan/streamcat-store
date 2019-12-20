@@ -436,7 +436,7 @@ class GroupBy2Command(Command):
 
                 targets[i] <<= nm.mcount(k = f'{k},{fld}', a = '__dcnt', 
                                          i = subcmd)
-                targets[i] <<= nm.mbest(k = k, f = f'{fld}%n', size = 1)    
+                targets[i] <<= nm.mbest(k = k, s = f'{fld}%n', size = 1)    
                 targets[i] <<= nm.mcal(c = '${__dcnt}>1', a = a)
                 targets[i] <<= nm.msetstr(a = 'fld', v = fld)
                 targets[i] <<= nm.mcut(f = f'{k},fld,{a}')
@@ -464,7 +464,7 @@ class GroupBy2Command(Command):
 
                 targets[i] <<= nm.mcount(k = f'{k},{fld}', a = '__dcnt', 
                                          i = subcmd)
-                targets[i] <<= nm.mbest(k = k, f = f'{fld}%nr', size = 1)    
+                targets[i] <<= nm.mbest(k = k, s = f'{fld}%nr', size = 1)    
                 targets[i] <<= nm.mcal(c = '${__dcnt}>1', a = a)
                 targets[i] <<= nm.msetstr(a = 'fld', v = fld)
                 targets[i] <<= nm.mcut(f = f'{k},fld,{a}')
