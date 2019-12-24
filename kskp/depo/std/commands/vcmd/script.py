@@ -173,11 +173,18 @@ class CsvToLineGraphCommand(VisualizersBokehPlot):
         graph_width     = int(args.get('width'))
         graph_height    = int(args.get('height'))
 
-
-        # 1. NysolPythonの結果をpandasのDataFrameに変換する
+        # dfの作成
         df = pd.DataFrame(matrix, columns=column_names)
 
-        # dfの作成
+        # Data Typeの指定
+
+        # 折れ線グラフ（時系列用）
+        # 横軸：date
+        # 縦軸：float
+        # データ系列：string
+        x_axis_format = '%Y%m%d%H%M%S%f'
+        df[x_axis_column] = pd.to_datetime(df[x_axis_column], format=x_axis_format)
+        df[y_axis_column] = df[y_axis_column].astype(float)
         df[data_column] = df[data_column].astype(str)
 
         hv.extension('bokeh')
@@ -234,12 +241,16 @@ class CsvToHistogramCommand(VisualizersBokehPlot):
         graph_width     = int(args.get('width'))
         graph_height    = int(args.get('height'))
         
-        # 1. NysolPythonの結果をpandasのDataFrameに変換する
+        # dfの作成
         df = pd.DataFrame(matrix, columns=column_names)
 
-        # 2. dfの作成
-        df[data_column] = df[data_column].astype(str)
+        # Data Typeの指定
+        # ヒストグラム
+        # 横軸：date
+        # 縦軸：float
+        # データ系列：string
         df[x_axis_column] = df[x_axis_column].astype(float)
+        df[data_column] = df[data_column].astype(str)
 
         hv.extension('bokeh')
 
@@ -306,7 +317,14 @@ class CsvToBoxplotCommand(VisualizersBokehPlot):
         # NysolPythonの結果をpandasのDataFrameに変換する
         # dfの作成
         df = pd.DataFrame(matrix, columns=column_names)
+        
+        # Data Typeの指定
+        # 箱ひげ図
+        # 縦軸：float
+        # データ系列：string
+
         df[y_axis_column] = df[y_axis_column].astype(float)
+        df[data_column] = df[data_column].astype(str)
 
         boxwhisker = hv.BoxWhisker(df, kdims=data_column, vdims=y_axis_column, label=graph_title)
         boxwhisker.opts(width=graph_width, height=graph_height, xlabel=x_axis_label, ylabel=y_axis_label)
@@ -347,10 +365,18 @@ class CsvToScatterCommand(VisualizersBokehPlot):
         graph_width     = int(args.get('width'))
         graph_height    = int(args.get('height'))
 
-        # NysolPythonの結果をpandasのDataFrameに変換する
+        # dfの作成
         df = pd.DataFrame(matrix, columns=column_names)
-        df[y_axis_column] = df[y_axis_column].astype(float)
+
+        # Data Typeの指定
+        # 散布図
+        # 横軸：float
+        # 縦軸：float
+        # データ系列：string
+        
         df[x_axis_column] = df[x_axis_column].astype(float)
+        df[y_axis_column] = df[y_axis_column].astype(float)
+        df[data_column] = df[data_column].astype(str)
         hv.extension('bokeh')
         
         if len(data_column) > 0:
@@ -414,11 +440,10 @@ class CsvToRepetitivieWaveCommand(VisualizersBokehPlot):
         return gridplot(plots, ncols=1, plot_width=self.graph_width, plot_height=self.graph_height, toolbar_location="right")
 
     def init(self, args, column_names, matrix):
-        # NysolPythonの結果をpandasのDataFrameに変換する
+
+        # dfの作成
         df = pd.DataFrame(matrix, columns=column_names)
 
-        # 共通パラメーター
-        # frame_uuid = inputs.get('i')
         # 軸の設定
         self.column_name_x_axis = args.get('x_axis')[0]['column']
         self.column_name_values = args.get('y_axis')[0]['column']
@@ -428,6 +453,16 @@ class CsvToRepetitivieWaveCommand(VisualizersBokehPlot):
         # データ系列の設定
         self.keys = args.get('datas') if args.get('datas') else None
         self.group = args.get('group')
+
+        # Data Typeの指定
+        # 散布図
+        # 横軸：float
+        # 縦軸：float
+        # データ系列：string
+        
+        df[self.column_name_x_axis] = df[self.column_name_x_axis].astype(float)
+        df[self.column_name_values] = df[self.column_name_values].astype(float)
+        df[self.keys] = df[self.keys].astype(str)
 
         self.df = df.sort_values(by = self.column_name_x_axis)
         self.groups = self.df[self.group].unique().tolist()
