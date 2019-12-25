@@ -65,6 +65,22 @@
       }
     },
     {
+      "name"  :"x_axis_format_select",
+      "type"  :"select",
+      "label" :"横軸列：時間軸　フォーマット",
+      "options":{
+        "labels": ["Nysol","実数","ユーザー指定"],
+        "values": ["nysol","float","custom"]
+      },
+      "default":"nysol"
+    },
+    {
+      "name"  :"x_axis_format_custom",
+      "type"  :"string",
+      "label" :"横軸列：時間軸　フォーマット(ユーザー指定)",
+      "default":"%Y%m%d%H%M%S%f"
+    },
+    {
       "name": "data_column",
       "type": "column",
       "options":{
@@ -102,7 +118,7 @@
     {
       "name": "axis_group",
       "label": "軸の設定",
-      "params": ["x_axis","y_axis"]
+      "params": ["x_axis","y_axis","x_axis_format_select","x_axis_format_custom"]
     },
     {
       "name": "data_group",
