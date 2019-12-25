@@ -9,6 +9,9 @@ class LockedDatumException(Exception):
     pass
 
 class Lock():
+    """
+    ロック情報
+    """
     def __init__(self, target, creator, created_at):
         """
         uuid     : ロックのuuid
@@ -22,7 +25,10 @@ class Lock():
         self.created_at = created_at
     
     def to_json(self):
-        return {'uuid' : self.uuid}
+        return {'uuid'      : self.uuid,
+                'target'    : self.target,
+                'creator'   : self.creator,
+                'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S')}
 
 class LockManager():
     """
@@ -51,11 +57,15 @@ class LockManager():
         with self._lock:
             try:
                 # ロックを削除する
+                unlocked_lock = self._lock_data.get('lock_uuid')
                 del self._lock_data[lock_uuid]
+                return unlocked_lock
             except KeyError:
                 raise Exception('No lock is found!')
 
     def unlock_all(self):
         with self._lock:
             # ロックを削除する
-            self._lock_data = {}
+            unlocked_locks = list(self._lock_data.values())
+            self._lock_data.clear()
+            return unlocked_locks
