@@ -5,6 +5,10 @@ import nysol.mcmd as nm
 import pprint
 pp = pprint.PrettyPrinter(indent=4)
 
+ErrMsg={
+        '1': "VisualizeInitException"
+}
+
 class VisualizersCommand(Command):
     def __init__(self):
         super().__init__()
@@ -157,20 +161,18 @@ class CsvToLineGraphCommand(VisualizersBokehPlot):
         """
         # 軸の設定
         x_axis          = args.get('x_axis')
-        x_axis_column   = x_axis[0]['column']
-        x_axis_label    = x_axis[0]['label']
+        x_axis_column   = x_axis[0]['column'] # 必須
+        x_axis_label    = x_axis[0]['label'] 
 
-        
-        
         x_axis_format_select = args.get('x_axis_format_select') if args.get('x_axis_format_select') else None
         x_axis_format_custom = args.get('x_axis_format_custom')
 
         y_axis          = args.get('y_axis')
-        y_axis_column   = y_axis[0]['column']
+        y_axis_column   = y_axis[0]['column'] # 必須
         y_axis_label    = y_axis[0]['label']
 
         # データ系列の設定
-        data_column     = args.get('data_column')   if args.get('data_column') is not None else []
+        data_column     = args.get('data_column') if args.get('data_column') is not None else []
 
         # データ表示範囲の設定
         #offset          = int(args.get('offset'))   if args.get('offset')   else 0
@@ -179,6 +181,10 @@ class CsvToLineGraphCommand(VisualizersBokehPlot):
         # グラフサイズの設定
         graph_width     = int(args.get('width'))
         graph_height    = int(args.get('height'))
+
+        # 初期表示時
+        if x_axis_column is None and y_axis_column is None: 
+            raise Exception(ErrMsg['1'])
 
         # dfの作成
         df = pd.DataFrame(matrix, columns=column_names)
@@ -243,19 +249,23 @@ class CsvToHistogramCommand(VisualizersBokehPlot):
         y_axis_label    = ""
 
         # データ系列の設定
-        data_column     = args.get('data_column')   if args.get('data_column') is not None else []
+        data_column     = args.get('data_column') if args.get('data_column') is not None else []
 
         # データ表示範囲の設定
         #offset          = int(args.get('offset'))   if args.get('offset')   else 0
         #limit           = int(args.get('limit'))    if args.get('limit')    else None
 
         # グラフ表示要素の設定
-        bins            = int(args.get('bins'))   if args.get('bins') else None
+        bins            = int(args.get('bins')) if args.get('bins') else None
         
         # グラフサイズの設定
         graph_width     = int(args.get('width'))
         graph_height    = int(args.get('height'))
         
+        # 初期表示時
+        if x_axis_column is None: 
+            raise Exception(ErrMsg['1'])
+
         # dfの作成
         df = pd.DataFrame(matrix, columns=column_names)
 
@@ -321,13 +331,17 @@ class CsvToBoxplotCommand(VisualizersBokehPlot):
         #limit           = int(args.get('limit'))    if args.get('limit')    else None
 
         # グラフ表示要素の設定
-        bins            = int(args.get('bins'))   if args.get('bins') else None
+        bins            = int(args.get('bins')) if args.get('bins') else None
         
         # グラフサイズの設定
         graph_width     = int(args.get('width')) if args.get('width') else self._proper_x_size()
         graph_height    = int(args.get('height')) if args.get('height') else self._proper_y_size()
 
         graph_title     = ""
+
+        # 初期表示時
+        if y_axis_column is None: 
+            raise Exception(ErrMsg['1'])
 
         # NysolPythonの結果をpandasのDataFrameに変換する
         # dfの作成
@@ -379,6 +393,10 @@ class CsvToScatterCommand(VisualizersBokehPlot):
         # グラフサイズの設定
         graph_width     = int(args.get('width'))
         graph_height    = int(args.get('height'))
+
+        # 初期表示時
+        if x_axis_column is None and y_axis_column is None: 
+            raise Exception(ErrMsg['1'])
 
         # dfの作成
         df = pd.DataFrame(matrix, columns=column_names)
@@ -449,6 +467,10 @@ class CsvToRepetitivieWaveCommand(VisualizersBokehPlot):
         # グラフサイズの設定
         graph_width = args.get('width')
         graph_height = args.get('height')
+
+        # 初期表示時
+        if x_axis_column is None and y_axis_column is None: 
+            raise Exception(ErrMsg['1'])
 
         # dfの作成
         df = pd.DataFrame(matrix, columns=column_names)
