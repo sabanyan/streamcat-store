@@ -57,7 +57,7 @@ class LockManager():
         with self._lock:
             try:
                 # ロックを削除する
-                unlocked_lock = self._lock_data.get('lock_uuid')
+                unlocked_lock = self._lock_data.get(lock_uuid)
                 del self._lock_data[lock_uuid]
                 return unlocked_lock
             except KeyError:
