@@ -78,7 +78,8 @@
       "name"  :"x_axis_format_custom",
       "type"  :"string",
       "label" :"横軸列：時間軸　フォーマット(ユーザー指定)",
-      "default":"%Y%m%d%H%M%S%f"
+      "default":"%Y%m%d%H%M%S%f",
+      "description": "対象項目の日付時刻要素を、プレースホルダで置き換えた文字列を指定してください\n●プレースホルダ記号の一覧\n   日付時刻の要素 ：プレースホルダ記号 (条件）\n         年                  : %Y (西暦4桁以内),  %y(西暦2桁以内)\n         月                  : %m (2桁以内)\n         日                  : %d  (2桁以内)\n       時間                : %H  (24時間表記で2桁以内)\n         分                 : %M  (2桁以内)\n         秒                 : %S  (2桁以内) \n         マイクロ秒   : ％f \n●抽出指定の例\n   入力                              ：抽出の指定\n   yyyy-mm-dd HH:MM:SS   :%Y-%m-%d %H:%M:%S\n   yyyymmdd HHMMSS.f        :%Y%m%d %H%M%S.%f"
     },
     {
       "name": "data_column",
