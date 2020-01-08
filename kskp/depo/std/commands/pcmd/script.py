@@ -3185,6 +3185,37 @@ class RowRangeCommand(Command):
         nysol_module_o.set_content(cmd)
         return {'o': nysol_module_o}
 
+class RowRangeCommand2(Command):
+    """
+    指定範囲の行を抽出する
+    """
+    def __init__(self):
+        super().__init__()
+        self.i_ports = [Port('i', 'frame')]
+        self.o_ports = [Port('o', 'frame')]
+
+    def run(self, args, inputs):
+        def filter():
+            try:
+                for line in sys.stdin:
+                    print(line, end='')
+                # flushをする
+                sys.stdout.flush()
+            except Exception as e:
+                with open('/dev/stderr', 'w') as fpe:
+                    import traceback
+                    traceback.print_exc(file=fpe)
+
+        # flushをしないと、デバッグ用のprintなども入ってしまう
+        sys.stdout.flush()
+
+        cmd = inputs['i'].content
+        cmd <<= nm.runfunc(filter)
+
+        # pass output
+        return {'o': NysolModule(cmd)} 
+
+
 class ToListCommand(Command):
     """
     入力データをPython Listに出力する
@@ -3202,3 +3233,33 @@ class ToListCommand(Command):
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd)
         return {'o': nysol_module_o}
+
+class ToListCommand2(Command):
+    """
+    入力データをPython Listに出力する
+    """
+    def __init__(self):
+        super().__init__()
+        self.i_ports = [Port('i', 'frame')]
+        self.o_ports = [Port('o', 'list')]
+
+    def run(self, args, inputs):
+        def to_list():
+            try:
+                for line in sys.stdin:
+                    print(line, end='')
+                # flushをする
+                sys.stdout.flush()
+            except Exception as e:
+                with open('/dev/stderr', 'w') as fpe:
+                    import traceback
+                    traceback.print_exc(file=fpe)
+
+        # flushをしないと、デバッグ用のprintなども入ってしまう
+        sys.stdout.flush()
+
+        cmd = inputs['i'].content
+        cmd <<= nm.runfunc(to_list)
+
+        # pass output
+        return {'o': NysolModule(cmd)}
