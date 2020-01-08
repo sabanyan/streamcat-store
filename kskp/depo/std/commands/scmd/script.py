@@ -719,6 +719,33 @@ class RunsCommand(SCommand):
 
         return ret
 
+class RunsCommand2(SCommand):
+    def __init__(self):
+        super().__init__()
+        self.i_ports = [Port('*', 'mcmd')]
+        self.o_ports = [Port('*', 'datum?')]
+
+    def run(self, args, inputs):
+        def to_list(out_list):
+            try:
+                for line in sys.stdin:
+                    print(line, end='')
+                # flushをする
+                sys.stdout.flush()
+            except Exception as e:
+                with open('/dev/stderr', 'w') as fpe:
+                    import traceback
+                    traceback.print_exc(file=fpe)
+
+        # flushをしないと、デバッグ用のprintなども入ってしまう
+        sys.stdout.flush()
+
+        cmd = inputs['i'].content
+        cmd <<= nm.runfunc(to_list, out_list=out_list)
+
+        # pass output
+        return {'o': NysolModule(cmd)}
+
 from kskp.store import Activity
 
 class ActivityCommand(SCommand):

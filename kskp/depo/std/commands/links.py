@@ -121,8 +121,8 @@ class CommandLink:
         'multi_mvstats': MvStatsCommand(),
         'multi_mvsim': MvSimCommand(),
         'plaintext2csv': PlainText2Csv(),
-        'rowrange': RowRangeCommand(),
-        'to_list' : ToListCommand(),
+        'rowrange': RowRangeCommand2(),
+        'to_list' : ToListCommand2(),
         # ビジュアライズ
         'csvtohtmltable': CsvToTableCommand(),
         'csvtolinegraph': CsvToLineGraphCommand(),
