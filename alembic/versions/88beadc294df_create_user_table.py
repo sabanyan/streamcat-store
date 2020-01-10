@@ -25,8 +25,8 @@ def upgrade():
         sa.Column('name', sa.String, nullable=False),
         sa.Column('creator', sa.Integer),
         sa.Column('modifier', sa.Integer),
-        sa.Column('created_at', sa.String, default=text('CURRENT_TIMESTAMP')),
-        sa.Column('modified_at', sa.String, default=text('CURRENT_TIMESTAMP')),
+        sa.Column('created_at', sa.String, default=sa.text('CURRENT_TIMESTAMP')),
+        sa.Column('modified_at', sa.String, default=sa.text('CURRENT_TIMESTAMP')),
     )
     op.create_table(
         'users_groups',
@@ -34,8 +34,8 @@ def upgrade():
         sa.Column('group_id', sa.String),
         sa.Column('creator', sa.Integer),
         sa.Column('modifier', sa.Integer),
-        sa.Column('created_at', sa.String, default=text('CURRENT_TIMESTAMP')),
-        sa.Column('modified_at', sa.String, default=text('CURRENT_TIMESTAMP')),
+        sa.Column('created_at', sa.String, default=sa.text('CURRENT_TIMESTAMP')),
+        sa.Column('modified_at', sa.String, default=sa.text('CURRENT_TIMESTAMP')),
     )
     op.create_table(
         'groups',
@@ -44,8 +44,8 @@ def upgrade():
         sa.Column('is_admin', sa.Integer, default=0, nullable=False),
         sa.Column('creator', sa.Integer),
         sa.Column('modifier', sa.Integer),
-        sa.Column('created_at', sa.String, default=text('CURRENT_TIMESTAMP')),
-        sa.Column('modified_at', sa.String, default=text('CURRENT_TIMESTAMP')),
+        sa.Column('created_at', sa.String, default=sa.text('CURRENT_TIMESTAMP')),
+        sa.Column('modified_at', sa.String, default=sa.text('CURRENT_TIMESTAMP')),
     )
     op.create_table(
         'auth',
@@ -57,8 +57,8 @@ def upgrade():
         # sa.Column('own', sa.Integer, default=0, nullable=False),
         sa.Column('creator', sa.Integer),
         sa.Column('modifier', sa.Integer),
-        sa.Column('created_at', sa.String, default=text('CURRENT_TIMESTAMP')),
-        sa.Column('modified_at', sa.String, default=text('CURRENT_TIMESTAMP')),
+        sa.Column('created_at', sa.String, default=sa.text('CURRENT_TIMESTAMP')),
+        sa.Column('modified_at', sa.String, default=sa.text('CURRENT_TIMESTAMP')),
     )
 
 
