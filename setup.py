@@ -4,6 +4,7 @@ setup(
     name='kskp.store',
     packages=['kskp.store'],
     install_requires=[
-        'ordered_set'
+        'ordered_set',
+        'alembic'
     ],
 )
