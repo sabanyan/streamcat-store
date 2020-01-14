@@ -7,8 +7,10 @@ import datetime
 from pathlib import Path
 from sqlalchemy.orm import aliased
 from sqlalchemy import Column, Integer, String, text, PrimaryKeyConstraint
+from sqlalchemy.dialects.postgresql import INTEGER
 
-from kskp.auth import BaseModel, session
+from kskp.store import BaseModel
+from kskp.store import ss as session
 
 class UserGroup(BaseModel):
     # テーブル名の定義
@@ -20,10 +22,10 @@ class UserGroup(BaseModel):
     )
 
     # 列名と列のデータ型等の定義
-    user_id     = Column(String)
-    group_id    = Column(String)
-    creator     = Column(Integer)
-    modifier    = Column(Integer)
+    user_id     = Column(INTEGER, primary_key=True)
+    group_id    = Column(INTEGER, primary_key=True)
+    creator     = Column(INTEGER)
+    modifier    = Column(INTEGER)
     created_at  = Column(String, default=text('CURRENT_TIMESTAMP'))
     modified_at = Column(String, default=text('CURRENT_TIMESTAMP'))
     

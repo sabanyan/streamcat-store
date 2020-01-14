@@ -7,19 +7,24 @@ import datetime
 from pathlib import Path
 from sqlalchemy.orm import aliased
 from sqlalchemy import Column, Integer, String, text
+from sqlalchemy.dialects.postgresql import INTEGER
 
-from kskp.auth import BaseModel, session, UserGroup
+from kskp.core import Datum
+from kskp.store import BaseModel
+from .user_group import UserGroup
+from kskp.store import ss as session
+
 
 class Group(BaseModel):
     # テーブル名の定義
     __tablename__ = 'groups'
 
     # 列名と列のデータ型等の定義
-    id          = Column(String, primary_key=True)
+    id          = Column(INTEGER, primary_key=True, autoincrement=True)
     name        = Column(String, nullable=False)
     is_admin    = Column(Integer, default=0, nullable=False)
-    creator     = Column(Integer)
-    modifier    = Column(Integer)
+    creator     = Column(INTEGER)
+    modifier    = Column(INTEGER)
     created_at  = Column(String, default=text('CURRENT_TIMESTAMP'))
     modified_at = Column(String, default=text('CURRENT_TIMESTAMP'))
 
@@ -30,7 +35,7 @@ class Group(BaseModel):
         コンストラクタ
         """
         # SQLiteではidは乱数で採番する
-        self.id = random.randint(0, self.MAX_DATUM_ID)
+        # self.id = random.randint(0, self.MAX_DATUM_ID)
         self.name = name
         self.is_admin = is_admin
 
@@ -40,7 +45,7 @@ class Group(BaseModel):
 
     @staticmethod
     def find_by_id(id):
-        pass
+        group = session.query()
 
     def save(self):
         """
@@ -80,4 +85,19 @@ class Group(BaseModel):
         """
         user_group = UserGroup(user_id, self.id)
         user_group.delete()
-    
+
+    @property
+    def created_at_str(self):
+        if self.created_at is None:
+            return ''
+        # DBに格納されている日時はUTCなので、タイムゾーンをUTCに設定する
+        created_at_utc = self.created_at.replace(tzinfo=datetime.timezone.utc)
+        # UTC日時はここで現地時間(環境変数TZの値)に設定される
+        created_at_local = created_at_utc.astimezone()
+        return created_at_local.strftime('%Y-%m-%d %H:%M:%S')
+
+    def to_json(self):
+        return {'name'      : self.name,
+                'is_admin'  : self.is_admin,                
+                'creator'   : Datum.get_user_name_by_user_id(self.creator),
+                'createdAt' : self.created_at_str}

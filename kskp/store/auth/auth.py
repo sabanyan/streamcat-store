@@ -3,10 +3,11 @@ import uuid
 import random
 import platform
 import datetime
-from kskp.library import BaseModel
+from kskp.store import BaseModel
 from pathlib import Path
 from sqlalchemy.orm import aliased
 from sqlalchemy import Column, Integer, String, text, PrimaryKeyConstraint
+from sqlalchemy.dialects.postgresql import INTEGER
 
 class Auth(BaseModel):
     # テーブル名の定義
@@ -18,14 +19,14 @@ class Auth(BaseModel):
     )
 
     # 列名と列のデータ型等の定義
-    group_id    = Column(String, primary_key=True)
-    data_id     = Column(String, primary_key=True)
+    group_id    = Column(INTEGER, primary_key=True)
+    data_id     = Column(INTEGER, primary_key=True)
     read        = Column(Integer, default=0, nullable=False)
-    write       = Column(Integer, default=0, nullable=False)
-    exec        = Column(Integer, default=0, nullable=False)
-    own         = Column(Integer, default=0, nullable=False)
-    creator     = Column(Integer)
-    modifier    = Column(Integer)
+    # write       = Column(Integer, default=0, nullable=False)
+    # exec        = Column(Integer, default=0, nullable=False)
+    # own         = Column(Integer, default=0, nullable=False)
+    creator     = Column(INTEGER)
+    modifier    = Column(INTEGER)
     created_at  = Column(String, default=text('CURRENT_TIMESTAMP'))
     modified_at = Column(String, default=text('CURRENT_TIMESTAMP'))
     
