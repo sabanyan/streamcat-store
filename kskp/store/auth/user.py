@@ -9,7 +9,7 @@ import pprint
 from pathlib import Path
 from sqlalchemy.orm import aliased
 from sqlalchemy import Column, Integer, String, text
-from sqlalchemy.dialects.postgresql import INTEGER
+from sqlalchemy.dialects.postgresql import INTEGER, TIMESTAMP
 
 from .. import BaseModel
 from .group import Group
@@ -27,8 +27,8 @@ class User(BaseModel):
     name        = Column(String, nullable=False)
     creator     = Column(INTEGER)
     modifier    = Column(INTEGER)
-    created_at  = Column(String, default=text('CURRENT_TIMESTAMP'))
-    modified_at = Column(String, default=text('CURRENT_TIMESTAMP'))
+    created_at  = Column(TIMESTAMP, default=text('statement_timestamp()'))
+    modified_at = Column(TIMESTAMP, default=text('statement_timestamp()'), onupdate=text('statement_timestamp()'))
 
     MAX_DATUM_ID = 9000000000000000000
 

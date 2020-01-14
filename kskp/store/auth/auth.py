@@ -7,7 +7,7 @@ from kskp.store import BaseModel
 from pathlib import Path
 from sqlalchemy.orm import aliased
 from sqlalchemy import Column, Integer, String, text, PrimaryKeyConstraint
-from sqlalchemy.dialects.postgresql import INTEGER
+from sqlalchemy.dialects.postgresql import INTEGER, TIMESTAMP
 
 class Auth(BaseModel):
     # テーブル名の定義
@@ -27,6 +27,6 @@ class Auth(BaseModel):
     # own         = Column(Integer, default=0, nullable=False)
     creator     = Column(INTEGER)
     modifier    = Column(INTEGER)
-    created_at  = Column(String, default=text('CURRENT_TIMESTAMP'))
-    modified_at = Column(String, default=text('CURRENT_TIMESTAMP'))
+    created_at  = Column(TIMESTAMP, default=text('statement_timestamp()'))
+    modified_at = Column(TIMESTAMP, default=text('statement_timestamp()'), onupdate=text('statement_timestamp()'))
     
