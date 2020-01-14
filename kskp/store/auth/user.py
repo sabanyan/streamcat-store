@@ -9,20 +9,24 @@ import pprint
 from pathlib import Path
 from sqlalchemy.orm import aliased
 from sqlalchemy import Column, Integer, String, text
+from sqlalchemy.dialects.postgresql import INTEGER
 
-from kskp.auth import BaseModel, UserGroup, session, Group
+from .. import BaseModel
+from .group import Group
+from .user_group import UserGroup
+from kskp.store import ss as session
 
 class User(BaseModel):
     # テーブル名の定義
     __tablename__ = 'users'
 
     # 列名と列のデータ型等の定義
-    id          = Column(String, primary_key=True)
+    id          = Column(INTEGER, primary_key=True, autoincrement=True)
     email       = Column(String, nullable=False, unique=True)
     password    = Column(String)
     name        = Column(String, nullable=False)
-    creator     = Column(Integer)
-    modifier    = Column(Integer)
+    creator     = Column(INTEGER)
+    modifier    = Column(INTEGER)
     created_at  = Column(String, default=text('CURRENT_TIMESTAMP'))
     modified_at = Column(String, default=text('CURRENT_TIMESTAMP'))
 
@@ -33,7 +37,7 @@ class User(BaseModel):
         コンストラクタ
         """
         # SQLiteではidは乱数で採番する
-        self.id = random.randint(0, self.MAX_DATUM_ID)
+        # self.id = random.randint(0, self.MAX_DATUM_ID)
 
         self.email = email
         self.password = password
@@ -53,10 +57,10 @@ class User(BaseModel):
             select count(is_admin) from groups G
             where is_admin = 1
               and exists (select * from users_groups UG
-                          where UG.group_id = G.id
-                            and exists (select * from users U
-                                        where U.id = UG.user_id
-                                          and U.id = {creator}) )
+                           from UG join G using (id)
+                           where exists (select * from users U
+                                          where U.id = UG.user_id
+                                            and U.id = {creator}) )
             """.format(creator=str(self.creator))
             # SQLを発行する
             count = session.execute(sql).scalar()

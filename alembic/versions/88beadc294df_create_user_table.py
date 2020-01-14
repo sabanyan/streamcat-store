@@ -7,7 +7,7 @@ Create Date: 2020-01-10 16:02:20.735468
 """
 from alembic import op
 import sqlalchemy as sa
-
+from sqlalchemy.dialects.postgresql import INTEGER
 
 # revision identifiers, used by Alembic.
 revision = '88beadc294df'
@@ -19,44 +19,44 @@ depends_on = None
 def upgrade():
     op.create_table(
         'users',
-        sa.Column('id', sa.String, primary_key=True),
+        sa.Column('id', INTEGER, primary_key=True, autoincrement=True),
         sa.Column('email', sa.String, nullable=False, unique=True),
         sa.Column('password', sa.String),
         sa.Column('name', sa.String, nullable=False),
-        sa.Column('creator', sa.Integer),
-        sa.Column('modifier', sa.Integer),
+        sa.Column('creator', INTEGER),
+        sa.Column('modifier', INTEGER),
         sa.Column('created_at', sa.String, default=sa.text('CURRENT_TIMESTAMP')),
         sa.Column('modified_at', sa.String, default=sa.text('CURRENT_TIMESTAMP')),
     )
     op.create_table(
         'users_groups',
-        sa.Column('user_id', sa.String),
-        sa.Column('group_id', sa.String),
-        sa.Column('creator', sa.Integer),
-        sa.Column('modifier', sa.Integer),
+        sa.Column('user_id', INTEGER, primary_key=True),
+        sa.Column('group_id', INTEGER, primary_key=True),
+        sa.Column('creator', INTEGER),
+        sa.Column('modifier', INTEGER),
         sa.Column('created_at', sa.String, default=sa.text('CURRENT_TIMESTAMP')),
         sa.Column('modified_at', sa.String, default=sa.text('CURRENT_TIMESTAMP')),
     )
     op.create_table(
         'groups',
-        sa.Column('id', sa.String, primary_key=True),
+        sa.Column('id', INTEGER, primary_key=True, autoincrement=True),
         sa.Column('name', sa.String, nullable=False),
         sa.Column('is_admin', sa.Integer, default=0, nullable=False),
-        sa.Column('creator', sa.Integer),
-        sa.Column('modifier', sa.Integer),
+        sa.Column('creator', INTEGER),
+        sa.Column('modifier', INTEGER),
         sa.Column('created_at', sa.String, default=sa.text('CURRENT_TIMESTAMP')),
         sa.Column('modified_at', sa.String, default=sa.text('CURRENT_TIMESTAMP')),
     )
     op.create_table(
         'auth',
-        sa.Column('group_id', sa.String, primary_key=True),
-        sa.Column('data_id', sa.String, primary_key=True),
+        sa.Column('group_id', INTEGER, primary_key=True),
+        sa.Column('data_id', INTEGER, primary_key=True),
         sa.Column('read', sa.Integer, default=0, nullable=False),
         # sa.Column('write', sa.Integer, default=0, nullable=False),
         # sa.Column('exec', sa.Integer, default=0, nullable=False),
         # sa.Column('own', sa.Integer, default=0, nullable=False),
-        sa.Column('creator', sa.Integer),
-        sa.Column('modifier', sa.Integer),
+        sa.Column('creator', INTEGER),
+        sa.Column('modifier', INTEGER),
         sa.Column('created_at', sa.String, default=sa.text('CURRENT_TIMESTAMP')),
         sa.Column('modified_at', sa.String, default=sa.text('CURRENT_TIMESTAMP')),
     )

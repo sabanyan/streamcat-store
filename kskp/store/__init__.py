@@ -108,6 +108,7 @@ from .flow_dumper import FlowDumper
 from .library import Library
 from .store_model import Store as StoreModel
 from .flows import FlowLink
+from .auth import User, UserGroup, Group, Auth
 
 from ..depo.std.commands import CommandLink, CommandsPathLink, CommandsPathFileSource, RunfuncCommand
 from .model import *
