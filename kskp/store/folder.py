@@ -19,7 +19,7 @@ class Folder(Store):
         super().__init__(parent_uuid, Datum.FOLDER_TYPE, label, creator)
 
         # data列の値を作成する
-        self.data = {'label' : label}
+        self.data = {}
 
     @staticmethod
     def find_by_uuid(uuid):
@@ -47,7 +47,6 @@ class Folder(Store):
     @staticmethod
     def convert_to_folder(datum):
         parent_uuid = Datum.get_uuid_by_id(datum.parent_id)
-        # label = json.loads(datum.data, encoding='utf-8')['label']
         folder = Folder(parent_uuid, datum.label, datum.creator)
         folder.id = datum.id
         folder.uuid = datum.uuid
@@ -119,9 +118,7 @@ class Folder(Store):
             Datum.update_include_path(old_path, new_path, modifier)
 
             # レコードを更新する
-            data ={'label' : new_label}
             session.query(Datum).filter(Datum.uuid==uuid).update({'_label'  :new_label
-                                                                 ,'data'    :data
                                                                  ,'modifier':modifier})
         except Exception as e:
             session.rollback()
