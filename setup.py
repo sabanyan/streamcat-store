@@ -5,6 +5,10 @@ setup(
     packages=['kskp.store'],
     install_requires=[
         'ordered_set',
-        'alembic'
+        'psycopg2',
+        'sqlalchemy',
+        'alembic'        
+        'awscli',
+        'cx_Oracle',
     ],
 )
