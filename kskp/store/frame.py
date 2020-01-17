@@ -18,13 +18,17 @@ class Frame(Datum):
         """
         super().__init__(parent_uuid, Datum.FRAME_TYPE, label, creator)
 
-        # data列の値を作成する
-        self.data = {'label' : label}
+        # ファイルストリームの文字コードを推測する
+        if stream is not None and hasattr(stream, 'seek'):
+            encoding = Frame._detect_encoding(stream)
+        else:
+            encoding = 'UNKNOWN'
 
         # ファイルストリームを保持する
         self.stream = stream
 
-        # self._content = None
+        # data列の値を作成する
+        self.data = {'encoding':encoding}
 
     @staticmethod
     def find_by_uuid(uuid):
@@ -56,10 +60,10 @@ class Frame(Datum):
     @staticmethod
     def convert_to_frame(datum):
         parent_uuid = Datum.get_uuid_by_id(datum.parent_id)
-        # label = json.loads(datum.data, encoding='utf-8')['label']
         frame = Frame(parent_uuid, datum.label, None, datum.creator)
         frame.id = datum.id
         frame.uuid = datum.uuid
+        frame.data = datum.data
         frame._path = datum._path
         frame.modifier = datum.modifier
         frame.created_at = datum.created_at
@@ -94,6 +98,12 @@ class Frame(Datum):
         if self.parent_id is None and Datum.count_root() > 0:
             raise Exception('You can not add another root frame. A root already exists!')
         self.path = file_path
+
+        # ファイルの文字コードを判定する
+        with file_path.open('rb') as f:
+            encoding = Frame._detect_encoding(f)
+        self.data = {'encoding':encoding}
+
         try:
             # Dataテーブルにレコードを新規追加する
             session.add(self)
@@ -160,10 +170,8 @@ class Frame(Datum):
 
     @staticmethod
     def _update_label_imp(uuid, new_label, modifier):
-        # labelとdata列を更新する
-        data = {'label' : new_label}
+        # label列を更新する
         session.query(Datum).filter(Datum.uuid==uuid).update({'_label'  :new_label,
-                                                              'data'    :data,
                                                               'modifier':modifier})
 
     def delete(self):
@@ -216,6 +224,14 @@ class Frame(Datum):
     @property
     def file_exists(self):
         return os.path.exists(self._to_abs_path(self._path))
+
+    @property
+    def encoding(self):
+        return self.data2.get('encoding')
+
+    @encoding.setter
+    def encoding(self, encoding):
+        self.data['encoding'] = encoding
 
     @property
     def modified_at_str(self):
@@ -276,6 +292,40 @@ class Frame(Datum):
                                            .filter(Datum.type == Datum.FRAME_TYPE)\
                                            .filter(Datum.id != except_id).count()
         return result > 0
+
+    @staticmethod
+    def _detect_encoding(stream):
+        """
+        指定されたファイルの文字コードを判別する
+        """
+        from chardet.enums import LanguageFilter
+        from chardet.universaldetector import UniversalDetector
+        detector = UniversalDetector(lang_filter=LanguageFilter.CJK)
+
+        max_feed_num = 100
+        chunk_size = 1024
+
+        for i in range(max_feed_num):
+            chunk = stream.read(chunk_size)
+            if not chunk:
+                break
+            # 一定Byteずつ食わせる
+            detector.feed(chunk)
+            # 文字コード判定の信頼度がある一定を超えた場合に識別結果を返す
+            if detector.done:
+                detector.close()
+                return detector.result['encoding']
+
+        # streamの読み込み位置をリセットする
+        stream.seek(0)
+        
+        # 確信を持って識別ができなかった場合、最も確度の高い識別結果を返す
+        detector.close()
+        for prober in detector._charset_probers:
+            return prober.charset_name
+
+        # 今回の調査で我々は・・・何の成果も得られませんでした！！
+        return 'UNKNOWN'
 
     def to_json(self):
         return {'uuid'      : self.uuid,

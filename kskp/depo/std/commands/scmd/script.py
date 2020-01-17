@@ -83,6 +83,8 @@ class SaverCommand(SCommand):
         import io
         f = io.BytesIO(b'')
         frame = Frame(store.uuid, label, f)
+        # 取りあえず
+        frame.encoding = 'utf-8'
         # RunsCommandの実行前にFrameを登録する
         frame.save()
         return frame
@@ -157,10 +159,21 @@ class LoaderCommand(SCommand):
             raise Exception('No frame(%s) is found !' % frame_uuid)
         path = Datum._to_abs_path(frame.path.as_posix())
 
+        if frame.encoding is None:
+            # frameの文字コードが未判定の場合はここで判定する
+            with open(path, 'rb') as f:
+                encoding = Frame._detect_encoding(f)
+        else:
+            # frameの文字コードを取得する
+            encoding = frame.encoding
+
         cmd = nm.m2tee({'i':path})
         # mreadで存在しないファイルパスを指定するとDockerごと落ちる ->　
         # cmd = nm.mread({'i':path})
-        return {'o': NysolModule(cmd)}
+        nysol_module = NysolModule(cmd)
+        # frameの文字コードを次のコマンドに渡す
+        nysol_module.encoding = encoding
+        return {'o': nysol_module}
 
 class DbLoaderCommand(SCommand):
     """
@@ -718,33 +731,6 @@ class RunsCommand(SCommand):
             i += 1
 
         return ret
-
-class RunsCommand2(SCommand):
-    def __init__(self):
-        super().__init__()
-        self.i_ports = [Port('*', 'mcmd')]
-        self.o_ports = [Port('*', 'datum?')]
-
-    def run(self, args, inputs):
-        def to_list(out_list):
-            try:
-                for line in sys.stdin:
-                    print(line, end='')
-                # flushをする
-                sys.stdout.flush()
-            except Exception as e:
-                with open('/dev/stderr', 'w') as fpe:
-                    import traceback
-                    traceback.print_exc(file=fpe)
-
-        # flushをしないと、デバッグ用のprintなども入ってしまう
-        sys.stdout.flush()
-
-        cmd = inputs['i'].content
-        cmd <<= nm.runfunc(to_list, out_list=out_list)
-
-        # pass output
-        return {'o': NysolModule(cmd)}
 
 from kskp.store import Activity
 
