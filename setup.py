@@ -7,7 +7,7 @@ setup(
         'ordered_set',
         'psycopg2',
         'sqlalchemy',
-        'alembic'        
+        'alembic',
         'awscli',
         'cx_Oracle',
     ],
