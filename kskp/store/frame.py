@@ -100,9 +100,11 @@ class Frame(Datum):
         self.path = file_path
 
         # ファイルの文字コードを判定する
-        with file_path.open('rb') as f:
-            encoding = Frame._detect_encoding(f)
-        self.data = {'encoding':encoding}
+        abs_path = Datum._to_abs_path(file_path.as_posix())
+        if os.path.exists(abs_path):
+            with open(abs_path, 'rb') as f:
+                encoding = Frame._detect_encoding(f)
+            self.data = {'encoding':encoding}
 
         try:
             # Dataテーブルにレコードを新規追加する
