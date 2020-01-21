@@ -181,14 +181,20 @@ class Flow(Datum):
 
         try:
             # レコードを更新する
-            session.query(Datum).filter(Datum.uuid==uuid).update({'_label'   :new_label,
+
+            # 実行時、Post /vizs Exception This session is in 'prepared' stateが出力されるのを防ぐ
+            from kskp.store import engine
+            from sqlalchemy.orm import sessionmaker
+            my_sessoin = sessionmaker(bind=engine)()
+
+            my_sessoin.query(Datum).filter(Datum.uuid==uuid).update({'_label'   :new_label,
                                                                   'data'     :data,
                                                                   'modifier' :modifier})
         except Exception as e:
-            session.rollback()
+            my_sessoin.rollback()
             raise e
         finally:
-            session.commit()
+            my_sessoin.commit()
 
         # ここでflowを返すとtest_model.pyでテストが通らない
         return Flow.convert_to_flow(datum)
