@@ -19,7 +19,7 @@ class Flow(Datum):
         self._path = ''
 
         # data列の値を作成する
-        self.data = {'flow' : flow_data}
+        self.data = {'label' : label, 'flow' : flow_data}
 
     @staticmethod
     def find_all_flows():
@@ -164,7 +164,7 @@ class Flow(Datum):
         # ラベルに'\0'が含まれていれば取り除く
         new_label = Datum.escape_label(label)
         # 更新データを作成する
-        data = {'flow' : flow_data}
+        data = {'label' : new_label, 'flow' : flow_data}
         flow.data = data
 
         # フローのインポート処理で引っかかるので以下のチェックを一旦外す
