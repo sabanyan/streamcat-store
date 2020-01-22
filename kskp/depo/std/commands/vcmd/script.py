@@ -2,6 +2,8 @@
 import os
 from kskp.core import Command, Port
 import nysol.mcmd as nm
+import pprint
+pp = pprint.PrettyPrinter(indent=4)
 
 class VisualizersCommand(Command):
     def __init__(self):
@@ -129,7 +131,7 @@ import pandas as pd
 import numpy as np
 import holoviews as hv
 import random
-
+import nysol.mcmd as nm
 from bokeh.plotting import figure
 from bokeh.resources import CDN
 from bokeh.embed import file_html,components
@@ -158,6 +160,11 @@ class CsvToLineGraphCommand(VisualizersBokehPlot):
         x_axis_column   = x_axis[0]['column']
         x_axis_label    = x_axis[0]['label']
 
+        
+        
+        x_axis_format_select = args.get('x_axis_format_select') if args.get('x_axis_format_select') else None
+        x_axis_format_custom = args.get('x_axis_format_custom')
+
         y_axis          = args.get('y_axis')
         y_axis_column   = y_axis[0]['column']
         y_axis_label    = y_axis[0]['label']
@@ -173,11 +180,26 @@ class CsvToLineGraphCommand(VisualizersBokehPlot):
         graph_width     = int(args.get('width'))
         graph_height    = int(args.get('height'))
 
-
-        # 1. NysolPythonの結果をpandasのDataFrameに変換する
+        # dfの作成
         df = pd.DataFrame(matrix, columns=column_names)
 
-        # dfの作成
+        # Data Typeの指定
+
+        # 折れ線グラフ（時系列用）
+        # 横軸：date
+        # 縦軸：float
+        # データ系列：string
+        timeseries_format_nysol = "%Y%m%d%H%M%S%f"
+        timeseries_format_custom = args.get('x_axis_format_custom')
+
+        if x_axis_format_select == "nysol":
+            df[x_axis_column] = pd.to_datetime(df[x_axis_column], format=timeseries_format_nysol)
+        elif x_axis_format_select == "float":
+            df[x_axis_column] = df[x_axis_column].astype(float)
+        elif x_axis_format_select == "custom":
+            df[x_axis_column] = pd.to_datetime(df[x_axis_column], format=timeseries_format_custom)   
+     
+        df[y_axis_column] = df[y_axis_column].astype(float)
         df[data_column] = df[data_column].astype(str)
 
         hv.extension('bokeh')
@@ -234,12 +256,16 @@ class CsvToHistogramCommand(VisualizersBokehPlot):
         graph_width     = int(args.get('width'))
         graph_height    = int(args.get('height'))
         
-        # 1. NysolPythonの結果をpandasのDataFrameに変換する
+        # dfの作成
         df = pd.DataFrame(matrix, columns=column_names)
 
-        # 2. dfの作成
-        df[data_column] = df[data_column].astype(str)
+        # Data Typeの指定
+        # ヒストグラム
+        # 横軸：date
+        # 縦軸：float
+        # データ系列：string
         df[x_axis_column] = df[x_axis_column].astype(float)
+        df[data_column] = df[data_column].astype(str)
 
         hv.extension('bokeh')
 
@@ -306,7 +332,14 @@ class CsvToBoxplotCommand(VisualizersBokehPlot):
         # NysolPythonの結果をpandasのDataFrameに変換する
         # dfの作成
         df = pd.DataFrame(matrix, columns=column_names)
+        
+        # Data Typeの指定
+        # 箱ひげ図
+        # 縦軸：float
+        # データ系列：string
+
         df[y_axis_column] = df[y_axis_column].astype(float)
+        df[data_column] = df[data_column].astype(str)
 
         boxwhisker = hv.BoxWhisker(df, kdims=data_column, vdims=y_axis_column, label=graph_title)
         boxwhisker.opts(width=graph_width, height=graph_height, xlabel=x_axis_label, ylabel=y_axis_label)
@@ -347,10 +380,18 @@ class CsvToScatterCommand(VisualizersBokehPlot):
         graph_width     = int(args.get('width'))
         graph_height    = int(args.get('height'))
 
-        # NysolPythonの結果をpandasのDataFrameに変換する
+        # dfの作成
         df = pd.DataFrame(matrix, columns=column_names)
-        df[y_axis_column] = df[y_axis_column].astype(float)
+
+        # Data Typeの指定
+        # 散布図
+        # 横軸：float
+        # 縦軸：float
+        # データ系列：string
+        
         df[x_axis_column] = df[x_axis_column].astype(float)
+        df[y_axis_column] = df[y_axis_column].astype(float)
+        df[data_column] = df[data_column].astype(str)
         hv.extension('bokeh')
         
         if len(data_column) > 0:
@@ -383,142 +424,251 @@ class CsvToRepetitivieWaveCommand(VisualizersBokehPlot):
         super().__init__()
 
     def plot(self, args, column_names, matrix):
-        """
-        csvのファイルパスから、
-        plotの反復波形図を作成する
-        """
-        self.init(args, column_names, matrix)
-        
-        graph_source = self.get_graph_source(self.df, disableTooltips=self.disableTooltips) 
-        graph_colors = self.get_colors(len(graph_source))
-        graph_plot = self.get_plot("反復波形図", self.x_range, self.y_range)
-        graph_plot = self.get_grpah_plot(graph_plot,graph_source, graph_colors)
-        graph_plot.legend.location = "top_left"
-        graph_plot.legend.click_policy = "mute"
-
-        select = self.get_select(graph_plot)
-        plots = [select, graph_plot]
-        
-        statics_plot = None
-        if self.disableStatics == False:
-            statics_source = self.get_statics_source(self.df, disableTooltips=self.disableTooltips)
-            if statics_source is not None:
-                statics_colors = self.get_colors(len(statics_source))
-                plot = self.get_plot("反復波形図", self.x_range, self.y_range)
-                statics_plot = self.get_statics_plot(plot,statics_source, statics_colors)
-                if statics_plot.legend:
-                    statics_plot.legend.location = "top_left"
-                    statics_plot.legend.click_policy = "mute"
-                plots.append(statics_plot)          
-        
-        return gridplot(plots, ncols=1, plot_width=self.graph_width, plot_height=self.graph_height, toolbar_location="right")
-
-    def init(self, args, column_names, matrix):
-        # NysolPythonの結果をpandasのDataFrameに変換する
-        df = pd.DataFrame(matrix, columns=column_names)
-
-        # 共通パラメーター
-        # frame_uuid = inputs.get('i')
         # 軸の設定
-        self.column_name_x_axis = args.get('x_axis')[0]['column']
-        self.column_name_values = args.get('y_axis')[0]['column']
-        self.x_axis_label = args.get('x_axis')[0]['label']
-        self.y_axis_label = args.get('y_axis')[0]['label']
+        event = args.get('event') if args.get('event') else None
+
+        x_axis          = args.get('x_axis')
+        x_axis_column   = x_axis[0]['column']
+        x_axis_label    = x_axis[0]['label']
+
+        y_axis          = args.get('y_axis')
+        y_axis_column   = y_axis[0]['column']
+        y_axis_label    = y_axis[0]['label']
 
         # データ系列の設定
-        self.keys = args.get('datas') if args.get('datas') else None
-        self.group = args.get('group')
+        data_column     = args.get('data_column')   if args.get('data_column') else []
+        group           = args.get('group') if args.get('group') else None
 
-        self.df = df.sort_values(by = self.column_name_x_axis)
-        self.groups = self.df[self.group].unique().tolist()
-        
         # グラフ表示要素の設定
-        self.disableTooltips = args.get('disableTooltips') if args.get('disableTooltips') else False
-        self.disableMarker = args.get('disableMarker') if args.get('disableMarker') else False
-        self.disableStatics = args.get('disableStatics') if args.get('disableStatics') else False
-        self.disableEvent = args.get('disableEvent') if args.get('disableEvent') else False
-        self.event = args.get('event')
-        self.statics = args.get('statics')
-        
+        disableTooltips = args.get('disableTooltips') if args.get('disableTooltips') else False
+        disableMarker = args.get('disableMarker') if args.get('disableMarker') else False
+        disableStatics = args.get('disableStatics') if args.get('disableStatics') else False
+        disableEvent = args.get('disableEvent') if args.get('disableEvent') else False
+        statics = args.get('statics') if args.get('statics') else None
+
+        # 必須項目チェック
+        if x_axis_column is None or y_axis_column is None or group is None or statics is None:
+            return 
+
         # グラフサイズの設定
-        self.graph_width = args.get('width')
-        self.graph_height = args.get('height')
-        
-        #共通設定
-        self.tools = "pan,wheel_zoom,box_zoom,reset,save,box_select"
-        self.tooltips = None
+        graph_width = args.get('width')
+        graph_height = args.get('height')
 
-        # Range
-        df_x_minmax = self.doMsummary(df, None, self.column_name_x_axis, "min,max")
-        df_y_minmax = self.doMsummary(df, None, self.column_name_values, "min,max")
+        # dfの作成
+        df = pd.DataFrame(matrix, columns=column_names)
+ 
+        # Data Typeの指定
+        # Visualizers
+        # 横軸：float
+        # 縦軸：float
+        # データ系列：string
+        df[x_axis_column] = df[x_axis_column].astype(float)
+        df[y_axis_column] = df[y_axis_column].astype(float)
+        df[data_column] = df[data_column].astype(str)
 
-        x_min = df_x_minmax.iat[0, 1]
-        x_max = df_x_minmax.iat[0, 2]
-        self.x_range = [float(x_min), float(x_max)]
+        # グループ属性の初期化
+        unique_group = None 
+        if group is not None:
+            unique_group = df[group].unique().tolist()
 
-        y_min = df_y_minmax.iat[0, 1]
-        y_max = df_y_minmax.iat[0, 2]
-        self.y_range = [float(y_min), float(y_max)]
+        # 起点の初期化
+        xs_event = None
+        if event is not None:
+            queryStr = "{0}=='{1}'".format(event, "0")
+            result_df = df.query(queryStr)
+            result_df[x_axis_column] = result_df[x_axis_column].astype(float)
+            xs_event = result_df[x_axis_column].unique().tolist()
+            
+        # plots
+        plots = []
 
-    def get_graph_source(self, df, disableTooltips=False):
-
+        # 反復波形図（標準）
         named_dfs = {}
-        if self.keys is not None and len(self.keys) > 0:
-            results = self.direct_product_by_keys(df, self.keys)
+        if data_column is not None and len(data_column) > 0:
+            results = self.direct_product_by_keys(df, data_column)
             named_dfs = self.process_df(df, results)
         else:
             named_dfs['all'] = df
-  
-        ## source
+                
+        # source
         source = {}
         for label, n_df in named_dfs.items():
-            data = dict(
-                x = n_df[self.column_name_x_axis].tolist(),
-                y = n_df[self.column_name_values].tolist(),
-                group = n_df[self.group].tolist(),
-                label = [label] * (len(n_df.index))
-            )
-            source[label] = data
+            xs = n_df[x_axis_column].tolist()
+            ys = n_df[y_axis_column].tolist()
+
+            groups = n_df[group].tolist() if group else None
+            labels = [label] * (len(n_df.index))
+
+            keys = ["x","y"]
+            values = [xs,ys]
+
+            if groups:
+                keys.append("group")
+                values.append(groups)
+            if labels:
+                keys.append("label")
+                values.append(labels)
+
+            source[label] = self.toColumnDataSource(keys, values)
+
+        # plot
+        title = "反復波形図"
+        tools = "pan,wheel_zoom,box_zoom,reset,save,box_select"
+        tooltips = None
+        if disableTooltips != True:
+            tooltips = [
+                ("凡例", "@label"),
+                (x_axis_column, "@x"),
+                (y_axis_column, "@y")
+            ]
+            if group is not None:
+                tooltips.append((group, "@group"))
+
+        plot = figure(
+            title=title,
+            tools=tools,
+            tooltips=tooltips,
+            x_axis_label=x_axis_label,
+            y_axis_label=y_axis_label
+        )
+
+        # plot
+        colors = self.get_colors(len(source))
+        for label, color in zip(source,colors):
+            # 線
+            plot.line('x', 'y', source=source[label], legend=label, color=color, alpha=0.75, muted_color=color, muted_alpha=0.2)
+            # 点
+            if disableMarker != True:
+                plot.circle('x', 'y', source=source[label], legend=label, color=color, alpha=0.9, muted_color=color, muted_alpha=0.2, size=8)
         
-        return source
+        # 起点
+        if disableEvent != True and xs_event is not None:
+            for x in xs_event:
+                s = Span(location= x,
+                                dimension='height', line_color='black',
+                                line_dash='dashed', line_width=3, line_alpha=0.3)
+                plot.add_layout(s)
 
-    def get_statics_source(self, df, disableTooltips=False):
-        import nysol.mcmd as nm
+        # plot設定
+        plot.legend.location = "top_left"
+        plot.legend.click_policy = "mute"
 
-        k = self.column_name_x_axis
-        f = self.column_name_values
-        c = self.statics #"min,mean,max,qtile1,median,qtile3"
-        i = self.df.values.tolist()
-        i.insert(0,list(df.columns))
+        # 反復波形図(統計量)
+        statics_plot = None
+        if disableStatics == False and statics is not None:
+            k = x_axis_column
+            f = y_axis_column
+            c = statics #"min,mean,max,qtile1,median,qtile3"
+            i = df.values.tolist()
+            i.insert(0,list(df.columns))
 
-        dtype = "{}:float".format(self.column_name_x_axis)
-        result = None
-        result <<= nm.msummary(i=i, k=k, f=f, c=c)
-        result <<= nm.writelist(dtype=dtype, header=True)
-        result = result.run()
+            dtype = "{}:float".format(x_axis_column)
+            result = None
+            result <<= nm.msummary(i=i, k=k, f=f, c=c)
+            result <<= nm.writelist(header=True)
+            result = result.run()
 
-        name=result.pop(0)
-        df= pd.DataFrame(result,columns=name)
-        df = df.sort_values(by = self.column_name_x_axis)
-        keys = c.split(',')
-        source = {}
-        x = df[k].tolist()
-        for key in keys:
-            data = dict(
-                x = x,
-                y = df[key].tolist(),
-                label = [key] * (len(x))
+            name=result.pop(0)
+            statics_df = pd.DataFrame(result,columns=name)
+            # Data Typeの指定
+            # Visualizers
+            # 横軸：float
+            statics_df[k] = statics_df[k].astype(float)
+            statics_keys = c.split(',')
+            for key in statics_keys:
+                statics_df[key] = statics_df[key].astype(float)
+
+            # sort
+            statics_df = statics_df.sort_values(by = k)
+
+            # source
+            statics_source = {}
+            for key in statics_keys:
+                xs = statics_df[k].tolist()
+                ys = statics_df[key].tolist()
+                label = [key] * (len(xs))
+                keys = ["x","y","label"]
+                values = [xs,ys,label]
+
+                statics_source[key] = dict(zip(keys, values))
+                
+            # plot
+            title = "反復波形図(統計量)"
+            tools = "pan,wheel_zoom,box_zoom,reset,save,box_select"
+            tooltips = None
+            if disableTooltips != True:
+                tooltips = [
+                    ("凡例", "@label"),
+                    (x_axis_column, "@x"),
+                    (y_axis_column, "@y")
+                ]
+
+            statics_plot = figure(
+                title=title,
+                tools=tools,
+                tooltips=tooltips,
+                x_axis_label=x_axis_label,
+                y_axis_label=y_axis_label
             )
-            source[key] = data
+            # plot
+            colors = self.get_colors(len(statics_source))
+            for label, color in zip(statics_source,colors):
+                # 線
+                statics_plot.line('x', 'y', source=ColumnDataSource(data=statics_source[label]), legend=label, color=color, alpha=0.75, muted_color=color, muted_alpha=0.2)
+                # 点
+                if disableMarker != True:
+                    statics_plot.circle('x', 'y', source=ColumnDataSource(data=statics_source[label]), legend=label, color=color, alpha=0.9, muted_color=color, muted_alpha=0.2, size=8)
+                # 面
+                keys = list(statics_source.keys())
+                length = len(keys)
+                for index, key in enumerate(keys):
+                    if (index + 1) < length:
+                        x = statics_source[key]['x']
+                        y1 = statics_source[key]['y']
+                        y2 = statics_source[keys[index + 1]]['y']
+                        statics_plot.varea(x=x, y1=y1, y2=y2, fill_color='#cccccc', alpha=0.3)
 
-        return source
+            # 起点
+            if disableEvent != True and xs_event is not None:
+                for x in xs_event:
+                    s = Span(location= x, dimension='height', line_color='black', line_dash='dashed', line_width=3, line_alpha=0.3)
+                statics_plot.add_layout(s)
 
-    def get_select(self, plot):
-        values = self.groups
+            # plot設定
+            statics_plot.legend.location = "top_left"
+            statics_plot.legend.click_policy = "mute"
+                   
+        # select(グループ属性)
+        select = None
+        if group is not None and unique_group is not None:
+            select = self.get_select(plot, group, unique_group)
+            plots.append(select)
+        plots.append(plot)
+        if statics_plot is not None:
+            plots.append(statics_plot)
+        
+        return gridplot(plots, ncols=1, plot_width=graph_width, plot_height=graph_height, toolbar_location="right")
+    
+    def toColumnDataSource(self, keys, values):  
+        return ColumnDataSource(data=dict(zip(keys, values)))
+
+    def get_colors(self, size):
+        from bokeh.palettes import Dark2_5 as palette
+        i = 0
+        colors = []
+        for d in itertools.cycle(palette):
+            if i >= size:
+                break
+            colors.append(d)
+            i = i + 1
+
+        return colors
+
+    def get_select(self, plot, group, unique_group):
+        values = unique_group
         values.insert(0, '')
 
-        s = Select(value=values[0], title=self.group, options=values, width=120)
-
+        s = Select(value=values[0], title=group, options=values, width=120)
         callBack = CustomJS(args=dict(plot=plot, select=s), code="""
             var value = select.value
             var renderers = plot.renderers
@@ -540,109 +690,8 @@ class CsvToRepetitivieWaveCommand(VisualizersBokehPlot):
         """)
         s.js_on_change('value', callBack)
 
+
         return s
-
-    def get_colors(self, size):
-        from bokeh.palettes import Dark2_5 as palette
-        i = 0
-        colors = []
-        for d in itertools.cycle(palette):
-            if i >= size:
-                break
-            colors.append(d)
-            i = i + 1
-
-        return colors
-
-    def get_plot(self, title, x_range=None, y_range=None):
-        
-        tooltips = None
-        if self.disableTooltips != True:
-            tooltips = [
-                    ("凡例", "@label"),
-                    (self.column_name_x_axis, "@x"),
-                    (self.column_name_values, "@y"),
-                    (self.group, "@group")
-                ]
-
-        plot = figure(
-            title=title,
-            tools=self.tools,
-            tooltips=tooltips,
-            x_axis_label=self.x_axis_label,
-            y_axis_label=self.y_axis_label,
-            x_range=x_range,
-            y_range=y_range,
-        )
-
-        return plot
-
-    def add_lines_to_plot(self, figure_plot, source, colors):
-        for label, color in zip(source,colors):
-            figure_plot.line('x', 'y', source=source[label], legend=label, color=color, alpha=0.75, muted_color=color, muted_alpha=0.2)
-        
-        return figure_plot
-
-    def add_points_to_plot(self, figure_plot, source, colors):
-        for label, color in zip(source,colors):
-            figure_plot.circle('x', 'y', source=ColumnDataSource(data=source[label]), legend=label, color=color, alpha=0.9, muted_color=color, muted_alpha=0.2, size=8)
-        
-        return figure_plot
-
-    def add_varea_to_plot(self, figure_plot, source, fill_color='#cccccc'):
-        keys = self.statics.split(',')
-        length = len(keys)
-        for index, key in enumerate(keys):
-            if (index + 1) < length:
-                x = source[key]['x']
-                y1 = source[key]['y']
-                y2 = source[keys[index + 1]]['y']
-                figure_plot.varea(x=x, y1=y1, y2=y2, fill_color=fill_color, alpha=0.5)
-
-        return figure_plot
-
-    def add_span_to_plot(self, figure_plot, df):
-        queryStr = "{0} == {1}".format(self.event, "0")
-        result_df = df.query(queryStr)
-
-        from bokeh.models import Span
-
-        xs = result_df[self.column_name_x_axis].unique().tolist()
-
-        for x in xs:
-            s = Span(location= x,
-                              dimension='height', line_color='black',
-                              line_dash='dashed', line_width=3, line_alpha=0.3)
-            figure_plot.add_layout(s)
-
-        return figure_plot
-
-    def get_statics_plot(self, plot, source, colors):        
-        # plot
-        if source == None:
-            return plot
-
-        plot = self.add_lines_to_plot(plot, source, colors)
-        plot = self.add_varea_to_plot(plot, source)
-        if self.disableEvent != True:
-            plot = self.add_span_to_plot(plot, self.df)
-        if self.disableMarker != True:
-            plot = self.add_points_to_plot(plot, source, colors)
-       
-        return plot 
-
-    def get_grpah_plot(self, plot, source, colors):
-
-        # plot
-        if source == None:
-            return plot
-        plot = self.add_lines_to_plot(plot, source, colors)
-        if self.disableEvent != True:
-            plot = self.add_span_to_plot(plot, self.df)
-        if self.disableMarker != True:
-            plot = self.add_points_to_plot(plot, source, colors)
-
-        return plot
     
     def doMsummary(self, df, k, f, c):
 
