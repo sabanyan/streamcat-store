@@ -2,7 +2,7 @@
   "version": "0.7.0",
   "id": "csvtolinegraph",
   "order": 200,
-  "label": "折れ線グラフ（時系列データ用）",
+  "label": "折れ線推移",
   "classification": "visualize",
   "description": "csvファイルから折れ線グラフを作成する",
   "ports": [
@@ -69,7 +69,7 @@
       "type"  :"select",
       "label" :"横軸列：時間軸　フォーマット",
       "options":{
-        "labels": ["Nysol","実数","ユーザー指定"],
+        "labels": ["暦型（YYYMMDDhhmmss.小数６桁まで）","数値型","ユーザー指定"],
         "values": ["nysol","float","custom"]
       },
       "default":"nysol"
@@ -78,7 +78,8 @@
       "name"  :"x_axis_format_custom",
       "type"  :"string",
       "label" :"横軸列：時間軸　フォーマット(ユーザー指定)",
-      "default":"%Y%m%d%H%M%S%f"
+      "default":"%Y%m%d%H%M%S%f",
+      "description": "日時要素の指定子\n対象項目の日付時刻要素を、プレースホルダで置き換えた文字列を指定してください\n●プレースホルダ記号の一覧\n   日付時刻の要素 ：プレースホルダ記号 (条件）\n         年                  : %Y (西暦4桁以内),  %y(西暦2桁以内)\n         月                  : %m (2桁以内)\n         日                  : %d  (2桁以内)\n       時間                : %H  (24時間表記で2桁以内)\n         分                 : %M  (2桁以内)\n         秒                 : %S  (2桁以内)\n    マイクロ秒        : %f  (6以内) \n\n●抽出指定の例\n   入力                              ：抽出の指定\n   yyyy-mm-dd HH:MM:SS   :%Y-%m-%d %H:%M:%S\n   yyyymmdd HHMMSS        :%Y%m%d %H%M%S"
     },
     {
       "name": "data_column",
@@ -118,7 +119,13 @@
     {
       "name": "axis_group",
       "label": "軸の設定",
-      "params": ["x_axis","y_axis","x_axis_format_select","x_axis_format_custom"]
+      "params": ["x_axis","y_axis"]
+    },
+    {
+      "name": "x_axis_group",
+      "label": "時間軸の設定",
+      "params": ["x_axis_format_select","x_axis_format_custom"],
+      "description": "時刻のデータ順番通り表示されます"
     },
     {
       "name": "data_group",
