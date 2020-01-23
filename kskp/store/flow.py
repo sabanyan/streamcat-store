@@ -144,12 +144,12 @@ class Flow(Datum):
         """
         # UUID値の形式チェックをする
         Datum.valid_uuid_or_raise(uuid)
-        # レコードを取得する
-        datum = session.query(Datum).filter(Datum.uuid==uuid)\
-                                    .filter(Datum.type==Datum.FLOW_TYPE).one_or_none()
-        if datum is None:
-            raise Exception('no flow is found by designated id.')
-        flow = Flow.convert_to_flow(datum)
+        # # レコードを取得する
+        # datum = session.query(Datum).filter(Datum.uuid==uuid)\
+        #                             .filter(Datum.type==Datum.FLOW_TYPE).one_or_none()
+        # if datum is None:
+        #     raise Exception('no flow is found by designated id.')
+        # flow = Flow.convert_to_flow(datum)
 
         # # 参照するフレームがライブラリに存在することを確認する
         # for frame_uuid in flow.get_src_frame_uuids():
@@ -165,7 +165,7 @@ class Flow(Datum):
         new_label = Datum.escape_label(label)
         # 更新データを作成する
         data = {'label' : new_label, 'flow' : flow_data}
-        flow.data = data
+        # flow.data = data
 
         # フローのインポート処理で引っかかるので以下のチェックを一旦外す
         # 
@@ -183,18 +183,27 @@ class Flow(Datum):
             # レコードを更新する
 
             # 実行時、Post /vizs Exception This session is in 'prepared' stateが出力されるのを防ぐ
-            from kskp.store import engine
+            # from kskp.store import engine
+            from sqlalchemy import create_engine
             from sqlalchemy.orm import sessionmaker
-            my_sessoin = sessionmaker(bind=engine)()
+            my_engine = create_engine(os.environ['SQLALCHEMY_DATABASE_URI'], echo=True)
+            my_session = sessionmaker(bind=my_engine)()
 
-            my_sessoin.query(Datum).filter(Datum.uuid==uuid).update({'_label'   :new_label,
+            my_session.query(Datum).filter(Datum.uuid==uuid).update({'_label'   :new_label,
                                                                   'data'     :data,
                                                                   'modifier' :modifier})
         except Exception as e:
-            my_sessoin.rollback()
+            my_session.rollback()
             raise e
         finally:
-            my_sessoin.commit()
+            my_session.commit()
+            my_engine.dispose()
+
+        # レコードを取得する
+        datum = session.query(Datum).filter(Datum.uuid==uuid)\
+                                    .filter(Datum.type==Datum.FLOW_TYPE).one_or_none()
+        if datum is None:
+            raise Exception('no flow is found by designated id.')
 
         # ここでflowを返すとtest_model.pyでテストが通らない
         return Flow.convert_to_flow(datum)

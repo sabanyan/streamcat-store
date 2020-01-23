@@ -3172,12 +3172,35 @@ class RowRangeCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
+        def filter(fr, size):
+            try:
+                # ヘッダ行を出力する
+                header = sys.stdin.readline()
+                print(header, end='')
+
+                # 取得開始行まで読み飛ばす
+                for i in range(fr):
+                    line = sys.stdin.readline()
+
+                # 指定範囲の行を標準出力へ出力する
+                for j in range(size):
+                    line = sys.stdin.readline()
+                    print(line, end='')
+
+                # flushをする
+                sys.stdout.flush()
+            except Exception as e:
+                with open('/dev/stderr', 'w') as fpe:
+                    import traceback
+                    traceback.print_exc(file=fpe)
+
         # 指定範囲の取得
         offset = int(args.get('offset')) if args.get('offset') else 0
         limit = int(args.get('limit')) if args.get('limit') else 0
 
         cmd = inputs['i'].content
-        cmd <<= nm.mbest(q=True, fr=offset, size=limit)
+        cmd <<= nm.runfunc(filter, fr=offset, size=limit)
+        # cmd <<= nm.mbest(q=True, fr=offset, size=limit)
 
         # pass output
         return {'o': NysolModule(cmd)} 
