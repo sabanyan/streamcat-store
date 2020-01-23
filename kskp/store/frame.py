@@ -324,6 +324,8 @@ class Frame(Datum):
         # 確信を持って識別ができなかった場合、最も確度の高い識別結果を返す
         detector.close()
         for prober in detector._charset_probers:
+            if prober.charset_name is None:
+                return 'UNKNOWN'
             return prober.charset_name
 
         # 今回の調査で我々は・・・何の成果も得られませんでした！！
