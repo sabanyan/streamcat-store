@@ -40,6 +40,13 @@ class Library:
         return Library._get_flow_dir_path(creator)
 
     @staticmethod
+    def load_trash_folder(creator=None):
+        """
+        ゴミ箱フォルダを取得する
+        """
+        return Library._get_trash_dir_path(creator)
+
+    @staticmethod
     def load_frame(frame_uuid):
         """
         フレームを取得する
@@ -229,6 +236,7 @@ class Library:
         Library._get_result_dir_path()
         Library._get_cache_dir_path()
         Library._get_flow_dir_path()
+        Library._get_trash_dir_path()
 
     @staticmethod
     def _get_flow_dir_path(user_id=None):
@@ -245,6 +253,12 @@ class Library:
     def _get_cache_dir_path(user_id=None):
         # キャッシュ格納フォルダを取得する
         return Library._get_or_make_dir_path(CACHE_FOLDER_UUID, CACHE_FOLDER_LABEL, user_id)
+
+    @staticmethod
+    def _get_trash_dir_path(user_id=None):
+        # ゴミ箱フォルダを取得する
+        from kskp.store import TRASH_FOLDER_UUID, TRASH_FOLDER_LABEL
+        return Library._get_or_make_dir_path(TRASH_FOLDER_UUID, TRASH_FOLDER_LABEL, user_id)
 
     @staticmethod
     def _get_or_make_dir_path(uuid, label, user_id=None):
