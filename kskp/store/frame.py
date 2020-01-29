@@ -176,7 +176,7 @@ class Frame(Datum):
         # 　　いつまで経っても削除できない
         # 2. frame削除APIでもframeを使っているかいないかをチェックしているので、こっちでしなくてもとりあえず大丈夫
 
-        # using_flow_uuids = Datum.get_flow_uuids_using_other_datum(self.uuid)
+        # using_flow_uuids = Flow.get_flow_uuids_using_other_datum(self.uuid)
         # if len(using_flow_uuids) > 0:
         #     from kskp.store import Flow
         #     using_flow_label= Flow.find_by_uuid(using_flow_uuids[0]).label

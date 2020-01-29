@@ -227,7 +227,7 @@ class Flow(Datum):
         """
         # 削除しようとするFlowが、DBに格納されているフローで使用されている場合は例外を送出する
         # 2019/07/29現在下記のコードはpostgres9.6では動かない、postgres11.1では動作確認している
-        using_flow_uuids = Datum.get_flow_uuids_using_other_datum(self.uuid)
+        using_flow_uuids = Flow.get_flow_uuids_using_other_datum(self.uuid)
         if len(using_flow_uuids) > 0:
             using_flow_label= Flow.find_by_uuid(using_flow_uuids[0]).label
             raise Exception('このフローはフロー(%s)でサブフローとして使用しているため削除できません' % using_flow_label)
@@ -267,6 +267,21 @@ class Flow(Datum):
         # 複製を作成する
         new_flow = Flow(self.parent_uuid, new_label, new_flow_data, user_id)
         return new_flow
+
+    @staticmethod
+    def get_flow_uuids_using_other_datum(datum_uuid):
+        """      .......
+        指定されたDatumのuuidを参照するFlowを取得する
+        """
+        sql = """
+        select uuid from data
+        where type='flow'
+          and uuid<>'{datum_uuid}'
+          and to_tsvector(data) @@ to_tsquery('{datum_uuid}')
+        """.format(datum_uuid=str(datum_uuid))
+        # SQLを発行する
+        results = session.execute(sql)
+        return [str(result[0]) for result in results]
 
     def get_src_frame_uuids(self):
         """
