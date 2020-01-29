@@ -350,21 +350,6 @@ class Datum(BaseModel):
         return datum
 
     @staticmethod
-    def get_flow_uuids_using_other_datum(datum_uuid):
-        """      .......
-        指定されたDatumのuuidを参照するFlowを取得する
-        """
-        sql = """
-        select uuid from data
-        where type='flow'
-          and uuid<>'{datum_uuid}'
-          and to_tsvector(data) @@ to_tsquery('{datum_uuid}')
-        """.format(datum_uuid=str(datum_uuid))
-        # SQLを発行する
-        results = session.execute(sql)
-        return [str(result[0]) for result in results]
-
-    @staticmethod
     def move_file(old_path, new_path):
         """
         ドキュメントまたはフォルダに対応するファイルまたはディレクトリを移動する

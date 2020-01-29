@@ -136,7 +136,7 @@ class Database(Store):
         Databaseを削除する
         """
         # 削除しようとするDatabaseが、DBに格納されているフローで使用されている場合は例外を送出する
-        using_flow_uuids = Datum.get_flow_uuids_using_other_datum(self.uuid)
+        using_flow_uuids = Flow.get_flow_uuids_using_other_datum(self.uuid)
         if len(using_flow_uuids) > 0:
             using_flow_label= Flow.find_by_uuid(using_flow_uuids[0]).label
             raise Exception('このStoreはローダ・セーバ(%s)で使用しているため削除できません' % using_flow_label)
