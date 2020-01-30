@@ -198,18 +198,24 @@ class Datum(BaseModel):
         except Exception as e:
             raise Exception('移動先の指定はフォルダのUUIDしか許可していません')
 
-        # 移動対象がマウントポイントの場合は、path列を変更することはマウントポイントを変更することになるので
-        # とりあえずエラーとする
-        from kskp.store import Mountable
-        if isinstance(self, Mountable):
-            raise Exception('マウントポイントフォルダを移動することはできません')
-
         if parent_uuid == self.uuid:
             raise Exception('移動先と移動元の指定が同じです')
 
         # 移動先が移動元フォルダの配下になる場合は例外を送出する
         if self.type == Datum.FOLDER_TYPE:
             pass
+
+        # 移動対象がマウントポイントの場合は、path列を変更することはマウントポイントを変更することになるので
+        # とりあえずエラーとする
+        from kskp.store import Mountable
+        if isinstance(self, Mountable):
+            # raise Exception('マウントポイントフォルダを移動することはできません')
+            new_label = Datum.get_another_label_name(self.label, self.parent_uuid, except_uuid=self.uuid)
+            # レコードを更新する
+            session.query(Datum).filter(Datum.id==self.id).update({'parent_id': to_folder.id
+                                                                    ,'_label'   : new_label
+                                                                    ,'modifier' : modifier})
+            return self
 
         # ファイルを移動する
         old_path = self._path
