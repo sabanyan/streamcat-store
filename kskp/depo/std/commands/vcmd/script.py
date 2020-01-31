@@ -2,8 +2,6 @@
 import os
 from kskp.core import Command, Port
 import nysol.mcmd as nm
-import pprint
-pp = pprint.PrettyPrinter(indent=4)
 
 ErrMsg={
         '1': "VisualizeInitException"
@@ -195,7 +193,7 @@ class CsvToLineGraphCommand(VisualizersBokehPlot):
         # 横軸：date
         # 縦軸：float
         # データ系列：string
-        timeseries_format_nysol = "%Y%m%d%H%M%S%f"
+        timeseries_format_nysol = "%Y%m%d%H%M%S.%f"
         timeseries_format_custom = args.get('x_axis_format_custom')
 
         if x_axis_format_select == "nysol":
@@ -471,6 +469,10 @@ class CsvToRepetitivieWaveCommand(VisualizersBokehPlot):
         # 初期表示時
         if x_axis_column is None and y_axis_column is None: 
             raise Exception(ErrMsg['1'])
+
+        # 必須項目チェック
+        if x_axis_column is None or y_axis_column is None or group is None or statics is None:
+            return 
 
         # dfの作成
         df = pd.DataFrame(matrix, columns=column_names)
