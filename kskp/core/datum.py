@@ -28,6 +28,7 @@ class Datum(BaseModel):
     DATABASE_TYPE = 'database'
     FLOW_TYPE   = 'flow'
     FRAME_TYPE  = 'frame'
+    TRASH_TYPE = 'trash'
 
     # テーブル名の定義
     __tablename__ = 'data'
@@ -44,7 +45,7 @@ class Datum(BaseModel):
     _path       = Column('path', String, nullable=False)
     _label      = Column('label', String)
     # PostgreSQLのENUM型の要素を変更してもSQLAlchemyから自動的に変更がかからないので手動で変更する必要がある
-    type        = Column(ENUM(FOLDER_TYPE, AWSS3_TYPE, RFOLDER_TYPE, DATABASE_TYPE, FLOW_TYPE, FRAME_TYPE, name='data_type'), nullable=False)
+    type        = Column(ENUM(FOLDER_TYPE, AWSS3_TYPE, RFOLDER_TYPE, DATABASE_TYPE, FLOW_TYPE, FRAME_TYPE, TRASH_TYPE, name='data_type'), nullable=False)
     data        = Column(JSONB)
     creator     = Column(INTEGER)
     modifier    = Column(INTEGER)
@@ -192,11 +193,9 @@ class Datum(BaseModel):
         # UUID値の形式チェックをする
         Datum.valid_uuid_or_raise(parent_uuid)
 
-        try:
-            from kskp.store import Folder
-            to_folder = Folder.find_by_uuid(parent_uuid)
-        except Exception as e:
-            raise Exception('移動先の指定はフォルダのUUIDしか許可していません')
+        to_folder = Datum.find_by_uuid(parent_uuid)
+        if to_folder.type != Datum.FOLDER_TYPE and to_folder.type != Datum.TRASH_TYPE:
+            raise Exception('移動先の指定へはフォルダまたはゴミ箱のUUIDしか許可していません')
 
         if parent_uuid == self.uuid:
             raise Exception('移動先と移動元の指定が同じです')
@@ -226,6 +225,7 @@ class Datum(BaseModel):
         try:
             # ファイル名の移動によって他のDatumのpathが変更が必要であれば変更する
             Datum.update_same_path(old_path, new_path, modifier)
+            from kskp.store import Folder
             if isinstance(self, Folder):
                 Datum.update_include_path(old_path, new_path, modifier)
             # レコードを更新する
@@ -303,6 +303,18 @@ class Datum(BaseModel):
     @staticmethod
     def count_root():
         return session.query(Datum).filter(Datum.parent_id == None).count()
+
+    @staticmethod
+    def find_by_uuid(uuid):
+        """
+        指定されたuuidを持つDatumを取得する
+        """
+        # UUID値の形式チェックをする
+        Datum.valid_uuid_or_raise(uuid)
+        datum = session.query(Datum).filter(Datum.uuid==uuid).one_or_none()
+        if datum is None:
+            raise Exception('no datum is found by designated id.')
+        return datum
 
     @staticmethod
     def find_by_parent_uuid(parent_uuid):
