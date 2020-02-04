@@ -99,6 +99,7 @@ from .flow import Flow
 from .folder import Folder
 from .awss3 import AwsS3
 from .remote_folder import RemoteFolder
+from .trashcan import TrashCan
 from .vis import Vis, BokehPlotVis
 from .datasource import DataSource
 from .activity import Activity
