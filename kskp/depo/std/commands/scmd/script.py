@@ -697,7 +697,7 @@ class RunsCommand(SCommand):
 
         try:
             # NYSOL Pythonを実行する
-            results = nm.runs(nm_list, msg='on', throwexc=True)
+            results = nm.runs(nm_list, msg='on', throwexc=True, dlog=args['dlog'])
         except Exception as e:
             # writelistコマンドにCSV形式以外のデータが入力されると例外が送出されるようである
             raise Exception('データを表示できませんでした。次の原因が考えられます ' + \
