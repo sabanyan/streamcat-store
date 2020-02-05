@@ -21,14 +21,16 @@ class Frame(Datum):
         # ファイルストリームの文字コードを推測する
         if stream is not None and hasattr(stream, 'seek'):
             encoding = Frame._detect_encoding(stream)
+            newline = Frame._detect_newline_code(stream)
         else:
             encoding = 'UNKNOWN'
+            newline = 'UNKNOWN'
 
         # ファイルストリームを保持する
         self.stream = stream
 
         # data列の値を作成する
-        self.data = {'encoding':encoding}
+        self.data = {'encoding':encoding, 'newline':newline}
 
     @staticmethod
     def find_by_uuid(uuid):
@@ -104,7 +106,8 @@ class Frame(Datum):
         if os.path.exists(abs_path):
             with open(abs_path, 'rb') as f:
                 encoding = Frame._detect_encoding(f)
-            self.data = {'encoding':encoding}
+                newline = Frame._detect_newline_code(f)
+            self.data = {'encoding':encoding, 'newline':newline}
 
         try:
             # Dataテーブルにレコードを新規追加する
@@ -229,11 +232,19 @@ class Frame(Datum):
 
     @property
     def encoding(self):
-        return self.data2.get('encoding')
+        return self.data2.get('encoding') or 'UNKNOWN'
 
     @encoding.setter
     def encoding(self, encoding):
         self.data['encoding'] = encoding
+
+    @property
+    def newline(self):
+        return self.data2.get('newline') or 'UNKNOWN'
+
+    @newline.setter
+    def newline(self, newline):
+        self.data['newline'] = newline
 
     @property
     def modified_at_str(self):
@@ -315,26 +326,58 @@ class Frame(Datum):
             detector.feed(chunk)
             # 文字コード判定の信頼度がある一定を超えた場合に識別結果を返す
             if detector.done:
-                detector.close()
-                return detector.result['encoding']
+                break
 
         # streamの読み込み位置をリセットする
         stream.seek(0)
-        
-        # 確信を持って識別ができなかった場合、最も確度の高い識別結果を返す
         detector.close()
-        for prober in detector._charset_probers:
-            if prober.charset_name is None:
-                return 'UNKNOWN'
-            return prober.charset_name
 
-        # 今回の調査で我々は・・・何の成果も得られませんでした！！
-        return 'UNKNOWN'
+        encoding = detector.result.get('encoding')
+        if not encoding:
+            # 今回の調査で我々は・・・何の成果も得られませんでした！！
+            return 'UNKNOWN'
+
+        return encoding
+
+    @staticmethod
+    def _detect_newline_code(stream):
+        max_feed_num = 100
+        chunk_size = 1024
+
+        crlf_count = 0
+        lf_count = 0
+        cr_count = 0
+
+        for i in range(max_feed_num):
+            chunk = stream.read(chunk_size)
+            if not chunk:
+                break
+            crlf = chunk.count(b'\r\n')
+            if crlf > 0:
+                crlf_count += crlf
+            else:
+                lf_count += chunk.count(b'\n')
+                cr_count += chunk.count(b'\r')
+
+        # streamの読み込み位置をリセットする
+        stream.seek(0)
+
+        # 出現頻度の最も多い改行コードを返す
+        if crlf_count > max(lf_count, cr_count):
+            return 'CR+LF'
+        elif lf_count > cr_count:
+            return 'LF'
+        elif lf_count < cr_count:
+            return 'CR'
+        else:
+            return 'UNKNOWN'
 
     def to_json(self):
         return {'uuid'      : self.uuid,
                 'type'      : Datum.FRAME_TYPE,
                 'label'     : self.label,
+                'encoding'  : self.encoding,
+                'newline'   : self.newline,
                 'creator'   : Datum.get_user_name_by_user_id(self.creator),
                 'createdAt' : self.created_at_str}
 
