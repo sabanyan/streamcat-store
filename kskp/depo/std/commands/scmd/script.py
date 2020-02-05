@@ -85,6 +85,7 @@ class SaverCommand(SCommand):
         frame = Frame(store.uuid, label, f)
         # 取りあえず
         frame.encoding = 'utf-8'
+        frame.newline = 'LF'
         # RunsCommandの実行前にFrameを登録する
         frame.save()
         return frame
@@ -167,7 +168,7 @@ class LoaderCommand(SCommand):
             # frameの文字コードを取得する
             encoding = frame.encoding
 
-        cmd = nm.m2tee({'i':path})
+        cmd = nm.m2tee(i=path)
         # mreadで存在しないファイルパスを指定するとDockerごと落ちる ->　
         # cmd = nm.mread({'i':path})
         nysol_module = NysolModule(cmd)

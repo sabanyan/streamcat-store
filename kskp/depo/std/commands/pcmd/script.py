@@ -3247,9 +3247,9 @@ class ConvToUtf8(Command):
             encoding = nysol_module.encoding
 
         cmd = nysol_module.content
-        if encoding != 'utf-8':
+        if encoding != 'utf-8' and encoding != 'ascii':
             cmd <<= nm.runfunc(to_utf8, source_encoding=encoding)
-            
+    
         return {'o': NysolModule(cmd)}
 
 class ToListCommand(Command):
