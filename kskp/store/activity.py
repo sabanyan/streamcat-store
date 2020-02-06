@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 
 from . import ss as session
 from kskp.core import Datum
-from kskp.store import Frame, DataSource
+from kskp.store import Frame, Cache, DataSource
 
 class Activity(Datum):
     """
@@ -28,7 +28,7 @@ class Activity(Datum):
         start_time = datetime.utcnow().replace(tzinfo=timezone.utc)
 
         # data列の値を作成する
-        # (同じインスタンスのpointの場合もあることに注意)
+        # (同じインスタンスのpointの場合もあることに注意!!)
         # [(point, frame)]
         self.result = []
         self.data = {'start_time' : start_time, 'flow_uuid' : flow_uuid, 'result': self.result}
@@ -56,8 +56,18 @@ class Activity(Datum):
                 new_label = new_label + ' 全体処理時間' + elapsed_time_str + '分'
 
             if type(datum) is Frame and Frame.exists(datum.uuid):
+                # 
                 # Frameの場合
+                # 
+                # 対応ファイルの文字コードと改行コードを推測してその結果を登録する
+                datum.add_entry_from_path(datum.path)
                 Frame.update_label_only(datum.uuid, new_label, None)
+            elif type(datum) is Cache and Cache.exists(datum.uuid):
+                # 
+                # Cacheの場合
+                # 
+                # 対応ファイルの文字コードと改行コードを推測してその結果を登録する
+                datum.add_entry_from_path(datum.path)
             elif type(datum) is DataSource:
                 DataSource.update_data(datum.uuid, new_label, datum.flow_data, None)
 
