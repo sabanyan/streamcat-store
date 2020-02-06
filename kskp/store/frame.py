@@ -156,12 +156,6 @@ class Frame(Datum):
         Frameのlabel列を更新する
         (path及び対応ファイル名は変更しない)
         """
-         # レコードを取得する
-        datum = session.query(Datum).filter(Datum.uuid==uuid)\
-                                    .filter(Datum.type==Datum.FRAME_TYPE).one_or_none()
-        if datum is None:
-            raise Exception('no frame is found by designated id.')
-
         # ラベルに'\0'が含まれていれば取り除く
         new_label = Datum.escape_label(label)
 
@@ -237,6 +231,16 @@ class Frame(Datum):
     @encoding.setter
     def encoding(self, encoding):
         self.data['encoding'] = encoding
+
+    @property
+    def encoding_str(self):
+        conv_table = {'ascii':'ASCII', 'utf-8':'UTF-8', 'UTF-8-SIG':'UTF-8 BOM'}
+        ret = conv_table.get(self.encoding)
+        
+        if ret is None:
+            return self.encoding
+        else:
+            return ret
 
     @property
     def newline(self):
@@ -376,7 +380,7 @@ class Frame(Datum):
         return {'uuid'      : self.uuid,
                 'type'      : Datum.FRAME_TYPE,
                 'label'     : self.label,
-                'encoding'  : self.encoding,
+                'encoding'  : self.encoding_str,
                 'newline'   : self.newline,
                 'creator'   : Datum.get_user_name_by_user_id(self.creator),
                 'createdAt' : self.created_at_str}
