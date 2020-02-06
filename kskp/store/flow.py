@@ -200,11 +200,9 @@ class Flow(Datum):
         # UUID値の形式チェックをする
         Datum.valid_uuid_or_raise(parent_uuid)
 
-        try:
-            from kskp.store import Folder
-            to_folder = Folder.find_by_uuid(parent_uuid)
-        except Exception as e:
-            raise Exception('移動先の指定はフォルダのUUIDしか許可していません')
+        to_folder = Datum.find_by_uuid(parent_uuid)
+        if to_folder.type != Datum.FOLDER_TYPE and to_folder.type != Datum.TRASH_TYPE:
+            raise Exception('移動先の指定はフォルダまたはゴミ箱のUUIDしか許可していません')
 
         if parent_uuid == self.uuid:
             raise Exception('移動先と移動元の指定が同じです')

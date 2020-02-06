@@ -7,7 +7,7 @@ from pathlib import Path
 from datetime import datetime
 
 from kskp.core import Datum
-from kskp.store import Library, Flow, STORE_DIR, Library
+from kskp.store import Library, Flow, RemoteFolder, RemoteFolderConn, STORE_DIR, Library
 
 class LibraryTest(unittest.TestCase):
     # テスト用ユーザID
@@ -180,6 +180,98 @@ class LibraryTest(unittest.TestCase):
         self.assertEqual(folder.created_at, folder.modified_at)
         # 作成したフォルダを削除する
         Library.delete_folder(folder.uuid)
+
+    def test_get_rfolder(self):
+        """
+        リモートフォルダを取得する
+        """
+        try:
+            # ルートデータストアを取得する
+            root = Library.load_root()
+            # ルートデータストアの直下にリモートフォルダを作成する
+            conn = RemoteFolderConn('smb', "kskds-HP-Workstation-z620.local", "WORKGROUP", "share", "ksk-ds", "kskanalytics")
+            folder = RemoteFolder(root.uuid, 'リモートフォルダ', conn, self.USER_ID1)
+            folder.save()
+            # 作成したリモートフォルダを取得する
+            folder = RemoteFolder.find_by_uuid(folder.uuid)
+            # 取得したフォルダの値を検証する
+            self.assertIsNotNone(folder.id)
+            self.assertEqual(folder.parent_id, root.id)
+            self.assertIsNotNone(folder.uuid)
+            self.assertEqual(folder.path, root.path / 'リモートフォルダ')
+            self.assertEqual(folder.type, 'rfolder')
+            self.assertEqual(folder.label, 'リモートフォルダ')
+            self.assertEqual(folder.creator, self.USER_ID1)
+            self.assertEqual(folder.modifier, self.USER_ID1)
+            self.assertIsNotNone(folder.created_at)
+            self.assertIsNotNone(folder.modified_at)
+        finally:
+            # 作成したフォルダを削除する
+            folder.delete()
+
+    # @unittest.skip
+    def test_update_rfolder(self):
+        """
+        リモートフォルダのラベルを変更する
+        """
+        try:
+            # ルートデータストアを取得する
+            root = Library.load_root()
+            # ルートデータストアの直下にリモートフォルダを作成する
+            conn = RemoteFolderConn('smb', "kskds-HP-Workstation-z620.local", "WORKGROUP", "share", "ksk-ds", "kskanalytics")
+            folder = RemoteFolder(root.uuid, 'リモートフォルダ2', conn, self.USER_ID1)
+            folder.save()
+            # 作成したフォルダのラベルを変更する
+            folder.update_data(folder.uuid, '新しいリモートフォルダ2', conn, self.USER_ID2)
+            # ラベルとディレクトリパスのみが変更されることを検証する
+            self.assertEqual(folder.id, folder.id)
+            self.assertEqual(folder.parent_id, folder.parent_id)
+            self.assertEqual(folder.uuid, folder.uuid)
+            self.assertEqual(folder.path, root.path / '新しいリモートフォルダ2')
+            self.assertEqual(folder.type, folder.type)
+            self.assertEqual(folder.label, '新しいリモートフォルダ2')
+            self.assertEqual(folder.creator, self.USER_ID1)
+            self.assertEqual(folder.modifier, self.USER_ID2)
+            self.assertEqual(folder.created_at, folder.created_at)
+            self.assertIsNotNone(folder.modified_at)
+        finally:
+            # 作成したフォルダを削除する
+            folder = RemoteFolder.find_by_uuid(folder.uuid)
+            folder.delete()
+
+    # @unittest.skip
+    def test_move_rfolder(self):
+        """
+        リモートフォルダを移動する
+        """
+        try:
+            # ルートデータストアを取得する
+            root = Library.load_root()
+            # ルートデータストアの直下にフォルダを作成する
+            to_folder = Library.save_folder(root.uuid, 'フォルダaabb', self.USER_ID1)
+            # ルートデータストアの直下にリモートフォルダを作成する
+            conn = RemoteFolderConn('smb', "kskds-HP-Workstation-z620.local", "WORKGROUP", "share", "ksk-ds", "kskanalytics")
+            folder = RemoteFolder(root.uuid, 'リモートフォルダ3', conn, self.USER_ID1)
+            folder.save()
+            # 作成したフォルダのラベルを変更する
+            folder.move(to_folder.uuid, self.USER_ID2)
+            # ラベルとディレクトリパスのみが変更されることを検証する
+            self.assertEqual(folder.id, folder.id)
+            self.assertEqual(folder.parent_id, folder.parent_id)
+            self.assertEqual(folder.uuid, folder.uuid)
+            # Moutableなフォルダは移動してもパスは変わらない
+            self.assertEqual(folder.path, root.path / 'リモートフォルダ3')
+            self.assertEqual(folder.type, folder.type)
+            self.assertEqual(folder.label, 'リモートフォルダ3')
+            self.assertEqual(folder.creator, self.USER_ID1)
+            self.assertEqual(folder.modifier, self.USER_ID2)
+            self.assertEqual(folder.created_at, folder.created_at)
+            self.assertIsNotNone(folder.modified_at)
+        finally:
+            # 作成したフォルダを削除する
+            folder = RemoteFolder.find_by_uuid(folder.uuid)
+            folder.delete()
+
 
     @unittest.skip('AWS S3のパスワードないのでエラーになる')
     def test_get_awss3(self):
