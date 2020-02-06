@@ -7,8 +7,6 @@ RESULT_FOLDER_UUID  = 'aacb4914-0695-40fc-b14b-95b7f1f81707'
 RESULT_FOLDER_LABEL = '実行結果'
 CACHE_FOLDER_UUID   = 'cc9f050d-b007-414e-a6e0-6d31a9c13395'
 CACHE_FOLDER_LABEL  = 'キャッシュ'
-TRASH_FOLDER_UUID   = '55602f47-6dba-40ee-97cd-79f326426c21'
-TRASH_FOLDER_LABEL  = 'ゴミ箱' 
 
 # フローがDBに保存されるようになるまでは下記のパスをstoreが持っておく
 STORE_DIR = Path(__file__).parent.parent / 'depo/files'

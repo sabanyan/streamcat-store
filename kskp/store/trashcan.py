@@ -3,7 +3,7 @@ import uuid
 from . import ss as session
 
 from kskp.core import Datum
-from kskp.store import Folder, TRASH_FOLDER_UUID, TRASH_FOLDER_LABEL
+from kskp.store import Folder
 
 class TrashCan(Folder):
 
@@ -11,7 +11,7 @@ class TrashCan(Folder):
         """
         コンストラクタ
         """
-        super().__init__(parent_uuid, TRASH_FOLDER_LABEL, creator)
+        super().__init__(parent_uuid, 'ゴミ箱', creator)
 
         # データタイプを設定する
         self.type = Datum.TRASH_TYPE
