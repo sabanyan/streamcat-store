@@ -11,6 +11,9 @@ class Frame(Datum):
     # 64MB
     READ_BUFFER_SIZE = 64 * 1024 * 1024
 
+    # 文字コード変換テーブル
+    ENCODING_CONV_TABLE = {'ascii':'ASCII', 'utf-8':'UTF-8', 'UTF-8-SIG':'UTF-8 BOM'}
+
     def __init__(self, parent_uuid, label, stream, creator=None):
         """
         コンストラクタ
@@ -234,13 +237,8 @@ class Frame(Datum):
 
     @property
     def encoding_str(self):
-        conv_table = {'ascii':'ASCII', 'utf-8':'UTF-8', 'UTF-8-SIG':'UTF-8 BOM'}
-        ret = conv_table.get(self.encoding)
-        
-        if ret is None:
-            return self.encoding
-        else:
-            return ret
+        ret = self.ENCODING_CONV_TABLE.get(self.encoding)
+        return ret or self.encoding
 
     @property
     def newline(self):
