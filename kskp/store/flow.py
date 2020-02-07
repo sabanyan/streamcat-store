@@ -26,8 +26,8 @@ class Flow(Datum):
         """
         全てのフローを取得する
         """
-        data = session.query(Datum).filter(Datum.type==Datum.FLOW_TYPE).all()
-        return data
+        flows = session.query(Flow).filter(Flow.type==Flow.FLOW_TYPE).all()
+        return flows
 
     @staticmethod
     def find_by_uuid(uuid):
@@ -78,8 +78,8 @@ class Flow(Datum):
         # UUID値の形式チェックをする
         if not Datum.is_valid_uuid(uuid):
             return False
-        result = session.query(Datum).filter(Datum.uuid==uuid)\
-                                     .filter(Datum.type==Datum.FLOW_TYPE).count()
+        result = session.query(Flow).filter(Flow.uuid==uuid)\
+                                    .filter(Flow.type==Flow.FLOW_TYPE).count()
         return result > 0
 
     @staticmethod
