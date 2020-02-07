@@ -3,7 +3,7 @@ import os
 import sys
 import nysol.mcmd as nm
 
-from kskp.store import NysolModule, Datum, Store, Folder, Frame
+from kskp.store import NysolModule, Datum, Store, Folder, Frame, Cache
 from kskp.core import Command, Port
 
 class SCommand(Command):
@@ -112,7 +112,7 @@ class CacheSaverCommand(SaverCommand):
         cache_label = cache_label.replace(' ', '_')
 
         # Cacheフレームを作成する
-        self.frame = self.make_frame(store, cache_label)
+        cache = self.make_frame(store, cache_label)
 
         # FlowのキャッシュUUIDを変更する
         # テスト実行の場合は実行するFlowをDBに保存していない
@@ -121,14 +121,21 @@ class CacheSaverCommand(SaverCommand):
             flow = Flow.find_by_uuid(args['flow_uuid'])
             node_id = args['datum_id']
             # TODO: RunsCommand実行前にFlowにキャッシュありの情報を更新すると、同じフローの同時実行に支障があるだろう
-            flow.set_cache(node_id, self.frame.uuid, None)
+            flow.set_cache(node_id, cache.uuid, None)
 
         # NYSOLコマンドを作成する
         cmd = inputs['i'].content
-        cmd = self.append_writecsv_cmd(cmd, self.frame.path)
+        cmd = self.append_writecsv_cmd(cmd, cache.path)
 
-        return {'o': NysolModule(cmd)}
+        return {'o': NysolModule(cmd), 'u': cache}
 
+    def make_frame(self, store, label):
+        import io
+        f = io.BytesIO(b'')
+        cache = Cache(store.uuid, label, f)
+        # RunsCommandの実行前にCacheを登録する
+        cache.save()
+        return cache
 
 # 1つ保存のsaverはどうなる？
 # 普通なら、inputsできたものをargs情報を使って保存か
@@ -157,10 +164,21 @@ class LoaderCommand(SCommand):
             raise Exception('No frame(%s) is found !' % frame_uuid)
         path = Datum._to_abs_path(frame.path.as_posix())
 
-        cmd = nm.m2tee({'i':path})
+        if frame.encoding is None:
+            # frameの文字コードが未判定の場合はここで判定する
+            with open(path, 'rb') as f:
+                encoding = Frame._detect_encoding(f)
+        else:
+            # frameの文字コードを取得する
+            encoding = frame.encoding
+
+        cmd = nm.m2tee(i=path)
         # mreadで存在しないファイルパスを指定するとDockerごと落ちる ->　
         # cmd = nm.mread({'i':path})
-        return {'o': NysolModule(cmd)}
+        nysol_module = NysolModule(cmd)
+        # frameの文字コードを次のコマンドに渡す
+        nysol_module.encoding = encoding
+        return {'o': nysol_module}
 
 class DbLoaderCommand(SCommand):
     """

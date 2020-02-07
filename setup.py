@@ -5,6 +5,7 @@ setup(
     packages=['kskp.store'],
     install_requires=[
         'ordered_set',
+        'chardet',
         'psycopg2',
         'sqlalchemy',
         'alembic',

@@ -11,6 +11,9 @@ class Frame(Datum):
     # 64MB
     READ_BUFFER_SIZE = 64 * 1024 * 1024
 
+    # 文字コード変換テーブル
+    ENCODING_CONV_TABLE = {'ascii':'ASCII', 'utf-8':'UTF-8', 'UTF-8-SIG':'UTF-8 BOM'}
+
     def __init__(self, parent_uuid, label, stream, creator=None):
         """
         コンストラクタ
@@ -18,13 +21,19 @@ class Frame(Datum):
         """
         super().__init__(parent_uuid, Datum.FRAME_TYPE, label, creator)
 
-        # data列の値を作成する
-        self.data = {'label' : label}
+        # ファイルストリームの文字コードを推測する
+        if stream is not None and hasattr(stream, 'seek'):
+            encoding = Frame._detect_encoding(stream)
+            newline = Frame._detect_newline_code(stream)
+        else:
+            encoding = 'UNKNOWN'
+            newline = 'UNKNOWN'
 
         # ファイルストリームを保持する
         self.stream = stream
 
-        # self._content = None
+        # data列の値を作成する
+        self.data = {'encoding':encoding, 'newline':newline}
 
     @staticmethod
     def find_by_uuid(uuid):
@@ -56,10 +65,10 @@ class Frame(Datum):
     @staticmethod
     def convert_to_frame(datum):
         parent_uuid = Datum.get_uuid_by_id(datum.parent_id)
-        # label = json.loads(datum.data, encoding='utf-8')['label']
         frame = Frame(parent_uuid, datum.label, None, datum.creator)
         frame.id = datum.id
         frame.uuid = datum.uuid
+        frame.data = datum.data
         frame._path = datum._path
         frame.modifier = datum.modifier
         frame.created_at = datum.created_at
@@ -94,6 +103,15 @@ class Frame(Datum):
         if self.parent_id is None and Datum.count_root() > 0:
             raise Exception('You can not add another root frame. A root already exists!')
         self.path = file_path
+
+        # ファイルの文字コードを判定する
+        abs_path = Datum._to_abs_path(file_path.as_posix())
+        if os.path.exists(abs_path):
+            with open(abs_path, 'rb') as f:
+                encoding = Frame._detect_encoding(f)
+                newline = Frame._detect_newline_code(f)
+            self.data = {'encoding':encoding, 'newline':newline}
+
         try:
             # Dataテーブルにレコードを新規追加する
             session.add(self)
@@ -141,12 +159,6 @@ class Frame(Datum):
         Frameのlabel列を更新する
         (path及び対応ファイル名は変更しない)
         """
-         # レコードを取得する
-        datum = session.query(Datum).filter(Datum.uuid==uuid)\
-                                    .filter(Datum.type==Datum.FRAME_TYPE).one_or_none()
-        if datum is None:
-            raise Exception('no frame is found by designated id.')
-
         # ラベルに'\0'が含まれていれば取り除く
         new_label = Datum.escape_label(label)
 
@@ -160,10 +172,8 @@ class Frame(Datum):
 
     @staticmethod
     def _update_label_imp(uuid, new_label, modifier):
-        # labelとdata列を更新する
-        data = {'label' : new_label}
+        # label列を更新する
         session.query(Datum).filter(Datum.uuid==uuid).update({'_label'  :new_label,
-                                                              'data'    :data,
                                                               'modifier':modifier})
 
     def delete(self):
@@ -216,6 +226,27 @@ class Frame(Datum):
     @property
     def file_exists(self):
         return os.path.exists(self._to_abs_path(self._path))
+
+    @property
+    def encoding(self):
+        return self.data2.get('encoding') or 'UNKNOWN'
+
+    @encoding.setter
+    def encoding(self, encoding):
+        self.data['encoding'] = encoding
+
+    @property
+    def encoding_str(self):
+        ret = self.ENCODING_CONV_TABLE.get(self.encoding)
+        return ret or self.encoding
+
+    @property
+    def newline(self):
+        return self.data2.get('newline') or 'UNKNOWN'
+
+    @newline.setter
+    def newline(self, newline):
+        self.data['newline'] = newline
 
     @property
     def modified_at_str(self):
@@ -277,10 +308,78 @@ class Frame(Datum):
                                            .filter(Datum.id != except_id).count()
         return result > 0
 
+    @staticmethod
+    def _detect_encoding(stream):
+        """
+        指定されたファイルの文字コードを判別する
+        """
+        from chardet.enums import LanguageFilter
+        from chardet.universaldetector import UniversalDetector
+        detector = UniversalDetector(lang_filter=LanguageFilter.CJK)
+
+        max_feed_num = 100
+        chunk_size = 1024
+
+        for i in range(max_feed_num):
+            chunk = stream.read(chunk_size)
+            if not chunk:
+                break
+            # 一定Byteずつ食わせる
+            detector.feed(chunk)
+            # 文字コード判定の信頼度がある一定を超えた場合に識別結果を返す
+            if detector.done:
+                break
+
+        # streamの読み込み位置をリセットする
+        stream.seek(0)
+        detector.close()
+
+        encoding = detector.result.get('encoding')
+        if not encoding:
+            # 今回の調査で我々は・・・何の成果も得られませんでした！！
+            return 'UNKNOWN'
+
+        return encoding
+
+    @staticmethod
+    def _detect_newline_code(stream):
+        max_feed_num = 100
+        chunk_size = 1024
+
+        crlf_count = 0
+        lf_count = 0
+        cr_count = 0
+
+        for i in range(max_feed_num):
+            chunk = stream.read(chunk_size)
+            if not chunk:
+                break
+            crlf = chunk.count(b'\r\n')
+            if crlf > 0:
+                crlf_count += crlf
+            else:
+                lf_count += chunk.count(b'\n')
+                cr_count += chunk.count(b'\r')
+
+        # streamの読み込み位置をリセットする
+        stream.seek(0)
+
+        # 出現頻度の最も多い改行コードを返す
+        if crlf_count > max(lf_count, cr_count):
+            return 'CR+LF'
+        elif lf_count > cr_count:
+            return 'LF'
+        elif lf_count < cr_count:
+            return 'CR'
+        else:
+            return 'UNKNOWN'
+
     def to_json(self):
         return {'uuid'      : self.uuid,
                 'type'      : Datum.FRAME_TYPE,
                 'label'     : self.label,
+                'encoding'  : self.encoding_str,
+                'newline'   : self.newline,
                 'creator'   : Datum.get_user_name_by_user_id(self.creator),
                 'createdAt' : self.created_at_str}
 
