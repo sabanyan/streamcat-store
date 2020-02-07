@@ -29,15 +29,21 @@ class Activity(Datum):
 
         # data列の値を作成する
         # (同じインスタンスのpointの場合もあることに注意!!)
-        # [(point, frame)]
-        self.result = []
-        self.data = {'start_time' : start_time, 'flow_uuid' : flow_uuid, 'result': self.result}
+        # [(point, datum)]
+        self._results = []
+        self.data = {'start_time' : start_time, 'flow_uuid' : flow_uuid, 'result': self._results}
 
     def add(self, point, result_frame):
-        self.result.append((point, result_frame))
+        self._results.append((point, result_frame))
+
+    @property
+    def result(self):
+        # Cacheは返さない
+        # 同じPointにCacheとFrame(CacheとVis)が紐づくとややこしい
+        return [(point, datum) for point, datum in self._results if type(datum) != Cache]
 
     def count_result(self):
-        return len(self.result)
+        return len(self._results)
 
     def save(self):
         # 現在時刻を取得する
@@ -45,7 +51,7 @@ class Activity(Datum):
         end_time = datetime.utcnow().replace(tzinfo=timezone.utc)
         end_time_str = end_time.astimezone().strftime('%H:%M:%S')
         # 出力フレームのラベルに終了時刻と所要時間を付加する
-        for point, datum in self.result:
+        for point, datum in self._results:
             new_label = datum.label + ' 終了時刻' + end_time_str
             elapsed_time = (end_time - self.data['start_time']).total_seconds()
             if elapsed_time < 60.0:
