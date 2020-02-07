@@ -26,8 +26,8 @@ class Flow(Datum):
         """
         全てのフローを取得する
         """
-        data = session.query(Datum).filter(Datum.type==Datum.FLOW_TYPE).all()
-        return data
+        flows = session.query(Flow).filter(Flow.type==Flow.FLOW_TYPE).all()
+        return flows
 
     @staticmethod
     def find_by_uuid(uuid):
@@ -36,11 +36,11 @@ class Flow(Datum):
         """
         # UUID値の形式チェックをする
         Datum.valid_uuid_or_raise(uuid)
-        datum = session.query(Datum).filter(Datum.uuid==uuid)\
-                                    .filter(Datum.type==Datum.FLOW_TYPE).one_or_none()
-        if datum is None:
+        flow = session.query(Flow).filter(Flow.uuid==uuid)\
+                                  .filter(Flow.type==Flow.FLOW_TYPE).one_or_none()
+        if flow is None:
             raise Exception('no flow is found by designated id(%s).' % uuid)
-        return Flow.convert_to_flow(datum)
+        return flow
 
     @staticmethod
     def find_all_subflows(no_inputs=True, no_outputs=True):
@@ -50,23 +50,23 @@ class Flow(Datum):
         no_outputs =False : 出力ポートのないサブフローは取得しない
         """
         # FIXIT : PostgreSQLのJSONB演算子を用いればSQLのみでサブフローを抽出できるはず
-        data = session.query(Datum).filter(Datum.type==Datum.FLOW_TYPE).all()
+        flows = session.query(Flow).filter(Flow.type==Flow.FLOW_TYPE).all()
 
         subflows = []
-        for datum in data:
-            datum_data = datum.data2['flow']
+        for flow in flows:
+            flow_data = flow.data2['flow']
             # onの時にno_inputs（＝inputsがない）のサブフローは出さない
             if no_inputs:
-                if len(datum_data['ports'][0]) == 0:
+                if len(flow_data['ports'][0]) == 0:
                     continue
 
             # onの時にno_outputs（＝outputsがない）のサブフローは出さない
             if no_outputs:
-                if len(datum_data['ports'][1]) == 0:
+                if len(flow_data['ports'][1]) == 0:
                     continue
 
-            if len(datum_data['ports'][0]) > 0 or len(datum_data['ports'][1]) > 0:
-                subflows.append(datum)
+            if len(flow_data['ports'][0]) > 0 or len(flow_data['ports'][1]) > 0:
+                subflows.append(flow)
 
         return subflows
 
@@ -78,8 +78,8 @@ class Flow(Datum):
         # UUID値の形式チェックをする
         if not Datum.is_valid_uuid(uuid):
             return False
-        result = session.query(Datum).filter(Datum.uuid==uuid)\
-                                     .filter(Datum.type==Datum.FLOW_TYPE).count()
+        result = session.query(Flow).filter(Flow.uuid==uuid)\
+                                    .filter(Flow.type==Flow.FLOW_TYPE).count()
         return result > 0
 
     @staticmethod
@@ -145,11 +145,10 @@ class Flow(Datum):
         # UUID値の形式チェックをする
         Datum.valid_uuid_or_raise(uuid)
         # レコードを取得する
-        datum = session.query(Datum).filter(Datum.uuid==uuid)\
-                                    .filter(Datum.type==Datum.FLOW_TYPE).one_or_none()
-        if datum is None:
+        flow = session.query(Flow).filter(Flow.uuid==uuid)\
+                                  .filter(Flow.type==Flow.FLOW_TYPE).one_or_none()
+        if flow is None:
             raise Exception('no flow is found by designated id.')
-        flow = Flow.convert_to_flow(datum)
 
         # # 参照するフレームがライブラリに存在することを確認する
         # for frame_uuid in flow.get_src_frame_uuids():
@@ -165,7 +164,7 @@ class Flow(Datum):
         new_label = Datum.escape_label(label)
         # 更新データを作成する
         data = {'label' : new_label, 'flow' : flow_data}
-        flow.data = data
+        # flow.data = data
 
         # フローのインポート処理で引っかかるので以下のチェックを一旦外す
         # 
@@ -181,17 +180,32 @@ class Flow(Datum):
 
         try:
             # レコードを更新する
-            session.query(Datum).filter(Datum.uuid==uuid).update({'_label'   :new_label,
-                                                                  'data'     :data,
-                                                                  'modifier' :modifier})
+
+            # 実行時、Post /vizs Exception This session is in 'prepared' stateが出力されるのを防ぐ
+            # from kskp.store import engine
+            # from sqlalchemy import create_engine
+            # from sqlalchemy.orm import sessionmaker
+            # my_engine = create_engine(os.environ['SQLALCHEMY_DATABASE_URI'], echo=True)
+            # my_session = sessionmaker(bind=my_engine)()
+
+            session.query(Flow).filter(Flow.uuid==uuid).update({'_label'   :new_label,
+                                                                'data'     :data,
+                                                                'modifier' :modifier})
         except Exception as e:
             session.rollback()
             raise e
         finally:
             session.commit()
+            # my_engine.dispose()
+
+        # # レコードを取得する
+        # datum = session.query(Datum).filter(Datum.uuid==uuid)\
+        #                             .filter(Datum.type==Datum.FLOW_TYPE).one_or_none()
+        # if datum is None:
+        #     raise Exception('no flow is found by designated id.')
 
         # ここでflowを返すとtest_model.pyでテストが通らない
-        return Flow.convert_to_flow(datum)
+        return flow
 
     def move(self, parent_uuid, modifier):
         """
