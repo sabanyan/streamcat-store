@@ -36,11 +36,11 @@ class Flow(Datum):
         """
         # UUID値の形式チェックをする
         Datum.valid_uuid_or_raise(uuid)
-        datum = session.query(Datum).filter(Datum.uuid==uuid)\
-                                    .filter(Datum.type==Datum.FLOW_TYPE).one_or_none()
-        if datum is None:
+        flow = session.query(Flow).filter(Flow.uuid==uuid)\
+                                  .filter(Flow.type==Flow.FLOW_TYPE).one_or_none()
+        if flow is None:
             raise Exception('no flow is found by designated id(%s).' % uuid)
-        return Flow.convert_to_flow(datum)
+        return flow
 
     @staticmethod
     def find_all_subflows(no_inputs=True, no_outputs=True):
@@ -145,11 +145,10 @@ class Flow(Datum):
         # UUID値の形式チェックをする
         Datum.valid_uuid_or_raise(uuid)
         # レコードを取得する
-        datum = session.query(Datum).filter(Datum.uuid==uuid)\
-                                    .filter(Datum.type==Datum.FLOW_TYPE).one_or_none()
-        if datum is None:
+        flow = session.query(Flow).filter(Flow.uuid==uuid)\
+                                  .filter(Flow.type==Flow.FLOW_TYPE).one_or_none()
+        if flow is None:
             raise Exception('no flow is found by designated id.')
-        flow = Flow.convert_to_flow(datum)
 
         # # 参照するフレームがライブラリに存在することを確認する
         # for frame_uuid in flow.get_src_frame_uuids():
@@ -189,9 +188,9 @@ class Flow(Datum):
             # my_engine = create_engine(os.environ['SQLALCHEMY_DATABASE_URI'], echo=True)
             # my_session = sessionmaker(bind=my_engine)()
 
-            session.query(Datum).filter(Datum.uuid==uuid).update({'_label'   :new_label,
-                                                                  'data'     :data,
-                                                                  'modifier' :modifier})
+            session.query(Flow).filter(Flow.uuid==uuid).update({'_label'   :new_label,
+                                                                'data'     :data,
+                                                                'modifier' :modifier})
         except Exception as e:
             session.rollback()
             raise e
@@ -206,7 +205,7 @@ class Flow(Datum):
         #     raise Exception('no flow is found by designated id.')
 
         # ここでflowを返すとtest_model.pyでテストが通らない
-        return Flow.convert_to_flow(datum)
+        return flow
 
     def move(self, parent_uuid, modifier):
         """
