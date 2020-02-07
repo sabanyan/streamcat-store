@@ -80,6 +80,7 @@ class NysolModule(Datum):
     def __init__(self, nysol_cmd=None):
         super().__init__(None, 'nm', None)
         self._content = nysol_cmd
+        self._encoding = None
 
     def set_content(self, module):
         self._content = module
@@ -87,6 +88,14 @@ class NysolModule(Datum):
     @property
     def content(self):
         return self._content
+
+    @property
+    def encoding(self):
+        return self._encoding
+
+    @encoding.setter
+    def encoding(self, encoding):
+        self._encoding = encoding
 
     def __ilshift__(self, other):
         raise Exception(f'NysolModule({str(self._content)})に"<<="演算子は使えません')
@@ -99,6 +108,7 @@ class List(Datum):
     def __init__(self, content=None):
         super().__init__(None, 'list', None)
         self._content = content
+        self._encoding = None
 
     def set_content(self, content):
         self._content = content
@@ -106,6 +116,14 @@ class List(Datum):
     @property
     def content(self):
         return self._content
+
+    @property
+    def encoding(self):
+        return self._encoding
+
+    @encoding.setter
+    def encoding(self, encoding):
+        self._encoding = encoding
 
     def __ilshift__(self, other):
         raise Exception(f'List({str(self._content)})に"<<="演算子は使えません')
