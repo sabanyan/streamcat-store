@@ -14,24 +14,24 @@ class TrashCan(Folder):
         super().__init__(parent_uuid, 'ゴミ箱', creator)
 
         # データタイプを設定する
-        self.type = Datum.TRASH_TYPE
+        self.type = TrashCan.TRASH_TYPE
 
     @staticmethod
     def find():
         """
         指定されたuuidを持つゴミ箱を取得する
         """
-        datum = session.query(Datum).filter(Datum.type==Datum.TRASH_TYPE).one_or_none()
-        if datum is None:
+        trashcan = session.query(TrashCan).filter(TrashCan.type==TrashCan.TRASH_TYPE).one_or_none()
+        if trashcan is None:
             raise Exception('no trush can is found by designated id.')
-        return TrashCan.convert_to_trash_can(datum)
+        return trashcan
 
     @staticmethod
     def exists():
         """
         ゴミ箱が存在する場合はTrueを返す
         """
-        result = session.query(Datum).filter(Datum.type==Datum.TRASH_TYPE).count()
+        result = session.query(TrashCan).filter(TrashCan.type==TrashCan.TRASH_TYPE).count()
         return result > 0
 
     def save(self):
@@ -51,6 +51,7 @@ class TrashCan(Folder):
         trash.id = datum.id
         trash.uuid = datum.uuid
         trash._path = datum._path
+        trash.data = datum.data
         trash.modifier = datum.modifier
         trash.created_at = datum.created_at
         trash.modified_at = datum.modified_at
@@ -58,8 +59,7 @@ class TrashCan(Folder):
 
     def to_json(self):
         return {'uuid'      : self.uuid,
-                'type'      : Datum.TRASH_TYPE,
+                'type'      : TrashCan.TRASH_TYPE,
                 'label'     : self.label,
                 'creator'   : Datum.get_user_name_by_user_id(self.creator),
                 'createdAt' : self.created_at_str}
-

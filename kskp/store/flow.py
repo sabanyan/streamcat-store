@@ -90,6 +90,7 @@ class Flow(Datum):
         flow.id = datum.id
         flow.uuid = datum.uuid
         flow._path = datum._path
+        flow.data = datum.data
         flow.modifier = datum.modifier
         flow.created_at = datum.created_at
         flow.modified_at = datum.modified_at
@@ -207,9 +208,14 @@ class Flow(Datum):
         if parent_uuid == self.uuid:
             raise Exception('移動先と移動元の指定が同じです')
 
+        # 移動元フォルダのidを覚えておく
+        data = self.data2.copy()
+        data['prev_parent_id'] = self.parent_id
+
         try:
             # レコードを更新する
             session.query(Datum).filter(Datum.id==self.id).update({'parent_id': to_folder.id
+                                                                  ,'data'     : data
                                                                   ,'modifier' : modifier})
         except Exception as e:
             session.rollback()
@@ -388,10 +394,3 @@ class Flow(Datum):
                 # 記録時間はUTC、表示時間は現地時間にすべきでは？？
                 node['cacheCreatedAt'] = datetime.now(timezone(timedelta(hours=+9), 'JST')).strftime('%Y-%m-%d %H:%M:%S')
         Flow.update_data(self.uuid, self.label, flow_data, user_id)
-
-    def to_json(self):
-        return {'uuid'      : self.uuid,
-                'type'      : Datum.FLOW_TYPE,
-                'label'     : self.label,
-                'creator'   : Datum.get_user_name_by_user_id(self.creator),
-                'createdAt' : self.created_at_str}

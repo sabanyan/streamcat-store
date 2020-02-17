@@ -61,6 +61,7 @@ class Frame(Datum):
         frame.id = datum.id
         frame.uuid = datum.uuid
         frame._path = datum._path
+        frame.data = datum.data
         frame.modifier = datum.modifier
         frame.created_at = datum.created_at
         frame.modified_at = datum.modified_at
@@ -276,13 +277,6 @@ class Frame(Datum):
                                            .filter(Datum.type == Datum.FRAME_TYPE)\
                                            .filter(Datum.id != except_id).count()
         return result > 0
-
-    def to_json(self):
-        return {'uuid'      : self.uuid,
-                'type'      : Datum.FRAME_TYPE,
-                'label'     : self.label,
-                'creator'   : Datum.get_user_name_by_user_id(self.creator),
-                'createdAt' : self.created_at_str}
 
     # for engine
     # def set_centext(self, params):

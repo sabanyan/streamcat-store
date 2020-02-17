@@ -52,6 +52,7 @@ class Database(Store):
         database.id = datum.id
         database.uuid = datum.uuid
         database._path = datum._path
+        database.data = datum.data
         database.modifier = datum.modifier
         database.created_at = datum.created_at
         database.modified_at = datum.modified_at
@@ -117,9 +118,14 @@ class Database(Store):
         if parent_uuid == self.uuid:
             raise Exception('移動先と移動元の指定が同じです')
 
+        # 移動元フォルダのidを覚えておく
+        data = self.data2.copy()
+        data['prev_parent_id'] = self.parent_id
+
         try:
             # レコードを更新する
             session.query(Datum).filter(Datum.id==self.id).update({'parent_id': to_folder.id
+                                                                  ,'data'     : data
                                                                   ,'modifier' : modifier})
         except Exception as e:
             session.rollback()
