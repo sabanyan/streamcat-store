@@ -45,7 +45,14 @@ class Group(BaseModel):
 
     @staticmethod
     def find_by_id(id):
-        group = session.query()
+        return session.query(Group).filter(Group.id == id)
+
+    @staticmethod
+    def all():
+        """
+        全件取得する
+        """
+        return session.query(Group).all()
 
     def save(self):
         """
@@ -60,16 +67,17 @@ class Group(BaseModel):
 
     def delete(self):
         # グループに一人以上のユーザが所属している場合は例外を送出する
-        count = session.query(UserGroup).filter(UserGroup.group_id==self.id).count()
+        count = session.query(UserGroup).filter(UserGroup.group_id == self.id).count()
         if count > 0:
             raise Exception('Can not delete the group that has user(s).')
         # 削除によってどのグループからも所有されなくなるデータがある場合は例外を送出する
-        count = session.query(Auths).filter(Auths.group_id==self.id)\
-                                    .filter(Auths.own==1).count()
+        count = session.query(Auths).filter(Auths.group_id == self.id)\
+                                    .filter(Auths.own == 1).count()
         # 削除グループに対する権限情報をauthsテーブルから全て削除する
 
         # グループを削除する
-        session.query(Group).filter(Group.id==self.id).delete()
+        sys.__stderr__.write(f"self.id: {self.id}\n")
+        session.query(Group).filter(Group.id == self.id).delete()
         session.commit()
 
     def join_user(self, user_id, creator):
@@ -97,7 +105,10 @@ class Group(BaseModel):
         return created_at_local.strftime('%Y-%m-%d %H:%M:%S')
 
     def to_json(self):
-        return {'name'      : self.name,
-                'is_admin'  : self.is_admin,                
-                'creator'   : Datum.get_user_name_by_user_id(self.creator),
-                'createdAt' : self.created_at_str}
+        return {
+            'id'       : self.id,
+            'name'     : self.name,
+            'is_admin' : self.is_admin,               
+            'creator'  : Datum.get_user_name_by_user_id(self.creator),
+            'createdAt': self.created_at_str
+        }
