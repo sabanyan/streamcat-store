@@ -272,9 +272,11 @@ class Datum(BaseModel):
 
         prev_parent_uuid = Datum.find_by_id(self.prev_parent_id).uuid
 
-        from kskp.store import Folder
+        from kskp.store import Folder, TrashCan
         if not Folder.exists(prev_parent_uuid):
-            raise Exception('移動元フォルダが削除されたため移動できません')
+            raise Exception('戻り先フォルダが削除されたため移動できません')
+        elif TrashCan.trashed(prev_parent_uuid):
+            raise Exception('戻り先フォルダがゴミ箱の中です')
 
         return self.move(prev_parent_uuid, modifier)
 

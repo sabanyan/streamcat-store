@@ -34,6 +34,30 @@ class TrashCan(Folder):
         result = session.query(TrashCan).filter(TrashCan.type==TrashCan.TRASH_TYPE).count()
         return result > 0
 
+    @staticmethod
+    def trashed(datum_uuid):
+        """
+        ゴミ箱の中にある場合はTrueを返す
+        """
+        sql = f"""
+        WITH RECURSIVE R AS (
+            SELECT id, parent_id, uuid, type, path FROM data WHERE uuid = '{datum_uuid}'
+            UNION ALL
+            SELECT D.id, D.parent_id, D.uuid, D.type, D.path FROM data D JOIN R ON D.id = R.parent_id
+        )
+        SELECT uuid, path, type FROM R
+        WHERE type = '{Datum.TRASH_TYPE}'
+        """
+        try:
+            results = session.execute(sql)
+        except Exception as e:
+            session.rollback()
+            raise e
+        finally:
+            pass
+
+        return len([result for result in results]) > 0
+
     def save(self):
         """
         ゴミ箱を保存する
