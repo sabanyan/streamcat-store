@@ -160,6 +160,14 @@ class Datum(BaseModel):
             return self._label
 
     @property
+    def prev_parent_id(self):
+        return self.data2.get('prev_parent_id')
+
+    @prev_parent_id.setter
+    def prev_parent_id(self, id):
+        self.data['prev_parent_id'] = id
+
+    @property
     def data2(self):
         import json
         try:
@@ -204,16 +212,23 @@ class Datum(BaseModel):
         if self.type == Datum.FOLDER_TYPE:
             pass
 
+        # 移動元フォルダのidを覚えておく
+        data = self.data2.copy()
+        data['prev_parent_id'] = self.parent_id
+
+        # 移動後にラベル名が衝突したらラベル名を変更する
+        new_label = Datum.get_another_label_name(self.label, parent_uuid, except_uuid=self.uuid)
+
         # 移動対象がマウントポイントの場合は、path列を変更することはマウントポイントを変更することになるので
         # parent_idとラベル名だけを変更する
         from kskp.store import Mountable
         if isinstance(self, Mountable):
             # raise Exception('マウントポイントフォルダを移動することはできません')
-            new_label = Datum.get_another_label_name(self.label, self.parent_uuid, except_uuid=self.uuid)
             try:
                 # レコードを更新する
                 session.query(Datum).filter(Datum.id==self.id).update({'parent_id': to_folder.id
                                                                         ,'_label'   : new_label
+                                                                        ,'data'     : data
                                                                         ,'modifier' : modifier})
             except Exception as e:
                 session.rollback()
@@ -227,7 +242,6 @@ class Datum(BaseModel):
         old_path = self._path
         new_path = os.path.join(to_folder._path, os.path.basename(self._path))
         new_path = Datum.move_file(old_path, new_path)
-        new_label = Datum.get_another_label_name(self.label, self.parent_uuid, except_uuid=self.uuid)
 
         try:
             # ファイル名の移動によって他のDatumのpathが変更が必要であれば変更する
@@ -239,6 +253,7 @@ class Datum(BaseModel):
             session.query(Datum).filter(Datum.id==self.id).update({'parent_id': to_folder.id
                                                                   ,'_path'    : new_path
                                                                   ,'_label'   : new_label
+                                                                  ,'data'     : data
                                                                   ,'modifier' : modifier})
         except Exception as e:
             session.rollback()
@@ -247,6 +262,28 @@ class Datum(BaseModel):
             session.commit()
 
         return self
+
+    def put_back(self, modifier):
+        """
+        直前の親のStoreの直下に移動する
+        """
+        if self.prev_parent_id is None:
+            raise Exception(f'このDatum({self.label})は移動したことがありません')
+
+        prev_parent_uuid = Datum.find_by_id(self.prev_parent_id).uuid
+
+        from kskp.store import Folder
+        if not Folder.exists(prev_parent_uuid):
+            raise Exception('移動元フォルダが削除されたため移動できません')
+
+        return self.move(prev_parent_uuid, modifier)
+
+    def to_json(self):
+        return {'uuid'      : self.uuid,
+                'type'      : self.type,
+                'label'     : self.label,
+                'creator'   : Datum.get_user_name_by_user_id(self.creator),
+                'createdAt' : self.created_at_str}
 
     @staticmethod
     def update_same_path(old_path, new_path, modifier):
@@ -259,15 +296,16 @@ class Datum(BaseModel):
                                                                             , 'modifier': modifier})
     @staticmethod
     def update_include_path(old_path, new_path, modifier):
+        import re
         # 同じディレクトリを含むpath列を、ディレクトリの移動に合わせて変更する
-        rel_old_path = Datum._to_rel_path(old_path)
-        abs_old_path = Datum._to_abs_path(old_path)
+        rel_old_path = re.escape(Datum._to_rel_path(old_path))
+        abs_old_path = re.escape(Datum._to_abs_path(old_path))
         from sqlalchemy import or_
         results = session.query(Datum.id, Datum._path)\
                          .filter(Datum.type!=Datum.FLOW_TYPE)\
                          .filter(or_(Datum._path.like(rel_old_path + '/%'),\
                                      Datum._path.like(abs_old_path + '/%'))).all()
-        import re
+
         for result in results:
             if result._path.startswith('/'):
                 replaced_path = re.sub('^'+abs_old_path, new_path, result._path)
@@ -310,6 +348,16 @@ class Datum(BaseModel):
     @staticmethod
     def count_root():
         return session.query(Datum).filter(Datum.parent_id == None).count()
+
+    @staticmethod
+    def find_by_id(id):
+        """
+        指定されたidを持つDatumを取得する
+        """
+        datum = session.query(Datum).filter(Datum.id==id).one_or_none()
+        if datum is None:
+            raise Exception('no datum is found by designated id.')
+        return datum
 
     @staticmethod
     def find_by_uuid(uuid):
@@ -395,6 +443,10 @@ class Datum(BaseModel):
                 return old_path
         except PermissionError as e:
             # ファイルに対する権限がない場合
+            raise e
+        except OSError as e:
+            # ファイルパス指定に誤りがある場合
+            # (循環参照になる場合など)
             raise e
 
     @staticmethod

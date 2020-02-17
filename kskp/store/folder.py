@@ -52,6 +52,7 @@ class Folder(Store):
         folder.id = datum.id
         folder.uuid = datum.uuid
         folder._path = datum._path
+        folder.data = datum.data
         folder.modifier = datum.modifier
         folder.created_at = datum.created_at
         folder.modified_at = datum.modified_at
@@ -240,7 +241,9 @@ class Folder(Store):
                     dir_path = os.path.dirname(dir_path)
                     abs_dir_path = os.path.dirname(abs_dir_path)
         except PermissionError as e:
-            # ファイルに対する権限がない場合
+            # ディレクトリに対する権限がない場合
+            raise e
+        except OSError as e:
             raise e
 
     @staticmethod
@@ -269,13 +272,6 @@ class Folder(Store):
             if os.path.commonpath([Datum._to_rel_path(result._path), rel_path]) == rel_path:
                 return True
         return False
-
-    def to_json(self):
-        return {'uuid'      : self.uuid,
-                'type'      : Datum.FOLDER_TYPE,
-                'label'     : self.label,
-                'creator'   : Datum.get_user_name_by_user_id(self.creator),
-                'createdAt' : self.created_at_str}
 
     # def save_frame(self, command, args, datum, file_name):
     #     """

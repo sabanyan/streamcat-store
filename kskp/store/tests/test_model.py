@@ -130,7 +130,7 @@ class LibraryTest(unittest.TestCase):
         folder_src = Library.save_folder(root.uuid, 'フォルダSRC_AA', self.USER_ID1)
         # 上記フォルダの直下にフレームを作成する
         self.save(folder_src.path / 'aaaa1.csv')
-        frame_src = Library.save_frame(root.uuid, 'フレームSRC', folder_src.path / 'aaaa1.csv', self.USER_ID1)
+        frame_src = Library.save_frame(folder_src.uuid, 'フレームSRC', folder_src.path / 'aaaa1.csv', self.USER_ID1)
         # ルートデータストアの直下にフォルダを作成する
         folder_dst = Library.save_folder(root.uuid, 'フォルダDST', self.USER_ID1)
         # フォルダSRC_AAをフォルダDSTへ移動する
@@ -152,10 +152,69 @@ class LibraryTest(unittest.TestCase):
         self.assertEqual(updated_folder.modifier, self.USER_ID2)
         self.assertEqual(updated_folder.created_at, folder_src.created_at)
         self.assertIsNotNone(updated_folder.modified_at)
+        """
+        フォルダの移動を元に戻す
+        """
+        updated_folder.put_back(self.USER_ID1)
+        # parent_id, path, modifierが変更されることを検証する
+        self.assertEqual(updated_folder.id, folder_src.id)
+        self.assertEqual(updated_folder.parent_id, root.id)
+        self.assertEqual(updated_folder.uuid, folder_src.uuid)
+        self.assertEqual(updated_folder.path, root.path / 'フォルダSRC_AA')
+        self.assertEqual(updated_folder.type, folder_src.type)
+        self.assertEqual(updated_folder.label, 'フォルダSRC_AA')
+        self.assertEqual(updated_folder.creator, self.USER_ID1)
+        self.assertEqual(updated_folder.modifier, self.USER_ID1)
+        self.assertEqual(updated_folder.created_at, folder_src.created_at)
+        self.assertIsNotNone(updated_folder.modified_at)
+        # 移動したフォルダ配下のファイルのpathが修正されていることを検証する
+        self.assertEqual(frame_src.path, root.path / 'フォルダSRC_AA/aaaa1.csv')
+        self.assertEqual(updated_folder.creator, self.USER_ID1)
+        self.assertEqual(updated_folder.modifier, self.USER_ID1)
+        self.assertEqual(updated_folder.created_at, folder_src.created_at)
+        self.assertIsNotNone(updated_folder.modified_at)
+
         # 作成したフォルダを削除する
         Library.delete_frame(frame_src.uuid)
         Library.delete_folder(updated_folder.uuid)
         Library.delete_folder(folder_dst.uuid)
+
+    def test_move_folder2(self):
+        """
+        フォルダを移動できない場合を検証する
+        """
+        # ルートデータストアを取得する
+        root = Library.load_root()
+        # ルートデータストアの直下にフォルダを作成する
+        folder_src = Library.save_folder(root.uuid, 'フォルダSRC_AB', self.USER_ID1)
+        # 上記フォルダの直下にフレームを作成する
+        self.save(folder_src.path / 'aaaa1.csv')
+        frame_src = Library.save_frame(folder_src.uuid, 'フレームSRC', folder_src.path / 'aaaa1.csv', self.USER_ID1)
+
+        # 存在しないフォルダへ移動しようとすると例外を送出する
+        with self.assertRaises(Exception):
+            folder_src.move('00000000-0000-0000-0000-000000000000', self.USER_ID2)
+        # 移動が失敗した場合はDBは更新されていないこと
+        self.assertEqual(folder_src.created_at, folder_src.modified_at)
+        self.assertEqual(frame_src.created_at, frame_src.modified_at)
+
+        # 移動先にフレームを指定したら例外を送出する
+        with self.assertRaises(Exception):
+            folder_src.move(frame_src.uuid, self.USER_ID2)
+        # 移動が失敗した場合はDBは更新されていないこと
+        self.assertEqual(folder_src.created_at, folder_src.modified_at)
+        self.assertEqual(frame_src.created_at, frame_src.modified_at)
+
+        # 移動先に自分自身を指定したら例外を送出する
+        with self.assertRaises(Exception):
+            folder_src.move(folder_src.uuid, self.USER_ID2)
+        # 移動が失敗した場合はDBは更新されていないこと
+        self.assertEqual(folder_src.created_at, folder_src.modified_at)
+        self.assertEqual(frame_src.created_at, frame_src.modified_at)
+
+        # 作成したフォルダを削除する
+        Library.delete_frame(frame_src.uuid)
+        Library.delete_folder(folder_src.uuid)
 
     def test_save_folder(self):
         """
@@ -267,11 +326,68 @@ class LibraryTest(unittest.TestCase):
             self.assertEqual(folder.modifier, self.USER_ID2)
             self.assertEqual(folder.created_at, folder.created_at)
             self.assertIsNotNone(folder.modified_at)
+
+            """
+            リモートフォルダの移動を元に戻す
+            """
+            folder.put_back(self.USER_ID1)
+            # ラベルとディレクトリパスのみが変更されることを検証する
+            self.assertEqual(folder.id, folder.id)
+            self.assertEqual(folder.parent_id, root.id)
+            self.assertEqual(folder.uuid, folder.uuid)
+            # Moutableなフォルダは移動してもパスは変わらない
+            self.assertEqual(folder.path, root.path / 'リモートフォルダ3')
+            self.assertEqual(folder.type, folder.type)
+            self.assertEqual(folder.label, 'リモートフォルダ3')
+            self.assertEqual(folder.creator, self.USER_ID1)
+            self.assertEqual(folder.modifier, self.USER_ID1)
+            self.assertEqual(folder.created_at, folder.created_at)
+            self.assertIsNotNone(folder.modified_at)
+
         finally:
             # 作成したフォルダを削除する
             folder = RemoteFolder.find_by_uuid(folder.uuid)
             folder.delete()
 
+    def test_move_rfolder2(self):
+        """
+        リモートフォルダを移動できない場合を検証する
+        """
+        try:
+            # ルートデータストアを取得する
+            root = Library.load_root()
+            # ルートデータストアの直下にフォルダを作成する
+            to_folder = Library.save_folder(root.uuid, 'フォルダaabbcc', self.USER_ID1)
+            # 上記フォルダの直下にフレームを作成する
+            self.save(to_folder.path / 'aaaa1.csv')
+            frame_src = Library.save_frame(to_folder.uuid, 'フレームSRC', to_folder.path / 'aaaa1.csv', self.USER_ID1)
+            # ルートデータストアの直下にリモートフォルダを作成する
+            conn = RemoteFolderConn('smb', "kskds-HP-Workstation-z620.local", "WORKGROUP", "share", "ksk-ds", "kskanalytics")
+            folder = RemoteFolder(root.uuid, 'リモートフォルダ4', conn, self.USER_ID1)
+            folder.save()
+
+            # 存在しないフォルダへ移動しようとすると例外を送出する
+            with self.assertRaises(Exception):
+                folder.move('00000000-0000-0000-0000-000000000000', self.USER_ID2)
+            # 移動が失敗した場合はDBは更新されていないこと
+            self.assertEqual(folder.created_at, folder.modified_at)
+
+            # 移動先にフレームを指定したら例外を送出する
+            with self.assertRaises(Exception):
+                folder.move(frame_src.uuid, self.USER_ID2)
+            # 移動が失敗した場合はDBは更新されていないこと
+            self.assertEqual(folder.created_at, folder.modified_at)
+
+            # 移動先に自分自身を指定したら例外を送出する
+            with self.assertRaises(Exception):
+                folder.move(folder.uuid, self.USER_ID2)
+            # 移動が失敗した場合はDBは更新されていないこと
+            self.assertEqual(folder.created_at, folder.modified_at)
+
+        finally:
+            # 作成したフォルダを削除する
+            folder = RemoteFolder.find_by_uuid(folder.uuid)
+            folder.delete()
 
     @unittest.skip('AWS S3のパスワードないのでエラーになる')
     def test_get_awss3(self):
@@ -439,6 +555,23 @@ class LibraryTest(unittest.TestCase):
         self.assertEqual(updated_frame.modifier, self.USER_ID2)
         self.assertEqual(updated_frame.created_at, frame_src.created_at)
         self.assertIsNotNone(updated_frame.modified_at)
+
+        """
+        フレームの移動を元に戻す
+        """
+        updated_frame.put_back(self.USER_ID1)
+        # parent_id, path, modifierが変更されることを検証する
+        self.assertEqual(updated_frame.id, frame_src.id)
+        self.assertEqual(updated_frame.parent_id, root.id)
+        self.assertEqual(updated_frame.uuid, frame_src.uuid)
+        self.assertEqual(updated_frame.path, root.path / 'aiueo.csv')
+        self.assertEqual(updated_frame.type, frame_src.type)
+        self.assertEqual(updated_frame.label, 'フレームSRC')
+        self.assertEqual(updated_frame.creator, self.USER_ID1)
+        self.assertEqual(updated_frame.modifier, self.USER_ID1)
+        self.assertEqual(updated_frame.created_at, frame_src.created_at)
+        self.assertIsNotNone(updated_frame.modified_at)
+
         # 作成したフォルダを削除する
         Library.delete_frame(updated_frame.uuid)
         Library.delete_folder(folder_dst.uuid)
@@ -459,7 +592,7 @@ class LibraryTest(unittest.TestCase):
         # フレームデータを格納するファイルを作成する
         self.save(folder_dst.path / 'aiueo2.csv')
         # フォルダDST_A2の直下に同じ名称でフレームを作成する
-        frame_src2 = Library.save_frame(root.uuid, 'フレームSRC2', folder_dst.path / 'aiueo2.csv', self.USER_ID1)
+        frame_src2 = Library.save_frame(folder_dst.uuid, 'フレームSRC2', folder_dst.path / 'aiueo2.csv', self.USER_ID1)
         # フレームSRC2をフォルダDSTへ移動する
         updated_frame = frame_src.move(folder_dst.uuid, self.USER_ID2)
         # parent_id, path, modifierが変更されることを検証する
@@ -473,9 +606,68 @@ class LibraryTest(unittest.TestCase):
         self.assertEqual(updated_frame.modifier, self.USER_ID2)
         self.assertEqual(updated_frame.created_at, frame_src.created_at)
         self.assertIsNotNone(updated_frame.modified_at)
+
+        """
+        フレームの移動を元に戻す
+        (戻しても変更したファイル・ラベル名は戻らない)
+        """
+        updated_frame.put_back(self.USER_ID1)
+        # parent_id, path, modifierが変更されることを検証する
+        self.assertEqual(updated_frame.id, frame_src.id)
+        self.assertEqual(updated_frame.parent_id, root.id)
+        self.assertEqual(updated_frame.uuid, frame_src.uuid)
+        self.assertEqual(updated_frame.path, root.path / 'aiueo2_1.csv')
+        self.assertEqual(updated_frame.type, frame_src.type)
+        self.assertEqual(updated_frame.label, 'フレームSRC2_2')
+        self.assertEqual(updated_frame.creator, self.USER_ID1)
+        self.assertEqual(updated_frame.modifier, self.USER_ID1)
+        self.assertEqual(updated_frame.created_at, frame_src.created_at)
+        self.assertIsNotNone(updated_frame.modified_at)
+
         # 作成したフォルダを削除する
+        Library.delete_frame(frame_src2.uuid)
         Library.delete_frame(updated_frame.uuid)
         Library.delete_folder(folder_dst.uuid)
+
+    def test_move_frame3(self):
+        """
+        フレームを移動できない場合を検証する
+        """
+        # ルートデータストアを取得する
+        root = Library.load_root()
+        # ルートデータストアの直下にフォルダを作成する
+        folder_src = Library.save_folder(root.uuid, 'フォルダSRC_AD', self.USER_ID1)
+        # 上記フォルダの直下にフレームを作成する
+        self.save(folder_src.path / 'aaaa1.csv')
+        frame_src1 = Library.save_frame(folder_src.uuid, 'フレームSRC', folder_src.path / 'aaaa1.csv', self.USER_ID1)
+        # 上記フォルダの直下にフレームを作成する
+        frame_src2 = Library.save_frame(folder_src.uuid, 'フレームSRC', folder_src.path / 'aaaa1.csv', self.USER_ID1)
+
+        # 存在しないフォルダへ移動しようとすると例外を送出する
+        with self.assertRaises(Exception):
+            frame_src1.move('00000000-0000-0000-0000-000000000000', self.USER_ID2)
+        # 移動が失敗した場合はDBは更新されていないこと
+        self.assertEqual(frame_src1.created_at, frame_src1.modified_at)
+        self.assertEqual(frame_src2.created_at, frame_src2.modified_at)
+
+        # 移動先にフレームを指定したら例外を送出する
+        with self.assertRaises(Exception):
+            frame_src1.move(frame_src2.uuid, self.USER_ID2)
+        # 移動が失敗した場合はDBは更新されていないこと
+        self.assertEqual(frame_src1.created_at, frame_src1.modified_at)
+        self.assertEqual(frame_src2.created_at, frame_src2.modified_at)
+
+        # 移動先に自分自身を指定したら例外を送出する
+        with self.assertRaises(Exception):
+            frame_src1.move(frame_src1.uuid, self.USER_ID2)
+        # 移動が失敗した場合はDBは更新されていないこと
+        self.assertEqual(frame_src1.created_at, frame_src1.modified_at)
+        self.assertEqual(frame_src2.created_at, frame_src2.modified_at)
+
+        # 作成したフォルダを削除する
+        Library.delete_frame(frame_src1.uuid)
+        Library.delete_frame(frame_src2.uuid)
+        Library.delete_folder(folder_src.uuid)
 
     def test_save_frame(self):
         """
@@ -685,9 +877,70 @@ class LibraryTest(unittest.TestCase):
         self.assertEqual(updated_flow.modifier, self.USER_ID2)
         self.assertEqual(updated_flow.created_at, flow_src.created_at)
         self.assertIsNotNone(updated_flow.modified_at)
+
+        """
+        フローの移動を元に戻す
+        """
+        updated_flow.put_back(self.USER_ID1)
+        # parent_id, path, modifierが変更されることを検証する
+        self.assertEqual(updated_flow.id, flow_src.id)
+        self.assertEqual(updated_flow.parent_id, root.id)
+        self.assertEqual(updated_flow.uuid, flow_src.uuid)
+        self.assertEqual(updated_flow.type, flow_src.type)
+        self.assertEqual(updated_flow.label, 'フローSRC')
+        self.assertEqual(updated_flow.creator, self.USER_ID1)
+        self.assertEqual(updated_flow.modifier, self.USER_ID1)
+        self.assertEqual(updated_flow.created_at, flow_src.created_at)
+        self.assertIsNotNone(updated_flow.modified_at)
+
         # 作成したフォルダを削除する
         Library.delete_flow(updated_flow.uuid)
         Library.delete_folder(folder_dst.uuid)
+
+    def test_move_flow2(self):
+        """
+        フローを移動できない場合を検証する
+        """
+        # ルートデータストアを取得する
+        root = Library.load_root()
+        # ルートデータストアの直下にフローを作成する
+        flow_data = {
+            'projectId': 1,
+            'label': 'フローSRC',
+            'ports': [[],[]],
+            'params': [],
+            'description': "",
+            'nodes' : [],
+            'creator': '足利義教',
+            'createdAt': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        }
+        flow_src = Library.save_flow(root.uuid, 'フローSRC', flow_data, self.USER_ID1)
+        # ルートデータストアの直下にフローを作成する
+        flow_dst = Library.save_flow(root.uuid, 'フローDST', flow_data, self.USER_ID1)
+
+        # 存在しないフォルダへ移動しようとすると例外を送出する
+        with self.assertRaises(Exception):
+            flow_src.move('00000000-0000-0000-0000-000000000000', self.USER_ID2)
+        # 移動が失敗した場合はDBは更新されていないこと
+        self.assertEqual(flow_src.created_at, flow_src.modified_at)
+
+        # 移動先にフローを指定したら例外を送出する
+        with self.assertRaises(Exception):
+            flow_src.move(flow_dst.uuid, self.USER_ID2)
+        # 移動が失敗した場合はDBは更新されていないこと
+        self.assertEqual(flow_src.created_at, flow_src.modified_at)
+        self.assertEqual(flow_dst.created_at, flow_dst.modified_at)
+
+        # 移動先に自分自身を指定したら例外を送出する
+        with self.assertRaises(Exception):
+            flow_src.move(flow_src.uuid, self.USER_ID2)
+        # 移動が失敗した場合はDBは更新されていないこと
+        self.assertEqual(flow_src.created_at, flow_src.modified_at)
+
+        # 作成したフォルダを削除する
+        Library.delete_flow(flow_src.uuid)
+        Library.delete_flow(flow_dst.uuid)
+
 
     def test_save_flow(self):
         """
@@ -747,7 +1000,7 @@ class LibraryTest(unittest.TestCase):
         with self.assertRaises(Exception) as e:
             Library.delete_folder('00000000-0000-0000-0000-000000000000')
 
-    @unittest.skip
+    @unittest.skip("暫定実装として例外を送出していない")
     def test_get_no_frame(self):
         """
         存在しないフレームを取得しようとすると例外を送出する
