@@ -21,6 +21,9 @@ class Flow(Datum):
         # data列の値を作成する
         self.data = {'label' : label, 'flow' : flow_data}
 
+        # フローデータの妥当性を検証する
+        self.valid_uuids_in_flowdata_or_raise()
+        
     @staticmethod
     def find_all_flows():
         """
@@ -162,6 +165,9 @@ class Flow(Datum):
         #     if not Flow.exists(flow_uuid):
         #         raise Exception(f'フロー({flow_uuid})がライブラリにありません')
 
+        # フローデータの妥当性を検証する
+        flow.valid_uuids_in_flowdata_or_raise()
+
         # ラベルに'\0'が含まれていれば取り除く
         new_label = Datum.escape_label(label)
         # 更新データを作成する
@@ -286,6 +292,20 @@ class Flow(Datum):
         # SQLを発行する
         results = session.execute(sql)
         return [str(result[0]) for result in results]
+
+    def valid_uuids_in_flowdata_or_raise(self):
+        from kskp.store import TrashCan
+        # 参照するフレームがゴミ箱に存在しないことを確認する
+        for frame_uuid in self.get_src_frame_uuids():
+            if TrashCan.trashed(frame_uuid):
+                frame = Frame.find_by_uuid(frame_uuid)
+                raise Exception(f'ゴミ箱にあるフレーム({frame.label})は使用できません')
+
+        # 参照するサブフローがゴミ箱に存在しないことを確認する
+        for flow_uuid in self.get_sub_flow_uuids():
+            if TrashCan.trashed(flow_uuid):
+                flow = Flow.find_by_uuid(flow_uuid)
+                raise Exception(f'ゴミ箱にあるフロー({flow.label})は使用できません')
 
     def get_src_frame_uuids(self):
         """
