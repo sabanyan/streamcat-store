@@ -276,7 +276,7 @@ class Datum(BaseModel):
         if not Folder.exists(prev_parent_uuid):
             raise Exception('戻り先フォルダが削除されたため移動できません')
         elif TrashCan.trashed(prev_parent_uuid):
-            raise Exception('戻り先フォルダがゴミ箱の中です')
+            raise Exception('戻り先フォルダがゴミ箱の中なので移動できません')
 
         return self.move(prev_parent_uuid, modifier)
 
