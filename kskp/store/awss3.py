@@ -114,7 +114,9 @@ class AwsS3(Folder, Mountable):
             Datum.update_include_path(old_path, new_path, modifier)
 
             # レコードを更新する
-            data = {'label' : new_label, 'bucket' : bucket_name}
+            # data = {'label' : new_label, 'bucket' : bucket_name}
+            data = datum.data2.copy()
+            data['bucket'] = bucket_name
             session.query(Datum).filter(Datum.uuid==uuid).update({'_label'   :new_label
                                                                  ,'data'    :data
                                                                  ,'modifier':modifier})
