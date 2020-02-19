@@ -200,36 +200,36 @@ class Flow(Datum):
         # ここでflowを返すとtest_model.pyでテストが通らない
         return Flow.convert_to_flow(datum)
 
-    def move(self, parent_uuid, modifier):
-        """
-        指定されたStoreの直下に移動する
-        """
-        # UUID値の形式チェックをする
-        Datum.valid_uuid_or_raise(parent_uuid)
+    # def move(self, parent_uuid, modifier):
+    #     """
+    #     指定されたStoreの直下に移動する
+    #     """
+    #     # UUID値の形式チェックをする
+    #     Datum.valid_uuid_or_raise(parent_uuid)
 
-        to_folder = Datum.find_by_uuid(parent_uuid)
-        if to_folder.type != Datum.FOLDER_TYPE and to_folder.type != Datum.TRASH_TYPE:
-            raise Exception('移動先の指定はフォルダまたはゴミ箱のUUIDしか許可していません')
+    #     to_folder = Datum.find_by_uuid(parent_uuid)
+    #     if to_folder.type != Datum.FOLDER_TYPE and to_folder.type != Datum.TRASH_TYPE:
+    #         raise Exception('移動先の指定はフォルダまたはゴミ箱のUUIDしか許可していません')
 
-        if parent_uuid == self.uuid:
-            raise Exception('移動先と移動元の指定が同じです')
+    #     if parent_uuid == self.uuid:
+    #         raise Exception('移動先と移動元の指定が同じです')
 
-        # 移動元フォルダのidを覚えておく
-        data = self.data2.copy()
-        data['prev_parent_id'] = self.parent_id
+    #     # 移動元フォルダのidを覚えておく
+    #     data = self.data2.copy()
+    #     data['prev_parent_id'] = self.parent_id
 
-        try:
-            # レコードを更新する
-            session.query(Datum).filter(Datum.id==self.id).update({'parent_id': to_folder.id
-                                                                  ,'data'     : data
-                                                                  ,'modifier' : modifier})
-        except Exception as e:
-            session.rollback()
-            raise e
-        finally:
-            session.commit()
+    #     try:
+    #         # レコードを更新する
+    #         session.query(Datum).filter(Datum.id==self.id).update({'parent_id': to_folder.id
+    #                                                               ,'data'     : data
+    #                                                               ,'modifier' : modifier})
+    #     except Exception as e:
+    #         session.rollback()
+    #         raise e
+    #     finally:
+    #         session.commit()
 
-        return self
+    #     return self
         
     def delete(self):
         """

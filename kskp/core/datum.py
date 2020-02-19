@@ -219,10 +219,11 @@ class Datum(BaseModel):
         # 移動後にラベル名が衝突したらラベル名を変更する
         new_label = Datum.get_another_label_name(self.label, parent_uuid, except_uuid=self.uuid)
 
+
         # 移動対象がマウントポイントの場合は、path列を変更することはマウントポイントを変更することになるので
-        # parent_idとラベル名だけを変更する
+        # parent_idとラベル名だけを変更する, 移動対象がpath列を持たない場合も同じ処理になる
         from kskp.store import Mountable
-        if isinstance(self, Mountable):
+        if self._path is None or self._path == '' or isinstance(self, Mountable):
             # raise Exception('マウントポイントフォルダを移動することはできません')
             try:
                 # レコードを更新する
