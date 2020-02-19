@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 
-FLOW_FOLDER_UUID    = 'ff37fe34-9c25-4Ad0-b74A-affda3712a45'
+FLOW_FOLDER_UUID    = 'ff37fe34-9c25-4ad0-b74a-affda3712a45'
 FLOW_FOLDER_LABEL   = 'フロー'
 RESULT_FOLDER_UUID  = 'aacb4914-0695-40fc-b14b-95b7f1f81707'
 RESULT_FOLDER_LABEL = '実行結果'
@@ -98,6 +98,7 @@ from .flow import Flow
 from .folder import Folder
 from .awss3 import AwsS3
 from .remote_folder import RemoteFolder
+from .trashcan import TrashCan
 from .vis import Vis, BokehPlotVis
 from .datasource import DataSource
 from .activity import Activity

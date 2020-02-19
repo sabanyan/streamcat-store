@@ -61,6 +61,7 @@ class AwsS3(Folder, Mountable):
         awss3.id = datum.id
         awss3.uuid = datum.uuid
         awss3._path = datum._path
+        awss3.data = datum.data
         awss3.modifier = datum.modifier
         awss3.created_at = datum.created_at
         awss3.modified_at = datum.modified_at

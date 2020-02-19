@@ -52,6 +52,7 @@ class Database(Store):
         database.id = datum.id
         database.uuid = datum.uuid
         database._path = datum._path
+        database.data = datum.data
         database.modifier = datum.modifier
         database.created_at = datum.created_at
         database.modified_at = datum.modified_at
@@ -103,40 +104,43 @@ class Database(Store):
 
         return Database.convert_to_database(datum)
 
-    def move(self, parent_uuid, modifier):
-        """
-        指定されたStoreの直下に移動する
-        """
-        # UUID値の形式チェックをする
-        Datum.valid_uuid_or_raise(parent_uuid)
+    # def move(self, parent_uuid, modifier):
+    #     """
+    #     指定されたStoreの直下に移動する
+    #     """
+    #     # UUID値の形式チェックをする
+    #     Datum.valid_uuid_or_raise(parent_uuid)
 
-        try:
-            from kskp.store import Folder
-            to_folder = Folder.find_by_uuid(parent_uuid)
-        except Exception as e:
-            raise Exception('移動先の指定はフォルダのUUIDしか許可していません')
+    #     to_folder = Datum.find_by_uuid(parent_uuid)
+    #     if to_folder.type != Datum.FOLDER_TYPE and to_folder.type != Datum.TRASH_TYPE:
+    #         raise Exception('移動先の指定はフォルダまたはゴミ箱のUUIDしか許可していません')
 
-        if parent_uuid == self.uuid:
-            raise Exception('移動先と移動元の指定が同じです')
+    #     if parent_uuid == self.uuid:
+    #         raise Exception('移動先と移動元の指定が同じです')
 
-        try:
-            # レコードを更新する
-            session.query(Datum).filter(Datum.id==self.id).update({'parent_id': to_folder.id
-                                                                  ,'modifier' : modifier})
-        except Exception as e:
-            session.rollback()
-            raise e
-        finally:
-            session.commit()
+    #     # 移動元フォルダのidを覚えておく
+    #     data = self.data2.copy()
+    #     data['prev_parent_id'] = self.parent_id
 
-        return self
+    #     try:
+    #         # レコードを更新する
+    #         session.query(Datum).filter(Datum.id==self.id).update({'parent_id': to_folder.id
+    #                                                               ,'data'     : data
+    #                                                               ,'modifier' : modifier})
+    #     except Exception as e:
+    #         session.rollback()
+    #         raise e
+    #     finally:
+    #         session.commit()
+
+    #     return self
         
     def delete(self):
         """
         Databaseを削除する
         """
         # 削除しようとするDatabaseが、DBに格納されているフローで使用されている場合は例外を送出する
-        using_flow_uuids = Datum.get_flow_uuids_using_other_datum(self.uuid)
+        using_flow_uuids = Flow.get_flow_uuids_using_other_datum(self.uuid)
         if len(using_flow_uuids) > 0:
             using_flow_label= Flow.find_by_uuid(using_flow_uuids[0]).label
             raise Exception('このStoreはローダ・セーバ(%s)で使用しているため削除できません' % using_flow_label)
