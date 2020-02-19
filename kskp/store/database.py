@@ -92,7 +92,9 @@ class Database(Store):
 
         try:
             # レコードを更新する
-            data = {'conn' : database_conn.to_json()}
+            # data = {'conn' : database_conn.to_json()}
+            data = datum.data2.copy()
+            data['conn'] = database_conn.to_json()
             session.query(Datum).filter(Datum.uuid==uuid).update({'_label'   :new_label,
                                                                   'data'     :data,
                                                                   'modifier' :modifier})

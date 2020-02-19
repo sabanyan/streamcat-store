@@ -120,9 +120,7 @@ class Folder(Store):
             Datum.update_include_path(old_path, new_path, modifier)
 
             # レコードを更新する
-            data ={'label' : new_label}
             session.query(Datum).filter(Datum.uuid==uuid).update({'_label'  :new_label
-                                                                 ,'data'    :data
                                                                  ,'modifier':modifier})
         except Exception as e:
             session.rollback()

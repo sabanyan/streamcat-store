@@ -111,7 +111,9 @@ class RemoteFolder(Folder, Mountable):
             Datum.update_include_path(old_path, new_path, modifier)
 
             # レコードを更新する
-            data = {'conn' : remoteFolderConn.to_json()}
+            # data = {'conn' : remoteFolderConn.to_json()}
+            data = datum.data2.copy()
+            data['conn'] = remoteFolderConn.to_json()
             session.query(Datum).filter(Datum.uuid==uuid).update({'_label'   :new_label
                                                                  ,'data'    :data
                                                                  ,'modifier':modifier})
