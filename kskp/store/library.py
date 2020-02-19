@@ -8,6 +8,7 @@ from kskp.store import Folder
 from kskp.store import AwsS3
 from kskp.store import Frame
 from kskp.store import Flow
+from kskp.store import TrashCan
 
 class Library:
     """
@@ -38,6 +39,13 @@ class Library:
         フローフォルダを取得する
         """
         return Library._get_flow_dir_path(creator)
+
+    @staticmethod
+    def load_trash_folder(creator=None):
+        """
+        ゴミ箱フォルダを取得する
+        """
+        return Library._get_or_make_trash_can(creator)
 
     @staticmethod
     def load_frame(frame_uuid):
@@ -229,6 +237,7 @@ class Library:
         Library._get_result_dir_path()
         Library._get_cache_dir_path()
         Library._get_flow_dir_path()
+        Library._get_or_make_trash_can()
 
     @staticmethod
     def _get_flow_dir_path(user_id=None):
@@ -248,7 +257,6 @@ class Library:
 
     @staticmethod
     def _get_or_make_dir_path(uuid, label, user_id=None):
-
         # 特定用途のフォルダのUUIDは決め打ちである
         if Folder.exists(uuid):
             folder = Folder.find_by_uuid(uuid)
@@ -279,6 +287,17 @@ class Library:
             new_root.save()
             root = new_root
         return root
+
+    @staticmethod
+    def _get_or_make_trash_can(user_id=None):
+        if TrashCan.exists():
+            trash = TrashCan.find()
+        else:
+            # ゴミ箱が無い場合は作成する
+            root = Library._get_library(user_id)
+            trash = TrashCan(root.uuid, user_id)
+            trash.save()
+        return trash
 
     @staticmethod
     def _convert_type(datum):

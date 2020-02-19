@@ -21,6 +21,9 @@ class Flow(Datum):
         # data列の値を作成する
         self.data = {'label' : label, 'flow' : flow_data}
 
+        # フローデータの妥当性を検証する
+        self.valid_uuids_in_flowdata_or_raise()
+        
     @staticmethod
     def find_all_flows():
         """
@@ -90,6 +93,7 @@ class Flow(Datum):
         flow.id = datum.id
         flow.uuid = datum.uuid
         flow._path = datum._path
+        flow.data = datum.data
         flow.modifier = datum.modifier
         flow.created_at = datum.created_at
         flow.modified_at = datum.modified_at
@@ -160,6 +164,9 @@ class Flow(Datum):
         #     if not Flow.exists(flow_uuid):
         #         raise Exception(f'フロー({flow_uuid})がライブラリにありません')
 
+        # フローデータの妥当性を検証する
+        flow.valid_uuids_in_flowdata_or_raise()
+
         # ラベルに'\0'が含まれていれば取り除く
         new_label = Datum.escape_label(label)
         # 更新データを作成する
@@ -207,33 +214,36 @@ class Flow(Datum):
         # ここでflowを返すとtest_model.pyでテストが通らない
         return flow
 
-    def move(self, parent_uuid, modifier):
-        """
-        指定されたStoreの直下に移動する
-        """
-        # UUID値の形式チェックをする
-        Datum.valid_uuid_or_raise(parent_uuid)
+    # def move(self, parent_uuid, modifier):
+    #     """
+    #     指定されたStoreの直下に移動する
+    #     """
+    #     # UUID値の形式チェックをする
+    #     Datum.valid_uuid_or_raise(parent_uuid)
 
-        try:
-            from kskp.store import Folder
-            to_folder = Folder.find_by_uuid(parent_uuid)
-        except Exception as e:
-            raise Exception('移動先の指定はフォルダのUUIDしか許可していません')
+    #     to_folder = Datum.find_by_uuid(parent_uuid)
+    #     if to_folder.type != Datum.FOLDER_TYPE and to_folder.type != Datum.TRASH_TYPE:
+    #         raise Exception('移動先の指定はフォルダまたはゴミ箱のUUIDしか許可していません')
 
-        if parent_uuid == self.uuid:
-            raise Exception('移動先と移動元の指定が同じです')
+    #     if parent_uuid == self.uuid:
+    #         raise Exception('移動先と移動元の指定が同じです')
 
-        try:
-            # レコードを更新する
-            session.query(Datum).filter(Datum.id==self.id).update({'parent_id': to_folder.id
-                                                                  ,'modifier' : modifier})
-        except Exception as e:
-            session.rollback()
-            raise e
-        finally:
-            session.commit()
+    #     # 移動元フォルダのidを覚えておく
+    #     data = self.data2.copy()
+    #     data['prev_parent_id'] = self.parent_id
 
-        return self
+    #     try:
+    #         # レコードを更新する
+    #         session.query(Datum).filter(Datum.id==self.id).update({'parent_id': to_folder.id
+    #                                                               ,'data'     : data
+    #                                                               ,'modifier' : modifier})
+    #     except Exception as e:
+    #         session.rollback()
+    #         raise e
+    #     finally:
+    #         session.commit()
+
+    #     return self
         
     def delete(self):
         """
@@ -241,7 +251,7 @@ class Flow(Datum):
         """
         # 削除しようとするFlowが、DBに格納されているフローで使用されている場合は例外を送出する
         # 2019/07/29現在下記のコードはpostgres9.6では動かない、postgres11.1では動作確認している
-        using_flow_uuids = Datum.get_flow_uuids_using_other_datum(self.uuid)
+        using_flow_uuids = Flow.get_flow_uuids_using_other_datum(self.uuid)
         if len(using_flow_uuids) > 0:
             using_flow_label= Flow.find_by_uuid(using_flow_uuids[0]).label
             raise Exception('このフローはフロー(%s)でサブフローとして使用しているため削除できません' % using_flow_label)
@@ -281,6 +291,35 @@ class Flow(Datum):
         # 複製を作成する
         new_flow = Flow(self.parent_uuid, new_label, new_flow_data, user_id)
         return new_flow
+
+    @staticmethod
+    def get_flow_uuids_using_other_datum(datum_uuid):
+        """      .......
+        指定されたDatumのuuidを参照するFlowを取得する
+        """
+        sql = """
+        select uuid from data
+        where type='flow'
+          and uuid<>'{datum_uuid}'
+          and to_tsvector(data) @@ to_tsquery('{datum_uuid}')
+        """.format(datum_uuid=str(datum_uuid))
+        # SQLを発行する
+        results = session.execute(sql)
+        return [str(result[0]) for result in results]
+
+    def valid_uuids_in_flowdata_or_raise(self):
+        from kskp.store import TrashCan
+        # 参照するフレームがゴミ箱に存在しないことを確認する
+        for frame_uuid in self.get_src_frame_uuids():
+            if TrashCan.trashed(frame_uuid):
+                frame = Frame.find_by_uuid(frame_uuid)
+                raise Exception(f'ゴミ箱にあるフレーム({frame.label})は使用できません')
+
+        # 参照するサブフローがゴミ箱に存在しないことを確認する
+        for flow_uuid in self.get_sub_flow_uuids():
+            if TrashCan.trashed(flow_uuid):
+                flow = Flow.find_by_uuid(flow_uuid)
+                raise Exception(f'ゴミ箱にあるフロー({flow.label})は使用できません')
 
     def get_src_frame_uuids(self):
         """
@@ -389,10 +428,3 @@ class Flow(Datum):
                 # 記録時間はUTC、表示時間は現地時間にすべきでは？？
                 node['cacheCreatedAt'] = datetime.now(timezone(timedelta(hours=+9), 'JST')).strftime('%Y-%m-%d %H:%M:%S')
         Flow.update_data(self.uuid, self.label, flow_data, user_id)
-
-    def to_json(self):
-        return {'uuid'      : self.uuid,
-                'type'      : Datum.FLOW_TYPE,
-                'label'     : self.label,
-                'creator'   : Datum.get_user_name_by_user_id(self.creator),
-                'createdAt' : self.created_at_str}

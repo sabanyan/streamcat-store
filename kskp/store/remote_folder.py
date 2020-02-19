@@ -59,6 +59,7 @@ class RemoteFolder(Folder, Mountable):
         folder.id = datum.id
         folder.uuid = datum.uuid
         folder._path = datum._path
+        folder.data = datum.data
         folder.modifier = datum.modifier
         folder.created_at = datum.created_at
         folder.modified_at = datum.modified_at
