@@ -13,6 +13,8 @@ class Frame(Datum):
 
     # 文字コード変換テーブル
     ENCODING_CONV_TABLE = {'ascii':'ASCII', 'utf-8':'UTF-8', 'UTF-8-SIG':'UTF-8 BOM'}
+    # 改行コード変換テーブル
+    NEWLINE_CONV_TABLE = {'\n':'LF', '\r\n':'CR+LF', '\r':'CR'}
 
     def __init__(self, parent_uuid, label, stream, creator=None):
         """
@@ -249,6 +251,11 @@ class Frame(Datum):
         self.data['newline'] = newline
 
     @property
+    def newline_str(self):
+        ret = self.NEWLINE_CONV_TABLE.get(self.newline)
+        return ret or self.newline    
+
+    @property
     def modified_at_str(self):
         import time
         wk = time.localtime(os.path.getmtime(Datum._to_abs_path(self._path)))
@@ -366,11 +373,11 @@ class Frame(Datum):
 
         # 出現頻度の最も多い改行コードを返す
         if crlf_count > max(lf_count, cr_count):
-            return 'CR+LF'
+            return '\r\n'
         elif lf_count > cr_count:
-            return 'LF'
+            return '\n'
         elif lf_count < cr_count:
-            return 'CR'
+            return '\r'
         else:
             return 'UNKNOWN'
 
@@ -379,7 +386,7 @@ class Frame(Datum):
                 'type'      : Datum.FRAME_TYPE,
                 'label'     : self.label,
                 'encoding'  : self.encoding_str,
-                'newline'   : self.newline,
+                'newline'   : self.newline_str,
                 'creator'   : Datum.get_user_name_by_user_id(self.creator),
                 'createdAt' : self.created_at_str}
 
