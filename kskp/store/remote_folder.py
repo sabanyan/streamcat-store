@@ -165,6 +165,7 @@ class RemoteFolder(Folder, Mountable):
         return {'uuid'      : self.uuid,
                 'type'      : Datum.RFOLDER_TYPE,
                 'label'     : self.label,
+                'prevFolderPath' : self.get_pref_folder_path(),
                 'protocol'  : remote_folder_conn.protocol,
                 'hostname'  : remote_folder_conn.hostname,
                 'domain'    : remote_folder_conn.domain,

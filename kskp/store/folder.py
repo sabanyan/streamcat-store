@@ -22,6 +22,16 @@ class Folder(Store):
         self.data = {'label' : label}
 
     @staticmethod
+    def find_by_id(id):
+        """
+        指定されたidを持つFolderを取得する
+        """
+        folder = session.query(Folder).filter(Folder.id==id).one_or_none()
+        if folder is None:
+            raise Exception('no folder is found by designated id.')
+        return folder
+
+    @staticmethod
     def find_by_uuid(uuid):
         """
         指定されたuuidを持つFolderを取得する
@@ -48,7 +58,7 @@ class Folder(Store):
     def is_system_folder(uuid):
         from kskp.store import FLOW_FOLDER_UUID, RESULT_FOLDER_UUID, CACHE_FOLDER_UUID
         return uuid in (FLOW_FOLDER_UUID, RESULT_FOLDER_UUID, CACHE_FOLDER_UUID)
-        
+
     @staticmethod
     def convert_to_folder(datum):
         parent_uuid = Datum.get_uuid_by_id(datum.parent_id)
@@ -191,11 +201,8 @@ class Folder(Store):
         """
         現在のフォルダ階層パスをリスト型で返す(APIのFolderPath属性の作成で用いる)
         """
-        # 指定されたUUIDのfolerレコードを取得する
-        datum = session.query(Datum).filter(Datum.uuid==self.uuid).one_or_none()
-
-        parent_id = datum.parent_id
-        path_to_root = [{'type':datum.type, 'uuid':datum.uuid, 'label':datum.label}]
+        parent_id = self.parent_id
+        path_to_root = [{'type':self.type, 'uuid':self.uuid, 'label':self.label}]
         # 取得したレコードから外部キー’parent_id’をたどり、途中のfolderレコードをリストに順に保存する
         while parent_id != None:
             datum = session.query(Datum).filter(Datum.id==parent_id).one_or_none()
