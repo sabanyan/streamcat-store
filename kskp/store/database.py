@@ -184,6 +184,7 @@ class Database(Store):
         return {'uuid'      : self.uuid,
                 'type'      : Datum.DATABASE_TYPE,
                 'label'     : self.label,
+                'prevFolderPath' : self.get_pref_folder_path(),
                 'dbms'      : database_conn.dbms,
                 'hostname'  : database_conn.hostname,
                 'port'      : database_conn.port,

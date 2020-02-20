@@ -85,5 +85,6 @@ class TrashCan(Folder):
         return {'uuid'      : self.uuid,
                 'type'      : TrashCan.TRASH_TYPE,
                 'label'     : self.label,
+                'prevFolderPath' : self.get_pref_folder_path(),
                 'creator'   : Datum.get_user_name_by_user_id(self.creator),
                 'createdAt' : self.created_at_str}

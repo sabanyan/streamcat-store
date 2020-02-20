@@ -277,10 +277,19 @@ class Datum(BaseModel):
 
         return self.move(prev_parent_uuid, modifier)
 
+    def get_pref_folder_path(self):
+        from kskp.store import Folder
+        if self.prev_parent_id is None:
+            return None
+        else:
+            prev_parent = Folder.find_by_id(self.prev_parent_id)
+            return '/' + '/'.join([folder.get('label') for folder in prev_parent.get_folder_path()])
+
     def to_json(self):
         return {'uuid'      : self.uuid,
                 'type'      : self.type,
                 'label'     : self.label,
+                'prevFolderPath' : self.get_pref_folder_path(),
                 'creator'   : Datum.get_user_name_by_user_id(self.creator),
                 'createdAt' : self.created_at_str}
 
