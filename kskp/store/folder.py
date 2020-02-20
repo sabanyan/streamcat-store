@@ -45,6 +45,11 @@ class Folder(Store):
         return result > 0
 
     @staticmethod
+    def is_system_folder(uuid):
+        from kskp.store import FLOW_FOLDER_UUID, RESULT_FOLDER_UUID, CACHE_FOLDER_UUID
+        return uuid in (FLOW_FOLDER_UUID, RESULT_FOLDER_UUID, CACHE_FOLDER_UUID)
+        
+    @staticmethod
     def convert_to_folder(datum):
         parent_uuid = Datum.get_uuid_by_id(datum.parent_id)
         # label = json.loads(datum.data, encoding='utf-8')['label']
