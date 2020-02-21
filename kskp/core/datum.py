@@ -96,6 +96,7 @@ class Datum(BaseModel):
         self.creator = creator
         self.modifier = creator
 
+        # Engineから参照する
         self.context = {}
 
 
@@ -168,12 +169,12 @@ class Datum(BaseModel):
             ret = self.data
         return ret
 
-    @property
-    def content(self):
-        """
-        Engineから参照する
-        """
-        return self
+    # @property
+    # def content(self):
+    #     """
+    #     Engineから参照する
+    #     """
+    #     return self
 
     @property
     def created_at_str(self):
