@@ -11,7 +11,7 @@ from pathlib import Path
 from flask import g
 from threading import Lock
 
-lock = Lock()
+# lock = Lock()
 
 def create_user(email, password, name, creator):
     """
@@ -84,126 +84,126 @@ def get_user_by_id(user_id):
 #     ''' % ','.join(map(str, update_sql))
 #     query_db(sql, tuple(update_list) + (user_id,))
 #
-def get_current_user(session):
-    """
-    セッションからidを取得して、
-    ログイン状態のユーザ情報を返す
-    """
-    user_id = session['user_id']
-    user_record = get_user_by_id(user_id)
-    return User(user_id, user_record['email']) # 0にはユーザ名が入っている
+# def get_current_user(session):
+#     """
+#     セッションからidを取得して、
+#     ログイン状態のユーザ情報を返す
+#     """
+#     user_id = session['user_id']
+#     user_record = get_user_by_id(user_id)
+#     return User(user_id, user_record['email']) # 0にはユーザ名が入っている
 #
 #
-def create_project(name, session):
-    """
-    新しいプロジェクトを作成する
-    """
+# def create_project(name, session):
+#     """
+#     新しいプロジェクトを作成する
+#     """
 
-    sql = '''
-    INSERT INTO projects (uuid, name, creator_id, creator) VALUES (?, ?, ?, ?)
-    '''
-    generated_uuid = str(uuid.uuid4())
-    user = get_current_user(session)
-    return query_db(sql, (generated_uuid, name, user.id, user.email))
+#     sql = '''
+#     INSERT INTO projects (uuid, name, creator_id, creator) VALUES (?, ?, ?, ?)
+#     '''
+#     generated_uuid = str(uuid.uuid4())
+#     user = get_current_user(session)
+#     return query_db(sql, (generated_uuid, name, user.id, user.email))
 #
 #
-def add_info_for_users_x_projects(user_id, project_id):
-    """
-    ユーザと閲覧可能なプロジェクトの関係を表すレコードを追加する
-    """
-    sql = '''
-    INSERT INTO users_x_projects (user_id, project_id) VALUES (?, ?)
-    '''
-    query_db(sql, (user_id, project_id))
+# def add_info_for_users_x_projects(user_id, project_id):
+#     """
+#     ユーザと閲覧可能なプロジェクトの関係を表すレコードを追加する
+#     """
+#     sql = '''
+#     INSERT INTO users_x_projects (user_id, project_id) VALUES (?, ?)
+#     '''
+#     query_db(sql, (user_id, project_id))
 #
 #
-def start_project(name, session):
-    """
-    単にprojectsにINSERTするだけではなく、画面上の一つの操作に対応して複数のSQLを実行する
-    この処理全体を一つのトランザクションとみなすため、
-    既存のcreate_project/add_info_for_users_x_projectsは使えない。
+# def start_project(name, session):
+#     """
+#     単にprojectsにINSERTするだけではなく、画面上の一つの操作に対応して複数のSQLを実行する
+#     この処理全体を一つのトランザクションとみなすため、
+#     既存のcreate_project/add_info_for_users_x_projectsは使えない。
 
-    TODO:
-    できればトランザクションを制御する仕組み(with系)を作って
-    この部分をcreate_project/add_info_for_users_x_projectsを使う形にリファクタしたい
-    """
+#     TODO:
+#     できればトランザクションを制御する仕組み(with系)を作って
+#     この部分をcreate_project/add_info_for_users_x_projectsを使う形にリファクタしたい
+#     """
 
-    # 全体の準備
-    conn = get_connection()
-    cur = conn.cursor()
+#     # 全体の準備
+#     conn = get_connection()
+#     cur = conn.cursor()
 
-    # projectsに行を挿入する
-    sql_projects = '''
-    INSERT INTO projects (uuid, name, creator_id, creator) VALUES (?, ?, ?, ?)
-    '''
-    generated_uuid = str(uuid.uuid4())
-    user = get_current_user(session)
+#     # projectsに行を挿入する
+#     sql_projects = '''
+#     INSERT INTO projects (uuid, name, creator_id, creator) VALUES (?, ?, ?, ?)
+#     '''
+#     generated_uuid = str(uuid.uuid4())
+#     user = get_current_user(session)
 
-    cur.execute(sql_projects, (generated_uuid, name, user.id, user.email))
+#     cur.execute(sql_projects, (generated_uuid, name, user.id, user.email))
 
-    # 次にユーザ別の閲覧可能なプロジェクトを表すテーブルに行を挿入する
-    # ひとまず、自分が作ったプロジェクトは自分だけが見られるような仕様にしておく
-    sql_users_x_projects = '''
-    INSERT INTO users_x_projects VALUES (?, ?)
-    '''
-    cur.execute(sql_users_x_projects, (user.id, cur.lastrowid))
+#     # 次にユーザ別の閲覧可能なプロジェクトを表すテーブルに行を挿入する
+#     # ひとまず、自分が作ったプロジェクトは自分だけが見られるような仕様にしておく
+#     sql_users_x_projects = '''
+#     INSERT INTO users_x_projects VALUES (?, ?)
+#     '''
+#     cur.execute(sql_users_x_projects, (user.id, cur.lastrowid))
 
-    # 後片付け
-    conn.commit()
-    cur.close()
+#     # 後片付け
+#     conn.commit()
+#     cur.close()
 #
 #
-def get_all_projects():
-    """
-    すべてのプロジェクトを取得する
-    """
-    sql = '''
-    SELECT id, uuid, name, creator_id FROM projects
-    '''
-    return query_db(sql)
+# def get_all_projects():
+#     """
+#     すべてのプロジェクトを取得する
+#     """
+#     sql = '''
+#     SELECT id, uuid, name, creator_id FROM projects
+#     '''
+#     return query_db(sql)
 #
-def get_projects_by_user_id(user_id, search_string=None):
-    """
-    特定のユーザが閲覧可能なプロジェクト一覧を取得する
-    """
+# def get_projects_by_user_id(user_id, search_string=None):
+#     """
+#     特定のユーザが閲覧可能なプロジェクト一覧を取得する
+#     """
 
-    sql = '''
-    SELECT p.uuid, p.name, p.creator_id, y.name as creator_name, p.created_at FROM projects p
-     INNER JOIN users_x_projects x
-        ON x.project_id = p.id
-     INNER JOIN users y
-        ON p.creator_id = y.id
-     WHERE x.user_id = ?
-     ORDER BY p.id
-    '''
+#     sql = '''
+#     SELECT p.uuid, p.name, p.creator_id, y.name as creator_name, p.created_at FROM projects p
+#      INNER JOIN users_x_projects x
+#         ON x.project_id = p.id
+#      INNER JOIN users y
+#         ON p.creator_id = y.id
+#      WHERE x.user_id = ?
+#      ORDER BY p.id
+#     '''
 
-    args = (user_id,)
-    if search_string is not None:
-        sql += ' WHERE p.name LIKE ?'
-        args = (user_id, '%' + search_string + '%')
+#     args = (user_id,)
+#     if search_string is not None:
+#         sql += ' WHERE p.name LIKE ?'
+#         args = (user_id, '%' + search_string + '%')
 
-    return query_db(sql, args)
+#     return query_db(sql, args)
 
-def delete_project_by_uuid(project_uuid):
-    """
-    プロジェクトを削除する(uuidが基準)
-    """
-    sql = 'DELETE FROM projects WHERE uuid = ?'
-    query_db(sql, (project_uuid,))
+# def delete_project_by_uuid(project_uuid):
+#     """
+#     プロジェクトを削除する(uuidが基準)
+#     """
+#     sql = 'DELETE FROM projects WHERE uuid = ?'
+#     query_db(sql, (project_uuid,))
 #
-def rename_project_by_uuid(project_uuid, new_name):
-    """
-    プロジェクトの名前を変更する
-    """
-    sql = 'UPDATE projects SET name = ? WHERE uuid = ?'
-    query_db(sql, (new_name, project_uuid))
+# def rename_project_by_uuid(project_uuid, new_name):
+#     """
+#     プロジェクトの名前を変更する
+#     """
+#     sql = 'UPDATE projects SET name = ? WHERE uuid = ?'
+#     query_db(sql, (new_name, project_uuid))
 #
-def fecth_project(project_id):
-    """
-    プロジェクトを取得する（project_idが基準）
-    """
-    sql = 'SELECT uuid, name FROM projects WHERE id = ?'
-    return query_db(sql, (project_id,), one=True)
+# def fecth_project(project_id):
+#     """
+#     プロジェクトを取得する（project_idが基準）
+#     """
+#     sql = 'SELECT uuid, name FROM projects WHERE id = ?'
+#     return query_db(sql, (project_id,), one=True)
 #
 #
 def create_flow(request_json, user_id, data_source_name=None):
@@ -261,7 +261,8 @@ def create_flow(request_json, user_id, data_source_name=None):
     @add_activity_to_flow(user_id)
     def make_flow_json():
         data = {
-            'projectId': get_project_by_uuid(request_json.get('project_uuid')),
+            # 'projectId': get_project_by_uuid(request_json.get('project_uuid')),
+            'projectId': None,
             'label': request_json.get('name'),
             'ports': [[],[]],
             'params': [],
@@ -274,14 +275,14 @@ def create_flow(request_json, user_id, data_source_name=None):
     return data
 #
 #
-def fetch_flow_by_uuid(flow_uuid):
-    """
-    指定したフローの内容を返す
-    """
-    # from kskp.store import FlowLink
-    # return FlowLink(flow_uuid).resolve()
-    from kskp.store import Flow
-    return Flow.find_by_uuid(flow_uuid).flow_data
+# def fetch_flow_by_uuid(flow_uuid):
+#     """
+#     指定したフローの内容を返す
+#     """
+#     # from kskp.store import FlowLink
+#     # return FlowLink(flow_uuid).resolve()
+#     from kskp.store import Flow
+#     return Flow.find_by_uuid(flow_uuid).flow_data
 
 #
 # def get_frame_dir_path(user_id):
@@ -293,64 +294,64 @@ def fetch_flow_by_uuid(flow_uuid):
 #     return _get_or_make_dir_path(CACHE_FOLDER_UUID, CACHE_FOLDER_LABEL, user_id)
 #
 
-def get_flow_dir_path(user_id):
-    # フロー格納フォルダを取得する
-    from kskp.store import FLOW_FOLDER_UUID, FLOW_FOLDER_LABEL
-    return _get_or_make_dir_path(FLOW_FOLDER_UUID, FLOW_FOLDER_LABEL, user_id)
+# def get_flow_dir_path(user_id):
+#     # フロー格納フォルダを取得する
+#     from kskp.store import FLOW_FOLDER_UUID, FLOW_FOLDER_LABEL
+#     return _get_or_make_dir_path(FLOW_FOLDER_UUID, FLOW_FOLDER_LABEL, user_id)
 
-def _get_or_make_dir_path(uuid, label, user_id):
-    from kskp.store import Folder
-    from kskp.store import Library
-    # 特定用途のフォルダのUUIDは決め打ちである
-    if Folder.exists(uuid):
-        folder = Folder.find_by_uuid(uuid)
-    else:
-        # フォルダが無い場合は作成する
-        root = Library.load_root(user_id)
-        folder = Folder(root.uuid,
-                        label,
-                        user_id)
-        # Folderのコンストラクタで付番したUUIDを捨てて、特定用途のフォルダのUUIDを格納する
-        folder.uuid = uuid
-        folder.save()
-    return folder
+# def _get_or_make_dir_path(uuid, label, user_id):
+#     from kskp.store import Folder
+#     from kskp.store import Library
+#     # 特定用途のフォルダのUUIDは決め打ちである
+#     if Folder.exists(uuid):
+#         folder = Folder.find_by_uuid(uuid)
+#     else:
+#         # フォルダが無い場合は作成する
+#         root = Library.load_root(user_id)
+#         folder = Folder(root.uuid,
+#                         label,
+#                         user_id)
+#         # Folderのコンストラクタで付番したUUIDを捨てて、特定用途のフォルダのUUIDを格納する
+#         folder.uuid = uuid
+#         folder.save()
+#     return folder
 
-def get_all_frame_uuid_in_frame(flow_uuid):
-    """
-    指定するフローのJSONファイルにおいて、フレームノードで参照するフレームUUIDを全て取得する
-    """
-    return [node['uuid'] for id, node in get_flow_nodes_by_uuid(flow_uuid).items() if node['type'] == 'frame']
+# def get_all_frame_uuid_in_frame(flow_uuid):
+#     """
+#     指定するフローのJSONファイルにおいて、フレームノードで参照するフレームUUIDを全て取得する
+#     """
+#     return [node['uuid'] for id, node in get_flow_nodes_by_uuid(flow_uuid).items() if node['type'] == 'frame']
 #
 
-def get_project_by_uuid(project_uuid):
-    """
-    指定したUUIDを持つプロジェクトを返す
-    該当プロジェクトが存在しない場合はNoneを返す
-    """
-    sql = 'SELECT * FROM projects WHERE uuid = ?'
+# def get_project_by_uuid(project_uuid):
+#     """
+#     指定したUUIDを持つプロジェクトを返す
+#     該当プロジェクトが存在しない場合はNoneを返す
+#     """
+#     sql = 'SELECT * FROM projects WHERE uuid = ?'
 
-    result = query_db(sql, (project_uuid,), one=True)
+#     result = query_db(sql, (project_uuid,), one=True)
 
-    return result if result is not None else None
+#     return result if result is not None else None
 #
-def write_data_to_json(path, data):
-    """
-    データをJSONとしてファイルに書き込むヘルパー
-    """
-    lock.acquire()
-    try:
-        path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding='utf-8')
-    finally:
-        lock.release() #release lock
+# def write_data_to_json(path, data):
+#     """
+#     データをJSONとしてファイルに書き込むヘルパー
+#     """
+#     lock.acquire()
+#     try:
+#         path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding='utf-8')
+#     finally:
+#         lock.release() #release lock
 #
-def get_flow_nodes_by_uuid(flow_uuid):
-    """
-    flowのjsonを受け取り、idをkey、valueをnodeとした連想配列を返す
-    """
-    data = fetch_flow_by_uuid(flow_uuid)
-    if data.get('nodes') is None:
-        return {}
-    return {node['id']:node for node in data['nodes']}
+# def get_flow_nodes_by_uuid(flow_uuid):
+#     """
+#     flowのjsonを受け取り、idをkey、valueをnodeとした連想配列を返す
+#     """
+#     data = fetch_flow_by_uuid(flow_uuid)
+#     if data.get('nodes') is None:
+#         return {}
+#     return {node['id']:node for node in data['nodes']}
 #
 def query_db(query, args=(), one=False):
     """
@@ -398,7 +399,7 @@ def init_db():
 #     if conn is not None:
 #         conn.close()
 #
-class User:
-    def __init__(self, id, email):
-        self.id = id
-        self.email = email
+# class User:
+#     def __init__(self, id, email):
+#         self.id = id
+#         self.email = email

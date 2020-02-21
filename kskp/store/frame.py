@@ -284,61 +284,6 @@ class Frame(Datum):
                 'creator'   : Datum.get_user_name_by_user_id(self.creator),
                 'createdAt' : self.created_at_str}
 
-    # for engine
-    # def set_centext(self, params):
-    #     self.context = params
-
-    # def save_to_db(self):
-    #     self.data = {'label' : self.context.get('label')}
-    #     relative_path = Datum._to_rel_path(self.context.get('frame_path').as_posix())
-    #     self.add_entry_from_path(Path(relative_path))
-
-    # def set_content(self, module):
-    #     self._content = module
-
-    # @property
-    # def content(self):
-    #     return self._content
-
-    # @property
-    # def created(self):
-    #     if self.context.get('frame_path') is not None:
-    #         return self.context.get('frame_path').exists()
-    #     else:
-    #         return False
-
-    # def get_dataframe(self, limit, offset, time_series_columns=False):
-    #     import pandas as pd
-    #     return pd.read_csv(self._to_abs_path(self._path), 
-    #                        nrows=limit,
-    #                        skiprows=range(1, offset),
-    #                        parse_dates=time_series_columns)
-
-    # def get_table(self, limit, offset):
-    #     result = {}
-
-    #     # テーブル構造
-    #     with open(self._to_abs_path(self._path), 'r', errors = 'ignore') as f:
-    #         n = 0
-
-    #         result['reader'] = []
-    #         for line in f:
-    #             # 指定されたlimitの数だけ要素が達していたら終了
-    #             if limit is not None and len(result['reader']) == limit:
-    #                 break
-
-    #             if n == 0:
-    #                 # 一行目はヘッダとみなす
-    #                 result['header'] = line.split(',')
-    #             else:
-    #                 if offset < n:
-    #                     result['reader'].append(line.split(','))
-
-    #             n += 1
-
-    #     return result
-
-
     def load_as_data_frame(self, offset, limit):
         """
         CSVの文字列を受け取り、
