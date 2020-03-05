@@ -1,6 +1,4 @@
 import uuid
-import json
-
 from pathlib import Path
 from kskp.core import Datum
 
