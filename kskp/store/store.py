@@ -113,7 +113,8 @@ class List(Datum):
 
     @property
     def content(self):
-        return self._content
+        import nysol.mcmd as nm
+        return nm.m2tee(i=self._content)
 
     @property
     def encoding(self):
