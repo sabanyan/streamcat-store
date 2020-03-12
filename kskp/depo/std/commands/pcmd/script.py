@@ -3221,9 +3221,11 @@ class ConvToUtf8(Command):
             ストリームでcp932→utf8に変換するコマンド
             """
             try:
-                # stdinのencodingがデフォルトでutf-8なので、設定し直す。
                 import io
+                # stdinのencodingがデフォルトでutf-8なので、設定し直す。
                 input_stream = io.TextIOWrapper(sys.stdin.buffer, encoding=source_encoding)
+                # flush()すると連続でプレビューした時にnm.runs()で処理が帰ってくる見たい？
+                input_stream.flush()
                 for line in input_stream:
                     # 標準出力するときも自動でutf-8に変換されるので、printだけでいい
                     print(line, end='')
