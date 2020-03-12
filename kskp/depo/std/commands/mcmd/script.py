@@ -76,7 +76,7 @@ class McatCommand(Command):
         inputs_for_arg_i = []
         from nysol.mcmd.nysollib.core import NysolMOD_CORE
         for key, input in inputs.items():
-            if isinstance(input, NysolMOD_CORE):
+            if isinstance(input.content, NysolMOD_CORE):
                 inputs_for_arg_i.append(input.content)
             else:
                 # 一度nysol_module化する
