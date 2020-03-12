@@ -2690,6 +2690,8 @@ class GroupBy2Command(Command):
     def run(self, args, inputs):
         import fnmatch as fn
 
+        _args = copy.deepcopy(args)
+
         msummaryoptions = [
             'sum',
             'mean',
@@ -2839,19 +2841,19 @@ class GroupBy2Command(Command):
         self.header = inputs['i'].content.getline(header=True)
         self.header = next(self.header)
 
-        k = args.get('k')
-        prec = args.get('precision')
+        k = _args.get('k')
+        prec = _args.get('precision')
         xs = []
 
         calclist = []
         all_fs = []
         final_fs = []
         
-        allargs = (args.get('clist') + 
-                   args.get('fclist') +
-                   args.get('nfclist') +
-                   args.get('xfclist') + 
-                   args.get('xfcnlist'))
+        allargs = (_args.get('clist') + 
+                   _args.get('fclist') +
+                   _args.get('nfclist') +
+                   _args.get('xfclist') + 
+                   _args.get('xfcnlist'))
 
         # parse inputs into list-of-dictionaries form
         _groupedcalcs = []
@@ -2862,7 +2864,7 @@ class GroupBy2Command(Command):
                 x = arglist.get('x')
                 s = arglist.get('s')
                 if x or s: 
-                    arglist['dateformat'] = args['dateformat']
+                    arglist['dateformat'] = _args['dateformat']
                     if x and x not in xs:
                         xs.append(x)
                     if s: 
@@ -3072,7 +3074,7 @@ class GroupBy2Command(Command):
         # sys.__stderr__.write(repr(cmd)+'\n\n')
         cmd_o <<= nm.mdelnull(i = cmd, f = '__val__')
 
-        formatstring = args.pop('format')
+        formatstring = _args.pop('format')
         colformat = ['']
 
         for char in formatstring:
@@ -3091,7 +3093,7 @@ class GroupBy2Command(Command):
 
         cmd_o <<= nm.mcal(a = 'unique_cols', c = '+'.join(colformat))
         cmd_o <<= nm.mcross(f = '__val__', s = 'unique_cols', k = k)
-        cmd_o <<= nm.mcut(r = True, f = 'fld', nfno = args.get('nfno'))
+        cmd_o <<= nm.mcut(r = True, f = 'fld', nfno = _args.get('nfno'))
 
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
@@ -3543,18 +3545,87 @@ class RowRangeCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
+        def filter(fr, size):
+            try:
+                # ヘッダ行を出力する
+                header = sys.stdin.readline()
+                print(header, end='')
+
+                # 取得開始行まで読み飛ばす
+                for i in range(fr):
+                    line = sys.stdin.readline()
+
+                # 指定範囲の行を標準出力へ出力する
+                for j in range(size):
+                    line = sys.stdin.readline()
+                    print(line, end='')
+
+                # flushをする
+                sys.stdout.flush()
+            except Exception as e:
+                with open('/dev/stderr', 'w') as fpe:
+                    import traceback
+                    traceback.print_exc(file=fpe)
+
         # 指定範囲の取得
         offset = int(args.get('offset')) if args.get('offset') else 0
         limit = int(args.get('limit')) if args.get('limit') else 0
-        offset_limit = offset + limit
-       
+
         cmd = inputs['i'].content
-        cmd <<= nm.msel(c=f'{offset}<=line() && line()<{offset_limit}')
+        cmd <<= nm.runfunc(filter, fr=offset, size=limit)
+        # cmd <<= nm.mbest(q=True, fr=offset, size=limit)
 
         # pass output
-        nysol_module_o= NysolModule()
-        nysol_module_o.set_content(cmd)
-        return {'o': nysol_module_o}
+        return {'o': NysolModule(cmd)} 
+
+class ConvToUtf8(Command):
+    """
+    入力データをUTF-8に変換する
+    """
+    def __init__(self):
+        super().__init__()
+        self.i_ports = [Port('i', 'frame')]
+        self.o_ports = [Port('o', 'frame')]
+
+    def run(self, args, inputs):
+
+        def to_utf8(source_encoding):
+            """
+            ストリームでcp932→utf8に変換するコマンド
+            """
+            try:
+                import io
+                # stdinのencodingがデフォルトでutf-8なので、設定し直す。
+                input_stream = io.TextIOWrapper(sys.stdin.buffer, encoding=source_encoding)
+                # flush()すると連続でプレビューした時にnm.runs()で処理が帰ってくる見たい？
+                input_stream.flush()
+                for line in input_stream:
+                    # 標準出力するときも自動でutf-8に変換されるので、printだけでいい
+                    print(line, end='')
+                # flushをする
+                sys.stdout.flush()
+            except Exception as e:
+                with open('/dev/stderr', 'w') as fpe:
+                    import traceback
+                    traceback.print_exc(file=fpe)
+            
+        # flushをしないと、デバッグ用のprintなども入ってしまう
+        sys.stdout.flush()
+
+        nysol_module = inputs['i']
+
+        if nysol_module.encoding is None or nysol_module.encoding == 'UNKNOWN':
+            # 入力データの文字コードが未判定の場合
+            # 判定してもわからなかった場合はUTF-8で試してみる
+            encoding = 'utf-8'
+        else:
+            encoding = nysol_module.encoding
+
+        cmd = nysol_module.content
+        if encoding != 'utf-8' and encoding != 'ascii':
+            cmd <<= nm.runfunc(to_utf8, source_encoding=encoding)
+    
+        return {'o': NysolModule(cmd)}
 
 class ToListCommand(Command):
     """
@@ -3567,9 +3638,9 @@ class ToListCommand(Command):
 
     def run(self, args, inputs):
         cmd = inputs['i'].content
-        cmd <<= nm.writelist(header=True)
+        # 1行目をヘッダ扱いしない(nfn=True)
+        # ヘッダ扱いすると、重複列名や空列名があるとエラーになる
+        cmd <<= nm.writelist(nfn=True)
 
         # pass output
-        nysol_module_o= NysolModule()
-        nysol_module_o.set_content(cmd)
-        return {'o': nysol_module_o}
+        return {'o': NysolModule(cmd)}

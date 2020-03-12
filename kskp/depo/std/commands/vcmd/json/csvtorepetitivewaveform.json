@@ -44,7 +44,7 @@
             "label":"横軸名"
           }
         ],
-        "default":[{"column":"", "label":""}],
+        "default":[{"column":null, "label":""}],
         "options":{
           "visiable_button_add"  : false,
           "visiable_button_delete": false,
@@ -66,7 +66,7 @@
             "label":"縦軸名"
           }
         ],
-        "default":[{"column":"", "label":""}],
+        "default":[{"column":null, "label":""}],
         "options":{
           "visiable_button_add"  : false,
           "visiable_button_delete": false,
@@ -74,7 +74,7 @@
         }
       },
       {
-        "name": "datas",
+        "name": "data_column",
         "type": "column",
         "options":{
           "multiple": true
@@ -158,7 +158,7 @@
       {
         "name": "data_group",
         "label": "データ系列の設定",
-        "params": ["datas","group"]
+        "params": ["data_column","group"]
       },
       {
         "name": "offset_group",
