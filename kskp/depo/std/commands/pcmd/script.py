@@ -1492,7 +1492,7 @@ class GroupBy2Command(Command):
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
 
-    def slopebyorder(self, subcmd, **kwargs):
+    def pearson(self, subcmd, **kwargs):
         try:
             f = kwargs.get('f')
             a = kwargs.get('a')
@@ -1502,30 +1502,19 @@ class GroupBy2Command(Command):
 
             fs = f.split(',')
 
-            # fix "time" column
-            ordercol = '__order__'
-            subcmd <<= nm.mnumber(k = k, a = f'{ordercol}', s = f'{k},{x}%n', S = '1')
-
-            for fld in fs: 
-                subcmd <<= nm.mcal(a = f'{fld}_prod',c = f'${{{fld}}}*${{{ordercol}}}')
+            sims = [None] * len(fs)
+            subcmd_o = None
             
-            prod_fldnames = ','.join([f'{fld}_prod' for fld in fs])
+            for i,fld in enumerate(fs): 
+                sims[i] <<= nm.msim(i = subcmd, k = k, c = 'pearson', 
+                                    f = f'{x},{fld}', a = 'fld2,fld')
             
-            subcmd <<= nm.msummary(k = k, f = f'{prod_fldnames},{f},{ordercol}',
-                                c = 'mean,var')
-        
-            subcmd <<= nm.m2cross(k = f'{k},fld', f = 'mean,var', a = f'type,{a}')
-            subcmd <<= nm.mcal(a = 'tmp_colnames', c = '$s{fld}+"_"+$s{type}')
-            subcmd <<= nm.mcross(f = f'{a}', s = 'tmp_colnames', k = k)
-
-            for fld in fs:
-                subcmd <<= nm.mcal(a = fld, precision = precision,
-                    c = f'(${{{fld}_prod_mean}}-(${{{fld}_mean}}*${{{ordercol}_mean}}))/${{{ordercol}_var}}')
+            subcmd_o <<= nm.m2cat(i = sims)
+            subcmd_o <<= nm.mfldname(f = f'pearson:{a}({x})')
             
-            subcmd <<= nm.mcross(f = f, s = 'fld', k = k)
-            subcmd <<= nm.mcut(f = f'{k},fld,{a}')
+            subcmd_o <<= nm.mcut(f = f'{k},fld,{a}({x})')
 
-            return subcmd
+            return subcmd_o
             
         except Exception as e:
             import traceback
@@ -1617,6 +1606,18 @@ class GroupBy2Command(Command):
                 subcmd_o <<= nm.mcut(i = _temp, f = [k, 'fld'] + finalcols)
 
                 return subcmd_o
+            prod_fldnames = ','.join([f'{fld}_prod' for fld in fs])
+            
+            subcmd <<= nm.msummarky(k = k, f = f'{prod_fldnames},{f},{ordercol}',
+                                c = 'mean,var')
+        
+            subcmd <<= nm.m2cross(k = f'{k},fld', f = 'mean,var', a = f'type,{a}')
+            subcmd <<= nm.mcal(a = 'tmp_colnames', c = '$s{fld}+"_"+$s{type}')
+            subcmd <<= nm.mcross(f = f'{a}', s = 'tmp_colnames', k = k)
+
+            for fld in fs:
+                subcmd <<= nm.mcal(a = fld, precision = precision,
+                    c = f'(${{{fld}_prod_mean}}-(${{{fld}_mean}}*${{{ordercol}_mean}}))/${{{ordercol}_var}}')
             else:
                 subcmd_o <<= nm.mcut(i = targets, f = [k, 'fld'] + finalcols)
                 return subcmd_o
@@ -2755,7 +2756,7 @@ class GroupBy2Command(Command):
             'varf' : self.frequencyvar,
             'fft_agg' : self.fft_agg,
             'slope' : self.slope,
-            'slope_pearson' : self.slopebyorder,
+            'slope_pearson' : self.pearson,
             'firstmin' : self.firstmin,
             'firstmax' : self.firstmax,
             'lastmin' : self.lastmin,
@@ -3033,6 +3034,8 @@ class GroupBy2Command(Command):
 
                 if n:
                     final_cs = [f'{calcdict["a"]}_{calcdict["n"]}']
+                elif cs == 'slope_pearson':
+                    final_cs = [f'{calcdict["a"]}({calcdict["x"]})']
                 else:
                     final_cs = [calcdict['a']]
             
