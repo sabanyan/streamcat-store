@@ -218,7 +218,7 @@ class CsvToLineGraphCommand(VisualizersBokehPlot):
         # 3. 折れ線の作成
         line_list = {}
         for label, df in named_dfs.items():
-            line_list[label] = hv.Curve(df, x_axis_column, y_axis_column).opts(width=1040, height=600)
+            line_list[label] = hv.Curve(df, x_axis_column, y_axis_column).opts(width=1040, height=600, framewise=True)
 
         ndoverlay = hv.NdOverlay(line_list).opts(legend_position='top',
                                                  width=graph_width, height=graph_height,
