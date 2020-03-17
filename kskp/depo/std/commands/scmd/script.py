@@ -707,9 +707,10 @@ class RunsCommand(SCommand):
         self.o_ports = [Port('*', 'datum?')]
 
     def run(self, args, inputs):
-        from multiprocessing import Process, Manager
+        import io
+        from multiprocessing import Process, Manager, Pipe
 
-        def do_runs(nm_list, results, exs):
+        def do_runs(nm_list, results, exs, out):
             """
             NYSOL Pythonを実行する
             """
@@ -720,6 +721,10 @@ class RunsCommand(SCommand):
 
                 import nysol.mcmd as nm
                 # nm.drawModelsD3(fname='aaabbbccc.html', val=nm_list)
+
+                # 標準エラー出力のファイル記述子(No.2)を親プロセスへのPIPEに変更する
+                os.dup2(out.fileno(), sys.stderr.fileno())
+                # NYSOL Pythonを実行する
                 ret = nm.runs(nm_list, msg='on', throwexc=True)
                 results.extend(ret)
             except Exception as e:
@@ -727,6 +732,8 @@ class RunsCommand(SCommand):
                     import traceback
                     traceback.print_exc(file=fpe)
                 exs.append(e)
+            finally:
+                out.close()
 
         # NYSOLコマンドのリストを作成する
         nm_list = [nysol_module.content for nysol_module in inputs.values()]
@@ -737,14 +744,29 @@ class RunsCommand(SCommand):
                 results = manager.list()
                 # サブプロセスの例外を取得するための共有メモリ
                 exs = manager.list()
+                # サブプロセスの標準エラー出力を取得するためのPIPE
+                recv_conn, send_conn = Pipe(duplex=False)
+                # PIPEをNon-Blockingにして受信処理が待ち状態になるのを防ぐ
+                import fcntl
+                fl = fcntl.fcntl(recv_conn.fileno(), fcntl.F_GETFL)
+                fl = fl | os.O_NONBLOCK
+                fcntl.fcntl(recv_conn.fileno(), fcntl.F_SETFL, fl)
 
                 # Flask内でrunfuncを含むフローをnm.runs()で実行すると処理が固まることがある
                 # これを回避するためにサププロセス内でnm.runs()を実行する
-                p = Process(target=do_runs, kwargs={'nm_list':nm_list, 'results':results, 'exs':exs})
+                p = Process(target=do_runs, kwargs={'nm_list':nm_list, 'results':results, 'exs':exs, 'out':send_conn})
                 # サブプロセスを開始する
                 p.start()
                 # サブプロセスが終了するまで待つ
                 p.join()
+
+                # 標準エラー出力から出力内容を取得する
+                mcmd_errors = []
+                reader = open(recv_conn.fileno(), mode='r')
+                for line in reader:
+                    print(line, end='', file=sys.stderr)
+                    if line.startswith('#ERROR#') and 'kgshell' not in line:
+                        mcmd_errors.append(line)
 
             except Exception:
                 raise
@@ -752,7 +774,17 @@ class RunsCommand(SCommand):
                 # Processオブジェクトを閉じ、関連付けられていたすべてのリソースを開放する
                 # Python3.6.0にはない (T_T
                 # p.close()
+
+                # PIPEを明示的にcloseすると"Bad file descriptor"がエラー出力される
+                # recv_conn.close()
+                # send_conn.close()
                 pass
+
+            # NYSOL Pythonのエラー処理
+            if len(mcmd_errors) > 0:
+                from .mcmd_error_info import MCMDErrorInfo, MCMDError
+                mcmd_error_info = MCMDErrorInfo.parse_stderr(mcmd_errors[0])
+                raise MCMDError(mcmd_error_info)
 
             if len(exs) > 0:
                 # writelistコマンドにCSV形式以外のデータが入力されると例外が送出されるようである
