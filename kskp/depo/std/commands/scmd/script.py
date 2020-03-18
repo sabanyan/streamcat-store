@@ -717,7 +717,7 @@ class RunsCommand(SCommand):
             try:
                 # multiprocessing.Processで閉じられる標準入力を開き直す
                 import sys
-                sys.stdin = open(0)
+                sys.stdin = open(0, closefd=False)
 
                 import nysol.mcmd as nm
                 # nm.drawModelsD3(fname='aaabbbccc.html', val=nm_list)
@@ -732,8 +732,6 @@ class RunsCommand(SCommand):
                     import traceback
                     traceback.print_exc(file=fpe)
                 exs.append(e)
-            finally:
-                out.close()
 
         # NYSOLコマンドのリストを作成する
         nm_list = [nysol_module.content for nysol_module in inputs.values()]
@@ -761,9 +759,10 @@ class RunsCommand(SCommand):
                 p.join()
 
                 # 標準エラー出力から出力内容を取得する
+                # (既に開いているファイル記述子をWrapするためにopenを用いている
+                #  recv_connオブジェクトでcloseするのでclosefd=Falseとする)
                 mcmd_errors = []
-                reader = open(recv_conn.fileno(), mode='r')
-                for line in reader:
+                for line in open(recv_conn.fileno(), mode='r', closefd=False):
                     print(line, end='', file=sys.stderr)
                     if line.startswith('#ERROR#') and 'kgshell' not in line:
                         mcmd_errors.append(line)
@@ -774,11 +773,8 @@ class RunsCommand(SCommand):
                 # Processオブジェクトを閉じ、関連付けられていたすべてのリソースを開放する
                 # Python3.6.0にはない (T_T
                 # p.close()
-
-                # PIPEを明示的にcloseすると"Bad file descriptor"がエラー出力される
-                # recv_conn.close()
-                # send_conn.close()
-                pass
+                recv_conn.close()
+                send_conn.close()
 
             # NYSOL Pythonのエラー処理
             if len(mcmd_errors) > 0:
