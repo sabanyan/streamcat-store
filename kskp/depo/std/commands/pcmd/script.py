@@ -3193,6 +3193,8 @@ class RowRangeCommand(Command):
                 with open('/dev/stderr', 'w') as fpe:
                     import traceback
                     traceback.print_exc(file=fpe)
+                    print(f'#ERROR# {str(e)}; RowRangeCommand; ; ; ', file=fpe)
+                raise
 
         # 指定範囲の取得
         offset = int(args.get('offset')) if args.get('offset') else 0
