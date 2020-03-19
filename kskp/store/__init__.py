@@ -84,8 +84,8 @@ from sqlalchemy.orm import sessionmaker, scoped_session
 Session = scoped_session(sessionmaker(bind=engine))
 # 変数名がsessionだとwebでimportした時にflaskのsessionと被るので、一応ssにしている
 # ss = Session()
-from kskp.store.auth.my_session import MySession
-ss = MySession(Session())
+from kskp.store.auth.authz_session import AuthzSession
+ss = AuthzSession(Session())
 
 from kskp.core import Datum, Port, Command
 

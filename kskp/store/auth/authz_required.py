@@ -1,11 +1,5 @@
 import functools
 
-class NotAuthorizedException(Exception):
-    """
-    処理する権限がないことを通知する例外
-    """
-    pass
-
 # def authz_required(method):
 #     """
 #     デコレートするメソッドを処理する権限の有無を判定する
