@@ -2,6 +2,7 @@ import os
 from sqlalchemy import Column, String, text
 from sqlalchemy.dialects.postgresql import INTEGER, TIMESTAMP
 from kskp.store import BaseModel
+from .user_group import UserGroup
 
 class Group(BaseModel):
     # テーブル名の定義
@@ -20,7 +21,7 @@ class Group(BaseModel):
     modifier    = Column(INTEGER)
     created_at  = Column(TIMESTAMP, default=text('statement_timestamp()'))
     modified_at = Column(TIMESTAMP, default=text('statement_timestamp()'), onupdate=text('statement_timestamp()'))
-        
+
     def __init__(self, name, is_admin=0, creator=None):
         """
         コンストラクタ
@@ -60,7 +61,6 @@ class Group(BaseModel):
     def delete(self):
         from kskp.store import ss as session
         from .auth import Auth
-        from .user_group import UserGroup
 
         # グループに一人以上のユーザが所属している場合は例外を送出する
         count = session.query(UserGroup).filter(UserGroup.group_id == self.id).count()
@@ -72,7 +72,7 @@ class Group(BaseModel):
         # 削除グループに対する権限情報をauthsテーブルから全て削除する
 
         # グループを削除する
-        sys.__stderr__.write(f"self.id: {self.id}\n")
+        # sys.__stderr__.write(f"self.id: {self.id}\n")
         session.query(Group).filter(Group.id == self.id).delete()
         session.commit()
 

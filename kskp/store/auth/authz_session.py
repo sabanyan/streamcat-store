@@ -1,4 +1,4 @@
-class MySession():
+class AuthzSession():
 
     _session = None
 
@@ -7,9 +7,6 @@ class MySession():
         self.user_id = user_id
 
     def commit(self):
-        """
-        COMMIT前に権限を判定し、権限がなかったらrollbackして例外を送出する
-        """
         self._session.commit()
 
     def rollback(self):
@@ -21,18 +18,18 @@ class MySession():
 
         pathとdataプロパティは参照された時に権限を判定し、NGなら例外を送出する
         """
+        import inspect
         from sqlalchemy import and_
         from sqlalchemy.orm import with_expression
-        # from kskp.store import ss as session
-        from .user_group import UserGroup
-
-
         from kskp.core import Datum
         from .auth import Auth
-        import inspect
+        from .user_group import UserGroup
 
-        if inspect.isclass(datum_type) and datum_type.__tablename__ == 'data':
-
+        # datum_typeがDatumクラスか否かを判定する
+        # TODO: もう少し確実な判定方法に変更したい
+        if inspect.isclass(datum_type) and hasattr(datum_type, '__tablename__') and datum_type.__tablename__ == 'data':
+            
+            # Debug message
             print('Session:', self.user_id)
 
             group_id = self._session.query(UserGroup.group_id).filter(UserGroup.user_id==self.user_id).one_or_none()

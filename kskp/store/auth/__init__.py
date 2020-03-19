@@ -3,6 +3,7 @@ from sqlalchemy import event, DDL
 from kskp.store import engine
 from kskp.store import BaseModel
 
+from .exceptions import NotAuthorizedException
 from .auth import Auth
 from .user_group import UserGroup
 from .group import Group
