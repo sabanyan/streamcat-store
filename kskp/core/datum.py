@@ -52,7 +52,7 @@ class Datum(BaseModel):
     readable    = query_expression()
 
     # conver_to_xxx()によるキャスト処理で余分にSQLを発行しないためにparent_uuidを保持する
-    parent_uuid = None
+    _parent_uuid = None
 
     def __init__(self, parent_uuid, datum_type, label, creator=None):
         """
@@ -72,7 +72,7 @@ class Datum(BaseModel):
                 self.parent_id = parent.id
                 # self.parent_uuid = parent_uuid
 
-        self.parent_uuid = parent_uuid
+        self._parent_uuid = parent_uuid
 
         # UUIDを採番する
         self.uuid = str(uuid.uuid4())
@@ -99,6 +99,11 @@ class Datum(BaseModel):
         # Engineから参照する
         self.context = {}
 
+    @property
+    def parent_uuid(self):
+        if self._parent_uuid is None:
+            self._parent_uuid = Datum.find_parent(self.uuid).uuid
+        return self._parent_uuid
 
     @property
     def path(self):
@@ -159,7 +164,7 @@ class Datum(BaseModel):
     @property
     def label(self):
         if self._label is None or self._label == '':
-            return self.data2['label'] or ''
+            return self.data2.get('label') or ''
         else:
             return self._label
 
