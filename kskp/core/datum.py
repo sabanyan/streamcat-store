@@ -6,6 +6,7 @@ import uuid
 import datetime
 from kskp.store import BaseModel, ss as session
 from kskp.store import STORE_DIR
+from kskp.store.auth import NotAuthorizedException
 from pathlib import Path
 from sqlalchemy.orm import aliased, column_property, query_expression
 from sqlalchemy import Column, Integer, String, text, select
@@ -43,7 +44,7 @@ class Datum(BaseModel):
     _label      = Column('label', String)
     # PostgreSQLのENUM型の要素を変更してもSQLAlchemyから自動的に変更がかからないので手動で変更する必要がある
     type        = Column(ENUM(FOLDER_TYPE, AWSS3_TYPE, RFOLDER_TYPE, DATABASE_TYPE, FLOW_TYPE, FRAME_TYPE, name='data_type'), nullable=False)
-    data        = Column(JSONB)
+    _data       = Column('data', JSONB)
     creator     = Column(INTEGER)
     modifier    = Column(INTEGER)
     created_at  = Column(TIMESTAMP, default=text('statement_timestamp()'))
@@ -110,8 +111,7 @@ class Datum(BaseModel):
         from kskp.store import Mountable
 
         if not self.readable:
-            from kskp.store.auth import NotAuthorizedException
-            raise NotAuthorizedException('path ダメよ')
+            raise NotAuthorizedException(f'{self.label}の参照権限がありません')
 
         if self._path == '':
             return None
@@ -164,19 +164,19 @@ class Datum(BaseModel):
     @property
     def label(self):
         if self._label is None or self._label == '':
-            return self.data2.get('label') or ''
+            return self.data.get('label') or ''
         else:
             return self._label
 
     @property
-    def data2(self):
-        import json
-        try:
-            # data列の後方互換性
-            ret = json.loads(self.data, encoding='utf-8')
-        except Exception as e:
-            ret = self.data
-        return ret
+    def data(self):
+        if not self.readable:
+            raise NotAuthorizedException(f'{self.label}の参照権限がありません.')
+        return self._data
+
+    @data.setter
+    def data(self, data):
+        self._data = data
 
     # @property
     # def content(self):
@@ -194,6 +194,22 @@ class Datum(BaseModel):
         # UTC日時はここで現地時間(環境変数TZの値)に設定される
         created_at_local = created_at_utc.astimezone()
         return created_at_local.strftime('%Y-%m-%d %H:%M:%S')
+
+    @property
+    def creator_str(self):
+        return Datum.get_user_name_by_user_id(self.creator)
+
+    @staticmethod
+    def get_user_name_by_user_id(user_id):
+        """
+        FIXIT: usersテーブルへのアクセスはSQLAlchemyを用いる予定なので、以下のコードは暫定実装である
+        """
+        from ..store.model import get_user_by_id
+        user = get_user_by_id(user_id)
+        if user is None:
+            Exception('No user is found by designated user id')
+        else:
+            return user['name']
 
     def move(self, parent_uuid, modifier):
         """
@@ -411,17 +427,6 @@ class Datum(BaseModel):
         trans_table = str.maketrans({'\0' : ''})
         return label.translate(trans_table)
 
-    @staticmethod
-    def get_user_name_by_user_id(user_id):
-        """
-        FIXIT: usersテーブルへのアクセスはSQLAlchemyを用いる予定なので、以下のコードは暫定実装である
-        """
-        from ..store.model import get_user_by_id
-        user = get_user_by_id(user_id)
-        if user is None:
-            Exception('No user is found by designated user id')
-        else:
-            return user['name']
 
     @staticmethod
     def get_another_file_path(path, except_path=None):
@@ -487,6 +492,14 @@ class Datum(BaseModel):
             Exception('No datum is found by designated id')
         else:
             return result.uuid
+
+    @staticmethod
+    def get_id_by_uuid(uuid):
+        result = session.query(Datum.id).filter(Datum.uuid==uuid).one_or_none()
+        if result is None:
+            Exception('No datum is found by designated uuid')
+        else:
+            return result.id
 
     @staticmethod
     def is_valid_uuid(uuid):

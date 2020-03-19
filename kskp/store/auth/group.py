@@ -107,6 +107,6 @@ class Group(BaseModel):
             'id'       : self.id,
             'name'     : self.name,
             'is_admin' : self.is_admin,               
-            'creator'  : Datum.get_user_name_by_user_id(self.creator),
+            'creator'  : self.creator_str,
             'createdAt': self.created_at_str
         }

@@ -47,7 +47,7 @@ class Database(Store):
     @staticmethod
     def convert_to_database(datum):
         parent_uuid = Datum.get_uuid_by_id(datum.parent_id)
-        database_conn = DatabaseConn.from_json(datum.data2['conn'])
+        database_conn = DatabaseConn.from_json(datum.data['conn'])
         database = Database(parent_uuid, datum.label, database_conn, datum.creator)
         database.id = datum.id
         database.uuid = datum.uuid
@@ -163,17 +163,17 @@ class Database(Store):
 
     @property
     def conn(self):
-        return DatabaseConn.from_json(self.data2['conn'])
+        return DatabaseConn.from_json(self.data['conn'])
 
     def valid_or_raise(self):
         """
         DB接続情報の形式チェックを行い、NGの場合は例外を送出する
         """
-        database_conn = DatabaseConn.from_json(self.data2['conn'])
+        database_conn = DatabaseConn.from_json(self.data['conn'])
         return database_conn.valid_or_raise()
 
     def to_json(self):
-        database_conn = DatabaseConn.from_json(self.data2['conn'])
+        database_conn = DatabaseConn.from_json(self.data['conn'])
         
         return {'uuid'      : self.uuid,
                 'type'      : Datum.DATABASE_TYPE,
@@ -184,7 +184,7 @@ class Database(Store):
                 'database'  : database_conn.database,
                 'user_id'   : database_conn.user_id,
                 'password'  : database_conn.password,
-                'creator'   : Datum.get_user_name_by_user_id(self.creator),
+                'creator'   : self.creator_str,
                 'createdAt' : self.created_at_str}
 
     # @property

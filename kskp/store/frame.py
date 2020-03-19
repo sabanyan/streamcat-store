@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 
 from . import ss as session
 from kskp.core import Datum
+from kskp.store.auth import NotAuthorizedException
 
 class Frame(Datum):
 
@@ -231,7 +232,10 @@ class Frame(Datum):
 
     @property
     def encoding(self):
-        return self.data2.get('encoding') or 'UNKNOWN'
+        try:
+            return self.data.get('encoding') or 'UNKNOWN'
+        except NotAuthorizedException:
+            return ''
 
     @encoding.setter
     def encoding(self, encoding):
@@ -244,7 +248,10 @@ class Frame(Datum):
 
     @property
     def newline(self):
-        return self.data2.get('newline') or 'UNKNOWN'
+        try:
+            return self.data.get('newline') or 'UNKNOWN'
+        except NotAuthorizedException:
+            return ''
 
     @newline.setter
     def newline(self, newline):
@@ -387,7 +394,7 @@ class Frame(Datum):
                 'label'     : self.label,
                 'encoding'  : self.encoding_str,
                 'newline'   : self.newline_str,
-                'creator'   : Datum.get_user_name_by_user_id(self.creator),
+                'creator'   : self.creator_str,
                 'createdAt' : self.created_at_str}
 
     def load_as_data_frame(self, offset, limit):
