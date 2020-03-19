@@ -23,7 +23,7 @@ class AwsS3(Folder, Mountable):
         self.type = Datum.AWSS3_TYPE
 
         # data列の値を作成する
-        self.data = {'label' : label, 'bucket' : bucket_name}
+        self.data = {'bucket' : bucket_name}
 
         # S3のオブジェクトを用意する
         # self._s3 = boto3.resource('s3')
@@ -56,7 +56,6 @@ class AwsS3(Folder, Mountable):
     @staticmethod
     def convert_to_awss3(datum):
         parent_uuid = Datum.get_uuid_by_id(datum.parent_id)
-        # label = json.loads(datum.data, encoding='utf-8')['label']
         bucket_name = datum.data2['bucket']
         awss3 = AwsS3(parent_uuid, datum.label, bucket_name, datum.creator)
         awss3.id = datum.id
@@ -113,7 +112,7 @@ class AwsS3(Folder, Mountable):
             Datum.update_include_path(old_path, new_path, modifier)
 
             # レコードを更新する
-            data = {'label' : new_label, 'bucket' : bucket_name}
+            data = {'bucket' : bucket_name}
             session.query(Datum).filter(Datum.uuid==uuid).update({'_label'   :new_label
                                                                  ,'data'    :data
                                                                  ,'modifier':modifier})
