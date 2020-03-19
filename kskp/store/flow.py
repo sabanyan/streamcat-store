@@ -50,23 +50,23 @@ class Flow(Datum):
         no_outputs =False : 出力ポートのないサブフローは取得しない
         """
         # FIXIT : PostgreSQLのJSONB演算子を用いればSQLのみでサブフローを抽出できるはず
-        data = session.query(Datum).filter(Datum.type==Datum.FLOW_TYPE).all()
+        flows = session.query(Flow).filter(Flow.type==Flow.FLOW_TYPE).all()
 
         subflows = []
-        for datum in data:
-            datum_data = datum.data2['flow']
+        for flow in flows:
+            flow_data = flow.data2['flow']
             # onの時にno_inputs（＝inputsがない）のサブフローは出さない
             if no_inputs:
-                if len(datum_data['ports'][0]) == 0:
+                if len(flow_data['ports'][0]) == 0:
                     continue
 
             # onの時にno_outputs（＝outputsがない）のサブフローは出さない
             if no_outputs:
-                if len(datum_data['ports'][1]) == 0:
+                if len(flow_data['ports'][1]) == 0:
                     continue
 
-            if len(datum_data['ports'][0]) > 0 or len(datum_data['ports'][1]) > 0:
-                subflows.append(datum)
+            if len(flow_data['ports'][0]) > 0 or len(flow_data['ports'][1]) > 0:
+                subflows.append(flow)
 
         return subflows
 

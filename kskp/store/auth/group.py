@@ -1,41 +1,30 @@
 import os
-import uuid
-import random
-import platform
-import datetime
-
-from pathlib import Path
-from sqlalchemy.orm import aliased
-from sqlalchemy import Column, Integer, String, text
+from sqlalchemy import Column, String, text
 from sqlalchemy.dialects.postgresql import INTEGER, TIMESTAMP
-
-from kskp.core import Datum
 from kskp.store import BaseModel
-from .user_group import UserGroup
-from kskp.store import ss as session
-
 
 class Group(BaseModel):
     # テーブル名の定義
     __tablename__ = 'groups'
 
+    # 定義先スキーマ
+    if 'KSKP_POSTGRESQL_SCHEMA_NAME' in os.environ:
+        # テスト環境用のスキーマ
+        __table_args__ = {'schema': os.environ['KSKP_POSTGRESQL_SCHEMA_NAME']}
+
     # 列名と列のデータ型等の定義
     id          = Column(INTEGER, primary_key=True, autoincrement=True)
     name        = Column(String, nullable=False)
-    is_admin    = Column(Integer, default=0, nullable=False)
+    is_admin    = Column(INTEGER, default=0, nullable=False)
     creator     = Column(INTEGER)
     modifier    = Column(INTEGER)
     created_at  = Column(TIMESTAMP, default=text('statement_timestamp()'))
     modified_at = Column(TIMESTAMP, default=text('statement_timestamp()'), onupdate=text('statement_timestamp()'))
-
-    MAX_DATUM_ID = 9000000000000000000
         
     def __init__(self, name, is_admin=0, creator=None):
         """
         コンストラクタ
         """
-        # SQLiteではidは乱数で採番する
-        # self.id = random.randint(0, self.MAX_DATUM_ID)
         self.name = name
         self.is_admin = is_admin
 
@@ -45,6 +34,7 @@ class Group(BaseModel):
 
     @staticmethod
     def find_by_id(id):
+        from kskp.store import ss as session
         return session.query(Group).filter(Group.id == id)
 
     @staticmethod
@@ -52,12 +42,14 @@ class Group(BaseModel):
         """
         全件取得する
         """
+        from kskp.store import ss as session
         return session.query(Group).all()
 
     def save(self):
         """
         Groupを保存する
         """
+        from kskp.store import ss as session
         # Groupsテーブルにレコードを新規追加する
         session.add(self)
         session.commit()
@@ -66,13 +58,17 @@ class Group(BaseModel):
         pass
 
     def delete(self):
+        from kskp.store import ss as session
+        from .auth import Auth
+        from .user_group import UserGroup
+
         # グループに一人以上のユーザが所属している場合は例外を送出する
         count = session.query(UserGroup).filter(UserGroup.group_id == self.id).count()
         if count > 0:
             raise Exception('Can not delete the group that has user(s).')
         # 削除によってどのグループからも所有されなくなるデータがある場合は例外を送出する
-        count = session.query(Auths).filter(Auths.group_id == self.id)\
-                                    .filter(Auths.own == 1).count()
+        count = session.query(Auth).filter(Auth.group_id == self.id)\
+                                    .filter(Auth.own == 1).count()
         # 削除グループに対する権限情報をauthsテーブルから全て削除する
 
         # グループを削除する
@@ -96,6 +92,7 @@ class Group(BaseModel):
 
     @property
     def created_at_str(self):
+        import datetime
         if self.created_at is None:
             return ''
         # DBに格納されている日時はUTCなので、タイムゾーンをUTCに設定する
@@ -105,6 +102,7 @@ class Group(BaseModel):
         return created_at_local.strftime('%Y-%m-%d %H:%M:%S')
 
     def to_json(self):
+        from kskp.store import Datum
         return {
             'id'       : self.id,
             'name'     : self.name,
