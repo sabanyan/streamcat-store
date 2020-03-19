@@ -271,7 +271,7 @@ class Folder(Store):
         return {'uuid'      : self.uuid,
                 'type'      : Datum.FOLDER_TYPE,
                 'label'     : self.label,
-                'creator'   : Datum.get_user_name_by_user_id(self.creator),
+                'creator'   : self.creator_str,
                 'createdAt' : self.created_at_str}
 
     # def save_frame(self, command, args, datum, file_name):

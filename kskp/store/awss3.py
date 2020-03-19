@@ -56,7 +56,7 @@ class AwsS3(Folder, Mountable):
     @staticmethod
     def convert_to_awss3(datum):
         parent_uuid = Datum.get_uuid_by_id(datum.parent_id)
-        bucket_name = datum.data2['bucket']
+        bucket_name = datum.data['bucket']
         awss3 = AwsS3(parent_uuid, datum.label, bucket_name, datum.creator)
         awss3.id = datum.id
         awss3.uuid = datum.uuid
@@ -154,7 +154,7 @@ class AwsS3(Folder, Mountable):
 
     @property
     def bucket_name(self):
-        return self.data2['bucket']
+        return self.data['bucket']
 
     def _get_mount_cmd(self, mount_point_path):
         # S3をマウントするgoofysコマンドの有無を確認する
@@ -238,5 +238,5 @@ class AwsS3(Folder, Mountable):
                 'type'      : Datum.AWSS3_TYPE,
                 'label'     : self.label,
                 'bucket'    : self.bucket_name,
-                'creator'   : Datum.get_user_name_by_user_id(self.creator),
+                'creator'   : self.creator_str,
                 'createdAt' : self.created_at_str}

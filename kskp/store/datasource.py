@@ -63,7 +63,7 @@ class DataSource(Flow):
                 ]
             ],
             "params": [],
-            "creator": Datum.get_user_name_by_user_id(self.creator),
+            "creator": self.creator_str,
             "createdAt": self.created_at_str,
             "projectId": None,
             "description": ""

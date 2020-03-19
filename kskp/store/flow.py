@@ -54,7 +54,7 @@ class Flow(Datum):
 
         subflows = []
         for flow in flows:
-            flow_data = flow.data2['flow']
+            flow_data = flow.data['flow']
             # onの時にno_inputs（＝inputsがない）のサブフローは出さない
             if no_inputs:
                 if len(flow_data['ports'][0]) == 0:
@@ -85,7 +85,7 @@ class Flow(Datum):
     @staticmethod
     def convert_to_flow(datum):
         parent_uuid = datum.parent_uuid or Datum.get_uuid_by_id(datum.parent_id)
-        flow_data = datum.data2['flow']
+        flow_data = datum.data['flow']
         flow = Flow(parent_uuid, datum.label, flow_data, datum.creator)
         flow.id = datum.id
         flow.uuid = datum.uuid
@@ -264,7 +264,7 @@ class Flow(Datum):
 
     @property
     def flow_data(self):
-        return self.data2['flow']
+        return self.data['flow']
 
     def duplicate(self, new_label, user_id):
         """
@@ -394,5 +394,5 @@ class Flow(Datum):
         return {'uuid'      : self.uuid,
                 'type'      : Datum.FLOW_TYPE,
                 'label'     : self.label,
-                'creator'   : Datum.get_user_name_by_user_id(self.creator),
+                'creator'   : self.creator_str,
                 'createdAt' : self.created_at_str}

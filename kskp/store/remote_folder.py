@@ -54,7 +54,7 @@ class RemoteFolder(Folder, Mountable):
     @staticmethod
     def convert_to_remote_folder(datum):
         parent_uuid = Datum.get_uuid_by_id(datum.parent_id)
-        remote_folder_conn = RemoteFolderConn.from_json(datum.data2['conn'])
+        remote_folder_conn = RemoteFolderConn.from_json(datum.data['conn'])
         folder = RemoteFolder(parent_uuid, datum.label, remote_folder_conn, datum.creator)
         folder.id = datum.id
         folder.uuid = datum.uuid
@@ -149,15 +149,15 @@ class RemoteFolder(Folder, Mountable):
         """
         接続情報の形式チェックを行い、NGの場合は例外を送出する
         """
-        database_conn = RemoteFolderConn.from_json(self.data2['conn'])
+        database_conn = RemoteFolderConn.from_json(self.data['conn'])
         return database_conn.valid_or_raise()
 
     def _get_mount_cmd(self, mount_point_path):
-        remote_folder_conn = RemoteFolderConn.from_json(self.data2['conn'])
+        remote_folder_conn = RemoteFolderConn.from_json(self.data['conn'])
         return remote_folder_conn.get_mount_cmd(mount_point_path)
 
     def to_json(self):
-        remote_folder_conn = RemoteFolderConn.from_json(self.data2['conn'])
+        remote_folder_conn = RemoteFolderConn.from_json(self.data['conn'])
 
         return {'uuid'      : self.uuid,
                 'type'      : Datum.RFOLDER_TYPE,
@@ -168,5 +168,5 @@ class RemoteFolder(Folder, Mountable):
                 'directory' : remote_folder_conn.directory,
                 'user_id'   : remote_folder_conn.user_id,
                 'password'  : remote_folder_conn.password,
-                'creator'   : Datum.get_user_name_by_user_id(self.creator),
+                'creator'   : self.creator_str,
                 'createdAt' : self.created_at_str}

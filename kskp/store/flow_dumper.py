@@ -83,7 +83,7 @@ class FlowDumper:
             database = Database.find_by_uuid(store_uuid)
             database_path = parent_tmp_path / (database.uuid + '.json')
             with database_path.open('w') as f:
-                f.write(json.dumps(database.data2['conn'], indent=2, ensure_ascii=False))
+                f.write(json.dumps(database.data['conn'], indent=2, ensure_ascii=False))
             uuid_type_label.append((database.uuid, database.type, database.label))   
 
         for flow_uuid in flow_uuids:
