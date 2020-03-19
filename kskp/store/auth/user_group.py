@@ -1,20 +1,16 @@
 import os
-import uuid
-import random
-import platform
-import datetime
-
-from pathlib import Path
-from sqlalchemy.orm import aliased
-from sqlalchemy import Column, Integer, String, text, PrimaryKeyConstraint
+from sqlalchemy import Column, text, PrimaryKeyConstraint
 from sqlalchemy.dialects.postgresql import INTEGER, TIMESTAMP
-
 from kskp.store import BaseModel
-from kskp.store import ss as session
 
 class UserGroup(BaseModel):
     # テーブル名の定義
     __tablename__ = 'users_groups'
+
+    # 定義先スキーマ
+    if 'KSKP_POSTGRESQL_SCHEMA_NAME' in os.environ:
+        # テスト環境用のスキーマ
+        __table_args__ = {'schema': os.environ['KSKP_POSTGRESQL_SCHEMA_NAME']}
 
     # テーブルの制約
     __table_args__ = (
@@ -44,6 +40,7 @@ class UserGroup(BaseModel):
         """
         UserGroupを保存する
         """
+        from kskp.store import ss as session
         session.add(self)
         session.commit()
 
@@ -51,6 +48,7 @@ class UserGroup(BaseModel):
         """
         UserGroupを削除する
         """
+        from kskp.store import ss as session
         session.query(UserGroup).filter(UserGroup.user_id==self.user_id)\
                                 .filter(UserGroup.group_id==self.group_id).delete()
         session.commit()
@@ -60,5 +58,6 @@ class UserGroup(BaseModel):
         """
         UsersGroupsテーブルから指定したユーザの所属情報を全て削除する
         """
+        from kskp.store import ss as session
         session.query(UserGroup).filter(UserGroup.user_id==user_id).delete()
         session.commit()

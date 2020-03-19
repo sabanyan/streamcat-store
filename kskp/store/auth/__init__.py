@@ -1,25 +1,24 @@
 from sqlalchemy import event, DDL
 
-from kskp.store import ss as session
 from kskp.store import engine
 from kskp.store import BaseModel
 
-from .user import User
+from .auth import Auth
 from .user_group import UserGroup
 from .group import Group
-from .auth import Auth
+from .user import User
+
+from kskp.store import Session
+session = Session()
 
 @event.listens_for(BaseModel.metadata, 'after_create')
 def receive_after_create(target, connection, tables, **kw):
     "listen for the 'after_create' event"
 
-    if tables:
-        print('tables were created')
-    else:
-        print('tables were not created')
-
-    create_useful_views()
-    create_ud_view()
+    if 'users' in tables and 'groups' in tables and 'users_groups' in tables:
+        create_useful_views()
+        if 'data' in tables and 'auths' in tables:
+            create_ud_view()
 
 def create_useful_views():
     """
@@ -34,7 +33,7 @@ def create_useful_views():
                where UG.user_id = U.id and UG.group_id = G.id)
     """
     engine.execute(DDL('drop view if exists ug'))
-    # engine.execute(DDL(ug_view))
+    engine.execute(DDL(ug_view))
 
 def create_ud_view():
     """
@@ -54,7 +53,7 @@ def create_ud_view():
 
     """
     engine.execute(DDL('drop view if exists ud'))
-    # engine.execute(DDL(ud_view))
+    engine.execute(DDL(ud_view))
 
 def admin_exists():
     """
@@ -87,7 +86,7 @@ def add_admin_user_and_group():
     admin_group = Group('Admin', is_admin=1, creator=admin_user.id)
     # 初期管理者ユーザを初期管理者グループに所属させる
     session.add(admin_group)
-    session.commit()    
+    session.commit()
     
      # 関連テーブルを作成する
     user_group = UserGroup(admin_user.id, admin_group.id, creator=admin_user.id)    
@@ -102,3 +101,4 @@ BaseModel.metadata.create_all(bind=engine, checkfirst=True)
 # デフォルト管理者ユーザとデフォルト管理者グループを作成する
 if not admin_exists():
     add_admin_user_and_group()
+

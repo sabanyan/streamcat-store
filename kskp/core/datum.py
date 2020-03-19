@@ -3,14 +3,12 @@
 """
 import os
 import uuid
-import random
-import platform
 import datetime
 from kskp.store import BaseModel, ss as session
 from kskp.store import STORE_DIR
 from pathlib import Path
-from sqlalchemy.orm import aliased
-from sqlalchemy import Column, Integer, String, text
+from sqlalchemy.orm import aliased, column_property, query_expression
+from sqlalchemy import Column, Integer, String, text, select
 from sqlalchemy.dialects.postgresql import INTEGER, TIMESTAMP, JSONB, ENUM, UUID
 
 class Datum(BaseModel):
@@ -50,6 +48,28 @@ class Datum(BaseModel):
     modifier    = Column(INTEGER)
     created_at  = Column(TIMESTAMP, default=text('statement_timestamp()'))
     modified_at = Column(TIMESTAMP, default=text('statement_timestamp()'), onupdate=text('statement_timestamp()'))
+
+    # from sqlalchemy import and_
+    # from kskp.store.auth import Auth, UserGroup, User
+
+    # _readable = column_property(
+    #     select([Auth.read]).\
+    #     where(and_(Auth.data_id==id,
+    #                Auth.group_id==UserGroup.group_id,
+    #                UserGroup.user_id==User.id,
+    #                User.id==1)).\
+    #     correlate_except(Auth)
+    # )
+
+    # read権限(queryで追加した列の結果を格納する)
+    readable = query_expression()
+
+    # @property
+    # def readable(self):
+    #     """
+    #     Datumのpathとdataプロパティを参照する権限がある場合はTrue
+    #     """
+    #     return self._readable
 
     # conver_to_xxx()によるキャスト処理で余分にSQLを発行しないためにparent_uuidを保持する
     parent_uuid = None

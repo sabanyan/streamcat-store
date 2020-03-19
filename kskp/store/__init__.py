@@ -83,7 +83,9 @@ BaseModel = declarative_base()
 from sqlalchemy.orm import sessionmaker, scoped_session
 Session = scoped_session(sessionmaker(bind=engine))
 # 変数名がsessionだとwebでimportした時にflaskのsessionと被るので、一応ssにしている
-ss = Session()
+# ss = Session()
+from kskp.store.auth.my_session import MySession
+ss = MySession(Session())
 
 from kskp.core import Datum, Port, Command
 
@@ -108,7 +110,7 @@ from .flow_dumper import FlowDumper
 from .library import Library
 from .store_model import Store as StoreModel
 from .flows import FlowLink
-from .auth import User, UserGroup, Group, Auth
+# from .auth import User, UserGroup, Group, Auth
 
 from ..depo.std.commands import CommandLink, CommandsPathLink, CommandsPathFileSource, RunfuncCommand
 from .model import *
@@ -132,7 +134,7 @@ from sqlalchemy import event, DDL
 def receive_after_create(target, connection, tables, **kw):
     "listen for the 'after_create' event"
 
-    if tables:
+    if 'data' in tables:
         # tables were created.
         create_d_view()
 
