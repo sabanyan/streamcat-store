@@ -1,16 +1,13 @@
 from sqlalchemy import event, DDL
 
-from kskp.store import engine
-from kskp.store import BaseModel
+from kskp.store import engine, BaseModel
 
 from .exceptions import NotAuthorizedException
 from .auth import Auth
 from .user_group import UserGroup
+from .system_group import SystemGroup
 from .group import Group
 from .user import User
-
-from kskp.store import Session
-session = Session()
 
 @event.listens_for(BaseModel.metadata, 'after_create')
 def receive_after_create(target, connection, tables, **kw):
@@ -46,7 +43,7 @@ def create_ud_view():
     select U.id, U.name, D.uuid, D.path
     from Data D left join Users U
     on exists (select * from Auths A
-                join Data D on A.data_id = D.id
+                join Data D on A.datum_id = D.id
                 where exists (select * from Groups G
                              where exists (select * from users_groups UG
                                            where UG.group_id = G.id
@@ -60,46 +57,36 @@ def admin_exists():
     """
     管理者グループに所属するユーザがいる場合はTrueを返す
     """
-    sql = """
+
+    sql = f"""
     select count(*) from groups G
-    where is_admin = 1
+    where exists (select * from system_groups SG
+                  where SG.type = '{SystemGroup.ADMIN_TYPE}'
+                    and SG.group_id = G.id)
       and exists (select * from users_groups UG
                   where UG.group_id = G.id
                     and exists (select * from users U
                                 where U.id = UG.user_id) )
     """
     # adminグループに所属するユーザ数をカウントする
-    count = session.execute(sql).scalar()
+    count = engine.execute(sql).scalar()
     return count > 0
 
 def add_admin_user_and_group():
     """
-    デフォルト管理者ユーザとデフォルト管理者グループを作成する
+    デフォルト管理者ユーザと管理者グループを作成する
     """
-    # 初期管理者ユーザを作成する
-    admin_user = User('dev@kskp.io', 'devpass', 'Admin')
-    # 管理者ユーザの作成者は管理者自身である
-    admin_user.creator = admin_user.id
-    session.add(admin_user)
-    session.commit()
+    # 管理者グループが存在しない場合は作成する
+    admin_group = Group.load_admin_group()
 
-    # 初期管理者グループを作成する
-    admin_group = Group('Admin', is_admin=1, creator=admin_user.id)
-    # 初期管理者ユーザを初期管理者グループに所属させる
-    session.add(admin_group)
-    session.commit()
-    
-     # 関連テーブルを作成する
-    user_group = UserGroup(admin_user.id, admin_group.id, creator=admin_user.id)    
-    session.add(user_group)
-    session.commit()
-
+    # 管理者ユーザが存在しない場合はデフォルト管理者ユーザを作成する
+    if not admin_group.has_joined_user():
+        # 初期管理者ユーザを作成する
+        admin_user = User('admin@kskp.io', 'adminpass', 'Admin')
+        admin_user.save()
+        # 初期管理者ユーザを管理者グループに参加させる
+        admin_group.join_user(admin_user.id)
 
 # テーブルを作成する
 BaseModel.metadata.create_all(bind=engine, checkfirst=True)
-
-# 管理者グループに所属するユーザが存在しない場合は、
-# デフォルト管理者ユーザとデフォルト管理者グループを作成する
-if not admin_exists():
-    add_admin_user_and_group()
 

@@ -20,11 +20,12 @@ class AuthzSession():
         pathとdataプロパティは参照された時に権限を判定し、NGなら例外を送出する
         """
         import inspect
-        from sqlalchemy import and_
+        from sqlalchemy import func
         from sqlalchemy.orm import with_expression
         from kskp.core import Datum
         from .auth import Auth
         from .user_group import UserGroup
+        from .group import Group
 
         # datum_typeがDatumクラスかDatumを継承するクラスか否かを判定する
         # TODO: もう少し確実な判定方法に変更したい
@@ -33,10 +34,16 @@ class AuthzSession():
             # Debug message
             print('Session:', self.user_id)
 
-            group_id = self._session.query(UserGroup.group_id).filter(UserGroup.user_id==self.user_id).one_or_none()
+            # ユーザが属する全てのグループについて、Datumを参照する権限がTrueまたはNullの場合にのみ
+            # Datum.readable=Trueとする
+            subquery = self._session.query(func.bool_and(Auth.read).label("read")).\
+                                     outerjoin(Group, Group.id==Auth.group_id).\
+                                     outerjoin(UserGroup, UserGroup.group_id==Group.id).\
+                                     filter(UserGroup.user_id==self.user_id)
+
             return self._session.query(datum_type).\
-                   options(with_expression(Datum.readable, Auth.read)).\
-                   outerjoin(Auth, and_(Datum.id==Auth.data_id, Auth.group_id==group_id))
+                                 options(with_expression(Datum.readable, subquery.filter(Auth.datum_id==Datum.id).label('readable')))
+
         else:
             return self._session.query(datum_type, *args)
 
@@ -53,14 +60,40 @@ class AuthzSession():
     
     def add(self, obj):
         from kskp.core import Datum
+        from kskp.store import Folder
+        from .auth import Auth
+        from .group import Group
+        from .user import User
+
         if isinstance(obj, Datum):
-            if not self.writable(self.user_id, obj.uuid):
-                raise NotAuthorizedException('no anthz!')
+            # Datumの新規追加時はその親フォルダの変更権限を判定する
+            # (ROOTフォルダの新規追加の場合は変更を許可する)
+            if obj.parent_id is not None and not self.writable_by_id(self.user_id, obj.parent_id):
+                parent_uuid = Datum.get_uuid_by_id(obj.parent_id)
+                parent = Folder.find_by_uuid(parent_uuid)
+                raise NotAuthorizedException(f'{parent.label}の変更権限がないため{obj.label}を新規追加できませんでした')
+
+            # Datumを新規追加する
+            self._session.add(obj)
+
+            # everyoneグループが無ければ作成し、ユーザをeveryoneグループに所属させる
+            everyone_group = Group.load_everyone_group()
+            everyone_group.join_user(self.user_id)
+            # everyoneグループへ追加データの権限を付与する
+            everyone_group.init_authz(obj.id, True, True, True)
+
+            # 本人グループが無ければ作成し、ユーザを本人グループに所属させる
+            user = User.find_by_id(self.user_id)
+            if user is not None:
+                self_group = user.load_self_group()
+                # 本人グループへ追加データの権限を付与する
+                self_group.init_authz(obj.id, True, True, True)
+
         else:
             if not self.has_admin():
-                raise NotAuthorizedException('no anthz!')
-
-        self._session.add(obj)
+                # Datum以外の書き込みは管理者権限が必要
+                raise NotAuthorizedException('no anthz!')       
+            self._session.add(obj)
 
     def update(self, uuid, label, data):
         if not self.writable(self.user_id, uuid):
@@ -76,8 +109,7 @@ class AuthzSession():
             raise NotAuthorizedException('no anthz!')
 
         from kskp.core import Datum
-        self._session.query(Datum).filter(Datum.id==id)\
-                            .filter(Datum.type==Datum.FRAME_TYPE).delete()
+        self._session.query(Datum).filter(Datum.id==id).delete()
 
     def execute(self, sql):
         return self._session.execute(sql)
@@ -91,12 +123,20 @@ class AuthzSession():
         return self.writable_by_id(user_id, datum_id)
 
     def writable_by_id(self, user_id, datum_id):
+        from sqlalchemy import text, func, and_
+
         from .auth import Auth
         from .user_group import UserGroup
+        from .group import Group
 
-        group_id = self._session.query(UserGroup.group_id).filter(UserGroup.user_id==self.user_id).one_or_none()
-        result = self._session.query(Auth.write).filter(Auth.data_id==datum_id).filter(Auth.group_id==group_id).one_or_none()
-        return result is not None
+        query = self._session.query(func.bool_and(Auth.write).label("write")).\
+                              outerjoin(Group, Group.id==Auth.group_id).\
+                              outerjoin(UserGroup, UserGroup.group_id==Group.id).\
+                              filter(UserGroup.user_id==self.user_id)
+
+        result = query.filter(Auth.datum_id==datum_id).one_or_none()
+
+        return result.write == True
 
     def has_admin(self):
         return True

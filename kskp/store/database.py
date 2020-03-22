@@ -26,11 +26,11 @@ class Database(Store):
         """
         指定されたuuidを持つDatabaseを取得する
         """
-        datum = session.query(Datum).filter(Datum.uuid==uuid)\
-                                    .filter(Datum.type==Datum.DATABASE_TYPE).one_or_none()
-        if datum is None:
+        database = session.query(Database).filter(Database.uuid==uuid)\
+                                          .filter(Database.type==Database.DATABASE_TYPE).one_or_none()
+        if database is None:
             raise Exception(f'no database is found by designated id ({uuid}).')
-        return Database.convert_to_database(datum)
+        return database
 
     @staticmethod
     def exists(uuid):
@@ -46,16 +46,17 @@ class Database(Store):
 
     @staticmethod
     def convert_to_database(datum):
-        parent_uuid = Datum.get_uuid_by_id(datum.parent_id)
-        database_conn = DatabaseConn.from_json(datum.data['conn'])
-        database = Database(parent_uuid, datum.label, database_conn, datum.creator)
-        database.id = datum.id
-        database.uuid = datum.uuid
-        database._path = datum._path
-        database.modifier = datum.modifier
-        database.created_at = datum.created_at
-        database.modified_at = datum.modified_at
-        return database
+        # parent_uuid = Datum.get_uuid_by_id(datum.parent_id)
+        # database_conn = DatabaseConn.from_json(datum.data['conn'])
+        # database = Database(parent_uuid, datum.label, database_conn, datum.creator)
+        # database.id = datum.id
+        # database.uuid = datum.uuid
+        # database._path = datum._path
+        # database.modifier = datum.modifier
+        # database.created_at = datum.created_at
+        # database.modified_at = datum.modified_at
+        # return database
+        return Database.find_by_uuid(datum.uuid)
 
     def save(self):
         """
@@ -173,20 +174,14 @@ class Database(Store):
         return database_conn.valid_or_raise()
 
     def to_json(self):
-        database_conn = DatabaseConn.from_json(self.data['conn'])
-        
-        return {'uuid'      : self.uuid,
+        ret =  {'uuid'      : self.uuid,
                 'type'      : Datum.DATABASE_TYPE,
                 'label'     : self.label,
-                'dbms'      : database_conn.dbms,
-                'hostname'  : database_conn.hostname,
-                'port'      : database_conn.port,
-                'database'  : database_conn.database,
-                'user_id'   : database_conn.user_id,
-                'password'  : database_conn.password,
                 'creator'   : self.creator_str,
                 'createdAt' : self.created_at_str}
 
-    # @property
-    # def content(self):
-    #     return self
+        if self.readable:
+            database_conn = DatabaseConn.from_json(self.data['conn'])
+            ret.update(database_conn.to_json())
+
+        return ret

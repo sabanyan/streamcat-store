@@ -1,7 +1,7 @@
 import os
 from kskp.store import BaseModel
 from sqlalchemy import Column, String, text, PrimaryKeyConstraint
-from sqlalchemy.dialects.postgresql import INTEGER, TIMESTAMP
+from sqlalchemy.dialects.postgresql import INTEGER, BOOLEAN, TIMESTAMP
 
 class Auth(BaseModel):
     # テーブル名の定義
@@ -14,27 +14,27 @@ class Auth(BaseModel):
 
     # テーブルの制約
     __table_args__ = (
-        PrimaryKeyConstraint('group_id', 'data_id'),
+        PrimaryKeyConstraint('group_id', 'datum_id'),
     )
 
     # 列名と列のデータ型等の定義
     group_id    = Column(INTEGER, primary_key=True)
-    data_id     = Column(INTEGER, primary_key=True)
-    read        = Column(INTEGER, default=0, nullable=False)
-    write       = Column(INTEGER, default=0, nullable=False)
-    exec        = Column(INTEGER, default=0, nullable=False)
-    # own         = Column(INTEGER, default=0, nullable=False)
+    datum_id    = Column(INTEGER, primary_key=True)
+    read        = Column(BOOLEAN, default=None, nullable=True)
+    write       = Column(BOOLEAN, default=None, nullable=True)
+    exec        = Column(BOOLEAN, default=None, nullable=True)
+    # own         = Column(BOOLEAN, default=None, nullable=True)
     creator     = Column(INTEGER)
     modifier    = Column(INTEGER)
     created_at  = Column(TIMESTAMP, default=text('statement_timestamp()'))
     modified_at = Column(TIMESTAMP, default=text('statement_timestamp()'), onupdate=text('statement_timestamp()'))
     
-    def __init__(self, group_id, data_id, read=0, write=0, exec=0, creator=None):
+    def __init__(self, group_id, datum_id, read=None, write=None, exec=None, creator=None):
         """
         コンストラクタ
         """
         self.group_id = group_id
-        self.data_id = data_id
+        self.datum_id = datum_id
         self.read = read
         self.write = write
         self.exec = exec
@@ -48,6 +48,29 @@ class Auth(BaseModel):
         Authを保存する
         """
         # Authテーブルにレコードを新規追加する
-        from . import session
+        from kskp.store import ss as session
         session.add(self)
         session.commit()
+
+    @staticmethod
+    def update(group_id, datum_id, read, write, exec, modifier=modifier):
+        from kskp.store import ss as session
+        try:
+            # レコードを更新する
+            session.query(Auth).filter(Auth.group_id==group_id)\
+                               .filter(Auth.datum_id==datum_id).update({'read' :read,
+                                                                        'write':write,
+                                                                        'exec' :exec,
+                                                                        'modifier':modifier})
+        except Exception as e:
+            session.rollback()
+            raise e
+        finally:
+            session.commit()
+
+    @staticmethod
+    def exists(group_id, datum_id):
+        from kskp.store import ss as session
+        count = session.query(Auth).filter(Auth.group_id==group_id)\
+                                   .filter(Auth.datum_id==datum_id).count()
+        return count > 0

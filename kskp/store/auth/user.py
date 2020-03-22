@@ -18,6 +18,8 @@ class User(BaseModel):
     email       = Column(String, nullable=False, unique=True)
     password    = Column(String)
     name        = Column(String, nullable=False)
+    # 本人グループのGroupId
+    self_group_id = Column(INTEGER, nullable=True)
     creator     = Column(INTEGER)
     modifier    = Column(INTEGER)
     created_at  = Column(TIMESTAMP, default=text('statement_timestamp()'))
@@ -64,6 +66,12 @@ class User(BaseModel):
     from .authz_required import add_print
 
     @staticmethod
+    def find_by_id(user_id):
+        from kskp.store import ss as session
+        user = session.query(User).filter(User.id==user_id).one_or_none()
+        return user
+
+    @staticmethod
     @add_print("files")
     def find_by_email(email):
         """
@@ -72,6 +80,12 @@ class User(BaseModel):
         from kskp.store import ss as session
         user = session.query(User).filter(User.email==email).one_or_none()
         return user
+
+    @staticmethod
+    def exists(user_id):
+        from kskp.store import ss as session
+        count = session.query(User).filter(User.id==user_id).count()
+        return count > 0
 
     def save(self):
         """
@@ -126,7 +140,7 @@ class User(BaseModel):
         #      A.read
         # from auths A
         # where exists (select * from data D
-        #               where D.id = A.data_id
+        #               where D.id = A.datum_id
         #                 and D.uuid = uuid)
         #   and exists (select * from groups G
         #               where G.id = A.group_id
@@ -140,3 +154,18 @@ class User(BaseModel):
         pass
 
 
+    def load_self_group(self):
+        """
+        本人グループを取得する
+        """
+        from .group import Group
+        
+        if Group.exists(self.self_group_id):
+            self_group = Group.find_by_id(self.self_group_id)
+        else:
+            self_group = Group(self.name, creator=self.id)
+            self_group.save()
+
+        self_group.join_user(self.id, creator=self.id)
+
+        return self_group

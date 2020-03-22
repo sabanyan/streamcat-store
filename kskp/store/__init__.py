@@ -129,6 +129,11 @@ ADD COLUMN label VARCHAR;
 # except Exception as e:
 #     pass
 
+
+# 管理者グループと管理者ユーザを作成する
+from kskp.store.auth import add_admin_user_and_group
+add_admin_user_and_group()
+
 from sqlalchemy import event, DDL
 
 @event.listens_for(BaseModel.metadata, 'after_create')
