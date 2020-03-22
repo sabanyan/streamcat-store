@@ -2,6 +2,7 @@ import os
 from sqlalchemy import Column, String, text
 from sqlalchemy.dialects.postgresql import INTEGER, TIMESTAMP
 from kskp.store import BaseModel
+from .system_group import SystemGroup
 from .user_group import UserGroup
 
 class Group(BaseModel):
@@ -16,18 +17,18 @@ class Group(BaseModel):
     # 列名と列のデータ型等の定義
     id          = Column(INTEGER, primary_key=True, autoincrement=True)
     name        = Column(String, nullable=False)
-    is_admin    = Column(INTEGER, default=0, nullable=False)
+    # is_admin    = Column(INTEGER, default=0, nullable=False)
     creator     = Column(INTEGER)
     modifier    = Column(INTEGER)
     created_at  = Column(TIMESTAMP, default=text('statement_timestamp()'))
     modified_at = Column(TIMESTAMP, default=text('statement_timestamp()'), onupdate=text('statement_timestamp()'))
 
-    def __init__(self, name, is_admin=0, creator=None):
+    def __init__(self, name, creator=None):
         """
         コンストラクタ
         """
         self.name = name
-        self.is_admin = is_admin
+        # self.is_admin = is_admin
 
         # creator, modifier
         self.creator = creator
@@ -36,7 +37,39 @@ class Group(BaseModel):
     @staticmethod
     def find_by_id(id):
         from kskp.store import ss as session
-        return session.query(Group).filter(Group.id == id)
+        return session.query(Group).filter(Group.id == id).one_or_none()
+
+    @staticmethod
+    def load_admin_group():
+        from kskp.store import ss as session
+        group_id = session.query(SystemGroup.group_id).filter(SystemGroup.type==SystemGroup.ADMIN_TYPE).one_or_none()
+        if group_id is None:
+            admin_group = Group('ADMIN')
+            admin_group.save()
+            system_group = SystemGroup(SystemGroup.ADMIN_TYPE, admin_group.id)
+            system_group.save()
+        else:
+            admin_group = Group.find_by_id(group_id)
+        return admin_group
+
+    @staticmethod
+    def load_everyone_group():
+        from kskp.store import ss as session
+        group_id = session.query(SystemGroup.group_id).filter(SystemGroup.type==SystemGroup.EVERYONE_TYPE).one_or_none()
+        if group_id is None:
+            everyone_group = Group('EVERYONE')
+            everyone_group.save()
+            system_group = SystemGroup(SystemGroup.EVERYONE_TYPE, everyone_group.id)
+            system_group.save()
+        else:
+            everyone_group = Group.find_by_id(group_id)
+        return everyone_group
+
+    @staticmethod
+    def exists(group_id):
+        from kskp.store import ss as session
+        count = session.query(Group).filter(Group.id==group_id).count()
+        return count > 0
 
     @staticmethod
     def all():
@@ -76,19 +109,40 @@ class Group(BaseModel):
         session.query(Group).filter(Group.id == self.id).delete()
         session.commit()
 
-    def join_user(self, user_id, creator):
+    def is_joined_user(self, user_id):
+        from kskp.store import ss as session
+        count = session.query(UserGroup).filter(UserGroup.group_id==self.id).filter(UserGroup.user_id==user_id).count()
+        return count > 0
+
+    def has_joined_user(self):
+        from kskp.store import ss as session
+        count = session.query(UserGroup).filter(UserGroup.group_id==self.id).count()
+        return count > 0
+
+    def join_user(self, user_id, creator=None):
         """
         グループにユーザを所属させる
         """
-        user_group = UserGroup(user_id, self.id, creator=creator)
-        user_group.save()
+        if not self.is_joined_user(user_id):
+            user_group = UserGroup(user_id, self.id, creator=creator)
+            user_group.save()
     
     def leave_user(self, user_id):
         """
         グループからユーザを脱退させる
         """
-        user_group = UserGroup(user_id, self.id)
-        user_group.delete()
+        if self.is_joined_user(user_id):
+            from kskp.store import ss as session
+            session.query(UserGroup).filter(UserGroup.group_id==self.id).filter(UserGroup.user_id==user_id).delete()
+
+    def init_authz(self, datum_id, read, write, exec, creator=None):
+        from .auth import Auth
+
+        if Auth.exists(self.id, datum_id):
+            Auth.update(self.id, datum_id, read, write, exec, modifier=creator)
+        else:
+            authz = Auth(self.id, datum_id, read=read, write=write, exec=exec, creator=creator)
+            authz.save()
 
     @property
     def created_at_str(self):

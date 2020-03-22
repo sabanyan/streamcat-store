@@ -54,6 +54,11 @@ class Flow(Datum):
 
         subflows = []
         for flow in flows:
+            
+            # 参照権限のないフローはサブフローか否かの判定ができない
+            if not flow.readable:
+                continue
+
             flow_data = flow.data['flow']
             # onの時にno_inputs（＝inputsがない）のサブフローは出さない
             if no_inputs:
@@ -281,6 +286,26 @@ class Flow(Datum):
         # 複製を作成する
         new_flow = Flow(self.parent_uuid, new_label, new_flow_data, user_id)
         return new_flow
+
+    def get_frame_uuids(self):
+        """
+        参照する入力frameとキャッシュframeを全て取得する
+        """
+        ret = []
+        flow_json = self.flow_data
+        
+        if 'nodes' not in flow_json:
+            return ret
+
+        for node in flow_json['nodes']:
+            if node['type'] != 'frame':
+                continue
+            if 'uuid' not in node or node['uuid'] is None or node['uuid'] == '':
+                continue
+            if node['uuid'] in ret:
+                continue
+            ret.append(node['uuid'])
+        return ret
 
     def get_src_frame_uuids(self):
         """

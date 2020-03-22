@@ -157,16 +157,13 @@ class RemoteFolder(Folder, Mountable):
         return remote_folder_conn.get_mount_cmd(mount_point_path)
 
     def to_json(self):
-        remote_folder_conn = RemoteFolderConn.from_json(self.data['conn'])
-
-        return {'uuid'      : self.uuid,
+        ret =  {'uuid'      : self.uuid,
                 'type'      : Datum.RFOLDER_TYPE,
                 'label'     : self.label,
-                'protocol'  : remote_folder_conn.protocol,
-                'hostname'  : remote_folder_conn.hostname,
-                'domain'    : remote_folder_conn.domain,
-                'directory' : remote_folder_conn.directory,
-                'user_id'   : remote_folder_conn.user_id,
-                'password'  : remote_folder_conn.password,
                 'creator'   : self.creator_str,
                 'createdAt' : self.created_at_str}
+
+        if self.readable:
+            ret.update(remote_folder_conn.to_json())
+
+        return ret

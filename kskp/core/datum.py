@@ -97,6 +97,9 @@ class Datum(BaseModel):
         self.creator = creator
         self.modifier = creator
 
+        # DBに保存する前のDatumへの参照権限は制限しない
+        self.readable = True
+
         # Engineから参照する
         self.context = {}
 
@@ -111,7 +114,7 @@ class Datum(BaseModel):
         from kskp.store import Mountable
 
         if not self.readable:
-            raise NotAuthorizedException(f'{self.label}の参照権限がありません')
+            raise NotAuthorizedException(f'{session.user_id}は{self.label}の参照権限がありません')
 
         if self._path == '':
             return None
@@ -171,7 +174,7 @@ class Datum(BaseModel):
     @property
     def data(self):
         if not self.readable:
-            raise NotAuthorizedException(f'{self.label}の参照権限がありません.')
+            raise NotAuthorizedException(f'{session.user_id}は{self.label}の参照権限がありません.')
         return self._data
 
     @data.setter
@@ -318,6 +321,16 @@ class Datum(BaseModel):
         elif len(roots) > 1:
             raise Exception('More than 2 roots exist!!')
 
+        # 
+        # ルートフォルダにEveryOneグループの権限設定がない場合、初期値を設定する
+        # (後方互換)
+        # 
+        from kskp.store.auth import Auth, Group
+        everyone_group = Group.load_everyone_group()
+        everyone_group.join_user(session.user_id, creator=session.user_id)
+        if not Auth.exists(everyone_group.id, roots[0].id):
+            everyone_group.init_authz(roots[0].id, True, True, False, session.user_id)
+
         return roots[0]
 
     @staticmethod
@@ -336,11 +349,24 @@ class Datum(BaseModel):
 
         f2 = aliased(Datum)
         sub_query = session.query(f2)
-        datum = session.query(Datum)\
-                        .filter(sub_query.filter(f2.id==Datum.parent_id)
-                                         .filter(f2.uuid==parent_uuid).exists())\
-                        .order_by(Datum.type, desc(Datum.created_at)).all()
-        return datum
+        data = session.query(Datum)\
+                      .filter(sub_query.filter(f2.id==Datum.parent_id)
+                                       .filter(f2.uuid==parent_uuid).exists())\
+                      .order_by(Datum.type, desc(Datum.created_at)).all()
+
+        # 
+        # DatumについてEveryOneグループの権限設定がない場合、初期値を設定する
+        # (後方互換)
+        # 
+        for datum in data:
+            from kskp.store.auth import Auth, Group
+            everyone_group = Group.load_everyone_group()
+            everyone_group.join_user(session.user_id, creator=session.user_id)
+            if not Auth.exists(everyone_group.id, datum.id):
+                everyone_group.init_authz(datum.id, True, True, True, session.user_id)
+
+
+        return data
 
     @staticmethod
     def find_parent(uuid):

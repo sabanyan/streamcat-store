@@ -5,7 +5,6 @@ from datetime import datetime, timedelta, timezone
 
 from . import ss as session
 from kskp.core import Datum
-from kskp.store.auth import NotAuthorizedException
 
 class Frame(Datum):
 
@@ -45,13 +44,13 @@ class Frame(Datum):
         """
         # UUID値の形式チェックをする
         Datum.valid_uuid_or_raise(uuid)
-        datum = session.query(Datum).filter(Datum.uuid==uuid)\
-                                    .filter(Datum.type==Datum.FRAME_TYPE).one_or_none()
-        if datum is None:
+        frame = session.query(Frame).filter(Frame.uuid==uuid)\
+                                    .filter(Frame.type==Frame.FRAME_TYPE).one_or_none()
+        if frame is None:
             # FIXIT : fetch_frame()の現在の実装ではデータの無い場合はエラーにしていない為
             # raise Exception('no frame is found by designated id.')
             return None
-        return Frame.convert_to_frame(datum)
+        return frame
 
     @staticmethod
     def exists(uuid):
@@ -67,16 +66,17 @@ class Frame(Datum):
 
     @staticmethod
     def convert_to_frame(datum):
-        parent_uuid = Datum.get_uuid_by_id(datum.parent_id)
-        frame = Frame(parent_uuid, datum.label, None, datum.creator)
-        frame.id = datum.id
-        frame.uuid = datum.uuid
-        frame.data = datum.data
-        frame._path = datum._path
-        frame.modifier = datum.modifier
-        frame.created_at = datum.created_at
-        frame.modified_at = datum.modified_at
-        return frame
+        # parent_uuid = Datum.get_uuid_by_id(datum.parent_id)
+        # frame = Frame(parent_uuid, datum.label, None, datum.creator)
+        # frame.id = datum.id
+        # frame.uuid = datum.uuid
+        # frame.data = datum.data
+        # frame._path = datum._path
+        # frame.modifier = datum.modifier
+        # frame.created_at = datum.created_at
+        # frame.modified_at = datum.modified_at
+        # return frame
+        return Frame.find_by_uuid(datum.uuid)
 
     def save(self):
         """
@@ -232,10 +232,7 @@ class Frame(Datum):
 
     @property
     def encoding(self):
-        try:
-            return self.data.get('encoding') or 'UNKNOWN'
-        except NotAuthorizedException:
-            return ''
+        return self.data.get('encoding') or 'UNKNOWN'
 
     @encoding.setter
     def encoding(self, encoding):
@@ -248,10 +245,7 @@ class Frame(Datum):
 
     @property
     def newline(self):
-        try:
-            return self.data.get('newline') or 'UNKNOWN'
-        except NotAuthorizedException:
-            return ''
+        return self.data.get('newline') or 'UNKNOWN'
 
     @newline.setter
     def newline(self, newline):
@@ -389,13 +383,17 @@ class Frame(Datum):
             return 'UNKNOWN'
 
     def to_json(self):
-        return {'uuid'      : self.uuid,
+        ret =  {'uuid'      : self.uuid,
                 'type'      : Datum.FRAME_TYPE,
                 'label'     : self.label,
-                'encoding'  : self.encoding_str,
-                'newline'   : self.newline_str,
                 'creator'   : self.creator_str,
                 'createdAt' : self.created_at_str}
+
+        if self.readable:
+            ret['encoding'] = self.encoding_str
+            ret['newline'] = self.newline_str
+
+        return ret
 
     def load_as_data_frame(self, offset, limit):
         """
