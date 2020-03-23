@@ -197,8 +197,7 @@ class Frame(Datum):
 
         try:
             # フレームレコードを削除する
-            session.query(Datum).filter(Datum.id==self.id)\
-                                .filter(Datum.type==Datum.FRAME_TYPE).delete()
+            session.delete(self)
             # ファイルを削除する
             self._remove_file()
         except Exception as e:
@@ -214,8 +213,7 @@ class Frame(Datum):
         """
         try:
             # フレームレコードを削除する
-            session.query(Datum).filter(Datum.id==self.id)\
-                                .filter(Datum.type==Datum.FRAME_TYPE).delete()
+            session.delete(self)
         except Exception as e:
             session.rollback()
             raise e

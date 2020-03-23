@@ -133,7 +133,7 @@ class User(BaseModel):
         # users_groupsテーブルから全ての削除ユーザの行を削除する
         UserGroup.delete_all_by_user_id(self.id)
         # usersテーブルから削除ユーザの行を削除する
-        session.query(User).filter(User.id==self.id).delete()
+        session.delete(self)
         session.commit()
 
 

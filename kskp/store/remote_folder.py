@@ -33,11 +33,11 @@ class RemoteFolder(Folder, Mountable):
         """
         # UUID値の形式チェックをする
         Datum.valid_uuid_or_raise(uuid)
-        datum = session.query(Datum).filter(Datum.uuid==uuid)\
-                                    .filter(Datum.type==Datum.RFOLDER_TYPE).one_or_none()
-        if datum is None:
+        remote_folder = session.query(RemoteFolder).filter(RemoteFolder.uuid==uuid)\
+                                                   .filter(RemoteFolder.type==RemoteFolder.RFOLDER_TYPE).one_or_none()
+        if remote_folder is None:
             raise Exception('no remote folder is found by designated id.')
-        return RemoteFolder.convert_to_remote_folder(datum)
+        return remote_folder
 
     @staticmethod
     def exists(uuid):

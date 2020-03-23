@@ -36,6 +36,14 @@ class UserGroup(BaseModel):
         self.creator = creator
         self.modifier = creator
 
+    @staticmethod
+    def find_by_id(user_id, group_id):
+        from kskp.store import ss as session
+        return session.query(UserGroup).\
+                       filter(UserGroup.user_id==user_id).\
+                       filter(UserGroup.group_id==group_id).\
+                       one_or_none()
+
     def save(self):
         """
         UserGroupを保存する
@@ -49,8 +57,7 @@ class UserGroup(BaseModel):
         UserGroupを削除する
         """
         from kskp.store import ss as session
-        session.query(UserGroup).filter(UserGroup.user_id==self.user_id)\
-                                .filter(UserGroup.group_id==self.group_id).delete()
+        session.delete(self)
         session.commit()
 
     @staticmethod

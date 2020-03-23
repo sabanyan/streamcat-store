@@ -45,17 +45,6 @@ class AuthzSession():
 
         else:
             return self._session.query(datum_type, *args)
-
-    # def write_query(self, uuid):
-    #     """
-    #     更新用途でquery()を使用する場合は、この関数内で権限判定を行う
-    #     (仮にこの関数で抽出操作を行っても、Datum.authプロパティが空なので取得はできない)
-    #     """
-    #     if not self.writable(self.user_id, uuid):
-    #         raise NotAuthorizedException('no anthz!')
-
-    #     from kskp.core import Datum
-    #     return self._session.query(Datum)
     
     def add(self, obj):
         from kskp.core import Datum
@@ -93,21 +82,26 @@ class AuthzSession():
                 raise NotAuthorizedException('no anthz!')       
             self._session.add(obj)
 
-    def update(self, uuid, label, data):
-        if not self.writable(self.user_id, uuid):
-            raise NotAuthorizedException('no anthz!')
+    # def update(self, uuid, label, data):
+    #     if not self.writable(self.user_id, uuid):
+    #         raise NotAuthorizedException('no anthz!')
 
+    #     from kskp.core import Datum
+    #     self._session.query(Datum).filter(Datum.uuid==uuid).update({'_label'  : label,
+    #                                                                 '_data'    : data,
+    #                                                                 'modifier': self.user_id})
+
+    def delete(self, obj):
         from kskp.core import Datum
-        self._session.query(Datum).filter(Datum.uuid==uuid).update({'_label'  : label,
-                                                                    '_data'    : data,
-                                                                    'modifier': self.user_id})
+        if isinstance(obj, Datum):
+            if not self.writable_by_id(self.user_id, obj.id):
+                raise NotAuthorizedException((f'{self.user_id}は更新権限がないため{obj.label}を削除できません'))
+        elif not self.has_admin():
+            # Datum以外の書き込みは管理者権限が必要
+            raise NotAuthorizedException('no anthz!')   
 
-    def delete(self, id):
-        if not self.writable_by_id(self.user_id, id):
-            raise NotAuthorizedException('no anthz!')
-
-        from kskp.core import Datum
-        self._session.query(Datum).filter(Datum.id==id).delete()
+        # 削除する
+        self._session.delete(obj)
 
     def execute(self, sql):
         return self._session.execute(sql)

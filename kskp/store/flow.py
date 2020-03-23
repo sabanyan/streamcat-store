@@ -253,8 +253,7 @@ class Flow(Datum):
 
         try:
             # フレームレコードを削除する
-            session.query(Datum).filter(Datum.id==self.id)\
-                                .filter(Datum.type==Datum.FLOW_TYPE).delete()
+            session.delete(self)
         except Exception as e:
             session.rollback()
             raise e
