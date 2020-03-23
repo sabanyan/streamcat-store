@@ -40,7 +40,7 @@ def create_ud_view():
     """
     ud_view = """
     create view ud as
-    select U.id, U.name, D.uuid, D.path
+    select U.id, U.name, D.uuid, D.label, D.path, D.type
     from Data D left join Users U
     on exists (select * from Auths A
                 join Data D on A.datum_id = D.id

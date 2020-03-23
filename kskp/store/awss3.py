@@ -114,7 +114,7 @@ class AwsS3(Folder, Mountable):
             # レコードを更新する
             data = {'bucket' : bucket_name}
             session.query(Datum).filter(Datum.uuid==uuid).update({'_label'   :new_label
-                                                                 ,'data'    :data
+                                                                 ,'_data'    :data
                                                                  ,'modifier':modifier})
         except Exception as e:
             session.rollback()

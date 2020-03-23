@@ -23,6 +23,7 @@ class AuthzSession():
         from sqlalchemy import func
         from sqlalchemy.orm import with_expression
         from kskp.core import Datum
+        from .authz_query import AuthzQuery
         from .auth import Auth
         from .user_group import UserGroup
         from .group import Group
@@ -30,10 +31,6 @@ class AuthzSession():
         # datum_typeがDatumクラスかDatumを継承するクラスか否かを判定する
         # TODO: もう少し確実な判定方法に変更したい
         if inspect.isclass(datum_type) and hasattr(datum_type, '__tablename__') and datum_type.__tablename__ == 'data':
-            
-            # Debug message
-            print('Session:', self.user_id)
-
             # ユーザが属する全てのグループについて、Datumを参照する権限がTrueまたはNullの場合にのみ
             # Datum.readable=Trueとする
             subquery = self._session.query(func.bool_and(Auth.read).label("read")).\
@@ -41,22 +38,24 @@ class AuthzSession():
                                      outerjoin(UserGroup, UserGroup.group_id==Group.id).\
                                      filter(UserGroup.user_id==self.user_id)
 
-            return self._session.query(datum_type).\
-                                 options(with_expression(Datum.readable, subquery.filter(Auth.datum_id==Datum.id).label('readable')))
+            query = self._session.query(datum_type).\
+                                  options(with_expression(Datum.readable, subquery.filter(Auth.datum_id==Datum.id).label('readable')))
+            
+            return AuthzQuery(query, self.user_id)
 
         else:
             return self._session.query(datum_type, *args)
 
-    def write_query(self, uuid):
-        """
-        更新用途でquery()を使用する場合は、この関数内で権限判定を行う
-        (仮にこの関数で抽出操作を行っても、Datum.authプロパティが空なので取得はできない)
-        """
-        if not self.writable(self.user_id, uuid):
-            raise NotAuthorizedException('no anthz!')
+    # def write_query(self, uuid):
+    #     """
+    #     更新用途でquery()を使用する場合は、この関数内で権限判定を行う
+    #     (仮にこの関数で抽出操作を行っても、Datum.authプロパティが空なので取得はできない)
+    #     """
+    #     if not self.writable(self.user_id, uuid):
+    #         raise NotAuthorizedException('no anthz!')
 
-        from kskp.core import Datum
-        return self._session.query(Datum)
+    #     from kskp.core import Datum
+    #     return self._session.query(Datum)
     
     def add(self, obj):
         from kskp.core import Datum
@@ -100,8 +99,8 @@ class AuthzSession():
 
         from kskp.core import Datum
         self._session.query(Datum).filter(Datum.uuid==uuid).update({'_label'  : label,
-                                                              'data'    : data,
-                                                              'modifier': self.user_id})
+                                                                    '_data'    : data,
+                                                                    'modifier': self.user_id})
 
     def delete(self, id):
         if not self.writable_by_id(self.user_id, id):
