@@ -194,7 +194,7 @@ class Flow(Datum):
             # my_session = sessionmaker(bind=my_engine)()
 
             session.query(Flow).filter(Flow.uuid==uuid).update({'_label'   :new_label,
-                                                                'data'     :data,
+                                                                '_data'    :data,
                                                                 'modifier' :modifier})
         except Exception as e:
             session.rollback()

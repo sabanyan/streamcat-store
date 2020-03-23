@@ -102,9 +102,8 @@ class User(BaseModel):
         """
         from kskp.store import ss as session
         session.query(User).filter(User.id==self.id)\
-                           .update({'email'      :new_email,
-                                    'modifier'   :modifier,
-                                    'modified_at':BaseModel.get_current_time_str()})
+                           .update({'email'    :new_email,
+                                    'modifier' :modifier})
         session.commit()
 
     def update_password(self, new_password, modifier):
@@ -113,9 +112,15 @@ class User(BaseModel):
     def update_name(self, new_name, modifier):
         from kskp.store import ss as session
         session.query(User).filter(User.id==self.id)\
-                           .update({'name'       :new_name,
-                                    'modifier'   :modifier,
-                                    'modified_at':BaseModel.get_current_time_str()})
+                           .update({'name'     :new_name,
+                                    'modifier' :modifier})
+        session.commit()
+
+    def update_self_group_id(self, new_group_id, modifier=None):
+        from kskp.store import ss as session
+        session.query(User).filter(User.id==self.id)\
+                           .update({'self_group_id':new_group_id,
+                                    'modifier'     :modifier})
         session.commit()
 
     # @_require_admin_auth
@@ -160,11 +165,14 @@ class User(BaseModel):
         """
         from .group import Group
         
-        if Group.exists(self.self_group_id):
+        if self.self_group_id is not None and Group.exists(self.self_group_id):
             self_group = Group.find_by_id(self.self_group_id)
         else:
+            # 本人グループを作成する
             self_group = Group(self.name, creator=self.id)
             self_group.save()
+            # 本人グループを設定する
+            self.update_self_group_id(self_group.id)
 
         self_group.join_user(self.id, creator=self.id)
 

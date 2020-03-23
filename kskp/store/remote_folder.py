@@ -112,7 +112,7 @@ class RemoteFolder(Folder, Mountable):
             # レコードを更新する
             data = {'conn' : remoteFolderConn.to_json()}
             session.query(Datum).filter(Datum.uuid==uuid).update({'_label'   :new_label
-                                                                 ,'data'    :data
+                                                                 ,'_data'    :data
                                                                  ,'modifier':modifier})
         except Exception as e:
             session.rollback()
