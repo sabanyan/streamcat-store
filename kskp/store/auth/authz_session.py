@@ -61,7 +61,6 @@ class AuthzSession():
     def add(self, obj):
         from kskp.core import Datum
         from kskp.store import Folder
-        from .auth import Auth
         from .group import Group
         from .user import User
 
@@ -123,7 +122,7 @@ class AuthzSession():
         return self.writable_by_id(user_id, datum_id)
 
     def writable_by_id(self, user_id, datum_id):
-        from sqlalchemy import text, func, and_
+        from sqlalchemy import func
 
         from .auth import Auth
         from .user_group import UserGroup
@@ -139,4 +138,15 @@ class AuthzSession():
         return result.write == True
 
     def has_admin(self):
-        return True
+        from .system_group import SystemGroup
+        from .user_group import UserGroup
+        from .group import Group
+
+        subquery = self._session.query(SystemGroup).\
+                                 outerjoin(Group, Group.id==SystemGroup.group_id).\
+                                 outerjoin(UserGroup, UserGroup.group_id==Group.id).\
+                                 filter(UserGroup.user_id==self.user_id)
+
+        ret = self._session.query(subquery.exists())
+
+        return ret
