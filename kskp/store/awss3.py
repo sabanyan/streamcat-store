@@ -35,11 +35,11 @@ class AwsS3(Folder, Mountable):
         """
         # UUID値の形式チェックをする
         Datum.valid_uuid_or_raise(uuid)
-        datum = session.query(Datum).filter(Datum.uuid==uuid)\
-                                    .filter(Datum.type==Datum.AWSS3_TYPE).one_or_none()
-        if datum is None:
+        awss3 = session.query(AwsS3).filter(AwsS3.uuid==uuid)\
+                                    .filter(AwsS3.type==AwsS3.AWSS3_TYPE).one_or_none()
+        if awss3 is None:
             raise Exception('no bucket is found by designated id.')
-        return AwsS3.convert_to_awss3(datum)
+        return awss3
 
     @staticmethod
     def exists(uuid):
@@ -136,8 +136,7 @@ class AwsS3(Folder, Mountable):
 
         try:
             # フレームレコードを削除する
-            # session.query(Datum).filter(Datum.id==self.id)\
-            #                        .filter(Datum.type==Datum.AWSS3_TYPE).delete()
+            # session.delete(self)
 
             # 自身のフォルダ以下の全てのフォルダとドキュメントをエントリーから削除する
             self._remove_reference_only_recursively()

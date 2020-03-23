@@ -144,8 +144,7 @@ class Database(Store):
 
         try:
             # Databaseレコードを削除する
-            session.query(Datum).filter(Datum.id==self.id)\
-                                .filter(Datum.type==Datum.DATABASE_TYPE).delete()
+            session.delete(self)
         except Exception as e:
             session.rollback()
             raise e

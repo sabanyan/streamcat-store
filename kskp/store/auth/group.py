@@ -106,7 +106,7 @@ class Group(BaseModel):
 
         # グループを削除する
         # sys.__stderr__.write(f"self.id: {self.id}\n")
-        session.query(Group).filter(Group.id == self.id).delete()
+        session.delete(self)
         session.commit()
 
     def is_joined_user(self, user_id):
@@ -132,8 +132,8 @@ class Group(BaseModel):
         グループからユーザを脱退させる
         """
         if self.is_joined_user(user_id):
-            from kskp.store import ss as session
-            session.query(UserGroup).filter(UserGroup.group_id==self.id).filter(UserGroup.user_id==user_id).delete()
+            user_group = UserGroup.find_by_id(user_id, self.id)
+            user_group.delete()
 
     def init_authz(self, datum_id, read, write, exec, creator=None):
         from .auth import Auth

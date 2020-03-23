@@ -26,11 +26,11 @@ class Folder(Store):
         """
         指定されたuuidを持つFolderを取得する
         """
-        datum = session.query(Datum).filter(Datum.uuid==uuid)\
-                                    .filter(Datum.type==Datum.FOLDER_TYPE).one_or_none()
-        if datum is None:
+        folder = session.query(Folder).filter(Folder.uuid==uuid)\
+                                      .filter(Folder.type==Folder.FOLDER_TYPE).one_or_none()
+        if folder is None:
             raise Exception('no folder is found by designated id.')
-        return Folder.convert_to_folder(datum)
+        return folder
 
     @staticmethod
     def exists(uuid):
@@ -100,16 +100,16 @@ class Folder(Store):
         # UUID値の形式チェックをする
         Datum.valid_uuid_or_raise(uuid)
         # レコードを取得する
-        datum = session.query(Datum).filter(Datum.uuid==uuid)\
-                                    .filter(Datum.type==Datum.FOLDER_TYPE).one_or_none()
-        if datum is None:
+        folder = session.query(Folder).filter(Folder.uuid==uuid)\
+                                      .filter(Folder.type==Datum.FOLDER_TYPE).one_or_none()
+        if folder is None:
             raise Exception('no folder is found by designated id.')
 
         # ラベルに'\0'が含まれていれば取り除く
         new_label = Datum.escape_label(label)
 
         # ファイルを移動する
-        old_path = datum._path
+        old_path = folder._path
         new_path = Folder._move_dir(old_path, new_label)
 
         try:
@@ -118,15 +118,15 @@ class Folder(Store):
             Datum.update_include_path(old_path, new_path, modifier)
 
             # レコードを更新する
-            session.query(Datum).filter(Datum.uuid==uuid).update({'_label'  :new_label
-                                                                 ,'modifier':modifier})
+            session.query(Folder).filter(Folder.uuid==uuid).update({'_label'  :new_label
+                                                                   ,'modifier':modifier})
         except Exception as e:
             session.rollback()
             raise e
         finally:
             session.commit()
 
-        return Folder.convert_to_folder(datum)
+        return folder
 
     def delete(self):
         """
@@ -137,8 +137,7 @@ class Folder(Store):
             raise Exception('空でないフォルダは削除できません')
         try:
             # フォルダレコードを削除する
-            session.query(Datum).filter(Datum.id==self.id)\
-                                .filter(Datum.type==Datum.FOLDER_TYPE).delete()
+            session.delete(self)
             # ディレクトリを削除する
             self._remove_dir()
         except Exception as e:
@@ -171,8 +170,7 @@ class Folder(Store):
 
         try:
             # フォルダレコードを削除する
-            session.query(Datum).filter(Datum.id==self.id)\
-                                .filter(Datum.type==Datum.FOLDER_TYPE).delete()
+            session.delete(self)
             session.execute(sql)
         except Exception as e:
             session.rollback()

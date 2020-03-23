@@ -44,21 +44,21 @@ class Store(BaseModel):
     @classmethod
     def find_all(cls):
         results = session.query(Store.id,
-                                   Store.data,
-                                   Store.created_at,
-                                   Store.modified_at,
-                                   Store.creator,
-                                   Store.modifier).all()
+                                Store.data,
+                                Store.created_at,
+                                Store.modified_at,
+                                Store.creator,
+                                Store.modifier).all()
         return [Store(result.id, result.data, result.creator) for result in results]
 
     @classmethod
     def find_by_id(cls, id):
         result = session.query(Store.id,
-                                  Store.data,
-                                  Store.created_at,
-                                  Store.modified_at,
-                                  Store.creator,
-                                  Store.modifier).filter(Store.id==id).one_or_none()
+                               Store.data,
+                               Store.created_at,
+                               Store.modified_at,
+                               Store.creator,
+                               Store.modifier).filter(Store.id==id).one_or_none()
         if result is None:
             raise Exception('No store is found by designated store id')
         return Store(result.id, result.data, result.creator)
@@ -68,7 +68,7 @@ class Store(BaseModel):
         session.commit()
 
     def delete(self):
-        session.query(Store).filter(Store.id==self.id).delete()
+        session.delete(self)
         session.commit()
 
     def __str__(self):
