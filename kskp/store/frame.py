@@ -236,10 +236,10 @@ class Frame(Datum):
     def encoding(self, encoding):
         self.data['encoding'] = encoding
 
-    @property
     def encoding_str(self):
-        ret = self.ENCODING_CONV_TABLE.get(self.encoding)
-        return ret or self.encoding
+        encoding = self.data.get('encoding') or 'UNKNOWN'
+        ret = Frame.ENCODING_CONV_TABLE.get(encoding)
+        return ret or encoding
 
     @property
     def newline(self):
@@ -249,10 +249,10 @@ class Frame(Datum):
     def newline(self, newline):
         self.data['newline'] = newline
 
-    @property
     def newline_str(self):
-        ret = self.NEWLINE_CONV_TABLE.get(self.newline)
-        return ret or self.newline    
+        newline = self.data.get('newline') or 'UNKNOWN'
+        ret = Frame.NEWLINE_CONV_TABLE.get(newline)
+        return ret or newline    
 
     @property
     def modified_at_str(self):
@@ -382,14 +382,16 @@ class Frame(Datum):
 
     def to_json(self):
         ret =  {'uuid'      : self.uuid,
-                'type'      : Datum.FRAME_TYPE,
+                'type'      : self.type,
                 'label'     : self.label,
                 'creator'   : self.creator_str,
                 'createdAt' : self.created_at_str}
 
         if self.readable:
-            ret['encoding'] = self.encoding_str
-            ret['newline'] = self.newline_str
+            # ret['encoding'] = Frame.encoding_str(self)
+            # ret['newline'] = Frame.newline_str(self)
+            ret['encoding'] = Frame.encoding_str(self)
+            ret['newline'] = Frame.newline_str(self)
 
         return ret
 

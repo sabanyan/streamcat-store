@@ -4,7 +4,9 @@ class AuthzQuery():
 
     _query = None
 
-    def __init__(self, query, user_id=None):
+    def __init__(self, query, user_id):
+        if user_id is None:
+            raise Exception('AuthzSessionに設定したuser_idがNoneです')
         self._query = query
         self.user_id = user_id
 
@@ -26,50 +28,25 @@ class AuthzQuery():
     def one_or_none(self):
         return self._query.one_or_none()
 
-    def update(self, values, synchronize_session='evaluate', update_args=None):
+    def update(self, values, update_args=None):
         # 権限がない場合はUPDATEのWHEREはFalseとなる
         exists_stmt = self._get_authz_exists_stmt()
         
         # synchronize_session='fetch'でSQLを2回発行するらしい
         result = self._query.filter(exists_stmt).\
-                             update(values, synchronize_session='fetch', update_args=update_args)
+                             update(values, synchronize_session=False, update_args=update_args)
 
         # 権限がない(更新件数=0件)場合は例外を送出する
         if result == 0:
             raise  NotAuthorizedException((f'{self.user_id}は更新権限がありません'))
 
         return result
-        
-
-        # return query.update(values, synchronize_session=synchronize_session, update_args=update_args)
-
-    # def delete(self, synchronize_session='evaluate'):
-    #     # 権限がない場合はUPDATEのWHEREはFalseとなる
-    #     exists_stmt = self._get_authz_exists_stmt()
-        
-    #     # synchronize_session='fetch'でSQLを2回発行するらしい
-    #     result = self._query.filter(exists_stmt).\
-    #                          delete(synchronize_session=False)
-
-    #     # 権限がない(更新件数=0件)場合は例外を送出する
-    #     if result == 0:
-    #         raise  NotAuthorizedException((f'{self.user_id}は更新権限がないため削除できません'))
-
-    #     return result
-
-    #     # return self._query.delete(synchronize_session=synchronize_session)
 
     def _get_authz_exists_stmt(self):
         """
         Dataテーブルと相関し、Datumにwrite権限があることを抽出条件とするExists句を返す
         """
         from sqlalchemy import func, text, column, select, exists, table
-        # from sqlalchemy.orm import Query
-        # from kskp.core import Datum
-        # from kskp.store import Flow
-        # from .auth import Auth
-        # from .user_group import UserGroup
-        # from .group import Group
 
         # 権限がない場合はUPDATEのWHEREはFalseとなる
         ta = table('auths').\

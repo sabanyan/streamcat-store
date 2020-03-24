@@ -12,8 +12,9 @@ class ChildrenGetter:
         # フォルダとディレクトリの同期処理をする
         # ChildrenGetter._synchronize(folder, folder.path.as_posix(), user)
         # フォルダ直下のデータを全てリストアップして返す
-        children = Datum.find_by_parent_uuid(folder.uuid)
-        return [ChildrenGetter._convert_type(child) for child in children]
+        # children = Datum.find_by_parent_uuid(folder.uuid)
+        # return [ChildrenGetter._convert_type(child) for child in children]
+        return Datum.find_by_parent_uuid(folder.uuid)
 
     @staticmethod
     def _synchronize(folder, dir_path, user):

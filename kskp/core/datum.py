@@ -264,6 +264,13 @@ class Datum(BaseModel):
 
         return self
 
+    def to_json(self):
+        return {'uuid'      : self.uuid,
+                'type'      : self.type,
+                'label'     : self.label,
+                'creator'   : self.creator_str,
+                'createdAt' : self.created_at_str}
+
     @staticmethod
     def update_same_path(old_path, new_path, modifier):
         # 同じファイルに対応するフォルダのpath列を、ファイル名の移動に合わせて変更する

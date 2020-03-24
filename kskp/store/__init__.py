@@ -83,9 +83,15 @@ BaseModel = declarative_base()
 from sqlalchemy.orm import sessionmaker, scoped_session
 Session = scoped_session(sessionmaker(bind=engine))
 # 変数名がsessionだとwebでimportした時にflaskのsessionと被るので、一応ssにしている
-# ss = Session()
+ss = Session()
+
+# 管理者グループと管理者ユーザを作成する
+# (とりあえず、権限管理のないsessionで作成する)
+from kskp.store.auth import add_admin_user_and_group
+add_admin_user_and_group()
+
 from kskp.store.auth.authz_session import AuthzSession
-ss = AuthzSession(Session())
+ss = AuthzSession(Session, user_id=None)
 
 from kskp.core import Datum, Port, Command
 
@@ -129,10 +135,6 @@ ADD COLUMN label VARCHAR;
 # except Exception as e:
 #     pass
 
-
-# 管理者グループと管理者ユーザを作成する
-from kskp.store.auth import add_admin_user_and_group
-add_admin_user_and_group()
 
 from sqlalchemy import event, DDL
 
