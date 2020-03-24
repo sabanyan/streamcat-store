@@ -1,4 +1,5 @@
 import os
+import time
 import unittest
 import json
 import uuid
@@ -14,7 +15,7 @@ class LockManagerTest(unittest.TestCase):
     """
 
     # Lock Managerを作成する
-    lock_manager = LockManager()
+    lock_manager = LockManager(1)
 
     @classmethod
     def tearDownClass(cls):
@@ -98,6 +99,50 @@ class LockManagerTest(unittest.TestCase):
         self.assertEqual(lock.creator, 1)
         self.assertIsNotNone(lock.created_at)
 
+    def test_unlock_target(self):
+        """
+        ロック対象を指定してロック解除する
+        """
+        # ロックを取得する
+        target = str(uuid.uuid4())
+        lock = self.lock_manager.lock(target, creator=1)
+        # ロック対象を指定してロック解除する
+        result = self.lock_manager.unlock_target(target)
+        self.assertEqual(result.uuid, lock.uuid)
+        self.assertEqual(result.target, target)
+        # 解除したロックはLockManagerは管理しない
+        self.assertFalse(self.lock_manager.contains(lock.uuid))
+
+    def test_expire_lock1(self):
+        """
+        有効期間(1sec)を過ぎたロックは解除される
+        """
+        # ロックを取得する
+        target = str(uuid.uuid4())
+        lock = self.lock_manager.lock(target, creator=1)
+        # 2sec待つ
+        time.sleep(2)
+        # 有効期間が過ぎたロックはLockManagerは管理しない
+        self.assertFalse(self.lock_manager.contains(lock.uuid))
+        # ロックを解除しようとする
+        with self.assertRaises(Exception):
+            self.lock_manager.unlock(lock.uuid)
+
+    def test_expire_lock2(self):
+        """
+        有効期間(1sec)を過ぎたロックは解除される
+        """
+        # ロックを取得する
+        target = str(uuid.uuid4())
+        lock = self.lock_manager.lock(target, creator=1)
+        # 2sec待つ
+        time.sleep(2)
+        # 有効期間が過ぎたロックはLockManagerは管理しない
+        self.lock_manager.lock(str(uuid.uuid4()), creator=1)
+        # ロックを解除しようとする
+        with self.assertRaises(Exception):
+            self.lock_manager.unlock(lock.uuid)
+
     def test_simulutaneous_lock(self):
         """
         同時にロック取得と解除を繰り返す
@@ -105,7 +150,7 @@ class LockManagerTest(unittest.TestCase):
         from threading import Thread
         class LockRunner(Thread):
             # Lock Managerを作成する
-            lock_manager = LockManager()
+            lock_manager = LockManager(60)
 
             def run(self):
                 print(f'Begin : {self.getName()}')
@@ -125,7 +170,7 @@ class LockManagerTest(unittest.TestCase):
         from threading import Thread
         class Worker():
             # Lock Managerを作成する
-            lock_manager = LockManager()
+            lock_manager = LockManager(60)
 
             def run(self, q):
                 # ロッを取得する

@@ -174,7 +174,8 @@ class LoaderCommand(SCommand):
 
         cmd = nm.m2tee(i=path)
         # mreadで存在しないファイルパスを指定するとDockerごと落ちる ->　
-        # cmd = nm.mread({'i':path})
+        # mreadは巨大ファイルの読み込みが遅い(全行入力してる?)
+        # cmd = nm.mread({'i':path, 'n':65535})
         nysol_module = NysolModule(cmd)
         # frameの文字コードを次のコマンドに渡す
         nysol_module.encoding = encoding
@@ -706,36 +707,100 @@ class RunsCommand(SCommand):
         self.o_ports = [Port('*', 'datum?')]
 
     def run(self, args, inputs):
-        nm_list = []
-        for nysol_module in inputs.values():
-            nm_list.append(nysol_module.content)
+        import io
+        from multiprocessing import Process, Manager, Pipe
 
-        import nysol.mcmd as nm
-        # nm.drawModelsD3(fname='aaabbbccc.html', val=nm_list)
+        def do_runs(nm_list, results, exs, out):
+            """
+            NYSOL Pythonを実行する
+            """
+            try:
+                # multiprocessing.Processで閉じられる標準入力を開き直す
+                import sys
+                sys.stdin = open(0, closefd=False)
 
-        try:
-            # NYSOL Pythonを実行する
-            results = nm.runs(nm_list, msg='on', throwexc=True)
-        except Exception as e:
-            # writelistコマンドにCSV形式以外のデータが入力されると例外が送出されるようである
-            raise Exception('データを表示できませんでした。次の原因が考えられます ' + \
-                            '(データが空です / ' + \
-                            'データがCSV形式ではありません / ' + \
-                            '最終行が改行コードのみ)')
-            # raise e
+                import nysol.mcmd as nm
+                # nm.drawModelsD3(fname='aaabbbccc.html', val=nm_list)
 
-        if len(results) != len(inputs):
-            raise Exception('RunsCommandの入力ポートと出力ポートの数が異なります')
+                # 標準エラー出力のファイル記述子(No.2)を親プロセスへのPIPEに変更する
+                os.dup2(out.fileno(), sys.stderr.fileno())
+                # NYSOL Pythonを実行する
+                ret = nm.runs(nm_list, msg='on', throwexc=True)
+                results.extend(ret)
+            except Exception as e:
+                with open('/dev/stderr', 'w') as fpe:
+                    import traceback
+                    traceback.print_exc(file=fpe)
+                exs.append(e)
 
-        # resultsの要素はnm_listへのappend順に対応している?ため
-        # 入力ポートと出力ポートは同じキーで対応付ける
-        i = 0
-        ret = {}
-        for i_port_name in inputs.keys():
-            ret[i_port_name] = results[i]
-            i += 1
+        # NYSOLコマンドのリストを作成する
+        nm_list = [nysol_module.content for nysol_module in inputs.values()]
 
-        return ret
+        with Manager() as manager:
+            try:
+                # サブプロセスの戻値を取得するための共有メモリ
+                results = manager.list()
+                # サブプロセスの例外を取得するための共有メモリ
+                exs = manager.list()
+                # サブプロセスの標準エラー出力を取得するためのPIPE
+                recv_conn, send_conn = Pipe(duplex=False)
+                # PIPEをNon-Blockingにして受信処理が待ち状態になるのを防ぐ
+                import fcntl
+                fl = fcntl.fcntl(recv_conn.fileno(), fcntl.F_GETFL)
+                fl = fl | os.O_NONBLOCK
+                fcntl.fcntl(recv_conn.fileno(), fcntl.F_SETFL, fl)
+
+                # Flask内でrunfuncを含むフローをnm.runs()で実行すると処理が固まることがある
+                # これを回避するためにサププロセス内でnm.runs()を実行する
+                p = Process(target=do_runs, kwargs={'nm_list':nm_list, 'results':results, 'exs':exs, 'out':send_conn})
+                # サブプロセスを開始する
+                p.start()
+                # サブプロセスが終了するまで待つ
+                p.join()
+
+                # 標準エラー出力から出力内容を取得する
+                # (既に開いているファイル記述子をWrapするためにopenを用いている
+                #  recv_connオブジェクトでcloseするのでclosefd=Falseとする)
+                mcmd_errors = []
+                for line in open(recv_conn.fileno(), mode='r', closefd=False):
+                    print(line, end='', file=sys.stderr)
+                    if line.startswith('#ERROR#') and 'kgshell' not in line:
+                        mcmd_errors.append(line)
+
+            except Exception:
+                raise
+            finally:
+                # Processオブジェクトを閉じ、関連付けられていたすべてのリソースを開放する
+                # Python3.6.0にはない (T_T
+                # p.close()
+                recv_conn.close()
+                send_conn.close()
+
+            # NYSOL Pythonのエラー処理
+            if len(mcmd_errors) > 0:
+                from .mcmd_error_info import MCMDErrorInfo, MCMDError
+                mcmd_error_info = MCMDErrorInfo.parse_stderr(mcmd_errors[0])
+                raise MCMDError(mcmd_error_info)
+
+            if len(exs) > 0:
+                # writelistコマンドにCSV形式以外のデータが入力されると例外が送出されるようである
+                raise Exception('データを表示できませんでした。次の原因が考えられます ' + \
+                                '(データが空です / ' + \
+                                'データがCSV形式ではありません / ' + \
+                                '最終行が改行コードのみ)')
+
+            if len(results) != len(inputs):
+                raise Exception('RunsCommandの入力ポートと出力ポートの数が異なります')
+
+            # resultsの要素はnm_listへのappend順に対応している?ため
+            # 入力ポートと出力ポートは同じキーで対応付ける
+            i = 0
+            ret = {}
+            for i_port_name in inputs.keys():
+                ret[i_port_name] = results[i]
+                i += 1
+
+            return ret
 
 from kskp.store import Activity
 

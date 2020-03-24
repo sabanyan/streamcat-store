@@ -3193,6 +3193,8 @@ class RowRangeCommand(Command):
                 with open('/dev/stderr', 'w') as fpe:
                     import traceback
                     traceback.print_exc(file=fpe)
+                    print(f'#ERROR# {str(e)}; RowRangeCommand; ; ; ', file=fpe)
+                raise
 
         # 指定範囲の取得
         offset = int(args.get('offset')) if args.get('offset') else 0
@@ -3221,9 +3223,11 @@ class ConvToUtf8(Command):
             ストリームでcp932→utf8に変換するコマンド
             """
             try:
-                # stdinのencodingがデフォルトでutf-8なので、設定し直す。
                 import io
+                # stdinのencodingがデフォルトでutf-8なので、設定し直す。
                 input_stream = io.TextIOWrapper(sys.stdin.buffer, encoding=source_encoding)
+                # flush()すると連続でプレビューした時にnm.runs()で処理が帰ってくる見たい？
+                input_stream.flush()
                 for line in input_stream:
                     # 標準出力するときも自動でutf-8に変換されるので、printだけでいい
                     print(line, end='')

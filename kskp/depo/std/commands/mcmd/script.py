@@ -15,8 +15,8 @@ class MselstrCommand(Command):
         self.o_ports = [Port('o', 'mcmd'), Port('u', 'mcmd')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        cmd_o = nm.mselstr(args)
+        cmd_o = inputs['i'].content
+        cmd_o <<= nm.mselstr(args)
 
         nysol_module_o = NysolModule()
         nysol_module_u = NysolModule()
@@ -32,8 +32,8 @@ class M2crossCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        cmd_o = nm.m2cross(args)
+        cmd_o = inputs['i'].content
+        cmd_o <<= nm.m2cross(args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
@@ -46,8 +46,8 @@ class McalCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        cmd_o = nm.mcal(args)
+        cmd_o = inputs['i'].content
+        cmd_o <<= nm.mcal(args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
@@ -76,7 +76,7 @@ class McatCommand(Command):
         inputs_for_arg_i = []
         from nysol.mcmd.nysollib.core import NysolMOD_CORE
         for key, input in inputs.items():
-            if isinstance(input, NysolMOD_CORE):
+            if isinstance(input.content, NysolMOD_CORE):
                 inputs_for_arg_i.append(input.content)
             else:
                 # 一度nysol_module化する
@@ -84,8 +84,9 @@ class McatCommand(Command):
                 f <<= nm.m2tee(i=input.content)
                 inputs_for_arg_i.append(f)
 
-        args['i'] = inputs_for_arg_i
-        cmd_o = nm.m2cat(args)
+        my_args = args.copy()
+        my_args['i'] = inputs_for_arg_i
+        cmd_o = nm.m2cat(my_args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
@@ -97,8 +98,8 @@ class McrossCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        cmd_o = nm.mcross(args)
+        cmd_o = inputs['i'].content
+        cmd_o <<= nm.mcross(args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
@@ -110,14 +111,12 @@ class McutCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        cmd_o = nm.mcut(args)
+        cmd_o = inputs['i'].content
+        cmd_o <<= nm.mcut(args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
 
-        # import pprint
-        # pprint.pprint(inputs['i'])
         # cmd = inputs['i'].content
         # cmd <<= nm.mcut(args)
         # return {'o': NysolModule(cmd)}
@@ -129,8 +128,8 @@ class MnumberCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        cmd_o = nm.mnumber(args)
+        cmd_o = inputs['i'].content
+        cmd_o <<= nm.mnumber(args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
@@ -142,8 +141,8 @@ class MselCommand(Command):
         self.o_ports = [Port('o', 'frame'), Port('u', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        cmd_o = nm.msel(args)
+        cmd_o = inputs['i'].content
+        cmd_o <<= nm.msel(args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         nysol_module_u= NysolModule()
@@ -157,8 +156,8 @@ class MsetstrCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        cmd_o = nm.msetstr(args)
+        cmd_o = inputs['i'].content
+        cmd_o <<= nm.msetstr(args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
@@ -170,8 +169,8 @@ class MsortfCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        cmd_o = nm.msortf(args)
+        cmd_o = inputs['i'].content
+        cmd_o <<= nm.msortf(args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
@@ -183,8 +182,8 @@ class MsummaryCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        cmd_o = nm.msummary(args)
+        cmd_o = inputs['i'].content
+        cmd_o <<= nm.msummary(args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
@@ -199,11 +198,11 @@ class MjoinCommand(Command):
         self.o_ports = [Port('o', 'mcmd')]
 
     def run(self, args, inputs):
-        import nysol.mcmd as nm
-        args['i'] = inputs['i'].content
-        args['m'] = inputs['m'].content
+        my_args = args.copy()
+        my_args['i'] = inputs['i'].content
+        my_args['m'] = inputs['m'].content
         nysol_module = NysolModule()
-        nysol_module.set_content(nm.mjoin(args))
+        nysol_module.set_content(nm.mjoin(my_args))
         return {'o': nysol_module}
 
 # class MchkcsvCommand(Command):
@@ -299,8 +298,8 @@ class MfldnameCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        cmd_o = nm.mfldname(args)
+        cmd_o = inputs['i'].content
+        cmd_o <<= nm.mfldname(args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
@@ -312,8 +311,8 @@ class MdformatCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        cmd_o = nm.mdformat(args)
+        cmd_o = inputs['i'].content
+        cmd_o <<= nm.mdformat(args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
@@ -325,8 +324,8 @@ class MshareCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        cmd_o = nm.mshare(args)
+        cmd_o = inputs['i'].content
+        cmd_o <<= nm.mshare(args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
@@ -338,8 +337,8 @@ class MchgnumCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        cmd_o = nm.mchgnum(args)
+        cmd_o = inputs['i'].content
+        cmd_o <<= nm.mchgnum(args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
@@ -351,8 +350,8 @@ class McountCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        cmd_o = nm.mcount(args)
+        cmd_o = inputs['i'].content
+        cmd_o <<= nm.mcount(args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
@@ -366,8 +365,8 @@ class MaccumCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        cmd_o = nm.maccum(args)
+        cmd_o = inputs['i'].content
+        cmd_o <<= nm.maccum(args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
@@ -379,8 +378,8 @@ class Marff2csvCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        cmd_o = nm.marff2csv(args)
+        cmd_o = inputs['i'].content
+        cmd_o <<= nm.marff2csv(args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
@@ -392,8 +391,8 @@ class MavgCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        cmd_o = nm.mavg(args)
+        cmd_o = inputs['i'].content
+        cmd_o <<= nm.mavg(args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
@@ -405,8 +404,8 @@ class MbestCommand(Command):
         self.o_ports = [Port('o', 'frame'), Port('u', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        cmd_o = nm.mbest(args)
+        cmd_o = inputs['i'].content
+        cmd_o <<= nm.mbest(args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         nysol_module_u= NysolModule()
@@ -420,8 +419,8 @@ class MbucketCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        cmd_o = nm.mbucket(args)
+        cmd_o = inputs['i'].content
+        cmd_o <<= nm.mbucket(args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
@@ -433,8 +432,8 @@ class MchgstrCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        cmd_o = nm.mchgstr(args)
+        cmd_o = inputs['i'].content
+        cmd_o <<= nm.mchgstr(args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
@@ -446,8 +445,8 @@ class McombiCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        cmd_o = nm.mcombi(args)
+        cmd_o = inputs['i'].content
+        cmd_o <<= nm.mcombi(args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
@@ -459,9 +458,10 @@ class McommonCommand(Command):
         self.o_ports = [Port('o', 'frame'), Port('u', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        args['m'] = inputs['m'].content
-        cmd_o = nm.mcommon(args)
+        my_args = args.copy()
+        my_args['i'] = inputs['i'].content
+        my_args['m'] = inputs['m'].content
+        cmd_o = nm.mcommon(my_args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         nysol_module_u= NysolModule()
@@ -475,8 +475,8 @@ class Mcsv2arffCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        cmd_o = nm.mcsv2arff(args)
+        cmd_o = inputs['i'].content
+        cmd_o <<= nm.mcsv2arff(args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
@@ -488,8 +488,8 @@ class MdelnullCommand(Command):
         self.o_ports = [Port('o', 'frame'), Port('u', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        cmd_o = nm.mdelnull(args)
+        cmd_o = inputs['i'].content
+        cmd_o <<= nm.mdelnull(args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         nysol_module_u= NysolModule()
@@ -503,8 +503,8 @@ class MduprecCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        cmd_o = nm.mduprec(args)
+        cmd_o = inputs['i'].content
+        cmd_o <<= nm.mduprec(args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
@@ -516,8 +516,8 @@ class MfsortCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        cmd_o = nm.mfsort(args)
+        cmd_o = inputs['i'].content
+        cmd_o <<= nm.mfsort(args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
@@ -529,8 +529,8 @@ class MhashavgCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        cmd_o = nm.mhashavg(args)
+        cmd_o = inputs['i'].content
+        cmd_o <<= nm.mhashavg(args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
@@ -542,8 +542,8 @@ class MhashsumCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        cmd_o = nm.mhashsum(args)
+        cmd_o = inputs['i'].content
+        cmd_o <<= nm.mhashsum(args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
@@ -555,8 +555,8 @@ class MkeybreakCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        cmd_o = nm.mkeybreak(args)
+        cmd_o = inputs['i'].content
+        cmd_o <<= nm.mkeybreak(args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
@@ -568,8 +568,8 @@ class MmbucketCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        cmd_o = nm.mmbucket(args)
+        cmd_o = inputs['i'].content
+        cmd_o <<= nm.mmbucket(args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
@@ -581,8 +581,8 @@ class MmvavgCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        cmd_o = nm.mmvavg(args)
+        cmd_o = inputs['i'].content
+        cmd_o <<= nm.mmvavg(args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
@@ -594,8 +594,8 @@ class MmvsimCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        cmd_o = nm.mmvsim(args)
+        cmd_o = inputs['i'].content
+        cmd_o <<= nm.mmvsim(args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
@@ -607,8 +607,8 @@ class MmvstatsCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        cmd_o = nm.mmvstats(args)
+        cmd_o = inputs['i'].content
+        cmd_o <<= nm.mmvstats(args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
@@ -656,9 +656,10 @@ class MnjoinCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        args['m'] = inputs['m'].content
-        cmd_o = nm.mnjoin(args)
+        my_args = args.copy()
+        my_args['i'] = inputs['i'].content
+        my_args['m'] = inputs['m'].content
+        cmd_o = nm.mnjoin(my_args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
@@ -670,8 +671,8 @@ class MnormalizeCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        cmd_o = nm.mnormalize(args)
+        cmd_o = inputs['i'].content
+        cmd_o <<= nm.mnormalize(args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
@@ -683,9 +684,10 @@ class MnrcommonCommand(Command):
         self.o_ports = [Port('o', 'frame'), Port('u', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        args['m'] = inputs['m'].content
-        cmd_o = nm.mnrcommon(args)
+        my_args = args.copy()
+        my_args['i'] = inputs['i'].content
+        my_args['m'] = inputs['m'].content
+        cmd_o = nm.mnrcommon(my_args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         nysol_module_u= NysolModule()
@@ -699,9 +701,10 @@ class MnrjoinCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        args['m'] = inputs['m'].content
-        cmd_o = nm.mnrjoin(args)
+        my_args = args.copy()
+        my_args['i'] = inputs['i'].content
+        my_args['m'] = inputs['m'].content
+        cmd_o = nm.mnrjoin(my_args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
@@ -713,8 +716,8 @@ class MnulltoCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        cmd_o = nm.mnullto(args)
+        cmd_o = inputs['i'].content
+        cmd_o <<= nm.mnullto(args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
@@ -726,8 +729,8 @@ class MpaddingCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        cmd_o = nm.mpadding(args)
+        cmd_o = inputs['i'].content
+        cmd_o <<= nm.mpadding(args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
@@ -739,9 +742,10 @@ class MpasteCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        args['m'] = inputs['m'].content
-        cmd_o = nm.mpaste(args)
+        my_args = args.copy()
+        my_args['i'] = inputs['i'].content
+        my_args['m'] = inputs['m'].content
+        cmd_o = nm.mpaste(my_args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
@@ -753,9 +757,10 @@ class MproductCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        args['m'] = inputs['m'].content
-        cmd_o = nm.mproduct(args)
+        my_args = args.copy()
+        my_args['i'] = inputs['i'].content
+        my_args['m'] = inputs['m'].content
+        cmd_o = nm.mproduct(my_args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
@@ -767,8 +772,8 @@ class MrandCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        cmd_o = nm.mrand(args)
+        cmd_o = inputs['i'].content
+        cmd_o <<= nm.mrand(args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
@@ -780,9 +785,10 @@ class MrjoinCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        args['m'] = inputs['m'].content
-        cmd_o = nm.mrjoin(args)
+        my_args = args.copy()
+        my_args['i'] = inputs['i'].content
+        my_args['m'] = inputs['m'].content
+        cmd_o = nm.mrjoin(my_args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
@@ -794,8 +800,8 @@ class MsedCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        cmd_o = nm.msed(args)
+        cmd_o = inputs['i'].content
+        cmd_o <<= nm.msed(args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
@@ -807,8 +813,8 @@ class MselnumCommand(Command):
         self.o_ports = [Port('o', 'frame'), Port('u', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        cmd_o = nm.mselnum(args)
+        cmd_o = inputs['i'].content
+        cmd_o <<= nm.mselnum(args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         nysol_module_u= NysolModule()
@@ -822,8 +828,8 @@ class MselrandCommand(Command):
         self.o_ports = [Port('o', 'frame'), Port('u', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        cmd_o = nm.mselrand(args)
+        cmd_o = inputs['i'].content
+        cmd_o <<= nm.mselrand(args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         nysol_module_u= NysolModule()
@@ -837,8 +843,8 @@ class MsepCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        cmd_o = nm.msep(args)
+        cmd_o = inputs['i'].content
+        cmd_o <<= nm.msep(args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
@@ -850,8 +856,8 @@ class Msep2Command(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        cmd_o = nm.msep2(args)
+        cmd_o = inputs['i'].content
+        cmd_o <<= nm.msep2(args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
@@ -863,8 +869,8 @@ class MshuffleCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        cmd_o = nm.mshuffle(args)
+        cmd_o = inputs['i'].content
+        cmd_o <<= nm.mshuffle(args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
@@ -876,8 +882,8 @@ class MsimCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        cmd_o = nm.msim(args)
+        cmd_o = inputs['i'].content
+        cmd_o <<= nm.msim(args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
@@ -889,8 +895,8 @@ class MslideCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        cmd_o = nm.mslide(args)
+        cmd_o = inputs['i'].content
+        cmd_o <<= nm.mslide(args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
@@ -902,8 +908,8 @@ class MsplitCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        cmd_o = nm.msplit(args)
+        cmd_o = inputs['i'].content
+        cmd_o <<= nm.msplit(args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
@@ -915,8 +921,8 @@ class MstatsCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        cmd_o = nm.mstats(args)
+        cmd_o = inputs['i'].content
+        cmd_o <<= nm.mstats(args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
@@ -928,8 +934,8 @@ class MsumCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        cmd_o = nm.msum(args)
+        cmd_o = inputs['i'].content
+        cmd_o <<= nm.msum(args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
@@ -941,8 +947,8 @@ class Mtab2csvCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        cmd_o = nm.mtab2csv(args)
+        cmd_o = inputs['i'].content
+        cmd_o <<= nm.mtab2csv(args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
@@ -954,8 +960,8 @@ class MteeCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        cmd_o = nm.m2tee(args)
+        cmd_o = inputs['i'].content
+        cmd_o <<= nm.m2tee(args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
@@ -967,8 +973,8 @@ class MtonullCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        cmd_o = nm.mtonull(args)
+        cmd_o = inputs['i'].content
+        cmd_o <<= nm.mtonull(args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
@@ -980,8 +986,8 @@ class MtraCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        cmd_o = nm.mtra(args)
+        cmd_o = inputs['i'].content
+        cmd_o <<= nm.mtra(args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
@@ -993,8 +999,8 @@ class MtrafldCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        cmd_o = nm.mtrafld(args)
+        cmd_o = inputs['i'].content
+        cmd_o <<= nm.mtrafld(args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
@@ -1006,8 +1012,8 @@ class MtraflgCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        cmd_o = nm.mtraflg(args)
+        cmd_o = inputs['i'].content
+        cmd_o <<= nm.mtraflg(args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
@@ -1019,8 +1025,8 @@ class MuniqCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        cmd_o = nm.muniq(args)
+        cmd_o = inputs['i'].content
+        cmd_o <<= nm.muniq(args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
@@ -1032,8 +1038,8 @@ class MvcatCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        cmd_o = nm.mvcat(args)
+        cmd_o = inputs['i'].content
+        cmd_o <<= nm.mvcat(args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
@@ -1045,9 +1051,10 @@ class MvcommonCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        args['m'] = inputs['m'].content
-        cmd_o = nm.mvcommon(args)
+        my_args = args.copy()
+        my_args['i'] = inputs['i'].content
+        my_args['m'] = inputs['m'].content
+        cmd_o = nm.mvcommon(my_args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
@@ -1059,8 +1066,8 @@ class MvcountCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        cmd_o = nm.mvcount(args)
+        cmd_o = inputs['i'].content
+        cmd_o <<= nm.mvcount(args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
@@ -1072,8 +1079,8 @@ class MvdelimCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        cmd_o = nm.mvdelim(args)
+        cmd_o = inputs['i'].content
+        cmd_o <<= nm.mvdelim(args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
@@ -1085,8 +1092,8 @@ class MvdelnullCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        cmd_o = nm.mvdelnull(args)
+        cmd_o = inputs['i'].content
+        cmd_o <<= nm.mvdelnull(args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
@@ -1098,9 +1105,10 @@ class MvjoinCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        args['m'] = inputs['m'].content
-        cmd_o = nm.mvjoin(args)
+        my_args = args.copy()
+        my_args['i'] = inputs['i'].content
+        my_args['m'] = inputs['m'].content
+        cmd_o = nm.mvjoin(my_args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
@@ -1112,8 +1120,8 @@ class MvnulltoCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        cmd_o = nm.mvnullto(args)
+        cmd_o = inputs['i'].content
+        cmd_o <<= nm.mvnullto(args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
@@ -1125,9 +1133,10 @@ class MvreplaceCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        args['m'] = inputs['m'].content
-        cmd_o = nm.mvreplace(args)
+        my_args = args.copy()
+        my_args['i'] = inputs['i'].content
+        my_args['m'] = inputs['m'].content
+        cmd_o = nm.mvreplace(my_args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
@@ -1139,8 +1148,8 @@ class MvsortCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        cmd_o = nm.mvsort(args)
+        cmd_o = inputs['i'].content
+        cmd_o <<= nm.mvsort(args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
@@ -1152,8 +1161,8 @@ class MvuniqCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        cmd_o = nm.mvuniq(args)
+        cmd_o = inputs['i'].content
+        cmd_o <<= nm.mvuniq(args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
@@ -1165,8 +1174,8 @@ class MwindowCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        cmd_o = nm.mwindow(args)
+        cmd_o = inputs['i'].content
+        cmd_o <<= nm.mwindow(args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
@@ -1178,8 +1187,8 @@ class Mxml2csvCommand(Command):
         self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        args['i'] = inputs['i'].content
-        cmd_o = nm.mxml2csv(args)
+        cmd_o = inputs['i'].content
+        cmd_o <<= nm.mxml2csv(args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
