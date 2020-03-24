@@ -4,9 +4,24 @@ class AuthzSession():
 
     _session = None
 
-    def __init__(self, session, user_id=None):
-        self._session = session
-        self.user_id = user_id
+    def __init__(self, session_factory, user_id):
+        self._session = session_factory()
+        self._user_id = user_id
+
+    @property
+    def user_id(self):
+        if self._user_id is None:
+            raise Exception('AuthzSessionにuser_idが設定されていません')
+        return self._user_id
+
+    @user_id.setter
+    def user_id(self, user_id):
+        from .user import User
+        if user_id is None:
+            raise Exception('AuthzSessionに設定したuser_idがNoneです')
+        # elif not User.exists(user_id):
+        #     raise Exception(f'AuthzSessionに設定したuser_id({user_id})は存在しません')
+        self._user_id = user_id
 
     def commit(self):
         self._session.commit()
@@ -81,15 +96,6 @@ class AuthzSession():
                 # Datum以外の書き込みは管理者権限が必要
                 raise NotAuthorizedException('no anthz!')       
             self._session.add(obj)
-
-    # def update(self, uuid, label, data):
-    #     if not self.writable(self.user_id, uuid):
-    #         raise NotAuthorizedException('no anthz!')
-
-    #     from kskp.core import Datum
-    #     self._session.query(Datum).filter(Datum.uuid==uuid).update({'_label'  : label,
-    #                                                                 '_data'    : data,
-    #                                                                 'modifier': self.user_id})
 
     def delete(self, obj):
         from kskp.core import Datum
