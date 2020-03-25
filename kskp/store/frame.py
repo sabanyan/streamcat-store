@@ -388,8 +388,6 @@ class Frame(Datum):
                 'createdAt' : self.created_at_str}
 
         if self.readable:
-            # ret['encoding'] = Frame.encoding_str(self)
-            # ret['newline'] = Frame.newline_str(self)
             ret['encoding'] = Frame.encoding_str(self)
             ret['newline'] = Frame.newline_str(self)
 
