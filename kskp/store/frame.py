@@ -124,7 +124,7 @@ class Frame(Datum):
             session.commit()
 
     @staticmethod
-    def update_data(uuid, label, modifier):
+    def update_label(uuid, label, modifier):
         """
         Frameのdata列を更新する
         """
@@ -154,6 +154,36 @@ class Frame(Datum):
             session.commit()
 
         return Frame.convert_to_frame(datum)
+
+    @staticmethod
+    def update_encoding_newline(uuid, encoding_str, newline_str, modifier):
+        encoding = None
+        for key, value in Frame.ENCODING_CONV_TABLE.items():
+            if value == encoding_str:
+                encoding = key
+                break
+        if encoding is None:
+            encoding = encoding_str
+
+        newline = None
+        for key, value in Frame.NEWLINE_CONV_TABLE.items():
+            if value == newline_str:
+                newline = key
+                break
+        if newline is None:
+            raise Exception(f'文字改行コードの指定文字列({newline_str})が誤っています')
+
+        try:
+            data = {'encoding':encoding, 'newline':newline}
+            session.query(Frame).filter(Frame.uuid==uuid).update({'data'    : data,
+                                                                  'modifier': modifier})
+        except Exception as e:
+            session.rollback()
+            raise e
+        finally:
+            session.commit()
+
+        return Frame.find_by_uuid(uuid)
 
     @staticmethod
     def update_label_only(uuid, label, modifier):
@@ -233,9 +263,9 @@ class Frame(Datum):
     def encoding(self):
         return self.data2.get('encoding') or 'UNKNOWN'
 
-    @encoding.setter
-    def encoding(self, encoding):
-        self.data['encoding'] = encoding
+    # @encoding.setter
+    # def encoding(self, encoding):
+    #     self.data['encoding'] = encoding
 
     @property
     def encoding_str(self):
@@ -246,9 +276,9 @@ class Frame(Datum):
     def newline(self):
         return self.data2.get('newline') or 'UNKNOWN'
 
-    @newline.setter
-    def newline(self, newline):
-        self.data['newline'] = newline
+    # @newline.setter
+    # def newline(self, newline):
+    #     self.data['newline'] = newline
 
     @property
     def newline_str(self):
