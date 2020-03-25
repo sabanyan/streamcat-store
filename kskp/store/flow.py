@@ -433,3 +433,77 @@ class Flow(Datum):
                 'label'     : self.label,
                 'creator'   : self.creator_str,
                 'createdAt' : self.created_at_str}
+
+    @staticmethod
+    def create_flow(request_json, user_id, data_source_name=None):
+        """
+        フローを作成する
+        TODO: とりあえず、model.pyから移動した
+        """
+        import uuid
+        import functools
+        from datetime import datetime, timedelta, timezone
+
+        if data_source_name is None:
+            data_source_name = str(uuid.uuid4())
+
+        def add_data_source_to_flow(source):
+            '''
+            フローに作成時にデータソースをつけるためのデコレータ
+            '''
+            def _deco(func):
+                @functools.wraps(func)
+                def deco():
+                    if source is None:
+                        return func()
+
+                    if not source.get('uuid'):
+                        return func()
+
+                    data = func()
+                    data_source = {
+                        "id": "i",
+                        "type": source.get('type'),
+                        "dataSource": "csv",
+                        "uuid": source.get('uuid'),
+                        "label": source.get('label')
+                    }
+
+                    data['nodes'] = []
+                    data['nodes'].append(data_source)
+                    return data
+                return deco
+            return _deco
+
+        def add_activity_to_flow(user_id):
+            '''
+            フローに作成時に作成履歴をつけるためのデコレータ
+            '''
+            def _deco(func):
+                @functools.wraps(func)
+                def deco():
+                    data = func()
+                    # data['creator'] = get_user_by_id(user_id)['name']
+                    data['creator'] = Datum.get_user_name_by_user_id(user_id)
+                    JST = timezone(timedelta(hours=+9), 'JST')
+                    data['createdAt'] = datetime.now(JST).strftime('%Y-%m-%d %H:%M:%S')
+                    return data
+                return deco
+            return _deco
+
+        @add_data_source_to_flow(request_json.get('datasource'))
+        @add_activity_to_flow(user_id)
+        def make_flow_json():
+            data = {
+                # 'projectId': get_project_by_uuid(request_json.get('project_uuid')),
+                'projectId': None,
+                'label': request_json.get('name'),
+                'ports': [[],[]],
+                'params': [],
+                'description': ""
+            }
+            return data
+
+        data = make_flow_json()
+
+        return data

@@ -35,8 +35,9 @@ class AuthzSession():
         pathとdataプロパティは参照された時に権限を判定し、NGなら例外を送出する
         """
         import inspect
-        from sqlalchemy import func
+        from sqlalchemy import func, literal_column
         from sqlalchemy.orm import with_expression
+        from sqlalchemy.dialects.postgresql import BOOLEAN
         from kskp.core import Datum
         from .authz_query import AuthzQuery
         from .auth import Auth
@@ -55,6 +56,8 @@ class AuthzSession():
 
             query = self._session.query(datum_type).\
                                   options(with_expression(Datum.readable, subquery.filter(Auth.datum_id==Datum.id).label('readable')))
+            # query = self._session.query(datum_type).\
+            #                       options(with_expression(Datum.readable, literal_column('false', type_=BOOLEAN).label('readable')))
             
             return AuthzQuery(query, self.user_id)
 

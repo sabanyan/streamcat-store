@@ -205,74 +205,74 @@ def get_user_by_id(user_id):
 #     sql = 'SELECT uuid, name FROM projects WHERE id = ?'
 #     return query_db(sql, (project_id,), one=True)
 #
-#
-def create_flow(request_json, user_id, data_source_name=None):
-    """
-    フローを作成する
-    TODO: 詳細は変更予定
-    """
-    if data_source_name is None:
-        data_source_name = str(uuid.uuid4())
+# #
+# # def create_flow(request_json, user_id, data_source_name=None):
+#     """
+#     フローを作成する
+#     TODO: 詳細は変更予定
+#     """
+#     if data_source_name is None:
+#         data_source_name = str(uuid.uuid4())
 
-    def add_data_source_to_flow(source):
-        '''
-        フローに作成時にデータソースをつけるためのデコレータ
-        '''
-        def _deco(func):
-            @functools.wraps(func)
-            def deco():
-                if source is None:
-                    return func()
+#     def add_data_source_to_flow(source):
+#         '''
+#         フローに作成時にデータソースをつけるためのデコレータ
+#         '''
+#         def _deco(func):
+#             @functools.wraps(func)
+#             def deco():
+#                 if source is None:
+#                     return func()
 
-                if not source.get('uuid'):
-                    return func()
+#                 if not source.get('uuid'):
+#                     return func()
 
-                data = func()
-                data_source = {
-                    "id": "i",
-                    "type": source.get('type'),
-                    "dataSource": "csv",
-                    "uuid": source.get('uuid'),
-                    "label": source.get('label')
-                }
+#                 data = func()
+#                 data_source = {
+#                     "id": "i",
+#                     "type": source.get('type'),
+#                     "dataSource": "csv",
+#                     "uuid": source.get('uuid'),
+#                     "label": source.get('label')
+#                 }
 
-                data['nodes'] = []
-                data['nodes'].append(data_source)
-                return data
-            return deco
-        return _deco
+#                 data['nodes'] = []
+#                 data['nodes'].append(data_source)
+#                 return data
+#             return deco
+#         return _deco
 
-    def add_activity_to_flow(user_id):
-        '''
-        フローに作成時に作成履歴をつけるためのデコレータ
-        '''
-        def _deco(func):
-            @functools.wraps(func)
-            def deco():
-                data = func()
-                data['creator'] = get_user_by_id(user_id)['name']
-                JST = timezone(timedelta(hours=+9), 'JST')
-                data['createdAt'] = datetime.now(JST).strftime('%Y-%m-%d %H:%M:%S')
-                return data
-            return deco
-        return _deco
+#     def add_activity_to_flow(user_id):
+#         '''
+#         フローに作成時に作成履歴をつけるためのデコレータ
+#         '''
+#         def _deco(func):
+#             @functools.wraps(func)
+#             def deco():
+#                 data = func()
+#                 data['creator'] = get_user_by_id(user_id)['name']
+#                 JST = timezone(timedelta(hours=+9), 'JST')
+#                 data['createdAt'] = datetime.now(JST).strftime('%Y-%m-%d %H:%M:%S')
+#                 return data
+#             return deco
+#         return _deco
 
-    @add_data_source_to_flow(request_json.get('datasource'))
-    @add_activity_to_flow(user_id)
-    def make_flow_json():
-        data = {
-            # 'projectId': get_project_by_uuid(request_json.get('project_uuid')),
-            'projectId': None,
-            'label': request_json.get('name'),
-            'ports': [[],[]],
-            'params': [],
-            'description': ""
-        }
-        return data
+#     @add_data_source_to_flow(request_json.get('datasource'))
+#     @add_activity_to_flow(user_id)
+#     def make_flow_json():
+#         data = {
+#             # 'projectId': get_project_by_uuid(request_json.get('project_uuid')),
+#             'projectId': None,
+#             'label': request_json.get('name'),
+#             'ports': [[],[]],
+#             'params': [],
+#             'description': ""
+#         }
+#         return data
 
-    data = make_flow_json()
+#     data = make_flow_json()
 
-    return data
+#     return data
 #
 #
 # def fetch_flow_by_uuid(flow_uuid):
