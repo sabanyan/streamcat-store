@@ -1,7 +1,8 @@
 import os
+import uuid
 import pprint
 from sqlalchemy import Column, String, text
-from sqlalchemy.dialects.postgresql import INTEGER, TIMESTAMP
+from sqlalchemy.dialects.postgresql import INTEGER, TIMESTAMP, UUID
 from .. import BaseModel
 
 class User(BaseModel):
@@ -15,6 +16,7 @@ class User(BaseModel):
 
     # 列名と列のデータ型等の定義
     id          = Column(INTEGER, primary_key=True, autoincrement=True)
+    uuid        = Column(UUID, nullable=False, unique=True)
     email       = Column(String, nullable=False, unique=True)
     password    = Column(String)
     name        = Column(String, nullable=False)
@@ -29,6 +31,9 @@ class User(BaseModel):
         """
         コンストラクタ
         """
+        # UUIDを採番する
+        self.uuid = str(uuid.uuid4())
+
         self.email = email
         self.password = password
         self.name = name
@@ -63,16 +68,14 @@ class User(BaseModel):
     #         return func(self, *args, **kwargs)
     #     return wrapper
 
-    from .authz_required import add_print
 
     @staticmethod
-    def find_by_id(user_id):
+    def find_by_uuid(uuid):
         from kskp.store import ss as session
-        user = session.query(User).filter(User.id==user_id).one_or_none()
+        user = session.query(User).filter(User.uuid==uuid).one_or_none()
         return user
 
     @staticmethod
-    @add_print("files")
     def find_by_email(email):
         """
         指定されたuuidを持つFrameを取得する
@@ -82,9 +85,9 @@ class User(BaseModel):
         return user
 
     @staticmethod
-    def exists(user_id):
+    def exists(uuid):
         from kskp.store import ss as session
-        count = session.query(User).filter(User.id==user_id).count()
+        count = session.query(User).filter(User.uuid==uuid).count()
         return count > 0
 
     def save(self):
