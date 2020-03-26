@@ -1,8 +1,8 @@
 import os
+import uuid
 from sqlalchemy import Column, String, text
-from sqlalchemy.dialects.postgresql import INTEGER, TIMESTAMP
+from sqlalchemy.dialects.postgresql import INTEGER, TIMESTAMP, UUID
 from kskp.store import BaseModel
-from .system_group import SystemGroup
 from .user_group import UserGroup
 
 class Group(BaseModel):
@@ -16,6 +16,7 @@ class Group(BaseModel):
 
     # 列名と列のデータ型等の定義
     id          = Column(INTEGER, primary_key=True, autoincrement=True)
+    uuid        = Column(UUID, nullable=False, unique=True)
     name        = Column(String, nullable=False)
     # is_admin    = Column(INTEGER, default=0, nullable=False)
     creator     = Column(INTEGER)
@@ -23,10 +24,18 @@ class Group(BaseModel):
     created_at  = Column(TIMESTAMP, default=text('statement_timestamp()'))
     modified_at = Column(TIMESTAMP, default=text('statement_timestamp()'), onupdate=text('statement_timestamp()'))
 
+    ADMIN_GROUP_UUID    = 'aa19bfb3-1409-4082-98e3-c497849d6235'
+    ADMIN_GROUP_LABEL   = 'ADMIN'
+    EVERYONE_GROUP_UUID  = 'ee16239b-5ffd-447c-9d05-411906ad7364'
+    EVERYONE_GROUP_LABEL = 'EVERYONE'
+
     def __init__(self, name, creator=None):
         """
         コンストラクタ
         """
+        # UUIDを採番する
+        self.uuid = str(uuid.uuid4())
+
         self.name = name
         # self.is_admin = is_admin
 
@@ -35,40 +44,38 @@ class Group(BaseModel):
         self.modifier = creator
 
     @staticmethod
-    def find_by_id(id):
+    def find_by_uuid(uuid):
         from kskp.store import ss as session
-        return session.query(Group).filter(Group.id == id).one_or_none()
+        return session.query(Group).filter(Group.uuid == uuid).one_or_none()
 
     @staticmethod
     def load_admin_group():
         from kskp.store import ss as session
-        group_id = session.query(SystemGroup.group_id).filter(SystemGroup.type==SystemGroup.ADMIN_TYPE).one_or_none()
-        if group_id is None:
-            admin_group = Group('ADMIN')
-            admin_group.save()
-            system_group = SystemGroup(SystemGroup.ADMIN_TYPE, admin_group.id)
-            system_group.save()
+        if Group.exists(Group.ADMIN_GROUP_UUID):
+            admin_group = Group.find_by_uuid(Group.ADMIN_GROUP_UUID)
         else:
-            admin_group = Group.find_by_id(group_id)
+            admin_group = Group(Group.ADMIN_GROUP_LABEL)
+            # コンストラクタで付番したUUIDを捨てて、特定用途のUUIDを格納する
+            admin_group.uuid = Group.ADMIN_GROUP_UUID
+            admin_group.save()
         return admin_group
 
     @staticmethod
     def load_everyone_group():
         from kskp.store import ss as session
-        group_id = session.query(SystemGroup.group_id).filter(SystemGroup.type==SystemGroup.EVERYONE_TYPE).one_or_none()
-        if group_id is None:
-            everyone_group = Group('EVERYONE')
-            everyone_group.save()
-            system_group = SystemGroup(SystemGroup.EVERYONE_TYPE, everyone_group.id)
-            system_group.save()
+        if Group.exists(Group.EVERYONE_GROUP_UUID):
+            everyone_group = Group.find_by_uuid(Group.EVERYONE_GROUP_UUID)
         else:
-            everyone_group = Group.find_by_id(group_id)
+            everyone_group = Group(Group.EVERYONE_GROUP_LABEL)
+            # コンストラクタで付番したUUIDを捨てて、特定用途のUUIDを格納する
+            everyone_group.uuid = Group.EVERYONE_GROUP_UUID
+            everyone_group.save()
         return everyone_group
 
     @staticmethod
-    def exists(group_id):
+    def exists(uuid):
         from kskp.store import ss as session
-        count = session.query(Group).filter(Group.id==group_id).count()
+        count = session.query(Group).filter(Group.uuid==uuid).count()
         return count > 0
 
     @staticmethod

@@ -4,9 +4,9 @@ class AuthzSession():
 
     _session = None
 
-    def __init__(self, session_factory, user_id):
+    def __init__(self, session_factory, user_uuid):
         self._session = session_factory()
-        self._user_id = user_id
+        self._user_uuid = user_uuid
 
     @property
     def user_id(self):
@@ -22,6 +22,18 @@ class AuthzSession():
         # elif not User.exists(user_id):
         #     raise Exception(f'AuthzSessionに設定したuser_id({user_id})は存在しません')
         self._user_id = user_id
+
+    @property
+    def user_uuid(self):
+        if self._user_uuid is None:
+            raise Exception('AuthzSessionにuser_uuidが設定されていません')
+        return self._user_uuid
+
+    @user_uuid.setter
+    def user_uuid(self, user_uuid):
+        if user_uuid is None:
+            raise Exception('AuthzSessionに設定したuser_uuidがNoneです')
+        self._user_uuid = user_uuid
 
     def commit(self):
         self._session.commit()
@@ -88,7 +100,7 @@ class AuthzSession():
             everyone_group.init_authz(obj.id, True, True, True)
 
             # 本人グループが無ければ作成し、ユーザを本人グループに所属させる
-            user = User.find_by_id(self.user_id)
+            user = User.find_by_uuid(self.user_uuid)
             if user is not None:
                 self_group = user.load_self_group()
                 # 本人グループへ追加データの権限を付与する
@@ -140,13 +152,12 @@ class AuthzSession():
         return result.write == True
 
     def has_admin(self):
-        from .system_group import SystemGroup
         from .user_group import UserGroup
         from .group import Group
 
-        subquery = self._session.query(SystemGroup).\
-                                 outerjoin(Group, Group.id==SystemGroup.group_id).\
+        subquery = self._session.query(Group).\
                                  outerjoin(UserGroup, UserGroup.group_id==Group.id).\
+                                 filter(Group.uuid == Group.ADMIN_GROUP_UUID).\
                                  filter(UserGroup.user_id==self.user_id)
 
         ret = self._session.query(subquery.exists())

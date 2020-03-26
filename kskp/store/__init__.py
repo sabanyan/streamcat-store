@@ -91,7 +91,7 @@ from kskp.store.auth import add_admin_user_and_group
 add_admin_user_and_group()
 
 from kskp.store.auth.authz_session import AuthzSession
-ss = AuthzSession(Session, user_id=None)
+ss = AuthzSession(Session, user_uuid=None)
 
 from kskp.core import Datum, Port, Command
 

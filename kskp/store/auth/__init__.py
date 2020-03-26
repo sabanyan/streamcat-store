@@ -5,7 +5,6 @@ from kskp.store import engine, BaseModel
 from .exceptions import NotAuthorizedException
 from .auth import Auth
 from .user_group import UserGroup
-from .system_group import SystemGroup
 from .group import Group
 from .user import User
 
@@ -60,9 +59,7 @@ def admin_exists():
 
     sql = f"""
     select count(*) from groups G
-    where exists (select * from system_groups SG
-                  where SG.type = '{SystemGroup.ADMIN_TYPE}'
-                    and SG.group_id = G.id)
+    where G.uuid = '{Group.ADMIN_GROUP_UUID}'
       and exists (select * from users_groups UG
                   where UG.group_id = G.id
                     and exists (select * from users U
@@ -71,6 +68,9 @@ def admin_exists():
     # adminグループに所属するユーザ数をカウントする
     count = engine.execute(sql).scalar()
     return count > 0
+
+# テーブルを作成する
+BaseModel.metadata.create_all(bind=engine, checkfirst=True)
 
 def add_admin_user_and_group():
     """
@@ -87,6 +87,4 @@ def add_admin_user_and_group():
         # 初期管理者ユーザを管理者グループに参加させる
         admin_group.join_user(admin_user.id)
 
-# テーブルを作成する
-BaseModel.metadata.create_all(bind=engine, checkfirst=True)
 
