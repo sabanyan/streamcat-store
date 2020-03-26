@@ -106,6 +106,7 @@ class CommandLink:
         'column_grouping_name': ColumnGroupingNameCommand(),
         'column_unique_name': ColumnUniqueNameCommand(),
         'column_name': ColumnNameCommand(),
+        'column_name2': ColumnName2Command(),
         'column_blank_name': ColumnBlankNameCommand(),
         'column_list': ColumnListCommand(),
         'windows_cp932_csv_read': WinCp932ReadCommand(),
