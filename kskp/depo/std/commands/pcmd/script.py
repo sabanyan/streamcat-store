@@ -155,6 +155,18 @@ class ColumnNameCommand(PCommand):
 
         return {'o': self.module(f, args_string)}
 
+class ColumnName2Command(PCommand):
+    def __init__(self):
+        super().__init__()
+
+    def run(self, args, inputs):
+        f = None
+        f <<= inputs['i'].content
+
+        args_string = (PCMD_DIR / 'src/column_name.sh').as_posix()
+        args_string += self.replace_args(args)
+
+        return {'o': self.module(f, args_string)}
 
 class GroupbyCommand(PCommand):
     def __init__(self):
