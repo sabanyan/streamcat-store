@@ -2786,8 +2786,10 @@ class MultiMcalWCCommand(Command):
         #     target columns: expressions can use wildcards, and can be separated with commas
         #     c: operation to be done on each column, operations to be done per target columns should use the token &, which represents the old column name 
         #     a: output column name (string must include &, default is 'new&')
-
         import fnmatch as fn
+
+        sys.setrecursionlimit(2**20)
+
         _args = copy.deepcopy(args)
         cmd_o = None
         first = True
@@ -2859,6 +2861,8 @@ class MvAvgCommand(Command):
 
     def run(self, args, inputs):
         import fnmatch as fn
+
+        sys.setrecursionlimit(2**20)
 
         _args = copy.deepcopy(args)
         
@@ -2944,6 +2948,8 @@ class MvStatsCommand(Command):
 
     def run(self, args, inputs):
         import fnmatch as fn
+
+        sys.setrecursionlimit(2**20)
 
         _args = copy.deepcopy(args)
         cmd_o = None
@@ -3034,6 +3040,9 @@ class MvSimCommand(Command):
 
     def run(self, args, inputs):
         import fnmatch as fn
+
+        sys.setrecursionlimit(2**20)
+
         _args = copy.deepcopy(args)
         
         cmd_o = None
