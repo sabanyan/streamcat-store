@@ -158,12 +158,14 @@ class ColumnNameCommand(PCommand):
 class ColumnName2Command(PCommand):
     def __init__(self):
         super().__init__()
+        self.i_ports = [Port('i', 'frame')]
+        self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
         f = inputs['i'].content
 
-        _header = copy.deepcopy(f).getline(header=True)
-        _header = next(_header)
+        _iter = copy.deepcopy(f).getline(header=True)
+        _header = next(_iter)
 
         _args = copy.deepcopy(args)
         
@@ -177,6 +179,18 @@ class ColumnName2Command(PCommand):
             if col is not '':
                 _header.remove(col)
         
+        # trying to support commas in the header, but  it looks like it's not 
+        # supported by mcommand itself.
+        for col in _header:
+            if ',' in col:
+                _header.remove(col)
+                newcol = col.replace(',','\\,')
+                _header.append(newcol)
+
+        # print(_start)
+        # print(_end)
+        # print(_header)
+
         _final = _start + _header + _end
         _final = [val for val in _final if val != '']
 
