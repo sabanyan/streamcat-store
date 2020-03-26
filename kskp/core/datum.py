@@ -4,10 +4,10 @@
 import os
 import uuid
 import datetime
+from pathlib import Path
 from kskp.store import BaseModel, ss as session
 from kskp.store import STORE_DIR
 from kskp.store.auth import NotAuthorizedException
-from pathlib import Path
 from sqlalchemy.orm import aliased, column_property, query_expression
 from sqlalchemy import Column, Integer, String, text, select
 from sqlalchemy.dialects.postgresql import INTEGER, TIMESTAMP, JSONB, ENUM, UUID
@@ -37,20 +37,25 @@ class Datum(BaseModel):
         __table_args__ = {'schema': os.environ['KSKP_POSTGRESQL_SCHEMA_NAME']}
 
     # 列名と列のデータ型等の定義
-    id          = Column(INTEGER, primary_key=True, autoincrement=True)
-    parent_id   = Column(INTEGER)
-    uuid        = Column(UUID, nullable=False, unique=True)
-    _path       = Column('path', String, nullable=False)
-    _label      = Column('label', String)
+    id           = Column(INTEGER, primary_key=True, autoincrement=True)
+    parent_id    = Column(INTEGER)
+    uuid         = Column(UUID, nullable=False, unique=True)
+    _path        = Column('path', String, nullable=False)
+    _label       = Column('label', String)
     # PostgreSQLのENUM型の要素を変更してもSQLAlchemyから自動的に変更がかからないので手動で変更する必要がある
-    type        = Column(ENUM(FOLDER_TYPE, AWSS3_TYPE, RFOLDER_TYPE, DATABASE_TYPE, FLOW_TYPE, FRAME_TYPE, name='data_type'), nullable=False)
-    _data       = Column('data', JSONB)
-    creator     = Column(INTEGER)
-    modifier    = Column(INTEGER)
-    created_at  = Column(TIMESTAMP, default=text('statement_timestamp()'))
-    modified_at = Column(TIMESTAMP, default=text('statement_timestamp()'), onupdate=text('statement_timestamp()'))
+    type         = Column(ENUM(FOLDER_TYPE, AWSS3_TYPE, RFOLDER_TYPE, DATABASE_TYPE, FLOW_TYPE, FRAME_TYPE, name='data_type'), nullable=False)
+    _data        = Column('data', JSONB)
+    _creator_id  = Column('creator', INTEGER)
+    _modifier_id = Column('modifier', INTEGER)
+    created_at   = Column(TIMESTAMP, default=text('statement_timestamp()'))
+    modified_at  = Column(TIMESTAMP, default=text('statement_timestamp()'), onupdate=text('statement_timestamp()'))
     # read権限(queryで追加した列の結果を格納する)
     readable    = query_expression()
+
+    # これを設定することで、session.query(Datum).all()でもサブクラスの型で結果を得ることができる
+    __mapper_args__ = {
+        'polymorphic_on' : type
+    }
 
     # conver_to_xxx()によるキャスト処理で余分にSQLを発行しないためにparent_uuidを保持する
     _parent_uuid = None
@@ -94,8 +99,9 @@ class Datum(BaseModel):
         self.type = datum_type
 
         # creator, modifier
-        self.creator = creator
-        self.modifier = creator
+        if creator is not None:
+            self._creator_id = creator.id
+            self._modifier_id = creator.id
 
         # DBに保存する前のDatumへの参照権限は制限しない
         self.readable = True
@@ -114,7 +120,7 @@ class Datum(BaseModel):
         from kskp.store import Mountable
 
         if not self.readable:
-            raise NotAuthorizedException(f'{session.user_id}は{self.label}の参照権限がありません')
+            raise NotAuthorizedException(f'{session.user.name}は{self.label}の参照権限がありません')
 
         if self._path == '':
             return None
@@ -174,7 +180,7 @@ class Datum(BaseModel):
     @property
     def data(self):
         if not self.readable:
-            raise NotAuthorizedException(f'{session.user_id}は{self.label}の参照権限がありません.')
+            raise NotAuthorizedException(f'{session.user.name}は{self.label}の参照権限がありません.')
         return self._data
 
     @data.setter
@@ -199,25 +205,48 @@ class Datum(BaseModel):
         return created_at_local.strftime('%Y-%m-%d %H:%M:%S')
 
     @property
-    def creator_str(self):
-        return Datum.get_user_name_by_user_id(self.creator)
+    def creator(self):
+        from kskp.store.auth import User
+        if self._creator_id is None:
+            return None
+        return User.find_by_id(self._creator_id)
 
-    @staticmethod
-    def get_user_name_by_user_id(user_id):
-        """
-        FIXIT: usersテーブルへのアクセスはSQLAlchemyを用いる予定なので、以下のコードは暫定実装である
-        """
-        from ..store.model import get_user_by_id
-        user = get_user_by_id(user_id)
-        if user is None:
-            Exception('No user is found by designated user id')
-        else:
-            return user['name']
+    @property
+    def modifier(self):
+        from kskp.store.auth import User
+        if self._modifier_id is None:
+            return None
+        return User.find_by_id(self._modifier_id)
+
+    @modifier.setter
+    def modifier(self, modifier):
+        self._modifier = modifier
+
+    @property
+    def creator_str(self):
+        # return Datum.get_user_name_by_user_id(self.creator)
+        if self.creator is None:
+            return ''
+        return self.creator.name
+
+    # @staticmethod
+    # def get_user_name_by_user_id(user_id):
+    #     """
+    #     FIXIT: usersテーブルへのアクセスはSQLAlchemyを用いる予定なので、以下のコードは暫定実装である
+    #     """
+    #     from ..store.model import get_user_by_id
+    #     user = get_user_by_id(user_id)
+    #     if user is None:
+    #         Exception('No user is found by designated user id')
+    #     else:
+    #         return user['name']
 
     def move(self, parent_uuid, modifier):
         """
         指定されたStoreの直下に移動する
         """
+        from kskp.store.auth import User
+
         # UUID値の形式チェックをする
         Datum.valid_uuid_or_raise(parent_uuid)
 
@@ -252,10 +281,15 @@ class Datum(BaseModel):
             if isinstance(self, Folder):
                 Datum.update_include_path(old_path, new_path, modifier)
             # レコードを更新する
-            session.query(Datum).filter(Datum.id==self.id).update({'parent_id': to_folder.id
-                                                                  ,'_path'    : new_path
-                                                                  ,'_label'   : new_label
-                                                                  ,'modifier' : modifier})
+            # session.query(Datum).filter(Datum.id==self.id).update({'parent_id'   : to_folder.id
+            #                                                       ,'_path'       : new_path
+            #                                                       ,'_label'      : new_label
+            #                                                       ,'_modifier_id': modifier.id})
+            self.parent_id = to_folder.id
+            self._path = new_path
+            self._label = new_label
+            self._modifier_id = modifier.id
+            session.update(self)
         except Exception as e:
             session.rollback()
             raise e
@@ -263,6 +297,9 @@ class Datum(BaseModel):
             session.commit()
 
         return self
+
+    def __repr__(self):
+        return f'Datum({self.id}, {self._label}, {self._path}, {self.type})'
 
     def to_json(self):
         return {'uuid'      : self.uuid,
@@ -277,17 +314,22 @@ class Datum(BaseModel):
         rel_old_path = Datum._to_rel_path(old_path)
         abs_old_path = Datum._to_abs_path(old_path)
         from sqlalchemy import or_
-        session.query(Datum).filter(or_(Datum._path == rel_old_path, \
-                                        Datum._path == abs_old_path)).update({'_path'   : new_path
-                                                                            , 'modifier': modifier})
+        results = session.query(Datum).filter(or_(Datum._path == rel_old_path, \
+                                                  Datum._path == abs_old_path)).all()
+
+        for result in results:
+            result._path = new_path
+            result._modifier_id = modifier.id
+            session.update(result)
+
     @staticmethod
     def update_include_path(old_path, new_path, modifier):
         # 同じディレクトリを含むpath列を、ディレクトリの移動に合わせて変更する
         rel_old_path = Datum._to_rel_path(old_path)
         abs_old_path = Datum._to_abs_path(old_path)
         from sqlalchemy import or_
-        results = session.query(Datum.id, Datum._path)\
-                         .filter(Datum.type!=Datum.FLOW_TYPE)\
+        results = session.query(Datum)\
+                         .filter(Datum.path!=None)\
                          .filter(or_(Datum._path.like(rel_old_path + '/%'),\
                                      Datum._path.like(abs_old_path + '/%'))).all()
         import re
@@ -296,8 +338,18 @@ class Datum(BaseModel):
                 replaced_path = re.sub('^'+abs_old_path, new_path, result._path)
             else:
                 replaced_path = re.sub('^'+rel_old_path, new_path, result._path)
-            session.query(Datum).filter(Datum.id==result.id).update({'_path'   : replaced_path
-                                                                    ,'modifier': modifier})
+            # session.query(Datum).filter(Datum.id==result.id).update({'_path'       : replaced_path
+            #                                                         ,'_modifier_id': modifier.id})
+
+            # from kskp.store import Frame
+            # frame_src2 = Frame.find_by_uuid(result.uuid)
+            # frame_src2 = session.query(Datum).filter(Frame.uuid==result.uuid)\
+            #                             .filter(Frame.type==Frame.FRAME_TYPE).one_or_none()
+
+            result._path = replaced_path
+            result._modifier_id = modifier.id
+            session.update(result)
+
 
     @staticmethod
     def _to_abs_path(path):
@@ -328,15 +380,15 @@ class Datum(BaseModel):
         elif len(roots) > 1:
             raise Exception('More than 2 roots exist!!')
 
-        # 
-        # ルートフォルダにEveryOneグループの権限設定がない場合、初期値を設定する
-        # (後方互換)
-        # 
-        from kskp.store.auth import Auth, Group
-        everyone_group = Group.load_everyone_group()
-        everyone_group.join_user(session.user_id, creator=session.user_id)
-        if not Auth.exists(everyone_group.id, roots[0].id):
-            everyone_group.init_authz(roots[0].id, True, True, False, session.user_id)
+        # # 
+        # # ルートフォルダにEveryOneグループの権限設定がない場合、初期値を設定する
+        # # (後方互換)
+        # # 
+        # from kskp.store.auth import Auth, Group
+        # everyone_group = Group.load_everyone_group()
+        # everyone_group.join_user(session.user, creator=session.user)
+        # if not Auth.exists(everyone_group.id, roots[0].id):
+        #     everyone_group.init_authz(roots[0].id, True, True, False, session.user)
 
         return roots[0]
 
@@ -363,14 +415,14 @@ class Datum(BaseModel):
 
         # 
         # DatumについてEveryOneグループの権限設定がない場合、初期値を設定する
-        # (後方互換)
+        # (後方互換、一覧表示の速度を結構遅くしている)
         # 
         for datum in data:
             from kskp.store.auth import Auth, Group
             everyone_group = Group.load_everyone_group()
-            everyone_group.join_user(session.user_id, creator=session.user_id)
+            everyone_group.join_user(session.user, creator=session.user)
             if not Auth.exists(everyone_group.id, datum.id):
-                everyone_group.init_authz(datum.id, True, True, True, session.user_id)
+                everyone_group.init_authz(datum.id, True, True, True, session.user)
 
 
         return data

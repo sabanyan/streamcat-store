@@ -6,19 +6,36 @@ import pprint
 from pathlib import Path
 from datetime import datetime
 
+from kskp.store import ss as session
 from kskp.core import Datum
 from kskp.store import Library, Flow, STORE_DIR, Library
+from kskp.store.auth import User
 
 class LibraryTest(unittest.TestCase):
     # テスト用ユーザID
-    USER_ID1 = 88
-    USER_ID2 = 99
+    # USER_ID1 = 88
+    # USER_ID2 = 99
 
     def setUp(self):
         pass
 
     def tearDown(self):
         pass
+
+    @classmethod
+    def setUpClass(cls):
+        from kskp.store.auth import Auth, Group, User
+        # 管理者ユーザをSessionに設定する
+        session.user = User.find_by_id(1)
+        # テストユーザを作成する
+        test_user = User('test@kskp.io', 'testpass', 'Test')
+        test_user.save()
+        # EveryOneグループにテストユーザを加える
+        everyone_group = Group.load_everyone_group()
+        everyone_group.join_user(test_user)
+        # クラス変数に設定する
+        LibraryTest.USER_ID1 = session.user
+        LibraryTest.USER_ID2 = test_user
 
     @classmethod
     def tearDownClass(cls):
@@ -28,7 +45,6 @@ class LibraryTest(unittest.TestCase):
         import shutil
         shutil.rmtree(library_path.as_posix())
         # Sessionを閉じる
-        from kskp.store import ss as session
         session.close()
         # スキーマを破棄する
         from kskp.store import engine
@@ -69,7 +85,7 @@ class LibraryTest(unittest.TestCase):
         self.assertIsNotNone(root.uuid)
         self.assertIsNotNone(root.path)
         self.assertEqual(root.type, 'folder')
-        self.assertIsNotNone(root.data, {'label':'ROOT_FOLDER'})
+        self.assertIsNone(root.data)
         # self.assertIsNotNone(root.creator)
         # self.assertIsNotNone(root.modifier)
         self.assertIsNotNone(root.created_at)
@@ -90,7 +106,7 @@ class LibraryTest(unittest.TestCase):
         self.assertIsNotNone(folder.uuid)
         self.assertIsNotNone(folder.path)
         self.assertEqual(folder.type, 'folder')
-        self.assertIsNotNone(root.data, {'label':'ROOT_FOLDER'})
+        self.assertIsNone(root.data)
         # self.assertIsNotNone(folder.creator)
         # self.assertIsNotNone(folder.modifier)
         self.assertIsNotNone(folder.created_at)

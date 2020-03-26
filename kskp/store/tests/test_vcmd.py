@@ -2,6 +2,7 @@ import os
 import io
 import json
 import unittest
+from kskp.store import ss as session
 from kskp.store import Library, Flow
 from kskp.engine import execute, FlowJsonLink, FlowLinkContext
 
@@ -16,6 +17,9 @@ class VCmdTestCase(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        # 管理者ユーザをSessionに設定する
+        from kskp.store.auth import User
+        session.user = User.find_by_id(1)
         # テスト用スキーマを作成する
         from kskp.core import Datum
         from kskp.store import Frame

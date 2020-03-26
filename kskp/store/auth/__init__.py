@@ -2,6 +2,8 @@ from sqlalchemy import event, DDL
 
 from kskp.store import engine, BaseModel
 
+from .stamp import Stamp
+
 from .exceptions import NotAuthorizedException
 from .auth import Auth
 from .user_group import UserGroup
@@ -85,6 +87,6 @@ def add_admin_user_and_group():
         admin_user = User('admin@kskp.io', 'adminpass', 'Admin')
         admin_user.save()
         # 初期管理者ユーザを管理者グループに参加させる
-        admin_group.join_user(admin_user.id)
+        admin_group.join_user(admin_user)
 
 

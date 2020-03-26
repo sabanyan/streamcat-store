@@ -8,6 +8,10 @@ from kskp.core import Datum
 
 class Frame(Datum):
 
+    __mapper_args__ = {
+        'polymorphic_identity' : 'frame'
+    }
+
     # 64MB
     READ_BUFFER_SIZE = 64 * 1024 * 1024
 
@@ -130,16 +134,16 @@ class Frame(Datum):
         Frameのdata列を更新する
         """
         # レコードを取得する
-        datum = session.query(Datum).filter(Datum.uuid==uuid)\
-                                    .filter(Datum.type==Datum.FRAME_TYPE).one_or_none()
-        if datum is None:
+        frame = session.query(Frame).filter(Frame.uuid==uuid)\
+                                    .filter(Frame.type==Frame.FRAME_TYPE).one_or_none()
+        if frame is None:
             raise Exception('no frame is found by designated id.')
 
         # ラベルに'\0'が含まれていれば取り除く
         new_label = Datum.escape_label(label)
 
         # ファイルを移動する
-        old_path = datum._path
+        old_path = frame._path
         new_path = os.path.join(os.path.dirname(old_path), Datum.escape_filename(new_label))
         new_path = Datum.move_file(old_path, new_path)
 
@@ -154,7 +158,7 @@ class Frame(Datum):
         finally:
             session.commit()
 
-        return Frame.convert_to_frame(datum)
+        return frame
 
     @staticmethod
     def update_label_only(uuid, label, modifier):
@@ -176,8 +180,11 @@ class Frame(Datum):
     @staticmethod
     def _update_label_imp(uuid, new_label, modifier):
         # label列を更新する
-        session.query(Datum).filter(Datum.uuid==uuid).update({'_label'  :new_label,
-                                                              'modifier':modifier})
+        result = session.query(Frame).filter(Frame.uuid==uuid).one_or_none()
+        if result is not None:
+            result._label = new_label
+            result._modifier_id = modifier.id
+            session.update(result)
 
     def delete(self):
         """

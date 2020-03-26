@@ -6,6 +6,7 @@ import pprint
 from pathlib import Path
 from datetime import datetime
 
+from kskp.store import ss as session
 from kskp.store import Library, STORE_DIR, Flow
 from kskp.engine import execute, FlowJsonLink, FlowLinkContext
 
@@ -13,6 +14,10 @@ class CommandTest(unittest.TestCase):
     
     @classmethod
     def setUpClass(cls):
+        # 管理者ユーザをSessionに設定する
+        from kskp.store.auth import User
+        session.user = User.find_by_id(1)
+
         # テスト用スキーマを作成する
         from kskp.core import Datum
 
@@ -46,7 +51,6 @@ class CommandTest(unittest.TestCase):
         import shutil
         shutil.rmtree(library_path.as_posix())
         # Sessionを閉じる
-        from kskp.store import ss as session
         session.close()
         # スキーマを破棄する
         from kskp.store import engine

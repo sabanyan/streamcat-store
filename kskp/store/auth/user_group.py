@@ -18,13 +18,13 @@ class UserGroup(BaseModel):
     )
 
     # 列名と列のデータ型等の定義
-    user_id     = Column(INTEGER, primary_key=True)
-    group_id    = Column(INTEGER, primary_key=True)
-    creator     = Column(INTEGER)
-    modifier    = Column(INTEGER)
-    created_at  = Column(TIMESTAMP, default=text('statement_timestamp()'))
-    modified_at = Column(TIMESTAMP, default=text('statement_timestamp()'), onupdate=text('statement_timestamp()'))
-    
+    user_id      = Column(INTEGER, primary_key=True)
+    group_id     = Column(INTEGER, primary_key=True)
+    _creator_id  = Column('creator', INTEGER)
+    _modifier_id = Column('modifier', INTEGER)
+    created_at   = Column(TIMESTAMP, default=text('statement_timestamp()'))
+    modified_at  = Column(TIMESTAMP, default=text('statement_timestamp()'), onupdate=text('statement_timestamp()'))
+
     def __init__(self, user_id, group_id, creator=None):
         """
         コンストラクタ
@@ -33,8 +33,23 @@ class UserGroup(BaseModel):
         self.group_id = group_id
 
         # creator, modifier
-        self.creator = creator
-        self.modifier = creator
+        if creator is not None:
+            self._creator_id = creator.id
+            self._modifier_id = creator.id
+
+    @property
+    def creator(self):
+        from kskp.store.auth import User
+        if self._creator_id is None:
+            return None
+        return User.find_by_id(self._creator_id)
+
+    @property
+    def modifier(self):
+        from kskp.store.auth import User
+        if self._modifier_id is None:
+            return None
+        return User.find_by_id(self._modifier_id)
 
     @staticmethod
     def find_by_id(user_id, group_id):

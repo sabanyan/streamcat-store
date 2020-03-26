@@ -68,7 +68,8 @@ class Library:
                           creator)
         # documentレコードをDBに格納する
         new_frame.add_entry_from_path(path)
-        return new_frame
+        # save()によりreadable=Noneになるため再取得する
+        return Frame.find_by_uuid(new_frame.uuid)
 
     @staticmethod
     def save2_frame(parent_uuid, label, stream, creator=None):
@@ -81,7 +82,8 @@ class Library:
                           creator)
         # documentレコードをDBに格納する
         new_frame.save()
-        return new_frame
+        # save()によりreadable=Noneになるため再取得する
+        return Frame.find_by_uuid(new_frame.uuid)
 
     @staticmethod
     def update_frame_data(frame_uuid, label, modifier=None):
@@ -131,7 +133,8 @@ class Library:
                         flow_data,
                         creator)
         new_flow.save()
-        return new_flow
+        # save()によりreadable=Noneになるため再取得する
+        return Flow.find_by_uuid(new_flow.uuid)
 
     @staticmethod
     def update_flow_data(flow_uuid, label, flow_data, modifier=None):
@@ -179,7 +182,8 @@ class Library:
                             label,
                             creator)
         new_folder.save()
-        return new_folder
+        # save()によりreadable=Noneになるため再取得する
+        return Folder.find_by_uuid(new_folder.uuid)
 
     @staticmethod
     def delete_folder(folder_uuid):
@@ -213,7 +217,8 @@ class Library:
                           bucket,
                           creator)
         new_awss3.save()
-        return new_awss3
+        # save()によりreadable=Noneになるため再取得する
+        return AwsS3.find_by_uuid(new_awss3.uuid)
 
     @staticmethod
     def delete_awss3(awss3_uuid):
@@ -277,7 +282,29 @@ class Library:
                               creator=user_id)
             # folderレコードをDBに格納する
             new_root.save()
-            root = new_root
+
+            # 
+            # ルートフォルダにAdminグループの権限設定がない場合、初期値を設定する
+            # (後方互換)
+            # 
+            from kskp.store import ss as session
+            from kskp.store.auth import Auth, Group
+            admin_group = Group.load_admin_group()
+            admin_group.join_user(session.user)
+            if not Auth.exists(admin_group.id, new_root.id):
+                admin_group.init_authz(new_root.id, True, True, False)
+
+            # 
+            # ルートフォルダにEveryOneグループの権限設定がない場合、初期値を設定する
+            # (後方互換)
+            # 
+            everyone_group = Group.load_everyone_group()
+            everyone_group.join_user(session.user)
+            if not Auth.exists(everyone_group.id, new_root.id):
+                everyone_group.init_authz(new_root.id, True, True, False)
+
+            # 参照権限設定後にもう一度取得し直す
+            root = Folder.find_by_uuid(new_root.uuid)
         return root
 
     @staticmethod
