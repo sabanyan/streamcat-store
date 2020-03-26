@@ -15,17 +15,17 @@ class User(BaseModel):
         __table_args__ = {'schema': os.environ['KSKP_POSTGRESQL_SCHEMA_NAME']}
 
     # 列名と列のデータ型等の定義
-    id          = Column(INTEGER, primary_key=True, autoincrement=True)
-    uuid        = Column(UUID, nullable=False, unique=True)
-    email       = Column(String, nullable=False, unique=True)
-    password    = Column(String)
-    name        = Column(String, nullable=False)
+    id            = Column(INTEGER, primary_key=True, autoincrement=True)
+    uuid          = Column(UUID, nullable=False, unique=True)
+    email         = Column(String, nullable=False, unique=True)
+    password      = Column(String)
+    name          = Column(String, nullable=False)
     # 本人グループのGroupId
     self_group_id = Column(INTEGER, nullable=True)
-    creator     = Column(INTEGER)
-    modifier    = Column(INTEGER)
-    created_at  = Column(TIMESTAMP, default=text('statement_timestamp()'))
-    modified_at = Column(TIMESTAMP, default=text('statement_timestamp()'), onupdate=text('statement_timestamp()'))
+    _creator_id   = Column('creator', INTEGER)
+    _modifier_id  = Column('modifier', INTEGER)
+    created_at    = Column(TIMESTAMP, default=text('statement_timestamp()'))
+    modified_at   = Column(TIMESTAMP, default=text('statement_timestamp()'), onupdate=text('statement_timestamp()'))
 
     def __init__(self, email, password, name, creator=None):
         """
@@ -39,9 +39,22 @@ class User(BaseModel):
         self.name = name
 
         # creator, modifier
-        self.creator = creator
-        self.modifier = creator
-    
+        if creator is not None:
+            self._creator_id = creator.id
+            self._modifier_id = creator.id
+
+    @property
+    def creator(self):
+        if self._creator_id is None:
+            return None
+        return User.find_by_id(self._creator_id)
+
+    @property
+    def modifier(self):
+        if self._modifier_id is None:
+            return None
+        return User.find_by_id(self._modifier_id)
+
     # def _require_admin_auth(func):
     #     """
     #     操作ユーザがadminグループに所属していない場合は例外を送出する
@@ -68,6 +81,14 @@ class User(BaseModel):
     #         return func(self, *args, **kwargs)
     #     return wrapper
 
+    @staticmethod
+    def find_by_id(user_id):
+        from kskp.store import ss as session
+        # user = session.query(User).filter(User.id==user_id).one_or_none()
+
+        # SQLAlchemyのidentity mapにキャッシュされていればそれを返す
+        user = session.query(User).get(user_id)
+        return user
 
     @staticmethod
     def find_by_uuid(uuid):
@@ -104,9 +125,9 @@ class User(BaseModel):
         Userのemail列を更新する
         """
         from kskp.store import ss as session
-        session.query(User).filter(User.id==self.id)\
-                           .update({'email'    :new_email,
-                                    'modifier' :modifier})
+        self.email = new_email
+        self._modifier_id = modifier.id
+        session.update(self)
         session.commit()
 
     def update_password(self, new_password, modifier):
@@ -114,16 +135,16 @@ class User(BaseModel):
 
     def update_name(self, new_name, modifier):
         from kskp.store import ss as session
-        session.query(User).filter(User.id==self.id)\
-                           .update({'name'     :new_name,
-                                    'modifier' :modifier})
+        self.name = new_name
+        self._modifier_id = modifier.id
+        session.update(self)
         session.commit()
 
     def update_self_group_id(self, new_group_id, modifier=None):
         from kskp.store import ss as session
-        session.query(User).filter(User.id==self.id)\
-                           .update({'self_group_id':new_group_id,
-                                    'modifier'     :modifier})
+        self.self_group_id = new_group_id
+        self._modifier_id = modifier and modifier.id
+        session.update(self)
         session.commit()
 
     # @_require_admin_auth
@@ -167,16 +188,27 @@ class User(BaseModel):
         本人グループを取得する
         """
         from .group import Group
-        
-        if self.self_group_id is not None and Group.exists(self.self_group_id):
-            self_group = Group.find_by_id(self.self_group_id)
-        else:
+
+        if self.self_group_id is None:
             # 本人グループを作成する
-            self_group = Group(self.name, creator=self.id)
+            self_group = Group(self.name, creator=self)
             self_group.save()
             # 本人グループを設定する
             self.update_self_group_id(self_group.id)
+        else:
+            self_group = Group.find_by_id(self.self_group_id)
+            if self_group is None:
+                raise Exception(f'本人グループ({self.self_group_id})は存在しません')
 
-        self_group.join_user(self.id, creator=self.id)
+        self_group.join_user(self, creator=self)
 
         return self_group
+
+    def __repr__(self):
+        return f'User({self.id}, {self.name})'
+
+    def __eq__(self, other):
+        return self.uuid == other.uuid
+
+    def __ne__(self, other):
+        return self.uuid != other.uuid

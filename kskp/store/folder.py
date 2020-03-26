@@ -12,6 +12,10 @@ from kskp.store import Store, STORE_DIR
 
 class Folder(Store):
 
+    __mapper_args__ = {
+        'polymorphic_identity' : 'folder'
+    }
+
     def __init__(self, parent_uuid, label, creator=None):
         """
         コンストラクタ
@@ -19,7 +23,7 @@ class Folder(Store):
         super().__init__(parent_uuid, Datum.FOLDER_TYPE, label, creator)
 
         # data列の値を作成する
-        self.data = {}
+        # self.data = {}
 
     @staticmethod
     def find_by_uuid(uuid):
@@ -118,8 +122,12 @@ class Folder(Store):
             Datum.update_include_path(old_path, new_path, modifier)
 
             # レコードを更新する
-            session.query(Folder).filter(Folder.uuid==uuid).update({'_label'  :new_label
-                                                                   ,'modifier':modifier})
+            # session.query(Folder).filter(Folder.uuid==uuid).update({'_label'      :new_label
+            #                                                        ,'_modifier_id':modifier.id})
+            folder._label = new_label
+            folder._modifier_id = modifier.id
+            session.update(folder)
+
         except Exception as e:
             session.rollback()
             raise e

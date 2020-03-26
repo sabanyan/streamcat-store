@@ -4,14 +4,17 @@ class AuthzQuery():
 
     _query = None
 
-    def __init__(self, query, user_id):
-        if user_id is None:
-            raise Exception('AuthzSessionに設定したuser_idがNoneです')
+    def __init__(self, query, user):
+        if user is None:
+            raise Exception('AuthzSessionに設定したuserがNoneです')
         self._query = query
-        self.user_id = user_id
+        self._user = user
+
+    def get(self, ident):
+        return self._query.get(ident)
 
     def filter(self, *criterion):
-        return AuthzQuery(self._query.filter(*criterion), self.user_id)
+        return AuthzQuery(self._query.filter(*criterion), self._user)
 
     def count(self):
         return self._query.count()
@@ -34,11 +37,11 @@ class AuthzQuery():
         
         # synchronize_session='fetch'でSQLを2回発行するらしい
         result = self._query.filter(exists_stmt).\
-                             update(values, synchronize_session=False, update_args=update_args)
+                             update(values, synchronize_session='fetch', update_args=update_args)
 
         # 権限がない(更新件数=0件)場合は例外を送出する
         if result == 0:
-            raise  NotAuthorizedException((f'{self.user_id}は更新権限がありません'))
+            raise  NotAuthorizedException((f'{self._user.name}は更新権限がありません'))
 
         return result
 
@@ -51,7 +54,7 @@ class AuthzQuery():
         # 権限がない場合はUPDATEのWHEREはFalseとなる
         ta = table('auths').\
              join(table('groups'), text('auths.group_id=groups.id')).\
-             join(table('users_groups'), text(f'groups.id=users_groups.group_id and users_groups.user_id={self.user_id}'))
+             join(table('users_groups'), text(f'groups.id=users_groups.group_id and users_groups.user_id={self._user.id}'))
         
         tb = select([text('bool_and(auths.write) AS write')]).select_from(ta).where(text('auths.datum_id=data.id')).alias('V')
 

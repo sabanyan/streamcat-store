@@ -7,6 +7,7 @@ import pprint
 from pathlib import Path
 from datetime import datetime
 
+from kskp.store import ss as session
 from kskp.store import LockManager, LockedDatumException, STORE_DIR, Library
 
 class LockManagerTest(unittest.TestCase):
@@ -17,6 +18,13 @@ class LockManagerTest(unittest.TestCase):
     # Lock Managerを作成する
     lock_manager = LockManager(1)
 
+
+    @classmethod
+    def setUpClass(cls):
+        # 管理者ユーザをSessionに設定する
+        from kskp.store.auth import User
+        session.user = User.find_by_id(1)
+
     @classmethod
     def tearDownClass(cls):
         # ライブラリフォルダを削除する
@@ -25,7 +33,6 @@ class LockManagerTest(unittest.TestCase):
         import shutil
         shutil.rmtree(library_path.as_posix())
         # Sessionを閉じる
-        from kskp.store import ss as session
         session.close()
         # スキーマを破棄する
         from kskp.store import engine
@@ -38,11 +45,11 @@ class LockManagerTest(unittest.TestCase):
         """
         # ロックを取得する
         target = str(uuid.uuid4())
-        lock = self.lock_manager.lock(target, creator=1)
+        lock = self.lock_manager.lock(target, creator=session.user)
         # 正常にロックが取得できることを確認する
         self.assertIsNotNone(lock.uuid)
         self.assertEqual(lock.target, target)
-        self.assertEqual(lock.creator, 1)
+        self.assertEqual(lock.creator, session.user)
         self.assertIsNotNone(lock.created_at)
         # 取得したロックUUIDはLockManagerが管理している
         self.assertTrue(self.lock_manager.contains(lock.uuid))
@@ -57,15 +64,15 @@ class LockManagerTest(unittest.TestCase):
         """
         # ロックを取得する
         target = str(uuid.uuid4())
-        lock = self.lock_manager.lock(target, creator=1)
+        lock = self.lock_manager.lock(target, creator=session.user)
         # 正常にロックが取得できることを確認する
         self.assertIsNotNone(lock.uuid)
         self.assertEqual(lock.target, target)
-        self.assertEqual(lock.creator, 1)
+        self.assertEqual(lock.creator, session.user)
         self.assertIsNotNone(lock.created_at)
         # 同じユーザで、同じDatum UUIDでも複数回ロックはできない
         with self.assertRaises(LockedDatumException):
-            self.lock_manager.lock(target, creator=1)
+            self.lock_manager.lock(target, creator=session.user)
         # ロックを解除する
         self.lock_manager.unlock(lock.uuid)
 
@@ -83,20 +90,20 @@ class LockManagerTest(unittest.TestCase):
         """
         # ロックを取得する
         target = str(uuid.uuid4())
-        lock = self.lock_manager.lock(target, creator=1)
+        lock = self.lock_manager.lock(target, creator=session.user)
         # 正常にロックが取得できることを確認する
         self.assertIsNotNone(lock.uuid)
         self.assertEqual(lock.target, target)
-        self.assertEqual(lock.creator, 1)
+        self.assertEqual(lock.creator, session.user)
         self.assertIsNotNone(lock.created_at)
         # ロックを解除する
         self.lock_manager.unlock(lock.uuid)
         # 同じデータを再びロックする
-        lock = self.lock_manager.lock(target, creator=1)
+        lock = self.lock_manager.lock(target, creator=session.user)
         # 正常にロックが取得できることを確認する
         self.assertIsNotNone(lock.uuid)
         self.assertEqual(lock.target, target)
-        self.assertEqual(lock.creator, 1)
+        self.assertEqual(lock.creator, session.user)
         self.assertIsNotNone(lock.created_at)
 
     def test_unlock_target(self):
@@ -105,7 +112,7 @@ class LockManagerTest(unittest.TestCase):
         """
         # ロックを取得する
         target = str(uuid.uuid4())
-        lock = self.lock_manager.lock(target, creator=1)
+        lock = self.lock_manager.lock(target, creator=session.user)
         # ロック対象を指定してロック解除する
         result = self.lock_manager.unlock_target(target)
         self.assertEqual(result.uuid, lock.uuid)
@@ -119,7 +126,7 @@ class LockManagerTest(unittest.TestCase):
         """
         # ロックを取得する
         target = str(uuid.uuid4())
-        lock = self.lock_manager.lock(target, creator=1)
+        lock = self.lock_manager.lock(target, creator=session.user)
         # 2sec待つ
         time.sleep(2)
         # 有効期間が過ぎたロックはLockManagerは管理しない
@@ -134,11 +141,11 @@ class LockManagerTest(unittest.TestCase):
         """
         # ロックを取得する
         target = str(uuid.uuid4())
-        lock = self.lock_manager.lock(target, creator=1)
+        lock = self.lock_manager.lock(target, creator=session.user)
         # 2sec待つ
         time.sleep(2)
         # 有効期間が過ぎたロックはLockManagerは管理しない
-        self.lock_manager.lock(str(uuid.uuid4()), creator=1)
+        self.lock_manager.lock(str(uuid.uuid4()), creator=session.user)
         # ロックを解除しようとする
         with self.assertRaises(Exception):
             self.lock_manager.unlock(lock.uuid)

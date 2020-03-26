@@ -7,6 +7,11 @@ class Database(Store):
     """
     Databaseへの接続を表すStore
     """
+
+    __mapper_args__ = {
+        'polymorphic_identity' : 'database'
+    }
+
     def __init__(self, parent_uuid, label, database_conn, creator=None):
         """
         コンストラクタ
@@ -93,9 +98,12 @@ class Database(Store):
         try:
             # レコードを更新する
             data = {'conn' : database_conn.to_json()}
-            session.query(Datum).filter(Datum.uuid==uuid).update({'_label'   :new_label,
-                                                                  '_data'     :data,
-                                                                  'modifier' :modifier})
+            result = session.query(Datum).filter(Datum.uuid==uuid).one_or_none()
+            if result is not None:
+                result._label = new_label
+                result._data = data
+                result._modifier_id = modifier.id
+                session.update(result)
         except Exception as e:
             session.rollback()
             raise e
@@ -122,8 +130,8 @@ class Database(Store):
 
         try:
             # レコードを更新する
-            session.query(Datum).filter(Datum.id==self.id).update({'parent_id': to_folder.id
-                                                                  ,'modifier' : modifier})
+            session.query(Datum).filter(Datum.id==self.id).update({'parent_id'   :to_folder.id
+                                                                  ,'_modifier_id':modifier.id})
         except Exception as e:
             session.rollback()
             raise e

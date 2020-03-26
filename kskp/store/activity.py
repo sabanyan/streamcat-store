@@ -9,6 +9,10 @@ class Activity(Datum):
     実行結果情報を表す
     """
 
+    __mapper_args__ = {
+        'polymorphic_identity' : 'activity'
+    }
+
     TYPE = 'activity'
 
     def __init__(self, parent_uuid, label, flow_uuid, creator=None):

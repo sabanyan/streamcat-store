@@ -15,14 +15,14 @@ class Group(BaseModel):
         __table_args__ = {'schema': os.environ['KSKP_POSTGRESQL_SCHEMA_NAME']}
 
     # 列名と列のデータ型等の定義
-    id          = Column(INTEGER, primary_key=True, autoincrement=True)
-    uuid        = Column(UUID, nullable=False, unique=True)
-    name        = Column(String, nullable=False)
+    id           = Column(INTEGER, primary_key=True, autoincrement=True)
+    uuid         = Column(UUID, nullable=False, unique=True)
+    name         = Column(String, nullable=False)
     # is_admin    = Column(INTEGER, default=0, nullable=False)
-    creator     = Column(INTEGER)
-    modifier    = Column(INTEGER)
-    created_at  = Column(TIMESTAMP, default=text('statement_timestamp()'))
-    modified_at = Column(TIMESTAMP, default=text('statement_timestamp()'), onupdate=text('statement_timestamp()'))
+    _creator_id  = Column('creator', INTEGER)
+    _modifier_id = Column('modifier', INTEGER)
+    created_at   = Column(TIMESTAMP, default=text('statement_timestamp()'))
+    modified_at  = Column(TIMESTAMP, default=text('statement_timestamp()'), onupdate=text('statement_timestamp()'))
 
     ADMIN_GROUP_UUID    = 'aa19bfb3-1409-4082-98e3-c497849d6235'
     ADMIN_GROUP_LABEL   = 'ADMIN'
@@ -40,8 +40,27 @@ class Group(BaseModel):
         # self.is_admin = is_admin
 
         # creator, modifier
-        self.creator = creator
-        self.modifier = creator
+        if creator is not None:
+            self._creator_id = creator.id
+            self._modifier_id = creator.id
+
+    @property
+    def creator(self):
+        from kskp.store.auth import User
+        if self._creator_id is None:
+            return None
+        return User.find_by_id(self._creator_id)
+
+    @property
+    def modifier(self):
+        from kskp.store.auth import User
+        if self._modifier_id is None:
+            return None
+        return User.find_by_id(self._modifier_id)
+    @staticmethod
+    def find_by_id(group_id):
+        from kskp.store import ss as session
+        return session.query(Group).filter(Group.id == group_id).one_or_none()
 
     @staticmethod
     def find_by_uuid(uuid):
@@ -116,9 +135,9 @@ class Group(BaseModel):
         session.delete(self)
         session.commit()
 
-    def is_joined_user(self, user_id):
+    def is_joined_user(self, user):
         from kskp.store import ss as session
-        count = session.query(UserGroup).filter(UserGroup.group_id==self.id).filter(UserGroup.user_id==user_id).count()
+        count = session.query(UserGroup).filter(UserGroup.group_id==self.id).filter(UserGroup.user_id==user.id).count()
         return count > 0
 
     def has_joined_user(self):
@@ -126,27 +145,28 @@ class Group(BaseModel):
         count = session.query(UserGroup).filter(UserGroup.group_id==self.id).count()
         return count > 0
 
-    def join_user(self, user_id, creator=None):
+    def join_user(self, user, creator=None):
         """
         グループにユーザを所属させる
         """
-        if not self.is_joined_user(user_id):
-            user_group = UserGroup(user_id, self.id, creator=creator)
+        if not self.is_joined_user(user):
+            user_group = UserGroup(user.id, self.id, creator=creator)
             user_group.save()
     
-    def leave_user(self, user_id):
+    def leave_user(self, user):
         """
         グループからユーザを脱退させる
         """
-        if self.is_joined_user(user_id):
-            user_group = UserGroup.find_by_id(user_id, self.id)
+        if self.is_joined_user(user):
+            user_group = UserGroup.find_by_id(user.id, self.id)
             user_group.delete()
 
     def init_authz(self, datum_id, read, write, exec, creator=None):
         from .auth import Auth
 
         if Auth.exists(self.id, datum_id):
-            Auth.update(self.id, datum_id, read, write, exec, modifier=creator)
+            auth = Auth.find_by_id(self.id, datum_id)
+            auth.update(read, write, exec, modifier=creator)
         else:
             authz = Auth(self.id, datum_id, read=read, write=write, exec=exec, creator=creator)
             authz.save()

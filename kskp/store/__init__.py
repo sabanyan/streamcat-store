@@ -80,18 +80,20 @@ from sqlalchemy.ext.declarative import declarative_base
 BaseModel = declarative_base()
 # セッションをつくる
 # scoped_sessionでラップすることで、Session()を何回実行しても同一のSessionが返される
+# session.commit()によるExpireでquery_expression()で設定されているreadableがNoneになる
+# これを回避するためexpire_on_commit=Falseとする、autoflush=Falseも必要!
 from sqlalchemy.orm import sessionmaker, scoped_session
-Session = scoped_session(sessionmaker(bind=engine))
+Session = scoped_session(sessionmaker(bind=engine, expire_on_commit=False, autoflush=False))
 # 変数名がsessionだとwebでimportした時にflaskのsessionと被るので、一応ssにしている
-ss = Session()
 
 # 管理者グループと管理者ユーザを作成する
 # (とりあえず、権限管理のないsessionで作成する)
+ss = Session()
 from kskp.store.auth import add_admin_user_and_group
 add_admin_user_and_group()
 
 from kskp.store.auth.authz_session import AuthzSession
-ss = AuthzSession(Session, user_uuid=None)
+ss = AuthzSession(Session, user=None)
 
 from kskp.core import Datum, Port, Command
 

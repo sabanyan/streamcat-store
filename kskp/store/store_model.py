@@ -29,8 +29,11 @@ class Store(BaseModel):
     def __init__(self, id=None, data=None, creator=None):
         self.id = id
         self.data = data
-        self.creator = creator
-        self.modifier = creator
+        
+        # creator, modifier
+        if creator is not None:
+            self.creator = creator.id
+            self.modifier = creator.id
 
     @classmethod
     def create(cls, id, version=None, label=None, description=None, url=None, params=None, creator=None):

@@ -8,6 +8,10 @@ from kskp.store import Frame
 
 class Flow(Datum):
 
+    __mapper_args__ = {
+        'polymorphic_identity' : 'flow'
+    }
+
     def __init__(self, parent_uuid, label, flow_data, creator=None):
         """
         コンストラクタ
@@ -185,29 +189,16 @@ class Flow(Datum):
 
         try:
             # レコードを更新する
-
-            # 実行時、Post /vizs Exception This session is in 'prepared' stateが出力されるのを防ぐ
-            # from kskp.store import engine
-            # from sqlalchemy import create_engine
-            # from sqlalchemy.orm import sessionmaker
-            # my_engine = create_engine(os.environ['SQLALCHEMY_DATABASE_URI'], echo=True)
-            # my_session = sessionmaker(bind=my_engine)()
-
-            session.query(Flow).filter(Flow.uuid==uuid).update({'_label'   :new_label,
-                                                                '_data'    :data,
-                                                                'modifier' :modifier})
+            if flow is not None:
+                flow._label = new_label
+                flow._data = data
+                flow._modifier_id = modifier.id
+                session.update(flow)
         except Exception as e:
             session.rollback()
             raise e
         finally:
             session.commit()
-            # my_engine.dispose()
-
-        # # レコードを取得する
-        # datum = session.query(Datum).filter(Datum.uuid==uuid)\
-        #                             .filter(Datum.type==Datum.FLOW_TYPE).one_or_none()
-        # if datum is None:
-        #     raise Exception('no flow is found by designated id.')
 
         # ここでflowを返すとtest_model.pyでテストが通らない
         return flow
@@ -230,8 +221,8 @@ class Flow(Datum):
 
         try:
             # レコードを更新する
-            session.query(Datum).filter(Datum.id==self.id).update({'parent_id': to_folder.id
-                                                                  ,'modifier' : modifier})
+            session.query(Datum).filter(Datum.id==self.id).update({'parent_id'   :to_folder.id
+                                                                  ,'_modifier_id':modifier.id})
         except Exception as e:
             session.rollback()
             raise e
@@ -270,20 +261,20 @@ class Flow(Datum):
     def flow_data(self):
         return self.data['flow']
 
-    def duplicate(self, new_label, user_id):
+    def duplicate(self, new_label, creator):
         """
         自身の複製を作成する
         """
         # ラベルと作成者については、指定された値を新たに設定する
         new_flow_data = self.flow_data
         new_flow_data['label'] = new_label
-        new_flow_data['creator'] = Datum.get_user_name_by_user_id(user_id)
+        new_flow_data['creator'] = creator.name
         # FIXIT : Dataテーブルのcreated_at列と時刻を合わせたい
         from datetime import datetime, timedelta, timezone
         JST = timezone(timedelta(hours=+9), 'JST')
         new_flow_data['createdAt'] = datetime.now(JST).strftime('%Y-%m-%d %H:%M:%S')
         # 複製を作成する
-        new_flow = Flow(self.parent_uuid, new_label, new_flow_data, user_id)
+        new_flow = Flow(self.parent_uuid, new_label, new_flow_data, creator)
         return new_flow
 
     @staticmethod
@@ -406,7 +397,7 @@ class Flow(Datum):
         results = session.execute(sql)
         return [str(result['uuid']) for result in results]
 
-    def replace_uuid(self, old_uuid, new_uuid, user_id):
+    def replace_uuid(self, old_uuid, new_uuid, modifier):
         """
         参照uuidを置き換える
         """
@@ -414,9 +405,9 @@ class Flow(Datum):
         for node in flow_data['nodes']:
             if 'uuid' in node and node['uuid'] == old_uuid:
                 node['uuid'] = new_uuid
-        Flow.update_data(self.uuid, self.label, flow_data, user_id)
+        Flow.update_data(self.uuid, self.label, flow_data, modifier)
 
-    def set_cache(self, node_id, cache_uuid, user_id):
+    def set_cache(self, node_id, cache_uuid, modifier):
         from datetime import datetime, timedelta, timezone
 
         flow_data = self.flow_data
@@ -425,7 +416,7 @@ class Flow(Datum):
                 node['uuid'] = cache_uuid
                 # 記録時間はUTC、表示時間は現地時間にすべきでは？？
                 node['cacheCreatedAt'] = datetime.now(timezone(timedelta(hours=+9), 'JST')).strftime('%Y-%m-%d %H:%M:%S')
-        Flow.update_data(self.uuid, self.label, flow_data, user_id)
+        Flow.update_data(self.uuid, self.label, flow_data, modifier)
 
     def to_json(self):
         return {'uuid'      : self.uuid,
@@ -435,7 +426,7 @@ class Flow(Datum):
                 'createdAt' : self.created_at_str}
 
     @staticmethod
-    def create_flow(request_json, user_id, data_source_name=None):
+    def create_flow(request_json, creator, data_source_name=None):
         """
         フローを作成する
         TODO: とりあえず、model.pyから移動した
@@ -475,7 +466,7 @@ class Flow(Datum):
                 return deco
             return _deco
 
-        def add_activity_to_flow(user_id):
+        def add_activity_to_flow(creator):
             '''
             フローに作成時に作成履歴をつけるためのデコレータ
             '''
@@ -483,8 +474,7 @@ class Flow(Datum):
                 @functools.wraps(func)
                 def deco():
                     data = func()
-                    # data['creator'] = get_user_by_id(user_id)['name']
-                    data['creator'] = Datum.get_user_name_by_user_id(user_id)
+                    data['creator'] = creator.name
                     JST = timezone(timedelta(hours=+9), 'JST')
                     data['createdAt'] = datetime.now(JST).strftime('%Y-%m-%d %H:%M:%S')
                     return data
@@ -492,7 +482,7 @@ class Flow(Datum):
             return _deco
 
         @add_data_source_to_flow(request_json.get('datasource'))
-        @add_activity_to_flow(user_id)
+        @add_activity_to_flow(creator)
         def make_flow_json():
             data = {
                 # 'projectId': get_project_by_uuid(request_json.get('project_uuid')),

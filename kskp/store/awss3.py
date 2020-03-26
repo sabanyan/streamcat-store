@@ -12,6 +12,10 @@ from kskp.store import Folder, Mountable
 
 class AwsS3(Folder, Mountable):
 
+    __mapper_args__ = {
+        'polymorphic_identity' : 'awss3'
+    }
+
     def __init__(self, parent_uuid, label, bucket_name, creator=None):
         """
         コンストラクタ
@@ -113,9 +117,12 @@ class AwsS3(Folder, Mountable):
 
             # レコードを更新する
             data = {'bucket' : bucket_name}
-            session.query(Datum).filter(Datum.uuid==uuid).update({'_label'   :new_label
-                                                                 ,'_data'    :data
-                                                                 ,'modifier':modifier})
+            result = session.query(Datum).filter(Datum.uuid==uuid).one_or_none()
+            if result is not None:
+                result._label = new_label
+                result._data = data
+                result._modifier_id = modifier.id
+                session.update(result)
         except Exception as e:
             session.rollback()
             raise e
