@@ -160,13 +160,32 @@ class ColumnName2Command(PCommand):
         super().__init__()
 
     def run(self, args, inputs):
-        f = None
-        f <<= inputs['i'].content
+        f = inputs['i'].content
 
-        args_string = (PCMD_DIR / 'src/column_name.sh').as_posix()
-        args_string += self.replace_args(args)
+        _header = copy.deepcopy(f).getline(header=True)
+        _header = next(_header)
 
-        return {'o': self.module(f, args_string)}
+        _args = copy.deepcopy(args)
+        
+        _flds = _args.get('f') # 'a,b,*,c,d'
+        _start, _end = _flds.split('*') # 'a,b,' , ',c,d'
+        
+        _start = _start.strip(',').split(',') # ['a','b']
+        _end = _end.strip(',').split(',') # ['c','d']
+
+        for col in _start + _end:
+            if col is not '':
+                _header.remove(col)
+        
+        _final = _start + _header + _end
+        _final = [val for val in _final if val != '']
+
+        f <<= nm.mcut(f = _final)
+
+        nysol_module_o= NysolModule()
+        nysol_module_o.set_content(f)
+        return {'o': nysol_module_o}
+
 
 class GroupbyCommand(PCommand):
     def __init__(self):
