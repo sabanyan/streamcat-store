@@ -35,13 +35,35 @@ class User(BaseModel):
         self.uuid = str(uuid.uuid4())
 
         self.email = email
-        self.password = password
+        self.password = self._get_password_hash(email, password)
         self.name = name
 
         # creator, modifier
         if creator is not None:
             self._creator_id = creator.id
             self._modifier_id = creator.id
+
+    def _get_password_hash(self, email, password):
+        """
+        パスワードのハッシュを作成する
+        """ 
+        def get_salt(user_id):
+            """
+            固定ソルトとユーザID（現在はメールアドレス）
+            """
+            FIXED_SALT = b'd0d68c0d5bb78d78265c0d588f23bc60'
+            user_id_bytes = bytes(str(user_id), encoding='utf-8')
+            return user_id_bytes + FIXED_SALT
+
+        import hashlib
+        STRETCH_COUNT = 100
+        salt = get_salt(email)
+        current_hash = b''
+        password_bytes = bytes(password, encoding='utf-8')
+        for _ in range(1, STRETCH_COUNT):
+            hash_target = current_hash + password_bytes + salt
+            current_hash = bytes(hashlib.sha256(hash_target).hexdigest(), 'ascii')
+        return str(current_hash, encoding='utf-8')
 
     @property
     def creator(self):
@@ -161,8 +183,17 @@ class User(BaseModel):
         session.commit()
 
 
-    def authenticate(self):
-        pass
+    def authenticate(self, password):
+        """
+        IDとパスワードを元に認証処理を行う
+        認証の成功時にはTrueを、失敗すればFalseを返す
+        """
+        if self.password is None:
+            # そもそもユーザが存在しない場合
+            return False
+
+        # パスワード判定処理
+        return self._get_password_hash(self.email, password) == self.password
 
     def has_read_authority(self, uuid):
         # select 

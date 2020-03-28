@@ -81,7 +81,7 @@ class Auth(BaseModel):
             self.read = read
             self.write = write
             self.exec = exec
-            self._modifier_id = modifier.id
+            self._modifier_id = modifier and modifier.id
             session.update(self)
         except Exception as e:
             session.rollback()

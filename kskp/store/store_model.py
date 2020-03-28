@@ -19,12 +19,12 @@ class Store(BaseModel):
         __table_args__ = {'schema': os.environ['KSKP_POSTGRESQL_SCHEMA_NAME']}
 
     # カラム
-    id          = Column(ENUM('Directory', 'PostgreSQL', 'MySql', 'ORACLE', name='store_type') ,primary_key=True)
-    data        = Column(JSONB)
-    creator     = Column(INTEGER)
-    modifier    = Column(INTEGER)
-    created_at  = Column(TIMESTAMP, default=text('statement_timestamp()'))
-    modified_at = Column(TIMESTAMP, default=text('statement_timestamp()'), onupdate=text('statement_timestamp()'))
+    id           = Column(ENUM('Directory', 'PostgreSQL', 'MySql', 'ORACLE', name='store_type') ,primary_key=True)
+    data         = Column(JSONB)
+    _creator_id  = Column('creator', INTEGER)
+    _modifier_id = Column('modifier', INTEGER)
+    created_at   = Column(TIMESTAMP, default=text('statement_timestamp()'))
+    modified_at  = Column(TIMESTAMP, default=text('statement_timestamp()'), onupdate=text('statement_timestamp()'))
 
     def __init__(self, id=None, data=None, creator=None):
         self.id = id
@@ -32,11 +32,25 @@ class Store(BaseModel):
         
         # creator, modifier
         if creator is not None:
-            self.creator = creator.id
-            self.modifier = creator.id
+            self._creator_id = creator.id
+            self._modifier_id = creator.id
 
-    @classmethod
-    def create(cls, id, version=None, label=None, description=None, url=None, params=None, creator=None):
+    @property
+    def creator(self):
+        from kskp.store.auth import User
+        if self._creator_id is None:
+            return None
+        return User.find_by_id(self._creator_id)
+
+    @property
+    def modifier(self):
+        from kskp.store.auth import User
+        if self._modifier_id is None:
+            return None
+        return User.find_by_id(self._modifier_id)
+
+    @staticmethod
+    def create(id, version=None, label=None, description=None, url=None, params=None, creator=None):
         data = {'version'    : version,
                 'label'      : label,
                 'description': description,
@@ -44,27 +58,16 @@ class Store(BaseModel):
                 'params'     : params}
         return Store(id, data, creator)
 
-    @classmethod
-    def find_all(cls):
-        results = session.query(Store.id,
-                                Store.data,
-                                Store.created_at,
-                                Store.modified_at,
-                                Store.creator,
-                                Store.modifier).all()
-        return [Store(result.id, result.data, result.creator) for result in results]
+    @staticmethod
+    def find_all():
+        return session.query(Store).all()
 
-    @classmethod
-    def find_by_id(cls, id):
-        result = session.query(Store.id,
-                               Store.data,
-                               Store.created_at,
-                               Store.modified_at,
-                               Store.creator,
-                               Store.modifier).filter(Store.id==id).one_or_none()
+    @staticmethod
+    def find_by_id(id):
+        result = session.query(Store).filter(Store.id==id).one_or_none()
         if result is None:
             raise Exception('No store is found by designated store id')
-        return Store(result.id, result.data, result.creator)
+        return result
 
     def save(self):
         session.add(self)

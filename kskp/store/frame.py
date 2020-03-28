@@ -183,7 +183,7 @@ class Frame(Datum):
         result = session.query(Frame).filter(Frame.uuid==uuid).one_or_none()
         if result is not None:
             result._label = new_label
-            result._modifier_id = modifier.id
+            result._modifier_id = modifier and modifier.id
             session.update(result)
 
     def delete(self):
