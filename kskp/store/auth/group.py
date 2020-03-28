@@ -57,6 +57,7 @@ class Group(BaseModel):
         if self._modifier_id is None:
             return None
         return User.find_by_id(self._modifier_id)
+
     @staticmethod
     def find_by_id(group_id):
         from kskp.store import ss as session

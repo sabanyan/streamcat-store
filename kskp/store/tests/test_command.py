@@ -41,15 +41,15 @@ class CommandTest(unittest.TestCase):
         INSERT INTO {schema}.test VALUES(1, 'a', 'b', '1900-12-31', '1900-12-31 01:01:01.123456', '1:10:00')
         """.format(schema=os.environ['KSKP_POSTGRESQL_SCHEMA_NAME'])
         engine.execute(insert_test)
-    
 
     @classmethod
     def tearDownClass(cls):
         # ライブラリフォルダを削除する
         from kskp.core import Datum
-        library_path = STORE_DIR / Library.load_root().path 
-        import shutil
-        shutil.rmtree(library_path.as_posix())
+        if Datum.find_root() is not None:
+            library_path = STORE_DIR / Library.load_root().path 
+            import shutil
+            shutil.rmtree(library_path.as_posix())
         # Sessionを閉じる
         session.close()
         # スキーマを破棄する

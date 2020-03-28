@@ -173,6 +173,8 @@ class Datum(BaseModel):
     @property
     def label(self):
         if self._label is None or self._label == '':
+            if self.data is None:
+                return ''
             return self.data.get('label') or ''
         else:
             return self._label
