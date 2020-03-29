@@ -13,35 +13,35 @@ from threading import Lock
 
 # lock = Lock()
 
-def create_user(email, password, name, creator):
-    """
-    新しいユーザを登録する
-    パスワードはハッシュ化する
-    """
-    from kskp.web.backend.api import auth
-    sql = '''
-    INSERT INTO users (email, password, name, creator) VALUES (?, ?, ?, ?)
-    '''
-    hashed_password = auth.get_password_hash(email, password)
-    query_db(sql, (email, hashed_password, name, creator))
+# def create_user(email, password, name, creator):
+#     """
+#     新しいユーザを登録する
+#     パスワードはハッシュ化する
+#     """
+#     from kskp.web.backend.api import auth
+#     sql = '''
+#     INSERT INTO users (email, password, name, creator) VALUES (?, ?, ?, ?)
+#     '''
+#     hashed_password = auth.get_password_hash(email, password)
+#     query_db(sql, (email, hashed_password, name, creator))
 
-def get_user_id_by_email(email):
-    """
-    指定したemailのユーザレコードを返す
-    """
-    sql = '''
-    SELECT id, name FROM users WHERE email = ?
-    '''
-    return query_db(sql, (email,), one=True)
-#
-def get_user_by_id(user_id):
-    """
-    指定したユーザIDのユーザレコードを返す
-    """
-    sql = '''
-    SELECT * FROM users WHERE id = ?
-    '''
-    return query_db(sql, (user_id,), one=True)
+# def get_user_id_by_email(email):
+#     """
+#     指定したemailのユーザレコードを返す
+#     """
+#     sql = '''
+#     SELECT id, name FROM users WHERE email = ?
+#     '''
+#     return query_db(sql, (email,), one=True)
+# #
+# def get_user_by_id(user_id):
+#     """
+#     指定したユーザIDのユーザレコードを返す
+#     """
+#     sql = '''
+#     SELECT * FROM users WHERE id = ?
+#     '''
+#     return query_db(sql, (user_id,), one=True)
 #
 # def get_all_users():
 #     """
@@ -353,41 +353,41 @@ def get_user_by_id(user_id):
 #         return {}
 #     return {node['id']:node for node in data['nodes']}
 #
-def query_db(query, args=(), one=False):
-    """
-    指定されたSQLを実行して、その結果を返却する
-    """
-    conn = get_connection()
-    conn.row_factory = sqlite3.Row
-    cur = conn.execute(query, args)
-    conn.commit()
-    rv = cur.fetchall()
-    cur.close()
-    return (rv[0] if rv else None) if one else rv
-#
-#
-def get_connection():
-    """
-    現在のappcontext内のコネクションを取得する
-    存在しなければDBを開いてから取得する
-    """
-    conn = getattr(g, '_database', None)
-    if conn is None:
-        is_first_use = not Path(os.environ['SQLITE_PATH']).exists()
+# def query_db(query, args=(), one=False):
+#     """
+#     指定されたSQLを実行して、その結果を返却する
+#     """
+#     conn = get_connection()
+#     conn.row_factory = sqlite3.Row
+#     cur = conn.execute(query, args)
+#     conn.commit()
+#     rv = cur.fetchall()
+#     cur.close()
+#     return (rv[0] if rv else None) if one else rv
+# #
+# #
+# def get_connection():
+#     """
+#     現在のappcontext内のコネクションを取得する
+#     存在しなければDBを開いてから取得する
+#     """
+#     conn = getattr(g, '_database', None)
+#     if conn is None:
+#         is_first_use = not Path(os.environ['SQLITE_PATH']).exists()
 
-        conn = g._database = sqlite3.connect(os.environ['SQLITE_PATH'])
+#         conn = g._database = sqlite3.connect(os.environ['SQLITE_PATH'])
 
-        if is_first_use:
-            init_db()
+#         if is_first_use:
+#             init_db()
 
-    return conn
-#
-def init_db():
-    conn = get_connection()
-    sql_path = Path(__file__).resolve().parent / 'sql/schema.sql'
-    with open(sql_path.as_posix(), mode='r') as f:
-        conn.cursor().executescript(f.read())
-    conn.commit()
+#     return conn
+# #
+# def init_db():
+#     conn = get_connection()
+#     sql_path = Path(__file__).resolve().parent / 'sql/schema.sql'
+#     with open(sql_path.as_posix(), mode='r') as f:
+#         conn.cursor().executescript(f.read())
+#     conn.commit()
 #
 #
 # @app.teardown_appcontext
