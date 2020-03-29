@@ -50,7 +50,21 @@ class Datum(BaseModel):
     created_at   = Column(TIMESTAMP, default=text('statement_timestamp()'))
     modified_at  = Column(TIMESTAMP, default=text('statement_timestamp()'), onupdate=text('statement_timestamp()'))
     # read権限(queryで追加した列の結果を格納する)
-    readable    = query_expression()
+    readable     = query_expression()
+
+    # from sqlalchemy import func, and_
+    # from sqlalchemy.orm import Query
+    # from kskp.store.auth import Auth, Group, UserGroup
+    # readable2 = column_property(
+    #     select([func.bool_and(Auth.read)]).\
+    #         where(
+    #             and_(
+    #                 Group.id==Auth.group_id,
+    #                 UserGroup.group_id==Group.id,
+    #                 UserGroup.user_id==session.user.id
+    #             )
+    #         )
+    # )
 
     # これを設定することで、session.query(Datum).all()でもサブクラスの型で結果を得ることができる
     __mapper_args__ = {
@@ -120,7 +134,7 @@ class Datum(BaseModel):
         from kskp.store import Mountable
 
         if not self.readable:
-            raise NotAuthorizedException(f'{session.user.name}は{self.label}の参照権限がありません')
+            raise NotAuthorizedException(f'{session.user.name}は{self.label}の参照権限がありません({self.readable})')
 
         if self._path == '':
             return None
@@ -182,7 +196,7 @@ class Datum(BaseModel):
     @property
     def data(self):
         if not self.readable:
-            raise NotAuthorizedException(f'{session.user.name}は{self.label}の参照権限がありません.')
+            raise NotAuthorizedException(f'{session.user.name}は{self.label}の参照権限がありません({self.readable}).')
         return self._data
 
     @data.setter
@@ -230,18 +244,6 @@ class Datum(BaseModel):
         if self.creator is None:
             return ''
         return self.creator.name
-
-    # @staticmethod
-    # def get_user_name_by_user_id(user_id):
-    #     """
-    #     FIXIT: usersテーブルへのアクセスはSQLAlchemyを用いる予定なので、以下のコードは暫定実装である
-    #     """
-    #     from ..store.model import get_user_by_id
-    #     user = get_user_by_id(user_id)
-    #     if user is None:
-    #         Exception('No user is found by designated user id')
-    #     else:
-    #         return user['name']
 
     def move(self, parent_uuid, modifier):
         """

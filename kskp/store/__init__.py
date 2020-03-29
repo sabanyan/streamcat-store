@@ -122,7 +122,7 @@ from .flows import FlowLink
 # from .auth import User, UserGroup, Group, Auth
 
 from ..depo.std.commands import CommandLink, CommandsPathLink, CommandsPathFileSource, RunfuncCommand
-from .model import *
+# from .model import *
 
 # テーブルを作成する
 BaseModel.metadata.create_all(bind=engine, checkfirst=True)
