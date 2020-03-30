@@ -13,7 +13,6 @@ class ChildrenGetter:
         # ChildrenGetter._synchronize(folder, folder.path.as_posix(), user)
         # フォルダ直下のデータを全てリストアップして返す
         # children = Datum.find_by_parent_uuid(folder.uuid)
-        # return [ChildrenGetter._convert_type(child) for child in children]
         return Datum.find_by_parent_uuid(folder.uuid)
 
     @staticmethod
@@ -28,7 +27,7 @@ class ChildrenGetter:
         for folder_child in folder_children:
             if not folder_child.path_exists:
                 # フォルダ直下のデータについて、pathに値が設定されており、かつ対応するファイルが存在しない場合は、DBエントリから削除する
-                ChildrenGetter._convert_type(folder_child).remove_reference_only()
+                folder_child.remove_reference_only()
 
         # ファイル --> ドキュメント/フォルダ
         folder_children_path = [child.path.as_posix() for child in folder_children]
@@ -53,20 +52,3 @@ class ChildrenGetter:
                         flow_data = f.read()
                     new_child = Flow(folder.uuid, os.path.basename(child_path), flow_data, user)
                     new_child.save()
-
-    @staticmethod
-    def _convert_type(datum):
-        if datum is None:
-            return None
-        elif datum.type == Datum.FOLDER_TYPE:
-            return Folder.convert_to_folder(datum)
-        elif datum.type == Datum.FRAME_TYPE:
-            return Frame.convert_to_frame(datum)
-        elif datum.type == Datum.FLOW_TYPE:
-            return Flow.convert_to_flow(datum)
-        elif datum.type == Datum.DATABASE_TYPE:
-            return Database.convert_to_database(datum)
-        elif datum.type == Datum.AWSS3_TYPE:
-            raise Exception('AWS S3 store can not store in same type.')
-        else:
-            raise Exception('Undefined type of datum(%s) is found!' % datum.type)

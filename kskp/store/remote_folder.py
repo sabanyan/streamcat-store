@@ -7,7 +7,6 @@ from time import sleep
 from pathlib import Path
 
 from kskp.core import Datum
-from . import ss as session
 from kskp.store import Folder, RemoteFolderConn, Mountable
 
 class RemoteFolder(Folder, Mountable):
@@ -16,11 +15,11 @@ class RemoteFolder(Folder, Mountable):
         'polymorphic_identity' : 'rfolder'
     }
 
-    def __init__(self, parent_uuid, label, remoteFolderConn, creator=None):
+    def __init__(self, session, parent_uuid, label, remoteFolderConn, creator=None):
         """
         コンストラクタ
         """
-        super().__init__(parent_uuid, label, creator)
+        super().__init__(session, parent_uuid, label, creator)
 
         # データタイプを設定する
         self.type = Datum.RFOLDER_TYPE
@@ -30,43 +29,30 @@ class RemoteFolder(Folder, Mountable):
             raise Exception('remoteFolderConn引数がNoneです')
         self.data = {'conn' : remoteFolderConn.to_json()}
 
-    @staticmethod
-    def find_by_uuid(uuid):
-        """
-        指定されたuuidを持つ共有フォルダを取得する
-        """
-        # UUID値の形式チェックをする
-        Datum.valid_uuid_or_raise(uuid)
-        remote_folder = session.query(RemoteFolder).filter(RemoteFolder.uuid==uuid)\
-                                                   .filter(RemoteFolder.type==RemoteFolder.RFOLDER_TYPE).one_or_none()
-        if remote_folder is None:
-            raise Exception('no remote folder is found by designated id.')
-        return remote_folder
+    # @staticmethod
+    # def find_by_uuid(uuid):
+    #     """
+    #     指定されたuuidを持つ共有フォルダを取得する
+    #     """
+    #     # UUID値の形式チェックをする
+    #     Datum.valid_uuid_or_raise(uuid)
+    #     remote_folder = session.query(RemoteFolder).filter(RemoteFolder.uuid==uuid)\
+    #                                                .filter(RemoteFolder.type==RemoteFolder.RFOLDER_TYPE).one_or_none()
+    #     if remote_folder is None:
+    #         raise Exception('no remote folder is found by designated id.')
+    #     return remote_folder
 
-    @staticmethod
-    def exists(uuid):
-        """
-        指定されたuuidを持つ共有フォルダが存在する場合はTrueを返す
-        """
-        # UUID値の形式チェックをする
-        if not Datum.is_valid_uuid(uuid):
-            return False
-        result = session.query(Datum).filter(Datum.uuid==uuid)\
-                                     .filter(Datum.type==Datum.RFOLDER_TYPE).count()
-        return result > 0
-
-    @staticmethod
-    def convert_to_remote_folder(datum):
-        parent_uuid = Datum.get_uuid_by_id(datum.parent_id)
-        remote_folder_conn = RemoteFolderConn.from_json(datum.data['conn'])
-        folder = RemoteFolder(parent_uuid, datum.label, remote_folder_conn, datum.creator)
-        folder.id = datum.id
-        folder.uuid = datum.uuid
-        folder._path = datum._path
-        folder.modifier = datum.modifier
-        folder.created_at = datum.created_at
-        folder.modified_at = datum.modified_at
-        return folder
+    # @staticmethod
+    # def exists(uuid):
+    #     """
+    #     指定されたuuidを持つ共有フォルダが存在する場合はTrueを返す
+    #     """
+    #     # UUID値の形式チェックをする
+    #     if not Datum.is_valid_uuid(uuid):
+    #         return False
+    #     result = session.query(Datum).filter(Datum.uuid==uuid)\
+    #                                  .filter(Datum.type==Datum.RFOLDER_TYPE).count()
+    #     return result > 0
 
     def save(self):
         """
@@ -81,22 +67,21 @@ class RemoteFolder(Folder, Mountable):
         self.mount(self._path)
         try:
             # Dataテーブルにレコードを新規追加する
-            session.add(self)
+            self.session.add(self)
         except Exception as e:
-            session.rollback()
+            self.session.rollback()
             raise e
         finally:
-            session.commit()
+            self.session.commit()
 
-    @staticmethod
-    def update_data(uuid, label, remoteFolderConn, modifier):
+    def update_data(self, label, remoteFolderConn, modifier):
         """
         共有フォルダのdata列を更新する
         """
         # UUID値の形式チェックをする
-        Datum.valid_uuid_or_raise(uuid)
+        Datum.valid_uuid_or_raise(self.uuid)
         # レコードを取得する
-        datum = session.query(Datum).filter(Datum.uuid==uuid)\
+        datum = self.session.query(Datum).filter(Datum.uuid==self.uuid)\
                                     .filter(Datum.type==Datum.RFOLDER_TYPE).one_or_none()
         if datum is None:
             raise Exception('no remote folder is found by designated id.')
@@ -110,24 +95,24 @@ class RemoteFolder(Folder, Mountable):
 
         try:
             # ディレクトリ名の移動によって他のDatumのpathが変更が必要であれば変更する
-            Datum.update_same_path(old_path, new_path, modifier)
-            Datum.update_include_path(old_path, new_path, modifier)
+            self._update_same_path(old_path, new_path, modifier)
+            self._update_include_path(old_path, new_path, modifier)
 
             # レコードを更新する
             data = {'conn' : remoteFolderConn.to_json()}
-            result = session.query(Datum).filter(Datum.uuid==uuid).one_or_none()
+            result = self.session.query(Datum).filter(Datum.uuid==self.uuid).one_or_none()
             if result is not None:
                 result._label = new_label
                 result._data = data
                 result._modifier_id = modifier.id
-                session.update(result)
+                self.session.update(result)
         except Exception as e:
-            session.rollback()
+            self.session.rollback()
             raise e
         finally:
-            session.commit()
+            self.session.commit()
 
-        return RemoteFolder.convert_to_remote_folder(datum)
+        return datum
 
     def delete(self):
         """
@@ -147,10 +132,10 @@ class RemoteFolder(Folder, Mountable):
             # ディレクトリを削除する
             self._remove_dir()
         except Exception as e:
-            session.rollback()
+            self.session.rollback()
             raise e
         finally:
-            session.commit()
+            self.session.commit()
 
     def valid_or_raise(self):
         """

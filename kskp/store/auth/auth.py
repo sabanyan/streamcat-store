@@ -29,10 +29,13 @@ class Auth(BaseModel):
     created_at   = Column(TIMESTAMP, default=text('statement_timestamp()'))
     modified_at  = Column(TIMESTAMP, default=text('statement_timestamp()'), onupdate=text('statement_timestamp()'))
 
-    def __init__(self, group_id, datum_id, read=None, write=None, exec=None, creator=None):
+    def __init__(self, session, group_id, datum_id, read=None, write=None, exec=None, creator=None):
         """
         コンストラクタ
         """
+        # SQLAlchemy Session
+        self.session = session
+
         self.group_id = group_id
         self.datum_id = datum_id
         self.read = read
@@ -46,52 +49,37 @@ class Auth(BaseModel):
 
     @property
     def creator(self):
-        from kskp.store.auth import User
+        from kskp.store.session import UserFactory
         if self._creator_id is None:
             return None
-        return User.find_by_id(self._creator_id)
+        return UserFactory(self.session).find_by_id(self._creator_id)
 
     @property
     def modifier(self):
-        from kskp.store.auth import User
+        from kskp.store.session import UserFactory
         if self._modifier_id is None:
             return None
-        return User.find_by_id(self._modifier_id)
-    
-    @staticmethod
-    def find_by_id(group_id, datum_id):
-        from kskp.store import ss as session
-        # SQLAlchemyのidentity mapにキャッシュされていればそれを返す
-        authz = session.query(Auth).get((group_id, datum_id))
-        return authz
+        return UserFactory(self.session).find_by_id(self._modifier_id)
         
     def save(self):
         """
         Authを保存する
         """
         # Authテーブルにレコードを新規追加する
-        from kskp.store import ss as session
-        session.add(self)
-        session.commit()
+        self.session.add(self)
+        self.session.commit()
 
     def update(self, read, write, exec, modifier=modifier):
-        from kskp.store import ss as session
         try:
             # レコードを更新する
             self.read = read
             self.write = write
             self.exec = exec
             self._modifier_id = modifier and modifier.id
-            session.update(self)
+            self.session.update(self)
         except Exception as e:
-            session.rollback()
+            self.session.rollback()
             raise e
         finally:
-            session.commit()
+            self.session.commit()
 
-    @staticmethod
-    def exists(group_id, datum_id):
-        from kskp.store import ss as session
-        count = session.query(Auth).filter(Auth.group_id==group_id)\
-                                   .filter(Auth.datum_id==datum_id).count()
-        return count > 0

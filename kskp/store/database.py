@@ -1,7 +1,5 @@
-from . import ss as session
-
 from kskp.core import Datum
-from kskp.store import Store, Flow, DatabaseConn, STORE_DIR
+from kskp.store import Store, DatabaseConn, STORE_DIR
 
 class Database(Store):
     """
@@ -12,11 +10,11 @@ class Database(Store):
         'polymorphic_identity' : 'database'
     }
 
-    def __init__(self, parent_uuid, label, database_conn, creator=None):
+    def __init__(self, session, parent_uuid, label, database_conn, creator=None):
         """
         コンストラクタ
         """
-        super().__init__(parent_uuid, Datum.DATABASE_TYPE, label, creator)
+        super().__init__(session, parent_uuid, Datum.DATABASE_TYPE, label, creator)
  
         # 接続情報はデータベースに保存する
         self._path = ''
@@ -26,42 +24,28 @@ class Database(Store):
             raise Exception('database_conn引数がNoneです')
         self.data = {'conn' : database_conn.to_json()}
 
-    @staticmethod
-    def find_by_uuid(uuid):
-        """
-        指定されたuuidを持つDatabaseを取得する
-        """
-        database = session.query(Database).filter(Database.uuid==uuid)\
-                                          .filter(Database.type==Database.DATABASE_TYPE).one_or_none()
-        if database is None:
-            raise Exception(f'no database is found by designated id ({uuid}).')
-        return database
+    # @staticmethod
+    # def find_by_uuid(uuid):
+    #     """
+    #     指定されたuuidを持つDatabaseを取得する
+    #     """
+    #     database = session.query(Database).filter(Database.uuid==uuid)\
+    #                                       .filter(Database.type==Database.DATABASE_TYPE).one_or_none()
+    #     if database is None:
+    #         raise Exception(f'no database is found by designated id ({uuid}).')
+    #     return database
 
-    @staticmethod
-    def exists(uuid):
-        """
-        指定されたuuidを持つDatabaseが存在する場合はTrueを返す
-        """
-        # UUID値の形式チェックをする
-        if not Datum.is_valid_uuid(uuid):
-            return False
-        result = session.query(Datum).filter(Datum.uuid==uuid)\
-                                     .filter(Datum.type==Datum.DATABASE_TYPE).count()
-        return result > 0
-
-    @staticmethod
-    def convert_to_database(datum):
-        # parent_uuid = Datum.get_uuid_by_id(datum.parent_id)
-        # database_conn = DatabaseConn.from_json(datum.data['conn'])
-        # database = Database(parent_uuid, datum.label, database_conn, datum.creator)
-        # database.id = datum.id
-        # database.uuid = datum.uuid
-        # database._path = datum._path
-        # database.modifier = datum.modifier
-        # database.created_at = datum.created_at
-        # database.modified_at = datum.modified_at
-        # return database
-        return Database.find_by_uuid(datum.uuid)
+    # @staticmethod
+    # def exists(uuid):
+    #     """
+    #     指定されたuuidを持つDatabaseが存在する場合はTrueを返す
+    #     """
+    #     # UUID値の形式チェックをする
+    #     if not Datum.is_valid_uuid(uuid):
+    #         return False
+    #     result = session.query(Datum).filter(Datum.uuid==uuid)\
+    #                                  .filter(Datum.type==Datum.DATABASE_TYPE).count()
+    #     return result > 0
 
     def save(self):
         """
@@ -72,22 +56,19 @@ class Database(Store):
             raise Exception('You can not add root folder. A root already exists.')
         try:
             # Dataテーブルにレコードを新規追加する
-            session.add(self)
+            self.session.add(self)
         except Exception as e:
-            session.rollback()
+            self.session.rollback()
             raise e
         finally:
-            session.commit()
+            self.session.commit()
 
-    @staticmethod
-    def update_data(uuid, label, database_conn, modifier):
+    def update_data(self, label, database_conn, modifier):
         """
         Databaseのdata列を更新する
         """
-        # UUID値の形式チェックをする
-        Datum.valid_uuid_or_raise(uuid)
         # レコードを取得する
-        datum = session.query(Datum).filter(Datum.uuid==uuid)\
+        datum = self.session.query(Datum).filter(Datum.uuid==self.uuid)\
                                     .filter(Datum.type==Datum.DATABASE_TYPE).one_or_none()
         if datum is None:
             raise Exception('no database is found by designated id.')
@@ -98,19 +79,19 @@ class Database(Store):
         try:
             # レコードを更新する
             data = {'conn' : database_conn.to_json()}
-            result = session.query(Datum).filter(Datum.uuid==uuid).one_or_none()
+            result = self.session.query(Datum).filter(Datum.uuid==self.uuid).one_or_none()
             if result is not None:
                 result._label = new_label
                 result._data = data
                 result._modifier_id = modifier.id
-                session.update(result)
+                self.session.update(result)
         except Exception as e:
-            session.rollback()
+            self.session.rollback()
             raise e
         finally:
-            session.commit()
+            self.session.commit()
 
-        return Database.convert_to_database(datum)
+        return datum
 
     def move(self, parent_uuid, modifier):
         """
@@ -120,8 +101,9 @@ class Database(Store):
         Datum.valid_uuid_or_raise(parent_uuid)
 
         try:
-            from kskp.store import Folder
-            to_folder = Folder.find_by_uuid(parent_uuid)
+            from kskp.store.session import DatumFactory
+            to_folder = DatumFactory(self.session).find_by_uuid(parent_uuid)
+
         except Exception as e:
             raise Exception('移動先の指定はフォルダのUUIDしか許可していません')
 
@@ -130,13 +112,16 @@ class Database(Store):
 
         try:
             # レコードを更新する
-            session.query(Datum).filter(Datum.id==self.id).update({'parent_id'   :to_folder.id
-                                                                  ,'_modifier_id':modifier.id})
+            # self.session.query(Datum).filter(Datum.id==self.id).update({'parent_id'   :to_folder.id
+            #                                                       ,'_modifier_id':modifier.id})
+            self.parent_id = to_folder.id
+            self._modifier_id = modifier.id
+            self.session.update(self)
         except Exception as e:
-            session.rollback()
+            self.session.rollback()
             raise e
         finally:
-            session.commit()
+            self.session.commit()
 
         return self
         
@@ -145,19 +130,20 @@ class Database(Store):
         Databaseを削除する
         """
         # 削除しようとするDatabaseが、DBに格納されているフローで使用されている場合は例外を送出する
-        using_flow_uuids = Datum.get_flow_uuids_using_other_datum(self.uuid)
+        using_flow_uuids = self.get_flow_uuids_using_me()
         if len(using_flow_uuids) > 0:
-            using_flow_label= Flow.find_by_uuid(using_flow_uuids[0]).label
+            from kskp.store.session import DatumFactory
+            using_flow_label = DatumFactory(self.session).find_by_uuid(using_flow_uuids[0]).label
             raise Exception('このStoreはローダ・セーバ(%s)で使用しているため削除できません' % using_flow_label)
 
         try:
             # Databaseレコードを削除する
-            session.delete(self)
+            self.session.delete(self)
         except Exception as e:
-            session.rollback()
+            self.session.rollback()
             raise e
         finally:
-            session.commit()
+            self.session.commit()
 
     def remove_reference_only(self):
         """

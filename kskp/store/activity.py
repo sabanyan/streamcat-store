@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta, timezone
 
-from . import ss as session
 from kskp.core import Datum
 from kskp.store import Frame, Cache, DataSource
 
@@ -15,11 +14,11 @@ class Activity(Datum):
 
     TYPE = 'activity'
 
-    def __init__(self, parent_uuid, label, flow_uuid, creator=None):
+    def __init__(self, session, parent_uuid, label, flow_uuid, creator=None):
         """
         コンストラクタ
         """
-        super().__init__(parent_uuid, Activity.TYPE, label, creator)
+        super().__init__(session, parent_uuid, Activity.TYPE, label, creator)
 
         # Activityはファイルに保存せず、データベースに保存する
         self._path = ''
@@ -62,21 +61,21 @@ class Activity(Datum):
                 elapsed_time_str = str(round(elapsed_time / 60, 2))
                 new_label = new_label + ' 全体処理時間' + elapsed_time_str + '分'
 
-            if type(datum) is Frame and Frame.exists(datum.uuid):
+            if type(datum) is Frame:
                 # 
                 # Frameの場合
                 # 
                 # 対応ファイルの文字コードと改行コードを推測してその結果を登録する
                 datum.add_entry_from_path(datum.path)
-                Frame.update_label_only(datum.uuid, new_label, None)
-            elif type(datum) is Cache and Cache.exists(datum.uuid):
+                datum.update_label_only(new_label, None)
+            elif type(datum) is Cache:
                 # 
                 # Cacheの場合
                 # 
                 # 対応ファイルの文字コードと改行コードを推測してその結果を登録する
                 datum.add_entry_from_path(datum.path)
             elif type(datum) is DataSource:
-                DataSource.update_data(datum.uuid, new_label, datum.flow_data, None)
+                datum.update_data(new_label, datum.flow_data, None)
 
 
 

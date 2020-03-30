@@ -85,15 +85,14 @@ BaseModel = declarative_base()
 from sqlalchemy.orm import sessionmaker, scoped_session
 Session = scoped_session(sessionmaker(bind=engine, expire_on_commit=False, autoflush=False))
 # 変数名がsessionだとwebでimportした時にflaskのsessionと被るので、一応ssにしている
+ss = Session()
 
 # 管理者グループと管理者ユーザを作成する
 # (とりあえず、権限管理のないsessionで作成する)
-ss = Session()
+from kskp.store.session import UnAuthzSessoin
 from kskp.store.auth import add_admin_user_and_group
-add_admin_user_and_group()
-
-from kskp.store.auth.authz_session import AuthzSession
-ss = AuthzSession(Session, user=None)
+with UnAuthzSessoin() as db_session:
+    add_admin_user_and_group(db_session)
 
 from kskp.core import Datum, Port, Command
 
@@ -126,17 +125,6 @@ from ..depo.std.commands import CommandLink, CommandsPathLink, CommandsPathFileS
 
 # テーブルを作成する
 BaseModel.metadata.create_all(bind=engine, checkfirst=True)
-
-# label列の新規追加(後方互換)
-sql1 = """
-ALTER TABLE data 
-ADD COLUMN label VARCHAR;
-"""
-# try:
-#     engine.execute(sql1)
-# except Exception as e:
-#     pass
-
 
 from sqlalchemy import event, DDL
 

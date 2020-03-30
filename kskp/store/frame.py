@@ -1,9 +1,7 @@
 import os
 import json
 from pathlib import Path
-from datetime import datetime, timedelta, timezone
 
-from . import ss as session
 from kskp.core import Datum
 
 class Frame(Datum):
@@ -20,12 +18,12 @@ class Frame(Datum):
     # 改行コード変換テーブル
     NEWLINE_CONV_TABLE = {'\n':'LF', '\r\n':'CR+LF', '\r':'CR'}
 
-    def __init__(self, parent_uuid, label, stream, creator=None):
+    def __init__(self, session, parent_uuid, label, stream, creator=None):
         """
         コンストラクタ
         stream : Frameデータのファイルストリームを指定する
         """
-        super().__init__(parent_uuid, Datum.FRAME_TYPE, label, creator)
+        super().__init__(session, parent_uuid, Datum.FRAME_TYPE, label, creator)
 
         # ファイルストリームの文字コードを推測する
         if stream is not None and hasattr(stream, 'seek'):
@@ -41,46 +39,32 @@ class Frame(Datum):
         # data列の値を作成する
         self.data = {'encoding':encoding, 'newline':newline}
 
-    @staticmethod
-    def find_by_uuid(uuid):
-        """
-        指定されたuuidを持つFrameを取得する
-        """
-        # UUID値の形式チェックをする
-        Datum.valid_uuid_or_raise(uuid)
-        frame = session.query(Frame).filter(Frame.uuid==uuid)\
-                                    .filter(Frame.type==Frame.FRAME_TYPE).one_or_none()
-        if frame is None:
-            # FIXIT : fetch_frame()の現在の実装ではデータの無い場合はエラーにしていない為
-            # raise Exception('no frame is found by designated id.')
-            return None
-        return frame
+    # @staticmethod
+    # def find_by_uuid(uuid):
+    #     """
+    #     指定されたuuidを持つFrameを取得する
+    #     """
+    #     # UUID値の形式チェックをする
+    #     Datum.valid_uuid_or_raise(uuid)
+    #     frame = self.session.query(Frame).filter(Frame.uuid==uuid)\
+    #                                 .filter(Frame.type==Frame.FRAME_TYPE).one_or_none()
+    #     if frame is None:
+    #         # FIXIT : fetch_frame()の現在の実装ではデータの無い場合はエラーにしていない為
+    #         # raise Exception('no frame is found by designated id.')
+    #         return None
+    #     return frame
 
-    @staticmethod
-    def exists(uuid):
-        """
-        指定されたuuidを持つFrameが存在する場合はTrueを返す
-        """
-        # UUID値の形式チェックをする
-        if not Datum.is_valid_uuid(uuid):
-            return False
-        result = session.query(Datum).filter(Datum.uuid==uuid)\
-                                     .filter(Datum.type==Datum.FRAME_TYPE).count()
-        return result > 0
-
-    @staticmethod
-    def convert_to_frame(datum):
-        # parent_uuid = Datum.get_uuid_by_id(datum.parent_id)
-        # frame = Frame(parent_uuid, datum.label, None, datum.creator)
-        # frame.id = datum.id
-        # frame.uuid = datum.uuid
-        # frame.data = datum.data
-        # frame._path = datum._path
-        # frame.modifier = datum.modifier
-        # frame.created_at = datum.created_at
-        # frame.modified_at = datum.modified_at
-        # return frame
-        return Frame.find_by_uuid(datum.uuid)
+    # @staticmethod
+    # def exists(uuid):
+    #     """
+    #     指定されたuuidを持つFrameが存在する場合はTrueを返す
+    #     """
+    #     # UUID値の形式チェックをする
+    #     if not Datum.is_valid_uuid(uuid):
+    #         return False
+    #     result = self.session.query(Datum).filter(Datum.uuid==uuid)\
+    #                                  .filter(Datum.type==Datum.FRAME_TYPE).count()
+    #     return result > 0
 
     def save(self):
         """
@@ -94,13 +78,13 @@ class Frame(Datum):
         self._path = path
         try:
             # Dataテーブルにレコードを新規追加する
-            session.add(self)
+            self.session.add(self)
         except Exception as e:
-            session.rollback()
+            self.session.rollback()
             raise e
         finally:
             # 親フォルダのロックを解除する
-            session.commit()
+            self.session.commit()
 
     def add_entry_from_path(self, file_path):
         """
@@ -121,20 +105,19 @@ class Frame(Datum):
 
         try:
             # Dataテーブルにレコードを新規追加する
-            session.add(self)
+            self.session.add(self)
         except Exception as e:
-            session.rollback()
+            self.session.rollback()
             raise e
         finally:
-            session.commit()
+            self.session.commit()
 
-    @staticmethod
-    def update_data(uuid, label, modifier):
+    def update_data(self, label, modifier):
         """
         Frameのdata列を更新する
         """
         # レコードを取得する
-        frame = session.query(Frame).filter(Frame.uuid==uuid)\
+        frame = self.session.query(Frame).filter(Frame.uuid==self.uuid)\
                                     .filter(Frame.type==Frame.FRAME_TYPE).one_or_none()
         if frame is None:
             raise Exception('no frame is found by designated id.')
@@ -149,19 +132,18 @@ class Frame(Datum):
 
         try:
             # 同じファイルに対応するドキュメントのpath列を、ファイル名の移動に合わせて変更する
-            Datum.update_same_path(old_path, new_path, modifier)
+            self._update_same_path(old_path, new_path, modifier)
             # labelとdata列を更新する
-            Frame._update_label_imp(uuid, new_label, modifier)
+            self._update_label_imp(new_label, modifier)
         except Exception as e:
-            session.rollback()
+            self.session.rollback()
             raise e
         finally:
-            session.commit()
+            self.session.commit()
 
         return frame
 
-    @staticmethod
-    def update_label_only(uuid, label, modifier):
+    def update_label_only(self, label, modifier):
         """
         Frameのlabel列を更新する
         (path及び対応ファイル名は変更しない)
@@ -170,21 +152,20 @@ class Frame(Datum):
         new_label = Datum.escape_label(label)
 
         try:
-            Frame._update_label_imp(uuid, new_label, modifier)
+            self._update_label_imp(new_label, modifier)
         except Exception as e:
-            session.rollback()
+            self.session.rollback()
             raise e
         finally:
-            session.commit()
+            self.session.commit()
 
-    @staticmethod
-    def _update_label_imp(uuid, new_label, modifier):
+    def _update_label_imp(self, new_label, modifier):
         # label列を更新する
-        result = session.query(Frame).filter(Frame.uuid==uuid).one_or_none()
+        result = self.session.query(Frame).filter(Frame.uuid==self.uuid).one_or_none()
         if result is not None:
             result._label = new_label
             result._modifier_id = modifier and modifier.id
-            session.update(result)
+            self.session.update(result)
 
     def delete(self):
         """
@@ -196,7 +177,7 @@ class Frame(Datum):
         # 　　いつまで経っても削除できない
         # 2. frame削除APIでもframeを使っているかいないかをチェックしているので、こっちでしなくてもとりあえず大丈夫
 
-        # using_flow_uuids = Datum.get_flow_uuids_using_other_datum(self.uuid)
+        # using_flow_uuids = self.get_flow_uuids_using_me()
         # if len(using_flow_uuids) > 0:
         #     from kskp.store import Flow
         #     using_flow_label= Flow.find_by_uuid(using_flow_uuids[0]).label
@@ -204,14 +185,14 @@ class Frame(Datum):
 
         try:
             # フレームレコードを削除する
-            session.delete(self)
+            self.session.delete(self)
             # ファイルを削除する
             self._remove_file()
         except Exception as e:
-            session.rollback()
+            self.session.rollback()
             raise e
         finally:
-            session.commit()
+            self.session.commit()
 
     def remove_reference_only(self):
         """
@@ -220,12 +201,12 @@ class Frame(Datum):
         """
         try:
             # フレームレコードを削除する
-            session.delete(self)
+            self.session.delete(self)
         except Exception as e:
-            session.rollback()
+            self.session.rollback()
             raise e
         finally:
-            session.commit()
+            self.session.commit()
 
     @property
     def file_size(self):
@@ -293,7 +274,7 @@ class Frame(Datum):
             if not os.path.exists(Datum._to_abs_path(self._path)):
                 return
             # 自分以外で同じファイルを使用しているFrameがあれば削除しない
-            if Frame._frame_path_exists(self._path, except_id=self.id):
+            if self._frame_path_exists(self._path, except_id=self.id):
                 return
             if not os.path.isfile(Datum._to_abs_path(self._path)):
                 raise Exception('Can not delete %s, because it is not reguler file.' % self._path)
@@ -311,12 +292,11 @@ class Frame(Datum):
                 if buff is None or len(buff)==0:
                     break
 
-    @staticmethod
-    def _frame_path_exists(path, except_id):
+    def _frame_path_exists(self, path, except_id):
         rel_path = Datum._to_rel_path(path)
         abs_path = Datum._to_abs_path(path)
 
-        result = session.query(Datum._path).filter(Datum._path.in_([rel_path, abs_path]))\
+        result = self.session.query(Datum._path).filter(Datum._path.in_([rel_path, abs_path]))\
                                            .filter(Datum.type == Datum.FRAME_TYPE)\
                                            .filter(Datum.id != except_id).count()
         return result > 0

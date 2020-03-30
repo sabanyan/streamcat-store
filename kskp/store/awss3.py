@@ -7,7 +7,6 @@ from time import sleep
 from pathlib import Path
 
 from kskp.core import Datum
-from . import ss as session
 from kskp.store import Folder, Mountable
 
 class AwsS3(Folder, Mountable):
@@ -16,12 +15,12 @@ class AwsS3(Folder, Mountable):
         'polymorphic_identity' : 'awss3'
     }
 
-    def __init__(self, parent_uuid, label, bucket_name, creator=None):
+    def __init__(self, session, parent_uuid, label, bucket_name, creator=None):
         """
         コンストラクタ
         bucket_name : AWS S3のバケットネームを指定する
         """
-        super().__init__(parent_uuid, label, creator)
+        super().__init__(session, parent_uuid, label, creator)
 
         # データタイプを設定する
         self.type = Datum.AWSS3_TYPE
@@ -32,43 +31,30 @@ class AwsS3(Folder, Mountable):
         # S3のオブジェクトを用意する
         # self._s3 = boto3.resource('s3')
 
-    @staticmethod
-    def find_by_uuid(uuid):
-        """
-        指定されたuuidを持つバケットを取得する
-        """
-        # UUID値の形式チェックをする
-        Datum.valid_uuid_or_raise(uuid)
-        awss3 = session.query(AwsS3).filter(AwsS3.uuid==uuid)\
-                                    .filter(AwsS3.type==AwsS3.AWSS3_TYPE).one_or_none()
-        if awss3 is None:
-            raise Exception('no bucket is found by designated id.')
-        return awss3
+    # @staticmethod
+    # def find_by_uuid(uuid):
+    #     """
+    #     指定されたuuidを持つバケットを取得する
+    #     """
+    #     # UUID値の形式チェックをする
+    #     Datum.valid_uuid_or_raise(uuid)
+    #     awss3 = session.query(AwsS3).filter(AwsS3.uuid==uuid)\
+    #                                 .filter(AwsS3.type==AwsS3.AWSS3_TYPE).one_or_none()
+    #     if awss3 is None:
+    #         raise Exception('no bucket is found by designated id.')
+    #     return awss3
 
-    @staticmethod
-    def exists(uuid):
-        """
-        指定されたuuidを持つバケットが存在する場合はTrueを返す
-        """
-        # UUID値の形式チェックをする
-        if not Datum.is_valid_uuid(uuid):
-            return False
-        result = session.query(Datum).filter(Datum.uuid==uuid)\
-                                     .filter(Datum.type==Datum.AWSS3_TYPE).count()
-        return result > 0
-
-    @staticmethod
-    def convert_to_awss3(datum):
-        parent_uuid = Datum.get_uuid_by_id(datum.parent_id)
-        bucket_name = datum.data['bucket']
-        awss3 = AwsS3(parent_uuid, datum.label, bucket_name, datum.creator)
-        awss3.id = datum.id
-        awss3.uuid = datum.uuid
-        awss3._path = datum._path
-        awss3.modifier = datum.modifier
-        awss3.created_at = datum.created_at
-        awss3.modified_at = datum.modified_at
-        return awss3
+    # @staticmethod
+    # def exists(uuid):
+    #     """
+    #     指定されたuuidを持つバケットが存在する場合はTrueを返す
+    #     """
+    #     # UUID値の形式チェックをする
+    #     if not Datum.is_valid_uuid(uuid):
+    #         return False
+    #     result = session.query(Datum).filter(Datum.uuid==uuid)\
+    #                                  .filter(Datum.type==Datum.AWSS3_TYPE).count()
+    #     return result > 0
 
     def save(self):
         """
@@ -83,22 +69,19 @@ class AwsS3(Folder, Mountable):
         self.mount(self._path)
         try:
             # Dataテーブルにレコードを新規追加する
-            session.add(self)
+            self.session.add(self)
         except Exception as e:
-            session.rollback()
+            self.session.rollback()
             raise e
         finally:
-            session.commit()
+            self.session.commit()
 
-    @staticmethod
-    def update_data(uuid, label, bucket_name, modifier):
+    def update_data(self, label, bucket_name, modifier):
         """
         バケットのdata列を更新する
         """
-        # UUID値の形式チェックをする
-        Datum.valid_uuid_or_raise(uuid)
         # レコードを取得する
-        datum = session.query(Datum).filter(Datum.uuid==uuid)\
+        datum = self.session.query(Datum).filter(Datum.uuid==self.uuid)\
                                     .filter(Datum.type==Datum.AWSS3_TYPE).one_or_none()
         if datum is None:
             raise Exception('no bucket is found by designated id.')
@@ -112,24 +95,24 @@ class AwsS3(Folder, Mountable):
 
         try:
             # ディレクトリ名の移動によって他のDatumのpathが変更が必要であれば変更する
-            Datum.update_same_path(old_path, new_path, modifier)
-            Datum.update_include_path(old_path, new_path, modifier)
+            self._update_same_path(old_path, new_path, modifier)
+            self._update_include_path(old_path, new_path, modifier)
 
             # レコードを更新する
             data = {'bucket' : bucket_name}
-            result = session.query(Datum).filter(Datum.uuid==uuid).one_or_none()
+            result = self.session.query(Datum).filter(Datum.uuid==self.uuid).one_or_none()
             if result is not None:
                 result._label = new_label
                 result._data = data
                 result._modifier_id = modifier.id
-                session.update(result)
+                self.session.update(result)
         except Exception as e:
-            session.rollback()
+            self.session.rollback()
             raise e
         finally:
-            session.commit()
+            self.session.commit()
 
-        return AwsS3.convert_to_awss3(datum)
+        return datum
 
     def delete(self):
         """
@@ -153,10 +136,10 @@ class AwsS3(Folder, Mountable):
             # ディレクトリを削除する
             self._remove_dir()
         except Exception as e:
-            session.rollback()
+            self.session.rollback()
             raise e
         finally:
-            session.commit()
+            self.session.commit()
 
     @property
     def bucket_name(self):

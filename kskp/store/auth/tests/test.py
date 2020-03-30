@@ -22,6 +22,7 @@ class AuthTest(unittest.TestCase):
         admin_user.save()
         admin_user.delete()
 
+    @unittest.skip
     def test_query(self):
         from kskp.store import Library
         root = Library.load_root(1)
@@ -43,9 +44,23 @@ class AuthTest(unittest.TestCase):
         print(rets)
         print('readable:', rets[0].readable)
 
-
+    @unittest.skip
     def test_w_query(self):
         from sqlalchemy.exc import InvalidRequestError
 
         with self.assertRaises(InvalidRequestError):
             session.query(Datum).filter(Datum.id == 1).delete()
+
+    def test_readable(self):
+        from kskp.store import Library
+        root = Library.load_root(1)
+
+        from kskp.store import Frame
+
+        user1 = User('foo@bar.com', 'passwd', 'foo')
+        user1.save()
+
+
+        session.user = user1
+
+        session.query(Frame).filter(Frame.uuid==)

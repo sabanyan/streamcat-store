@@ -3,7 +3,6 @@ import subprocess
 from time import sleep
 from pathlib import Path
 
-from . import ss as session
 from kskp.core import Datum
 
 class Mountable():
@@ -81,13 +80,13 @@ class Mountable():
                       AND to_tsvector(D.data) @@ to_tsquery(cast(R.uuid AS VARCHAR)))
         """.format(id=self_id)
         try:
-            results = session.execute(sql)
+            results = self.session.execute(sql)
             return [result[0] for result in results]
         except Exception as e:
-            session.rollback()
+            self.session.rollback()
             raise e
         finally:
-            session.commit()
+            self.session.commit()
 
     @staticmethod
     def _exec_command(command_line):
@@ -105,7 +104,7 @@ class Mountable():
         return False
 
     @staticmethod
-    def remount(id):
+    def remount(session, id):
         """
         ルートデータストアから指定されたidのDatumまでの経路において、
         マウントされていないマウントポイントがあればマウントし直す

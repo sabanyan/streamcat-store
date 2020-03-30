@@ -29,10 +29,13 @@ class Group(BaseModel):
     EVERYONE_GROUP_UUID  = 'ee16239b-5ffd-447c-9d05-411906ad7364'
     EVERYONE_GROUP_LABEL = 'EVERYONE'
 
-    def __init__(self, name, creator=None):
+    def __init__(self, session, name, creator=None):
         """
         コンストラクタ
         """
+        # SQLAlchemy Session
+        self.session = session
+
         # UUIDを採番する
         self.uuid = str(uuid.uuid4())
 
@@ -46,104 +49,52 @@ class Group(BaseModel):
 
     @property
     def creator(self):
-        from kskp.store.auth import User
+        from kskp.store.session import UserFactory
         if self._creator_id is None:
             return None
-        return User.find_by_id(self._creator_id)
+        return UserFactory(self.session).find_by_id(self._creator_id)
 
     @property
     def modifier(self):
-        from kskp.store.auth import User
+        from kskp.store.session import UserFactory
         if self._modifier_id is None:
             return None
-        return User.find_by_id(self._modifier_id)
-
-    @staticmethod
-    def find_by_id(group_id):
-        from kskp.store import ss as session
-        return session.query(Group).filter(Group.id == group_id).one_or_none()
-
-    @staticmethod
-    def find_by_uuid(uuid):
-        from kskp.store import ss as session
-        return session.query(Group).filter(Group.uuid == uuid).one_or_none()
-
-    @staticmethod
-    def load_admin_group():
-        from kskp.store import ss as session
-        if Group.exists(Group.ADMIN_GROUP_UUID):
-            admin_group = Group.find_by_uuid(Group.ADMIN_GROUP_UUID)
-        else:
-            admin_group = Group(Group.ADMIN_GROUP_LABEL)
-            # コンストラクタで付番したUUIDを捨てて、特定用途のUUIDを格納する
-            admin_group.uuid = Group.ADMIN_GROUP_UUID
-            admin_group.save()
-        return admin_group
-
-    @staticmethod
-    def load_everyone_group():
-        from kskp.store import ss as session
-        if Group.exists(Group.EVERYONE_GROUP_UUID):
-            everyone_group = Group.find_by_uuid(Group.EVERYONE_GROUP_UUID)
-        else:
-            everyone_group = Group(Group.EVERYONE_GROUP_LABEL)
-            # コンストラクタで付番したUUIDを捨てて、特定用途のUUIDを格納する
-            everyone_group.uuid = Group.EVERYONE_GROUP_UUID
-            everyone_group.save()
-        return everyone_group
-
-    @staticmethod
-    def exists(uuid):
-        from kskp.store import ss as session
-        count = session.query(Group).filter(Group.uuid==uuid).count()
-        return count > 0
-
-    @staticmethod
-    def all():
-        """
-        全件取得する
-        """
-        from kskp.store import ss as session
-        return session.query(Group).all()
+        return UserFactory(self.session).find_by_id(self._modifier_id)
 
     def save(self):
         """
         Groupを保存する
         """
-        from kskp.store import ss as session
         # Groupsテーブルにレコードを新規追加する
-        session.add(self)
-        session.commit()
+        self.session.add(self)
+        self.session.commit()
 
     def update_name(self, new_name):
         pass
 
     def delete(self):
-        from kskp.store import ss as session
         from .auth import Auth
 
         # グループに一人以上のユーザが所属している場合は例外を送出する
-        count = session.query(UserGroup).filter(UserGroup.group_id == self.id).count()
+        count = self.session.query(UserGroup).filter(UserGroup.group_id == self.id).count()
         if count > 0:
             raise Exception('Can not delete the group that has user(s).')
         # 削除によってどのグループからも所有されなくなるデータがある場合は例外を送出する
-        count = session.query(Auth).filter(Auth.group_id == self.id)\
+        count = self.session.query(Auth).filter(Auth.group_id == self.id)\
                                     .filter(Auth.own == 1).count()
         # 削除グループに対する権限情報をauthsテーブルから全て削除する
 
         # グループを削除する
         # sys.__stderr__.write(f"self.id: {self.id}\n")
-        session.delete(self)
-        session.commit()
+        self.session.delete(self)
+        self.session.commit()
 
     def is_joined_user(self, user):
-        from kskp.store import ss as session
-        count = session.query(UserGroup).filter(UserGroup.group_id==self.id).filter(UserGroup.user_id==user.id).count()
+        count = self.session.query(UserGroup).filter(UserGroup.group_id==self.id).filter(UserGroup.user_id==user.id).count()
         return count > 0
 
     def has_joined_user(self):
-        from kskp.store import ss as session
-        count = session.query(UserGroup).filter(UserGroup.group_id==self.id).count()
+        count = self.session.query(UserGroup).filter(UserGroup.group_id==self.id).count()
         return count > 0
 
     def join_user(self, user, creator=None):
@@ -151,7 +102,7 @@ class Group(BaseModel):
         グループにユーザを所属させる
         """
         if not self.is_joined_user(user):
-            user_group = UserGroup(user.id, self.id, creator=creator)
+            user_group = UserGroup(self.session, user.id, self.id, creator=creator)
             user_group.save()
     
     def leave_user(self, user):
@@ -159,17 +110,19 @@ class Group(BaseModel):
         グループからユーザを脱退させる
         """
         if self.is_joined_user(user):
-            user_group = UserGroup.find_by_id(user.id, self.id)
+            from kskp.store.session import UserGroupFactory
+            user_group = UserGroupFactory(self.session).find_by_id(user.id, self.id)
             user_group.delete()
 
     def init_authz(self, datum_id, read, write, exec, creator=None):
-        from .auth import Auth
+        from kskp.store.session import AuthFactory
+        auth_factory = AuthFactory(self.session)
 
-        if Auth.exists(self.id, datum_id):
-            auth = Auth.find_by_id(self.id, datum_id)
+        if auth_factory.exists(self.id, datum_id):
+            auth = auth_factory.find_by_id(self.id, datum_id)
             auth.update(read, write, exec, modifier=creator)
         else:
-            authz = Auth(self.id, datum_id, read=read, write=write, exec=exec, creator=creator)
+            authz = auth_factory.create(self.id, datum_id, read=read, write=write, exec=exec, creator=creator)
             authz.save()
 
     @property

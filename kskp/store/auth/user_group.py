@@ -25,10 +25,13 @@ class UserGroup(BaseModel):
     created_at   = Column(TIMESTAMP, default=text('statement_timestamp()'))
     modified_at  = Column(TIMESTAMP, default=text('statement_timestamp()'), onupdate=text('statement_timestamp()'))
 
-    def __init__(self, user_id, group_id, creator=None):
+    def __init__(self, session, user_id, group_id, creator=None):
         """
         コンストラクタ
         """
+        # SQLAlchemy Session
+        self.session = session
+
         self.user_id = user_id
         self.group_id = group_id
 
@@ -39,47 +42,28 @@ class UserGroup(BaseModel):
 
     @property
     def creator(self):
-        from kskp.store.auth import User
+        from kskp.store.session import UserFactory
         if self._creator_id is None:
             return None
-        return User.find_by_id(self._creator_id)
+        return UserFactory(self.session).find_by_id(self._creator_id)
 
     @property
     def modifier(self):
-        from kskp.store.auth import User
+        from kskp.store.session import UserFactory
         if self._modifier_id is None:
             return None
-        return User.find_by_id(self._modifier_id)
-
-    @staticmethod
-    def find_by_id(user_id, group_id):
-        from kskp.store import ss as session
-        return session.query(UserGroup).\
-                       filter(UserGroup.user_id==user_id).\
-                       filter(UserGroup.group_id==group_id).\
-                       one_or_none()
+        return UserFactory(self.session).find_by_id(self._modifier_id)
 
     def save(self):
         """
         UserGroupを保存する
         """
-        from kskp.store import ss as session
-        session.add(self)
-        session.commit()
+        self.session.add(self)
+        self.session.commit()
 
     def delete(self):
         """
         UserGroupを削除する
         """
-        from kskp.store import ss as session
-        session.delete(self)
-        session.commit()
-
-    @staticmethod
-    def delete_all_by_user_id(user_id):
-        """
-        UsersGroupsテーブルから指定したユーザの所属情報を全て削除する
-        """
-        from kskp.store import ss as session
-        session.query(UserGroup).filter(UserGroup.user_id==user_id).delete()
-        session.commit()
+        self.session.delete(self)
+        self.session.commit()

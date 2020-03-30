@@ -74,17 +74,17 @@ def admin_exists():
 # テーブルを作成する
 BaseModel.metadata.create_all(bind=engine, checkfirst=True)
 
-def add_admin_user_and_group():
+def add_admin_user_and_group(unauhz_session):
     """
     デフォルト管理者ユーザと管理者グループを作成する
     """
     # 管理者グループが存在しない場合は作成する
-    admin_group = Group.load_admin_group()
+    admin_group = unauhz_session.load_admin_group()
 
     # 管理者ユーザが存在しない場合はデフォルト管理者ユーザを作成する
     if not admin_group.has_joined_user():
         # 初期管理者ユーザを作成する
-        admin_user = User('admin@kskp.io', 'adminpass', 'Admin')
+        admin_user = unauhz_session.create_admin_user()
         admin_user.save()
         # 初期管理者ユーザを管理者グループに参加させる
         admin_group.join_user(admin_user)

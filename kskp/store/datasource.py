@@ -1,7 +1,7 @@
 from kskp.store import Datum, Flow
 
 class DataSource(Flow):
-    def __init__(self, parent_uuid, label, store, loader_step, creator=None):
+    def __init__(self, session, parent_uuid, label, store, loader_step, creator=None):
         """
         コンストラクタ
         """
@@ -69,4 +69,4 @@ class DataSource(Flow):
             "description": ""
         }
         
-        super().__init__(parent_uuid, label, flow_data, creator)
+        super().__init__(session, parent_uuid, label, flow_data, creator)

@@ -27,10 +27,13 @@ class User(BaseModel):
     created_at    = Column(TIMESTAMP, default=text('statement_timestamp()'))
     modified_at   = Column(TIMESTAMP, default=text('statement_timestamp()'), onupdate=text('statement_timestamp()'))
 
-    def __init__(self, email, password, name, creator=None):
+    def __init__(self, session, email, password, name, creator=None):
         """
         コンストラクタ
         """
+        # SQLAlchemy Session
+        self.session = session
+
         # UUIDを採番する
         self.uuid = str(uuid.uuid4())
 
@@ -67,15 +70,17 @@ class User(BaseModel):
 
     @property
     def creator(self):
+        from kskp.store.session import UserFactory
         if self._creator_id is None:
             return None
-        return User.find_by_id(self._creator_id)
+        return UserFactory(self.session).find_by_id(self._creator_id)
 
     @property
     def modifier(self):
+        from kskp.store.session import UserFactory
         if self._modifier_id is None:
             return None
-        return User.find_by_id(self._modifier_id)
+        return UserFactory(self.session).find_by_id(self._modifier_id)
 
     # def _require_admin_auth(func):
     #     """
@@ -103,84 +108,48 @@ class User(BaseModel):
     #         return func(self, *args, **kwargs)
     #     return wrapper
 
-    @staticmethod
-    def find_by_id(user_id):
-        from kskp.store import ss as session
-        # user = session.query(User).filter(User.id==user_id).one_or_none()
-
-        # SQLAlchemyのidentity mapにキャッシュされていればそれを返す
-        user = session.query(User).get(user_id)
-        return user
-
-    @staticmethod
-    def find_by_uuid(uuid):
-        from kskp.store import ss as session
-        user = session.query(User).filter(User.uuid==uuid).one_or_none()
-        return user
-
-    @staticmethod
-    def find_by_email(email):
-        """
-        指定されたuuidを持つFrameを取得する
-        """
-        from kskp.store import ss as session
-        user = session.query(User).filter(User.email==email).one_or_none()
-        return user
-
-    @staticmethod
-    def exists(uuid):
-        from kskp.store import ss as session
-        count = session.query(User).filter(User.uuid==uuid).count()
-        return count > 0
-
     def save(self):
         """
         Userを保存する
         """
-        from kskp.store import ss as session
         # Usersテーブルにレコードを新規追加する
-        session.add(self)
-        session.commit()
+        self.session.add(self)
+        self.session.commit()
 
     def update_email(self, new_email, modifier):
         """
         Userのemail列を更新する
         """
-        from kskp.store import ss as session
         self.email = new_email
         self._modifier_id = modifier.id
-        session.update(self)
-        session.commit()
+        self.session.update(self)
+        self.session.commit()
 
     def update_password(self, new_password, modifier):
         pass
 
     def update_name(self, new_name, modifier):
-        from kskp.store import ss as session
         self.name = new_name
         self._modifier_id = modifier.id
-        session.update(self)
-        session.commit()
+        self.session.update(self)
+        self.session.commit()
 
     def update_self_group_id(self, new_group_id, modifier=None):
-        from kskp.store import ss as session
         self.self_group_id = new_group_id
         self._modifier_id = modifier and modifier.id
-        session.update(self)
-        session.commit()
+        self.session.update(self)
+        self.session.commit()
 
-    # @_require_admin_auth
     def delete(self):
         """
         Userを削除する
         """
-        from kskp.store import ss as session
         from .user_group import UserGroup
         # users_groupsテーブルから全ての削除ユーザの行を削除する
         UserGroup.delete_all_by_user_id(self.id)
         # usersテーブルから削除ユーザの行を削除する
-        session.delete(self)
-        session.commit()
+        self.session.delete(self)
+        self.session.commit()
 
 
     def authenticate(self, password):
@@ -218,16 +187,17 @@ class User(BaseModel):
         """
         本人グループを取得する
         """
-        from .group import Group
+        from kskp.store.session import GroupFactory
+        group_factory = GroupFactory(self.session)
 
         if self.self_group_id is None:
             # 本人グループを作成する
-            self_group = Group(self.name, creator=self)
+            self_group = group_factory.create(self.name, creator=self)
             self_group.save()
             # 本人グループを設定する
             self.update_self_group_id(self_group.id)
         else:
-            self_group = Group.find_by_id(self.self_group_id)
+            self_group = group_factory.find_by_id(self.self_group_id)
             if self_group is None:
                 raise Exception(f'本人グループ({self.self_group_id})は存在しません')
 

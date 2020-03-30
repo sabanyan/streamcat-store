@@ -36,7 +36,7 @@ class SaverCommand(SCommand):
         # ラベル名とファイル名はコンストラクタで別々に指定できるようにすれば
         # 改めてupdate_label_only()を行う必要はなくなる
         # もしくは、実行ログ一覧画面さえできれば別々に指定する必要もなくなるか？
-        Frame.update_label_only(frame.uuid, point_label, None)
+        frame.update_label_only(point_label, None)
 
         # NYSOLコマンドを作成する
         # if not isinstance(inputs['i'], NysolModule):
@@ -55,24 +55,24 @@ class SaverCommand(SCommand):
         from kskp.store import Datum, AwsS3
 
         # フロー名フォルダがなければ作成する
-        results1 = Datum.find_by_parent_uuid_and_label(store.uuid, folder1_label)
+        results1 = store.find_children_by_label(folder1_label)
         if results1 is None or len(results1)==0:
-            folder1 = Folder(store.uuid, folder1_label, None)
+            # folder1 = Folder(store.uuid, folder1_label, None)
+            folder1 = store.create_folder(folder1_label, None)
             folder1.save()
         else:
             folder1 = results1[0]
 
         # 開始時間フォルダがなければ作成する
-        results2 = Datum.find_by_parent_uuid_and_label(folder1.uuid, folder2_label)
+        results2 = folder1.find_children_by_label(folder2_label)
         if results2 is None or len(results2)==0:
-            folder2 = Folder(folder1.uuid, folder2_label, None)
+            # folder2 = Folder(folder1.uuid, folder2_label, None)
+            folder2 = folder1.create_folder(folder2_label)
             folder2.path = folder2.path.parent / folder2_file_name
             folder2.save()
-        else:
-            if results2[0].type == Datum.FOLDER_TYPE:
-                folder2 = Folder.convert_to_folder(results2[0])
-            elif results2[0].type == Datum.AWSS3_TYPE:
-                folder2 = AwsS3.convert_to_awss3(results2[0])
+        else:            
+            if isinstance(results2[0], Store):
+                folder2 = results2[0]
             else:
                 # 開始時間フォルダを作成できなかった場合はフロー名フォルダ直下に結果を作成する
                 folder2 = folder1
@@ -82,7 +82,8 @@ class SaverCommand(SCommand):
     def make_frame(self, store, label):
         import io
         f = io.BytesIO(b'')
-        frame = Frame(store.uuid, label, f)
+        # frame = Frame(store.uuid, label, f)
+        frame = store.create_frame(label, f)
         # RunsCommandの実行前にFrameを登録する
         frame.save()
         return frame
@@ -132,7 +133,8 @@ class CacheSaverCommand(SaverCommand):
     def make_frame(self, store, label):
         import io
         f = io.BytesIO(b'')
-        cache = Cache(store.uuid, label, f)
+        # cache = Cache(store.uuid, label, f)
+        cache = store.create_cache(label, f)
         # RunsCommandの実行前にCacheを登録する
         cache.save()
         return cache
@@ -153,13 +155,13 @@ class LoaderCommand(SCommand):
         if not isinstance(inputs['store'], Store):
             t = type(inputs['store'])
             raise Exception(f'Loaderの入力にStore以外のデータ型({t})が入力されました')
-        folder = Folder.convert_to_folder(inputs['store'])
+        folder = inputs['store']
         if not folder.path_exists:
             raise Exception(f'ディレクトリ({folder.path})が存在しません')
 
         # 指定したuuidのframeを取得する
         frame_uuid = args['uuid']
-        frame = Frame.find_by_uuid(frame_uuid)
+        frame = folder.find_child_by_uuid(frame_uuid)
         if frame is None:
             raise Exception('No frame(%s) is found !' % frame_uuid)
         path = Datum._to_abs_path(frame.path.as_posix())
@@ -199,7 +201,7 @@ class DbLoaderCommand(SCommand):
             t = type(inputs['i'])
             raise Exception(f'DbLoaderの入力にDatabase Store以外のデータ型({t})が入力されました')
         else:
-            database = Database.convert_to_database(inputs['i'])
+            database = inputs['i']
 
         # DB接続情報に漏れがないか確認し、漏れがあれば例外を送出する
         database.valid_or_raise()
@@ -352,13 +354,13 @@ class DbSaverCommand(SaverCommand):
             t = type(inputs['store'])
             raise Exception(f'DbSaverの入力にDatabase Store以外のデータ型({t})が入力されました')
         else:
-            database = Database.convert_to_database(inputs['store'])
+            database = inputs['store']
 
         if inputs['folder'].type != Datum.FOLDER_TYPE:
             t = type(inputs['folder'])
             raise Exception(f'DbSaverの入力にFolder以外のデータ型({t})が入力されました')
         else:
-            folder = Folder.convert_to_folder(inputs['folder'])
+            folder = inputs['folder']
 
         # DB接続情報に漏れがないか確認し、漏れがあれば例外を送出する
         database.valid_or_raise()
@@ -617,7 +619,7 @@ class RemoteFolderLoaderCommand(SCommand):
             t = type(inputs['i'])
             raise Exception(f'Remotefolder_loaderの入力にRemote Folder Store以外のデータ型({t})が入力されました')
         else:
-            folder = RemoteFolder.convert_to_remote_folder(inputs['i'])
+            folder = inputs['i']
 
         # 接続情報に漏れがないか確認し、漏れがあれば例外を送出する
         folder.valid_or_raise()
@@ -651,13 +653,13 @@ class RemoteFolderSaverCommand(SaverCommand):
             t = type(inputs['store'])
             raise Exception(f'RemoteFolderSaverの入力にRemoteFolderStore以外のデータ型({t})が入力されました')
         else:
-            rfolder = RemoteFolder.convert_to_remote_folder(inputs['store'])
+            rfolder = inputs['store']
 
         if inputs['folder'].type != Datum.FOLDER_TYPE:
             t = type(inputs['folder'])
             raise Exception(f'RemoteFolderSaverの入力にFolder以外のデータ型({t})が入力されました')
         else:
-            folder = Folder.convert_to_folder(inputs['folder'])
+            folder = inputs['folder']
 
         # 接続情報に漏れがないか確認し、漏れがあれば例外を送出する
         rfolder.valid_or_raise()
