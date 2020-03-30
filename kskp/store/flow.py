@@ -2,7 +2,6 @@
 import os
 import json
 
-from . import ss as session
 from kskp.core import Datum
 from kskp.store import Frame
 
@@ -12,12 +11,12 @@ class Flow(Datum):
         'polymorphic_identity' : 'flow'
     }
 
-    def __init__(self, parent_uuid, label, flow_data, creator=None):
+    def __init__(self, session, parent_uuid, label, flow_data, creator=None):
         """
         コンストラクタ
         flow_data : Flowデータを指定する
         """
-        super().__init__(parent_uuid, Datum.FLOW_TYPE, label, creator)
+        super().__init__(session, parent_uuid, Datum.FLOW_TYPE, label, creator)
 
         # フローデータはファイルに保存せず、データベースに保存する
         self._path = ''
@@ -25,110 +24,97 @@ class Flow(Datum):
         # data列の値を作成する
         self.data = {'label' : label, 'flow' : flow_data}
 
-    @staticmethod
-    def find_all_flows():
-        """
-        全てのフローを取得する
-        """
-        flows = session.query(Flow).filter(Flow.type==Flow.FLOW_TYPE).all()
-        return flows
+    # @staticmethod
+    # def find_all_flows():
+    #     """
+    #     全てのフローを取得する
+    #     """
+    #     flows = session.query(Flow).filter(Flow.type==Flow.FLOW_TYPE).all()
+    #     return flows
 
-    @staticmethod
-    def find_by_uuid(uuid):
-        """
-        指定されたuuidを持つFlowを取得する
-        """
-        # UUID値の形式チェックをする
-        Datum.valid_uuid_or_raise(uuid)
-        flow = session.query(Flow).filter(Flow.uuid==uuid)\
-                                  .filter(Flow.type==Flow.FLOW_TYPE).one_or_none()
-        if flow is None:
-            raise Exception('no flow is found by designated id(%s).' % uuid)
-        return flow
+    # @staticmethod
+    # def find_by_uuid(uuid):
+    #     """
+    #     指定されたuuidを持つFlowを取得する
+    #     """
+    #     # UUID値の形式チェックをする
+    #     Datum.valid_uuid_or_raise(uuid)
+    #     flow = session.query(Flow).filter(Flow.uuid==uuid)\
+    #                               .filter(Flow.type==Flow.FLOW_TYPE).one_or_none()
+    #     if flow is None:
+    #         raise Exception('no flow is found by designated id(%s).' % uuid)
+    #     return flow
 
-    @staticmethod
-    def find_all_subflows(no_inputs=True, no_outputs=True):
-        """
-        サブフローを取得する
-        no_inputs  =False : 入力ポートのないサブフローは取得しない
-        no_outputs =False : 出力ポートのないサブフローは取得しない
-        """
-        # FIXIT : PostgreSQLのJSONB演算子を用いればSQLのみでサブフローを抽出できるはず
-        flows = session.query(Flow).filter(Flow.type==Flow.FLOW_TYPE).all()
+    # @staticmethod
+    # def find_all_subflows(no_inputs=True, no_outputs=True):
+    #     """
+    #     サブフローを取得する
+    #     no_inputs  =False : 入力ポートのないサブフローは取得しない
+    #     no_outputs =False : 出力ポートのないサブフローは取得しない
+    #     """
+    #     # FIXIT : PostgreSQLのJSONB演算子を用いればSQLのみでサブフローを抽出できるはず
+    #     flows = session.query(Flow).filter(Flow.type==Flow.FLOW_TYPE).all()
 
-        subflows = []
-        for flow in flows:
+    #     subflows = []
+    #     for flow in flows:
             
-            # 参照権限のないフローはサブフローか否かの判定ができない
-            if not flow.readable:
-                continue
+    #         # 参照権限のないフローはサブフローか否かの判定ができない
+    #         if not flow.readable:
+    #             continue
 
-            flow_data = flow.data['flow']
-            # onの時にno_inputs（＝inputsがない）のサブフローは出さない
-            if no_inputs:
-                if len(flow_data['ports'][0]) == 0:
-                    continue
+    #         flow_data = flow.data['flow']
+    #         # onの時にno_inputs（＝inputsがない）のサブフローは出さない
+    #         if no_inputs:
+    #             if len(flow_data['ports'][0]) == 0:
+    #                 continue
 
-            # onの時にno_outputs（＝outputsがない）のサブフローは出さない
-            if no_outputs:
-                if len(flow_data['ports'][1]) == 0:
-                    continue
+    #         # onの時にno_outputs（＝outputsがない）のサブフローは出さない
+    #         if no_outputs:
+    #             if len(flow_data['ports'][1]) == 0:
+    #                 continue
 
-            if len(flow_data['ports'][0]) > 0 or len(flow_data['ports'][1]) > 0:
-                subflows.append(flow)
+    #         if len(flow_data['ports'][0]) > 0 or len(flow_data['ports'][1]) > 0:
+    #             subflows.append(flow)
 
-        return subflows
+    #     return subflows
 
-    @staticmethod
-    def exists(uuid):
-        """
-        指定されたuuidを持つFlowが存在する場合はTrueを返す
-        """
-        # UUID値の形式チェックをする
-        if not Datum.is_valid_uuid(uuid):
-            return False
-        result = session.query(Flow).filter(Flow.uuid==uuid)\
-                                    .filter(Flow.type==Flow.FLOW_TYPE).count()
-        return result > 0
+    # @staticmethod
+    # def exists(uuid):
+    #     """
+    #     指定されたuuidを持つFlowが存在する場合はTrueを返す
+    #     """
+    #     # UUID値の形式チェックをする
+    #     if not Datum.is_valid_uuid(uuid):
+    #         return False
+    #     result = session.query(Flow).filter(Flow.uuid==uuid)\
+    #                                 .filter(Flow.type==Flow.FLOW_TYPE).count()
+    #     return result > 0
 
-    @staticmethod
-    def convert_to_flow(datum):
-        parent_uuid = datum.parent_uuid or Datum.get_uuid_by_id(datum.parent_id)
-        flow_data = datum.data['flow']
-        flow = Flow(parent_uuid, datum.label, flow_data, datum.creator)
-        flow.id = datum.id
-        flow.uuid = datum.uuid
-        flow._path = datum._path
-        flow.modifier = datum.modifier
-        flow.created_at = datum.created_at
-        flow.modified_at = datum.modified_at
-        return flow
-
-    @staticmethod
-    def create_simple_flow(parent_uuid, label, data_source, creator=None):
-        flow_data = {
-                        "label": label,
-                        "nodes": [
-                            {
-                                "id": "d",
-                                "type": "frame",
-                                "uuid": data_source.uuid,
-                                "error": {},
-                                "label": data_source.label,
-                                "invalid": {},
-                                "makeCache": False,
-                                "dataSource": "csv",
-                                "cacheCreatedAt": None
-                            }
-                        ],
-                        "ports": [[],[]],
-                        "params": [],
-                        "creator": "",
-                        "createdAt": data_source.created_at_str,
-                        "projectId": None,
-                        "description": ""
-                    }
-        return Flow(parent_uuid, label, flow_data, creator)
+    # @staticmethod
+    # def create_simple_flow(parent_uuid, label, data_source, creator=None):
+    #     flow_data = {
+    #                     "label": label,
+    #                     "nodes": [
+    #                         {
+    #                             "id": "d",
+    #                             "type": "frame",
+    #                             "uuid": data_source.uuid,
+    #                             "error": {},
+    #                             "label": data_source.label,
+    #                             "invalid": {},
+    #                             "makeCache": False,
+    #                             "dataSource": "csv",
+    #                             "cacheCreatedAt": None
+    #                         }
+    #                     ],
+    #                     "ports": [[],[]],
+    #                     "params": [],
+    #                     "creator": "",
+    #                     "createdAt": data_source.created_at_str,
+    #                     "projectId": None,
+    #                     "description": ""
+    #                 }
+    #     return Flow(parent_uuid, label, flow_data, creator)
 
     def save(self):
         """
@@ -139,33 +125,24 @@ class Flow(Datum):
             raise Exception('You can not add another root flow. A root already exists.')
         try:
             # Dataテーブルにレコードを新規追加する
-            session.add(self)
+            self.session.add(self)
         except Exception as e:
-            session.rollback()
+            self.session.rollback()
             raise e
         finally:
-            session.commit()
+            self.session.commit()
 
-    @staticmethod
-    def update_data(uuid, label, flow_data, modifier):
+    def update_data(self, label, flow_data, modifier):
         """
         Flowのdata列を更新する
         """
-        # UUID値の形式チェックをする
-        Datum.valid_uuid_or_raise(uuid)
-        # レコードを取得する
-        flow = session.query(Flow).filter(Flow.uuid==uuid)\
-                                  .filter(Flow.type==Flow.FLOW_TYPE).one_or_none()
-        if flow is None:
-            raise Exception('no flow is found by designated id.')
-
         # # 参照するフレームがライブラリに存在することを確認する
-        # for frame_uuid in flow.get_src_frame_uuids():
+        # for frame_uuid in self.get_src_frame_uuids():
         #     if not Frame.exists(frame_uuid):
         #         raise Exception(f'フレーム({frame_uuid})がライブラリにありません')
 
         # # 参照するサブフローがライブラリに存在することを確認する
-        # for flow_uuid in flow.get_sub_flow_uuids():
+        # for flow_uuid in self.get_sub_flow_uuids():
         #     if not Flow.exists(flow_uuid):
         #         raise Exception(f'フロー({flow_uuid})がライブラリにありません')
 
@@ -178,30 +155,29 @@ class Flow(Datum):
         # フローのインポート処理で引っかかるので以下のチェックを一旦外す
         # 
         # # 参照するフレームがライブラリに存在することを確認する
-        # for frame_uuid in flow.get_src_frame_uuids():
+        # for frame_uuid in self.get_src_frame_uuids():
         #     if not Frame.exists(frame_uuid):
         #         raise Exception(f'フレーム({frame_uuid})がライブラリにありません')
 
         # # 参照するサブフローがライブラリに存在することを確認する
-        # for flow_uuid in flow.get_sub_flow_uuids():
+        # for flow_uuid in self.get_sub_flow_uuids():
         #     if not Flow.exists(flow_uuid):
         #         raise Exception(f'フロー({flow_uuid})がライブラリにありません')
 
         try:
             # レコードを更新する
-            if flow is not None:
-                flow._label = new_label
-                flow._data = data
-                flow._modifier_id = modifier.id
-                session.update(flow)
+            self._label = new_label
+            self._data = data
+            self._modifier_id = modifier.id
+            self.session.update(self)
         except Exception as e:
-            session.rollback()
+            self.session.rollback()
             raise e
         finally:
-            session.commit()
+            self.session.commit()
 
         # ここでflowを返すとtest_model.pyでテストが通らない
-        return flow
+        return self
 
     def move(self, parent_uuid, modifier):
         """
@@ -221,13 +197,13 @@ class Flow(Datum):
 
         try:
             # レコードを更新する
-            session.query(Datum).filter(Datum.id==self.id).update({'parent_id'   :to_folder.id
+            self.session.query(Datum).filter(Datum.id==self.id).update({'parent_id'   :to_folder.id
                                                                   ,'_modifier_id':modifier.id})
         except Exception as e:
-            session.rollback()
+            self.session.rollback()
             raise e
         finally:
-            session.commit()
+            self.session.commit()
 
         return self
         
@@ -237,19 +213,19 @@ class Flow(Datum):
         """
         # 削除しようとするFlowが、DBに格納されているフローで使用されている場合は例外を送出する
         # 2019/07/29現在下記のコードはpostgres9.6では動かない、postgres11.1では動作確認している
-        using_flow_uuids = Datum.get_flow_uuids_using_other_datum(self.uuid)
+        using_flow_uuids = self.get_flow_uuids_using_me()
         if len(using_flow_uuids) > 0:
             using_flow_label= Flow.find_by_uuid(using_flow_uuids[0]).label
             raise Exception('このフローはフロー(%s)でサブフローとして使用しているため削除できません' % using_flow_label)
 
         try:
             # フレームレコードを削除する
-            session.delete(self)
+            self.session.delete(self)
         except Exception as e:
-            session.rollback()
+            self.session.rollback()
             raise e
         finally:
-            session.commit()
+            self.session.commit()
             
     def remove_reference_only(self):
         """
@@ -274,7 +250,7 @@ class Flow(Datum):
         JST = timezone(timedelta(hours=+9), 'JST')
         new_flow_data['createdAt'] = datetime.now(JST).strftime('%Y-%m-%d %H:%M:%S')
         # 複製を作成する
-        new_flow = Flow(self.parent_uuid, new_label, new_flow_data, creator)
+        new_flow = Flow(self.session, self.parent_uuid, new_label, new_flow_data, creator)
         return new_flow
 
     @staticmethod
@@ -313,19 +289,19 @@ class Flow(Datum):
 
         return sql
 
-    @staticmethod
-    def get_flows_referencing_frame(frame_uuid):
-        """
-        参照する入力frameとキャッシュframeを全て取得する
-        """
-        from sqlalchemy import select, text
-        from sqlalchemy.sql import alias
+    # @staticmethod
+    # def get_flows_referencing_frame(frame_uuid):
+    #     """
+    #     参照する入力frameとキャッシュframeを全て取得する
+    #     """
+    #     from sqlalchemy import select, text
+    #     from sqlalchemy.sql import alias
 
-        sql = Flow._get_select_stmt_for_nodes()
-        sql = select(['*']).select_from(sql.alias('F')).where(text(f"uuid='{frame_uuid}'"))
+    #     sql = Flow._get_select_stmt_for_nodes()
+    #     sql = select(['*']).select_from(sql.alias('F')).where(text(f"uuid='{frame_uuid}'"))
 
-        results = session.execute(sql)
-        return [str(result['label']) for result in results]
+    #     results = session.execute(sql)
+    #     return [str(result['label']) for result in results]
 
     def get_src_frame_uuids(self):
         """
@@ -342,7 +318,7 @@ class Flow(Datum):
               where(text(f"(cacheCreatedAt is null or cacheCreatedAt = '' )")).\
               where(text(f"uuid is not null and uuid <> '' "))
 
-        results = session.execute(sql)
+        results = self.session.execute(sql)
         return [str(result['uuid']) for result in results]
 
     def get_cache_frame_uuids(self):
@@ -360,7 +336,7 @@ class Flow(Datum):
               where(text(f"(cacheCreatedAt is not null and cacheCreatedAt <> '' )")).\
               where(text(f"uuid is not null and uuid <> '' "))
 
-        results = session.execute(sql)
+        results = self.session.execute(sql)
         return [str(result['uuid']) for result in results]
 
     def get_sub_flow_uuids(self):
@@ -377,7 +353,7 @@ class Flow(Datum):
               where(text(f"type = 'flow'")).\
               where(text(f"uuid is not null and uuid <> '' "))
 
-        results = session.execute(sql)
+        results = self.session.execute(sql)
         return [str(result['uuid']) for result in results]
 
     def get_store_uuids(self):
@@ -394,7 +370,7 @@ class Flow(Datum):
               where(text(f"type = 'store'")).\
               where(text(f"uuid is not null and uuid <> '' "))
 
-        results = session.execute(sql)
+        results = self.session.execute(sql)
         return [str(result['uuid']) for result in results]
 
     def replace_uuid(self, old_uuid, new_uuid, modifier):
@@ -405,7 +381,7 @@ class Flow(Datum):
         for node in flow_data['nodes']:
             if 'uuid' in node and node['uuid'] == old_uuid:
                 node['uuid'] = new_uuid
-        Flow.update_data(self.uuid, self.label, flow_data, modifier)
+        self.update_data(self.label, flow_data, modifier)
 
     def set_cache(self, node_id, cache_uuid, modifier):
         from datetime import datetime, timedelta, timezone
@@ -416,7 +392,7 @@ class Flow(Datum):
                 node['uuid'] = cache_uuid
                 # 記録時間はUTC、表示時間は現地時間にすべきでは？？
                 node['cacheCreatedAt'] = datetime.now(timezone(timedelta(hours=+9), 'JST')).strftime('%Y-%m-%d %H:%M:%S')
-        Flow.update_data(self.uuid, self.label, flow_data, modifier)
+        self.update_data(self.label, flow_data, modifier)
 
     def to_json(self):
         return {'uuid'      : self.uuid,

@@ -72,7 +72,7 @@ class AuthzSession():
         from sqlalchemy.orm import with_expression
         from sqlalchemy.dialects.postgresql import BOOLEAN
         from kskp.core import Datum
-        from .authz_query import AuthzQuery
+        from .authz_query import AuthzQuery, AuthzDatumQuery
         from .auth import Auth
         from .user_group import UserGroup
         from .group import Group
@@ -88,27 +88,27 @@ class AuthzSession():
                                      filter(UserGroup.user_id==self.user.id)
 
             query = self._session.query(datum_type).\
+                                  options(with_expression(Datum.user, literal_column(f"'{self.user.name}'"))).\
                                   options(with_expression(Datum.readable, subquery.filter(Auth.datum_id==Datum.id).label('readable')))
             # query = self._session.query(datum_type).\
             #                       options(with_expression(Datum.readable, literal_column('false', type_=BOOLEAN).label('readable')))
             
-            return AuthzQuery(query, self.user)
+            return AuthzDatumQuery(query, self)
 
         else:
-            return self._session.query(datum_type, *args)
+            query = self._session.query(datum_type, *args)
+            return AuthzQuery(query, self)
     
     def add(self, obj):
         from kskp.core import Datum
         from kskp.store import Folder
         from .group import Group
-        from .user import User
 
         if isinstance(obj, Datum):
             # Datumの新規追加時はその親フォルダの変更権限を判定する
             # (ROOTフォルダの新規追加の場合は変更を許可する)
             if obj.parent_id is not None and not self.writable_by_id(self.user, obj.parent_id):
-                parent_uuid = Datum.get_uuid_by_id(obj.parent_id)
-                parent = Folder.find_by_uuid(parent_uuid)
+                parent = obj.find_parent()
                 raise NotAuthorizedException(f'{self.user.name}は{parent.label}の変更権限がないため{obj.label}を新規追加できませんでした')
 
             # Datumを新規追加する
@@ -119,7 +119,9 @@ class AuthzSession():
             self._session.expire(obj, ['readable'])
 
             # everyoneグループが無ければ作成し、ユーザをeveryoneグループに所属させる
-            everyone_group = Group.load_everyone_group()
+            # everyone_group = Group.load_everyone_group()
+            from kskp.store.session import GroupFactory
+            everyone_group = GroupFactory(self).load_everyone_group()
             everyone_group.join_user(self.user)
             # everyoneグループへ追加データの権限を付与する
             everyone_group.init_authz(obj.id, True, True, True)
@@ -141,6 +143,10 @@ class AuthzSession():
             # Datumの変更権限を判定する
             if not self.writable_by_id(self.user, obj.id):
                 raise NotAuthorizedException((f'{self.user.name}は更新権限がないため{obj.label}を更新できません'))
+            if obj._data is not None:
+                # JSON列への変更はflag_modified()を使ってSQLAlchemyに知らせないとDBに反映されない
+                from sqlalchemy.orm.attributes import flag_modified
+                flag_modified(obj, "_data")
         elif not self.has_admin():
             # Datum以外の書き込みは管理者権限が必要
             raise NotAuthorizedException('no anthz!')
@@ -168,15 +174,10 @@ class AuthzSession():
     def execute(self, sql):
         return self._session.execute(sql)
 
-    def writable(self, user, datum_uuid):
+    def writable_by_id(self, user, datum_id):
         """
         ユーザIDとDatumについて書き込み権限の有無を判定する
         """
-        from kskp.core import Datum
-        datum_id = Datum.get_id_by_uuid(datum_uuid)
-        return self.writable_by_id(user, datum_id)
-
-    def writable_by_id(self, user, datum_id):
         from sqlalchemy import func
 
         from .auth import Auth

@@ -19,25 +19,26 @@ class Library:
         """
         ルートデータストアを取得する
         """
-        return Library._get_library(creator)
+        # return Library._get_library(creator)
+        raise NotImplementedError('')
 
     @staticmethod
-    def load_result_folder(creator=None):
-        return Library._get_result_dir_path(creator)
+    def load_result_folder(session, creator=None):
+        return Library._get_result_dir_path(session, creator)
 
     @staticmethod
-    def load_cache_folder(creator=None):
+    def load_cache_folder(session, creator=None):
         """
         キャッシュフォルダを取得する
         """
-        return Library._get_cache_dir_path(creator)
+        return Library._get_cache_dir_path(session, creator)
 
     @staticmethod
-    def load_flow_folder(creator=None):
+    def load_flow_folder(session, creator=None):
         """
         フローフォルダを取得する
         """
-        return Library._get_flow_dir_path(creator)
+        return Library._get_flow_dir_path(session, creator)
 
     @staticmethod
     def load_frame(frame_uuid):
@@ -236,30 +237,30 @@ class Library:
         Library._get_flow_dir_path()
 
     @staticmethod
-    def _get_flow_dir_path(user_id=None):
+    def _get_flow_dir_path(session, user_id=None):
         # フロー格納フォルダを取得する
         from kskp.store import FLOW_FOLDER_UUID, FLOW_FOLDER_LABEL
-        return Library._get_or_make_dir_path(FLOW_FOLDER_UUID, FLOW_FOLDER_LABEL, user_id)
+        return Library._get_or_make_dir_path(session, FLOW_FOLDER_UUID, FLOW_FOLDER_LABEL, user_id)
 
     @staticmethod
-    def _get_result_dir_path(user_id=None):
+    def _get_result_dir_path(session, user_id=None):
         # フレーム格納フォルダを取得する
-        return Library._get_or_make_dir_path(RESULT_FOLDER_UUID, RESULT_FOLDER_LABEL, user_id)
+        return Library._get_or_make_dir_path(session, RESULT_FOLDER_UUID, RESULT_FOLDER_LABEL, user_id)
 
     @staticmethod
-    def _get_cache_dir_path(user_id=None):
+    def _get_cache_dir_path(session, user_id=None):
         # キャッシュ格納フォルダを取得する
-        return Library._get_or_make_dir_path(CACHE_FOLDER_UUID, CACHE_FOLDER_LABEL, user_id)
+        return Library._get_or_make_dir_path(session, CACHE_FOLDER_UUID, CACHE_FOLDER_LABEL, user_id)
 
     @staticmethod
-    def _get_or_make_dir_path(uuid, label, user_id=None):
+    def _get_or_make_dir_path(session, uuid, label, user_id=None):
 
         # 特定用途のフォルダのUUIDは決め打ちである
-        if Folder.exists(uuid):
-            folder = Folder.find_by_uuid(uuid)
+        if session.data.exists(uuid):
+            folder = session.data.find_by_uuid(uuid)
         else:
             # フォルダが無い場合は作成する
-            root = Library._get_library(user_id)
+            root = session.data.find_root()
             folder = Folder(root.uuid,
                             label,
                             user_id)
@@ -273,7 +274,7 @@ class Library:
         """
         ルートデータストアを取得する、存在しない場合は作成する
         """
-        root = Library._convert_type(Datum.find_root())
+        root = Datum.find_root()
         # ルートフォルダが存在しない場合はルートフォルダを作成する
         # (最初にライブラリ画面にアクセスする時はルートフォルダ自身も存在しません)
         if root is None:
@@ -287,10 +288,10 @@ class Library:
             # ルートフォルダにAdminグループの権限設定がない場合、初期値を設定する
             # (後方互換)
             # 
-            from kskp.store import ss as session
+            from kskp.store import ss
             from kskp.store.auth import Auth, Group
             admin_group = Group.load_admin_group()
-            admin_group.join_user(session.user)
+            admin_group.join_user(ss.user)
             if not Auth.exists(admin_group.id, new_root.id):
                 admin_group.init_authz(new_root.id, True, True, False)
 
@@ -299,7 +300,7 @@ class Library:
             # (後方互換)
             # 
             everyone_group = Group.load_everyone_group()
-            everyone_group.join_user(session.user)
+            everyone_group.join_user(ss.user)
             if not Auth.exists(everyone_group.id, new_root.id):
                 everyone_group.init_authz(new_root.id, True, True, False)
 
@@ -307,19 +308,4 @@ class Library:
             root = Folder.find_by_uuid(new_root.uuid)
         return root
 
-    @staticmethod
-    def _convert_type(datum):
-        if datum is None:
-            return None
-        elif datum.type == Datum.FOLDER_TYPE:
-            return Folder.convert_to_folder(datum)
-        elif datum.type == Datum.AWSS3_TYPE:
-            return AwsS3.convert_to_awss3(datum)
-        elif datum.type == Datum.FRAME_TYPE:
-            return Frame.convert_to_frame(datum)
-        elif datum.type == Datum.FLOW_TYPE:
-            return Flow.convert_to_flow(datum)
-        elif datum.type == Datum.DATABASE_TYPE:
-            return Database.convert_to_database(datum)
-        else:
-            raise Exception('Undefined type of datum is found!')
+

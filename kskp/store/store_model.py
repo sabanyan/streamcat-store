@@ -27,6 +27,8 @@ class Store(BaseModel):
     modified_at  = Column(TIMESTAMP, default=text('statement_timestamp()'), onupdate=text('statement_timestamp()'))
 
     def __init__(self, id=None, data=None, creator=None):
+        self.session = None
+
         self.id = id
         self.data = data
         
@@ -49,33 +51,33 @@ class Store(BaseModel):
             return None
         return User.find_by_id(self._modifier_id)
 
-    @staticmethod
-    def create(id, version=None, label=None, description=None, url=None, params=None, creator=None):
-        data = {'version'    : version,
-                'label'      : label,
-                'description': description,
-                'url'        : url,
-                'params'     : params}
-        return Store(id, data, creator)
+    # @staticmethod
+    # def create(id, version=None, label=None, description=None, url=None, params=None, creator=None):
+    #     data = {'version'    : version,
+    #             'label'      : label,
+    #             'description': description,
+    #             'url'        : url,
+    #             'params'     : params}
+    #     return Store(id, data, creator)
 
-    @staticmethod
-    def find_all():
-        return session.query(Store).all()
+    # @staticmethod
+    # def find_all():
+    #     return session.query(Store).all()
 
-    @staticmethod
-    def find_by_id(id):
-        result = session.query(Store).filter(Store.id==id).one_or_none()
-        if result is None:
-            raise Exception('No store is found by designated store id')
-        return result
+    # @staticmethod
+    # def find_by_id(id):
+    #     result = session.query(Store).filter(Store.id==id).one_or_none()
+    #     if result is None:
+    #         raise Exception('No store is found by designated store id')
+    #     return result
 
     def save(self):
-        session.add(self)
-        session.commit()
+        self.session.add(self)
+        self.session.commit()
 
     def delete(self):
-        session.delete(self)
-        session.commit()
+        self.session.delete(self)
+        self.session.commit()
 
     def __str__(self):
         return self.id
