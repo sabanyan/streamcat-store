@@ -1606,23 +1606,12 @@ class GroupBy2Command(Command):
                             tmpfile.write(line)
                 
                 subcmd_o <<= nm.mcut(i = _temp, f = [k, 'fld'] + finalcols)
-
-                return subcmd_o
-            prod_fldnames = ','.join([f'{fld}_prod' for fld in fs])
-            
-            subcmd <<= nm.msummarky(k = k, f = f'{prod_fldnames},{f},{ordercol}',
-                                c = 'mean,var')
-        
-            subcmd <<= nm.m2cross(k = f'{k},fld', f = 'mean,var', a = f'type,{a}')
-            subcmd <<= nm.mcal(a = 'tmp_colnames', c = '$s{fld}+"_"+$s{type}')
-            subcmd <<= nm.mcross(f = f'{a}', s = 'tmp_colnames', k = k)
-
-            for fld in fs:
-                subcmd <<= nm.mcal(a = fld, precision = precision,
-                    c = f'(${{{fld}_prod_mean}}-(${{{fld}_mean}}*${{{ordercol}_mean}}))/${{{ordercol}_var}}')
             else:
+                
                 subcmd_o <<= nm.mcut(i = targets, f = [k, 'fld'] + finalcols)
-                return subcmd_o
+
+            
+            return subcmd_o
             
         except Exception as e:
             import traceback
