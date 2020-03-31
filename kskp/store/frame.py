@@ -14,7 +14,7 @@ class Frame(Datum):
     # 文字コード変換テーブル
     ENCODING_CONV_TABLE = {'ascii':'ASCII', 'utf-8':'UTF-8', 'UTF-8-SIG':'UTF-8 BOM'}
     # 改行コード変換テーブル
-    NEWLINE_CONV_TABLE = {'\n':'LF', '\r\n':'CR+LF', '\r':'CR'}
+    NEWLINE_CONV_TABLE = {'\n':'LF', '\r\n':'CR+LF', '\r':'CR', 'UNKNOWN':'UNKNOWN'}
 
     def __init__(self, parent_uuid, label, stream, creator=None):
         """
