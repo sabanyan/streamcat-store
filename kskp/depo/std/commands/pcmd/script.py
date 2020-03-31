@@ -1511,9 +1511,9 @@ class GroupBy2Command(Command):
                                     f = f'{x},{fld}', a = 'fld2,fld')
             
             subcmd_o <<= nm.m2cat(i = sims)
-            subcmd_o <<= nm.mfldname(f = f'pearson:{a}({x})')
+            subcmd_o <<= nm.mfldname(f = f'pearson:{a}')
             
-            subcmd_o <<= nm.mcut(f = f'{k},fld,{a}({x})')
+            subcmd_o <<= nm.mcut(f = f'{k},fld,{a}')
 
             return subcmd_o
             
@@ -2656,8 +2656,8 @@ class GroupBy2Command(Command):
                     final_cs = [f'{calcdict["a"]}_{suff}' for suff in ['centroid','var','skew','kurtosis']]
                 elif n:
                     final_cs = [f'{calcdict["a"]}_{calcdict["n"]}']
-                elif cs == 'slope_pearson':
-                    final_cs = [f'{calcdict["a"]}({calcdict["x"]})']
+                # elif cs == 'slope_pearson':
+                #     final_cs = [f'{calcdict["a"]}({calcdict["x"]})']
                 else:
                     final_cs = [calcdict['a']]
             
