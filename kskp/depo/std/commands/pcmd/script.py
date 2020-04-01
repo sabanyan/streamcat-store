@@ -156,18 +156,29 @@ class ColumnNameCommand(PCommand):
 
         _args = copy.deepcopy(args)
         
-        _flds = _args.get('f') # 'a,b,*,c,d'
-        _start, _end = _flds.split('*') # 'a,b,' , ',c,d'
-        
-        _start = _start.strip(',').split(',') # ['a','b']
-        _end = _end.strip(',').split(',') # ['c','d']
+        _flds = _args.get('f').split(',') # ['a','b','*','c','d']
+
+        _aster = False
+        _start = []
+        _end = []
+
+        for _fld in _flds:
+            matchedlist = []
+
+            if _fld == '*':
+                _aster = True
+            elif _aster:
+                # match pattern, put into _end
+                _end.extend(matchedlist)
+            else:
+                # match pattern, put into _start
+                _start.extend(matchedlist)
+
 
         for col in _start + _end:
             if col is not '':
                 _header.remove(col)
         
-        # trying to support commas in the header, but  it looks like it's not 
-        # supported by mcommand itself.
         for col in _header:
             if ',' in col:
                 _header.remove(col)
