@@ -3,6 +3,7 @@ import sys
 import copy
 import nysol.mcmd as nm
 import numpy as np
+import fnmatch as fn
 import nysol.util.mtemp as mtemp
 from nysol.util._utillib import mcsvout as mcsvout
 from pathlib import Path
@@ -11,6 +12,25 @@ from kskp.store import NysolModule
 from kskp.core import Command, Port
 
 PCMD_DIR = Path(__file__).resolve().parent
+
+
+class ColNameMatcher:
+    """
+    class for processing nysol-format wildcard matching (*,?)
+    Takes nysolmodule object as argument for init (inputs['i'].content)
+    """
+    def __init__(self,mod):
+        
+        self._header = copy.deepcopy(mod).getline(header=True)
+        self._header = next(self._header)
+
+    def match(self, pattern):
+        # excelude [] from matching
+        _pat = pattern.translate(str.maketrans({'[':'[[]',
+                                                ']':'[]]'}))
+        
+        return fn.filter(self._header, _pat)
+
 
 class PCommand(Command):
     """
