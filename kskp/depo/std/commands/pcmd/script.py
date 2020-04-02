@@ -24,6 +24,10 @@ class ColNameMatcher:
         self._header = copy.deepcopy(mod).getline(header=True)
         self._header = next(self._header)
 
+    @property
+    def header(self):
+        return self._header
+    
     def match(self, pattern):
         # excelude [] from matching
         _pat = pattern.translate(str.maketrans({'[':'[[]',
