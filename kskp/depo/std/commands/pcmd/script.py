@@ -24,16 +24,26 @@ class ColNameMatcher:
         self._header = copy.deepcopy(mod).getline(header=True)
         self._header = next(self._header)
 
+        self._unmatched = copy.copy(self._header)
+
     @property
     def header(self):
         return self._header
     
+    @property
+    def unmatched(self):
+        return self._unmatched
+
     def match(self, pattern):
-        # excelude [] from matching
+        # exclude [] from matching
         _pat = pattern.translate(str.maketrans({'[':'[[]',
                                                 ']':'[]]'}))
         
-        return fn.filter(self._header, _pat)
+        _matched = fn.filter(self._unmatched, _pat)
+        
+        self._unmatched = [col for col in self._unmatched if col not in _matched]
+        
+        return _matched
 
 
 class PCommand(Command):
