@@ -206,11 +206,11 @@ class ColumnNameCommand(PCommand):
             if col is not '':
                 _header.remove(col)
         
-        for col in _header:
-            if ',' in col:
-                _header.remove(col)
-                newcol = col.replace(',','\\,')
-                _header.append(newcol)
+        # for col in _header:
+        #     if ',' in col:
+        #         _header.remove(col)
+        #         newcol = col.replace(',','\\,')
+        #         _header.append(newcol)
 
         # print(_start)
         # print(_end)
