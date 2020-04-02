@@ -175,8 +175,8 @@ class ColumnNameCommand(PCommand):
     def run(self, args, inputs):
         f = inputs['i'].content
 
-        _iter = copy.deepcopy(f).getline(header=True)
-        _header = next(_iter)
+        _colnames = ColNameMatcher(f)
+        _header = _colnames.header
 
         _args = copy.deepcopy(args)
         
@@ -187,17 +187,20 @@ class ColumnNameCommand(PCommand):
         _end = []
 
         for _fld in _flds:
-            matchedlist = []
+            _matchedlist = []
 
             if _fld == '*':
                 _aster = True
-            elif _aster:
-                # match pattern, put into _end
-                _end.extend(matchedlist)
             else:
-                # match pattern, put into _start
-                _start.extend(matchedlist)
+                # match pattern
+                _matchedlist = _colnames.match(_fld)
 
+                if _aster:
+                    # put into _end
+                    _end.extend(_matchedlist)
+                else:
+                    # put into _start
+                    _start.extend(_matchedlist)
 
         for col in _start + _end:
             if col is not '':
@@ -213,7 +216,11 @@ class ColumnNameCommand(PCommand):
         # print(_end)
         # print(_header)
 
-        _final = _start + _header + _end
+        if _aster:
+            _final = _start + _header + _end
+        else:
+            _final = _start + _end
+
         _final = [val for val in _final if val != '']
 
         f <<= nm.mcut(f = _final)
