@@ -186,7 +186,6 @@ class ColumnNameCommand(PCommand):
         f = inputs['i'].content
 
         _colnames = ColNameMatcher(f)
-        _header = _colnames.header
 
         _args = copy.deepcopy(args)
         
@@ -212,22 +211,14 @@ class ColumnNameCommand(PCommand):
                     # put into _start
                     _start.extend(_matchedlist)
 
-        for col in _start + _end:
-            if col is not '':
-                _header.remove(col)
-        
-        # for col in _header:
-        #     if ',' in col:
-        #         _header.remove(col)
-        #         newcol = col.replace(',','\\,')
-        #         _header.append(newcol)
-
         # print(_start)
         # print(_end)
         # print(_header)
+        # print(_colnames.header)
+        # print(_colnames.unmatched)
 
         if _aster:
-            _final = _start + _header + _end
+            _final = _start + _colnames.unmatched + _end
         else:
             _final = _start + _end
 
