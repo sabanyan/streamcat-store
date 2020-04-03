@@ -14,10 +14,10 @@ from kskp.core import Command, Port
 PCMD_DIR = Path(__file__).resolve().parent
 
 
-class ColNameMatcher:
+class CsvHeader:
     """
-    class for processing nysol-format wildcard matching (*,?)
-    Takes nysolmodule object as argument for init (inputs['i'].content)
+    class for processing nysol-format wildcard matching (*,?) on data headers
+    Takes header list as argument for constructor
     """
     def __init__(self,col_list):
         self._header = col_list
