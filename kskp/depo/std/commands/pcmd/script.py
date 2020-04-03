@@ -19,10 +19,8 @@ class ColNameMatcher:
     class for processing nysol-format wildcard matching (*,?)
     Takes nysolmodule object as argument for init (inputs['i'].content)
     """
-    def __init__(self,mod):
-        
-        self._header = copy.deepcopy(mod).getline(header=True)
-        self._header = next(self._header)
+    def __init__(self,col_list):
+        self._header = col_list
 
         self._unmatched = copy.copy(self._header)
 
