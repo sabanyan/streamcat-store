@@ -14,15 +14,13 @@ from kskp.core import Command, Port
 PCMD_DIR = Path(__file__).resolve().parent
 
 
-class ColNameMatcher:
+class CsvHeader:
     """
-    class for processing nysol-format wildcard matching (*,?)
-    Takes nysolmodule object as argument for init (inputs['i'].content)
+    class for processing nysol-format wildcard matching (*,?) on data headers
+    Takes header list as argument for constructor
     """
-    def __init__(self,mod):
-        
-        self._header = copy.deepcopy(mod).getline(header=True)
-        self._header = next(self._header)
+    def __init__(self,col_list):
+        self._header = col_list
 
         self._unmatched = copy.copy(self._header)
 
@@ -185,7 +183,8 @@ class ColumnNameCommand(PCommand):
     def run(self, args, inputs):
         f = inputs['i'].content
 
-        _colnames = ColNameMatcher(f)
+        _iter = copy.deepcopy(f).getline(header=True)
+        _colnames = CsvHeader(next(_iter))
 
         _args = copy.deepcopy(args)
         
