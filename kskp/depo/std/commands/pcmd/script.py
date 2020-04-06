@@ -18,27 +18,68 @@ class CsvHeader:
     """
     class for processing nysol-format wildcard matching (*,?) on data headers
     Takes header list as argument for constructor
+
+    Essentially a wrapper class for the header row of a CSV file, with added
+    functionality.
     """
     def __init__(self,col_list):
+        """
+        Takes the list of column names.
+        """
         self._header = col_list
-
+        self._matched = []
         self._unmatched = copy.copy(self._header)
 
     @property
     def header(self):
+        """
+        Returns the unmodified header of the CSV file.
+        """
         return self._header
+
+    @property
+    def matched(self):
+        """
+        Returns the list of columns that have ALREADY BEEN matched.
+        """
+        return self._matched
+
     
     @property
     def unmatched(self):
+        """
+        Returns the column names in the list that have NOT YET been matched to
+        any patterns.
+
+        Done to ensure that each column only matches to the 
+        first pattern it matches.
+        """
         return self._unmatched
+    
+    def reset_unmatched(self):
+        """
+        Resets the unmatched list back to the original header.
+        
+        Used in commands where different operations are done on different sets
+        of columns (i.e, groupby2)
+        """
+        self._umatched = self._header
 
     def match(self, pattern):
+        """
+        Takes a query pattern and matches it to the YET UNMATCHED columns.
+        Returns the list of columns that match the pattern, and updates the 
+        matched and unmatched lists accordingly.
+        """
+        
         # exclude [] from matching
         _pat = pattern.translate(str.maketrans({'[':'[[]',
                                                 ']':'[]]'}))
         
         _matched = fn.filter(self._unmatched, _pat)
-        
+
+        # update matched and unmatched lists
+        self._matched.extend(_matched)
         self._unmatched = [col for col in self._unmatched if col not in _matched]
         
         return _matched
