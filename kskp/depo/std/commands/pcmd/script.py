@@ -26,23 +26,23 @@ class CsvHeader:
         """
         Takes the list of column names.
         """
-        self.header = col_list
-        self.matched = []
-        self.unmatched = copy.copy(self.header)
+        self._header = col_list
+        self._matched = []
+        self._unmatched = copy.copy(self._header)
 
     @property
     def header(self):
         """
         Returns the unmodified header of the CSV file.
         """
-        return self.header
+        return self._header
 
     @property
     def matched(self):
         """
         Returns the list of columns that have ALREADY BEEN matched.
         """
-        return self.matched
+        return self._matched
 
     
     @property
@@ -54,7 +54,7 @@ class CsvHeader:
         Done to ensure that each column only matches to the 
         first pattern it matches.
         """
-        return self.unmatched
+        return self._unmatched
     
     def reset_unmatched(self):
         """
@@ -63,7 +63,7 @@ class CsvHeader:
         Used in commands where different operations are done on different sets
         of columns (i.e, groupby2)
         """
-        self.umatched = self.header
+        self._umatched = self._header
 
     def match(self, pattern):
         """
@@ -76,11 +76,11 @@ class CsvHeader:
         _pat = pattern.translate(str.maketrans({'[':'[[]',
                                                 ']':'[]]'}))
         
-        _matched = fn.filter(self.unmatched, _pat)
+        _matched = fn.filter(self._unmatched, _pat)
 
         # update matched and unmatched lists
-        self.matched.extend(_matched)
-        self.unmatched = [col for col in self.unmatched if col not in _matched]
+        self._matched.extend(_matched)
+        self._unmatched = [col for col in self._unmatched if col not in _matched]
         
         return _matched
 
