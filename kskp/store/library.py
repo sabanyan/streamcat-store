@@ -96,7 +96,7 @@ class Library:
         """
         フレームのラベル名を変更する
         """
-        return Frame.update_data(frame_uuid, label, modifier)
+        return Frame.update_label(frame_uuid, label, modifier)
 
     @staticmethod
     def delete_frame(frame_uuid):
