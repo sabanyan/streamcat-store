@@ -131,15 +131,15 @@ class Datum(BaseModel):
     @property
     def parent_uuid(self):
         if self._parent_uuid is None:
-            self._parent_uuid = Datum.find_parent(self.uuid).uuid
+            self._parent_uuid = self.find_parent().uuid
         return self._parent_uuid
 
     @property
     def path(self):
         from kskp.store import Mountable
 
-        if not self.readable:
-            raise NotAuthorizedException(f'{self.session.user.name} ({self.user})は{self.label}の参照権限がありません({self.readable})')
+        # 参照権限が無ければ例外を送出する
+        self.readable_or_raise()
 
         if self._path == '':
             return None
@@ -200,8 +200,8 @@ class Datum(BaseModel):
 
     @property
     def data(self):
-        if not self.readable:
-            raise NotAuthorizedException(f'{self.session.user.name}は{self.label}の参照権限がありません({self.readable}).')
+        # 参照権限が無ければ例外を送出する
+        self.readable_or_raise()
         return self._data
 
     @data.setter
@@ -228,14 +228,14 @@ class Datum(BaseModel):
 
     @property
     def creator(self):
-        from kskp.store.session import UserFactory
+        from kskp.store.factory import UserFactory
         if self._creator_id is None:
             return None
         return UserFactory(self.session).find_by_id(self._creator_id)
 
     @property
     def modifier(self):
-        from kskp.store.session import UserFactory
+        from kskp.store.factory import UserFactory
         if self._modifier_id is None:
             return None
         return UserFactory(self.session).find_by_id(self._modifier_id)
@@ -251,7 +251,7 @@ class Datum(BaseModel):
             return ''
         return self.creator.name
 
-    def move(self, parent_uuid, modifier):
+    def move(self, parent_uuid):
         """
         指定されたStoreの直下に移動する
         """
@@ -261,7 +261,7 @@ class Datum(BaseModel):
         Datum.valid_uuid_or_raise(parent_uuid)
 
         try:
-            from kskp.store.session import DatumFactory
+            from kskp.store.factory import DatumFactory
             to_folder = DatumFactory(self.session).find_by_uuid(parent_uuid)
         except Exception as e:
             raise Exception('移動先の指定はフォルダのUUIDしか許可していません')
@@ -288,9 +288,9 @@ class Datum(BaseModel):
 
         try:
             # ファイル名の移動によって他のDatumのpathが変更が必要であれば変更する
-            self._update_same_path(old_path, new_path, modifier)
+            self._update_same_path(old_path, new_path)
             if isinstance(self, Store):
-                self._update_include_path(old_path, new_path, modifier)
+                self._update_include_path(old_path, new_path)
             # レコードを更新する
             # self.session.query(Datum).filter(Datum.id==self.id).update({'parent_id'   : to_folder.id
             #                                                       ,'_path'       : new_path
@@ -299,7 +299,7 @@ class Datum(BaseModel):
             self.parent_id = to_folder.id
             self._path = new_path
             self._label = new_label
-            self._modifier_id = modifier.id
+            self._modifier_id = self.session.user.id
             self.session.update(self)
         except Exception as e:
             self.session.rollback()
@@ -318,6 +318,12 @@ class Datum(BaseModel):
                 'label'     : self.label,
                 'creator'   : self.creator_str,
                 'createdAt' : self.created_at_str}
+
+    def readable_or_raise(self):
+        if self.readable is None:
+            raise NotAuthorizedException(f'{self.label}の参照権限がNoneです(save後のDatumオブジェクトは参照権限がNoneになります)')
+        if not self.readable:
+            raise NotAuthorizedException(f'{self.session.user.name} ({self.user})は{self.label}の参照権限がありません({self.readable})')
 
     @staticmethod
     def _to_abs_path(path):
@@ -377,7 +383,7 @@ class Datum(BaseModel):
         datum.session = self.session
         return datum
 
-    def _update_same_path(self, old_path, new_path, modifier):
+    def _update_same_path(self, old_path, new_path):
         # 同じファイルに対応するフォルダのpath列を、ファイル名の移動に合わせて変更する
         rel_old_path = Datum._to_rel_path(old_path)
         abs_old_path = Datum._to_abs_path(old_path)
@@ -387,10 +393,10 @@ class Datum(BaseModel):
 
         for result in results:
             result._path = new_path
-            result._modifier_id = modifier.id
+            result._modifier_id = self.session.user.id
             self.session.update(result)
 
-    def _update_include_path(self, old_path, new_path, modifier):
+    def _update_include_path(self, old_path, new_path):
         # 同じディレクトリを含むpath列を、ディレクトリの移動に合わせて変更する
         rel_old_path = Datum._to_rel_path(old_path)
         abs_old_path = Datum._to_abs_path(old_path)
@@ -414,7 +420,7 @@ class Datum(BaseModel):
             #                             .filter(Frame.type==Frame.FRAME_TYPE).one_or_none()
 
             result._path = replaced_path
-            result._modifier_id = modifier.id
+            result._modifier_id = self.session.user.id
             self.session.update(result)
 
     def get_flow_uuids_using_me(self):

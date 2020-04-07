@@ -63,7 +63,7 @@ class Database(Store):
         finally:
             self.session.commit()
 
-    def update_data(self, label, database_conn, modifier):
+    def update_data(self, label, database_conn):
         """
         Databaseのdata列を更新する
         """
@@ -83,7 +83,7 @@ class Database(Store):
             if result is not None:
                 result._label = new_label
                 result._data = data
-                result._modifier_id = modifier.id
+                result._modifier_id = self.session.user.id
                 self.session.update(result)
         except Exception as e:
             self.session.rollback()
@@ -93,7 +93,7 @@ class Database(Store):
 
         return datum
 
-    def move(self, parent_uuid, modifier):
+    def move(self, parent_uuid):
         """
         指定されたStoreの直下に移動する
         """
@@ -101,7 +101,7 @@ class Database(Store):
         Datum.valid_uuid_or_raise(parent_uuid)
 
         try:
-            from kskp.store.session import DatumFactory
+            from kskp.store.factory import DatumFactory
             to_folder = DatumFactory(self.session).find_by_uuid(parent_uuid)
 
         except Exception as e:
@@ -115,7 +115,7 @@ class Database(Store):
             # self.session.query(Datum).filter(Datum.id==self.id).update({'parent_id'   :to_folder.id
             #                                                       ,'_modifier_id':modifier.id})
             self.parent_id = to_folder.id
-            self._modifier_id = modifier.id
+            self._modifier_id = self.session.user.id
             self.session.update(self)
         except Exception as e:
             self.session.rollback()
@@ -132,7 +132,7 @@ class Database(Store):
         # 削除しようとするDatabaseが、DBに格納されているフローで使用されている場合は例外を送出する
         using_flow_uuids = self.get_flow_uuids_using_me()
         if len(using_flow_uuids) > 0:
-            from kskp.store.session import DatumFactory
+            from kskp.store.factory import DatumFactory
             using_flow_label = DatumFactory(self.session).find_by_uuid(using_flow_uuids[0]).label
             raise Exception('このStoreはローダ・セーバ(%s)で使用しているため削除できません' % using_flow_label)
 

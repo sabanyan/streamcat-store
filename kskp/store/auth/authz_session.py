@@ -1,38 +1,26 @@
 from .exceptions import NotAuthorizedException
 
-class AuthzSession():
-
-    _session = None
+class Session():
+    """
+    権限判定をしないSession
+    DatumとそのサブクラスはSession.userに依存するので、
+    インタフェースとしてこのクラスを定義する
+    """
 
     def __init__(self, session_factory, user):
         self._session = session_factory()
         self._user = user
 
-    # @property
-    # def user_id(self):
-    #     if self._user_id is None:
-    #         raise Exception('AuthzSessionにuser_idが設定されていません')
-    #     return self._user_id
-
-    # @user_id.setter
-    # def user_id(self, user_id):
-    #     from .user import User
-    #     if user_id is None:
-    #         raise Exception('AuthzSessionに設定したuser_idがNoneです')
-    #     # elif not User.exists(user_id):
-    #     #     raise Exception(f'AuthzSessionに設定したuser_id({user_id})は存在しません')
-    #     self._user_id = user_id
-
     @property
     def user(self):
         if self._user is None:
-            raise Exception('AuthzSessionにuserが設定されていません')
+            raise Exception('Sessionにuserが設定されていません')
         return self._user
 
     @user.setter
     def user(self, user):
         if user is None:
-            raise Exception('AuthzSessionに設定したuserがNoneです')
+            raise Exception('Sessionに設定したuserがNoneです')
         self._user = user
 
     def commit(self):
@@ -61,6 +49,23 @@ class AuthzSession():
 
     def close(self):
         self._session.close()
+
+    def execute(self, sql):
+        return self._session.execute(sql)
+
+    def query(self, datum_type, *args):
+        return self._session.query(datum_type, *args)
+
+    def add(self, obj):
+        self._session.add(obj)
+
+    def update(self, obj):
+        raise NotAuthorizedException('認証なき更新はできません')
+
+    def delete(self, obj):
+        raise NotAuthorizedException('認証なき削除はできません')
+
+class AuthzSession(Session):
 
     def query(self, datum_type, *args):
         """
@@ -120,7 +125,7 @@ class AuthzSession():
 
             # everyoneグループが無ければ作成し、ユーザをeveryoneグループに所属させる
             # everyone_group = Group.load_everyone_group()
-            from kskp.store.session import GroupFactory
+            from kskp.store.factory import GroupFactory
             everyone_group = GroupFactory(self).load_everyone_group()
             everyone_group.join_user(self.user)
             # everyoneグループへ追加データの権限を付与する
@@ -170,9 +175,6 @@ class AuthzSession():
 
         # 削除する
         self._session.delete(obj)
-
-    def execute(self, sql):
-        return self._session.execute(sql)
 
     def writable_by_id(self, user, datum_id):
         """

@@ -132,7 +132,7 @@ class Flow(Datum):
         finally:
             self.session.commit()
 
-    def update_data(self, label, flow_data, modifier):
+    def update_data(self, label, flow_data):
         """
         Flowのdata列を更新する
         """
@@ -168,7 +168,7 @@ class Flow(Datum):
             # レコードを更新する
             self._label = new_label
             self._data = data
-            self._modifier_id = modifier.id
+            self._modifier_id = self.session.user.id
             self.session.update(self)
         except Exception as e:
             self.session.rollback()
@@ -179,7 +179,7 @@ class Flow(Datum):
         # ここでflowを返すとtest_model.pyでテストが通らない
         return self
 
-    def move(self, parent_uuid, modifier):
+    def move(self, parent_uuid):
         """
         指定されたStoreの直下に移動する
         """
@@ -197,8 +197,11 @@ class Flow(Datum):
 
         try:
             # レコードを更新する
-            self.session.query(Datum).filter(Datum.id==self.id).update({'parent_id'   :to_folder.id
-                                                                  ,'_modifier_id':modifier.id})
+            # self.session.query(Datum).filter(Datum.id==self.id).update({'parent_id'   :to_folder.id
+            #                                                       ,'_modifier_id':modifier.id})
+            self.parent_id = to_folder.id
+            self._modifier_id = self.session.user.id
+            self.session.update(self)
         except Exception as e:
             self.session.rollback()
             raise e
@@ -237,20 +240,20 @@ class Flow(Datum):
     def flow_data(self):
         return self.data['flow']
 
-    def duplicate(self, new_label, creator):
+    def duplicate(self, new_label):
         """
         自身の複製を作成する
         """
         # ラベルと作成者については、指定された値を新たに設定する
         new_flow_data = self.flow_data
         new_flow_data['label'] = new_label
-        new_flow_data['creator'] = creator.name
+        new_flow_data['creator'] = self.session.user.name
         # FIXIT : Dataテーブルのcreated_at列と時刻を合わせたい
         from datetime import datetime, timedelta, timezone
         JST = timezone(timedelta(hours=+9), 'JST')
         new_flow_data['createdAt'] = datetime.now(JST).strftime('%Y-%m-%d %H:%M:%S')
         # 複製を作成する
-        new_flow = Flow(self.session, self.parent_uuid, new_label, new_flow_data, creator)
+        new_flow = Flow(self.session, self.parent_uuid, new_label, new_flow_data, self.session.user)
         return new_flow
 
     @staticmethod
@@ -373,7 +376,7 @@ class Flow(Datum):
         results = self.session.execute(sql)
         return [str(result['uuid']) for result in results]
 
-    def replace_uuid(self, old_uuid, new_uuid, modifier):
+    def replace_uuid(self, old_uuid, new_uuid):
         """
         参照uuidを置き換える
         """
@@ -381,9 +384,9 @@ class Flow(Datum):
         for node in flow_data['nodes']:
             if 'uuid' in node and node['uuid'] == old_uuid:
                 node['uuid'] = new_uuid
-        self.update_data(self.label, flow_data, modifier)
+        self.update_data(self.label, flow_data)
 
-    def set_cache(self, node_id, cache_uuid, modifier):
+    def set_cache(self, node_id, cache_uuid):
         from datetime import datetime, timedelta, timezone
 
         flow_data = self.flow_data
@@ -392,7 +395,7 @@ class Flow(Datum):
                 node['uuid'] = cache_uuid
                 # 記録時間はUTC、表示時間は現地時間にすべきでは？？
                 node['cacheCreatedAt'] = datetime.now(timezone(timedelta(hours=+9), 'JST')).strftime('%Y-%m-%d %H:%M:%S')
-        self.update_data(self.label, flow_data, modifier)
+        self.update_data(self.label, flow_data)
 
     def to_json(self):
         return {'uuid'      : self.uuid,

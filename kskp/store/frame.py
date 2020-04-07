@@ -39,6 +39,10 @@ class Frame(Datum):
         # data列の値を作成する
         self.data = {'encoding':encoding, 'newline':newline}
 
+        # フローキャッシュの場合はTrue
+        # data.type列='cache'を用意するべきだろうか？
+        self.is_cache = False
+
     # @staticmethod
     # def find_by_uuid(uuid):
     #     """
@@ -112,7 +116,7 @@ class Frame(Datum):
         finally:
             self.session.commit()
 
-    def update_data(self, label, modifier):
+    def update_data(self, label):
         """
         Frameのdata列を更新する
         """
@@ -132,9 +136,9 @@ class Frame(Datum):
 
         try:
             # 同じファイルに対応するドキュメントのpath列を、ファイル名の移動に合わせて変更する
-            self._update_same_path(old_path, new_path, modifier)
+            self._update_same_path(old_path, new_path)
             # labelとdata列を更新する
-            self._update_label_imp(new_label, modifier)
+            self._update_label_imp(new_label)
         except Exception as e:
             self.session.rollback()
             raise e
@@ -143,7 +147,7 @@ class Frame(Datum):
 
         return frame
 
-    def update_label_only(self, label, modifier):
+    def update_label_only(self, label):
         """
         Frameのlabel列を更新する
         (path及び対応ファイル名は変更しない)
@@ -152,19 +156,19 @@ class Frame(Datum):
         new_label = Datum.escape_label(label)
 
         try:
-            self._update_label_imp(new_label, modifier)
+            self._update_label_imp(new_label)
         except Exception as e:
             self.session.rollback()
             raise e
         finally:
             self.session.commit()
 
-    def _update_label_imp(self, new_label, modifier):
+    def _update_label_imp(self, new_label):
         # label列を更新する
         result = self.session.query(Frame).filter(Frame.uuid==self.uuid).one_or_none()
         if result is not None:
             result._label = new_label
-            result._modifier_id = modifier and modifier.id
+            result._modifier_id = self.session.user.id
             self.session.update(result)
 
     def delete(self):

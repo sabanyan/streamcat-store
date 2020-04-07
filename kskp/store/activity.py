@@ -38,9 +38,11 @@ class Activity(Datum):
 
     @property
     def result(self):
+        def is_cache(datum):
+            return type(datum) == Frame and datum.is_cache
         # Cacheは返さない
         # 同じPointにCacheとFrame(CacheとVis)が紐づくとややこしい
-        return [(point, datum) for point, datum in self._results if type(datum) != Cache]
+        return [(point, datum) for point, datum in self._results if not is_cache(datum)]
 
     def count_result(self):
         return len(self._results)
@@ -67,7 +69,7 @@ class Activity(Datum):
                 # 
                 # 対応ファイルの文字コードと改行コードを推測してその結果を登録する
                 datum.add_entry_from_path(datum.path)
-                datum.update_label_only(new_label, None)
+                datum.update_label_only(new_label)
             elif type(datum) is Cache:
                 # 
                 # Cacheの場合
@@ -75,7 +77,7 @@ class Activity(Datum):
                 # 対応ファイルの文字コードと改行コードを推測してその結果を登録する
                 datum.add_entry_from_path(datum.path)
             elif type(datum) is DataSource:
-                datum.update_data(new_label, datum.flow_data, None)
+                datum.update_data(new_label, datum.flow_data)
 
 
 
