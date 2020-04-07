@@ -49,14 +49,14 @@ class Auth(BaseModel):
 
     @property
     def creator(self):
-        from kskp.store.session import UserFactory
+        from kskp.store.factory import UserFactory
         if self._creator_id is None:
             return None
         return UserFactory(self.session).find_by_id(self._creator_id)
 
     @property
     def modifier(self):
-        from kskp.store.session import UserFactory
+        from kskp.store.factory import UserFactory
         if self._modifier_id is None:
             return None
         return UserFactory(self.session).find_by_id(self._modifier_id)
@@ -69,13 +69,13 @@ class Auth(BaseModel):
         self.session.add(self)
         self.session.commit()
 
-    def update(self, read, write, exec, modifier=modifier):
+    def update(self, read, write, exec):
         try:
             # レコードを更新する
             self.read = read
             self.write = write
             self.exec = exec
-            self._modifier_id = modifier and modifier.id
+            self._modifier_id = self.session.user and self.session.user.id
             self.session.update(self)
         except Exception as e:
             self.session.rollback()

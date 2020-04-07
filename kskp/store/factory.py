@@ -1,9 +1,11 @@
 import os
 from sqlalchemy import create_engine
 
-class Session():
+class Factory():
     """
     SQLAlchemyのSessionを保持する(とりあえずこの目的ね)
+    
+    TODO:Factoryに名前を変えた方がいい？
     """
 
     # データベースへの接続
@@ -17,7 +19,7 @@ class Session():
         # セッションをつくる
         # session.commit()によるExpireでquery_expression()で設定されているreadableがNoneになる
         # これを回避するためexpire_on_commit=Falseとする、autoflush=Falseも必要!
-        session_maker = sessionmaker(bind=Session._engine, expire_on_commit=False, autoflush=False)
+        session_maker = sessionmaker(bind=Factory._engine, expire_on_commit=False, autoflush=False)
 
         # セッションを保持する
         self._session = AuthzSession(session_maker, user)
@@ -48,12 +50,15 @@ class Session():
         return self._user
 
 
-class UnAuthzSessoin():
+class UnAuthzFactory():
     
     def __init__(self):
         from sqlalchemy.orm import sessionmaker
-        session_maker = sessionmaker(Session._engine)
-        self._session = session_maker()
+        session_maker = sessionmaker(Factory._engine)
+
+        # セッションを保持する
+        from kskp.store.auth.authz_session import Session
+        self._session = Session(session_maker, user=None)
 
     def create_admin_user(self):
         from kskp.store.auth import User
@@ -61,17 +66,20 @@ class UnAuthzSessoin():
 
     def find_user_by_email(self, email):
         user = UserFactory(self._session).find_by_email(email)
-        user.session = self._session
+        if user is not None:
+            user.session = self._session
         return user
 
     def find_user_by_id(self, user_id):
         user = UserFactory(self._session).find_by_id(user_id)
-        user.session = self._session
+        if user is not None:
+            user.session = self._session
         return user
 
     def load_admin_group(self):
         group = GroupFactory(self._session).load_admin_group()
-        group.session = self._session
+        if group is not None:
+            group.session = self._session
         return group
 
     def __enter__(self):
@@ -90,19 +98,19 @@ class DatumFactory():
     def __init__(self, session):
         self._session = session
     
-    def create_folder(self, parent_uuid, label, creator=None):
+    def create_folder(self, parent_uuid, label):
         from kskp.store import Folder
-        return Folder(self._session, parent_uuid, label, creator)
+        return Folder(self._session, parent_uuid, label, self._session.user)
 
-    def create_frame(self, parent_uuid, label, stream, creator=None):
+    def create_frame(self, parent_uuid, label, stream):
         from kskp.store import Frame
-        return Frame(self._session, parent_uuid, label, stream, creator)
+        return Frame(self._session, parent_uuid, label, stream, self._session.user)
 
-    def create_datasource(self, parent_uuid, label, store, loader_step, creator=None):
+    def create_datasource(self, parent_uuid, label, store, loader_step):
         from kskp.store import DataSource
-        return DataSource(self._session, parent_uuid, label, store, loader_step, creator)
+        return DataSource(self._session, parent_uuid, label, store, loader_step, self._session.user)
 
-    def create_simple_flow(self, parent_uuid, label, data_source, creator=None):
+    def create_simple_flow(self, parent_uuid, label, data_source):
         from kskp.store import Flow
         flow_data = {
                         "label": label,
@@ -121,12 +129,12 @@ class DatumFactory():
                         ],
                         "ports": [[],[]],
                         "params": [],
-                        "creator": "",
+                        "creator": self._session.user.name,
                         "createdAt": data_source.created_at_str,
                         "projectId": None,
                         "description": ""
                     }
-        return Flow(self._session, parent_uuid, label, flow_data, creator)
+        return Flow(self._session, parent_uuid, label, flow_data, self._session.user)
 
     def find_by_uuid(self, uuid, type=None):
         """
@@ -195,6 +203,78 @@ class DatumFactory():
 
         return subflows
 
+    def load_root(self):
+        """
+        ルートデータストアを取得する、存在しない場合は作成する
+        """
+        root = self.find_root()
+        # ルートフォルダが存在しない場合はルートフォルダを作成する
+        # (最初にライブラリ画面にアクセスする時はルートフォルダ自身も存在しません)
+        if root is None:
+            new_root = self.create_folder(parent_uuid=None, label='ROOT_FOLDER')
+            # folderレコードをDBに格納する
+            new_root.save()
+
+            # 
+            # ルートフォルダにAdminグループの権限設定がない場合、初期値を設定する
+            # (後方互換)
+            # 
+            from kskp.store.factory import GroupFactory, AuthFactory
+            group_factory = GroupFactory(self._session)
+            auth_factory = AuthFactory(self._session)
+
+            admin_group = group_factory.load_admin_group()
+            admin_group.join_user(self._session.user)
+            if not auth_factory.exists(admin_group.id, new_root.id):
+                admin_group.init_authz(new_root.id, True, True, False)
+
+            # 
+            # ルートフォルダにEveryOneグループの権限設定がない場合、初期値を設定する
+            # (後方互換)
+            # 
+            everyone_group = group_factory.load_everyone_group()
+            everyone_group.join_user(self._session.user)
+            if not auth_factory.exists(everyone_group.id, new_root.id):
+                everyone_group.init_authz(new_root.id, True, True, False)
+
+            # 参照権限設定後にもう一度取得し直す
+            root = self.find_by_uuid(new_root.uuid)
+        return root
+
+    def load_result_folder(self):
+        """
+        実行結果フォルダを取得する、存在しない場合は作成する
+        """
+        from kskp.store import RESULT_FOLDER_UUID, RESULT_FOLDER_LABEL
+        return self._get_or_make_dir_path(RESULT_FOLDER_UUID, RESULT_FOLDER_LABEL)
+
+    def load_cache_folder(self):
+        """
+        キャッシュフォルダを取得する、存在しない場合は作成する
+        """
+        from kskp.store import CACHE_FOLDER_UUID, CACHE_FOLDER_LABEL
+        return self._get_or_make_dir_path(CACHE_FOLDER_UUID, CACHE_FOLDER_LABEL)
+
+    def load_flow_folder(self):
+        """
+        フローフォルダを取得する、存在しない場合は作成する
+        """
+        from kskp.store import FLOW_FOLDER_UUID, FLOW_FOLDER_LABEL
+        return self._get_or_make_dir_path(FLOW_FOLDER_UUID, FLOW_FOLDER_LABEL)
+
+    def _get_or_make_dir_path(self, uuid, label):
+        # 特定用途のフォルダのUUIDは決め打ちである
+        if self.exists(uuid):
+            folder = self.find_by_uuid(uuid)
+        else:
+            # フォルダが無い場合は作成する
+            root = self.find_root()
+            folder = root.create_folder(label)
+            # Folderのコンストラクタで付番したUUIDを捨てて、特定用途のフォルダのUUIDを格納する
+            folder.uuid = uuid
+            folder.save()
+        return folder
+
     def get_flows_referencing_frame(self, frame_uuid):
         """
         参照する入力frameとキャッシュframeを全て取得する
@@ -231,14 +311,14 @@ class StoreFactory():
     def __init__(self, session):
         self._session = session
 
-    def create(self, id, version=None, label=None, description=None, url=None, params=None, creator=None):
+    def create(self, id, version=None, label=None, description=None, url=None, params=None):
         from kskp.store import StoreModel as Store
         data = {'version'    : version,
                 'label'      : label,
                 'description': description,
                 'url'        : url,
                 'params'     : params}
-        store = Store(id, data, creator)
+        store = Store(id, data, self._session.user)
         store.session = self._session
         return store
 
@@ -257,9 +337,9 @@ class AuthFactory():
     def __init__(self, session):
         self._session = session
 
-    def create(self, group_id, datum_id, read=None, write=None, exec=None, creator=None):
+    def create(self, group_id, datum_id, read=None, write=None, exec=None):
         from kskp.store.auth import Auth
-        return Auth(self._session, group_id, datum_id, read=read, write=write, exec=exec, creator=creator)
+        return Auth(self._session, group_id, datum_id, read=read, write=write, exec=exec, creator=self._session.user)
 
     def find_by_id(self, group_id, datum_id):
         from kskp.store.auth import Auth
@@ -279,9 +359,9 @@ class GroupFactory():
     def __init__(self, session):
         self._session = session
 
-    def create(self, name, creator=None):
+    def create(self, name):
         from kskp.store.auth import Group
-        return Group(self._session, name, creator)
+        return Group(self._session, name, self._session.user)
 
     def find_by_id(self, group_id):
         return self._session.query(Group).filter(Group.id == group_id).one()

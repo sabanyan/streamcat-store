@@ -42,14 +42,14 @@ class UserGroup(BaseModel):
 
     @property
     def creator(self):
-        from kskp.store.session import UserFactory
+        from kskp.store.factory import UserFactory
         if self._creator_id is None:
             return None
         return UserFactory(self.session).find_by_id(self._creator_id)
 
     @property
     def modifier(self):
-        from kskp.store.session import UserFactory
+        from kskp.store.factory import UserFactory
         if self._modifier_id is None:
             return None
         return UserFactory(self.session).find_by_id(self._modifier_id)

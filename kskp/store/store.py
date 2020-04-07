@@ -27,11 +27,11 @@ class Store(Datum):
         # (後方互換、一覧表示の速度を結構遅くしている)
         # 
         for datum in data:
-            from kskp.store.session import GroupFactory, AuthFactory
+            from kskp.store.factory import GroupFactory, AuthFactory
             everyone_group = GroupFactory(self.session).load_everyone_group()
-            everyone_group.join_user(self.session.user, creator=self.session.user)
+            everyone_group.join_user(self.session.user)
             if not AuthFactory(self.session).exists(everyone_group.id, datum.id):
-                everyone_group.init_authz(datum.id, True, True, True, self.session.user)
+                everyone_group.init_authz(datum.id, True, True, True)
 
         return data
 
@@ -94,33 +94,41 @@ class Store(Datum):
                 return True
         return False
 
-    def create_folder(self, label, creator=None):
+    def create_folder(self, label):
         from kskp.store import Folder
-        return Folder(self.session, self.uuid, label, creator)
+        return Folder(self.session, self.uuid, label, self.session.user)
 
-    def create_awss3(self, label, bucket_name, creator=None):
+    def create_awss3(self, label, bucket_name):
         from kskp.store import AwsS3
-        return AwsS3(self._session, self.uuid, label, bucket_name, creator)
+        return AwsS3(self._session, self.uuid, label, bucket_name, self.session.user)
 
-    def create_database(self, label, database_conn, creator=None):
+    def create_database(self, label, database_conn):
         from kskp.store import Database
-        return Database(self.session, self.uuid, label, database_conn, creator)
+        return Database(self.session, self.uuid, label, database_conn, self.session.user)
 
-    def create_remote_folder(self, label, remoteFolderConn, creator=None):
+    def create_remote_folder(self, label, remoteFolderConn):
         from kskp.store import RemoteFolder
-        return RemoteFolder(self.session, self.uuid, label, remoteFolderConn, creator)
+        return RemoteFolder(self.session, self.uuid, label, remoteFolderConn, self.session.user)
 
-    def create_flow(self, label, flow_data, creator=None):
+    def create_flow(self, label, flow_data):
         from kskp.store import Flow
-        return Flow(self.session, self.uuid, label, flow_data, creator)
+        return Flow(self.session, self.uuid, label, flow_data, self.session.user)
 
-    def create_frame(self, label, stream, creator=None):
+    def create_datasource(self, label, store, loader_step):
+        from kskp.store import DataSource
+        return DataSource(self.session, self.uuid, label, store, loader_step, self.session.user)
+
+    def create_frame(self, label, stream):
         from kskp.store import Frame
-        return Frame(self.session, self.uuid, label, stream, creator)
+        return Frame(self.session, self.uuid, label, stream, self.session.user)
 
-    def create_cache(self, label, stream, creator=None):
-        from kskp.store import Cache
-        return Cache(self.session, self.uuid, label, stream, creator)
+    def create_cache(self, label, stream):
+        # Cacheクラスはtype='frame'なので保存時にSQLAlchemyエラーになる
+        # そのためキャッシュにはFrameクラスを用いる
+        from kskp.store import Frame
+        cache = Frame(self.session, self.uuid, label, stream, self.session.user)
+        cache.is_cache = True
+        return cache
 
     # def save(self, datum):
     #     """

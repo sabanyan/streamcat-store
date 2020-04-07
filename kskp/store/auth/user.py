@@ -70,14 +70,14 @@ class User(BaseModel):
 
     @property
     def creator(self):
-        from kskp.store.session import UserFactory
+        from kskp.store.factory import UserFactory
         if self._creator_id is None:
             return None
         return UserFactory(self.session).find_by_id(self._creator_id)
 
     @property
     def modifier(self):
-        from kskp.store.session import UserFactory
+        from kskp.store.factory import UserFactory
         if self._modifier_id is None:
             return None
         return UserFactory(self.session).find_by_id(self._modifier_id)
@@ -116,27 +116,27 @@ class User(BaseModel):
         self.session.add(self)
         self.session.commit()
 
-    def update_email(self, new_email, modifier):
+    def update_email(self, new_email):
         """
         Userのemail列を更新する
         """
         self.email = new_email
-        self._modifier_id = modifier.id
+        self._modifier_id = self.session.user.id
         self.session.update(self)
         self.session.commit()
 
-    def update_password(self, new_password, modifier):
+    def update_password(self, new_password):
         pass
 
-    def update_name(self, new_name, modifier):
+    def update_name(self, new_name):
         self.name = new_name
-        self._modifier_id = modifier.id
+        self._modifier_id = self.session.user.id
         self.session.update(self)
         self.session.commit()
 
-    def update_self_group_id(self, new_group_id, modifier=None):
+    def update_self_group_id(self, new_group_id):
         self.self_group_id = new_group_id
-        self._modifier_id = modifier and modifier.id
+        self._modifier_id = self.session.user and self.session.user.id
         self.session.update(self)
         self.session.commit()
 
@@ -187,12 +187,12 @@ class User(BaseModel):
         """
         本人グループを取得する
         """
-        from kskp.store.session import GroupFactory
+        from kskp.store.factory import GroupFactory
         group_factory = GroupFactory(self.session)
 
         if self.self_group_id is None:
             # 本人グループを作成する
-            self_group = group_factory.create(self.name, creator=self)
+            self_group = group_factory.create(self.name)
             self_group.save()
             # 本人グループを設定する
             self.update_self_group_id(self_group.id)
@@ -201,7 +201,7 @@ class User(BaseModel):
             if self_group is None:
                 raise Exception(f'本人グループ({self.self_group_id})は存在しません')
 
-        self_group.join_user(self, creator=self)
+        self_group.join_user(self)
 
         return self_group
 

@@ -3,7 +3,7 @@ import os
 import sys
 import nysol.mcmd as nm
 
-from kskp.store import NysolModule, Datum, Store, Folder, Frame, Cache
+from kskp.store import NysolModule, Datum, Store, Frame
 from kskp.core import Command, Port
 
 class SCommand(Command):
@@ -36,7 +36,7 @@ class SaverCommand(SCommand):
         # ラベル名とファイル名はコンストラクタで別々に指定できるようにすれば
         # 改めてupdate_label_only()を行う必要はなくなる
         # もしくは、実行ログ一覧画面さえできれば別々に指定する必要もなくなるか？
-        frame.update_label_only(point_label, None)
+        frame.update_label_only(point_label)
 
         # NYSOLコマンドを作成する
         # if not isinstance(inputs['i'], NysolModule):
@@ -52,13 +52,10 @@ class SaverCommand(SCommand):
         return nm.writecsv(i=cmd, o=abs_frame_path)
 
     def make_folder(self, store, folder1_label, folder2_label, folder2_file_name):
-        from kskp.store import Datum, AwsS3
-
         # フロー名フォルダがなければ作成する
         results1 = store.find_children_by_label(folder1_label)
         if results1 is None or len(results1)==0:
-            # folder1 = Folder(store.uuid, folder1_label, None)
-            folder1 = store.create_folder(folder1_label, None)
+            folder1 = store.create_folder(folder1_label)
             folder1.save()
         else:
             folder1 = results1[0]
@@ -66,7 +63,6 @@ class SaverCommand(SCommand):
         # 開始時間フォルダがなければ作成する
         results2 = folder1.find_children_by_label(folder2_label)
         if results2 is None or len(results2)==0:
-            # folder2 = Folder(folder1.uuid, folder2_label, None)
             folder2 = folder1.create_folder(folder2_label)
             folder2.path = folder2.path.parent / folder2_file_name
             folder2.save()
@@ -82,7 +78,6 @@ class SaverCommand(SCommand):
     def make_frame(self, store, label):
         import io
         f = io.BytesIO(b'')
-        # frame = Frame(store.uuid, label, f)
         frame = store.create_frame(label, f)
         # RunsCommandの実行前にFrameを登録する
         frame.save()
@@ -118,11 +113,11 @@ class CacheSaverCommand(SaverCommand):
         # FlowのキャッシュUUIDを変更する
         # テスト実行の場合は実行するFlowをDBに保存していない
         from kskp.store import Flow
-        if Flow.exists(args['flow_uuid']):
-            flow = Flow.find_by_uuid(args['flow_uuid'])
+        if args['flow'] is not None:
+            flow = args['flow']
             node_id = args['datum_id']
             # TODO: RunsCommand実行前にFlowにキャッシュありの情報を更新すると、同じフローの同時実行に支障があるだろう
-            flow.set_cache(node_id, cache.uuid, None)
+            flow.set_cache(node_id, cache.uuid)
 
         # NYSOLコマンドを作成する
         cmd = inputs['i'].content
@@ -133,10 +128,12 @@ class CacheSaverCommand(SaverCommand):
     def make_frame(self, store, label):
         import io
         f = io.BytesIO(b'')
-        # cache = Cache(store.uuid, label, f)
         cache = store.create_cache(label, f)
         # RunsCommandの実行前にCacheを登録する
         cache.save()
+        cache = store.find_child_by_uuid(cache.uuid)
+        # FrameとCacheを区別するためのフラグ
+        cache.is_cache = True
         return cache
 
 # 1つ保存のsaverはどうなる？
@@ -196,7 +193,7 @@ class DbLoaderCommand(SCommand):
     def run(self, args, inputs):
         DbLoaderCommand._write_log('START')
 
-        from kskp.store import Datum, Database
+        from kskp.store import Datum
         if inputs['i'].type != Datum.DATABASE_TYPE:
             t = type(inputs['i'])
             raise Exception(f'DbLoaderの入力にDatabase Store以外のデータ型({t})が入力されました')
@@ -349,7 +346,7 @@ class DbSaverCommand(SaverCommand):
     def run(self, args, inputs):
         DbSaverCommand._write_log('START')
 
-        from kskp.store import Datum, Database
+        from kskp.store import Datum
         if inputs['store'].type != Datum.DATABASE_TYPE:
             t = type(inputs['store'])
             raise Exception(f'DbSaverの入力にDatabase Store以外のデータ型({t})が入力されました')
@@ -420,7 +417,7 @@ class DbSaverCommand(SaverCommand):
 
         # 出力結果を取得するDataSourceをライブラリに登録する
         # TODO: point_idどっからとってこよう
-        datasource = self._create_data_source(result_folder.uuid, database, 'point_id', schema_name, table_name, args['activity_uuid'])
+        datasource = self._create_data_source(result_folder, database, 'point_id', schema_name, table_name, args['activity_uuid'])
         datasource.save()
 
         return {'o': NysolModule(cmd), 'u': datasource}  
@@ -571,14 +568,13 @@ class DbSaverCommand(SaverCommand):
             conn.commit()
 
     @staticmethod
-    def _create_data_source(parent_uuid, database, label, schema_name, table_name, activity_uuid):
+    def _create_data_source(parent, database, label, schema_name, table_name, activity_uuid):
         import uuid
         from kskp.engine import Step
         from kskp.depo.std.commands import CommandLink
-        from kskp.store import DataSource
         args = {'schema_name':schema_name, 'table_name':table_name, 'activity_uuid_kskp':activity_uuid}
         loader_step = Step(str(uuid.uuid4()), CommandLink('db_loader').resolve(), args)
-        return DataSource(parent_uuid, label, database, loader_step)
+        return parent.create_datasource(label, database, loader_step)
 
     @staticmethod
     def _get_tmp_file_name():
@@ -614,7 +610,7 @@ class RemoteFolderLoaderCommand(SCommand):
         self.name = 'remotefolder_loader'
 
     def run(self, args, inputs):
-        from kskp.store import Datum, RemoteFolder
+        from kskp.store import Datum
         if inputs['i'].type != Datum.RFOLDER_TYPE:
             t = type(inputs['i'])
             raise Exception(f'Remotefolder_loaderの入力にRemote Folder Store以外のデータ型({t})が入力されました')
@@ -648,7 +644,7 @@ class RemoteFolderSaverCommand(SaverCommand):
         self.o_ports = [Port('o', 'mcmd'), Port('u', 'frame')]
 
     def run(self, args, inputs):
-        from kskp.store import Datum, RemoteFolder
+        from kskp.store import Datum
         if inputs['store'].type != Datum.RFOLDER_TYPE:
             t = type(inputs['store'])
             raise Exception(f'RemoteFolderSaverの入力にRemoteFolderStore以外のデータ型({t})が入力されました')
@@ -687,20 +683,19 @@ class RemoteFolderSaverCommand(SaverCommand):
 
         # 出力結果を取得するDataSourceをライブラリに登録する
         # TODO: point_idどっからとってこよう
-        datasource = self._create_data_source(result_folder.uuid, rfolder, 'point_id', path_str)
+        datasource = self._create_data_source(result_folder, rfolder, 'point_id', path_str)
         datasource.save()
 
         return {'o': NysolModule(cmd), 'u': datasource}  
 
     @staticmethod
-    def _create_data_source(parent_uuid, rfolder, label, file_path):
+    def _create_data_source(parent, rfolder, label, file_path):
         import uuid
         from kskp.engine import Step
         from kskp.depo.std.commands import CommandLink
-        from kskp.store import DataSource
         args = {'file_path':file_path}
         loader_step = Step(str(uuid.uuid4()), CommandLink('remotefolder_loader').resolve(), args)
-        return DataSource(parent_uuid, label, rfolder, loader_step)
+        return parent.create_datasource(label, rfolder, loader_step)
 
 class RunsCommand(SCommand):
     def __init__(self):

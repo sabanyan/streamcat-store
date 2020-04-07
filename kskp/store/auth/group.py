@@ -49,14 +49,14 @@ class Group(BaseModel):
 
     @property
     def creator(self):
-        from kskp.store.session import UserFactory
+        from kskp.store.factory import UserFactory
         if self._creator_id is None:
             return None
         return UserFactory(self.session).find_by_id(self._creator_id)
 
     @property
     def modifier(self):
-        from kskp.store.session import UserFactory
+        from kskp.store.factory import UserFactory
         if self._modifier_id is None:
             return None
         return UserFactory(self.session).find_by_id(self._modifier_id)
@@ -97,12 +97,12 @@ class Group(BaseModel):
         count = self.session.query(UserGroup).filter(UserGroup.group_id==self.id).count()
         return count > 0
 
-    def join_user(self, user, creator=None):
+    def join_user(self, user):
         """
         グループにユーザを所属させる
         """
         if not self.is_joined_user(user):
-            user_group = UserGroup(self.session, user.id, self.id, creator=creator)
+            user_group = UserGroup(self.session, user.id, self.id, self.session.user)
             user_group.save()
     
     def leave_user(self, user):
@@ -110,19 +110,19 @@ class Group(BaseModel):
         グループからユーザを脱退させる
         """
         if self.is_joined_user(user):
-            from kskp.store.session import UserGroupFactory
+            from kskp.store.factory import UserGroupFactory
             user_group = UserGroupFactory(self.session).find_by_id(user.id, self.id)
             user_group.delete()
 
-    def init_authz(self, datum_id, read, write, exec, creator=None):
-        from kskp.store.session import AuthFactory
+    def init_authz(self, datum_id, read, write, exec):
+        from kskp.store.factory import AuthFactory
         auth_factory = AuthFactory(self.session)
 
         if auth_factory.exists(self.id, datum_id):
             auth = auth_factory.find_by_id(self.id, datum_id)
-            auth.update(read, write, exec, modifier=creator)
+            auth.update(read, write, exec)
         else:
-            authz = auth_factory.create(self.id, datum_id, read=read, write=write, exec=exec, creator=creator)
+            authz = auth_factory.create(self.id, datum_id, read=read, write=write, exec=exec)
             authz.save()
 
     @property

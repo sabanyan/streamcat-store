@@ -89,9 +89,9 @@ ss = Session()
 
 # 管理者グループと管理者ユーザを作成する
 # (とりあえず、権限管理のないsessionで作成する)
-from kskp.store.session import UnAuthzSessoin
+from kskp.store.factory import UnAuthzFactory
 from kskp.store.auth import add_admin_user_and_group
-with UnAuthzSessoin() as db_session:
+with UnAuthzFactory() as db_session:
     add_admin_user_and_group(db_session)
 
 from kskp.core import Datum, Port, Command
