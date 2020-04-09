@@ -216,14 +216,6 @@ class Datum(BaseModel):
     #     return self
 
     @property
-    def creator_str(self):
-        return Datum.get_user_name_by_user_id(self.creator)
-
-    @property
-    def modifier_str(self):
-        return Datum.get_user_name_by_user_id(self.modifier)
-
-    @property
     def created_at_str(self):
         import datetime
         if self.created_at is None:
@@ -258,6 +250,12 @@ class Datum(BaseModel):
         if self.creator is None:
             return ''
         return self.creator.name
+
+    @property
+    def modifier_str(self):
+        if self.modifier is None:
+            return ''
+        return self.modifier.name
 
     def move(self, parent_uuid):
         """

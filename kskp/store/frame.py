@@ -147,8 +147,7 @@ class Frame(Datum):
 
         return frame
 
-    @staticmethod
-    def update_encoding_newline(uuid, encoding_str, newline_str, modifier):
+    def update_encoding_newline(self, encoding_str, newline_str):
         encoding = None
         for key, value in Frame.ENCODING_CONV_TABLE.items():
             if value == encoding_str:
@@ -166,19 +165,18 @@ class Frame(Datum):
             raise Exception(f'文字改行コードの指定文字列({newline_str})が誤っています')
 
         try:
-            data = {'encoding':encoding, 'newline':newline}
-            session.query(Frame).filter(Frame.uuid==uuid).update({'data'    : data,
-                                                                  'modifier': modifier})
+            self._data = {'encoding':encoding, 'newline':newline}
+            self._modifier_id = self.session.user.id
+            self.session.update(self)
         except Exception as e:
-            session.rollback()
+            self.session.rollback()
             raise e
         finally:
-            session.commit()
+            self.session.commit()
 
-        return Frame.find_by_uuid(uuid)
+        return self
 
-    @staticmethod
-    def update_label_only(uuid, label, modifier):
+    def update_label_only(self, label):
         """
         Frameのlabel列を更新する
         (path及び対応ファイル名は変更しない)
@@ -259,10 +257,10 @@ class Frame(Datum):
     # def encoding(self, encoding):
     #     self.data['encoding'] = encoding
 
+    @property
     def encoding_str(self):
-        encoding = self.data.get('encoding') or 'UNKNOWN'
-        ret = Frame.ENCODING_CONV_TABLE.get(encoding)
-        return ret or encoding
+        ret = self.ENCODING_CONV_TABLE.get(self.encoding)
+        return ret or self.encoding
 
     @property
     def newline(self):
@@ -272,10 +270,10 @@ class Frame(Datum):
     # def newline(self, newline):
     #     self.data['newline'] = newline
 
+    @property
     def newline_str(self):
-        newline = self.data.get('newline') or 'UNKNOWN'
-        ret = Frame.NEWLINE_CONV_TABLE.get(newline)
-        return ret or newline    
+        ret = self.NEWLINE_CONV_TABLE.get(self.newline)
+        return ret or self.newline   
 
     @property
     def modified_at_str(self):
@@ -410,8 +408,8 @@ class Frame(Datum):
                 'createdAt' : self.created_at_str}
 
         if self.readable:
-            ret['encoding'] = Frame.encoding_str(self)
-            ret['newline'] = Frame.newline_str(self)
+            ret['encoding'] = self.encoding_str
+            ret['newline'] = self.newline_str
 
         return ret
 
