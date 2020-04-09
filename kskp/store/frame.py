@@ -16,7 +16,7 @@ class Frame(Datum):
     # 文字コード変換テーブル
     ENCODING_CONV_TABLE = {'ascii':'ASCII', 'utf-8':'UTF-8', 'UTF-8-SIG':'UTF-8 BOM'}
     # 改行コード変換テーブル
-    NEWLINE_CONV_TABLE = {'\n':'LF', '\r\n':'CR+LF', '\r':'CR'}
+    NEWLINE_CONV_TABLE = {'\n':'LF', '\r\n':'CR+LF', '\r':'CR', 'UNKNOWN':'UNKNOWN'}
 
     def __init__(self, session, parent_uuid, label, stream, creator=None):
         """
@@ -147,7 +147,38 @@ class Frame(Datum):
 
         return frame
 
-    def update_label_only(self, label):
+    @staticmethod
+    def update_encoding_newline(uuid, encoding_str, newline_str, modifier):
+        encoding = None
+        for key, value in Frame.ENCODING_CONV_TABLE.items():
+            if value == encoding_str:
+                encoding = key
+                break
+        if encoding is None:
+            encoding = encoding_str
+
+        newline = None
+        for key, value in Frame.NEWLINE_CONV_TABLE.items():
+            if value == newline_str:
+                newline = key
+                break
+        if newline is None:
+            raise Exception(f'文字改行コードの指定文字列({newline_str})が誤っています')
+
+        try:
+            data = {'encoding':encoding, 'newline':newline}
+            session.query(Frame).filter(Frame.uuid==uuid).update({'data'    : data,
+                                                                  'modifier': modifier})
+        except Exception as e:
+            session.rollback()
+            raise e
+        finally:
+            session.commit()
+
+        return Frame.find_by_uuid(uuid)
+
+    @staticmethod
+    def update_label_only(uuid, label, modifier):
         """
         Frameのlabel列を更新する
         (path及び対応ファイル名は変更しない)
@@ -224,9 +255,9 @@ class Frame(Datum):
     def encoding(self):
         return self.data.get('encoding') or 'UNKNOWN'
 
-    @encoding.setter
-    def encoding(self, encoding):
-        self.data['encoding'] = encoding
+    # @encoding.setter
+    # def encoding(self, encoding):
+    #     self.data['encoding'] = encoding
 
     def encoding_str(self):
         encoding = self.data.get('encoding') or 'UNKNOWN'
@@ -237,9 +268,9 @@ class Frame(Datum):
     def newline(self):
         return self.data.get('newline') or 'UNKNOWN'
 
-    @newline.setter
-    def newline(self, newline):
-        self.data['newline'] = newline
+    # @newline.setter
+    # def newline(self, newline):
+    #     self.data['newline'] = newline
 
     def newline_str(self):
         newline = self.data.get('newline') or 'UNKNOWN'
