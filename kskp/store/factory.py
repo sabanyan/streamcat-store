@@ -280,7 +280,7 @@ class DatumFactory():
             folder = self.find_by_uuid(uuid)
         else:
             # フォルダが無い場合は作成する
-            root = self.find_root()
+            root = self.load_root()
             folder = root.create_folder(label)
             # Folderのコンストラクタで付番したUUIDを捨てて、特定用途のフォルダのUUIDを格納する
             folder.uuid = uuid
