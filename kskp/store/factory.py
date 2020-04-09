@@ -4,28 +4,25 @@ from sqlalchemy import create_engine
 class Factory():
     """
     SQLAlchemyのSessionを保持する(とりあえずこの目的ね)
-    
-    TODO:Factoryに名前を変えた方がいい？
     """
-
-    # データベースへの接続
-    # echo=TrueでSQLログがコンソールに出力される
-    _engine = create_engine(os.environ['SQLALCHEMY_DATABASE_URI'], echo=False)
-
     def __init__(self, user=None):
         from sqlalchemy.orm import sessionmaker
+        from kskp.store import engine
         from kskp.store.auth.authz_session import AuthzSession
 
         # セッションをつくる
         # session.commit()によるExpireでquery_expression()で設定されているreadableがNoneになる
         # これを回避するためexpire_on_commit=Falseとする、autoflush=Falseも必要!
-        session_maker = sessionmaker(bind=Factory._engine, expire_on_commit=False, autoflush=False)
+        session_maker = sessionmaker(bind=engine, expire_on_commit=False, autoflush=False)
 
         # セッションを保持する
         self._session = AuthzSession(session_maker, user)
 
         self._data = DatumFactory(self._session)
         self._store = StoreFactory(self._session)
+        self._auth = AuthFactory(self._session)
+        self._group = GroupFactory(self._session)
+        self._user_group = UserGroupFactory(self._session)
         self._user = UserFactory(self._session)
 
     def __enter__(self):
@@ -46,6 +43,18 @@ class Factory():
         return self._store
 
     @property
+    def auth(self):
+        return self._auth
+
+    @property
+    def group(self):
+        return self._group
+
+    @property
+    def user_group(self):
+        return self._user_group
+
+    @property
     def user(self):
         return self._user
 
@@ -54,10 +63,13 @@ class UnAuthzFactory():
     
     def __init__(self):
         from sqlalchemy.orm import sessionmaker
-        session_maker = sessionmaker(Factory._engine)
+        from kskp.store import engine
+        from kskp.store.auth.authz_session import Session
+
+        # セッションをつくる
+        session_maker = sessionmaker(engine)
 
         # セッションを保持する
-        from kskp.store.auth.authz_session import Session
         self._session = Session(session_maker, user=None)
 
     def create_admin_user(self):
@@ -425,6 +437,10 @@ from kskp.store.auth import User
 class UserFactory():
     def __init__(self, session):
         self._session = session
+
+    def create(self, email, password, name):
+        from kskp.store.auth import User
+        return User(self._session, email, password, name)
 
     def find_by_id(self, user_id):
         # SQLAlchemyのidentity mapにキャッシュされていればそれを返す

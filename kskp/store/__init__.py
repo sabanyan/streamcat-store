@@ -83,9 +83,9 @@ BaseModel = declarative_base()
 # session.commit()によるExpireでquery_expression()で設定されているreadableがNoneになる
 # これを回避するためexpire_on_commit=Falseとする、autoflush=Falseも必要!
 from sqlalchemy.orm import sessionmaker, scoped_session
-Session = scoped_session(sessionmaker(bind=engine, expire_on_commit=False, autoflush=False))
+# Session = scoped_session(sessionmaker(bind=engine, expire_on_commit=False, autoflush=False))
 # 変数名がsessionだとwebでimportした時にflaskのsessionと被るので、一応ssにしている
-ss = Session()
+# ss = Session()
 
 # 管理者グループと管理者ユーザを作成する
 # (とりあえず、権限管理のないsessionで作成する)

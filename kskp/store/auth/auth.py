@@ -7,15 +7,15 @@ class Auth(BaseModel):
     # テーブル名の定義
     __tablename__ = 'auths'
 
-    # 定義先スキーマ
-    if 'KSKP_POSTGRESQL_SCHEMA_NAME' in os.environ:
-        # テスト環境用のスキーマ
-        __table_args__ = {'schema': os.environ['KSKP_POSTGRESQL_SCHEMA_NAME']}
-
     # テーブルの制約
     __table_args__ = (
         PrimaryKeyConstraint('group_id', 'datum_id'),
     )
+
+    # 定義先スキーマ
+    if 'KSKP_POSTGRESQL_SCHEMA_NAME' in os.environ:
+        # テスト環境用のスキーマ
+        __table_args__ = __table_args__ + ({'schema': os.environ['KSKP_POSTGRESQL_SCHEMA_NAME']} ,)
 
     # 列名と列のデータ型等の定義
     group_id     = Column(INTEGER, primary_key=True)
