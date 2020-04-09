@@ -216,6 +216,14 @@ class Datum(BaseModel):
     #     return self
 
     @property
+    def creator_str(self):
+        return Datum.get_user_name_by_user_id(self.creator)
+
+    @property
+    def modifier_str(self):
+        return Datum.get_user_name_by_user_id(self.modifier)
+
+    @property
     def created_at_str(self):
         import datetime
         if self.created_at is None:
