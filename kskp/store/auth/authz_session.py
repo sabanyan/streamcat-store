@@ -34,7 +34,7 @@ class Session():
             self._session.flush([obj])
             obj.readable = tmp
         else:
-            self._session.expire(obj)
+            self._session.flush([obj])
 
     def rollback(self):
         self._session.rollback()
