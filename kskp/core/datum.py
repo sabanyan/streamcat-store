@@ -310,7 +310,7 @@ class Datum(BaseModel):
         return self
 
     def __repr__(self):
-        return f'Datum({self.id}, {self._label}, {self._path}, {self.type})'
+        return f'Datum({self.id}, {self._label}, {self.type})'
 
     def to_json(self):
         return {'uuid'      : self.uuid,

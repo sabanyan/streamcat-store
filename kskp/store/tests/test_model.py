@@ -6,10 +6,10 @@ import pprint
 from pathlib import Path
 from datetime import datetime
 
-from kskp.store import ss as session
 from kskp.core import Datum
 from kskp.store import Library, Flow, STORE_DIR, Library
 from kskp.store.auth import User
+from kskp.store.factory import Factory, UnAuthzFactory
 
 class LibraryTest(unittest.TestCase):
     # テスト用ユーザID
@@ -25,27 +25,29 @@ class LibraryTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         from kskp.store.auth import Auth, Group, User
-        # 管理者ユーザをSessionに設定する
-        session.user = User.find_by_id(1)
-        # テストユーザを作成する
-        test_user = User('test@kskp.io', 'testpass', 'Test')
-        test_user.save()
-        # EveryOneグループにテストユーザを加える
-        everyone_group = Group.load_everyone_group()
-        everyone_group.join_user(test_user)
-        # クラス変数に設定する
-        LibraryTest.USER_ID1 = session.user
-        LibraryTest.USER_ID2 = test_user
+        with UnAuthzFactory() as factory:
+            admin_user = factory.find_user_by_email('admin@kskp.io')
+
+        with Factory(admin_user) as factory:
+            # sessionにAuthzSessionを設定する
+            admin_user.session = factory._session
+            # テストユーザを作成する
+            from kskp.store.auth import User
+            test_user = factory.user.create('test@kskp.io', 'testpass', 'Test')
+            test_user.save()
+            # EveryOneグループにテストユーザを加える
+            everyone_group = factory.group.load_everyone_group()
+            everyone_group.join_user(test_user)
+            # クラス変数に設定する
+            cls.USER_ID1 = admin_user
+            cls.USER_ID2 = test_user
 
     @classmethod
     def tearDownClass(cls):
         # ライブラリフォルダを削除する
-        from kskp.core import Datum
-        library_path = STORE_DIR / Library.load_root().path
+        library_path = STORE_DIR / Library.load_root(cls.USER_ID1).path
         import shutil
         shutil.rmtree(library_path.as_posix())
-        # Sessionを閉じる
-        session.close()
         # スキーマを破棄する
         from kskp.store import engine
         from sqlalchemy import DDL
@@ -78,7 +80,7 @@ class LibraryTest(unittest.TestCase):
         ルートフォルダを取得する
         """
         # ルートデータストアを取得する
-        root = Library.load_root()
+        root = Library.load_root(self.USER_ID1)
         # 取得したルートデータストアの値を検証する
         self.assertIsNotNone(root.id)
         self.assertIsNone(root.parent_id)

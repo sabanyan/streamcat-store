@@ -13,15 +13,7 @@ class Session():
 
     @property
     def user(self):
-        if self._user is None:
-            raise Exception('Sessionにuserが設定されていません')
         return self._user
-
-    @user.setter
-    def user(self, user):
-        if user is None:
-            raise Exception('Sessionに設定したuserがNoneです')
-        self._user = user
 
     def commit(self):
         self._session.commit()
@@ -66,6 +58,18 @@ class Session():
         raise NotAuthorizedException('認証なき削除はできません')
 
 class AuthzSession(Session):
+
+    @property
+    def user(self):
+        if self._user is None:
+            raise Exception('AuthzSessionにuserが設定されていません')
+        return self._user
+
+    @user.setter
+    def user(self, user):
+        if user is None:
+            raise Exception('AuthzSessionに設定したuserがNoneです')
+        self._user = user
 
     def query(self, datum_type, *args):
         """

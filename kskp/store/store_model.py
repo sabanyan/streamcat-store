@@ -3,7 +3,7 @@ import json
 
 from sqlalchemy import Column, text
 from sqlalchemy.dialects.postgresql import INTEGER, TIMESTAMP, JSONB, ENUM
-from kskp.store import BaseModel, ss as session
+from kskp.store import BaseModel
 
 class Store(BaseModel):
     """
