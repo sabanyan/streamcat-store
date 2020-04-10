@@ -2,16 +2,14 @@ import json
 from pathlib import Path
 from kskp.store import (
     Datum,
-    Folder,
-    Frame,
-    Database,
     DatabaseConn,
-    Flow,
-    ChildrenGetter
 )
 
 class FlowDumper:
-    def __init__(self):
+    def __init__(self, factory):
+        # SQLAlchemy Session
+        self.factory = factory
+
         import uuid
         self.tmp_path = Path('/tmp')
         self.gathering_path = self.tmp_path / str(uuid.uuid4())
@@ -22,11 +20,11 @@ class FlowDumper:
 
         self.gathering_path.mkdir()
 
-        if Flow.exists(uuid):
-            archive_name = Flow.find_by_uuid(uuid).label
+        if self.factory.data.exists(uuid, type=Datum.FLOW_TYPE):
+            archive_name = self.factory.data.find_by_uuid(uuid, type=Datum.FLOW_TYPE).label
             self._get_flow(self.gathering_path, gathered_uuids, uuid)
-        elif Folder.exists(uuid):
-            archive_name = Folder.find_by_uuid(uuid).label
+        elif self.factory.data.exists(uuid, type=Datum.FOLDER_TYPE):
+            archive_name = self.factory.data.find_by_uuid(uuid, type=Datum.FOLDER_TYPE).label
             self._get_folder(self.gathering_path, gathered_uuids, uuid)
 
         # アーカイブファイルを作成する
@@ -40,9 +38,8 @@ class FlowDumper:
         return (archive_path, archive_name)
 
     def _get_folder(self, parent_tmp_path, gathered_uuids, folder_uuid):
-        folder = Folder.find_by_uuid(folder_uuid)
-        childrenGetter = ChildrenGetter()
-        children = childrenGetter.execute(None, folder)
+        folder = self.factory.data.find_by_uuid(folder_uuid, type=Datum.FOLDER_TYPE)
+        children = folder.find_children()
 
         if len(children) == 0:
             return gathered_uuids
@@ -68,7 +65,7 @@ class FlowDumper:
 
         from kskp.store import STORE_DIR
         for frame_uuid in frame_uuids:
-            frame = Frame.find_by_uuid(frame_uuid)
+            frame = self.factory.data.find_by_uuid(frame_uuid, type=Datum.FRAME_TYPE)
             if frame is None or not frame.file_exists:
                 # フレームファイルが存在しない場合はスキップする
                 continue
@@ -78,16 +75,16 @@ class FlowDumper:
             uuid_type_label.append((frame.uuid, frame.type, frame.label))
 
         for store_uuid in store_uuids:
-            if not Database.exists(store_uuid):
+            if not self.factory.data.exists(store_uuid, type=Datum.DATABASE_TYPE):
                 continue
-            database = Database.find_by_uuid(store_uuid)
+            database = self.factory.data.find_by_uuid(store_uuid, type=Datum.DATABASE_TYPE)
             database_path = parent_tmp_path / (database.uuid + '.json')
             with database_path.open('w') as f:
                 f.write(json.dumps(database.data['conn'], indent=2, ensure_ascii=False))
             uuid_type_label.append((database.uuid, database.type, database.label))   
 
         for flow_uuid in flow_uuids:
-            flow = Flow.find_by_uuid(flow_uuid)
+            flow = self.factory.data.find_by_uuid(flow_uuid, type=Datum.FLOW_TYPE)
             flow_path = parent_tmp_path / (flow.uuid + '.json')
             with flow_path.open('w') as f:
                 f.write(json.dumps(flow.flow_data, indent=2, ensure_ascii=False))
@@ -106,7 +103,7 @@ class FlowDumper:
         return gathered_uuids
 
     def _get_flows_and_frames(self, flow_uuid, exclude_uuids):
-        flow = Flow.find_by_uuid(flow_uuid)
+        flow = self.factory.data.find_by_uuid(flow_uuid, type=Datum.FLOW_TYPE)
 
         src_frame_uuids = flow.get_src_frame_uuids()
         cache_frame_uuids = flow.get_cache_frame_uuids()
@@ -163,20 +160,21 @@ class FlowDumper:
 
         return tar_file_path
 
-    def restore_archive(self, parent_uuid, stream, creator):
+    def restore_archive(self, parent, stream):
         # 展開処理
         import uuid
         tar_dir_path = Path('/tmp') / str(uuid.uuid4())
         extracted_members = self._extract_archive(tar_dir_path, stream)
 
         # フレームの移行先フォルダを作成する
-        frame_folder = Folder(parent_uuid, 'FromOtherServer', creator)
+        frame_folder = parent.create_folder('FromOtherServer')
         frame_folder_uuid = frame_folder.uuid
         frame_folder.save()
+        # 保存後に参照権限を取得するためDBから取得する
+        frame_folder = self.factory.data.find_by_uuid(frame_folder.uuid)
 
         # フローフォルダを取得する
-        from kskp.store import Library
-        flow_folder = Library.load_flow_folder(creator)
+        flow_folder = self.factory.data.load_flow_folder()
         folder_uuid = flow_folder.uuid
 
         flow_uuids  = {}
@@ -202,7 +200,7 @@ class FlowDumper:
                     continue
 
                 if file.is_dir():
-                    folder = Folder(folder_uuid, file.name, creator)
+                    folder = flow_folder.create_folder(file.name)
                     folder_uuid = folder.uuid
                     folders[file] = folder_uuid
                     folder.save()
@@ -211,7 +209,7 @@ class FlowDumper:
                     folder_uuid = folders[file.parent]
                 else:
                     # 親フォルダがない場合は作る
-                    folder = Folder(folder_uuid, 'FromOtherServer', creator)
+                    folder = flow_folder.create_folder('FromOtherServer')
                     folder_uuid = folder.uuid
                     folders[file] = folder_uuid
                     folder.save()
@@ -220,7 +218,7 @@ class FlowDumper:
                 if datum_type == Datum.FRAME_TYPE:
                     file.parent
                     with file.open('rb') as f:
-                        frame = Frame(frame_folder_uuid, label, f, creator)
+                        frame = frame_folder.create_frame(label, f)
                         uuids[file.stem] = frame.uuid
                         frame.save()
                 elif datum_type == Datum.DATABASE_TYPE:
@@ -228,14 +226,14 @@ class FlowDumper:
                         d = f.read()
                         db = json.loads(d)
                     db_conn = DatabaseConn(db['dbms'], db['hostname'], db['port'], db['database'], db['user_id'], db['password'])
-                    database = Database(frame_folder_uuid, label, db_conn, creator)
+                    database = frame_folder.create_database(label, db_conn)
                     uuids[file.stem] = database.uuid
                     database.save()
                 elif datum_type == Datum.FLOW_TYPE:
                     with file.open('r') as f:
                         d = f.read()
                         flow_data = json.loads(d)
-                    flow = Flow(folder_uuid, label, flow_data, creator)
+                    flow = flow_folder.create_flow(label, flow_data)
                     flow_uuids[file.stem] = flow.uuid
                     uuids[file.stem] = flow.uuid
                     flow.save()
@@ -244,9 +242,9 @@ class FlowDumper:
 
         # Flowの参照uuidを変更する
         for new_flow_uuid in flow_uuids.values():
-            flow = Flow.find_by_uuid(new_flow_uuid)
+            flow = self.factory.data.find_by_uuid(new_flow_uuid, type=Datum.FLOW_TYPE)
             for old_uuid, new_uuid in uuids.items():
-                flow.replace_uuid(old_uuid, new_uuid, creator)
+                flow.replace_uuid(old_uuid, new_uuid)
 
         # 展開したファイルを削除する
         import shutil
