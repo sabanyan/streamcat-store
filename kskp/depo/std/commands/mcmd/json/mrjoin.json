@@ -4,97 +4,131 @@
     {
       "name": "group1",
       "label": "グループの設定 (省略可)",
-      "params": ["k"]
+      "params": [
+        "k"
+      ]
     },
     {
       "name": "group5",
       "label": "〇〇の設定 (必須)",
-      "params": ["f","n", "lo", "K", "R", "rf"]
+      "params": [
+        "f",
+        "n",
+        "lo",
+        "K",
+        "R",
+        "rf"
+      ]
     },
-
     {
       "name": "group10",
       "label": "その他 (省略可)",
-      "params": ["q"]
+      "params": [
+        "q"
+      ]
     },
     {
       "name": "group15",
       "label": "項目名・項目番号についての設定（省略可）",
-      "params": ["x", "nfn", "nfno"]
+      "params": [
+        "x",
+        "nfn",
+        "nfno"
+      ]
     },
     {
       "name": "group20",
       "label": "システム管理用設定（作業領域・ログ出力）",
-      "params": ["tmpPath", "assert_diffSize", "assert_nullout", "assert_nullkey","assert_nullin"]
+      "params": [
+        "tmpPath",
+        "assert_diffSize",
+        "assert_nullout",
+        "assert_nullkey",
+        "assert_nullin"
+      ]
     }
   ],
-  "rules" : {
-    "f" : {
-      "checkSeveralSpecifiedFormats" : {
-        "defaultRule" : {
-          "pattern" : "^[^:,]+(,[^:,]+)*$|^$",
-          "message" : "対象となる列名を入力してください"
+  "rules": {
+    "f": {
+      "checkSeveralSpecifiedFormats": {
+        "defaultRule": {
+          "pattern": "^[^:,]+(,[^:,]+)*$|^$",
+          "message": "対象となる列名を入力してください"
         },
-        "specialRules" : [
+        "specialRules": [
           {
-            "target" : ["x", "nfn"],
-            "pattern" : "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$|^$",
-            "message" : "項目の指定は数値のみ可能です。"
+            "target": [
+              "x",
+              "nfn"
+            ],
+            "pattern": "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$|^$",
+            "message": "項目の指定は数値のみ可能です。"
           }
         ]
       }
     },
-    "rf" : {
-      "presence": {"allowEmpty": false},
-      "checkSeveralSpecifiedFormats" : {
-        "defaultRule" : {
-          "pattern" : "^[^,]+(%[ndr]){0,3}(,[^,]+(%[ndr]){0,3})*$",
-          "message" : "入力値が正しくありません。"
+    "rf": {
+      "presence": {
+        "allowEmpty": false
+      },
+      "checkSeveralSpecifiedFormats": {
+        "defaultRule": {
+          "pattern": "^[^,]+(%[ndr]){0,3}(,[^,]+(%[ndr]){0,3})*$",
+          "message": "入力値が正しくありません。"
         },
-        "specialRules" : [
+        "specialRules": [
           {
-            "target" : ["x", "nfn"],
-            "pattern" : "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(%[ndr]){0,3}(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(%[ndr]){0,3})*$|^@\\[.+\\](%[ndr]){0,3}$",
-            "message" : "項目の指定は数値のみ可能です。"
+            "target": [
+              "x",
+              "nfn"
+            ],
+            "pattern": "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(%[ndr]){0,3}(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(%[ndr]){0,3})*$|^@\\[.+\\](%[ndr]){0,3}$",
+            "message": "項目の指定は数値のみ可能です。"
           }
         ]
       }
     },
-    "k" : {
-      "checkSeveralSpecifiedFormats" : {
-        "defaultRule" : {
-          "pattern" : "^[^:,]+(,[^:,]+)*$|^$",
-          "message" : "対象となる列名を入力してください"
+    "k": {
+      "checkSeveralSpecifiedFormats": {
+        "defaultRule": {
+          "pattern": "^[^:,]+(,[^:,]+)*$|^$",
+          "message": "対象となる列名を入力してください"
         },
-        "specialRules" : [
+        "specialRules": [
           {
-            "target" : ["x", "nfn"],
-            "pattern" : "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$|^$",
-            "message" : "項目の指定は数値のみ可能です。"
+            "target": [
+              "x",
+              "nfn"
+            ],
+            "pattern": "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$|^$",
+            "message": "項目の指定は数値のみ可能です。"
           }
         ]
       }
     },
-    "K" : {
-      "checkSeveralSpecifiedFormats" : {
-        "defaultRule" : {
-          "pattern" : "^[^:,]+(,[^:,]+)*$|^$",
-          "message" : "対象となる列名を入力してください"
+    "K": {
+      "checkSeveralSpecifiedFormats": {
+        "defaultRule": {
+          "pattern": "^[^:,]+(,[^:,]+)*$|^$",
+          "message": "対象となる列名を入力してください"
         },
-        "specialRules" : [
+        "specialRules": [
           {
-            "target" : ["x", "nfn"],
-            "pattern" : "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$|^$",
-            "message" : "項目の指定は数値のみ可能です。"
+            "target": [
+              "x",
+              "nfn"
+            ],
+            "pattern": "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$|^$",
+            "message": "項目の指定は数値のみ可能です。"
           }
         ]
       }
     },
-    "R" : {
-      "checkSeveralSpecifiedFormats" : {
-        "defaultRule" : {
-          "pattern" : "^[^:,]+(,[^:,]+)*$|^$",
-          "message" : "対象となる列名を入力してください"
+    "R": {
+      "checkSeveralSpecifiedFormats": {
+        "defaultRule": {
+          "pattern": "^[^:,]+(,[^:,]+)*$|^$",
+          "message": "対象となる列名を入力してください"
         }
       }
     }
@@ -215,7 +249,7 @@
     ]
   ],
   "version": "0.7.0",
-  "label": "参照ファイルの範囲条件結合",
+  "label": "参照データの範囲条件による結合",
   "classification": "table_join",
   "description": "r=で指定した項目値が、m=で指定s多参照ファイルのR=で指定した２項目値の範囲条件にマッチすれば、f=の項目を結合する。",
   "url": "./static/pdf/mcmd/table_join/mrjoin.pdf"

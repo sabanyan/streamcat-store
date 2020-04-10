@@ -1,27 +1,34 @@
 {
   "id": "msplit",
-  "rules" : {
-    "f" : {
-      "presence": {"allowEmpty": false},
-      "checkSeveralSpecifiedFormats" : {
-        "defaultRule" : {
-          "pattern" : "^[^,]+(,[^,]+)*$",
-          "message" : "入力が正しくありません"
+  "rules": {
+    "f": {
+      "presence": {
+        "allowEmpty": false
+      },
+      "checkSeveralSpecifiedFormats": {
+        "defaultRule": {
+          "pattern": "^[^,]+(,[^,]+)*$",
+          "message": "入力が正しくありません"
         },
-        "specialRules" : [
+        "specialRules": [
           {
-            "target" : ["x", "nfn"],
-            "pattern" : "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$",
-            "message" : "項目の指定は数値のみ可能です。"
+            "target": [
+              "x",
+              "nfn"
+            ],
+            "pattern": "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$",
+            "message": "項目の指定は数値のみ可能です。"
           }
         ]
       }
     },
-    "a" : {
-      "presence": {"allowEmpty": false},
-      "format" : {
-        "pattern" : "^[^:,]+(,[^:,]+)*$",
-        "message" : "入力が正しくありません。"
+    "a": {
+      "presence": {
+        "allowEmpty": false
+      },
+      "format": {
+        "pattern": "^[^:,]+(,[^:,]+)*$",
+        "message": "入力が正しくありません。"
       }
     }
   },
@@ -88,7 +95,7 @@
     ]
   ],
   "version": "0.7.0",
-  "label": "区切り文字による項目分割",
+  "label": "区切り文字による項目の分割",
   "classification": "col_edit",
   "description": "区切り文字によって項目を分割する。",
   "url": "./static/pdf/mcmd/col_edit/msplit.pdf"

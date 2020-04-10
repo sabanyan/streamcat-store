@@ -1,17 +1,20 @@
 {
   "id": "mpaste",
-  "rules" : {
-    "f" : {
-      "checkSeveralSpecifiedFormats" : {
-        "defaultRule" : {
-          "pattern" : "^[^,]+(,[^,]+)*$|^$",
-          "message" : "入力値が正しくありません。"
+  "rules": {
+    "f": {
+      "checkSeveralSpecifiedFormats": {
+        "defaultRule": {
+          "pattern": "^[^,]+(,[^,]+)*$|^$",
+          "message": "入力値が正しくありません。"
         },
-        "specialRules" : [
+        "specialRules": [
           {
-            "target" : ["x", "nfn"],
-            "pattern" : "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$|^$",
-            "message" : "項目の指定は数値のみ可能です。"
+            "target": [
+              "x",
+              "nfn"
+            ],
+            "pattern": "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$|^$",
+            "message": "項目の指定は数値のみ可能です。"
           }
         ]
       }
@@ -102,7 +105,7 @@
     ]
   ],
   "version": "0.7.0",
-  "label": "参照ファイル列の行番号マッチング結合",
+  "label": "行番号による結合",
   "classification": "table_join",
   "description": "入力ファイルと参照ファイルを、少ない方のデータを基準として行番号でマッチングさせて結合する。",
   "url": "./static/pdf/mcmd/table_join/mpaste.pdf"

@@ -53,7 +53,7 @@
     ]
   ],
   "version": "0.7.0",
-  "label": "ファイル結合",
+  "label": "複数データの併合",
   "classification": "table_join",
   "description": "",
   "url": "./static/pdf/mcmd/table_join/mcat.pdf"

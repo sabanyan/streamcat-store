@@ -2,35 +2,40 @@
   "id": "mpadding",
   "rules": {
     "k": {
-      "format" : {
-        "pattern" : "^[^,]+(,[^,]+)*$|^@\\[.+\\]$|^$",
-        "message" : "入力が正しくありません"
+      "format": {
+        "pattern": "^[^,]+(,[^,]+)*$|^@\\[.+\\]$|^$",
+        "message": "入力が正しくありません"
       }
     },
-    "S":{
-      "format" : {
+    "S": {
+      "format": {
         "pattern": "^(\\+|-)?[1-9]?[0-9]*$|^$|^@\\[.+\\]$",
         "message": "整数を半角で入力してください"
       }
     },
-    "E":{
-      "format" : {
+    "E": {
+      "format": {
         "pattern": "^(\\+|-)?[1-9]?[0-9]*$|^$|^@\\[.+\\]$",
         "message": "整数を半角で入力してください"
       }
     },
-    "f" : {
-      "presence": {"allowEmpty": false},
-      "checkSeveralSpecifiedFormats" : {
-        "defaultRule" : {
-          "pattern" : "^[^,]+(%[ndr]){0,3}$",
-          "message" : "入力値が正しくありません。"
+    "f": {
+      "presence": {
+        "allowEmpty": false
+      },
+      "checkSeveralSpecifiedFormats": {
+        "defaultRule": {
+          "pattern": "^[^,]+(%[ndr]){0,3}$",
+          "message": "入力値が正しくありません。"
         },
-        "specialRules" : [
+        "specialRules": [
           {
-            "target" : ["x", "nfn"],
-            "pattern" : "^[1-9]?[0-9]+L?(%[ndr]){0,3}|^@\\[.+\\](%[ndr]){0,3}$",
-            "message" : "項目の指定は数値のみ可能です。"
+            "target": [
+              "x",
+              "nfn"
+            ],
+            "pattern": "^[1-9]?[0-9]+L?(%[ndr]){0,3}|^@\\[.+\\](%[ndr]){0,3}$",
+            "message": "項目の指定は数値のみ可能です。"
           }
         ]
       }
@@ -142,7 +147,7 @@
     ]
   ],
   "version": "0.7.0",
-  "label": "行補完コマンド",
+  "label": "行の補完",
   "classification": "row_edit",
   "description": "k=で指定した項目とキーとして、f=で指定した項目の値が連続するよう、レコードを作成する。",
   "url": "./static/pdf/mcmd/row_edit/mpadding.pdf"

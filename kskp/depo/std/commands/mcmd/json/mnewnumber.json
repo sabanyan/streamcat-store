@@ -1,26 +1,28 @@
 {
   "id": "mnewnumber",
-  "rules":{
-    "I":{
-      "format" : {
+  "rules": {
+    "I": {
+      "format": {
         "pattern": "^[1-9]?[0-9]*$|^@\\[.+\\]$|^$",
         "message": "1以上の整数を半角で入力してください"
-       }
+      }
     },
-    "S":{
-      "format" : {
+    "S": {
+      "format": {
         "pattern": "^[A-Z]$|^[1-9]?[0-9]*$|^@\\[.+\\]$|^$",
         "message": "半角の大文字アルファベットもしくは0以上の整数を半角で入力してください"
-       }
+      }
     },
-    "a" : {
-      "presence": {"allowEmpty": false}
+    "a": {
+      "presence": {
+        "allowEmpty": false
+      }
     },
-    "l" : {
-      "format" : {
+    "l": {
+      "format": {
         "pattern": "^[1-9]?[0-9]*$|^@\\[.+\\]$|^$",
         "message": "1以上の整数を半角で入力してください"
-       }
+      }
     }
   },
   "params": [
@@ -85,7 +87,7 @@
     ]
   ],
   "version": "0.7.0",
-  "label": "連番データの新規作成",
+  "label": "連番データの新規生成",
   "classification": "data_source",
   "description": "",
   "url": ""

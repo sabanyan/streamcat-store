@@ -1,7 +1,7 @@
 {
   "version": "0.7.0",
   "id": "column_grouping_name",
-  "label": "グループ化列名",
+  "label": "項目名のグループ化",
   "classification": "col_edit",
   "description": "項目群に対して、グループに属する項目名に接頭語を付与する。",
   "ports": [

@@ -1,32 +1,41 @@
 {
   "id": "msed",
-  "rules" :{
-    "c" : {
-      "presence": {"allowEmpty": false}
+  "rules": {
+    "c": {
+      "presence": {
+        "allowEmpty": false
+      }
     },
-    "f" : {
-      "presence": {"allowEmpty": false},
-      "checkSeveralSpecifiedFormats" : {
-        "defaultRule" : {
-          "pattern" : "^[^:,]+(:[^:,]+)?(,[^:,]+(:[^:,]+)?)*$",
-          "message" : "対象となる列名を入力してください"
+    "f": {
+      "presence": {
+        "allowEmpty": false
+      },
+      "checkSeveralSpecifiedFormats": {
+        "defaultRule": {
+          "pattern": "^[^:,]+(:[^:,]+)?(,[^:,]+(:[^:,]+)?)*$",
+          "message": "対象となる列名を入力してください"
         },
-        "specialRules" : [
+        "specialRules": [
           {
-            "target" : "A",
-            "pattern" : "^[^:,]+:[^:,]+(,[^:,]+:[^:,]+)*$|^@\\[.+\\]$",
-            "message" : "対象となる列名と新しい列名を、:(コロン)で区切って入力してください"
+            "target": "A",
+            "pattern": "^[^:,]+:[^:,]+(,[^:,]+:[^:,]+)*$|^@\\[.+\\]$",
+            "message": "対象となる列名と新しい列名を、:(コロン)で区切って入力してください"
           },
           {
-            "target" : ["x", "nfn"],
-            "pattern" : "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$|^[1-9]?[0-9]+L?(:[^,:]+)?(,[1-9]?[0-9]+L?(:[^,:]+)?)*$",
-            "message" : "項目の指定は数値のみ可能です。"
+            "target": [
+              "x",
+              "nfn"
+            ],
+            "pattern": "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$|^[1-9]?[0-9]+L?(:[^,:]+)?(,[1-9]?[0-9]+L?(:[^,:]+)?)*$",
+            "message": "項目の指定は数値のみ可能です。"
           }
         ]
       }
     },
-    "v" :{
-      "presence": {"allowEmpty": true}
+    "v": {
+      "presence": {
+        "allowEmpty": true
+      }
     }
   },
   "params": [
@@ -127,7 +136,7 @@
     ]
   ],
   "version": "0.7.0",
-  "label": "正規表現による文字列置換",
+  "label": "正規表現による文字列の置換",
   "classification": "value_transform",
   "description": "f=で指定した項目について、c=で指定した正規表現に一致する内容を、v=で指定した文字列で置換する。",
   "url": "./static/pdf/mcmd/value_transform/msed.pdf"

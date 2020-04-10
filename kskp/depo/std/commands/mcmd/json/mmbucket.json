@@ -1,37 +1,44 @@
 {
   "id": "mmbucket",
   "rules": {
-    "f":{
-      "presence": {"allowEmpty": false},
-      "checkSeveralSpecifiedFormats" : {
-        "defaultRule" : {
-          "pattern" : "^[^:,]+:[^:,]+(,[^:,]+:[^:,]+)*$|^@\\[.+\\]$",
-          "message" : "対象となる列名と新しい列名を、:(コロン)で区切って入力してください"
+    "f": {
+      "presence": {
+        "allowEmpty": false
+      },
+      "checkSeveralSpecifiedFormats": {
+        "defaultRule": {
+          "pattern": "^[^:,]+:[^:,]+(,[^:,]+:[^:,]+)*$|^@\\[.+\\]$",
+          "message": "対象となる列名と新しい列名を、:(コロン)で区切って入力してください"
         },
-        "specialRules" : [
+        "specialRules": [
           {
-            "target" : ["x", "nfn"],
-            "pattern" : "^[1-9]?[0-9]+L?:[^,:]+(,[1-9]?[0-9]+L?:[^,:]+)*$|^@\\[.+\\]$",
-            "message" : "項目の指定は数値のみ可能です。"
+            "target": [
+              "x",
+              "nfn"
+            ],
+            "pattern": "^[1-9]?[0-9]+L?:[^,:]+(,[1-9]?[0-9]+L?:[^,:]+)*$|^@\\[.+\\]$",
+            "message": "項目の指定は数値のみ可能です。"
           }
         ]
       }
     },
-    "n" : {
-      "presence": {"allowEmpty": false},
-      "format" : {
+    "n": {
+      "presence": {
+        "allowEmpty": false
+      },
+      "format": {
         "pattern": "^[1-9]?[0-9]+(,[1-9]?[0-9]+)*$|^@\\[.+\\]$",
         "message": "0以上の整数を半角で入力してください"
       },
-      "lessValueListThanN" : {
-        "target" : "f",
-        "difference" : "0",
-        "justValue" : "1"
+      "lessValueListThanN": {
+        "target": "f",
+        "difference": "0",
+        "justValue": "1"
       }
     },
-    "bufcount" : {
-      "specifiedFormatIfTargetInput" : {
-        "target" : "bufcount",
+    "bufcount": {
+      "specifiedFormatIfTargetInput": {
+        "target": "bufcount",
         "pattern": "^[1-9]?[0-9]*$|^0$|^$",
         "message": "0以上の整数を半角で入力してください"
       }
@@ -156,7 +163,7 @@
     ]
   ],
   "version": "0.7.0",
-  "label": "多次元行分割",
+  "label": "多次元均等化バケット分割",
   "classification": "table_split",
   "description": "f=で指定した複数の数値項目を次元とした件数均等化パケット分割を行う。",
   "url": "./static/pdf/mcmd/table_split/mmbucket.pdf"
