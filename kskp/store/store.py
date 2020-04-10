@@ -88,7 +88,6 @@ class Store(Datum):
         """
         dataの中にlabelを使用しているdatumがあればTrueを返す
         """
-        import json
         for datum in data:
             if datum.label == label and (except_uuid is None or datum.uuid != except_uuid):
                 return True

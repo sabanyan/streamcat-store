@@ -116,27 +116,30 @@ class User(BaseModel):
         self.session.add(self)
         self.session.commit()
 
-    def update_email(self, new_email):
+    def update_email(self, new_email, modifier=None):
         """
         Userのemail列を更新する
         """
         self.email = new_email
-        self._modifier_id = self.session.user.id
+        self._modifier_id = (modifier or self.session.user).id
         self.session.update(self)
         self.session.commit()
 
-    def update_password(self, new_password):
+    def update_password(self, new_password, modifier=None):
         pass
 
-    def update_name(self, new_name):
+    def update_name(self, new_name, modifier=None):
         self.name = new_name
-        self._modifier_id = self.session.user.id
+        self._modifier_id = (modifier or self.session.user).id
         self.session.update(self)
         self.session.commit()
 
-    def update_self_group_id(self, new_group_id):
+    def update_self_group_id(self, new_group_id, modifier=None):
         self.self_group_id = new_group_id
-        self._modifier_id = self.session.user and self.session.user.id
+        if modifier is None:
+            self._modifier_id = self.session.user and self.session.user.id
+        else:
+            self._modifier_id = modifier.id
         self.session.update(self)
         self.session.commit()
 

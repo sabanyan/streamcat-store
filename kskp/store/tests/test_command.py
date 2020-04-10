@@ -8,19 +8,14 @@ from datetime import datetime
 
 from kskp.store import Library, STORE_DIR, Flow
 from kskp.engine import execute, FlowJsonLink, FlowLinkContext
+from .test_case_base import TestCaseBase
 
-class CommandTest(unittest.TestCase):
+class CommandTest(TestCaseBase):
     
     @classmethod
     def setUpClass(cls):
-        # 管理者ユーザをSessionに設定する
-        # from kskp.store.factory import UnAuthzFactory
-        # with UnAuthzFactory() as factory:
-        #     factory.create_admin_user
-        # session.user = User.find_by_id(1)
-
-        # テスト用スキーマを作成する
-        from kskp.core import Datum
+        # 親クラスのsetUpClass()を実行する
+        TestCaseBase.setUpClass()
 
         # テスト用テーブルを作成する
         from kskp.store import engine
@@ -45,18 +40,9 @@ class CommandTest(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        # ライブラリフォルダを削除する
-        from kskp.core import Datum
-        if Datum.find_root() is not None:
-            library_path = STORE_DIR / Library.load_root().path 
-            import shutil
-            shutil.rmtree(library_path.as_posix())
-        # Sessionを閉じる
-        # session.close()
-        # スキーマを破棄する
-        from kskp.store import engine
-        from sqlalchemy import DDL
-        engine.execute(DDL('DROP SCHEMA IF EXISTS %s CASCADE' % os.environ['KSKP_POSTGRESQL_SCHEMA_NAME']))
+        # 親クラスのtearDownClass()を実行する
+        TestCaseBase.tearDownClass()
+
 
     flow_data = {
         "projectId": None, 
