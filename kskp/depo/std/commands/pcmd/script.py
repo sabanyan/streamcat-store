@@ -2070,9 +2070,9 @@ class GroupBy2Command(Command):
             subcmd = self.fixtimecolumn(subcmd, x, dateformat)
 
             for i, fld in enumerate(fs):
-                targets[i] <<= nm.mslide(k = k, s = 'uxt', f = f'{fld}:__shifted{fld}',
+                targets[i] <<= nm.mslide(k = k, s = 'uxt%n', f = f'{fld}:__shifted{fld}',
                                          t = 2, i = subcmd)
-                targets[i] <<= nm.mcal(c = f'(${{__shifted{fld}2}}-2*${{__shifted{fld}1}}+${{{fld}}})/2',
+                targets[i] <<= nm.mcal(c = f'(${{__shifted{fld}2}}-2*${{__shifted{fld}1}}+${{{fld}}})',
                                        a = a)
                 targets[i] <<= nm.mavg(k = k, f = a, precision = precision)
                 targets[i] <<= nm.msetstr(a = 'fld', v = fld)
