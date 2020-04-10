@@ -132,7 +132,7 @@ class Flow(Datum):
         finally:
             self.session.commit()
 
-    def update_data(self, label, flow_data):
+    def update_data(self, label, flow_data, modifier=None):
         """
         Flowのdata列を更新する
         """
@@ -168,7 +168,7 @@ class Flow(Datum):
             # レコードを更新する
             self._label = new_label
             self._data = data
-            self._modifier_id = self.session.user.id
+            self._modifier_id = (modifier or self.session.user).id
             self.session.update(self)
         except Exception as e:
             self.session.rollback()
@@ -179,7 +179,7 @@ class Flow(Datum):
         # ここでflowを返すとtest_model.pyでテストが通らない
         return self
 
-    def move(self, parent_uuid):
+    def move(self, parent_uuid, modifier=None):
         """
         指定されたStoreの直下に移動する
         """
@@ -187,8 +187,8 @@ class Flow(Datum):
         Datum.valid_uuid_or_raise(parent_uuid)
 
         try:
-            from kskp.store import Folder
-            to_folder = Folder.find_by_uuid(parent_uuid)
+            from kskp.store.factory import DatumFactory
+            to_folder = DatumFactory(self.session).find_by_uuid(parent_uuid)
         except Exception as e:
             raise Exception('移動先の指定はフォルダのUUIDしか許可していません')
 
@@ -200,7 +200,7 @@ class Flow(Datum):
             # self.session.query(Datum).filter(Datum.id==self.id).update({'parent_id'   :to_folder.id
             #                                                       ,'_modifier_id':modifier.id})
             self.parent_id = to_folder.id
-            self._modifier_id = self.session.user.id
+            self._modifier_id = (modifier or self.session.user).id
             self.session.update(self)
         except Exception as e:
             self.session.rollback()

@@ -81,7 +81,7 @@ class Folder(Store):
         finally:
             self.session.commit()
 
-    def update_data(self, label):
+    def update_data(self, label, modifier=None):
         """
         Folderのdata列を更新する
         """
@@ -102,12 +102,12 @@ class Folder(Store):
 
         try:
             # ディレクトリ名の移動によって他のDatumのpathが変更が必要であれば変更する
-            self._update_same_path(old_path, new_path)
-            self._update_include_path(old_path, new_path)
+            self._update_same_path(old_path, new_path, modifier)
+            self._update_include_path(old_path, new_path, modifier)
 
             # レコードを更新する
             folder._label = new_label
-            folder._modifier_id = self.session.user.id
+            folder._modifier_id = (modifier or self.session.user).id
             self.session.update(folder)
 
         except Exception as e:

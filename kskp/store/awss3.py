@@ -76,7 +76,7 @@ class AwsS3(Folder, Mountable):
         finally:
             self.session.commit()
 
-    def update_data(self, label, bucket_name):
+    def update_data(self, label, bucket_name, modifier=None):
         """
         バケットのdata列を更新する
         """
@@ -95,8 +95,8 @@ class AwsS3(Folder, Mountable):
 
         try:
             # ディレクトリ名の移動によって他のDatumのpathが変更が必要であれば変更する
-            self._update_same_path(old_path, new_path)
-            self._update_include_path(old_path, new_path)
+            self._update_same_path(old_path, new_path, modifier)
+            self._update_include_path(old_path, new_path, modifier)
 
             # レコードを更新する
             data = {'bucket' : bucket_name}
@@ -104,7 +104,7 @@ class AwsS3(Folder, Mountable):
             if result is not None:
                 result._label = new_label
                 result._data = data
-                result._modifier_id = self.session.user.id
+                result._modifier_id = (modifier or self.session.user).id
                 self.session.update(result)
         except Exception as e:
             self.session.rollback()

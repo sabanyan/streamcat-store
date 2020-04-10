@@ -257,7 +257,7 @@ class Datum(BaseModel):
             return ''
         return self.modifier.name
 
-    def move(self, parent_uuid):
+    def move(self, parent_uuid, modifier=None):
         """
         指定されたStoreの直下に移動する
         """
@@ -294,9 +294,9 @@ class Datum(BaseModel):
 
         try:
             # ファイル名の移動によって他のDatumのpathが変更が必要であれば変更する
-            self._update_same_path(old_path, new_path)
+            self._update_same_path(old_path, new_path, modifier)
             if isinstance(self, Store):
-                self._update_include_path(old_path, new_path)
+                self._update_include_path(old_path, new_path, modifier)
             # レコードを更新する
             # self.session.query(Datum).filter(Datum.id==self.id).update({'parent_id'   : to_folder.id
             #                                                       ,'_path'       : new_path
@@ -305,7 +305,7 @@ class Datum(BaseModel):
             self.parent_id = to_folder.id
             self._path = new_path
             self._label = new_label
-            self._modifier_id = self.session.user.id
+            self._modifier_id = (modifier or self.session.user).id
             self.session.update(self)
         except Exception as e:
             self.session.rollback()
@@ -389,7 +389,7 @@ class Datum(BaseModel):
         datum.session = self.session
         return datum
 
-    def _update_same_path(self, old_path, new_path):
+    def _update_same_path(self, old_path, new_path, modifier):
         # 同じファイルに対応するフォルダのpath列を、ファイル名の移動に合わせて変更する
         rel_old_path = Datum._to_rel_path(old_path)
         abs_old_path = Datum._to_abs_path(old_path)
@@ -399,10 +399,10 @@ class Datum(BaseModel):
 
         for result in results:
             result._path = new_path
-            result._modifier_id = self.session.user.id
+            result._modifier_id = (modifier or self.session.user).id
             self.session.update(result)
 
-    def _update_include_path(self, old_path, new_path):
+    def _update_include_path(self, old_path, new_path, modifier=None):
         # 同じディレクトリを含むpath列を、ディレクトリの移動に合わせて変更する
         rel_old_path = Datum._to_rel_path(old_path)
         abs_old_path = Datum._to_abs_path(old_path)
@@ -426,7 +426,7 @@ class Datum(BaseModel):
             #                             .filter(Frame.type==Frame.FRAME_TYPE).one_or_none()
 
             result._path = replaced_path
-            result._modifier_id = self.session.user.id
+            result._modifier_id = (modifier or self.session.user).id
             self.session.update(result)
 
     def get_flow_uuids_using_me(self):

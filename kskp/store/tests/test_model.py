@@ -1,17 +1,15 @@
 import os
 import unittest
-import json
 import uuid
 import pprint
 from pathlib import Path
 from datetime import datetime
 
 from kskp.core import Datum
-from kskp.store import Library, Flow, STORE_DIR, Library
-from kskp.store.auth import User
-from kskp.store.factory import Factory, UnAuthzFactory
+from kskp.store import Library
+from .test_case_base import TestCaseBase
 
-class LibraryTest(unittest.TestCase):
+class LibraryTest(TestCaseBase):
     # テスト用ユーザID
     # USER_ID1 = 88
     # USER_ID2 = 99
@@ -24,34 +22,13 @@ class LibraryTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        from kskp.store.auth import Auth, Group, User
-        with UnAuthzFactory() as factory:
-            admin_user = factory.find_user_by_email('admin@kskp.io')
-
-        with Factory(admin_user) as factory:
-            # sessionにAuthzSessionを設定する
-            admin_user.session = factory._session
-            # テストユーザを作成する
-            from kskp.store.auth import User
-            test_user = factory.user.create('test@kskp.io', 'testpass', 'Test')
-            test_user.save()
-            # EveryOneグループにテストユーザを加える
-            everyone_group = factory.group.load_everyone_group()
-            everyone_group.join_user(test_user)
-            # クラス変数に設定する
-            cls.USER_ID1 = admin_user
-            cls.USER_ID2 = test_user
+        # 親クラスのsetUpClass()を実行する
+        TestCaseBase.setUpClass()
 
     @classmethod
     def tearDownClass(cls):
-        # ライブラリフォルダを削除する
-        library_path = STORE_DIR / Library.load_root(cls.USER_ID1).path
-        import shutil
-        shutil.rmtree(library_path.as_posix())
-        # スキーマを破棄する
-        from kskp.store import engine
-        from sqlalchemy import DDL
-        engine.execute(DDL('DROP SCHEMA IF EXISTS %s CASCADE' % os.environ['KSKP_POSTGRESQL_SCHEMA_NAME']))
+        # 親クラスのtearDownClass()を実行する
+        TestCaseBase.tearDownClass()
 
     def save(self, file_path):
         file_path = Datum._to_abs_path(file_path.as_posix())
@@ -62,25 +39,53 @@ class LibraryTest(unittest.TestCase):
         if os.path.exists(file_path):
             os.unlink(file_path)
 
+    def save_frame(self, parent, label, path):
+        import io
+        new_frame = parent.create_frame(label, io.BytesIO(b''))
+        # documentレコードをDBに格納する
+        new_frame.add_entry_from_path(path)
+        # save()によりreadable=Noneになるため再取得する
+        return self.factory.data.find_by_uuid(new_frame.uuid)
+
+    def save2_frame(self, parent, label, stream):
+        new_frame = parent.create_frame(label, stream)
+        # documentレコードをDBに格納する
+        new_frame.save()
+        # save()によりreadable=Noneになるため再取得する
+        return self.factory.data.find_by_uuid(new_frame.uuid)
+
+    def save_folder(self, parent, label):
+        new_folder = parent.create_folder(label)
+        new_folder.save()
+        # save()によりreadable=Noneになるため再取得する
+        return self.factory.data.find_by_uuid(new_folder.uuid)
+
+    def save_flow(self, parent, label, flow_data):
+        new_flow = parent.create_flow(label, flow_data)
+        new_flow.save()
+        # save()によりreadable=Noneになるため再取得する
+        return self.factory.data.find_by_uuid(new_flow.uuid)
+
+
     def test_save_and_load(self):
         # ルートデータストアを取得する
-        root = Library.load_root()
+        root = self.factory.data.load_root()
         # フレームデータを格納するファイルを作成する
         frame_file_path = root.path / str(uuid.uuid4())
         self.save(frame_file_path)
         # 指定したファイルをフレームとしてライブラリに登録する
-        new_frame = Library.save_frame(root.uuid, 'テストフレーム', frame_file_path, self.USER_ID1)
+        new_frame = self.save_frame(root, 'テストフレーム', frame_file_path)
         # 登録したフレームを取得する
-        saved_frame = Library.load_frame(new_frame.uuid)
+        saved_frame = self.factory.data.find_by_uuid(new_frame.uuid)
         # 作成したフレームを削除する
-        Library.delete_frame(saved_frame.uuid)
+        saved_frame.delete()
 
     def test_get_root(self):
         """
         ルートフォルダを取得する
         """
         # ルートデータストアを取得する
-        root = Library.load_root(self.USER_ID1)
+        root = self.factory.data.load_root()
         # 取得したルートデータストアの値を検証する
         self.assertIsNotNone(root.id)
         self.assertIsNone(root.parent_id)
@@ -88,20 +93,19 @@ class LibraryTest(unittest.TestCase):
         self.assertIsNotNone(root.path)
         self.assertEqual(root.type, 'folder')
         self.assertIsNone(root.data)
-        # self.assertIsNotNone(root.creator)
-        # self.assertIsNotNone(root.modifier)
+        self.assertIsNotNone(root.creator)
+        self.assertIsNotNone(root.modifier)
         self.assertIsNotNone(root.created_at)
         self.assertIsNotNone(root.modified_at)
-
 
     def test_get_folder(self):
         """
         フォルダを取得する
         """
         # ルートデータストアを取得する
-        root = Library.load_root()
+        root = self.factory.data.load_root()
         # ルートデータストアをフォルダとして取得する
-        folder = Library.load_folder(root.uuid)
+        folder = self.factory.data.find_by_uuid(root.uuid, type=Datum.FOLDER_TYPE)
         # 取得したフォルダの値を検証する
         self.assertIsNotNone(folder.id)
         self.assertIsNone(folder.parent_id)
@@ -109,8 +113,8 @@ class LibraryTest(unittest.TestCase):
         self.assertIsNotNone(folder.path)
         self.assertEqual(folder.type, 'folder')
         self.assertIsNone(root.data)
-        # self.assertIsNotNone(folder.creator)
-        # self.assertIsNotNone(folder.modifier)
+        self.assertIsNotNone(folder.creator)
+        self.assertIsNotNone(folder.modifier)
         self.assertIsNotNone(folder.created_at)
         self.assertIsNotNone(folder.modified_at)
 
@@ -119,11 +123,11 @@ class LibraryTest(unittest.TestCase):
         フォルダのラベルを変更する
         """
         # ルートデータストアを取得する
-        root = Library.load_root()
+        root = self.factory.data.load_root()
         # ルートデータストアの直下にフォルダを作成する
-        folder = Library.save_folder(root.uuid, 'フォルダ0', self.USER_ID1)
+        folder = self.save_folder(root, 'フォルダ0')
         # 作成したフォルダのラベルを変更する
-        updated_folder = Library.update_folder_data(folder.uuid, '新しいフォルダ', self.USER_ID2)
+        updated_folder = folder.update_data('新しいフォルダ', self.USER2)
         # ラベルとディレクトリパスのみが変更されることを検証する
         self.assertEqual(updated_folder.id, folder.id)
         self.assertEqual(updated_folder.parent_id, folder.parent_id)
@@ -131,28 +135,28 @@ class LibraryTest(unittest.TestCase):
         self.assertEqual(updated_folder.path, root.path / '新しいフォルダ')
         self.assertEqual(updated_folder.type, folder.type)
         self.assertEqual(updated_folder.label, '新しいフォルダ')
-        self.assertEqual(folder.creator, self.USER_ID1)
-        self.assertEqual(folder.modifier, self.USER_ID2)
+        self.assertEqual(updated_folder.creator, self.USER1)
+        self.assertEqual(updated_folder.modifier, self.USER2)
         self.assertEqual(updated_folder.created_at, folder.created_at)
         self.assertIsNotNone(updated_folder.modified_at)
         # 作成したフォルダを削除する
-        Library.delete_folder(folder.uuid)
+        folder.delete()
 
     def test_move_folder(self):
         """
         フォルダを移動する
         """
         # ルートデータストアを取得する
-        root = Library.load_root()
+        root = self.factory.data.load_root()
         # ルートデータストアの直下にフォルダを作成する
-        folder_src = Library.save_folder(root.uuid, 'フォルダSRC_AA', self.USER_ID1)
+        folder_src = self.save_folder(root, 'フォルダSRC_AA')
         # 上記フォルダの直下にフレームを作成する
         self.save(folder_src.path / 'aaaa1.csv')
-        frame_src = Library.save_frame(root.uuid, 'フレームSRC', folder_src.path / 'aaaa1.csv', self.USER_ID1)
+        frame_src = self.save_frame(root, 'フレームSRC', folder_src.path / 'aaaa1.csv')
         # ルートデータストアの直下にフォルダを作成する
-        folder_dst = Library.save_folder(root.uuid, 'フォルダDST', self.USER_ID1)
+        folder_dst = self.save_folder(root, 'フォルダDST')
         # フォルダSRC_AAをフォルダDSTへ移動する
-        updated_folder = folder_src.move(folder_dst.uuid, self.USER_ID2)
+        updated_folder = folder_src.move(folder_dst.uuid, self.USER2)
         # parent_id, path, modifierが変更されることを検証する
         self.assertEqual(updated_folder.id, folder_src.id)
         self.assertEqual(updated_folder.parent_id, folder_dst.id)
@@ -160,29 +164,29 @@ class LibraryTest(unittest.TestCase):
         self.assertEqual(updated_folder.path, root.path / 'フォルダDST/フォルダSRC_AA')
         self.assertEqual(updated_folder.type, folder_src.type)
         self.assertEqual(updated_folder.label, 'フォルダSRC_AA')
-        self.assertEqual(updated_folder.creator, self.USER_ID1)
-        self.assertEqual(updated_folder.modifier, self.USER_ID2)
+        self.assertEqual(updated_folder.creator, self.USER1)
+        self.assertEqual(updated_folder.modifier, self.USER2)
         self.assertEqual(updated_folder.created_at, folder_src.created_at)
         self.assertIsNotNone(updated_folder.modified_at)
         # 移動したフォルダ配下のファイルのpathが修正されていることを検証する
         self.assertEqual(frame_src.path, root.path / 'フォルダDST/フォルダSRC_AA/aaaa1.csv')
-        self.assertEqual(updated_folder.creator, self.USER_ID1)
-        self.assertEqual(updated_folder.modifier, self.USER_ID2)
+        self.assertEqual(updated_folder.creator, self.USER1)
+        self.assertEqual(updated_folder.modifier, self.USER2)
         self.assertEqual(updated_folder.created_at, folder_src.created_at)
         self.assertIsNotNone(updated_folder.modified_at)
         # 作成したフォルダを削除する
-        Library.delete_frame(frame_src.uuid)
-        Library.delete_folder(updated_folder.uuid)
-        Library.delete_folder(folder_dst.uuid)
+        frame_src.delete()
+        updated_folder.delete()
+        folder_dst.delete()
 
     def test_save_folder(self):
         """
         フォルダを作成する
         """
         # ルートデータストアを取得する
-        root = Library.load_root()
+        root = self.factory.data.load_root()
         # ルートデータストアの直下にフォルダを作成する
-        folder = Library.save_folder(root.uuid, 'フォルダ', self.USER_ID1)
+        folder = self.save_folder(root, 'フォルダ')
         # 作成したフォルダの値を検証する
         self.assertIsNotNone(folder.id)
         self.assertEqual(folder.parent_id, root.id)
@@ -190,14 +194,14 @@ class LibraryTest(unittest.TestCase):
         self.assertEqual(folder.path, root.path / 'フォルダ')
         self.assertEqual(folder.type, 'folder')
         self.assertEqual(folder.label, 'フォルダ')
-        self.assertEqual(folder.creator, self.USER_ID1)
-        self.assertEqual(folder.modifier, self.USER_ID1)
+        self.assertEqual(folder.creator, self.USER1)
+        self.assertEqual(folder.modifier, self.USER1)
         self.assertEqual(folder.creator, folder.modifier)
         self.assertIsNotNone(folder.created_at)
         self.assertIsNotNone(folder.modified_at)
         self.assertEqual(folder.created_at, folder.modified_at)
         # 作成したフォルダを削除する
-        Library.delete_folder(folder.uuid)
+        folder.delete()
 
     @unittest.skip('AWS S3のパスワードないのでエラーになる')
     def test_get_awss3(self):
@@ -206,9 +210,9 @@ class LibraryTest(unittest.TestCase):
         """
         try:
             # ルートデータストアを取得する
-            root = Library.load_root()
+            root = self.factory.data.load_root()
             # ルートデータストアの直下にAWS S3フォルダを作成する
-            folder = Library.save_awss3(root.uuid, 'S3フォルダ1', 'kskp-test', self.USER_ID1)
+            folder = Library.save_awss3(root.uuid, 'S3フォルダ1', 'kskp-test', self.USER1)
             # 作成したAWS S3フォルダを取得する
             folder = Library.load_awss3(folder.uuid)
             # 取得したフォルダの値を検証する
@@ -218,8 +222,8 @@ class LibraryTest(unittest.TestCase):
             self.assertEqual(folder.path, root.path / 'S3フォルダ1')
             self.assertEqual(folder.type, 'awss3')
             self.assertEqual(folder.label, 'S3フォルダ1')
-            self.assertEqual(folder.creator, self.USER_ID1)
-            self.assertEqual(folder.modifier, self.USER_ID1)
+            self.assertEqual(folder.creator, self.USER1)
+            self.assertEqual(folder.modifier, self.USER1)
             self.assertIsNotNone(folder.created_at)
             self.assertIsNotNone(folder.modified_at)
         finally:
@@ -233,14 +237,14 @@ class LibraryTest(unittest.TestCase):
         """
         try:
             # ルートデータストアを取得する
-            root = Library.load_root()
+            root = self.factory.data.load_root()
             # ルートデータストアの直下にAWS S3フォルダを作成する
-            folder = Library.save_awss3(root.uuid, 'S3フォルダ2', 'kskp-test', self.USER_ID1)
+            folder = Library.save_awss3(root.uuid, 'S3フォルダ2', 'kskp-test', self.USER1)
             # 作成したフォルダのラベルを変更する
             updated_folder = Library.update_awss3_data(folder.uuid,
                                                        '新しいS3フォルダ',
                                                        'kskp-test',
-                                                       self.USER_ID2)
+                                                       self.USER2)
             # ラベルとディレクトリパスのみが変更されることを検証する
             self.assertEqual(updated_folder.id, folder.id)
             self.assertEqual(updated_folder.parent_id, folder.parent_id)
@@ -248,8 +252,8 @@ class LibraryTest(unittest.TestCase):
             self.assertEqual(updated_folder.path, root.path / '新しいS3フォルダ')
             self.assertEqual(updated_folder.type, folder.type)
             self.assertEqual(updated_folder.label, '新しいS3フォルダ')
-            self.assertEqual(updated_folder.creator, self.USER_ID1)
-            self.assertEqual(updated_folder.modifier, self.USER_ID2)
+            self.assertEqual(updated_folder.creator, self.USER1)
+            self.assertEqual(updated_folder.modifier, self.USER2)
             self.assertEqual(updated_folder.created_at, folder.created_at)
             self.assertIsNotNone(updated_folder.modified_at)
         finally:
@@ -263,9 +267,9 @@ class LibraryTest(unittest.TestCase):
         """
         try:
             # ルートデータストアを取得する
-            root = Library.load_root()
+            root = self.factory.data.load_root()
             # ルートデータストアの直下にAWS S3フォルダを作成する
-            folder = Library.save_awss3(root.uuid, 'S3フォルダ3', 'kskp-test', self.USER_ID1)
+            folder = Library.save_awss3(root.uuid, 'S3フォルダ3', 'kskp-test', self.USER1)
             # 作成したフォルダの値を検証する
             self.assertIsNotNone(folder.id)
             self.assertEqual(folder.parent_id, root.id)
@@ -273,8 +277,8 @@ class LibraryTest(unittest.TestCase):
             self.assertEqual(folder.path, root.path / 'S3フォルダ3')
             self.assertEqual(folder.type, 'awss3')
             self.assertEqual(folder.label, 'S3フォルダ3')
-            self.assertEqual(folder.creator, self.USER_ID1)
-            self.assertEqual(folder.modifier, self.USER_ID1)
+            self.assertEqual(folder.creator, self.USER1)
+            self.assertEqual(folder.modifier, self.USER1)
             self.assertEqual(folder.creator, folder.modifier)
             self.assertIsNotNone(folder.created_at)
             self.assertIsNotNone(folder.modified_at)
@@ -289,14 +293,14 @@ class LibraryTest(unittest.TestCase):
         フレームを取得する
         """
         # ルートデータストアを取得する
-        root = Library.load_root()
+        root = self.factory.data.load_root()
         root_path = root.path
         # フレームデータを格納するファイルを作成する
         self.save(root_path / 'aaaa.csv')
         # ルートデータストアの直下にフレームを作成する
-        frame = Library.save_frame(root.uuid, 'フレームデータ', root_path / 'aaaa.csv', self.USER_ID1)
+        frame = self.save_frame(root, 'フレームデータ', root_path / 'aaaa.csv')
         # 作成したフレームを取得する
-        frame = Library.load_frame(frame.uuid)
+        frame = self.factory.data.find_by_uuid(frame.uuid)
         # 作成したフレームの値を検証する
         self.assertIsNotNone(frame.id)
         self.assertEqual(frame.parent_id, root.id)
@@ -304,28 +308,28 @@ class LibraryTest(unittest.TestCase):
         self.assertEqual(frame.path, root_path / 'aaaa.csv')
         self.assertEqual(frame.type, 'frame')
         self.assertEqual(frame.label, 'フレームデータ')
-        self.assertEqual(frame.creator, self.USER_ID1)
-        self.assertEqual(frame.modifier, self.USER_ID1)
+        self.assertEqual(frame.creator, self.USER1)
+        self.assertEqual(frame.modifier, self.USER1)
         self.assertEqual(frame.creator, frame.modifier)
         self.assertIsNotNone(frame.created_at)
         self.assertIsNotNone(frame.modified_at)
         self.assertEqual(frame.created_at, frame.modified_at)
         # 作成したフレームを削除する
-        Library.delete_frame(frame.uuid)
+        frame.delete()
 
     def test_update_frame(self):
         """
         フレームのラベルを変更する
         """
         # ルートデータストアを取得する
-        root = Library.load_root()
+        root = self.factory.data.load_root()
         root_path = root.path
         # フレームデータを格納するファイルを作成する
         self.save(root_path / 'aaaa1.csv')
         # ルートデータストアの直下にフレームを作成する
-        frame = Library.save_frame(root.uuid, 'フレームデータ', root_path / 'aaaa1.csv', self.USER_ID1)
+        frame = self.save_frame(root, 'フレームデータ', root_path / 'aaaa1.csv')
         # 作成したフレームのラベルを変更する
-        updated_frame = Library.update_frame_data(frame.uuid, '新しいフレームデータ', self.USER_ID2)
+        updated_frame = frame.update_data('新しいフレームデータ', self.USER2)
         # ラベルとディレクトリパスのみが変更されることを検証する
         self.assertEqual(updated_frame.id, frame.id)
         self.assertEqual(updated_frame.parent_id, frame.parent_id)
@@ -333,27 +337,27 @@ class LibraryTest(unittest.TestCase):
         # self.assertEqual(updated_frame.path, os.path.join(root.path, '新しいフレームデータ'))
         self.assertEqual(updated_frame.type, frame.type)
         self.assertEqual(updated_frame.label, '新しいフレームデータ')
-        self.assertEqual(frame.creator, self.USER_ID1)
-        self.assertEqual(frame.modifier, self.USER_ID2)
+        self.assertEqual(frame.creator, self.USER1)
+        self.assertEqual(frame.modifier, self.USER2)
         self.assertEqual(updated_frame.created_at, frame.created_at)
         self.assertIsNotNone(updated_frame.modified_at)
         # 作成したフレームを削除する
-        Library.delete_frame(updated_frame.uuid)
+        updated_frame.delete()
 
     def test_move_frame(self):
         """
         フレームを移動する
         """
         # ルートデータストアを取得する
-        root = Library.load_root()
+        root = self.factory.data.load_root()
         # フレームデータを格納するファイルを作成する
         self.save(root.path / 'aiueo.csv')
         # ルートデータストアの直下にフレームを作成する
-        frame_src = Library.save_frame(root.uuid, 'フレームSRC', root.path / 'aiueo.csv', self.USER_ID1)
+        frame_src = self.save_frame(root, 'フレームSRC', root.path / 'aiueo.csv')
         # ルートデータストアの直下にフォルダを作成する
-        folder_dst = Library.save_folder(root.uuid, 'フォルダDST_A', self.USER_ID1)
+        folder_dst = self.save_folder(root, 'フォルダDST_A')
         # フレームSRCをフォルダDSTへ移動する
-        updated_frame = frame_src.move(folder_dst.uuid, self.USER_ID2)
+        updated_frame = frame_src.move(folder_dst.uuid, self.USER2)
         # parent_id, path, modifierが変更されることを検証する
         self.assertEqual(updated_frame.id, frame_src.id)
         self.assertEqual(updated_frame.parent_id, folder_dst.id)
@@ -361,13 +365,13 @@ class LibraryTest(unittest.TestCase):
         self.assertEqual(updated_frame.path, root.path / 'フォルダDST_A/aiueo.csv')
         self.assertEqual(updated_frame.type, frame_src.type)
         self.assertEqual(updated_frame.label, 'フレームSRC')
-        self.assertEqual(updated_frame.creator, self.USER_ID1)
-        self.assertEqual(updated_frame.modifier, self.USER_ID2)
+        self.assertEqual(updated_frame.creator, self.USER1)
+        self.assertEqual(updated_frame.modifier, self.USER2)
         self.assertEqual(updated_frame.created_at, frame_src.created_at)
         self.assertIsNotNone(updated_frame.modified_at)
         # 作成したフォルダを削除する
-        Library.delete_frame(updated_frame.uuid)
-        Library.delete_folder(folder_dst.uuid)
+        updated_frame.delete()
+        folder_dst.delete()
 
     def test_move_frame2(self):
         """
@@ -375,19 +379,19 @@ class LibraryTest(unittest.TestCase):
         (異動先に同じファイル・ラベル名がある場合)
         """
         # ルートデータストアを取得する
-        root = Library.load_root()
+        root = self.factory.data.load_root()
         # フレームデータを格納するファイルを作成する
         self.save(root.path / 'aiueo2.csv')
         # ルートデータストアの直下にフレームを作成する
-        frame_src = Library.save_frame(root.uuid, 'フレームSRC2', root.path / 'aiueo2.csv', self.USER_ID1)
+        frame_src = self.save_frame(root, 'フレームSRC2', root.path / 'aiueo2.csv')
         # ルートデータストアの直下にフォルダを作成する
-        folder_dst = Library.save_folder(root.uuid, 'フォルダDST_A2', self.USER_ID1)
+        folder_dst = self.save_folder(root, 'フォルダDST_A2')
         # フレームデータを格納するファイルを作成する
         self.save(folder_dst.path / 'aiueo2.csv')
         # フォルダDST_A2の直下に同じ名称でフレームを作成する
-        frame_src2 = Library.save_frame(root.uuid, 'フレームSRC2', folder_dst.path / 'aiueo2.csv', self.USER_ID1)
+        frame_src2 = self.save_frame(folder_dst, 'フレームSRC2', folder_dst.path / 'aiueo2.csv')
         # フレームSRC2をフォルダDSTへ移動する
-        updated_frame = frame_src.move(folder_dst.uuid, self.USER_ID2)
+        updated_frame = frame_src.move(folder_dst.uuid, self.USER2)
         # parent_id, path, modifierが変更されることを検証する
         self.assertEqual(updated_frame.id, frame_src.id)
         self.assertEqual(updated_frame.parent_id, folder_dst.id)
@@ -395,25 +399,26 @@ class LibraryTest(unittest.TestCase):
         self.assertEqual(updated_frame.path, root.path / 'フォルダDST_A2/aiueo2_1.csv')
         self.assertEqual(updated_frame.type, frame_src.type)
         self.assertEqual(updated_frame.label, 'フレームSRC2_2')
-        self.assertEqual(updated_frame.creator, self.USER_ID1)
-        self.assertEqual(updated_frame.modifier, self.USER_ID2)
+        self.assertEqual(updated_frame.creator, self.USER1)
+        self.assertEqual(updated_frame.modifier, self.USER2)
         self.assertEqual(updated_frame.created_at, frame_src.created_at)
         self.assertIsNotNone(updated_frame.modified_at)
         # 作成したフォルダを削除する
-        Library.delete_frame(updated_frame.uuid)
-        Library.delete_folder(folder_dst.uuid)
+        frame_src2.delete()
+        updated_frame.delete()
+        folder_dst.delete()
 
     def test_save_frame(self):
         """
         フレームを追加する
         """
         # ルートデータストアを取得する
-        root = Library.load_root()
+        root = self.factory.data.load_root()
         root_path = root.path
         # フレームデータを格納するファイルを作成する
         self.save(root_path / 'aaaa2.csv')
         # ルートデータストアの直下にフレームを作成する
-        frame = Library.save_frame(root.uuid, 'フレームデータ', root_path / 'aaaa2.csv', self.USER_ID1)
+        frame = self.save_frame(root, 'フレームデータ', root_path / 'aaaa2.csv')
         # 作成したフレームの値を検証する
         self.assertIsNotNone(frame.id)
         self.assertEqual(frame.parent_id, root.id)
@@ -421,27 +426,28 @@ class LibraryTest(unittest.TestCase):
         self.assertEqual(frame.path, root_path / 'aaaa2.csv')
         self.assertEqual(frame.type, 'frame')
         self.assertEqual(frame.label, 'フレームデータ')
-        self.assertEqual(frame.creator, self.USER_ID1)
-        self.assertEqual(frame.modifier, self.USER_ID1)
+        self.assertEqual(frame.creator, self.USER1)
+        self.assertEqual(frame.modifier, self.USER1)
         self.assertEqual(frame.creator, frame.modifier)
         self.assertIsNotNone(frame.created_at)
         self.assertIsNotNone(frame.modified_at)
         self.assertEqual(frame.created_at, frame.modified_at)
         # 作成したフレームを削除する
-        Library.delete_frame(frame.uuid)
+        frame.delete()
 
     def test_save2_frame(self):
         """
         フレームを作成する
         """
         # ルートデータストアを取得する
-        root = Library.load_root()
+        root = self.factory.data.load_root()
         root_path = root.path
         # フレームデータを格納するファイルを作成する
         self.save(root_path / 'aaaa3.csv')
         with open(Path(Datum._to_abs_path(root_path.as_posix())) / 'aaaa3.csv', mode='rb') as stream:
             # ルートデータストアの直下にフレームを作成する
-            frame = Library.save2_frame(root.uuid, 'フレームデータ', stream, self.USER_ID1)
+            frame = self.save2_frame(root, 'フレームデータ', stream)
+            
         # 作成したフレームの値を検証する
         self.assertIsNotNone(frame.id)
         self.assertEqual(frame.parent_id, root.id)
@@ -449,14 +455,14 @@ class LibraryTest(unittest.TestCase):
         # self.assertEqual(frame.path, os.path.join(root.path, 'フレームデータ'))
         self.assertEqual(frame.type, 'frame')
         self.assertEqual(frame.label, 'フレームデータ')
-        self.assertEqual(frame.creator, self.USER_ID1)
-        self.assertEqual(frame.modifier, self.USER_ID1)
+        self.assertEqual(frame.creator, self.USER1)
+        self.assertEqual(frame.modifier, self.USER1)
         self.assertEqual(frame.creator, frame.modifier)
         self.assertIsNotNone(frame.created_at)
         self.assertIsNotNone(frame.modified_at)
         self.assertEqual(frame.created_at, frame.modified_at)
         # 作成したフレームを削除する
-        Library.delete_frame(frame.uuid)
+        frame.delete()
         # 作成したファイルを削除する
         self.delete(root_path / 'aaaa3.csv')
 
@@ -466,13 +472,13 @@ class LibraryTest(unittest.TestCase):
         フローを取得する
         """
         # ルートデータストアを取得する
-        root = Library.load_root()
+        root = self.factory.data.load_root()
         root_path = root.path
         # フレームデータを格納するファイルを作成する
         self.save(root_path / 'frame_for_flow.csv')
         # ルートデータストアの直下にフレームを作成する
-        frame = Library.save_frame(root.uuid, 'フレームデータ',
-                                   root_path / 'frame_for_flow.csv', self.USER_ID1)
+        frame = self.save_frame(root, 'フレームデータ',
+                                   root_path / 'frame_for_flow.csv')
         # フローデータを作成する
         flow_data = {
             'projectId': 1,
@@ -493,9 +499,9 @@ class LibraryTest(unittest.TestCase):
             'createdAt': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         }
         # ルートデータストアの直下にフローを作成する
-        flow = Library.save_flow(root.uuid, 'フロー', flow_data, self.USER_ID1)
+        flow = self.save_flow(root, 'フロー', flow_data)
         # 作成したフローを取得する
-        flow = Library.load_flow(flow.uuid)
+        flow = self.factory.data.find_by_uuid(flow.uuid)
         # 作成したフローの値を検証する
         self.assertIsNotNone(flow.id)
         self.assertEqual(flow.parent_id, root.id)
@@ -504,14 +510,14 @@ class LibraryTest(unittest.TestCase):
         self.assertEqual(flow.type, 'flow')
         self.assertEqual(flow.label, 'フロー')
         self.assertEqual(flow.flow_data, flow_data)
-        self.assertEqual(flow.creator, self.USER_ID1)
-        self.assertEqual(flow.modifier, self.USER_ID1)
+        self.assertEqual(flow.creator, self.USER1)
+        self.assertEqual(flow.modifier, self.USER1)
         self.assertEqual(flow.creator, flow.modifier)
         self.assertIsNotNone(flow.created_at)
         self.assertIsNotNone(flow.modified_at)
         self.assertEqual(flow.created_at, flow.modified_at)
         # 作成したフローを削除する
-        Library.delete_flow(flow.uuid)
+        flow.delete()
         # 作成したファイルを削除する
         self.delete(root_path / 'frame_for_flow.csv')
 
@@ -520,13 +526,13 @@ class LibraryTest(unittest.TestCase):
         フローを変更する
         """
         # ルートデータストアを取得する
-        root = Library.load_root()
+        root = self.factory.data.load_root()
         root_path = root.path
         # フレームデータを格納するファイルを作成する
         self.save(root_path / 'frame_for_flow2.csv')
         # ルートデータストアの直下にフレームを作成する
-        frame = Library.save_frame(root.uuid, 'フレームデータ',
-                                   root_path / 'frame_for_flow2.csv', self.USER_ID1)
+        frame = self.save_frame(root, 'フレームデータ',
+                                   root_path / 'frame_for_flow2.csv')
         # フローデータを作成する
         flow_data = {
             'projectId': 1,
@@ -539,7 +545,7 @@ class LibraryTest(unittest.TestCase):
             'createdAt': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         }
         # ルートデータストアの直下にフローを作成する
-        flow = Library.save_flow(root.uuid, 'フロー', flow_data, self.USER_ID1)
+        flow = self.save_flow(root, 'フロー', flow_data)
 
         new_flow_data = {
             'projectId': 2,
@@ -560,7 +566,7 @@ class LibraryTest(unittest.TestCase):
             'createdAt': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         }
         # 作成したフローを変更する
-        updated_flow = Flow.update_data(flow.uuid, '新しいフロー', new_flow_data, self.USER_ID2)
+        updated_flow = flow.update_data('新しいフロー', new_flow_data, self.USER2)
 
         # ラベルとディレクトリパスのみが変更されることを検証する
         self.assertEqual(updated_flow.id, flow.id)
@@ -570,12 +576,12 @@ class LibraryTest(unittest.TestCase):
         self.assertEqual(updated_flow.type, flow.type)
         self.assertEqual(updated_flow.label, '新しいフロー')
         self.assertEqual(updated_flow.flow_data, new_flow_data)
-        self.assertEqual(updated_flow.creator, self.USER_ID1)
-        self.assertEqual(updated_flow.modifier, self.USER_ID2)
+        self.assertEqual(updated_flow.creator, self.USER1)
+        self.assertEqual(updated_flow.modifier, self.USER2)
         self.assertEqual(updated_flow.created_at, flow.created_at)
         self.assertIsNotNone(updated_flow.modified_at)
         # 作成したフレームを削除する
-        Library.delete_flow(updated_flow.uuid)
+        updated_flow.delete()
         # 作成したファイルを削除する
         self.delete(root_path / 'frame_for_flow2.csv')
 
@@ -584,7 +590,7 @@ class LibraryTest(unittest.TestCase):
         フローを移動する
         """
         # ルートデータストアを取得する
-        root = Library.load_root()
+        root = self.factory.data.load_root()
         # ルートデータストアの直下にフローを作成する
         flow_data = {
             'projectId': 1,
@@ -596,31 +602,31 @@ class LibraryTest(unittest.TestCase):
             'creator': '足利義教',
             'createdAt': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         }
-        flow_src = Library.save_flow(root.uuid, 'フローSRC', flow_data, self.USER_ID1)
+        flow_src = self.save_flow(root, 'フローSRC', flow_data)
         # ルートデータストアの直下にフォルダを作成する
-        folder_dst = Library.save_folder(root.uuid, 'フォルダDST_B', self.USER_ID1)
+        folder_dst = self.save_folder(root, 'フォルダDST_B')
         # フローSRCをフォルダDSTへ移動する
-        updated_flow = flow_src.move(folder_dst.uuid, self.USER_ID2)
+        updated_flow = flow_src.move(folder_dst.uuid, self.USER2)
         # parent_id, path, modifierが変更されることを検証する
         self.assertEqual(updated_flow.id, flow_src.id)
         self.assertEqual(updated_flow.parent_id, folder_dst.id)
         self.assertEqual(updated_flow.uuid, flow_src.uuid)
         self.assertEqual(updated_flow.type, flow_src.type)
         self.assertEqual(updated_flow.label, 'フローSRC')
-        self.assertEqual(updated_flow.creator, self.USER_ID1)
-        self.assertEqual(updated_flow.modifier, self.USER_ID2)
+        self.assertEqual(updated_flow.creator, self.USER1)
+        self.assertEqual(updated_flow.modifier, self.USER2)
         self.assertEqual(updated_flow.created_at, flow_src.created_at)
         self.assertIsNotNone(updated_flow.modified_at)
         # 作成したフォルダを削除する
-        Library.delete_flow(updated_flow.uuid)
-        Library.delete_folder(folder_dst.uuid)
+        updated_flow.delete()
+        folder_dst.delete()
 
     def test_save_flow(self):
         """
         フローを追加する
         """
         # ルートデータストアを取得する
-        root = Library.load_root()
+        root = self.factory.data.load_root()
         # フローデータを作成する
         flow_data = {
             'projectId': 1,
@@ -633,7 +639,7 @@ class LibraryTest(unittest.TestCase):
             'createdAt': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         }
         # ルートデータストアの直下にフローを作成する
-        flow = Library.save_flow(root.uuid, 'フロー', flow_data, self.USER_ID1)
+        flow = self.save_flow(root, 'フロー', flow_data)
 
         # 作成したフレームの値を検証する
         self.assertIsNotNone(flow.id)
@@ -642,118 +648,58 @@ class LibraryTest(unittest.TestCase):
         self.assertIsNone(flow.path)
         self.assertEqual(flow.type, 'flow')
         self.assertEqual(flow.label, 'フロー')
-        self.assertEqual(flow.creator, self.USER_ID1)
-        self.assertEqual(flow.modifier, self.USER_ID1)
+        self.assertEqual(flow.creator, self.USER1)
+        self.assertEqual(flow.modifier, self.USER1)
         self.assertEqual(flow.creator, flow.modifier)
         self.assertIsNotNone(flow.created_at)
         self.assertIsNotNone(flow.modified_at)
         self.assertEqual(flow.created_at, flow.modified_at)
         # 作成したフレームを削除する
-        Library.delete_flow(flow.uuid)
-
+        flow.delete()
 
     def test_get_no_folder(self):
         """
-        存在しないフォルダを取得しようとすると例外を送出する
+        存在しないDatumを取得しようとすると例外を送出する
         """
         with self.assertRaises(Exception) as e:
-            Library.load_folder('00000000-0000-0000-0000-000000000000')
-
-    def test_update_no_folder(self):
-        """
-        存在しないフォルダのラベルを変更しようとすると例外を送出する
-        """
-        with self.assertRaises(Exception) as e:
-            Library.update_folder_data('00000000-0000-0000-0000-000000000000', '新しいフォルダ', self.USER_ID2)
-
-    def test_delete_no_folder(self):
-        """
-        存在しないフォルダを削除しようとすると例外を送出する
-        """
-        with self.assertRaises(Exception) as e:
-            Library.delete_folder('00000000-0000-0000-0000-000000000000')
-
-    @unittest.skip
-    def test_get_no_frame(self):
-        """
-        存在しないフレームを取得しようとすると例外を送出する
-        """
-        with self.assertRaises(Exception) as e:
-            Library.load_frame('00000000-0000-0000-0000-000000000000')
-
-    def test_update_no_frame(self):
-        """
-        存在しないフレームのラベルを変更しようとすると例外を送出する
-        """
-        with self.assertRaises(Exception) as e:
-            Library.update_frame_data('00000000-0000-0000-0000-000000000000', '新しいラベル', self.USER_ID2)
-
-    def test_delete_no_frame(self):
-        """
-        存在しないフレームを削除しようとすると例外を送出する
-        """
-        with self.assertRaises(Exception) as e:
-            Library.delete_frame('00000000-0000-0000-0000-000000000000')
-
-    def test_get_no_flow(self):
-        """
-        存在しないフローを取得しようとすると例外を送出する
-        """
-        with self.assertRaises(Exception) as e:
-            Library.load_flow('00000000-0000-0000-0000-000000000000')
-
-    def test_update_no_flow(self):
-        """
-        存在しないフローのラベルを変更しようとすると例外を送出する
-        """
-        with self.assertRaises(Exception) as e:
-            Library.update_flow_data('00000000-0000-0000-0000-000000000000',
-                                     '新しいラベル', None, self.USER_ID2)
-
-    def test_delete_no_flow(self):
-        """
-        存在しないフローを削除しようとすると例外を送出する
-        """
-        with self.assertRaises(Exception) as e:
-            Library.delete_flow('00000000-0000-0000-0000-000000000000')
-
+            self.factory.data.find_by_uuid('00000000-0000-0000-0000-000000000000')
 
     def test_delete_folder_has_child(self):
         """
         フレームを内包するフォルダを削除しようとすると例外を送出する
         """
         # ルートデータストアを取得する
-        root = Library.load_root()
+        root = self.factory.data.load_root()
         root_path = root.path
         # ルートデータストアの直下にフォルダを作成する
-        folder = Library.save_folder(root.uuid, 'フォルダA', self.USER_ID1)
+        folder = self.save_folder(root, 'フォルダA')
         # フレームデータを格納するファイルを作成する
         self.save(root_path / 'aaaa.csv')
         # ルートデータストアの直下にフレームを作成する
-        frame = Library.save_frame(folder.uuid, 'フレームデータ', root_path / 'aaaa.csv', self.USER_ID1)
+        frame = self.save_frame(folder, 'フレームデータ', root_path / 'aaaa.csv')
         # フレームを内包するフォルダを削除しようとする
         with self.assertRaises(Exception) as e:
-            Library.delete_folder(folder.uuid)
+            folder.delete()
         # 作成したフレームを削除する
-        Library.delete_frame(frame.uuid)
+        frame.delete()
         # 作成したフォルダを削除する
-        Library.delete_folder(folder.uuid)
+        folder.delete()
 
     def test_update_to_illigal_folder_name(self):
         """
         '/'や'\0'を含むディレクトリパスは、それぞれ'／'と''に変換される
         """
         # ルートデータストアを取得する
-        root = Library.load_root()
+        root = self.factory.data.load_root()
         # ルートデータストアの直下にフォルダを作成する
-        folder = Library.save_folder(root.uuid, 'フォルダB', self.USER_ID1)
+        folder = self.save_folder(root, 'フォルダB')
         # 作成したフォルダのラベルを変更する
-        updated_folder = Library.update_folder_data(folder.uuid, '/新しい\0フォルダ/', self.USER_ID2)
+        updated_folder = folder.update_data('/新しい\0フォルダ/', self.USER2)
         # ラベルとディレクトリパスでは'/'や'\0'は使われない
         self.assertEqual(updated_folder.path, root.path / '／新しいフォルダ／')
         self.assertEqual(updated_folder.label, '/新しいフォルダ/')
         # 作成したフォルダを削除する
-        Library.delete_folder(folder.uuid)
+        folder.delete()
 
     def test_delete_folder_refer_to_file_other_frame_refering(self):
         """
@@ -775,20 +721,20 @@ class LibraryTest(unittest.TestCase):
         何れか一つのフレームを削除しても、CSVファイルは削除されない
         """
         # ルートデータストアを取得する
-        root = Library.load_root()
+        root = self.factory.data.load_root()
         root_path = root.path
         # フレームデータを格納するファイルを作成する
         self.save(root_path / 'foo.csv')
         # ルートデータストアの直下にフレーム1を作成する
-        frame1 = Library.save_frame(root.uuid, 'フレームデータ', root_path / 'foo.csv', self.USER_ID1)
+        frame1 = self.save_frame(root, 'フレームデータ', root_path / 'foo.csv')
         # ルートデータストアの直下にフレーム2を作成する
-        frame2 = Library.save_frame(root.uuid, 'フレームデータ', root_path / 'foo.csv', self.USER_ID1)
+        frame2 = self.save_frame(root, 'フレームデータ', root_path / 'foo.csv')
         # フレーム1を削除する
-        Library.delete_frame(frame1.uuid)
+        frame1.delete()
         # フレーム1,2に対応するCSVファイルが存在することを検証する
         self.assertTrue((Path(Datum._to_abs_path(root_path.as_posix())) / 'foo.csv').is_file())
         # フレーム2を削除する
-        Library.delete_frame(frame2.uuid)
+        frame2.delete()
         # フレーム1,2に対応するCSVファイルが存在しないことを検証する
         self.assertFalse((root_path / 'foo.csv').is_file())
 
@@ -798,52 +744,52 @@ class LibraryTest(unittest.TestCase):
         何れか一つのフレームのラベル名を変更しても、不整合は発生しない
         """
         # ルートデータストアを取得する
-        root = Library.load_root()
+        root = self.factory.data.load_root()
         root_path = root.path
         # フレームデータを格納するファイルを作成する
         self.save(root_path / 'abc.csv')
         # ルートデータストアの直下にフレーム1を作成する
-        frame1 = Library.save_frame(root.uuid, 'フレームデータ', root_path / 'abc.csv', self.USER_ID1)
+        frame1 = self.save_frame(root, 'フレームデータ', root_path / 'abc.csv')
         # ルートデータストアの直下にフレーム2を作成する
-        frame2 = Library.save_frame(root.uuid, 'フレームデータ', root_path / 'abc.csv', self.USER_ID1)
+        frame2 = self.save_frame(root, 'フレームデータ', root_path / 'abc.csv')
         # フレーム1のラベル名を変更する
-        Library.update_frame_data(frame1.uuid, '新しいフレームデータ1', self.USER_ID2)
+        frame1.update_data('新しいフレームデータ1', self.USER2)
         # フレーム1のラベル名の変更に従って、CSVファイル名が変更されていることを検証する
         self.assertEqual(frame1.path, root_path / '新しいフレームデータ1')
         self.assertEqual(frame2.path, root_path / '新しいフレームデータ1')
         self.assertTrue (os.path.isfile(Path(Datum._to_abs_path(root_path.as_posix())) / '新しいフレームデータ1'))
         self.assertFalse(os.path.isfile(Path(Datum._to_abs_path(root_path.as_posix())) / 'abc.csv'))
         # フレーム1を削除する
-        Library.delete_frame(frame1.uuid)
+        frame1.delete()
         # フレーム2を削除する
-        Library.delete_frame(frame2.uuid)
+        frame2.delete()
 
     def test_frame_file_collision(self):
         """
         3つのフレームでCSVファイル名が重複した場合は、異なるCSVファイル名が使われる
         """
         # ルートデータストアを取得する
-        root = Library.load_root()
+        root = self.factory.data.load_root()
         root_path = root.path
         # フレームデータを格納するファイルを作成する
         self.save(root_path / 'bar.csv')
         with open( Path(Datum._to_abs_path(root_path.as_posix())) / 'bar.csv', mode='rb') as stream:
             # ルートデータストアの直下にフレーム1を作成する
-            frame1 = Library.save2_frame(root.uuid, 'フレームデータ', stream, self.USER_ID1)
+            frame1 = self.save2_frame(root, 'フレームデータ', stream)
             # ルートデータストアの直下にフレーム2を作成する
-            frame2 = Library.save2_frame(root.uuid, 'フレームデータ', stream, self.USER_ID1)
+            frame2 = self.save2_frame(root, 'フレームデータ', stream)
             # ルートデータストアの直下にフレーム3を作成する
-            frame3 = Library.save2_frame(root.uuid, 'フレームデータ', stream, self.USER_ID1)
+            frame3 = self.save2_frame(root, 'フレームデータ', stream)
         # フレーム2に対応するファイルパスはフレームデータ_1であることを検証する
         self.assertEqual(frame1.path, root_path / 'フレームデータ')
         self.assertEqual(frame2.path, root_path / 'フレームデータ_1')
         self.assertEqual(frame3.path, root_path / 'フレームデータ_2')
         # フレーム1を削除する
-        Library.delete_frame(frame1.uuid)
+        frame1.delete()
         # フレーム2を削除する
-        Library.delete_frame(frame2.uuid)
+        frame2.delete()
         # フレーム3を削除する
-        Library.delete_frame(frame3.uuid)
+        frame3.delete()
         # 作成したファイルを削除する
         self.delete(root_path / 'bar.csv')
 

@@ -13,8 +13,7 @@ from kskp.store.factory import Factory, UnAuthzFactory
 
 class Library:
     """
-    ライブラリ機能のFacadeパターン
-    TODO:丸ごと削除したいがテストで多量に使われているからできない
+    古いのでもう使わないで！
     """
 
     @staticmethod

@@ -1,8 +1,6 @@
 import os
-import json
 import unittest
 import pprint
-from pathlib import Path
 
 from kskp.store import STORE_DIR
 from kskp.store.factory import Factory, UnAuthzFactory
@@ -14,7 +12,7 @@ class TestCaseBase(unittest.TestCase):
         from kskp.store.auth import Auth, Group, User
         with UnAuthzFactory() as factory:
             admin_user = factory.find_user_by_email('admin@kskp.io')
-        # FactoryをOpenする
+        # 管理者ユーザのFactoryをOpenする
         cls.factory = Factory(admin_user)
         # AuthzSessionをUserオブジェクトに格納する
         admin_user.session = cls.factory._session
@@ -24,9 +22,11 @@ class TestCaseBase(unittest.TestCase):
         # EveryOneグループにテストユーザを加える
         everyone_group = cls.factory.group.load_everyone_group()
         everyone_group.join_user(test_user)
+        # テストユーザのFactoryをOpenする
+        cls.factory2 = Factory(test_user)
         # クラス変数に設定する
-        cls.USER_ID1 = admin_user
-        cls.USER_ID2 = test_user
+        cls.USER1 = admin_user
+        cls.USER2 = test_user
 
     @classmethod
     def tearDownClass(cls):
@@ -35,7 +35,8 @@ class TestCaseBase(unittest.TestCase):
         import shutil
         shutil.rmtree(library_path.as_posix())
         # FactoryをCloseする
-        cls.factory.close() 
+        cls.factory.close()
+        cls.factory2.close()
         # スキーマを破棄する
         from kskp.store import engine
         from sqlalchemy import DDL

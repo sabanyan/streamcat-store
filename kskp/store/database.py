@@ -63,7 +63,7 @@ class Database(Store):
         finally:
             self.session.commit()
 
-    def update_data(self, label, database_conn):
+    def update_data(self, label, database_conn, modifier=None):
         """
         Databaseのdata列を更新する
         """
@@ -83,7 +83,7 @@ class Database(Store):
             if result is not None:
                 result._label = new_label
                 result._data = data
-                result._modifier_id = self.session.user.id
+                result._modifier_id = (modifier or self.session.user).id
                 self.session.update(result)
         except Exception as e:
             self.session.rollback()
@@ -93,7 +93,7 @@ class Database(Store):
 
         return datum
 
-    def move(self, parent_uuid):
+    def move(self, parent_uuid, modifier=None):
         """
         指定されたStoreの直下に移動する
         """
@@ -115,7 +115,7 @@ class Database(Store):
             # self.session.query(Datum).filter(Datum.id==self.id).update({'parent_id'   :to_folder.id
             #                                                       ,'_modifier_id':modifier.id})
             self.parent_id = to_folder.id
-            self._modifier_id = self.session.user.id
+            self._modifier_id = (modifier or self.session.user).id
             self.session.update(self)
         except Exception as e:
             self.session.rollback()
