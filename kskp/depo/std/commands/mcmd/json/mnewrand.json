@@ -1,8 +1,10 @@
 {
   "id": "mnewrand",
-  "rules" : {
-    "a" : {
-      "presence": {"allowEmpty": false}
+  "rules": {
+    "a": {
+      "presence": {
+        "allowEmpty": false
+      }
     }
   },
   "params": [
@@ -77,7 +79,7 @@
     ]
   ],
   "version": "0.7.0",
-  "label": "乱数データの新規作成",
+  "label": "乱数データの新規生成",
   "classification": "data_source",
   "description": "",
   "url": ""

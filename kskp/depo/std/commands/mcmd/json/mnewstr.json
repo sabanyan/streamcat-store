@@ -1,14 +1,16 @@
 {
   "id": "mnewstr",
-  "rules" : {
-    "a" : {
-      "presence": {"allowEmpty": false}
+  "rules": {
+    "a": {
+      "presence": {
+        "allowEmpty": false
+      }
     },
-    "v" : {
-      "lessValueListThanN" : {
-        "target" : "a",
-        "difference" : "0",
-        "justValue" : "-1"
+    "v": {
+      "lessValueListThanN": {
+        "target": "a",
+        "difference": "0",
+        "justValue": "-1"
       }
     }
   },
@@ -66,7 +68,7 @@
     ]
   ],
   "version": "0.7.0",
-  "label": "固定文字列データの新規作成",
+  "label": "固定文字列データの新規生成",
   "classification": "data_source",
   "description": "",
   "url": ""

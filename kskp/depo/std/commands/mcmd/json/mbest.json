@@ -107,7 +107,7 @@
     ]
   ],
   "version": "0.7.0",
-  "label": "指定行選択",
+  "label": "指定行の選択",
   "classification": "row_edit",
   "description": "指定した行番号の行を選択する。行番号は0から始まる。",
   "url": "./static/pdf/mcmd/row_edit/mbest.pdf"

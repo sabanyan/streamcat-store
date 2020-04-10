@@ -1,25 +1,28 @@
 {
   "id": "msetstr",
   "rules": {
-    "v" : {
-      "checkSeveralSpecifiedFormats" : {
-        "defaultRule" : {
-          "pattern" : "^[^,]+(,[^,]+)*$|^$",
-          "message" : "入力が正しくありません"
+    "v": {
+      "checkSeveralSpecifiedFormats": {
+        "defaultRule": {
+          "pattern": "^[^,]+(,[^,]+)*$|^$",
+          "message": "入力が正しくありません"
         }
       }
     },
-    "a" : {
-      "presencesIfTargetIsNotInput" : ["nfn", "nfno"],
-      "specifiedFormatIfTargetInput" : {
-        "target" : "a",
-        "pattern" : "^[^,]+$|^$",
-        "message" : "入力が正しくありません。"
+    "a": {
+      "presencesIfTargetIsNotInput": [
+        "nfn",
+        "nfno"
+      ],
+      "specifiedFormatIfTargetInput": {
+        "target": "a",
+        "pattern": "^[^,]+$|^$",
+        "message": "入力が正しくありません。"
       },
-      "lessValueListThanN" : {
-        "target" : "v",
-        "difference" : "0",
-        "justValue" : "-1"
+      "lessValueListThanN": {
+        "target": "v",
+        "difference": "0",
+        "justValue": "-1"
       }
     }
   },
@@ -80,7 +83,7 @@
     ]
   ],
   "version": "0.7.0",
-  "label": "文字列追加",
+  "label": "文字列項目の追加",
   "classification": "col_edit",
   "description": "指定した文字列を項目として全行に追加する。",
   "url": "./static/pdf/mcmd/col_edit/msetstr.pdf"

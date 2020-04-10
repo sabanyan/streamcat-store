@@ -1,40 +1,48 @@
 {
   "id": "mhashavg",
   "rules": {
-    "hs":{
-      "specifiedFormatIfTargetInput" : {
-          "target": "hs",
-          "pattern": "^[1-9].[0-9]*$|^[1-9]$|^@\\[.+\\]$",
-          "message": "1以上の整数を半角で入力してください"
+    "hs": {
+      "specifiedFormatIfTargetInput": {
+        "target": "hs",
+        "pattern": "^[1-9].[0-9]*$|^[1-9]$|^@\\[.+\\]$",
+        "message": "1以上の整数を半角で入力してください"
       }
     },
-    "f" : {
-      "presence": {"allowEmpty": false},
-      "checkSeveralSpecifiedFormats" : {
-        "defaultRule" : {
-          "pattern" : "^[^:,]+(:[^:,]+)*(,[^:,]+(:[^:,]+)*)*$",
-          "message" : "入力値が正しくありません。"
+    "f": {
+      "presence": {
+        "allowEmpty": false
+      },
+      "checkSeveralSpecifiedFormats": {
+        "defaultRule": {
+          "pattern": "^[^:,]+(:[^:,]+)*(,[^:,]+(:[^:,]+)*)*$",
+          "message": "入力値が正しくありません。"
         },
-        "specialRules" : [
+        "specialRules": [
           {
-            "target" : ["x", "nfn"],
-            "pattern" : "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$|^[1-9]?[0-9]+L?(:[^,:]+)?(,[1-9]?[0-9]+L?(:[^,:]+)?)*$",
-            "message" : "項目の指定は数値のみ可能です。"
+            "target": [
+              "x",
+              "nfn"
+            ],
+            "pattern": "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$|^[1-9]?[0-9]+L?(:[^,:]+)?(,[1-9]?[0-9]+L?(:[^,:]+)?)*$",
+            "message": "項目の指定は数値のみ可能です。"
           }
         ]
       }
     },
-    "k" : {
-      "checkSeveralSpecifiedFormats" : {
-        "defaultRule" : {
-          "pattern" : "^[^,]+(,[^,]+)*$|^$",
-          "message" : "入力が正しくありません"
+    "k": {
+      "checkSeveralSpecifiedFormats": {
+        "defaultRule": {
+          "pattern": "^[^,]+(,[^,]+)*$|^$",
+          "message": "入力が正しくありません"
         },
-        "specialRules" : [
+        "specialRules": [
           {
-            "target" : ["x", "nfn"],
-            "pattern" : "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$|^$",
-            "message" : "項目の指定は数値のみ可能です。"
+            "target": [
+              "x",
+              "nfn"
+            ],
+            "pattern": "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$|^$",
+            "message": "項目の指定は数値のみ可能です。"
           }
         ]
       }
@@ -63,9 +71,43 @@
       "name": "precision",
       "type": "select",
       "label": "有効桁数",
-      "options":{
-        "labels": ["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16"],
-        "values": ["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16"]
+      "options": {
+        "labels": [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "6",
+          "7",
+          "8",
+          "9",
+          "10",
+          "11",
+          "12",
+          "13",
+          "14",
+          "15",
+          "16"
+        ],
+        "values": [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "6",
+          "7",
+          "8",
+          "9",
+          "10",
+          "11",
+          "12",
+          "13",
+          "14",
+          "15",
+          "16"
+        ]
       },
       "optional": true,
       "default": "10"
@@ -153,7 +195,7 @@
     ]
   ],
   "version": "0.7.0",
-  "label": "ハッシュ法による列値の平均",
+  "label": "ハッシュ法による項目値の平均",
   "classification": "table_grouping",
   "description": "hash法を使い、k=で指定した項目を単位にして、f=で指定した項目値の平均を計算する。",
   "url": "./static/pdf/mcmd/table_grouping/mhashavg.pdf"

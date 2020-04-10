@@ -4,48 +4,65 @@
     {
       "name": "group1",
       "label": "キー項目の設定（省略可）",
-      "params": ["k"]
+      "params": [
+        "k"
+      ]
     },
     {
       "name": "group2",
       "label": "時系列の設定（省略可）",
-      "params": ["s"]
+      "params": [
+        "s"
+      ]
     },
     {
       "name": "group3",
       "label": "計算対象と結果の項目設定（必須）",
-      "params": ["factlist"]
+      "params": [
+        "factlist"
+      ]
     },
     {
       "name": "group5",
       "label": "項目名・項目番号についての設定（省略可）",
-      "params": ["x", "nfn", "nfno"]
+      "params": [
+        "x",
+        "nfn",
+        "nfno"
+      ]
     },
     {
       "name": "group6",
       "label": "その他（省略可）",
-      "params": ["precision"]
+      "params": [
+        "precision"
+      ]
     },
     {
       "name": "group7",
       "label": "システム管理用設定（作業領域・ログ出力）",
-      "params": ["tmpPath", "assert_diffSize", "assert_nullkey", "assert_nullin",
-        "assert_nullout"]
+      "params": [
+        "tmpPath",
+        "assert_diffSize",
+        "assert_nullkey",
+        "assert_nullin",
+        "assert_nullout"
+      ]
     }
-  ],  
+  ],
   "params": [
     {
       "name": "s",
       "type": "string",
-      "label" : "ソートが必要な場合の項目設定",
-      "description" : "●カンマ区切りで複数指定可\n●入力データがソート済の場合、省略で処理速度が向上\n●表記：【末尾に付与】無しは文字列の昇順、%nは数値の昇順、%rは文字列の降順、%nrは数値の降順"
+      "label": "ソートが必要な場合の項目設定",
+      "description": "●カンマ区切りで複数指定可\n●入力データがソート済の場合、省略で処理速度が向上\n●表記：【末尾に付与】無しは文字列の昇順、%nは数値の昇順、%rは文字列の降順、%nrは数値の降順"
     },
     {
       "name": "k",
       "type": "string",
       "label": "グループ化する列",
       "description": "カンマ区切りで複数指定可"
-    },    
+    },
     {
       "name": "factlist",
       "type": "list",
@@ -73,7 +90,14 @@
           "label": "結果項目名"
         }
       ],
-      "default": [{"f": "", "a": "", "c": "", "t": ""}]
+      "default": [
+        {
+          "f": "",
+          "a": "",
+          "c": "",
+          "t": ""
+        }
+      ]
     },
     {
       "name": "precision",
@@ -147,7 +171,7 @@
     ]
   ],
   "version": "0.7.0",
-  "label": "複数列の移動窓の統計量の計算",
+  "label": "複数項目の移動窓の統計量の計算",
   "classification": "calculation",
   "description": "移動窓を設定し、各種統計量(1変量)を計算する。複数列、複数の統計量を複数の期間に対して、一括で計算できる。",
   "url": ""
