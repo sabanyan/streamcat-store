@@ -156,7 +156,7 @@ class DatumFactory():
         query = self._session.query(Datum).filter(Datum.uuid==uuid)
 
         if type is not None:
-            query.filter(Datum.type==type)
+            query = query.filter(Datum.type==type)
 
         # 結果が1件以外の場合はNoResultFoundが送出される
         datum = query.one()
@@ -313,7 +313,7 @@ class DatumFactory():
         query = self._session.query(Datum).filter(Datum.uuid==uuid)
 
         if type is not None:
-            query.filter(Datum.type==type)
+            query = query.filter(Datum.type==type)
 
         return query.count() > 0
 
