@@ -436,7 +436,7 @@ class GroupBy2Command(Command):
 
                 targets[i] <<= nm.mcount(k = f'{k},{fld}', a = '__dcnt', 
                                          i = subcmd)
-                targets[i] <<= nm.mbest(k = k, f = f'{fld}%n', size = 1)    
+                targets[i] <<= nm.mbest(k = k, s = f'{fld}%n', size = 1)    
                 targets[i] <<= nm.mcal(c = '${__dcnt}>1', a = a)
                 targets[i] <<= nm.msetstr(a = 'fld', v = fld)
                 targets[i] <<= nm.mcut(f = f'{k},fld,{a}')
@@ -464,7 +464,7 @@ class GroupBy2Command(Command):
 
                 targets[i] <<= nm.mcount(k = f'{k},{fld}', a = '__dcnt', 
                                          i = subcmd)
-                targets[i] <<= nm.mbest(k = k, f = f'{fld}%nr', size = 1)    
+                targets[i] <<= nm.mbest(k = k, s = f'{fld}%nr', size = 1)    
                 targets[i] <<= nm.mcal(c = '${__dcnt}>1', a = a)
                 targets[i] <<= nm.msetstr(a = 'fld', v = fld)
                 targets[i] <<= nm.mcut(f = f'{k},fld,{a}')
@@ -1333,7 +1333,7 @@ class GroupBy2Command(Command):
 
             headerline = True
 
-            for dlist in nm.mstdin().keyblock(f'{k}', x, header = True):
+            for dlist in nm.mstdin().keyblock(f'{k}', f'{x}%n', header = True):
                 id = ','.join(dlist[0][:len(k.split(','))])
 
                 if headerline:
@@ -1820,7 +1820,7 @@ class GroupBy2Command(Command):
             subcmd = self.fixtimecolumn(subcmd, x, dateformat)
 
             for i, fld in enumerate(fs):
-                targets[i] <<= nm.mslide(k = k, s = 'uxt', i = subcmd, 
+                targets[i] <<= nm.mslide(k = k, s = 'uxt%n', i = subcmd, 
                                          f = f'{fld}:__shifted{fld}')
                 targets[i] <<= nm.mcal(c = f'${{__shifted{fld}}}-${{{fld}}}', 
                                        a = a)
@@ -1857,7 +1857,7 @@ class GroupBy2Command(Command):
             subcmd = self.fixtimecolumn(subcmd, x, dateformat)
 
             for i, fld in enumerate(fs):
-                targets[i] <<= nm.mslide(k = k, s = 'uxt', i = subcmd, 
+                targets[i] <<= nm.mslide(k = k, s = 'uxt%n', i = subcmd, 
                                          f = f'{fld}:__shifted{fld}')
                 targets[i] <<= nm.mcal(c = f'abs(${{__shifted{fld}}}-${{{fld}}})', 
                                        a = a)
@@ -1891,7 +1891,7 @@ class GroupBy2Command(Command):
             subcmd = self.fixtimecolumn(subcmd, x, dateformat)
 
             for fld in fs:
-                subcmd <<= nm.msortf(f = f'{k},uxt')
+                subcmd <<= nm.msortf(f = f'{k},uxt%n')
                 subcmd <<= nm.mcal(c = f'abs(${{{fld}}}-#{{{fld}}}', a = f'__tmp{fld}__')
                 subcmd <<= nm.mcut(f = fld, r = True)
                 subcmd <<= nm.mfldname(f = f'__tmp{fld}__:{fld}')
@@ -1983,7 +1983,7 @@ class GroupBy2Command(Command):
                                         f = 'fld,__mean')
                 targets[i] <<= nm.msel(c = f'$s{{fld}}=="{fld}"')
 
-                targets[i] <<= nm.msortf(f = f'{k},uxt')
+                targets[i] <<= nm.msortf(f = f'{k},uxt%n')
                 targets[i] <<= nm.mcal(c = f'${{__mean}}<=${{{fld}}}', a = '__above')
                 targets[i] <<= nm.mcount(q = True, k = f'{k},__above', a = '__a_count')
                 targets[i] <<= nm.mbest(k = k, s = '__above%nr,__a_count%nr', size = 1)
@@ -2025,7 +2025,7 @@ class GroupBy2Command(Command):
                                         f = 'fld,__mean')
                 targets[i] <<= nm.msel(c = f'$s{{fld}}=="{fld}"')
 
-                targets[i] <<= nm.msortf(f = f'{k},uxt')
+                targets[i] <<= nm.msortf(f = f'{k},uxt%n')
                 targets[i] <<= nm.mcal(c = f'${{__mean}}<=${{{fld}}}', a = '__below')
                 targets[i] <<= nm.mcount(q = True, k = f'{k},__below', a = '__b_count')
                 targets[i] <<= nm.mbest(k = k, s = '__below%nr,__b_count%nr', size = 1)
@@ -2150,7 +2150,7 @@ class GroupBy2Command(Command):
             for i, fld in enumerate(fs):
                 targets[i] <<= nm.mcal(c = f'${{{fld}}}>{n}', a = '__pos', 
                                    i = subcmd)
-                targets[i] <<= nm.mslide(k = k, s = 'uxt', f = '__pos:__posN')
+                targets[i] <<= nm.mslide(k = k, s = 'uxt%n', f = '__pos:__posN')
                 targets[i] <<= nm.mcal(c = '${__pos}!=${__posN}', a = '__diffT')
                 targets[i] <<= nm.mcount(k = k + ',__diffT', a = '__cnt')
                 targets[i] <<= nm.mbest(k = k, s = '__diffT%nr', size = 1)
@@ -2187,13 +2187,13 @@ class GroupBy2Command(Command):
             subcmd = self.fixtimecolumn(subcmd, x, dateformat)
 
             for i, fld in enumerate(fs):
-                mslide[i] <<= nm.mslide(k = k, s = 'uxt', t = n, r = True, 
+                mslide[i] <<= nm.mslide(k = k, s = 'uxt%n', t = n, r = True, 
                                         f = f'{fld}:{fld}_up_', i = subcmd)
 
-                targets[i] <<= nm.mslide(k = k, s = 'uxt', t = n,
+                targets[i] <<= nm.mslide(k = k, s = 'uxt%n', t = n,
                                          f = f'{fld}:{fld}_down_', i = subcmd)
                 
-                targets[i] <<= nm.mjoin(k = f'{k},uxt', f = f'{fld}_up_*',
+                targets[i] <<= nm.mjoin(k = f'{k},uxt%n', f = f'{fld}_up_*',
                                         m = mslide[i])
                 targets[i] <<= nm.mdelnull(f = f'{fld}_up_*,{fld}_down_*')
                 targets[i] <<= nm.mcal(c = f'max(${{{fld}_up*}},${{{fld}_down_*}})',
@@ -2248,7 +2248,7 @@ class GroupBy2Command(Command):
                     targets[i] <<= nm.mjoin(i = subcmd, m = msummary[i], k = k,
                             f = 'fld,__mean,__var,__count')
 
-                    targets[i] <<= nm.mslide(k = k, s = 'uxt', t = n, l = True, 
+                    targets[i] <<= nm.mslide(k = k, s = 'uxt%n', t = n, l = True, 
                                             f = f'{fld}:__{fld}_L')
                     targets[i] <<= nm.mcal(c = f'(${{{fld}}}-${{__mean}})*(${{__{fld}_L}}-${{__mean}})',
                                            a = f'__{fld}_m')
