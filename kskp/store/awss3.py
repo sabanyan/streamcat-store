@@ -238,6 +238,7 @@ class AwsS3(Folder, Mountable):
         return {'uuid'      : self.uuid,
                 'type'      : Datum.AWSS3_TYPE,
                 'label'     : self.label,
+                'prevFolderPath' : self.get_pref_folder_path(),
                 'bucket'    : self.bucket_name,
                 'creator'   : Datum.get_user_name_by_user_id(self.creator),
                 'createdAt' : self.created_at_str}
