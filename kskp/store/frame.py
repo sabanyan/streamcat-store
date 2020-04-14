@@ -146,7 +146,7 @@ class Frame(Datum):
         try:
             # 同じファイルに対応するドキュメントのpath列を、ファイル名の移動に合わせて変更する
             Datum.update_same_path(old_path, new_path, modifier)
-            # labelとdata列を更新する
+            # label列を更新する
             Frame._update_label_imp(uuid, new_label, modifier)
         except Exception as e:
             session.rollback()

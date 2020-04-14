@@ -286,7 +286,8 @@ class LibraryTest(unittest.TestCase):
             self.assertEqual(folder.id, folder.id)
             self.assertEqual(folder.parent_id, folder.parent_id)
             self.assertEqual(folder.uuid, folder.uuid)
-            self.assertEqual(folder.path, root.path / '新しいリモートフォルダ2')
+            # ラベル名を変更してもマウントポイントは変わらない
+            self.assertEqual(folder.path, root.path / 'リモートフォルダ2')
             self.assertEqual(folder.type, folder.type)
             self.assertEqual(folder.label, '新しいリモートフォルダ2')
             self.assertEqual(folder.creator, self.USER_ID1)

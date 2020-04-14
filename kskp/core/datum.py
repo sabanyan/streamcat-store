@@ -226,49 +226,45 @@ class Datum(BaseModel):
             pass
 
         # 移動元フォルダのidを覚えておく
-        data = self.data2.copy()
-        data['prev_parent_id'] = self.parent_id
+        new_data = self.data2.copy()
+        new_data['prev_parent_id'] = self.parent_id
 
         # 移動後にラベル名が衝突したらラベル名を変更する
         new_label = Datum.get_another_label_name(self.label, parent_uuid, except_uuid=self.uuid)
 
-
-        # 移動対象がマウントポイントの場合は、path列を変更することはマウントポイントを変更することになるので
-        # parent_idとラベル名だけを変更する, 移動対象がpath列を持たない場合も同じ処理になる
-        from kskp.store import Mountable
-        if self._path is None or self._path == '' or isinstance(self, Mountable):
-            # raise Exception('マウントポイントフォルダを移動することはできません')
-            try:
-                # レコードを更新する
-                session.query(Datum).filter(Datum.id==self.id).update({'parent_id': to_folder.id
-                                                                        ,'_label'   : new_label
-                                                                        ,'data'     : data
-                                                                        ,'modifier' : modifier})
-            except Exception as e:
-                session.rollback()
-                raise e
-            finally:
-                session.commit()
-                
-            return self
-
-        # ファイルを移動する
-        old_path = self._path
-        new_path = os.path.join(to_folder._path, os.path.basename(self._path))
-        new_path = Datum.move_file(old_path, new_path)
-
         try:
-            # ファイル名の移動によって他のDatumのpathが変更が必要であれば変更する
-            Datum.update_same_path(old_path, new_path, modifier)
-            from kskp.store import Folder
-            if isinstance(self, Folder):
-                Datum.update_include_path(old_path, new_path, modifier)
+            path_is_empty = self._path is None or self._path == ''
+            if path_is_empty:
+                new_path = self._path
+            if not path_is_empty:
+                # ファイルを移動する
+                old_path = self._path
+                new_path = os.path.join(to_folder._path, os.path.basename(self._path))
+
+                # 移動対象がマウントポイントの場合は、path列を変更することはマウントポイントを変更することになるので
+                # parent_idとラベル名だけの変更になる, 移動対象がpath列を持たない場合も同じ処理になる
+                new_path = Datum.move_file(old_path, new_path)
+
+                # ファイル名の移動によって他のDatumのpathが変更が必要であれば変更する
+                Datum.update_same_path(old_path, new_path, modifier)
+                from kskp.store import Folder
+                if isinstance(self, Folder):
+                    Datum.update_include_path(old_path, new_path, modifier)
+
             # レコードを更新する
             session.query(Datum).filter(Datum.id==self.id).update({'parent_id': to_folder.id
                                                                   ,'_path'    : new_path
                                                                   ,'_label'   : new_label
-                                                                  ,'data'     : data
+                                                                  ,'data'     : new_data
                                                                   ,'modifier' : modifier})
+
+            # 自身を更新する
+            self.parent_id = to_folder.id
+            self._path = new_path
+            self._label = new_label
+            self.data = new_data
+            self.modifier = modifier
+
         except Exception as e:
             session.rollback()
             raise e
@@ -294,10 +290,19 @@ class Datum(BaseModel):
 
         return self.move(prev_parent_uuid, modifier)
 
+    def get_pref_folder_path(self):
+        from kskp.store import Folder
+        if self.prev_parent_id is None:
+            return None
+        else:
+            prev_parent = Folder.find_by_id(self.prev_parent_id)
+            return '/' + '/'.join([folder.get('label') for folder in prev_parent.get_folder_path()])
+
     def to_json(self):
         return {'uuid'      : self.uuid,
                 'type'      : self.type,
                 'label'     : self.label,
+                'prevFolderPath' : self.get_pref_folder_path(),
                 'creator'   : Datum.get_user_name_by_user_id(self.creator),
                 'createdAt' : self.created_at_str}
 
@@ -449,11 +454,13 @@ class Datum(BaseModel):
             raise Exception('move_file(): 移動先のファイルパスが指定されていません')
         
         try:
-            # 同じ名称のファイルが既に存在する場合、末尾に数字を付加したファイル名で作成する
-            new_path = Datum.get_another_file_path(new_path, except_path=old_path)
-            # ファイルを移動する
-            if os.path.exists(Datum._to_abs_path(old_path)):
-                os.rename(Datum._to_abs_path(old_path), Datum._to_abs_path(new_path))
+            # ファイルを移動する(マウントポイントは移動できない)
+            from kskp.store import Mountable
+            abs_old_path = Datum._to_abs_path(old_path)
+            if os.path.exists(abs_old_path) and not Mountable.is_mount(Path(abs_old_path)):
+                # 同じ名称のファイルが既に存在する場合、末尾に数字を付加したファイル名で作成する
+                new_path = Datum.get_another_file_path(new_path, except_path=old_path)
+                os.rename(abs_old_path, Datum._to_abs_path(new_path))
                 return new_path
             else:
                 return old_path
