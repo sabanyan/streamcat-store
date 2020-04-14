@@ -2691,7 +2691,7 @@ class GroupBy2Command(Command):
         
         # cmd_o <<= nm.m2cat(i = cmd)
         # sys.__stderr__.write(repr(cmd)+'\n\n')
-        cmd_o <<= nm.mdelnull(i = cmd, f = '__val__')
+        # cmd_o <<= nm.mdelnull(i = cmd, f = '__val__')
 
         formatstring = _args.pop('format')
         colformat = ['']
@@ -2710,7 +2710,7 @@ class GroupBy2Command(Command):
             if not sub.startswith('$'):
                 colformat[i] = f'"{sub}"' 
 
-        cmd_o <<= nm.mcal(a = 'unique_cols', c = '+'.join(colformat))
+        cmd_o <<= nm.mcal(i = cmd, a = 'unique_cols', c = '+'.join(colformat))
         cmd_o <<= nm.mcross(f = '__val__', s = 'unique_cols', k = k)
         cmd_o <<= nm.mcut(r = True, f = 'fld', nfno = _args.get('nfno'))
 
