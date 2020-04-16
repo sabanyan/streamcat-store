@@ -2193,7 +2193,7 @@ class GroupBy2Command(Command):
                 targets[i] <<= nm.mslide(k = k, s = 'uxt%n', t = n,
                                          f = f'{fld}:{fld}_down_', i = subcmd)
                 
-                targets[i] <<= nm.mjoin(k = f'{k},uxt%n', f = f'{fld}_up_*',
+                targets[i] <<= nm.mjoin(k = f'{k},uxt', f = f'{fld}_up_*',
                                         m = mslide[i])
                 targets[i] <<= nm.mdelnull(f = f'{fld}_up_*,{fld}_down_*')
                 targets[i] <<= nm.mcal(c = f'max(${{{fld}_up*}},${{{fld}_down_*}})',
