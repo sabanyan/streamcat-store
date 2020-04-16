@@ -1892,7 +1892,7 @@ class GroupBy2Command(Command):
 
             for fld in fs:
                 subcmd <<= nm.msortf(f = f'{k},uxt%n')
-                subcmd <<= nm.mcal(c = f'abs(${{{fld}}}-#{{{fld}}}', a = f'__tmp{fld}__')
+                subcmd <<= nm.mcal(c = f'abs(${{{fld}}}-#{{{fld}}})', a = f'__tmp{fld}__')
                 subcmd <<= nm.mcut(f = fld, r = True)
                 subcmd <<= nm.mfldname(f = f'__tmp{fld}__:{fld}')
             
