@@ -349,11 +349,13 @@ class GroupBy2Command(Command):
         return flow
 
     def remove_nonnumber(self, flow, cols):
+        flow = copy.deepcopy(flow)
+        
+        print(cols)
         if isinstance(cols, str):
             cols = cols.split(',')
-            
+        
         for col in cols:
-            
             # mark non-number rows
             flow <<= nm.mcal(a = f'__numflag{col}__',
               c = f'regexm($s{{{col}}},"[-]?[0-9]*[.]?[0-9]*[eE]?[+-]?[0-9]*")')
@@ -2717,7 +2719,7 @@ class GroupBy2Command(Command):
 
             # take the required stats for the required columns
             if optype == 'msummary':
-                if 'count' not in cs:
+                if cs != 'count':
                     cmd[i] = self.remove_nonnumber(cmd_i, calcdict['f'])
                     cmd[i] <<= nm.msummary(**calcdict)
                 else:
