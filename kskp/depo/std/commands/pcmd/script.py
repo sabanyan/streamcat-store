@@ -1072,8 +1072,8 @@ class GroupBy2Command(Command):
             k = kwargs.get('k')
             n = kwargs.get('n')
 
+            # TODO: 関数化？
             strparam = False
-            
             try:
                 n = float(n)
             except ValueError:
@@ -1358,13 +1358,22 @@ class GroupBy2Command(Command):
                         f_loc = header.index(fld)
 
                         # valuetype check goes here
-                        targetcol = [float(xdlist[f_loc]) for xdlist in dlist]
+                        targetcol = []
+                        for line in dlist:
+                            try:
+                                targetcol.append(float(line[f_loc]))
+                            except ValueError:
+                                pass
 
-                        y = np.abs(np.fft.rfft(targetcol))
+                        if targetcol == []:
+                            print(f'{id},{fld},')
+                        else:
+                            y = np.abs(np.fft.rfft(targetcol))
 
-                        mean = y.dot(np.arange(len(y)))/y.sum()
+                            mean = y.dot(np.arange(len(y)))/y.sum()
 
-                        print(f'{id},{fld},{mean:.{precision}g}')
+                            print(f'{id},{fld},{mean:.{precision}g}')
+
             sys.__stdout__.flush()#not needed for bigger data
 
         except Exception as e:
@@ -1399,14 +1408,25 @@ class GroupBy2Command(Command):
                         f_loc = header.index(fld)
 
                         # valuetype check goes here
-                        y = np.abs(np.fft.rfft([float(xdlist[f_loc]) 
-                                                for xdlist in dlist]))
+                        # valuetype check goes here
+                        targetcol = []
+                        for line in dlist:
+                            try:
+                                targetcol.append(float(line[f_loc]))
+                            except ValueError:
+                                pass
 
-                        mean = y.dot(np.arange(len(y)))/y.sum()
-                        moment2 = y.dot(np.arange(len(y))**2)/y.sum()
-                        variance = moment2 - mean ** 2
+                        if targetcol == []:
+                            print(f'{id},{fld},')
+                        else:
+                            y = np.abs(np.fft.rfft(targetcol))
 
-                        print(f'{id},{fld},{variance:.{precision}g}')
+                            mean = y.dot(np.arange(len(y)))/y.sum()
+
+                            moment2 = y.dot(np.arange(len(y))**2)/y.sum()
+                            variance = moment2 - mean ** 2
+
+                            print(f'{id},{fld},{variance:.{precision}g}')
             sys.__stdout__.flush()#not needed for bigger data
 
         except Exception as e:
