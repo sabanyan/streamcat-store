@@ -1095,6 +1095,8 @@ class GroupBy2Command(Command):
             strparam = False
             try:
                 n = float(n)
+                if n%1 == 0:
+                    n = int(n)
             except ValueError:
                 strparam = True
                 
