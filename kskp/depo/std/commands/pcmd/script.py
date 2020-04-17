@@ -1,6 +1,7 @@
 # 独自コマンド
 import sys
 import copy
+import uuid
 import nysol.mcmd as nm
 import numpy as np
 import nysol.util.mtemp as mtemp
@@ -2694,20 +2695,25 @@ class GroupBy2Command(Command):
         if not k:
             k = '__key__'
             cmd_i <<= nm.mcal(a = k, c = '"all"')
+            
+        # replace null key values with uuid
+        tmp_key = '__' + str(uuid.uuid4())
+        cmd_i <<= nm.mnullto(f = k, v = tmp_key)
 
         expanded_k = ','.join([k,'fld'])
 
         self.all_msums = None
-        premsums = [f'{f}:__{f}' for f in msum_prereqs]
-        # sys.__stderr__.write(repr(premsums)+'\n\n')
-        self.all_msums = self.remove_nonnumber(cmd_i, all_fs)
-        self.all_msums <<= nm.msummary(k = k, f = all_fs, 
-                            c = premsums, precision = prec)
+
+        if msum_prereqs:
+            premsums = [f'{f}:__{f}' for f in msum_prereqs]
+            # sys.__stderr__.write(repr(premsums)+'\n\n')
+            self.all_msums = self.remove_nonnumber(cmd_i, all_fs)
+            self.all_msums <<= nm.msummary(k = k, f = all_fs, 
+                                c = premsums, precision = prec)
 
         cmd_i <<= nm.mcut(f = f'{k}{","+",".join(colstocut) if len(colstocut) > 0 else ""}')
 
         ##### calculation portion:
-
         for i, calcdict in enumerate(calclist):
 
             cs = calcdict.get('c')
@@ -2719,7 +2725,7 @@ class GroupBy2Command(Command):
 
             # take the required stats for the required columns
             if optype == 'msummary':
-                if cs != 'count':
+                if cs is not 'count':
                     cmd[i] = self.remove_nonnumber(cmd_i, calcdict['f'])
                     cmd[i] <<= nm.msummary(**calcdict)
                 else:
@@ -2804,6 +2810,9 @@ class GroupBy2Command(Command):
         cmd_o <<= nm.mcal(i = cmd, a = 'unique_cols', c = '+'.join(colformat))
         cmd_o <<= nm.mcross(f = '__val__', s = 'unique_cols', k = k)
         cmd_o <<= nm.mcut(r = True, f = 'fld', nfno = _args.get('nfno'))
+        
+        # return tmp_key to null
+        cmd_o <<= nm.mchgstr(f = k, c = f'{tmp_key}:', F = True)
 
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
