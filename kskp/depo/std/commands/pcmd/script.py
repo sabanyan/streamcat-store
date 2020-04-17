@@ -1072,8 +1072,20 @@ class GroupBy2Command(Command):
             k = kwargs.get('k')
             n = kwargs.get('n')
 
+            strparam = False
+            
+            try:
+                n = float(n)
+            except ValueError:
+                strparam = True
+                
             subcmd <<= nm.m2cross(k = k, a = 'fld,__val', f = f)
-            subcmd <<= nm.mcal(a = '__eq', c = f'${{__val}}=={n}')
+
+            if strparam:
+                subcmd <<= nm.mcal(a = '__eq', c = f'$s{{__val}}=="{n}"')
+            else:
+                subcmd <<= nm.mcal(a = '__eq', c = f'${{__val}}=={n}')
+
             subcmd <<= nm.msum(k = f'{k},fld', f = f'__eq:{a}_{n}')
 
             subcmd <<= nm.mcut(f = f'{k},fld,{a}_{n}')
@@ -1345,6 +1357,7 @@ class GroupBy2Command(Command):
                     for fld in f.split(','):
                         f_loc = header.index(fld)
 
+                        # valuetype check goes here
                         targetcol = [float(xdlist[f_loc]) for xdlist in dlist]
 
                         y = np.abs(np.fft.rfft(targetcol))
@@ -1385,6 +1398,7 @@ class GroupBy2Command(Command):
                     for fld in f.split(','):
                         f_loc = header.index(fld)
 
+                        # valuetype check goes here
                         y = np.abs(np.fft.rfft([float(xdlist[f_loc]) 
                                                 for xdlist in dlist]))
 
