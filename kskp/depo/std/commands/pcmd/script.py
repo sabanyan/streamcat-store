@@ -348,6 +348,25 @@ class GroupBy2Command(Command):
         
         return flow
 
+    def remove_nonnumber(self, flow, cols):
+        for col in cols.split(','):
+            
+            # mark non-number rows
+            flow <<= nm.mcal(a = f'__numflag{col}__',
+              c = f'regexm($s{{{col}}},"[-]?[0-9]*[.]?[0-9]*[eE]?[+-]?[0-9]*")')
+            
+            # make new col with only number values and NULL
+            flow <<= nm.mcal(a = f'__new{col}__',
+                             c = f'if(${{__numflag{col}__}}==1, ${{{col}}}, nulln())')
+        
+        # delete old cols
+        flow <<= nm.mcut(f = cols, r = True)
+        
+        # rename new cols
+        flow <<= nm.mfldname(f = [f'__new{col}__:{col}' for col in cols.split(',')])
+
+        return flow
+        
     def rows(self, subcmd, **kwargs):
         try:
             a = kwargs.get('a')
@@ -2582,6 +2601,14 @@ class GroupBy2Command(Command):
                     if cleft in msum_dependencies:
                         msum_prereqs.update(msum_dependencies[cleft])
 
+                if 'count' in cs_msummary:
+                    # remove count
+                    cs_msummary.remove('count')
+                    # make separate entry for count
+                    calclist.append({'c': 'count', 
+                                'optype' : 'msummary',
+                                **arglist})
+
                 if cs_msummary:
                     calclist.append({'c': ','.join(cs_msummary), 
                                 'optype' : 'msummary',
@@ -2666,7 +2693,11 @@ class GroupBy2Command(Command):
 
             # take the required stats for the required columns
             if optype == 'msummary':
-                cmd[i] <<= nm.msummary(i = cmd_i, **calcdict)
+                if 'count' not in cs:
+                    cmd[i] = self.remove_nonnumber(cmd_i, calcdict['f'])
+                    cmd[i] <<= nm.msummary(**calcdict)
+                else:
+                    cmd[i] <<= nm.msummary(i = cmd_i, **calcdict)
 
                 final_cs = [c.split(':')[-1] for c in cs.split(',')]
 
@@ -2720,7 +2751,7 @@ class GroupBy2Command(Command):
                     
 
             cmd[i] <<= nm.m2cross(k = expanded_k, f= final_cs, 
-                    a = '__type__,__val__')
+                    a = '__type__,__val__', o = 'afterm2cross.csv')
 
         
         # cmd_o <<= nm.m2cat(i = cmd)
