@@ -648,7 +648,7 @@ class GroupBy2Command(Command):
             # subcmd <<= nm.msummary(k = k, f = f, c = 'var:__var,sd:__sd')
             condition = [f'($s{{fld}}=="{fld}")' for fld in f.split(',')]
             subcmd_o <<= nm.msel(i = self.all_msums, c = '||'.join(condition))
-            subcmd_o <<= nm.mcal(c = 'if(${__var}==nulln(),nullb(),${__var}>${__sd})', a = a)
+            subcmd_o <<= nm.mcal(c = 'if(isnull(${__var}),nullb(),${__var}>${__sd})', a = a)
             subcmd_o <<= nm.mcut(f = f'{k},fld,{a}')
 
             return subcmd_o
