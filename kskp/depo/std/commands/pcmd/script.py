@@ -2562,6 +2562,7 @@ class GroupBy2Command(Command):
         } 
 
         supports_str = [
+            'rows',
             'miss',
             'strmin',
             'strmax',
