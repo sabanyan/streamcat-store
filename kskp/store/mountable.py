@@ -10,7 +10,7 @@ class Mountable():
     mount可能な抽象クラス
     """
     def mount(self, mount_point_path):
-        self_abs_path = Datum._to_abs_path(mount_point_path)
+        self_abs_path = mount_point_path
         path = Path(self_abs_path)
         if not path.exists():
             raise Exception('mount point(%s) does not exist' % self_abs_path)
@@ -35,7 +35,7 @@ class Mountable():
             raise Exception('"mount" command returned error --> ' + str(e))
 
     def unmount(self, mount_point_path):
-        self_abs_path = Datum._to_abs_path(mount_point_path)
+        self_abs_path = mount_point_path
         path = Path(self_abs_path)
         if not path.exists():
             raise Exception('sudo mount point(%s) does not exist' % self_abs_path)
@@ -148,7 +148,7 @@ class Mountable():
         """
         Check if this path is a POSIX mount point
         """
-        abs_path = Path(Datum._to_abs_path(path.as_posix()))
+        abs_path = path
 
         # Need to exist and be a dir
         if not abs_path.exists() or not abs_path.is_dir():

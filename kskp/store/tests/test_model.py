@@ -31,7 +31,7 @@ class LibraryTest(TestCaseBase):
         TestCaseBase.tearDownClass()
 
     def save(self, file_path):
-        file_path = Datum._to_abs_path(file_path.as_posix())
+        file_path = file_path
         with open(file_path, "w") as f:
             f.write("I am a frame data for test cases.")
 
@@ -444,7 +444,7 @@ class LibraryTest(TestCaseBase):
         root_path = root.path
         # フレームデータを格納するファイルを作成する
         self.save(root_path / 'aaaa3.csv')
-        with open(Path(Datum._to_abs_path(root_path.as_posix())) / 'aaaa3.csv', mode='rb') as stream:
+        with open(root_path / 'aaaa3.csv', mode='rb') as stream:
             # ルートデータストアの直下にフレームを作成する
             frame = self.save2_frame(root, 'フレームデータ', stream)
             
@@ -732,7 +732,7 @@ class LibraryTest(TestCaseBase):
         # フレーム1を削除する
         frame1.delete()
         # フレーム1,2に対応するCSVファイルが存在することを検証する
-        self.assertTrue((Path(Datum._to_abs_path(root_path.as_posix())) / 'foo.csv').is_file())
+        self.assertTrue((root_path / 'foo.csv').is_file())
         # フレーム2を削除する
         frame2.delete()
         # フレーム1,2に対応するCSVファイルが存在しないことを検証する
@@ -757,8 +757,8 @@ class LibraryTest(TestCaseBase):
         # フレーム1のラベル名の変更に従って、CSVファイル名が変更されていることを検証する
         self.assertEqual(frame1.path, root_path / '新しいフレームデータ1')
         self.assertEqual(frame2.path, root_path / '新しいフレームデータ1')
-        self.assertTrue (os.path.isfile(Path(Datum._to_abs_path(root_path.as_posix())) / '新しいフレームデータ1'))
-        self.assertFalse(os.path.isfile(Path(Datum._to_abs_path(root_path.as_posix())) / 'abc.csv'))
+        self.assertTrue (os.path.isfile(root_path / '新しいフレームデータ1'))
+        self.assertFalse(os.path.isfile(root_path / 'abc.csv'))
         # フレーム1を削除する
         frame1.delete()
         # フレーム2を削除する
@@ -773,7 +773,7 @@ class LibraryTest(TestCaseBase):
         root_path = root.path
         # フレームデータを格納するファイルを作成する
         self.save(root_path / 'bar.csv')
-        with open( Path(Datum._to_abs_path(root_path.as_posix())) / 'bar.csv', mode='rb') as stream:
+        with open(root_path / 'bar.csv', mode='rb') as stream:
             # ルートデータストアの直下にフレーム1を作成する
             frame1 = self.save2_frame(root, 'フレームデータ', stream)
             # ルートデータストアの直下にフレーム2を作成する

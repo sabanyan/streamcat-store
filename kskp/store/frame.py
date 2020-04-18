@@ -75,11 +75,11 @@ class Frame(Datum):
         Frameを保存する
         """
         # 既にルートフォルダが存在する場合は、parent_id=NULLを許可しない
-        if self.parent_id is None and Datum.count_root() > 0:
+        from kskp.store.factory import DatumFactory
+        if self.parent_id is None and DatumFactory(self.session).count_root() > 0:
             raise Exception('You can not add another root frame. A root already exists.')
         # ドキュメントに紐付くファイル(path列で指定されるファイル)がなければ作成する
-        path = self._make_file()
-        self._path = path
+        self._path = Datum._to_rel_path(self._make_file()).as_posix()
         try:
             # Dataテーブルにレコードを新規追加する
             self.session.add(self)
@@ -95,13 +95,14 @@ class Frame(Datum):
         指定されたパスのファイルをFrameとして登録する
         """
         # 既にルートフォルダが存在する場合は、parent_id=NULLを許可しない
-        if self.parent_id is None and Datum.count_root() > 0:
+        from kskp.store.factory import DatumFactory
+        if self.parent_id is None and DatumFactory(self.session).count_root() > 0:
             raise Exception('You can not add another root frame. A root already exists!')
         self.path = file_path
 
         # ファイルの文字コードを判定する
-        abs_path = Datum._to_abs_path(file_path.as_posix())
-        if os.path.exists(abs_path):
+        abs_path = file_path
+        if file_path.exists():
             with open(abs_path, 'rb') as f:
                 encoding = Frame._detect_encoding(f)
                 newline = Frame._detect_newline_code(f)
@@ -130,8 +131,8 @@ class Frame(Datum):
         new_label = Datum.escape_label(label)
 
         # ファイルを移動する
-        old_path = frame._path
-        new_path = os.path.join(os.path.dirname(old_path), Datum.escape_filename(new_label))
+        old_path = frame.path
+        new_path = old_path.parent / Datum.escape_filename(new_label)
         new_path = Datum.move_file(old_path, new_path)
 
         try:
@@ -243,11 +244,11 @@ class Frame(Datum):
 
     @property
     def file_size(self):
-        return os.path.getsize(Datum._to_abs_path(self._path))
+        return self.path.stat().st_size
 
     @property
     def file_exists(self):
-        return os.path.exists(self._to_abs_path(self._path))
+        return self.path.exists()
 
     @property
     def encoding(self):
@@ -278,7 +279,7 @@ class Frame(Datum):
     @property
     def modified_at_str(self):
         import time
-        wk = time.localtime(os.path.getmtime(Datum._to_abs_path(self._path)))
+        wk = time.localtime(self.path.stat().st_mtime)
         return time.strftime('%Y/%m/%d %H:%M', wk)
 
     def _make_file(self):
@@ -287,9 +288,9 @@ class Frame(Datum):
         """
         try:
             # 同じ名称のファイルが既に存在する場合、末尾に数字を付加したファイル名で作成する
-            path = Datum.get_another_file_path(self._path)
+            path = Datum.get_another_file_path(self.path)
             # ドキュメントに紐付くファイル(path列で指定されるファイル)がなければ作成する
-            abs_dir_name = os.path.dirname(Datum._to_abs_path(path))
+            abs_dir_name = os.path.dirname(path)
             os.makedirs(abs_dir_name, exist_ok=True)
             # ファイルを作成する
             self._save_file(path)
@@ -304,21 +305,21 @@ class Frame(Datum):
         """
         try:
             # ファイルが存在しなければ削除処理はしない
-            if not os.path.exists(Datum._to_abs_path(self._path)):
+            if not self.path.exists():
                 return
             # 自分以外で同じファイルを使用しているFrameがあれば削除しない
-            if self._frame_path_exists(self._path, except_id=self.id):
+            if self._frame_path_exists(self.path, except_id=self.id):
                 return
-            if not os.path.isfile(Datum._to_abs_path(self._path)):
-                raise Exception('Can not delete %s, because it is not reguler file.' % self._path)
+            if not self.path.is_file():
+                raise Exception('Can not delete %s, because it is not reguler file.' % self.path)
             # ファイルを物理削除する
-            os.remove(Datum._to_abs_path(self._path))
+            self.path.unlink()
         except PermissionError as e:
             # ファイルに対する権限がない場合
             raise e
 
     def _save_file(self, path):
-        with open(Datum._to_abs_path(path), mode='wb') as f:
+        with open(path, mode='wb') as f:
             while True:
                 buff = self.stream.read(self.READ_BUFFER_SIZE)
                 f.write(buff)
@@ -326,10 +327,9 @@ class Frame(Datum):
                     break
 
     def _frame_path_exists(self, path, except_id):
-        rel_path = Datum._to_rel_path(path)
-        abs_path = Datum._to_abs_path(path)
+        rel_path = Datum._to_rel_path(path).as_posix()
 
-        result = self.session.query(Datum._path).filter(Datum._path.in_([rel_path, abs_path]))\
+        result = self.session.query(Datum._path).filter(Datum._path == rel_path)\
                                            .filter(Datum.type == Datum.FRAME_TYPE)\
                                            .filter(Datum.id != except_id).count()
         return result > 0
@@ -422,7 +422,7 @@ class Frame(Datum):
         result_text = ''
         result_data = {}
         column_list = []
-        abs_path = Path(Datum._to_abs_path(self._path))
+        abs_path = self.path
         with abs_path.open(encoding='utf-8') as f:
             n = 0
             limit_count = 0

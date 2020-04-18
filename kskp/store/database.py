@@ -52,7 +52,8 @@ class Database(Store):
         Databaseを保存する
         """
         # 既にルートフォルダが存在する場合は、parent_id=NULLを許可しない
-        if self.parent_id is None and Datum.count_root() > 0:
+        from kskp.store.factory import DatumFactory
+        if self.parent_id is None and DatumFactory(self.session).count_root() > 0:
             raise Exception('You can not add root folder. A root already exists.')
         try:
             # Dataテーブルにレコードを新規追加する
