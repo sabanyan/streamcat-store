@@ -620,6 +620,8 @@ class GroupBy2Command(Command):
             subcmd <<= nm.msummary(c = 'sum,count', f = f, k = k,
                                 precision = precision)
 
+            subcmd <<= nm.mjoin(k = f'{k},fld', m = flags, f = '__hasnegative,__haszero')
+            
             subcmd <<= nm.mcal(a = a, c = 'if(${__hasnegative}==1,nulln(),if(${__haszero}==1,0,${count}/${sum}))',
                                precision = precision)
 
