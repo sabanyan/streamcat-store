@@ -352,18 +352,19 @@ class GroupBy2Command(Command):
     def remove_nonnumber(self, flow, cols):
         flow = copy.deepcopy(flow)
         
-        print(cols)
         if isinstance(cols, str):
             cols = cols.split(',')
         
         for col in cols:
             # mark non-number rows
             flow <<= nm.mcal(a = f'__numflag{col}__',
-              c = f'regexm($s{{{col}}},"[-]?[0-9]*[.]?[0-9]*[eE]?[+-]?[0-9]*")')
+              c = f'regexm($s{{{col}}},"^[+,-]?([0-9]+|(([0-9]+[.][0-9]*)|([0-9]*[.][0-9]+))([E,e][+,-]?[0-9]*)?)$")')
+            flow <<= nm.mcal(a = f'__notnullflag{col}__',
+              c = f'not(isnull(${{{col}}}))')
             
             # make new col with only number values and NULL
             flow <<= nm.mcal(a = f'__new{col}__',
-                             c = f'if(${{__numflag{col}__}}==1, ${{{col}}}, nulln())')
+                             c = f'if(${{__numflag{col}__}}==1,$s{{{col}}},nulls())')
         
         # delete old cols
         flow <<= nm.mcut(f = cols, r = True)
@@ -373,6 +374,7 @@ class GroupBy2Command(Command):
         flow <<= nm.mfldname(f = [f'__new{col}__:{col}' for col in cols])
 
         return flow
+        
         
     def rows(self, subcmd, **kwargs):
         try:
@@ -400,10 +402,10 @@ class GroupBy2Command(Command):
 
             allrows = None
             
-            allrows <<= nm.mcount(i = subcmd, k = k, a = '__allrows')
+            allrows <<= nm.mcount(i = subcmd, k = k, a = '__allrows', o = 'mcount.csv')
 
-            subcmd <<= nm.msummary(k = k, f = f, c = 'count:__count')
-            subcmd <<= nm.mjoin(k = k, m = allrows, f = '__allrows', K = k)
+            subcmd <<= nm.msummary(k = k, f = f, c = 'count:__count', o = 'msummary.csv')
+            subcmd <<= nm.mnjoin(k = k, m = allrows, f = '__allrows')
 
             subcmd <<= nm.mcal(a = '__missingcount', c = '${__allrows}-${__count}')
             subcmd <<= nm.mcal(a = a, c = '$s{__missingcount}')
@@ -520,7 +522,6 @@ class GroupBy2Command(Command):
             # mcal to square
             fs = f.split(',')
 
-            subcmd = self.remove_nonnumber(subcmd, fs)
             for fld in fs:
                 subcmd <<= nm.mcal(a = f'{fld}_temp', c = f'${{{fld}}}^2',
                                 precision = precision)
@@ -560,16 +561,25 @@ class GroupBy2Command(Command):
             # subcmd <<= nm.mstdin()
 
             fs = f.split(',')
+
+            flags = None
+            
             for fld in fs:
-                subcmd <<= nm.mcal(a = f'{fld}_ln', c = f'ln(abs(${{{fld}}}))',
+                subcmd <<= nm.mcal(a = f'{fld}_ln', c = f'ln(${{{fld}}})',
                                 precision = precision)
                 subcmd <<= nm.mcut(f = fld, r = True)
                 subcmd <<= nm.mfldname(f = f'{fld}_ln:{fld}')
+                
+            flags <<= nm.msummary(i = subcmd, c = 'min', k = k, f = f)
+            flags <<= nm.mcal(a = '__hasnegative', c = '${min}<0')
+            flags <<= nm.mcal(a = '__haszero', c = '${min}==0') 
 
             subcmd <<= nm.msummary(c = 'mean', f = f, k = k,
                                 precision = precision)
+            
+            subcmd <<= nm.mjoin(k = f'{k},fld', m = flags, f = '__hasnegative,__haszero')
 
-            subcmd <<= nm.mcal(a = a, c = 'exp(${mean})', 
+            subcmd <<= nm.mcal(a = a, c = 'if(${__hasnegative}==1,nulln(),if(${__haszero}==1,0,exp(${mean})))', 
                             precision = precision)
 
             finalcols = f'{k},fld,{a}'
@@ -594,17 +604,24 @@ class GroupBy2Command(Command):
             # subcmd = None
             # subcmd <<= nm.mstdin()
 
+            flags = None
             fs = f.split(',')
+
             for fld in fs:
                 subcmd <<= nm.mcal(a = f'{fld}_inv', c = f'1/${{{fld}}}',
                                 precision = precision)
                 subcmd <<= nm.mcut(f = fld, r = True)
                 subcmd <<= nm.mfldname(f = f'{fld}_inv:{fld}')
 
+            flags <<= nm.msummary(i = subcmd, c = 'min', k = k, f = f)
+            flags <<= nm.mcal(a = '__hasnegative', c = '${min}<0')
+            flags <<= nm.mcal(a = '__haszero', c = '${min}==0') 
+
             subcmd <<= nm.msummary(c = 'sum,count', f = f, k = k,
                                 precision = precision)
 
-            subcmd <<= nm.mcal(a = a, c = '${count}/${sum}', precision = precision)
+            subcmd <<= nm.mcal(a = a, c = 'if(${__hasnegative}==1,nulln(),if(${__haszero}==1,0,${count}/${sum}))',
+                               precision = precision)
 
             finalcols = ','.join([k,'fld',a])
             subcmd <<= nm.mcut(f = finalcols)
@@ -727,8 +744,6 @@ class GroupBy2Command(Command):
 
             fs = f.split(',')
 
-            subcmd = self.remove_nonnumber(subcmd, fs)
-            
             for fld in fs:
                 subcmd <<= nm.mcal(c = f'${{{fld}}}*${{{fld}}}', a = f'__tmp{fld}')
                 subcmd <<= nm.mcut(f = fld, r = True)
@@ -764,7 +779,6 @@ class GroupBy2Command(Command):
             flds = f.split(',')
             fldnames = [fld + '_mean' for fld in flds]
 
-            subcmd = self.remove_nonnumber(subcmd, flds)
             subcmd <<= nm.mjoin(k = k, K = k, m = meancalc, 
                                 f = ','.join(fldnames))
 
@@ -803,7 +817,6 @@ class GroupBy2Command(Command):
 
             flds = f.split(',')
             fldnames = [fld + '_median' for fld in flds]
-            subcmd = self.remove_nonnumber(subcmd, flds)
             subcmd <<= nm.mjoin(k = k, K = k, m = meancalc, 
                                 f = ','.join(fldnames))
 
@@ -905,8 +918,6 @@ class GroupBy2Command(Command):
 
             subcmd_o = None
 
-            subcmd = self.remove_nonnumber(subcmd, fs)
-
             for i, fld in enumerate(fs):
                 targets[i] <<= nm.mcount(k = f'{k},{fld}', a = '__count__',
                                          i = subcmd)
@@ -938,7 +949,6 @@ class GroupBy2Command(Command):
             targets = [None] * len(fs)
 
             subcmd_o = None
-            subcmd = self.remove_nonnumber(subcmd, fs)
 
             for i, fld in enumerate(fs):
                 targets[i] <<= nm.mcount(k = f'{k},{fld}', a = '__count__',
@@ -997,7 +1007,6 @@ class GroupBy2Command(Command):
             # condition = [f'($s{{fld}}=="{fld}")' for fld in f.split(',')]
             # msumres <<= nm.msel(i = self.all_msums, c = '||'.join(condition))
 
-            subcmd = self.remove_nonnumber(subcmd, fs)
             subcmd <<= nm.mnjoin(k = k, f = 'fld,__mean', m = self.all_msums)
 
             for i, fld in enumerate(fs):
@@ -1025,7 +1034,6 @@ class GroupBy2Command(Command):
 
             subcmd_o = None
 
-            subcmd = self.remove_nonnumber(subcmd, fs)
             subcmd <<= nm.mnjoin(k = k, f = 'fld,__mean', m = self.all_msums)
 
             for i, fld in enumerate(fs):
@@ -1053,7 +1061,6 @@ class GroupBy2Command(Command):
             condition = [f'($s{{fld}}=="{fld}")' for fld in f.split(',')]
             msumres <<= nm.msel(i = self.all_msums, c = '||'.join(condition))
 
-            subcmd = self.remove_nonnumber(subcmd, f)
             subcmd <<= nm.mnjoin(k = k, f = 'fld,__mean,__median,__max,__min',
                                  m = msumres)
             # subcmd <<= nm.msummary(f = f, k = k, 
@@ -1085,7 +1092,6 @@ class GroupBy2Command(Command):
             condition = [f'($s{{fld}}=="{fld}")' for fld in f.split(',')]
             msumres <<= nm.msel(i = self.all_msums, c = '||'.join(condition))
 
-            subcmd = self.remove_nonnumber(subcmd, f)
             subcmd <<= nm.mnjoin(k = k, f = 'fld,__sd,__max,__min',
                                  m = msumres)
             # subcmd <<= nm.msummary(f = f, k = k, 
@@ -1145,7 +1151,6 @@ class GroupBy2Command(Command):
             nmin, nmax = kwargs.get('n').split(';')
             n = f'{nmin};{nmax}'
 
-            subcmd = self.remove_nonnumber(subcmd, f)
             subcmd <<= nm.m2cross(k = k, a = 'fld,__val', f = f)
             subcmd <<= nm.mcal(a = '__inrange',
                 c = f'${{__val}}>={float(nmin)} && ${{__val}} < {float(nmax)}')
@@ -1202,8 +1207,6 @@ class GroupBy2Command(Command):
             precalcs = [None] * len(fs)
             tcalcs = None
             subcmd_o = None
-
-            subcmd = self.remove_nonnumber(subcmd, f)
 
             # tcalcs <<= nm.msummary(f = f, c = 'count:__count',
             #                          k = k, i = subcmd)
@@ -1543,7 +1546,6 @@ class GroupBy2Command(Command):
 
             # fix time column
             subcmd = self.fixtimecolumn(subcmd, x, dateformat)
-            subcmd = self.remove_nonnumber(subcmd, f)
 
             for fld in fs: 
                 subcmd <<= nm.mcal(a = f'{fld}_prod',c = f'${{{fld}}}*${{uxt}}')
@@ -1625,7 +1627,6 @@ class GroupBy2Command(Command):
             # fix time column
             subcmd = self.fixtimecolumn(subcmd, x, dateformat)
 
-            subcmd = self.remove_nonnumber(subcmd,f)
 
             meanval = nm.mstats(k = k, i = subcmd, f = f'uxt,{f}', c = 'mean')
 
@@ -1727,8 +1728,8 @@ class GroupBy2Command(Command):
                 msum[i] <<= nm.mcross(k = k, f = '__val__', s = '__tmpcol__')
                 
 
-                targets[i] <<= nm.mbest(k = k, s = f'{fld}%n,uxt%n',
-                                        i = subcmd)
+                targets[i] <<= nm.mdelnull(f = fld, i = subcmd)
+                targets[i] <<= nm.mbest(k = k, s = f'{fld}%n,uxt%n')
                 targets[i] <<= nm.mjoin(k = k, m = msum[i], f = f'uxt_min,uxt_range')
                 targets[i] <<= nm.mcal(c = '(${uxt}-${uxt_min})/${uxt_range}',
                                        a = a, precision = precision)
@@ -2558,6 +2559,14 @@ class GroupBy2Command(Command):
             'linregress': ['count']
         } 
 
+        supports_str = [
+            'miss',
+            'strmin',
+            'strmax',
+            'has_dup',
+            'value_count'
+        ]
+
         msum_prereqs = set()
 
         sys.setrecursionlimit(2**20)
@@ -2678,7 +2687,6 @@ class GroupBy2Command(Command):
                                         'optype' : 'aggregate',
                                         **arglist})
 
-
         # sys.__stderr__.write(repr(calclist))
 
         cmd = [None] * len(calclist)
@@ -2740,6 +2748,10 @@ class GroupBy2Command(Command):
                     calcdict['a'] = cs
 
                 cmd[i] <<= nm.mread(i=cmd_i)
+                
+                # sanitize if needed
+                if cs not in supports_str:
+                    cmd[i] = self.remove_nonnumber(cmd[i], calcdict['f'])
 
                 if cs in python_calcs:
                     # sys.__stderr__.write(repr(calcdict)+'\n')
@@ -2774,6 +2786,10 @@ class GroupBy2Command(Command):
                 # sys.__stderr__.write(repr(calcdict))
 
                 cmd[i] <<= nm.mread(i=cmd_i)
+                
+                # sanitize if needed
+                if cs not in supports_str:
+                    cmd[i] = self.remove_nonnumber(cmd[i], calcdict['f'])
 
                 # run thing
                 cmd[i] = nysol_calcs[_grp](cmd[i], **calcdict)                
