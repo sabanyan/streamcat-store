@@ -563,23 +563,22 @@ class GroupBy2Command(Command):
             fs = f.split(',')
 
             flags = None
+            flags <<= nm.msummary(i = subcmd, c = 'min', k = k, f = f)
+            flags <<= nm.mcal(a = '__hasnegative', c = '${min}<0')
+            flags <<= nm.mcal(a = '__haszero', c = '${min}==0') 
             
             for fld in fs:
                 subcmd <<= nm.mcal(a = f'{fld}_ln', c = f'ln(${{{fld}}})',
                                 precision = precision)
                 subcmd <<= nm.mcut(f = fld, r = True)
                 subcmd <<= nm.mfldname(f = f'{fld}_ln:{fld}')
-                
-            flags <<= nm.msummary(i = subcmd, c = 'min', k = k, f = f)
-            flags <<= nm.mcal(a = '__hasnegative', c = '${min}<0')
-            flags <<= nm.mcal(a = '__haszero', c = '${min}==0') 
 
             subcmd <<= nm.msummary(c = 'mean', f = f, k = k,
                                 precision = precision)
             
             subcmd <<= nm.mjoin(k = f'{k},fld', m = flags, f = '__hasnegative,__haszero')
 
-            subcmd <<= nm.mcal(a = a, c = 'if(${__hasnegative}==1,nulln(),if(${__haszero}==1,0,exp(${mean})))', 
+            subcmd <<= nm.mcal(a = a, c = 'if($b{__hasnegative},nulln(),if($b{__haszero},0,exp(${mean})))', 
                             precision = precision)
 
             finalcols = f'{k},fld,{a}'
@@ -607,15 +606,16 @@ class GroupBy2Command(Command):
             flags = None
             fs = f.split(',')
 
+
+            flags <<= nm.msummary(i = subcmd, c = 'min', k = k, f = f)
+            flags <<= nm.mcal(a = '__hasnegative', c = '${min}<0')
+            flags <<= nm.mcal(a = '__haszero', c = '${min}==0') 
+
             for fld in fs:
                 subcmd <<= nm.mcal(a = f'{fld}_inv', c = f'1/${{{fld}}}',
                                 precision = precision)
                 subcmd <<= nm.mcut(f = fld, r = True)
                 subcmd <<= nm.mfldname(f = f'{fld}_inv:{fld}')
-
-            flags <<= nm.msummary(i = subcmd, c = 'min', k = k, f = f)
-            flags <<= nm.mcal(a = '__hasnegative', c = '${min}<0')
-            flags <<= nm.mcal(a = '__haszero', c = '${min}==0') 
 
             subcmd <<= nm.msummary(c = 'sum,count', f = f, k = k,
                                 precision = precision)
