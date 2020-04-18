@@ -31,14 +31,14 @@ class ChildrenGetter:
 
         # ファイル --> ドキュメント/フォルダ
         folder_children_path = [child.path.as_posix() for child in folder_children]
-        for child_file in os.listdir(Datum._to_abs_path(dir_path)):
+        for child_file in os.listdir(dir_path):
             # 既に対応するエントリが存在するファイルの可能性もある
             # その場合はこの処理の後、一つのファイルが複数のエントリに対応する事になる
             child_path = os.path.join(dir_path, child_file)
 
             if child_path not in folder_children_path:
                 # ディレクトリを登録する
-                if os.path.isdir(Datum._to_abs_path(child_path)):
+                if os.path.isdir(child_path):
                     new_child = Folder(folder.uuid, os.path.basename(child_path), user)
                     new_child.add_entry_from_path(Path(child_path))
                     continue

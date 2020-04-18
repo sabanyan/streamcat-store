@@ -108,8 +108,7 @@ class Datum(BaseModel):
             self._path = self.DEFAULT_LIBRARY_PATH
         else:
             dir_name = Datum.escape_filename(label)
-            rel_parent_path = self._to_rel_path(parent._path)
-            self._path = os.path.join(rel_parent_path, dir_name)
+            self._path = os.path.join(parent._path, dir_name)
 
         # label
         self._label = Datum.escape_label(label)
@@ -177,12 +176,15 @@ class Datum(BaseModel):
                 pass
 
         # 必ず相対pathを返す
-        return Path(self._to_rel_path(self._path))
+        # return Path(self._to_rel_path(self._path))
+
+        # 絶対パスを返す
+        return Path(self._to_abs_path(self._path))
 
     @path.setter
     def path(self, path):
         # Pathオブジェクトを受け取る
-        self._path = path.as_posix()
+        self._path = Datum._to_rel_path(path).as_posix()
 
     @property
     def path_exists(self):
@@ -225,6 +227,17 @@ class Datum(BaseModel):
         # UTC日時はここで現地時間(環境変数TZの値)に設定される
         created_at_local = created_at_utc.astimezone()
         return created_at_local.strftime('%Y-%m-%d %H:%M:%S')
+
+    @property
+    def modified_at_str(self):
+        import datetime
+        if self.modified_at is None:
+            return ''
+        # DBに格納されている日時はUTCなので、タイムゾーンをUTCに設定する
+        modified_at_utc = self.modified_at.replace(tzinfo=datetime.timezone.utc)
+        # UTC日時はここで現地時間(環境変数TZの値)に設定される
+        modified_at_utc = modified_at_utc.astimezone()
+        return modified_at_utc.strftime('%Y-%m-%d %H:%M:%S')
 
     @property
     def creator(self):
@@ -286,8 +299,8 @@ class Datum(BaseModel):
             pass
 
         # ファイルを移動する
-        old_path = self._path
-        new_path = os.path.join(to_folder._path, os.path.basename(self._path))
+        old_path = self.path
+        new_path = to_folder.path / self.path.name
         new_path = Datum.move_file(old_path, new_path)
         # new_label = Datum.get_another_label_name(self.label, self.parent_uuid, except_uuid=self.uuid)
         new_label = to_folder.get_another_label_name(self.label, except_uuid=self.uuid)
@@ -298,12 +311,8 @@ class Datum(BaseModel):
             if isinstance(self, Store):
                 self._update_include_path(old_path, new_path, modifier)
             # レコードを更新する
-            # self.session.query(Datum).filter(Datum.id==self.id).update({'parent_id'   : to_folder.id
-            #                                                       ,'_path'       : new_path
-            #                                                       ,'_label'      : new_label
-            #                                                       ,'_modifier_id': modifier.id})
             self.parent_id = to_folder.id
-            self._path = new_path
+            self._path = Datum._to_rel_path(new_path).as_posix()
             self._label = new_label
             self._modifier_id = (modifier or self.session.user).id
             self.session.update(self)
@@ -341,40 +350,16 @@ class Datum(BaseModel):
 
     @staticmethod
     def _to_rel_path(path):
-        if path.startswith('/'):
+        # if path.startswith('/'):
+        if path.is_absolute():
             # ディレクトリトラバーサルには対応していない
-            return Path(path).relative_to(STORE_DIR).as_posix()
+            return Path(path).relative_to(STORE_DIR)
         else:
             return path
 
     # @staticmethod
-    # def find_root():
-    #     """
-    #     親を持たないfolderレコードを全て取得する
-    #     """
-    #     roots = self.session.query(Datum).filter(Datum.parent_id == None).all()
-
-    #     if len(roots) == 0 :
-    #         # ルートフォルダがない場合はNoneを返す
-    #         return None
-    #     elif len(roots) > 1:
-    #         raise Exception('More than 2 roots exist!!')
-
-    #     # # 
-    #     # # ルートフォルダにEveryOneグループの権限設定がない場合、初期値を設定する
-    #     # # (後方互換)
-    #     # # 
-    #     # from kskp.store.auth import Auth, Group
-    #     # everyone_group = Group.load_everyone_group()
-    #     # everyone_group.join_user(self.session.user, creator=self.session.user)
-    #     # if not Auth.exists(everyone_group.id, roots[0].id):
-    #     #     everyone_group.init_authz(roots[0].id, True, True, False, self.session.user)
-
-    #     return roots[0]
-
-    # @staticmethod
-    def count_root(self):
-        return self.session.query(Datum).filter(Datum.parent_id == None).count()
+    # def count_root(self):
+    #     return self.session.query(Datum).filter(Datum.parent_id == None).count()
 
     def find_parent(self):
         """
@@ -391,39 +376,24 @@ class Datum(BaseModel):
 
     def _update_same_path(self, old_path, new_path, modifier):
         # 同じファイルに対応するフォルダのpath列を、ファイル名の移動に合わせて変更する
-        rel_old_path = Datum._to_rel_path(old_path)
-        abs_old_path = Datum._to_abs_path(old_path)
-        from sqlalchemy import or_
-        results = self.session.query(Datum).filter(or_(Datum._path == rel_old_path, \
-                                                  Datum._path == abs_old_path)).all()
+        rel_old_path = Datum._to_rel_path(old_path).as_posix()
 
+        results = self.session.query(Datum).filter(Datum._path == rel_old_path).all()
         for result in results:
-            result._path = new_path
+            result._path = self._to_rel_path(new_path).as_posix()
             result._modifier_id = (modifier or self.session.user).id
             self.session.update(result)
 
     def _update_include_path(self, old_path, new_path, modifier=None):
         # 同じディレクトリを含むpath列を、ディレクトリの移動に合わせて変更する
-        rel_old_path = Datum._to_rel_path(old_path)
-        abs_old_path = Datum._to_abs_path(old_path)
-        from sqlalchemy import or_
+        rel_old_path = Datum._to_rel_path(old_path).as_posix()
         results = self.session.query(Datum)\
                          .filter(Datum.path!=None)\
-                         .filter(or_(Datum._path.like(rel_old_path + '/%'),\
-                                     Datum._path.like(abs_old_path + '/%'))).all()
+                         .filter(Datum._path.like(rel_old_path + '/%')).all()
         import re
         for result in results:
-            if result._path.startswith('/'):
-                replaced_path = re.sub('^'+abs_old_path, new_path, result._path)
-            else:
-                replaced_path = re.sub('^'+rel_old_path, new_path, result._path)
-            # self.session.query(Datum).filter(Datum.id==result.id).update({'_path'       : replaced_path
-            #                                                         ,'_modifier_id': modifier.id})
-
-            # from kskp.store import Frame
-            # frame_src2 = Frame.find_by_uuid(result.uuid)
-            # frame_src2 = self.session.query(Datum).filter(Frame.uuid==result.uuid)\
-            #                             .filter(Frame.type==Frame.FRAME_TYPE).one_or_none()
+            rel_new_path = self._to_rel_path(new_path).as_posix()
+            replaced_path = re.sub('^'+rel_old_path, rel_new_path, result._path)
 
             result._path = replaced_path
             result._modifier_id = (modifier or self.session.user).id
@@ -457,8 +427,8 @@ class Datum(BaseModel):
             # 同じ名称のファイルが既に存在する場合、末尾に数字を付加したファイル名で作成する
             new_path = Datum.get_another_file_path(new_path, except_path=old_path)
             # ファイルを移動する
-            if os.path.exists(Datum._to_abs_path(old_path)):
-                os.rename(Datum._to_abs_path(old_path), Datum._to_abs_path(new_path))
+            if old_path.exists():
+                old_path.rename(new_path)
                 return new_path
             else:
                 return old_path
@@ -480,18 +450,17 @@ class Datum(BaseModel):
         trans_table = str.maketrans({'\0' : ''})
         return label.translate(trans_table)
 
-
     @staticmethod
     def get_another_file_path(path, except_path=None):
         """
         同じ名称のファイルが既に存在する場合、末尾に数字を付加したファイル名で作成する
         except_path : 存在チェックを除外するファイル名
         """
-        while os.path.exists(Datum._to_abs_path(path)) and path != except_path:
-            filename = os.path.basename(path)
-            dirname = os.path.dirname(path)
+        while path.exists() and path != except_path:
+            filename = path.name
+            dir_path = path.parent
             new_filename = Datum._get_another_file_name(filename)
-            path = os.path.join(dirname, new_filename)
+            path = dir_path / new_filename
         return path
 
     @staticmethod
@@ -509,49 +478,6 @@ class Datum(BaseModel):
             return bodylist[0] + '_' + str(nextNumber) + ext
         else:
             return body + '_1' + ext
-
-    # @staticmethod
-    # def get_another_label_name(label, parent_uuid, except_uuid=None):
-    #     """
-    #     指定する親データストア内で、同じ名称のラベルがすでにある場合、末尾に数字を付加したラベル名を返す
-    #     """
-    #     children = Datum.find_by_parent_uuid(parent_uuid)
-    #     while Datum._label_exists_in_Data(label, children, except_uuid):
-    #         # 後ろから1番目の'_'でラベル名を区切る
-    #         label_elems = label.rsplit('_', 1)
-    #         if len(label_elems) == 2 and label_elems[1].isdecimal():
-    #             nextNumber = int(label_elems[1]) + 1
-    #             label = label_elems[0] + '_' + str(nextNumber)
-    #         else:
-    #             # 開始番号は1を飛び越して2?!
-    #             label = label + '_2'
-    #     return label
-
-    # @staticmethod
-    # def _label_exists_in_Data(label, data, except_uuid):
-    #     """
-    #     dataの中にlabelを使用しているdatumがあればTrueを返す
-    #     """
-    #     import json
-    #     for datum in data:
-    #         if datum.label == label and (except_uuid is None or datum.uuid != except_uuid):
-    #             return True
-    #     return False
-
-    def get_uuid_by_id(self, id):
-        result = self.session.query(Datum.uuid).filter(Datum.id==id).one_or_none()
-        if result is None:
-            Exception('No datum is found by designated id')
-        else:
-            return result.uuid
-
-    # @staticmethod
-    # def get_id_by_uuid(uuid):
-    #     result = self.session.query(Datum.id).filter(Datum.uuid==uuid).one_or_none()
-    #     if result is None:
-    #         Exception('No datum is found by designated uuid')
-    #     else:
-    #         return result.id
 
     @staticmethod
     def is_valid_uuid(uuid):

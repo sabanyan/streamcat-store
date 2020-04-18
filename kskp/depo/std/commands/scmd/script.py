@@ -47,7 +47,7 @@ class SaverCommand(SCommand):
         return {'o': NysolModule(cmd), 'u': frame}
 
     def append_writecsv_cmd(self, cmd, frame_path):
-        abs_frame_path = Datum._to_abs_path(frame_path.as_posix())
+        abs_frame_path = frame_path.as_posix()
         # リストが渡されても処理できるようi=に入力値を渡している
         return nm.writecsv(i=cmd, o=abs_frame_path)
 
@@ -161,7 +161,7 @@ class LoaderCommand(SCommand):
         frame = folder.find_child_by_uuid(frame_uuid)
         if frame is None:
             raise Exception('No frame(%s) is found !' % frame_uuid)
-        path = Datum._to_abs_path(frame.path.as_posix())
+        path = frame.path.as_posix()
 
         if frame.encoding is None:
             # frameの文字コードが未判定の場合はここで判定する
@@ -627,7 +627,7 @@ class RemoteFolderLoaderCommand(SCommand):
 
         # ファイルパスを取得する
         path = folder.path / file_path.lstrip('/')
-        path_str = Datum._to_abs_path(path.as_posix())
+        path_str = path.as_posix()
 
         cmd = nm.m2tee({'i':path_str})
         # mreadで存在しないファイルパスを指定するとDockerごと落ちる ->　
@@ -667,8 +667,8 @@ class RemoteFolderSaverCommand(SaverCommand):
 
         # 出力ファイルパスを作成する
         file_path = rfolder.path / dir_path.strip('/') / 'point_id' 
-        file_path = Datum.get_another_file_path(file_path.as_posix())
-        path_str = Datum._to_abs_path(file_path)
+        file_path = Datum.get_another_file_path(file_path)
+        path_str = file_path.as_posix()
 
         # Nysol Python
         cmd = inputs['i'].content
@@ -689,11 +689,11 @@ class RemoteFolderSaverCommand(SaverCommand):
         return {'o': NysolModule(cmd), 'u': datasource}  
 
     @staticmethod
-    def _create_data_source(parent, rfolder, label, file_path):
+    def _create_data_source(parent, rfolder, label, file_path_str):
         import uuid
         from kskp.engine import Step
         from kskp.depo.std.commands import CommandLink
-        args = {'file_path':file_path}
+        args = {'file_path':file_path_str}
         loader_step = Step(str(uuid.uuid4()), CommandLink('remotefolder_loader').resolve(), args)
         return parent.create_datasource(label, rfolder, loader_step)
 

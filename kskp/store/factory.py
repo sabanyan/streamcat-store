@@ -164,6 +164,10 @@ class DatumFactory():
 
         return datum
 
+    def count_root(self):
+        from kskp.store import Datum
+        return self._session.query(Datum).filter(Datum.parent_id == None).count()
+
     def find_root(self):
         """
         親を持たないfolderレコードを全て取得する

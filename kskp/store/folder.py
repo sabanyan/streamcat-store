@@ -50,11 +50,11 @@ class Folder(Store):
         Folderを保存する
         """
         # 既にルートフォルダが存在する場合は、parent_id=NULLを許可しない
-        if self.parent_id is None and self.count_root() > 0:
+        from kskp.store.factory import DatumFactory
+        if self.parent_id is None and DatumFactory(self.session).count_root() > 0:
             raise Exception('You can not add root folder. A root already exists.')
         # フォルダに紐付くディレクトリ(path列で指定されるディレクトリ)がなければ作成する
-        path = self._make_dir()
-        self._path = path
+        self._path = Datum._to_rel_path(self._make_dir()).as_posix()
         try:
             # Dataテーブルにレコードを新規追加する
             self.session.add(self)
@@ -69,7 +69,8 @@ class Folder(Store):
         指定されたパスのファイルをFolderとして登録する
         """
         # 既にルートフォルダが存在する場合は、parent_id=NULLを許可しない
-        if self.parent_id is None and self.count_root() > 0:
+        from kskp.store.factory import DatumFactory
+        if self.parent_id is None and DatumFactory(self.session).count_root() > 0:
             raise Exception('You can not add another root folder. A root already exists!')
         self.path = file_path
         try:
@@ -97,7 +98,7 @@ class Folder(Store):
         new_label = Datum.escape_label(label)
 
         # ファイルを移動する
-        old_path = folder._path
+        old_path = folder.path
         new_path = Folder._move_dir(old_path, new_label)
 
         try:
@@ -192,11 +193,11 @@ class Folder(Store):
         """
         try:
             # 同じ名称のファイルが既に存在する場合、末尾に数字を付加したディレクトリ名で作成する
-            path = Folder.get_another_file_path(self._path)
+            path = Folder.get_another_file_path(self.path)
 
             # フォルダに紐付くディレクトリ(path列で指定されるディレクトリ)がなければ作成する
-            if not os.path.isdir(Datum._to_abs_path(path)):
-                os.makedirs(Datum._to_abs_path(path), exist_ok=True)
+            if not os.path.isdir(path):
+                os.makedirs(path, exist_ok=True)
             return path
         except PermissionError as e:
             # ファイルに対する権限がない場合
@@ -210,20 +211,19 @@ class Folder(Store):
         
         try:
             # 全てのフォルダから紐づかないディレクトリは物理削除する
-            dir_path = self._path.rstrip(os.pathsep)
-            abs_dir_path = Datum._to_abs_path(dir_path)
+            dir_path = self.path
+
             while dir_path != '' and dir_path != '/':
                 # 自分以外で同じディレクトリパス(相対パス)を使用しているフォルダの有無を確認する
                 if self._dir_path_exists(dir_path, except_id=self.id):
                     break
-                elif Mountable.is_mount(Path(dir_path)):
+                elif Mountable.is_mount(dir_path):
                     # マウント中のフォルダは削除しない
                     break
                 else:
-                    if os.path.isdir(abs_dir_path):
-                        os.rmdir(abs_dir_path)
-                    dir_path = os.path.dirname(dir_path)
-                    abs_dir_path = os.path.dirname(abs_dir_path)
+                    if dir_path.is_dir():
+                        dir_path.rmdir()
+                    dir_path = dir_path.parent
         except PermissionError as e:
             # ファイルに対する権限がない場合
             raise e
@@ -234,23 +234,21 @@ class Folder(Store):
         Folderのラベルに対応するディレクトリへ移動する
         """
         # ファイルを移動する
-        new_path = os.path.join(os.path.dirname(old_path), Datum.escape_filename(new_label))
+        new_path = old_path.parent / Datum.escape_filename(new_label)
         new_path = Datum.move_file(old_path, new_path)
         return new_path
 
     def _dir_path_exists(self, dir_path, except_id):
-        rel_path = Datum._to_rel_path(dir_path)
-        abs_path = Datum._to_abs_path(dir_path)
+        rel_path = Datum._to_rel_path(dir_path).as_posix()
 
-        from sqlalchemy import or_
         results = self.session.query(Datum._path)\
-                 .filter(or_(Datum._path.like(rel_path + '%'), Datum._path.like(abs_path + '%')))\
+                 .filter(Datum._path.like(rel_path + '%'))\
                  .filter(Datum.id != except_id).all()
 
         for result in results:
-            if Datum._to_rel_path(result._path) == rel_path:
+            if result._path == rel_path:
                 return True
-            if os.path.commonpath([Datum._to_rel_path(result._path), rel_path]) == rel_path:
+            if os.path.commonpath([result._path, rel_path]) == rel_path:
                 return True
         return False
 
