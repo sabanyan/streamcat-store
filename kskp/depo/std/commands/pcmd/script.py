@@ -356,7 +356,13 @@ class GroupBy2Command(Command):
             
             flow <<= nm.mcut(f = '__UXT__,__FLAC__,__isvalidformat', r = True)
         else:
-            flow <<= nm.mfldname(f = f'{col}:uxt')
+            flow <<= nm.mcal(a = "__isvalidformat",
+                             c = f'regexm($s{{{col}}},"^[+,-]?([0-9]+|(([0-9]+[.][0-9]*)|([0-9]*[.][0-9]+))([E,e][+,-]?[0-9]*)?)$")')
+            flow <<= nm.mcal(a = 'uxt',
+                             c = f'if($s{{__isvalidformat}}=="1",${{{col}}},nulln())')
+            flow <<= nm.mcut(f = '__isvalidformat', r = True)
+            
+        flow <<= nm.mdelnull(f = 'uxt')
         
         return flow
 
@@ -413,6 +419,8 @@ class GroupBy2Command(Command):
         
         # rename new cols
         flow <<= nm.mfldname(f = [f'__new{col}__:{col}' for col in cols])
+        
+        flow <<= nm.mdelnull(f = cols)
 
         return flow
         
@@ -1428,7 +1436,7 @@ class GroupBy2Command(Command):
             
             f = kwargs.get('f')
             a = kwargs.get('a')
-            x = kwargs.get('x')
+            x = 'uxt' # kwargs.get('x')
             k = kwargs.get('k')
             precision = kwargs.get('precision')
 
@@ -1478,7 +1486,7 @@ class GroupBy2Command(Command):
             
             f = kwargs.get('f')
             a = kwargs.get('a')
-            x = kwargs.get('x')
+            x = 'uxt' # kwargs.get('x')
             k = kwargs.get('k')
             precision = kwargs.get('precision')
 
@@ -1622,11 +1630,15 @@ class GroupBy2Command(Command):
             x = kwargs.get('x')
             k = kwargs.get('k')
             precision = kwargs.get('precision')
+            dateformat = kwargs.pop('dateformat')
 
             fs = f.split(',')
 
             sims = [None] * len(fs)
             subcmd_o = None
+
+            subcmd = self.fixtimecolumn(subcmd, x, dateformat)
+            x = 'uxt'
             
             for i,fld in enumerate(fs): 
                 sims[i] <<= nm.msim(i = subcmd, k = k, c = 'pearson', 
@@ -2210,6 +2222,7 @@ class GroupBy2Command(Command):
             x = kwargs.get('x')
             n = kwargs.get('n')
             precision = kwargs.get('precision')
+            dateformat = kwargs.pop('dateformat')
 
             fs = f.split(',')
             targets = [None] * len(fs)
@@ -2220,15 +2233,16 @@ class GroupBy2Command(Command):
             subcmd_o = None
 
             # fix time column
-            # subcmd = self.fixtimecolumn(subcmd, x, dateformat)
+            subcmd = self.fixtimecolumn(subcmd, x, dateformat)
+            x = 'uxt'
 
             for i, fld in enumerate(fs):
                 mcal[i] <<= nm.mcal(c = f'abs(${{{fld}}})', a = f'__abs{fld}', 
                                     i = subcmd)
                 msum[i] <<= mcal[i].msum(k = k, f = f'__abs{fld}')
 
-                msummary[i] <<= nm.msel(i = self.all_msums, 
-                                        c = f'$s{{fld}}=="{fld}"')
+                msummary[i] <<= nm.msummary(i = subcmd, k = k, f = fld,
+                                        c = 'count:__count')
 
                 targets[i] <<= nm.maccum(k = k, s = f'{x}%n', f = f'__abs{fld}:__abs{fld}_a',
                                          i = mcal[i])
@@ -2365,8 +2379,8 @@ class GroupBy2Command(Command):
                     targets[i] <<= nm.msetstr(v = fld, a = 'fld') 
                     targets[i] <<= nm.msetstr(v = 1, a = a)
                 else:
-                    msummary[i] <<= nm.msel(i = self.all_msums, 
-                                        c = f'$s{{fld}}=="{fld}"')
+                    msummary[i] <<= nm.msummary(i = subcmd, k = k, f = fld,
+                                        c = f'mean:__mean,var:__var,count:__count')
 
                     targets[i] <<= nm.mjoin(i = subcmd, m = msummary[i], k = k,
                             f = 'fld,__mean,__var,__count')
@@ -2597,8 +2611,6 @@ class GroupBy2Command(Command):
             'energy_ratio_by_chunks': ['count','sd'],
             'longest_strike_above_mean' : ['mean'],
             'longest_strike_below_mean' : ['mean'],
-            'imq' : ['count'],
-            'autocorr' : ['mean', 'var', 'count'],
             'linregress': ['count']
         } 
 
@@ -2735,6 +2747,7 @@ class GroupBy2Command(Command):
 
         cmd = [None] * len(calclist)
         cmd_o = None
+        keys = None
 
 
         cmd_i = inputs['i'].content
@@ -2751,6 +2764,9 @@ class GroupBy2Command(Command):
         # replace null key values with uuid
         tmp_key = '!!' + str(uuid.uuid4())
         cmd_i <<= nm.mnullto(f = k, v = tmp_key)
+        
+        keys <<= nm.mcut(f = k, i = cmd_i)
+        keys <<= nm.muniq()
 
         expanded_k = ','.join([k,'fld'])
 
@@ -2799,6 +2815,8 @@ class GroupBy2Command(Command):
 
                 if cs in python_calcs:
                     # sys.__stderr__.write(repr(calcdict)+'\n')
+                    if calcdict.get('x'):
+                        cmd[i] = self.fixtimecolumn(cmd[i], calcdict.get('x'), calcdict.get('dateformat'))
                     cmd[i] <<= nm.runfunc(nysol_calcs[cs], **calcdict)
                 else:
                     cmd[i] = nysol_calcs[cs](cmd[i], **calcdict)
@@ -2872,10 +2890,12 @@ class GroupBy2Command(Command):
         cmd_o <<= nm.mcut(r = True, f = 'fld', nfno = _args.get('nfno'))
         
         # return tmp_key to null
-        cmd_o <<= nm.mchgstr(f = k, c = f'{tmp_key}:', F = True)
+        cmd_final = None
+        cmd_final <<= nm.mnjoin(i = keys, k = k, m = cmd_o, N = True)
+        cmd_final <<= nm.mchgstr(f = k, c = f'{tmp_key}:', F = True)
 
         nysol_module_o= NysolModule()
-        nysol_module_o.set_content(cmd_o)
+        nysol_module_o.set_content(cmd_final)
         return {'o': nysol_module_o}
 
 
