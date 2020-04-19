@@ -338,12 +338,17 @@ class GroupBy2Command(Command):
 
     def fixtimecolumn(self, flow, col, dateformat = 'date'):
         if dateformat == 'date':
+            # details for this regex in https://kskds.docbase.io/posts/1317416
+            flow <<= nm.mcal(a = "__isvalidformat",
+                             c= f'regexm($s{{{col}}},"^(((([0-9]{{2}}(([2468][048])|([13579][26])|(0[48])))|((([02468][048])|([13579][26])|(0[048]))(00)))((((0[13578])|(1[02]))((0[1-9])|([1-2][0-9])|(3[01])))|(((0[469])|(11))((0[1-9])|([1-2][0-9])|(30)))|((02)((0[1-9])|([1-2][0-9])))))|([0-9]{{4}}((((0[13578])|(1[02]))((0[1-9])|([0-2][0-9])|(3[01])))|(((0[469])|(11))((0[1-9])|([0-2][0-9])|(30)))|((02)((0[1-9])|(1[0-9])|(2[0-8]))))))((([0-1][0-9])|(2[0-3]))([0-5][0-9]){{2}})([.][0-9]{{1,6}})?$")')
+            
             flow <<= nm.mcal(a = '__INT__', 
-                    c = f'uxt( s2t(regexstr($s{{{col}}},"^[0-9]{{14,14}}|^[0-9]{{6,6}}") ) )')
+                    c = f'if($s{{__isvalidformat}}=="1",uxt( s2t(regexstr($s{{{col}}},"^[0-9]{{14,14}}") ) ), nulls())')
             flow <<= nm.mcal(a = '__FLAC__', 
-                    c = f'regexstr($s{{{col}}},"[.][0-9]{{0,6}}$")')
+                    c = f'if($s{{__isvalidformat}}=="1",regexstr($s{{{col}}},"[.][0-9]{{0,6}}$"),nulls())')
             flow <<= nm.mcal(a = 'uxt',
                     c = 'if( isnull($s{__FLAC__}), $s{__INT__}, $s{__INT__}+$s{__FLAC__} )')
+            flow <<= nm.mcut(f = '__INT__,__FLAC__,__isvalidformat', r = True)
         else:
             flow <<= nm.mfldname(f = f'{col}:uxt')
         
@@ -398,7 +403,7 @@ class GroupBy2Command(Command):
         
         # delete old cols
         flow <<= nm.mcut(f = cols, r = True)
-        flow <<= nm.mcut(f = '__numflag*__', r = True)
+        flow <<= nm.mcut(f = '__numflag*__,__notnullflag*__', r = True)
         
         # rename new cols
         flow <<= nm.mfldname(f = [f'__new{col}__:{col}' for col in cols])
