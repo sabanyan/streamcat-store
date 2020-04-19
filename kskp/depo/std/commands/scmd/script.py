@@ -32,11 +32,11 @@ class SaverCommand(SCommand):
         start_time_str1 = start_time.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
         start_time_str2 = start_time.strftime('%Y%m%d.%H%M%S.%f')[:-3]
         folder = self.make_folder(store, flow_label, start_time_str1, start_time_str2)
-        frame = self.make_frame(folder, point_label + '.csv')
+        frame = self.make_frame(folder, point_label)
         # ラベル名とファイル名はコンストラクタで別々に指定できるようにすれば
         # 改めてupdate_label_only()を行う必要はなくなる
         # もしくは、実行ログ一覧画面さえできれば別々に指定する必要もなくなるか？
-        frame.update_label_only(point_label)
+        # frame.update_label_only(point_label)
 
         # NYSOLコマンドを作成する
         # if not isinstance(inputs['i'], NysolModule):
@@ -81,7 +81,7 @@ class SaverCommand(SCommand):
         frame = store.create_frame(label, f)
         # RunsCommandの実行前にFrameを登録する
         frame.save()
-        return frame
+        return store.find_child_by_uuid(frame.uuid)
 
 class CacheSaverCommand(SaverCommand):
     """

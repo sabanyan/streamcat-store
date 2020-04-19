@@ -1,8 +1,4 @@
 import os
-import re
-import json
-import uuid
-from pathlib import Path
 
 from kskp.core import Datum
 from kskp.store import Store
@@ -22,7 +18,7 @@ class Folder(Store):
         # data列の値を作成する
         # self.data = {}
 
-    def save(self):
+    def save(self, file_path=None):
         """
         Folderを保存する
         """
@@ -30,8 +26,13 @@ class Folder(Store):
         from kskp.store.factory import DatumFactory
         if self.parent_id is None and DatumFactory(self.session).count_root() > 0:
             raise Exception('You can not add root folder. A root already exists.')
-        # フォルダに紐付くディレクトリ(path列で指定されるディレクトリ)がなければ作成する
-        self._path = Datum._to_rel_path(self._make_dir()).as_posix()
+
+        if file_path is None:
+            # フォルダに紐付くディレクトリ(path列で指定されるディレクトリ)がなければ作成する
+            self._path = Datum._to_rel_path(self._make_dir()).as_posix()
+        else:
+            self.path = file_path
+
         try:
             # Dataテーブルにレコードを新規追加する
             self.session.add(self)
@@ -41,30 +42,28 @@ class Folder(Store):
         finally:
             self.session.commit()
 
-    def add_entry_from_path(self, file_path):
-        """
-        指定されたパスのファイルをFolderとして登録する
-        """
-        # 既にルートフォルダが存在する場合は、parent_id=NULLを許可しない
-        from kskp.store.factory import DatumFactory
-        if self.parent_id is None and DatumFactory(self.session).count_root() > 0:
-            raise Exception('You can not add another root folder. A root already exists!')
-        self.path = file_path
-        try:
-            # Dataテーブルにレコードを新規追加する
-            self.session.add(self)
-        except Exception as e:
-            self.session.rollback()
-            raise e
-        finally:
-            self.session.commit()
+    # def add_entry_from_path(self, file_path):
+    #     """
+    #     指定されたパスのファイルをFolderとして登録する
+    #     """
+    #     # 既にルートフォルダが存在する場合は、parent_id=NULLを許可しない
+    #     from kskp.store.factory import DatumFactory
+    #     if self.parent_id is None and DatumFactory(self.session).count_root() > 0:
+    #         raise Exception('You can not add another root folder. A root already exists!')
+    #     self.path = file_path
+    #     try:
+    #         # Dataテーブルにレコードを新規追加する
+    #         self.session.add(self)
+    #     except Exception as e:
+    #         self.session.rollback()
+    #         raise e
+    #     finally:
+    #         self.session.commit()
 
     def update_data(self, label, modifier=None):
         """
         Folderのdata列を更新する
         """
-        # UUID値の形式チェックをする
-        # Datum.valid_uuid_or_raise(uuid)
         # レコードを取得する
         folder = self.session.query(Folder).filter(Folder.uuid==self.uuid)\
                                       .filter(Folder.type==Datum.FOLDER_TYPE).one_or_none()

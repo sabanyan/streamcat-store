@@ -1,5 +1,4 @@
 import os
-import json
 
 from sqlalchemy import Column, text
 from sqlalchemy.dialects.postgresql import INTEGER, TIMESTAMP, JSONB, ENUM
