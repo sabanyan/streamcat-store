@@ -2,7 +2,6 @@ import unittest
 import pprint
 
 from kskp.core import Datum
-# from kskp.store import Library, Flow, STORE_DIR, Library
 
 from kskp.store import ss as session
 from kskp.store.auth import User, UserGroup, Group, Auth

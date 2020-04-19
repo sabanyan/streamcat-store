@@ -1,5 +1,5 @@
 from kskp.core import Datum
-from kskp.store import Store, DatabaseConn, STORE_DIR
+from kskp.store import Store, DatabaseConn
 
 class Database(Store):
     """

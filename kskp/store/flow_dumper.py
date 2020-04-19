@@ -63,7 +63,6 @@ class FlowDumper:
 
         uuid_type_label = []
 
-        from kskp.store import STORE_DIR
         for frame_uuid in frame_uuids:
             frame = self.factory.data.find_by_uuid(frame_uuid, type=Datum.FRAME_TYPE)
             if frame is None or not frame.file_exists:
@@ -71,7 +70,7 @@ class FlowDumper:
                 continue
             tmp_frame_link = parent_tmp_path / (frame.uuid + '.csv')
             if not tmp_frame_link.exists():
-                os.symlink(STORE_DIR / frame.path, tmp_frame_link)
+                os.symlink(frame.path, tmp_frame_link)
             uuid_type_label.append((frame.uuid, frame.type, frame.label))
 
         for store_uuid in store_uuids:

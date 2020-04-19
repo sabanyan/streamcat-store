@@ -5,7 +5,7 @@ import uuid
 from pathlib import Path
 
 from kskp.core import Datum
-from kskp.store import Store, STORE_DIR
+from kskp.store import Store
 
 class Folder(Store):
 

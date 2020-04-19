@@ -1,16 +1,6 @@
 import os
 from pathlib import Path
 
-FLOW_FOLDER_UUID    = 'ff37fe34-9c25-4Ad0-b74A-affda3712a45'
-FLOW_FOLDER_LABEL   = 'フロー'
-RESULT_FOLDER_UUID  = 'aacb4914-0695-40fc-b14b-95b7f1f81707'
-RESULT_FOLDER_LABEL = '実行結果'
-CACHE_FOLDER_UUID   = 'cc9f050d-b007-414e-a6e0-6d31a9c13395'
-CACHE_FOLDER_LABEL  = 'キャッシュ'
-
-# Datum.pathの基点ディレクトリ
-STORE_DIR = Path(__file__).parent.parent / 'depo/files'
-
 def _is_unittest():
     # python3 -m unittestで実行した場合は、is_unittest=Trueとなる
     import sys

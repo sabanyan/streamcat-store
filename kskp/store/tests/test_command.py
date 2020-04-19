@@ -6,7 +6,7 @@ import pprint
 from pathlib import Path
 from datetime import datetime
 
-from kskp.store import Library, STORE_DIR, Flow
+from kskp.store import Library, Flow
 from kskp.engine import execute, FlowJsonLink, FlowLinkContext
 from .test_case_base import TestCaseBase
 
@@ -181,7 +181,7 @@ def get_frame_by_uuid(uuid, header=True):
     import csv
     result = []
     frame = Library.load_frame(uuid)
-    with open(STORE_DIR / frame.path, 'r') as f:
+    with open(frame.path, 'r') as f:
         rows = csv.reader(f)
         if header:
             header = next(rows)

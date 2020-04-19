@@ -266,21 +266,24 @@ class DatumFactory():
         """
         実行結果フォルダを取得する、存在しない場合は作成する
         """
-        from kskp.store import RESULT_FOLDER_UUID, RESULT_FOLDER_LABEL
+        RESULT_FOLDER_UUID  = 'aacb4914-0695-40fc-b14b-95b7f1f81707'
+        RESULT_FOLDER_LABEL = '実行結果'
         return self._get_or_make_dir_path(RESULT_FOLDER_UUID, RESULT_FOLDER_LABEL)
 
     def load_cache_folder(self):
         """
         キャッシュフォルダを取得する、存在しない場合は作成する
         """
-        from kskp.store import CACHE_FOLDER_UUID, CACHE_FOLDER_LABEL
+        CACHE_FOLDER_UUID  = 'cc9f050d-b007-414e-a6e0-6d31a9c13395'
+        CACHE_FOLDER_LABEL = 'キャッシュ'
         return self._get_or_make_dir_path(CACHE_FOLDER_UUID, CACHE_FOLDER_LABEL)
 
     def load_flow_folder(self):
         """
         フローフォルダを取得する、存在しない場合は作成する
         """
-        from kskp.store import FLOW_FOLDER_UUID, FLOW_FOLDER_LABEL
+        FLOW_FOLDER_UUID  = 'ff37fe34-9c25-4Ad0-b74A-affda3712a45'
+        FLOW_FOLDER_LABEL = 'フロー'
         return self._get_or_make_dir_path(FLOW_FOLDER_UUID, FLOW_FOLDER_LABEL)
 
     def _get_or_make_dir_path(self, uuid, label):
