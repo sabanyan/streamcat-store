@@ -18,12 +18,12 @@ class Frame(Datum):
     # 改行コード変換テーブル
     NEWLINE_CONV_TABLE = {'\n':'LF', '\r\n':'CR+LF', '\r':'CR', 'UNKNOWN':'UNKNOWN'}
 
-    def __init__(self, session, parent_uuid, label, stream, creator=None):
+    def __init__(self, session, parent, label, stream, creator=None):
         """
         コンストラクタ
         stream : Frameデータのファイルストリームを指定する
         """
-        super().__init__(session, parent_uuid, Datum.FRAME_TYPE, label, creator)
+        super().__init__(session, parent, Datum.FRAME_TYPE, label, creator)
 
         # ファイルストリームの文字コードを推測する
         if stream is not None and hasattr(stream, 'seek'):
@@ -42,33 +42,6 @@ class Frame(Datum):
         # フローキャッシュの場合はTrue
         # data.type列='cache'を用意するべきだろうか？
         self.is_cache = False
-
-    # @staticmethod
-    # def find_by_uuid(uuid):
-    #     """
-    #     指定されたuuidを持つFrameを取得する
-    #     """
-    #     # UUID値の形式チェックをする
-    #     Datum.valid_uuid_or_raise(uuid)
-    #     frame = self.session.query(Frame).filter(Frame.uuid==uuid)\
-    #                                 .filter(Frame.type==Frame.FRAME_TYPE).one_or_none()
-    #     if frame is None:
-    #         # FIXIT : fetch_frame()の現在の実装ではデータの無い場合はエラーにしていない為
-    #         # raise Exception('no frame is found by designated id.')
-    #         return None
-    #     return frame
-
-    # @staticmethod
-    # def exists(uuid):
-    #     """
-    #     指定されたuuidを持つFrameが存在する場合はTrueを返す
-    #     """
-    #     # UUID値の形式チェックをする
-    #     if not Datum.is_valid_uuid(uuid):
-    #         return False
-    #     result = self.session.query(Datum).filter(Datum.uuid==uuid)\
-    #                                  .filter(Datum.type==Datum.FRAME_TYPE).count()
-    #     return result > 0
 
     def save(self):
         """

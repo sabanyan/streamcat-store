@@ -7,8 +7,8 @@ class Store(Datum):
     Storeを表す
     (StoreとはLoaderの入力元となり得る、またはSaverの出力先となり得るもの)
     """
-    def __init__(self, session, parent_uuid, type, label, creator=None):
-        super().__init__(session, parent_uuid, type, label, creator)
+    def __init__(self, session, parent, type, label, creator=None):
+        super().__init__(session, parent, type, label, creator)
 
     def find_children(self):
         """
@@ -95,37 +95,37 @@ class Store(Datum):
 
     def create_folder(self, label):
         from kskp.store import Folder
-        return Folder(self.session, self.uuid, label, self.session.user)
+        return Folder(self.session, self, label, self.session.user)
 
     def create_awss3(self, label, bucket_name):
         from kskp.store import AwsS3
-        return AwsS3(self._session, self.uuid, label, bucket_name, self.session.user)
+        return AwsS3(self._session, self, label, bucket_name, self.session.user)
 
     def create_database(self, label, database_conn):
         from kskp.store import Database
-        return Database(self.session, self.uuid, label, database_conn, self.session.user)
+        return Database(self.session, self, label, database_conn, self.session.user)
 
     def create_remote_folder(self, label, remoteFolderConn):
         from kskp.store import RemoteFolder
-        return RemoteFolder(self.session, self.uuid, label, remoteFolderConn, self.session.user)
+        return RemoteFolder(self.session, self, label, remoteFolderConn, self.session.user)
 
     def create_flow(self, label, flow_data):
         from kskp.store import Flow
-        return Flow(self.session, self.uuid, label, flow_data, self.session.user)
+        return Flow(self.session, self, label, flow_data, self.session.user)
 
     def create_datasource(self, label, store, loader_step):
         from kskp.store import DataSource
-        return DataSource(self.session, self.uuid, label, store, loader_step, self.session.user)
+        return DataSource(self.session, self, label, store, loader_step, self.session.user)
 
     def create_frame(self, label, stream):
         from kskp.store import Frame
-        return Frame(self.session, self.uuid, label, stream, self.session.user)
+        return Frame(self.session, self, label, stream, self.session.user)
 
     def create_cache(self, label, stream):
         # Cacheクラスはtype='frame'なので保存時にSQLAlchemyエラーになる
         # そのためキャッシュにはFrameクラスを用いる
         from kskp.store import Frame
-        cache = Frame(self.session, self.uuid, label, stream, self.session.user)
+        cache = Frame(self.session, self, label, stream, self.session.user)
         cache.is_cache = True
         return cache
 

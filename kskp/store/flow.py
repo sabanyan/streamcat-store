@@ -11,110 +11,18 @@ class Flow(Datum):
         'polymorphic_identity' : 'flow'
     }
 
-    def __init__(self, session, parent_uuid, label, flow_data, creator=None):
+    def __init__(self, session, parent, label, flow_data, creator=None):
         """
         コンストラクタ
         flow_data : Flowデータを指定する
         """
-        super().__init__(session, parent_uuid, Datum.FLOW_TYPE, label, creator)
+        super().__init__(session, parent, Datum.FLOW_TYPE, label, creator)
 
         # フローデータはファイルに保存せず、データベースに保存する
         self._path = ''
 
         # data列の値を作成する
         self.data = {'label' : label, 'flow' : flow_data}
-
-    # @staticmethod
-    # def find_all_flows():
-    #     """
-    #     全てのフローを取得する
-    #     """
-    #     flows = session.query(Flow).filter(Flow.type==Flow.FLOW_TYPE).all()
-    #     return flows
-
-    # @staticmethod
-    # def find_by_uuid(uuid):
-    #     """
-    #     指定されたuuidを持つFlowを取得する
-    #     """
-    #     # UUID値の形式チェックをする
-    #     Datum.valid_uuid_or_raise(uuid)
-    #     flow = session.query(Flow).filter(Flow.uuid==uuid)\
-    #                               .filter(Flow.type==Flow.FLOW_TYPE).one_or_none()
-    #     if flow is None:
-    #         raise Exception('no flow is found by designated id(%s).' % uuid)
-    #     return flow
-
-    # @staticmethod
-    # def find_all_subflows(no_inputs=True, no_outputs=True):
-    #     """
-    #     サブフローを取得する
-    #     no_inputs  =False : 入力ポートのないサブフローは取得しない
-    #     no_outputs =False : 出力ポートのないサブフローは取得しない
-    #     """
-    #     # FIXIT : PostgreSQLのJSONB演算子を用いればSQLのみでサブフローを抽出できるはず
-    #     flows = session.query(Flow).filter(Flow.type==Flow.FLOW_TYPE).all()
-
-    #     subflows = []
-    #     for flow in flows:
-            
-    #         # 参照権限のないフローはサブフローか否かの判定ができない
-    #         if not flow.readable:
-    #             continue
-
-    #         flow_data = flow.data['flow']
-    #         # onの時にno_inputs（＝inputsがない）のサブフローは出さない
-    #         if no_inputs:
-    #             if len(flow_data['ports'][0]) == 0:
-    #                 continue
-
-    #         # onの時にno_outputs（＝outputsがない）のサブフローは出さない
-    #         if no_outputs:
-    #             if len(flow_data['ports'][1]) == 0:
-    #                 continue
-
-    #         if len(flow_data['ports'][0]) > 0 or len(flow_data['ports'][1]) > 0:
-    #             subflows.append(flow)
-
-    #     return subflows
-
-    # @staticmethod
-    # def exists(uuid):
-    #     """
-    #     指定されたuuidを持つFlowが存在する場合はTrueを返す
-    #     """
-    #     # UUID値の形式チェックをする
-    #     if not Datum.is_valid_uuid(uuid):
-    #         return False
-    #     result = session.query(Flow).filter(Flow.uuid==uuid)\
-    #                                 .filter(Flow.type==Flow.FLOW_TYPE).count()
-    #     return result > 0
-
-    # @staticmethod
-    # def create_simple_flow(parent_uuid, label, data_source, creator=None):
-    #     flow_data = {
-    #                     "label": label,
-    #                     "nodes": [
-    #                         {
-    #                             "id": "d",
-    #                             "type": "frame",
-    #                             "uuid": data_source.uuid,
-    #                             "error": {},
-    #                             "label": data_source.label,
-    #                             "invalid": {},
-    #                             "makeCache": False,
-    #                             "dataSource": "csv",
-    #                             "cacheCreatedAt": None
-    #                         }
-    #                     ],
-    #                     "ports": [[],[]],
-    #                     "params": [],
-    #                     "creator": "",
-    #                     "createdAt": data_source.created_at_str,
-    #                     "projectId": None,
-    #                     "description": ""
-    #                 }
-    #     return Flow(parent_uuid, label, flow_data, creator)
 
     def save(self):
         """
@@ -254,7 +162,9 @@ class Flow(Datum):
         JST = timezone(timedelta(hours=+9), 'JST')
         new_flow_data['createdAt'] = datetime.now(JST).strftime('%Y-%m-%d %H:%M:%S')
         # 複製を作成する
-        new_flow = Flow(self.session, self.parent_uuid, new_label, new_flow_data, self.session.user)
+        # new_flow = Flow(self.session, self.parent_uuid, new_label, new_flow_data, self.session.user)
+        parent = self.find_parent()
+        new_flow = parent.create_flow(new_label, new_flow_data)
         return new_flow
 
     @staticmethod

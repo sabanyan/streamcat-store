@@ -110,19 +110,24 @@ class DatumFactory():
     def __init__(self, session):
         self._session = session
     
-    def create_folder(self, parent_uuid, label):
+    # def create_folder(self, parent, label):
+    #     from kskp.store import Folder
+    #     return Folder(self._session, parent, label, self._session.user)
+
+    # def create_frame(self, parent, label, stream):
+    #     from kskp.store import Frame
+    #     return Frame(self._session, parent, label, stream, self._session.user)
+
+
+    def create_root(self, label):
         from kskp.store import Folder
-        return Folder(self._session, parent_uuid, label, self._session.user)
+        return Folder(self._session, None, label, self._session.user)
 
-    def create_frame(self, parent_uuid, label, stream):
-        from kskp.store import Frame
-        return Frame(self._session, parent_uuid, label, stream, self._session.user)
-
-    def create_datasource(self, parent_uuid, label, store, loader_step):
+    def create_datasource(self, parent, label, store, loader_step):
         from kskp.store import DataSource
-        return DataSource(self._session, parent_uuid, label, store, loader_step, self._session.user)
+        return DataSource(self._session, parent, label, store, loader_step, self._session.user)
 
-    def create_simple_flow(self, parent_uuid, label, data_source):
+    def create_simple_flow(self, parent, label, data_source):
         from kskp.store import Flow
         flow_data = {
                         "label": label,
@@ -146,7 +151,7 @@ class DatumFactory():
                         "projectId": None,
                         "description": ""
                     }
-        return Flow(self._session, parent_uuid, label, flow_data, self._session.user)
+        return Flow(self._session, parent, label, flow_data, self._session.user)
 
     def find_by_uuid(self, uuid, type=None):
         """
@@ -227,7 +232,7 @@ class DatumFactory():
         # ルートフォルダが存在しない場合はルートフォルダを作成する
         # (最初にライブラリ画面にアクセスする時はルートフォルダ自身も存在しません)
         if root is None:
-            new_root = self.create_folder(parent_uuid=None, label='ROOT_FOLDER')
+            new_root = self.create_root(label='ROOT_FOLDER')
             # folderレコードをDBに格納する
             new_root.save()
 
