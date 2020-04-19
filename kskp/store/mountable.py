@@ -133,12 +133,13 @@ class Mountable():
             if not Mountable.is_mount(Path(mount_point_dir)):
                 uuid = str(result[0])
                 type = str(result[2])
-                from kskp.store import AwsS3, RemoteFolder
+                from kskp.store.factory import DatumFactory
+                factory = DatumFactory(session)
                 if type == Datum.AWSS3_TYPE:
-                    awss3 = AwsS3.find_by_uuid(uuid)
+                    awss3 = factory.find_by_uuid(uuid)
                     awss3.mount(mount_point_dir)
                 elif type == Datum.RFOLDER_TYPE:
-                    folder = RemoteFolder.find_by_uuid(uuid)
+                    folder = factory.find_by_uuid(uuid)
                     folder.mount(mount_point_dir)
                 else:
                     raise Exception('undefined type found!')

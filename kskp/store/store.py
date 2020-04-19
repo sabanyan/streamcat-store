@@ -1,5 +1,3 @@
-import uuid
-from pathlib import Path
 from kskp.core import Datum
 
 class Store(Datum):
@@ -15,9 +13,6 @@ class Store(Datum):
         自分の直下の子Datumを全て取得する
         """
         from sqlalchemy import desc
-
-        # UUID値の形式チェックをする
-        Datum.valid_uuid_or_raise(self.uuid)
 
         data = self.session.query(Datum).filter(Datum.parent_id==self.id).\
                             order_by(Datum.type, desc(Datum.created_at)).all()
@@ -42,9 +37,6 @@ class Store(Datum):
         from sqlalchemy import desc
         from sqlalchemy.orm import aliased
 
-        # UUID値の形式チェックをする
-        Datum.valid_uuid_or_raise(self.uuid)
-
         f2 = aliased(Datum)
         sub_query = self.session.query(f2)
         data = self.session.query(Datum)\
@@ -60,7 +52,7 @@ class Store(Datum):
         自分の直下の子から指定されたUUIDのDatumを取得する
         """
         # UUID値の形式チェックをする
-        Datum.valid_uuid_or_raise(self.uuid)
+        Datum.valid_uuid_or_raise(uuid)
 
         data = self.session.query(Datum).filter(Datum.parent_id==self.id).\
                             filter(Datum.uuid==uuid).one()

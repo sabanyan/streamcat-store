@@ -1,11 +1,3 @@
-import os
-import json
-import shutil
-import shlex
-import subprocess
-from time import sleep
-from pathlib import Path
-
 from kskp.core import Datum
 from kskp.store import Folder, RemoteFolderConn, Mountable
 
@@ -38,7 +30,7 @@ class RemoteFolder(Folder, Mountable):
         if self.parent_id is None and  DatumFactory(self.session).count_root() > 0:
             raise Exception('You can not add root remote folder. A root already exists.')
         # フォルダに紐付くディレクトリ(path列で指定されるディレクトリ)がなければ作成する
-        self.path = Path(self._make_dir())
+        self.path = self._make_dir()
         # ここでリモートフォルダをマウントする
         self.mount(self._path)
         try:
@@ -54,8 +46,6 @@ class RemoteFolder(Folder, Mountable):
         """
         共有フォルダのdata列を更新する
         """
-        # UUID値の形式チェックをする
-        Datum.valid_uuid_or_raise(self.uuid)
         # レコードを取得する
         datum = self.session.query(Datum).filter(Datum.uuid==self.uuid)\
                                     .filter(Datum.type==Datum.RFOLDER_TYPE).one_or_none()

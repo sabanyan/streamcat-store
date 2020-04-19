@@ -2,13 +2,10 @@
 いわゆるルートクラスであるDatumを定義している
 """
 import os
-import uuid
 from pathlib import Path
 from kskp.store import BaseModel
-from kskp.store.auth import NotAuthorizedException
 from sqlalchemy import Column, Integer, String, text, select
-from sqlalchemy.orm import aliased, column_property, query_expression
-# from sqlalchemy.ext.mutable import MutableDict
+from sqlalchemy.orm import column_property, query_expression
 from sqlalchemy.dialects.postgresql import INTEGER, TIMESTAMP, JSONB, ENUM, UUID
 
 class Datum(BaseModel):
@@ -107,6 +104,7 @@ class Datum(BaseModel):
             self.parent_id = parent.id
 
         # UUIDを採番する
+        import uuid
         self.uuid = str(uuid.uuid4())
 
         # pathは親フォルダのpathを引き継ぐ
@@ -145,7 +143,7 @@ class Datum(BaseModel):
         from kskp.store import Mountable
 
         # 参照権限が無ければ例外を送出する
-        self.readable_or_raise()
+        self._readable_or_raise()
 
         if self._path == '':
             return None
@@ -210,7 +208,7 @@ class Datum(BaseModel):
     @property
     def data(self):
         # 参照権限が無ければ例外を送出する
-        self.readable_or_raise()
+        self._readable_or_raise()
         return self._data
 
     @data.setter
@@ -266,7 +264,6 @@ class Datum(BaseModel):
 
     @property
     def creator_str(self):
-        # return Datum.get_user_name_by_user_id(self.creator)
         if self.creator is None:
             return ''
         return self.creator.name
@@ -276,6 +273,16 @@ class Datum(BaseModel):
         if self.modifier is None:
             return ''
         return self.modifier.name
+
+    def find_parent(self):
+        """
+        自分の親を取得する
+        """
+        datum = self.session.query(Datum)\
+                            .filter(Datum.id==self.parent_id).one()
+
+        datum.session = self.session
+        return datum
 
     def move(self, parent_uuid, modifier=None):
         """
@@ -341,44 +348,12 @@ class Datum(BaseModel):
                 'creator'   : self.creator_str,
                 'createdAt' : self.created_at_str}
 
-    def readable_or_raise(self):
+    def _readable_or_raise(self):
+        from kskp.store.auth import NotAuthorizedException
         if self.readable is None:
             raise NotAuthorizedException(f'{self.label}の参照権限がNoneです(save後のDatumオブジェクトは参照権限がNoneになります)')
         if not self.readable:
             raise NotAuthorizedException(f'{self.session.user.name} ({self.user})は{self.label}の参照権限がありません({self.readable})')
-
-    @staticmethod
-    def _to_abs_path(path):
-        if path.startswith('/'):
-            return path
-        else:
-            return (Datum.STORE_DIR / path).as_posix()
-
-    @staticmethod
-    def _to_rel_path(path):
-        # if path.startswith('/'):
-        if path.is_absolute():
-            # ディレクトリトラバーサルには対応していない
-            return path.relative_to(Datum.STORE_DIR)
-        else:
-            return path
-
-    # @staticmethod
-    # def count_root(self):
-    #     return self.session.query(Datum).filter(Datum.parent_id == None).count()
-
-    def find_parent(self):
-        """
-        自分の親を取得する
-        """
-        # UUID値の形式チェックをする
-        Datum.valid_uuid_or_raise(self.uuid)
-
-        datum = self.session.query(Datum)\
-                            .filter(Datum.id==self.parent_id).one()
-
-        datum.session = self.session
-        return datum
 
     def _update_same_path(self, old_path, new_path, modifier):
         # 同じファイルに対応するフォルダのpath列を、ファイル名の移動に合わせて変更する
@@ -468,6 +443,22 @@ class Datum(BaseModel):
             new_filename = Datum._get_another_file_name(filename)
             path = dir_path / new_filename
         return path
+
+    @staticmethod
+    def _to_abs_path(path):
+        if path.startswith('/'):
+            return path
+        else:
+            return (Datum.STORE_DIR / path).as_posix()
+
+    @staticmethod
+    def _to_rel_path(path):
+        # if path.startswith('/'):
+        if path.is_absolute():
+            # ディレクトリトラバーサルには対応していない
+            return path.relative_to(Datum.STORE_DIR)
+        else:
+            return path
 
     @staticmethod
     def _get_another_file_name(filename):

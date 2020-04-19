@@ -1,6 +1,4 @@
 import os
-import json
-from pathlib import Path
 
 from kskp.core import Datum
 
@@ -43,7 +41,7 @@ class Frame(Datum):
         # data.type列='cache'を用意するべきだろうか？
         self.is_cache = False
 
-    def save(self):
+    def save(self, file_path=None):
         """
         Frameを保存する
         """
@@ -51,8 +49,20 @@ class Frame(Datum):
         from kskp.store.factory import DatumFactory
         if self.parent_id is None and DatumFactory(self.session).count_root() > 0:
             raise Exception('You can not add another root frame. A root already exists.')
-        # ドキュメントに紐付くファイル(path列で指定されるファイル)がなければ作成する
-        self._path = Datum._to_rel_path(self._make_file()).as_posix()
+
+        if file_path is None:
+            # ドキュメントに紐付くファイル(path列で指定されるファイル)がなければ作成する
+            self.path = self._make_file()
+        elif file_path.exists():
+            self.path = file_path
+            # ファイルの文字コードを判定する
+            with open(file_path, 'rb') as f:
+                encoding = Frame._detect_encoding(f)
+                newline = Frame._detect_newline_code(f)
+            self.data = {'encoding':encoding, 'newline':newline}
+        else:
+            raise Exception(f'指定したファイル({file_path})が存在しないためFrameを保存できません')
+
         try:
             # Dataテーブルにレコードを新規追加する
             self.session.add(self)
@@ -63,32 +73,31 @@ class Frame(Datum):
             # 親フォルダのロックを解除する
             self.session.commit()
 
-    def add_entry_from_path(self, file_path):
-        """
-        指定されたパスのファイルをFrameとして登録する
-        """
-        # 既にルートフォルダが存在する場合は、parent_id=NULLを許可しない
-        from kskp.store.factory import DatumFactory
-        if self.parent_id is None and DatumFactory(self.session).count_root() > 0:
-            raise Exception('You can not add another root frame. A root already exists!')
-        self.path = file_path
+    # def add_entry_from_path(self, file_path):
+    #     """
+    #     指定されたパスのファイルをFrameとして登録する
+    #     """
+    #     # 既にルートフォルダが存在する場合は、parent_id=NULLを許可しない
+    #     from kskp.store.factory import DatumFactory
+    #     if self.parent_id is None and DatumFactory(self.session).count_root() > 0:
+    #         raise Exception('You can not add another root frame. A root already exists!')
+    #     self.path = file_path
 
-        # ファイルの文字コードを判定する
-        abs_path = file_path
-        if file_path.exists():
-            with open(abs_path, 'rb') as f:
-                encoding = Frame._detect_encoding(f)
-                newline = Frame._detect_newline_code(f)
-            self.data = {'encoding':encoding, 'newline':newline}
+    #     # ファイルの文字コードを判定する
+    #     if file_path.exists():
+    #         with open(file_path, 'rb') as f:
+    #             encoding = Frame._detect_encoding(f)
+    #             newline = Frame._detect_newline_code(f)
+    #         self.data = {'encoding':encoding, 'newline':newline}
 
-        try:
-            # Dataテーブルにレコードを新規追加する
-            self.session.add(self)
-        except Exception as e:
-            self.session.rollback()
-            raise e
-        finally:
-            self.session.commit()
+    #     try:
+    #         # Dataテーブルにレコードを新規追加する
+    #         self.session.add(self)
+    #     except Exception as e:
+    #         self.session.rollback()
+    #         raise e
+    #     finally:
+    #         self.session.commit()
 
     def update_data(self, label, modifier=None):
         """
@@ -121,22 +130,34 @@ class Frame(Datum):
 
         return frame
 
-    def update_encoding_newline(self, encoding_str, newline_str, modifier=None):
+    def update_encoding_newline(self, encoding_str=None, newline_str=None, modifier=None):
         encoding = None
-        for key, value in Frame.ENCODING_CONV_TABLE.items():
-            if value == encoding_str:
-                encoding = key
-                break
-        if encoding is None:
-            encoding = encoding_str
+        if encoding_str is None:
+            # 自身の持つファイルの文字コードを判定する
+            if self.path.exists():
+                with open(self.path, 'rb') as f:
+                    encoding = Frame._detect_encoding(f)
+        else:
+            for key, value in Frame.ENCODING_CONV_TABLE.items():
+                if value == encoding_str:
+                    encoding = key
+                    break
+            if encoding is None:
+                encoding = encoding_str
 
         newline = None
-        for key, value in Frame.NEWLINE_CONV_TABLE.items():
-            if value == newline_str:
-                newline = key
-                break
-        if newline is None:
-            raise Exception(f'文字改行コードの指定文字列({newline_str})が誤っています')
+        if newline_str is None:
+            # 自身の持つファイルの改行コードを判定する
+            if self.path.exists():
+                with open(self.path, 'rb') as f:
+                    newline = Frame._detect_newline_code(f)
+        else:
+            for key, value in Frame.NEWLINE_CONV_TABLE.items():
+                if value == newline_str:
+                    newline = key
+                    break
+            if newline is None:
+                raise Exception(f'文字改行コードの指定文字列({newline_str})が誤っています')
 
         try:
             self._data = {'encoding':encoding, 'newline':newline}

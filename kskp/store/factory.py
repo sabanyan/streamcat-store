@@ -1,5 +1,3 @@
-import os
-from sqlalchemy import create_engine
 
 class Factory():
     """
@@ -74,6 +72,7 @@ class UnAuthzFactory():
 
     def create_admin_user(self):
         from kskp.store.auth import User
+        # FIXIT:管理者パスワードはどうする？
         return User(self._session, 'admin@kskp.io', 'adminpass', '管理者')
 
     def find_user_by_email(self, email):
@@ -105,7 +104,6 @@ class UnAuthzFactory():
 
 
 class DatumFactory():
-    # Factoryのような役割になってきたのでDatumFactoryに名前を変えたい
 
     def __init__(self, session):
         self._session = session
@@ -157,6 +155,10 @@ class DatumFactory():
         """
         指定されたuuidを持つDatumを取得する
         """
+        # UUID値の形式チェックをする
+        from kskp.core import Datum
+        Datum.valid_uuid_or_raise(uuid)
+
         from kskp.store import Datum
         query = self._session.query(Datum).filter(Datum.uuid==uuid)
 
@@ -291,6 +293,10 @@ class DatumFactory():
         if self.exists(uuid):
             folder = self.find_by_uuid(uuid)
         else:
+            # UUID値の形式チェックをする
+            from kskp.core import Datum
+            Datum.valid_uuid_or_raise(uuid)
+
             # フォルダが無い場合は作成する
             root = self.load_root()
             folder = root.create_folder(label)
@@ -460,6 +466,10 @@ class UserFactory():
         return user
 
     def find_by_uuid(self, uuid):
+        # UUID値の形式チェックをする
+        from kskp.core import Datum
+        Datum.valid_uuid_or_raise(uuid)
+
         user = self._session.query(User).filter(User.uuid==uuid).one_or_none()
         return user
 

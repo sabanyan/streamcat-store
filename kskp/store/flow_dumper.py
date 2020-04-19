@@ -57,7 +57,6 @@ class FlowDumper:
 
     def _get_flow(self, parent_tmp_path, gathered_uuids, flow_uuid):
         import os
-        import json
 
         (frame_uuids, store_uuids, flow_uuids) = self._get_flows_and_frames(flow_uuid, exclude_uuids=gathered_uuids)
 
@@ -167,7 +166,6 @@ class FlowDumper:
 
         # フレームの移行先フォルダを作成する
         frame_folder = parent.create_folder('FromOtherServer')
-        frame_folder_uuid = frame_folder.uuid
         frame_folder.save()
         # 保存後に参照権限を取得するためDBから取得する
         frame_folder = self.factory.data.find_by_uuid(frame_folder.uuid)

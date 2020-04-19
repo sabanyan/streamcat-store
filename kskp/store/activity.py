@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, timezone
 
 from kskp.core import Datum
-from kskp.store import Frame, Cache, DataSource
+from kskp.store import Frame, DataSource
 
 class Activity(Datum):
     """
@@ -63,20 +63,17 @@ class Activity(Datum):
                 elapsed_time_str = str(round(elapsed_time / 60, 2))
                 new_label = new_label + ' 全体処理時間' + elapsed_time_str + '分'
 
-            if type(datum) is Frame:
-                # 
-                # Frameの場合
-                # 
-                # 対応ファイルの文字コードと改行コードを推測してその結果を登録する
-                datum.add_entry_from_path(datum.path)
-                datum.update_label_only(new_label)
-            elif type(datum) is Cache:
-                # 
-                # Cacheの場合
-                # 
-                # 対応ファイルの文字コードと改行コードを推測してその結果を登録する
-                datum.add_entry_from_path(datum.path)
-            elif type(datum) is DataSource:
+            if isinstance(datum, Frame):
+                if datum.is_cache:
+                    # Cacheの場合
+                    # 対応ファイルの文字コードと改行コードを推測してその結果を登録する
+                    datum.update_encoding_newline()
+                else:
+                    # Frameの場合
+                    # 対応ファイルの文字コードと改行コードを推測してその結果を登録する
+                    datum.update_encoding_newline()
+                    datum.update_label_only(new_label)
+            elif isinstance(datum, DataSource):
                 datum.update_data(new_label, datum.flow_data)
 
 

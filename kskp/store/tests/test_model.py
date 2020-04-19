@@ -43,7 +43,7 @@ class LibraryTest(TestCaseBase):
         import io
         new_frame = parent.create_frame(label, io.BytesIO(b''))
         # documentレコードをDBに格納する
-        new_frame.add_entry_from_path(path)
+        new_frame.save(file_path=path)
         # save()によりreadable=Noneになるため再取得する
         return self.factory.data.find_by_uuid(new_frame.uuid)
 

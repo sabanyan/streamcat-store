@@ -1,11 +1,3 @@
-import os
-import json
-import shutil
-import shlex
-import subprocess
-from time import sleep
-from pathlib import Path
-
 from kskp.core import Datum
 from kskp.store import Folder, Mountable
 
@@ -40,7 +32,7 @@ class AwsS3(Folder, Mountable):
         if self.parent_id is None and DatumFactory(self.session).count_root() > 0:
             raise Exception('You can not add root bucket. A root already exists.')
         # フォルダに紐付くディレクトリ(path列で指定されるディレクトリ)がなければ作成する
-        self.path = Path(self._make_dir())
+        self.path = self._make_dir()
         # ここでAWS S3 バケットをマウントする
         self.mount(self._path)
         try:
@@ -122,6 +114,7 @@ class AwsS3(Folder, Mountable):
         return self.data['bucket']
 
     def _get_mount_cmd(self, mount_point_path):
+        import shutil
         # S3をマウントするgoofysコマンドの有無を確認する
         goofys_path = shutil.which('goofys')
         if goofys_path is None:

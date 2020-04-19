@@ -1,9 +1,5 @@
 
-import os
-import json
-
 from kskp.core import Datum
-from kskp.store import Frame
 
 class Flow(Datum):
 
@@ -106,8 +102,6 @@ class Flow(Datum):
 
         try:
             # レコードを更新する
-            # self.session.query(Datum).filter(Datum.id==self.id).update({'parent_id'   :to_folder.id
-            #                                                       ,'_modifier_id':modifier.id})
             self.parent_id = to_folder.id
             self._modifier_id = (modifier or self.session.user).id
             self.session.update(self)
@@ -127,7 +121,8 @@ class Flow(Datum):
         # 2019/07/29現在下記のコードはpostgres9.6では動かない、postgres11.1では動作確認している
         using_flow_uuids = self.get_flow_uuids_using_me()
         if len(using_flow_uuids) > 0:
-            using_flow_label= Flow.find_by_uuid(using_flow_uuids[0]).label
+            from kskp.store.factory import DatumFactory
+            using_flow_label= DatumFactory(self.session).find_by_uuid(using_flow_uuids[0]).label
             raise Exception('このフローはフロー(%s)でサブフローとして使用しているため削除できません' % using_flow_label)
 
         try:
@@ -162,7 +157,6 @@ class Flow(Datum):
         JST = timezone(timedelta(hours=+9), 'JST')
         new_flow_data['createdAt'] = datetime.now(JST).strftime('%Y-%m-%d %H:%M:%S')
         # 複製を作成する
-        # new_flow = Flow(self.session, self.parent_uuid, new_label, new_flow_data, self.session.user)
         parent = self.find_parent()
         new_flow = parent.create_flow(new_label, new_flow_data)
         return new_flow
@@ -202,20 +196,6 @@ class Flow(Datum):
               )
 
         return sql
-
-    # @staticmethod
-    # def get_flows_referencing_frame(frame_uuid):
-    #     """
-    #     参照する入力frameとキャッシュframeを全て取得する
-    #     """
-    #     from sqlalchemy import select, text
-    #     from sqlalchemy.sql import alias
-
-    #     sql = Flow._get_select_stmt_for_nodes()
-    #     sql = select(['*']).select_from(sql.alias('F')).where(text(f"uuid='{frame_uuid}'"))
-
-    #     results = session.execute(sql)
-    #     return [str(result['label']) for result in results]
 
     def get_src_frame_uuids(self):
         """
