@@ -419,8 +419,6 @@ class GroupBy2Command(Command):
         
         # rename new cols
         flow <<= nm.mfldname(f = [f'__new{col}__:{col}' for col in cols])
-        
-        flow <<= nm.mdelnull(f = cols)
 
         return flow
         
