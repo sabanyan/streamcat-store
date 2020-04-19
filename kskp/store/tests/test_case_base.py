@@ -2,7 +2,6 @@ import os
 import unittest
 import pprint
 
-from kskp.store import STORE_DIR
 from kskp.store.factory import Factory, UnAuthzFactory
 
 class TestCaseBase(unittest.TestCase):
@@ -31,7 +30,7 @@ class TestCaseBase(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         # ライブラリフォルダを削除する
-        library_path = STORE_DIR / cls.factory.data.load_root().path
+        library_path = cls.factory.data.load_root().path
         import shutil
         shutil.rmtree(library_path.as_posix())
         # FactoryをCloseする

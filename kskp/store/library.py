@@ -1,8 +1,5 @@
 from pathlib import Path
 
-from kskp.store import RESULT_FOLDER_UUID, RESULT_FOLDER_LABEL
-from kskp.store import CACHE_FOLDER_UUID, CACHE_FOLDER_LABEL
-
 from kskp.core  import Datum
 from kskp.store import Folder
 from kskp.store import AwsS3

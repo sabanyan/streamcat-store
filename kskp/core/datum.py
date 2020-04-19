@@ -5,7 +5,6 @@ import os
 import uuid
 from pathlib import Path
 from kskp.store import BaseModel
-from kskp.store import STORE_DIR
 from kskp.store.auth import NotAuthorizedException
 from sqlalchemy import Column, Integer, String, text, select
 from sqlalchemy.orm import aliased, column_property, query_expression
@@ -27,6 +26,9 @@ class Datum(BaseModel):
     DATABASE_TYPE = 'database'
     FLOW_TYPE   = 'flow'
     FRAME_TYPE  = 'frame'
+
+    # Datum.pathの基点ディレクトリ
+    STORE_DIR = Path(__file__).parent.parent / 'depo/files'
 
     # テーブル名の定義
     __tablename__ = 'data'
@@ -350,15 +352,14 @@ class Datum(BaseModel):
         if path.startswith('/'):
             return path
         else:
-            # return (STORE_DIR.parent / path).as_posix()
-            return (STORE_DIR / path).as_posix()
+            return (Datum.STORE_DIR / path).as_posix()
 
     @staticmethod
     def _to_rel_path(path):
         # if path.startswith('/'):
         if path.is_absolute():
             # ディレクトリトラバーサルには対応していない
-            return path.relative_to(STORE_DIR)
+            return path.relative_to(Datum.STORE_DIR)
         else:
             return path
 
