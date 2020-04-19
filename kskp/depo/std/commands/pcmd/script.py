@@ -341,14 +341,20 @@ class GroupBy2Command(Command):
             # details for this regex in https://kskds.docbase.io/posts/1317416
             flow <<= nm.mcal(a = "__isvalidformat",
                              c= f'regexm($s{{{col}}},"^(((([0-9]{{2}}(([2468][048])|([13579][26])|(0[48])))|((([02468][048])|([13579][26])|(0[048]))(00)))((((0[13578])|(1[02]))((0[1-9])|([1-2][0-9])|(3[01])))|(((0[469])|(11))((0[1-9])|([1-2][0-9])|(30)))|((02)((0[1-9])|([1-2][0-9])))))|([0-9]{{4}}((((0[13578])|(1[02]))((0[1-9])|([0-2][0-9])|(3[01])))|(((0[469])|(11))((0[1-9])|([0-2][0-9])|(30)))|((02)((0[1-9])|(1[0-9])|(2[0-8]))))))((([0-1][0-9])|(2[0-3]))([0-5][0-9]){{2}})([.][0-9]{{1,6}})?$")')
+
+            flow <<= nm.mcal(a = '__int__',
+                             c = f'if($s{{__isvalidformat}}=="1",regexstr($s{{{col}}},"^.{{14,14}}"),nulls())')
+        
+            flow <<= nm.mcal(a = f'__UXT__', 
+                    c = 'uxt( s2t($s{__int__}))')
             
-            flow <<= nm.mcal(a = '__INT__', 
-                    c = f'if($s{{__isvalidformat}}=="1",uxt( s2t(regexstr($s{{{col}}},"^[0-9]{{14,14}}") ) ), nulls())')
             flow <<= nm.mcal(a = '__FLAC__', 
-                    c = f'if($s{{__isvalidformat}}=="1",regexstr($s{{{col}}},"[.][0-9]{{0,6}}$"),nulls())')
+                    c = f'if($s{{__isvalidformat}}=="1",regexstr($s{{{col}}},"[.][0-9]{{1,6}}$"),nulls())')
+            
             flow <<= nm.mcal(a = 'uxt',
-                    c = 'if( isnull($s{__FLAC__}), $s{__INT__}, $s{__INT__}+$s{__FLAC__} )')
-            flow <<= nm.mcut(f = '__INT__,__FLAC__,__isvalidformat', r = True)
+                    c = 'if( isnull($s{__FLAC__}), $s{__UXT__}, $s{__UXT__}+$s{__FLAC__} )')
+            
+            flow <<= nm.mcut(f = '__UXT__,__FLAC__,__isvalidformat', r = True)
         else:
             flow <<= nm.mfldname(f = f'{col}:uxt')
         
@@ -437,9 +443,9 @@ class GroupBy2Command(Command):
 
             allrows = None
             
-            allrows <<= nm.mcount(i = subcmd, k = k, a = '__allrows', o = 'mcount.csv')
+            allrows <<= nm.mcount(i = subcmd, k = k, a = '__allrows')
 
-            subcmd <<= nm.msummary(k = k, f = f, c = 'count:__count', o = 'msummary.csv')
+            subcmd <<= nm.msummary(k = k, f = f, c = 'count:__count')
             subcmd <<= nm.mnjoin(k = k, m = allrows, f = '__allrows')
 
             subcmd <<= nm.mcal(a = '__missingcount', c = '${__allrows}-${__count}')
@@ -1261,7 +1267,7 @@ class GroupBy2Command(Command):
             for i, fld in enumerate(fs):
                 precalcs[i] <<= nm.mnumber(i = subcmd, s = f'{fld}%n', k = k, 
                                           a = '__qtNo', S = 1)
-                precalcs[i] <<= nm.msortf(f = f'{k},__qtNo', o = 'msort.csv')
+                precalcs[i] <<= nm.msortf(f = f'{k},__qtNo')
 
                 targets[i] <<= nm.mnjoin(i = tcalcs, k = f'{k},__T1', K = f'{k},__qtNo',
                                         f = f'{fld}:__{fld}X1', m = precalcs[i])
