@@ -8,11 +8,8 @@ RESULT_FOLDER_LABEL = '実行結果'
 CACHE_FOLDER_UUID   = 'cc9f050d-b007-414e-a6e0-6d31a9c13395'
 CACHE_FOLDER_LABEL  = 'キャッシュ'
 
-# フローがDBに保存されるようになるまでは下記のパスをstoreが持っておく
+# Datum.pathの基点ディレクトリ
 STORE_DIR = Path(__file__).parent.parent / 'depo/files'
-# FLOW_PATH = (STORE_DIR / 'flows/json').as_posix()
-# if not os.path.exists(FLOW_PATH):
-#     os.makedirs(FLOW_PATH)
 
 def _is_unittest():
     # python3 -m unittestで実行した場合は、is_unittest=Trueとなる
@@ -78,14 +75,6 @@ if _is_unittest():
 # ベースクラスをつくる
 from sqlalchemy.ext.declarative import declarative_base
 BaseModel = declarative_base()
-# セッションをつくる
-# scoped_sessionでラップすることで、Session()を何回実行しても同一のSessionが返される
-# session.commit()によるExpireでquery_expression()で設定されているreadableがNoneになる
-# これを回避するためexpire_on_commit=Falseとする、autoflush=Falseも必要!
-from sqlalchemy.orm import sessionmaker, scoped_session
-# Session = scoped_session(sessionmaker(bind=engine, expire_on_commit=False, autoflush=False))
-# 変数名がsessionだとwebでimportした時にflaskのsessionと被るので、一応ssにしている
-# ss = Session()
 
 # 管理者グループと管理者ユーザを作成する
 # (とりあえず、権限管理のないsessionで作成する)
@@ -114,14 +103,11 @@ from .database import Database
 from .children_getter import ChildrenGetter
 from .flow_dumper import FlowDumper
 
-# from .commands import CommandLink, CommandsPathLink, CommandsPathFileSource, RunfuncCommand
 from .library import Library
 from .store_model import Store as StoreModel
-from .flows import FlowLink
-# from .auth import User, UserGroup, Group, Auth
+# from .flows import FlowLink
 
 from ..depo.std.commands import CommandLink, CommandsPathLink, CommandsPathFileSource, RunfuncCommand
-# from .model import *
 
 # テーブルを作成する
 BaseModel.metadata.create_all(bind=engine, checkfirst=True)

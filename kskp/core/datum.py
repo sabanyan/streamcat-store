@@ -74,9 +74,9 @@ class Datum(BaseModel):
     }
 
     # conver_to_xxx()によるキャスト処理で余分にSQLを発行しないためにparent_uuidを保持する
-    _parent_uuid = None
+    # _parent_uuid = None
 
-    def __init__(self, session, parent_uuid, datum_type, label, creator=None):
+    def __init__(self, session, parent, datum_type, label, creator=None):
         """
         コンストラクタ
         """
@@ -84,20 +84,25 @@ class Datum(BaseModel):
         self.session = session
 
         # parent_uuidからparent_idを取得する
-        if parent_uuid is None:
-            parent = None
-        else:
-            # UUID値の形式チェックをする
-            Datum.valid_uuid_or_raise(parent_uuid)
-            parent = self.session.query(Datum.id, Datum._path)\
-                            .filter(Datum.uuid==parent_uuid).one_or_none()
-            if parent is None:
-                raise Exception('No parent folder is found!')
-            else:
-                self.parent_id = parent.id
-                # self.parent_uuid = parent_uuid
+        # if parent_uuid is None:
+        #     parent = None
+        # else:
+        #     # UUID値の形式チェックをする
+        #     Datum.valid_uuid_or_raise(parent_uuid)
+        #     parent = self.session.query(Datum.id, Datum._path)\
+        #                     .filter(Datum.uuid==parent_uuid).one_or_none()
+        #     if parent is None:
+        #         raise Exception('No parent folder is found!')
+        #     else:
+        #         self.parent_id = parent.id
+        #         # self.parent_uuid = parent_uuid
+        #
+        # self._parent_uuid = parent_uuid
 
-        self._parent_uuid = parent_uuid
+        # parent_id
+        # (rootのみparent_idはNoneである)
+        if parent is not None:
+            self.parent_id = parent.id
 
         # UUIDを採番する
         self.uuid = str(uuid.uuid4())
@@ -127,11 +132,11 @@ class Datum(BaseModel):
         # Engineから参照する
         self.context = {}
 
-    @property
-    def parent_uuid(self):
-        if self._parent_uuid is None:
-            self._parent_uuid = self.find_parent().uuid
-        return self._parent_uuid
+    # @property
+    # def parent_uuid(self):
+    #     if self._parent_uuid is None:
+    #         self._parent_uuid = self.find_parent().uuid
+    #     return self._parent_uuid
 
     @property
     def path(self):
@@ -353,7 +358,7 @@ class Datum(BaseModel):
         # if path.startswith('/'):
         if path.is_absolute():
             # ディレクトリトラバーサルには対応していない
-            return Path(path).relative_to(STORE_DIR)
+            return path.relative_to(STORE_DIR)
         else:
             return path
 

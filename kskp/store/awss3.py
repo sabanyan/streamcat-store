@@ -15,12 +15,12 @@ class AwsS3(Folder, Mountable):
         'polymorphic_identity' : 'awss3'
     }
 
-    def __init__(self, session, parent_uuid, label, bucket_name, creator=None):
+    def __init__(self, session, parent, label, bucket_name, creator=None):
         """
         コンストラクタ
         bucket_name : AWS S3のバケットネームを指定する
         """
-        super().__init__(session, parent_uuid, label, creator)
+        super().__init__(session, parent, label, creator)
 
         # データタイプを設定する
         self.type = Datum.AWSS3_TYPE
@@ -30,31 +30,6 @@ class AwsS3(Folder, Mountable):
 
         # S3のオブジェクトを用意する
         # self._s3 = boto3.resource('s3')
-
-    # @staticmethod
-    # def find_by_uuid(uuid):
-    #     """
-    #     指定されたuuidを持つバケットを取得する
-    #     """
-    #     # UUID値の形式チェックをする
-    #     Datum.valid_uuid_or_raise(uuid)
-    #     awss3 = session.query(AwsS3).filter(AwsS3.uuid==uuid)\
-    #                                 .filter(AwsS3.type==AwsS3.AWSS3_TYPE).one_or_none()
-    #     if awss3 is None:
-    #         raise Exception('no bucket is found by designated id.')
-    #     return awss3
-
-    # @staticmethod
-    # def exists(uuid):
-    #     """
-    #     指定されたuuidを持つバケットが存在する場合はTrueを返す
-    #     """
-    #     # UUID値の形式チェックをする
-    #     if not Datum.is_valid_uuid(uuid):
-    #         return False
-    #     result = session.query(Datum).filter(Datum.uuid==uuid)\
-    #                                  .filter(Datum.type==Datum.AWSS3_TYPE).count()
-    #     return result > 0
 
     def save(self):
         """

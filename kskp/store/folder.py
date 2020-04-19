@@ -13,37 +13,14 @@ class Folder(Store):
         'polymorphic_identity' : 'folder'
     }
 
-    def __init__(self, session, parent_uuid, label, creator=None):
+    def __init__(self, session, parent, label, creator=None):
         """
         コンストラクタ
         """
-        super().__init__(session, parent_uuid, Datum.FOLDER_TYPE, label, creator)
+        super().__init__(session, parent, Datum.FOLDER_TYPE, label, creator)
 
         # data列の値を作成する
         # self.data = {}
-
-    # @staticmethod
-    # def find_by_uuid(uuid):
-    #     """
-    #     指定されたuuidを持つFolderを取得する
-    #     """
-    #     folder = self.session.query(Folder).filter(Folder.uuid==uuid)\
-    #                                   .filter(Folder.type==Folder.FOLDER_TYPE).one_or_none()
-    #     if folder is None:
-    #         raise Exception('no folder is found by designated id.')
-    #     return folder
-
-    # @staticmethod
-    # def exists(uuid):
-    #     """
-    #     指定されたuuidを持つFolderが存在する場合はTrueを返す
-    #     """
-    #     # UUID値の形式チェックをする
-    #     if not Datum.is_valid_uuid(uuid):
-    #         return False
-    #     result = self.session.query(Datum).filter(Datum.uuid==uuid)\
-    #                                  .filter(Datum.type==Datum.FOLDER_TYPE).count()
-    #     return result > 0
 
     def save(self):
         """

@@ -15,11 +15,11 @@ class RemoteFolder(Folder, Mountable):
         'polymorphic_identity' : 'rfolder'
     }
 
-    def __init__(self, session, parent_uuid, label, remoteFolderConn, creator=None):
+    def __init__(self, session, parent, label, remoteFolderConn, creator=None):
         """
         コンストラクタ
         """
-        super().__init__(session, parent_uuid, label, creator)
+        super().__init__(session, parent, label, creator)
 
         # データタイプを設定する
         self.type = Datum.RFOLDER_TYPE
@@ -28,31 +28,6 @@ class RemoteFolder(Folder, Mountable):
         if remoteFolderConn is None:
             raise Exception('remoteFolderConn引数がNoneです')
         self.data = {'conn' : remoteFolderConn.to_json()}
-
-    # @staticmethod
-    # def find_by_uuid(uuid):
-    #     """
-    #     指定されたuuidを持つ共有フォルダを取得する
-    #     """
-    #     # UUID値の形式チェックをする
-    #     Datum.valid_uuid_or_raise(uuid)
-    #     remote_folder = session.query(RemoteFolder).filter(RemoteFolder.uuid==uuid)\
-    #                                                .filter(RemoteFolder.type==RemoteFolder.RFOLDER_TYPE).one_or_none()
-    #     if remote_folder is None:
-    #         raise Exception('no remote folder is found by designated id.')
-    #     return remote_folder
-
-    # @staticmethod
-    # def exists(uuid):
-    #     """
-    #     指定されたuuidを持つ共有フォルダが存在する場合はTrueを返す
-    #     """
-    #     # UUID値の形式チェックをする
-    #     if not Datum.is_valid_uuid(uuid):
-    #         return False
-    #     result = session.query(Datum).filter(Datum.uuid==uuid)\
-    #                                  .filter(Datum.type==Datum.RFOLDER_TYPE).count()
-    #     return result > 0
 
     def save(self):
         """

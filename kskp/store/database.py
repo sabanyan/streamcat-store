@@ -10,11 +10,11 @@ class Database(Store):
         'polymorphic_identity' : 'database'
     }
 
-    def __init__(self, session, parent_uuid, label, database_conn, creator=None):
+    def __init__(self, session, parent, label, database_conn, creator=None):
         """
         コンストラクタ
         """
-        super().__init__(session, parent_uuid, Datum.DATABASE_TYPE, label, creator)
+        super().__init__(session, parent, Datum.DATABASE_TYPE, label, creator)
  
         # 接続情報はデータベースに保存する
         self._path = ''
@@ -23,29 +23,6 @@ class Database(Store):
         if database_conn is None:
             raise Exception('database_conn引数がNoneです')
         self.data = {'conn' : database_conn.to_json()}
-
-    # @staticmethod
-    # def find_by_uuid(uuid):
-    #     """
-    #     指定されたuuidを持つDatabaseを取得する
-    #     """
-    #     database = session.query(Database).filter(Database.uuid==uuid)\
-    #                                       .filter(Database.type==Database.DATABASE_TYPE).one_or_none()
-    #     if database is None:
-    #         raise Exception(f'no database is found by designated id ({uuid}).')
-    #     return database
-
-    # @staticmethod
-    # def exists(uuid):
-    #     """
-    #     指定されたuuidを持つDatabaseが存在する場合はTrueを返す
-    #     """
-    #     # UUID値の形式チェックをする
-    #     if not Datum.is_valid_uuid(uuid):
-    #         return False
-    #     result = session.query(Datum).filter(Datum.uuid==uuid)\
-    #                                  .filter(Datum.type==Datum.DATABASE_TYPE).count()
-    #     return result > 0
 
     def save(self):
         """
