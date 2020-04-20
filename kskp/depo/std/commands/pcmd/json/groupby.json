@@ -65,6 +65,6 @@
   "version": "0.7.0",
   "label": "GroupBy処理",
   "classification": "col_edit",
-  "description": "groupby処理を行う",
+  "description": "複数の数値項目に対して、複数の統計量を一括算出する (特徴量: 22種類)",
   "url": ""
 }
