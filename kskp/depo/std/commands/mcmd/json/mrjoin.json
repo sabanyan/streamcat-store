@@ -251,6 +251,6 @@
   "version": "0.7.0",
   "label": "参照データの範囲条件による結合",
   "classification": "table_join",
-  "description": "r=で指定した項目値が、m=で指定s多参照ファイルのR=で指定した２項目値の範囲条件にマッチすれば、f=の項目を結合する。",
+  "description": "入力データの項目 と 参照データの範囲条件項目 を比較して結合する",
   "url": "./static/pdf/mcmd/table_join/mrjoin.pdf"
 }

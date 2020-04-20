@@ -70,6 +70,6 @@
   "version": "0.7.0",
   "label": "固定文字列データの新規生成",
   "classification": "data_source",
-  "description": "",
+  "description": "固定文字列で、指定した行数を作成する（複数列対応）",
   "url": ""
 }

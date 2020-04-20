@@ -107,6 +107,6 @@
   "version": "0.7.0",
   "label": "行番号による結合",
   "classification": "table_join",
-  "description": "入力ファイルと参照ファイルを、少ない方のデータを基準として行番号でマッチングさせて結合する。",
+  "description": "行番号でマッチングさせて結合する",
   "url": "./static/pdf/mcmd/table_join/mpaste.pdf"
 }

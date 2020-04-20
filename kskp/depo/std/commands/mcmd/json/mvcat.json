@@ -126,6 +126,6 @@
   "version": "0.7.0",
   "label": "ベクトルの併合",
   "classification": "col_edit",
-  "description": "複数のベクトルを併合して、新しいベクトルを生成する。",
+  "description": "複数項目のベクトルを併合した新しいベクトルを作成する",
   "url": "./static/pdf/mcmd/col_edit/mvcat.pdf"
 }

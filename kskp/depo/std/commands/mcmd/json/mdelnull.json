@@ -148,6 +148,6 @@
   "version": "0.7.0",
   "label": "NULL値行の削除",
   "classification": "row_edit",
-  "description": "f=で指定した項目について、NULL値が含まれる行を削除もしくは選択する。",
+  "description": "指定した項目で、NULL値が含まれる行を削除する",
   "url": "./static/pdf/mcmd/row_edit/mdelnull.pdf"
 }

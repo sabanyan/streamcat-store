@@ -162,6 +162,6 @@
   "version": "0.7.0",
   "label": "ベクトル要素の参照置換",
   "classification": "table_join",
-  "description": "ベクトル要素をキーにして、参照ファイル上のベクトル型データで置換する。",
+  "description": "ベクトル要素をキーにして参照データ上のベクトル型データで置換",
   "url": "./static/pdf/mcmd/table_join/mvreplace.pdf"
 }

@@ -165,6 +165,6 @@
   "version": "0.7.0",
   "label": "多次元均等化バケット分割",
   "classification": "table_split",
-  "description": "f=で指定した複数の数値項目を次元とした件数均等化パケット分割を行う。",
+  "description": "複数の数値項目で、件数均等化バケット分割を行う",
   "url": "./static/pdf/mcmd/table_split/mmbucket.pdf"
 }

@@ -144,6 +144,6 @@
   "version": "0.7.0",
   "label": "文字列の置換",
   "classification": "value_transform",
-  "description": "f=で指定した項目について、c=で指定した条件で文字列を置換する。",
+  "description": "文字列を置換する",
   "url": "./static/pdf/mcmd/value_transform/mchgstr.pdf"
 }

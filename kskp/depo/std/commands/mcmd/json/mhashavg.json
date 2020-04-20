@@ -197,6 +197,6 @@
   "version": "0.7.0",
   "label": "ハッシュ法による項目値の平均",
   "classification": "table_grouping",
-  "description": "hash法を使い、k=で指定した項目を単位にして、f=で指定した項目値の平均を計算する。",
+  "description": "キー項目別の平均値を、hash法を用いてソート無しで計算する",
   "url": "./static/pdf/mcmd/table_grouping/mhashavg.pdf"
 }

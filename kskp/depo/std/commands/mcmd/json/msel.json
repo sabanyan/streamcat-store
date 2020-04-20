@@ -99,6 +99,6 @@
   "version": "0.7.0",
   "label": "条件式による行選択",
   "classification": "row_edit",
-  "description": "条件式にマッチした行とそれ以外に分ける",
+  "description": "計算式による選択を行う",
   "url": "./static/pdf/mcmd/row_edit/msel.pdf"
 }

@@ -85,6 +85,6 @@
   "version": "0.7.0",
   "label": "文字列項目の追加",
   "classification": "col_edit",
-  "description": "指定した文字列を項目として全行に追加する。",
+  "description": "指定した文字列を値とする項目を追加する",
   "url": "./static/pdf/mcmd/col_edit/msetstr.pdf"
 }

@@ -115,6 +115,6 @@
   "version": "0.7.0",
   "label": "NULL値へ置換",
   "classification": "value_transform",
-  "description": "f=で指定した項目を対象に、v=で指定した値にマッチした項目データをNULL値に変換する。",
+  "description": "指定した値にマッチした項目データをNULLに置換する",
   "url": "./static/pdf/mcmd/value_transform/mtonull.pdf"
 }

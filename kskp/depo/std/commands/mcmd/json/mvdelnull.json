@@ -112,6 +112,6 @@
   "version": "0.7.0",
   "label": "ベクトルのNULL要素の削除",
   "classification": "value_transform",
-  "description": "ベクトル要素でNULL値の要素を全て削除する。",
+  "description": "ベクトル要素でNULLの要素を削除する",
   "url": "./static/pdf/mcmd/value_transform/mvdelnull.pdf"
 }

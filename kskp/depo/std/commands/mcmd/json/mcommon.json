@@ -127,6 +127,6 @@
   "version": "0.7.0",
   "label": "参照データによる行選択",
   "classification": "table_join",
-  "description": "入力ファイルの項目値と参照ファイルの項目値を比較し、同値であるときの入力ファイルの行を選択する。",
+  "description": "指定した文字列に一致する行を選択する",
   "url": "./static/pdf/mcmd/table_join/mcommon.pdf"
 }

@@ -55,6 +55,6 @@
   "version": "0.7.0",
   "label": "複数データの併合",
   "classification": "table_join",
-  "description": "",
+  "description": "レコードを、指定したデータの順で併合する",
   "url": "./static/pdf/mcmd/table_join/mcat.pdf"
 }

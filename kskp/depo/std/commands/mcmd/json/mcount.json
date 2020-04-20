@@ -142,6 +142,6 @@
   "version": "0.7.0",
   "label": "行数のカウント",
   "classification": "table_grouping",
-  "description": "k=指定時には集計キー毎の件数、指定しなければ全件数をカウントし、a=で指定した項目名で出力する。",
+  "description": "行数をカウントする",
   "url": "./static/pdf/mcmd/table_grouping/mcount.pdf"
 }

@@ -155,6 +155,6 @@
   "version": "0.7.0",
   "label": "日付時刻要素の抽出",
   "classification": "value_transform",
-  "description": "日付要素が含まれた文字列から、各要素を抽出して、既定の日付型、時刻型に変換する",
+  "description": "指定したフォーマットで年月日・時分秒を抽出する",
   "url": "./static/pdf/mcmd/value_transform/mdformat.pdf"
 }

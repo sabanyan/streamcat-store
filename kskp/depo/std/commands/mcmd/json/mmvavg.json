@@ -208,6 +208,6 @@
   "version": "0.7.0",
   "label": "移動平均の計算",
   "classification": "table_grouping",
-  "description": "単純移動平均(SMA)、線形荷重移動平均(WMA)、指数平滑移動平均(EMA)の3種を算出できる。",
+  "description": "移動平均（単純、線形加重、指数平滑）を算出する",
   "url": "./static/pdf/mcmd/table_grouping/mmvavg.pdf"
 }

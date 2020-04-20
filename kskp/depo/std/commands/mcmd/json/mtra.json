@@ -155,6 +155,6 @@
   "version": "0.7.0",
   "label": "縦型データをベクトル項目に変換",
   "classification": "value_crossing",
-  "description": "f=で指定した項目値をアイテムとして、それらのアイテムを連結し新しいベクトル項目として出力する。",
+  "description": "縦型データをベクトル項目に変換する",
   "url": "./static/pdf/mcmd/value_crossing/mtra.pdf"
 }

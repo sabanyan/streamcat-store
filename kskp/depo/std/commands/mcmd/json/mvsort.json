@@ -112,6 +112,6 @@
   "version": "0.7.0",
   "label": "ベクトル要素のソート",
   "classification": "value_transform",
-  "description": "ベクトル型の項目をソートする。",
+  "description": "ベクトル型の項目の値を並び替えて出力する",
   "url": "./static/pdf/mcmd/value_transform/mvsort.pdf"
 }

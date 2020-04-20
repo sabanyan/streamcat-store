@@ -156,6 +156,6 @@
   "version": "0.7.0",
   "label": "連番の付与",
   "classification": "col_edit",
-  "description": "数字連番もしくはアルファベット連番を振り、a=で指定した項目名で出力する。",
+  "description": "数字、英字の連番を付与する",
   "url": "./static/pdf/mcmd/col_edit/mnumber.pdf"
 }

@@ -3,7 +3,7 @@
   "id": "column_grouping_name",
   "label": "項目名のグループ化",
   "classification": "col_edit",
-  "description": "項目群に対して、グループに属する項目名に接頭語を付与する。",
+  "description": "項目名の間をグループとして、同じ文字列を項目名に付加する",
   "ports": [
     [
       {

@@ -139,6 +139,6 @@
   "version": "0.7.0",
   "label": "ランダムに行を選択",
   "classification": "row_edit",
-  "description": "c=もしくはp=で指定した行数をランダムに選択する。",
+  "description": "指定した行数をランダム（非復元抽出）する",
   "url": "./static/pdf/mcmd/row_edit/mselrand.pdf"
 }

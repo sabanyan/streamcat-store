@@ -144,6 +144,6 @@
   "version": "0.7.0",
   "label": "擬似乱数の付与",
   "classification": "col_edit",
-  "description": "擬似乱数を生成、a=で指定した項目名で出力する。",
+  "description": "擬似乱数を生成する",
   "url": "./static/pdf/mcmd/col_edit/mrand.pdf"
 }

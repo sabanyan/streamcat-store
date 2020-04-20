@@ -81,6 +81,6 @@
   "version": "0.7.0",
   "label": "乱数データの新規生成",
   "classification": "data_source",
-  "description": "",
+  "description": "実数/整数の乱数で、指定した行数を作成する",
   "url": ""
 }

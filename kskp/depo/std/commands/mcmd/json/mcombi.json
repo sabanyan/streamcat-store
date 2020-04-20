@@ -161,6 +161,6 @@
   "version": "0.7.0",
   "label": "組合せの生成",
   "classification": "value_crossing",
-  "description": "f=で指定した項目についてn=で指定した数の組み合わせを求め、a=で指定した項目名で出力する",
+  "description": "指定した項目の値に対して、値の組合せ または 順列 を列として持つ行を生成する",
   "url": "./static/pdf/mcmd/value_crossing/mcombi.pdf"
 }

@@ -136,6 +136,6 @@
   "version": "0.7.0",
   "label": "複数項目の計算 (共通式)",
   "classification": "calculation",
-  "description": "複数列の計算を、同一の式を全ての列に適用して行う。",
+  "description": "同一の式を、複数の項目に適用し、複数の結果を追加する",
   "url": "./static/pdf/mcmd/calculation/mcal.pdf"
 }

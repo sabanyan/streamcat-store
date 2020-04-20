@@ -89,6 +89,6 @@
   "version": "0.7.0",
   "label": "連番データの新規生成",
   "classification": "data_source",
-  "description": "",
+  "description": "数値、英字の連番で、指定した行数を作成する",
   "url": ""
 }
