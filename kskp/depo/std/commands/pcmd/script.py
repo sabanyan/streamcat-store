@@ -723,8 +723,8 @@ class GroupBy2Command(Command):
                 targets[i] <<= nm.mkeybreak(i = subcmd, k = k, s = fld)
                 targets[i] <<= nm.mcal(a = 'fld', c = f'if($s{{bot}}=="1","{fld}",nulls())')
                 targets[i] <<= nm.mcal(a = a, c = f'if($s{{bot}}=="1",$s{{{fld}}},nulls())')
-                targets[i] <<= nm.msel(c = f'$s{{bot}}=="1"')
-                # targets[i] <<= nm.mdelnull(f = a)
+                # targets[i] <<= nm.msel(c = f'$s{{bot}}=="1"')
+                targets[i] <<= nm.mdelnull(f = a)
 
             subcmd_o <<= nm.m2cat(i = targets)
             subcmd_o <<= nm.mcut(f = f'{k},fld,{a}')
@@ -751,8 +751,8 @@ class GroupBy2Command(Command):
                 targets[i] <<= nm.mkeybreak(i = subcmd, k = k, s = fld)
                 targets[i] <<= nm.mcal(a = 'fld', c = f'if($s{{top}}=="1","{fld}",nulls())')
                 targets[i] <<= nm.mcal(a = a, c = f'if($s{{top}}=="1",$s{{{fld}}},nulls())')
-                targets[i] <<= nm.msel(c = f'$s{{top}}=="1"')
-                # targets[i] <<= nm.mdelnull(f = a)
+                # targets[i] <<= nm.msel(c = f'$s{{top}}=="1"')
+                targets[i] <<= nm.mdelnull(f = a)
 
             subcmd_o <<= nm.m2cat(i = targets)
             subcmd_o <<= nm.mcut(f = f'{k},fld,{a}')
