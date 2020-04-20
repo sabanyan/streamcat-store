@@ -95,7 +95,7 @@
       "name": "fclist",
       "type": "list",
       "label": "計算対象の設定（追加・順序変更・削除　可）",
-      "description": "指定可能統計量:\nstrmin　・・・　文字列｜文字列最小値\nstrmax　・・・　文字列｜文字列最大値\nstrucount ・・・　文字列｜種類数\ncount　・・・　集計｜件数\nucount　・・・　集計｜種類数\nmiss　・・・　集計｜欠損値\nsum　・・・　集計｜合計\nmin　・・・　集計｜最小値\nmax　・・・　集計｜最大値\nrepeatdata　・・・　集計｜重複値をユニーク化して構成比を計算\nrepeatvalues　・・・　集計｜重複値の構成比を計算\nsum_repeatdata　・・・　集計｜重複値の合計\nsum_repeatvalues　・・・　集計｜重複値をユニーク化して合計\nratio_unique　・・・　集計｜一意値の割合（データ件数比）\ncount_above_mean　・・・　集計｜平均値以上の件数\ncount_below_mean　・・・　集計｜平均値以下の件数\nhas_dup　・・・　集計｜重複値有フラグ\nhas_dup_min　・・・　集計｜最小値の反復有フラグ\nhas_dup_max　・・・　集計｜最小値の反復有フラグ\nmean　・・・　平均・分散｜算術平均\nmedian　・・・　平均・分散|中央値\nhmean　・・・　平均・分散｜調和平均\ngmean　・・・　平均・分散｜幾何平均\nmode　・・・　平均・分散｜最頻値\nvar　・・・　平均・分散｜標本分散\nuvar　・・・　平均・分散｜不偏分散\nsd　・・・　平均・分散｜標準偏差\nusd　・・・　平均・分散｜標準偏差（不偏推定値）\ndevsq　・・・　平均・分散｜偏差平方和\ncv　・・・　平均・分散｜変動係数\nabs_energy　・・・　平均・分散｜２乗和（エネルギー）\nrms　・・・　平均・分散｜二乗平均平方根\nmedian_ad　・・・　平均・分散｜中央絶対偏差\nmean_ad　・・・　平均・分散｜平均絶対偏差\nvar_gt_sd　・・・　平均・分散｜分散＞σフラグ\nrange　・・・　範囲｜範囲\nqrange　・・・　範囲｜２５％〜７５％分位点の範囲\nqtile1　・・・　範囲｜２５％分位点\nqtile3　・・・　範囲｜７５％分位点\nskew　・・・　３次モーメント｜歪度\nuskew　・・・　３次モーメント｜歪度（不偏推定値）\nkurt　・・・　４次モーメント｜尖度\nukurt　・・・　４次モーメント｜尖度（不偏推定値）\n\n【対象項目】項目名時:*,？,[...]のワイルドカードを使用可\n【統計量】「統計量：別名」の表記\n\t「：別名」は省略可、統計量 or 別名を項目名に付加\n\tカンマ区切りで複数指定可。",
+      "description": "指定可能統計量:\ncount　・・・　文字列｜件数\nstrucount ・・・　文字列｜種類数\nmiss　・・・　文字列｜欠損値数\nstrmin　・・・　文字列｜文字列最小値\nstrmax　・・・　文字列｜文字列最大値\nhas_dup　・・・　文字列｜重複値有フラグ\nucount　・・・　集計｜種類数\nsum　・・・　集計｜合計\nmin　・・・　集計｜最小値\nmax　・・・　集計｜最大値\nrepeatdata　・・・　集計｜反復値の割合（データ件数比）\nrepeatvalues　・・・　集計｜反復値の割合（値の種類数比）\nsum_repeatdata　・・・　集計｜反復値の合計（頻度で重み付け）\nsum_repeatvalues　・・・　集計｜反復値の合計\nratio_unique　・・・　集計｜一意値の割合（データ件数比）\ncount_above_mean　・・・　集計｜平均値以上の件数\ncount_below_mean　・・・　集計｜平均値以下の件数\nhas_dup_min　・・・　集計｜最小値の反復有フラグ\nhas_dup_max　・・・　集計｜最小値の反復有フラグ\nmean　・・・　平均・分散｜算術平均\nmedian　・・・　平均・分散|中央値\nhmean　・・・　平均・分散｜調和平均\ngmean　・・・　平均・分散｜幾何平均\nmode　・・・　平均・分散｜最頻値\nvar　・・・　平均・分散｜標本分散\nuvar　・・・　平均・分散｜不偏分散\nsd　・・・　平均・分散｜標準偏差\nusd　・・・　平均・分散｜標準偏差（不偏推定値）\ndevsq　・・・　平均・分散｜偏差平方和\ncv　・・・　平均・分散｜変動係数\nabs_energy　・・・　平均・分散｜２乗和（エネルギー）\nrms　・・・　平均・分散｜二乗平均平方根\nmedian_ad　・・・　平均・分散｜中央絶対偏差\nmean_ad　・・・　平均・分散｜平均絶対偏差\nvar_gt_sd　・・・　平均・分散｜分散＞σフラグ\nrange　・・・　範囲｜範囲\nqrange　・・・　範囲｜２５％〜７５％分位点の範囲\nqtile1　・・・　範囲｜２５％分位点\nqtile3　・・・　範囲｜７５％分位点\nskew　・・・　３次モーメント｜歪度\nuskew　・・・　３次モーメント｜歪度（不偏推定値）\nkurt　・・・　４次モーメント｜尖度\nukurt　・・・　４次モーメント｜尖度（不偏推定値）\n\n【対象項目】項目名時:*,？,[...]のワイルドカードを使用可\n【統計量】「統計量：別名」の表記\n\t「：別名」は省略可、統計量 or 別名を項目名に付加\n\tカンマ区切りで複数指定可。",
       "elements": [
         {
           "name": "f",
@@ -119,7 +119,7 @@
       "name": "nfclist",
       "type": "list",
       "label": "計算対象の設定（パラメータ指定有）",
-      "description": "指定可能統計量:\nsym_looking　・・・　分布形状｜対称性フラグ\nlarge_sd　・・・　分布形状｜値域とσとの比が閾値以上フラグ\nvalue_count　・・・　集計｜指定した値の出現数\nratio_beyond_rsigma　・・・　外れ値｜μ+r×σ以上の割合（データ件数比）\nbinned_entropy　・・・　情報量｜ビン分割したエントロピー\nquantile　・・・　範囲｜指定した分位点の値\nrange_count　・・・　範囲｜指定した値域の件数\n\n【対象項目】項目名時:*,？,[...]のワイルドカードを使用可\n【統計量】「統計量：別名」の表記\n\t「：別名」は省略可、統計量 or 別名を項目名に付加\n\tカンマ区切りで複数指定可。",
+      "description": "指定可能統計量:\nvalue_count　・・・　文字列｜指定した値の出現数\nsym_looking　・・・　分布形状｜対称性フラグ\nlarge_sd　・・・　分布形状｜値域とσとの比が閾値以上フラグ\nratio_beyond_rsigma　・・・　外れ値｜μ+r×σ以上の割合（データ件数比）\nbinned_entropy　・・・　情報量｜ビン分割したエントロピー\nquantile　・・・　範囲｜指定した分位点の値\nrange_count　・・・　範囲｜指定した値域の件数\n\n【対象項目】項目名時:*,？,[...]のワイルドカードを使用可\n【統計量】「統計量：別名」の表記\n\t「：別名」は省略可、統計量 or 別名を項目名に付加\n\tカンマ区切りで複数指定可。",
       "elements": [
         {
           "name": "n",
