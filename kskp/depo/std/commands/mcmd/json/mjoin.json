@@ -4,63 +4,93 @@
     {
       "name": "group1",
       "label": "結合キーの設定 (必須)",
-      "params": ["k", "K"]
+      "params": [
+        "k",
+        "K"
+      ]
     },
     {
       "name": "group5",
       "label": "結合方法の設定  (省略時は 共通部分を出力)",
-      "params": ["n","N"]
+      "params": [
+        "n",
+        "N"
+      ]
     },
     {
       "name": "group3",
       "label": "結合する項目の設定",
-      "params": ["f"]
+      "params": [
+        "f"
+      ]
     },
     {
       "name": "group10",
       "label": "その他 (省略可)",
-      "params": ["q"]
+      "params": [
+        "q"
+      ]
     },
     {
       "name": "group15",
       "label": "項目名・項目番号についての設定（省略可）",
-      "params": ["x", "nfn", "nfno"]
+      "params": [
+        "x",
+        "nfn",
+        "nfno"
+      ]
     },
     {
       "name": "group20",
       "label": "システム管理用設定（作業領域・ログ出力）",
-      "params": ["tmpPath", "assert_diffSize", "assert_nullout", "assert_nullkey","assert_nullin"]
+      "params": [
+        "tmpPath",
+        "assert_diffSize",
+        "assert_nullout",
+        "assert_nullkey",
+        "assert_nullin"
+      ]
     }
   ],
-  "rules" : {
-    "k" : {
-      "presence": {"allowEmpty": false},
-      "checkSeveralSpecifiedFormats" : {
-        "defaultRule" : {
-          "pattern" : "^[^,]+(,[^,]+)*$",
-          "message" : "入力が正しくありません"
+  "rules": {
+    "k": {
+      "presence": {
+        "allowEmpty": false
+      },
+      "checkSeveralSpecifiedFormats": {
+        "defaultRule": {
+          "pattern": "^[^,]+(,[^,]+)*$",
+          "message": "入力が正しくありません"
         },
-        "specialRules" : [
+        "specialRules": [
           {
-            "target" : ["x", "nfn"],
-            "pattern" : "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$",
-            "message" : "項目の指定は数値のみ可能です。"
+            "target": [
+              "x",
+              "nfn"
+            ],
+            "pattern": "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$",
+            "message": "項目の指定は数値のみ可能です。"
           }
         ]
       }
     },
-    "K" : {
-      "presence": {"allowEmpty": false},
-      "checkSeveralSpecifiedFormats" : {
-        "defaultRule" : {
-          "pattern" : "^[^,]+(,[^,]+)*$|^$",
-          "message" : "入力が正しくありません"
+    "K": {
+      "presence": {
+        "allowEmpty": false
+      },
+      "checkSeveralSpecifiedFormats": {
+        "defaultRule": {
+          "pattern": "^[^,]+(,[^,]+)*$|^$",
+          "message": "入力が正しくありません"
         },
-        "specialRules" : [
+        "specialRules": [
           {
-            "target" : ["x", "nfn"],
-            "pattern" : "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$|^$",
-            "message" : "項目の指定は数値のみ可能です。"
+            "target": [
+              "x",
+              "nfn"
+            ],
+            "pattern": "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$|^$",
+            "message": "項目の指定は数値のみ可能です。"
           }
         ]
       }
@@ -91,7 +121,7 @@
       "name": "n",
       "type": "boolean",
       "label": "入力i にある行を全て出す (左結合)",
-      "description":"対応するものが無い場合は、Null値を出力\nもう一方も指定により、両者の和集合を出力",
+      "description": "対応するものが無い場合は、Null値を出力\nもう一方も指定により、両者の和集合を出力",
       "optional": true
     },
     {
@@ -176,8 +206,8 @@
     ]
   ],
   "version": "0.7.0",
-  "label": "自然結合 (入力m にキー重複がない場合)",
+  "label": "自然結合 (参照データにキー重複ない場合に使用)",
   "classification": "table_join",
-  "description": "自然結合に比べて、若干処理が高速化される",
+  "description": "入力データ と 参照データ を キー項目 で結合する",
   "url": "./static/pdf/mcmd/table_join/mjoin.pdf"
 }

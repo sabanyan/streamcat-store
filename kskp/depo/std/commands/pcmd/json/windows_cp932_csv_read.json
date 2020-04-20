@@ -1,9 +1,19 @@
 {
   "version": "0.7.0",
   "id": "windows_cp932_csv_read",
-  "label": "Windowsファイル読込(Shift-JIS拡張)",
+  "label": "Windowsデータの文字改行コードの変換",
   "classification": "import",
-  "description": "Windowsファイル（Shift-JIS拡張 CP932）を、サーバ上のローカルファイルより読込む。",
+  "description": "Windows形式(Shift-JIS, CRLF) データを、KSKPで処理できる文字改行コードに変換する",
+  "groups": [
+    {
+      "name": "group1",
+      "label": "システム設定（省略可）",
+      "params": [
+        "f",
+        "p"
+      ]
+    }
+  ],
   "ports": [
     [
       {
