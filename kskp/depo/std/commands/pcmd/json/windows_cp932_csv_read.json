@@ -4,6 +4,16 @@
   "label": "Windowsデータの文字改行コードの変換",
   "classification": "import",
   "description": "Windows形式(Shift-JIS, CRLF) データを、KSKPで処理できる文字改行コードに変換する",
+  "groups": [
+    {
+      "name": "group1",
+      "label": "システム設定（省略可）",
+      "params": [
+        "f",
+        "p"
+      ]
+    }
+  ],
   "ports": [
     [
       {
