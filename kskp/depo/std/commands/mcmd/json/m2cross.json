@@ -241,6 +241,6 @@
   "version": "0.7.0",
   "label": "クロス集計 (行・列を他方へ展開)",
   "classification": "value_crossing",
-  "description": "行ラベルを列ラベルへ\nまたは、列ラベルを行へ展開する",
+  "description": "クロス集計を行う（行を列へ or 列を行へと、どちらかを展開）",
   "url": "./static/pdf/mcmd/value_crossing/m2cross.pdf"
 }

@@ -127,6 +127,6 @@
   "version": "0.7.0",
   "label": "スライド窓の生成",
   "classification": "table_grouping",
-  "description": "複数行をずらしながら複製する。",
+  "description": "複数行をずらしながら行を複製していく",
   "url": "./static/pdf/mcmd/table_grouping/mwindow.pdf"
 }

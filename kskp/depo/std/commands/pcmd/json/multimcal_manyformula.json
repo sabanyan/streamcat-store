@@ -121,6 +121,6 @@
   "version": "0.7.0",
   "label": "複数項目の計算 (個別式)",
   "classification": "calculation",
-  "description": "複数列の計算を、個別に計算式を指定して行う。",
+  "description": "個別の式で、項目間の演算を行い、複数の結果を追加する",
   "url": "./static/pdf/mcmd/calculation/mcal.pdf"
 }

@@ -105,6 +105,6 @@
   "version": "0.7.0",
   "label": "参照データの直積結合",
   "classification": "table_join",
-  "description": "入力データ1行に対し、m=で指定した参照データのf=で指定した項目全行を結合する。",
+  "description": "入力データ1行に対して、参照データの全行を結合する",
   "url": "./static/pdf/mcmd/table_join/mproduct.pdf"
 }

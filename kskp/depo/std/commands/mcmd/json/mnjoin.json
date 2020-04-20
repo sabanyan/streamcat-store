@@ -216,6 +216,6 @@
   "version": "0.7.0",
   "label": "自然結合",
   "classification": "table_join",
-  "description": "入力i と 入力m を、キー項目で結合する",
+  "description": "入力データ と 参照データ を キー項目 で結合する",
   "url": "./static/pdf/mcmd/table_join/mnjoin.pdf"
 }

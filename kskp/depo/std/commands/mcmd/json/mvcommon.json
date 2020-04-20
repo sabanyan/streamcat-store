@@ -148,6 +148,6 @@
   "version": "0.7.0",
   "label": "ベクトル要素の参照選択",
   "classification": "table_join",
-  "description": "ベクトルから、参照ファイルで指定された要素を選択する。",
+  "description": "ベクトルから、参照データで指定された要素を選択する",
   "url": "./static/pdf/mcmd/table_join/mvcommon.pdf"
 }

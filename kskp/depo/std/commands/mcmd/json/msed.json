@@ -138,6 +138,6 @@
   "version": "0.7.0",
   "label": "正規表現による文字列の置換",
   "classification": "value_transform",
-  "description": "f=で指定した項目について、c=で指定した正規表現に一致する内容を、v=で指定した文字列で置換する。",
+  "description": "正規表現に一致する内容を指定した文字列で置換する",
   "url": "./static/pdf/mcmd/value_transform/msed.pdf"
 }

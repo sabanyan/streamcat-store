@@ -233,6 +233,6 @@
   "version": "0.7.0",
   "label": "移動窓の類似度の計算",
   "classification": "table_grouping",
-  "description": "移動窓を設定し、各種類似度（2変量の統計量）を計算する。",
+  "description": "移動窓を設定し、各種類似度(2変量の統計量)を計算する",
   "url": "./static/pdf/mcmd/table_grouping/mmvsim.pdf"
 }

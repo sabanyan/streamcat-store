@@ -265,6 +265,6 @@
   "version": "0.7.0",
   "label": "特徴量の計算",
   "classification": "col_edit",
-  "description": "グループ単位の特徴量を計算する",
+  "description": "複数項目に対して、複数の特徴量を一括算出する  (特徴量: 70種類)",
   "url": ""
 }

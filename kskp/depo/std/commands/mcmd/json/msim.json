@@ -207,6 +207,6 @@
   "version": "0.7.0",
   "label": "二変数間の類似度の計算",
   "classification": "table_grouping",
-  "description": "f=で指定した項目の二変数間の類似度(距離)をc=で指定した類似度(距離)関数で計算し、類似度行列として出力する。",
+  "description": "二変数間の類似度(距離)を計算し類似度行列として出力する",
   "url": "./static/pdf/mcmd/table_grouping/msim.pdf"
 }

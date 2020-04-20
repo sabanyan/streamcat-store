@@ -87,6 +87,6 @@
   "version": "0.7.0",
   "label": "行の単一化",
   "classification": "row_edit",
-  "description": "指定した項目について、値が重複した行を単一化する。",
+  "description": "キー項目に対して、値が重複した行を単一化する",
   "url": "./static/pdf/mcmd/row_edit/muniq.pdf"
 }

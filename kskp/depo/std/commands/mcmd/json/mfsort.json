@@ -95,6 +95,6 @@
   "version": "0.7.0",
   "label": "複数項目の値のソート",
   "classification": "col_edit",
-  "description": "項目名の順序を並べ替える",
+  "description": "行でも列でもなく、列項目の値を並び替えて出力する",
   "url": "./static/pdf/mcmd/row_sort/mfsort.pdf"
 }

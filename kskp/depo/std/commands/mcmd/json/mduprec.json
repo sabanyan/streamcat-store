@@ -104,6 +104,6 @@
   "version": "0.7.0",
   "label": "行の複写",
   "classification": "row_edit",
-  "description": "n=もしくはf=で指定しただけ、各レコードを複写する。",
+  "description": "各レコードを複写して出力する",
   "url": "./static/pdf/mcmd/row_edit/mduprec.pdf"
 }

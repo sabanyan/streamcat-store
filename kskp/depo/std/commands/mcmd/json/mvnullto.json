@@ -148,6 +148,6 @@
   "version": "0.7.0",
   "label": "ベクトルのNULL要素の置換",
   "classification": "value_transform",
-  "description": "ベクトル要素でNULL値の要素を任意の値に置換する。",
+  "description": "ベクトル要素でNULLの要素を任意の値に置換する",
   "url": "./static/pdf/mcmd/value_transform/mvnullto.pdf"
 }

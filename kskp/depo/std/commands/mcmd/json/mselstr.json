@@ -193,6 +193,6 @@
   "version": "0.7.0",
   "label": "文字列による行選択",
   "classification": "row_edit",
-  "description": "f=で指定した項目の値が、v=で指定した文字列に一致すれば、その行を選択する。",
+  "description": "指定した文字列に一致する行を選択する",
   "url": "./static/pdf/mcmd/row_edit/mselstr.pdf"
 }

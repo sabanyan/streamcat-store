@@ -149,6 +149,6 @@
   "version": "0.7.0",
   "label": "行の補完",
   "classification": "row_edit",
-  "description": "k=で指定した項目とキーとして、f=で指定した項目の値が連続するよう、レコードを作成する。",
+  "description": "項目の値が連続するようにレコードを追加する",
   "url": "./static/pdf/mcmd/row_edit/mpadding.pdf"
 }

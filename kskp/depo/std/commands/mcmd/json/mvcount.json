@@ -95,6 +95,6 @@
   "version": "0.7.0",
   "label": "ベクトルサイズの計算",
   "classification": "col_edit",
-  "description": "ベクトルのサイズ(ベクトルの要素数)を計算する。",
+  "description": "ベクトルの要素数をカウントする",
   "url": "./static/pdf/mcmd/col_edit/mvcount.pdf"
 }

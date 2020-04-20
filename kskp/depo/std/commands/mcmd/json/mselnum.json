@@ -214,6 +214,6 @@
   "version": "0.7.0",
   "label": "数値範囲による行選択",
   "classification": "row_edit",
-  "description": "指定した数値範囲にマッチする行とグループを選択する",
+  "description": "指定した数値範囲にマッチする行を選択する",
   "url": "./static/pdf/mcmd/row_edit/mselnum.pdf"
 }

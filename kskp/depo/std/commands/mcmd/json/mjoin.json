@@ -208,6 +208,6 @@
   "version": "0.7.0",
   "label": "自然結合 (参照データにキー重複ない場合に使用)",
   "classification": "table_join",
-  "description": "自然結合に比べて、若干処理が高速化される",
+  "description": "入力データ と 参照データ を キー項目 で結合する",
   "url": "./static/pdf/mcmd/table_join/mjoin.pdf"
 }

@@ -118,6 +118,6 @@
   "version": "0.7.0",
   "label": "ベクトル要素の単一化",
   "classification": "value_transform",
-  "description": "ベクトル型の項目の要素を単一化する。",
+  "description": "ベクトル型の項目の要素を単一化する",
   "url": "./static/pdf/mcmd/value_transform/mvuniq.pdf"
 }

@@ -97,6 +97,6 @@
   "version": "0.7.0",
   "label": "区切り文字による項目の分割",
   "classification": "col_edit",
-  "description": "区切り文字によって項目を分割する。",
+  "description": "区切り文字により、項目を分割する",
   "url": "./static/pdf/mcmd/col_edit/msplit.pdf"
 }

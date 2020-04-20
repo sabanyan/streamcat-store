@@ -175,6 +175,6 @@
   "version": "0.7.0",
   "label": "NULL値の置換",
   "classification": "value_transform",
-  "description": "f=で指定した項目について、NULL値をv=で指定した文字列に置換する。",
+  "description": "NULL値を指定した文字列に置換する",
   "url": "./static/pdf/mcmd/value_transform/mnullto.pdf"
 }

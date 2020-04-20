@@ -95,6 +95,6 @@
   "version": "0.7.0",
   "label": "項目の選択",
   "classification": "col_edit",
-  "description": "",
+  "description": "指定した項目を選択する （列の抽出）",
   "url": "./static/pdf/mcmd/col_edit/mcut.pdf"
 }

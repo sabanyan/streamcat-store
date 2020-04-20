@@ -55,6 +55,6 @@
   "version": "0.7.0",
   "label": "データのコピー",
   "classification": "data_source",
-  "description": "入力データの内容を、標準出力および、複数ファイルへそのままコピーをする。",
+  "description": "入力データをそのまま出力する",
   "url": "./static/pdf/mcmd/data_source/mtee.pdf"
 }

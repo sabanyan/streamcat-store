@@ -121,6 +121,6 @@
   "version": "0.7.0",
   "label": "計算",
   "classification": "calculation",
-  "description": "列項目間の演算を行う",
+  "description": "項目間の演算を行い、1つの結果を追加する",
   "url": "./static/pdf/mcmd/calculation/mcal.pdf"
 }

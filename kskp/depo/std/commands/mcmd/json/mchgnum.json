@@ -166,6 +166,6 @@
   "version": "0.7.0",
   "label": "数値範囲による置換",
   "classification": "value_transform",
-  "description": "f=で指定した項目をR=やv=で指定した条件で置換する。",
+  "description": "数値範囲条件をもとに、置換文字へ変換する",
   "url": "./static/pdf/mcmd/value_transform/mchgnum.pdf"
 }

@@ -122,6 +122,6 @@
   "version": "0.7.0",
   "label": "ベクトル要素の区切り文字の変更",
   "classification": "value_transform",
-  "description": "ベクトル型の要素を区切る文字列を変更もしくは削除する。",
+  "description": "ベクトル型の要素を区切る文字列を変更する",
   "url": "./static/pdf/mcmd/value_transform/mvdelim.pdf"
 }

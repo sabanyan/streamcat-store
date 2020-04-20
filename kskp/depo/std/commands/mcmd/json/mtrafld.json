@@ -134,6 +134,6 @@
   "version": "0.7.0",
   "label": "クロス表をトランザクション項目に変換(Mtrafld)",
   "classification": "value_crossing",
-  "description": "f=で指定した項目値とその値の「ペア」のアイテムを作成し、それらを連結し新しいベクトル項目として出力する。",
+  "description": "複数項目の値を要素とするベクトル項目を作成する",
   "url": "./static/pdf/mcmd/value_crossing/mtrafld.pdf"
 }

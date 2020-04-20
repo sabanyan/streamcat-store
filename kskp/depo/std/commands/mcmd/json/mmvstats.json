@@ -221,6 +221,6 @@
   "version": "0.7.0",
   "label": "移動窓の統計量の計算",
   "classification": "table_grouping",
-  "description": "移動窓を設定し、各種統計量(1変量)を計算する。",
+  "description": "移動窓を設定し、1つの統計量(1変量)を計算する",
   "url": "./static/pdf/mcmd/table_grouping/mmvstats.pdf"
 }

@@ -128,6 +128,6 @@
   "version": "0.7.0",
   "label": "クロス表をトランザクション項目に変換(Mtraflg)",
   "classification": "value_crossing",
-  "description": "f=で指定した項目値がNULL値以外であれば、それらの項目名を１つのアイテムとして連結し、新しいベクトル項目値として出力する。",
+  "description": "複数項目の項目名を要素とするベクトル項目を作成する",
   "url": "./static/pdf/mcmd/value_crossing/mtraflg.pdf"
 }

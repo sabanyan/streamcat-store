@@ -138,6 +138,6 @@
   "version": "0.7.0",
   "label": "項目値の平均",
   "classification": "table_grouping",
-  "description": "f=パラメータで指定した項目の平均値を計算する。",
+  "description": "複数の数値項目に対して、平均値を計算する",
   "url": "./static/pdf/mcmd/table_grouping/mavg.pdf"
 }

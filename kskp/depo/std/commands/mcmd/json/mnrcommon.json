@@ -177,6 +177,6 @@
   "version": "0.7.0",
   "label": "参照データの複数範囲条件による行選択",
   "classification": "table_join",
-  "description": "入力ファイルと参照ファイルでそれぞれ指定した項目について、参照ファイルの範囲条件にマッチする入力ファイルの行を選択する。",
+  "description": "指定した範囲条件にマッチする行を選択する",
   "url": "./static/pdf/mcmd/table_join/mnrcommon.pdf"
 }

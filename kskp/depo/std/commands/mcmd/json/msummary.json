@@ -250,6 +250,6 @@
   "version": "0.7.0",
   "label": "複数の統計量の計算",
   "classification": "table_grouping",
-  "description": "f=で指定した集計項目でc=で指定した統計量の計算をする。",
+  "description": "複数の数値項目に対して、複数の統計量を一括算出する (特徴量: 22種類)",
   "url": "./static/pdf/mcmd/table_grouping/msummary.pdf"
 }
