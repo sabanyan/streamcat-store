@@ -1,23 +1,28 @@
 {
   "id": "mvsort",
-  "rules" : {
-    "vf":{
-      "presence": {"allowEmpty": false},
-      "checkSeveralSpecifiedFormats" : {
-        "defaultRule" : {
-          "pattern" : "^[^:,]+(:[^:,]+)?(%n|%r|%nr)?(,[^:,]+(:[^:,]+)?(%n|%r|%nr)?)*$",
-          "message" : "入力値が正しくありません。"
+  "rules": {
+    "vf": {
+      "presence": {
+        "allowEmpty": false
+      },
+      "checkSeveralSpecifiedFormats": {
+        "defaultRule": {
+          "pattern": "^[^:,]+(:[^:,]+)?(%n|%r|%nr)?(,[^:,]+(:[^:,]+)?(%n|%r|%nr)?)*$",
+          "message": "入力値が正しくありません。"
         },
-        "specialRules" : [
+        "specialRules": [
           {
-            "target" : "A",
-            "pattern" : "^[^:,]+:[^:,]+(%n|%r|%nr)?(,[^:,]+:[^:,]+)*(%n|%r|%nr)?$|^@\\[.+\\]$",
-            "message" : "対象となる列名と新しい列名を、:(コロン)で区切って入力してください"
+            "target": "A",
+            "pattern": "^[^:,]+:[^:,]+(%n|%r|%nr)?(,[^:,]+:[^:,]+)*(%n|%r|%nr)?$|^@\\[.+\\]$",
+            "message": "対象となる列名と新しい列名を、:(コロン)で区切って入力してください"
           },
           {
-            "target" : ["x", "nfn"],
-            "pattern" : "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(%n|%r|%nr)?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(%n|%r|%nr)?)*$|^[1-9]?[0-9]+L?(:[^,:]+(%n|%r|%nr)?)?(,[1-9]?[0-9]+L?(:[^,:]+)?(%n|%r|%nr)?)*$|^@\\[.+\\](%n|%r|%nr)?$",
-            "message" : "項目の指定は数値のみ可能です。"
+            "target": [
+              "x",
+              "nfn"
+            ],
+            "pattern": "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(%n|%r|%nr)?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(%n|%r|%nr)?)*$|^[1-9]?[0-9]+L?(:[^,:]+(%n|%r|%nr)?)?(,[1-9]?[0-9]+L?(:[^,:]+)?(%n|%r|%nr)?)*$|^@\\[.+\\](%n|%r|%nr)?$",
+            "message": "項目の指定は数値のみ可能です。"
           }
         ]
       }
@@ -107,6 +112,6 @@
   "version": "0.7.0",
   "label": "ベクトル要素のソート",
   "classification": "value_transform",
-  "description": "ベクトル型の項目をソートする。",
+  "description": "ベクトル型の項目の値を並び替えて出力する",
   "url": "./static/pdf/mcmd/value_transform/mvsort.pdf"
 }

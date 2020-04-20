@@ -4,84 +4,117 @@
     {
       "name": "group1",
       "label": "グループの設定 (省略可)",
-      "params": ["k"]
+      "params": [
+        "k"
+      ]
     },
     {
       "name": "group2",
       "label": "グループ内のソートの設定（省略可)",
-      "params": ["s"]
+      "params": [
+        "s"
+      ]
     },
     {
       "name": "group4",
       "label": "行ずらしの設定 (必須)",
-      "params": ["f","t","r","n","l"]
+      "params": [
+        "f",
+        "t",
+        "r",
+        "n",
+        "l"
+      ]
     },
     {
       "name": "group3",
       "label": "その他 (省略可)",
-      "params": ["q"]
+      "params": [
+        "q"
+      ]
     },
     {
       "name": "group10",
       "label": "項目名・項目番号についての設定（省略可）",
-      "params": ["x", "nfn", "nfno"]
+      "params": [
+        "x",
+        "nfn",
+        "nfno"
+      ]
     },
     {
       "name": "group20",
       "label": "システム管理用設定（作業領域・ログ出力）",
-      "params": ["tmpPath", "assert_diffSize", "assert_nullout", "assert_nullkey","assert_nullin"]
+      "params": [
+        "tmpPath",
+        "assert_diffSize",
+        "assert_nullout",
+        "assert_nullkey",
+        "assert_nullin"
+      ]
     }
   ],
-  "rules":{
+  "rules": {
     "s": {
-      "presencesIfTargetIsNotInput" : "q",
-      "checkSeveralSpecifiedFormats" : {
-        "defaultRule" : {
-          "pattern" : "^[^,]+(,[^,]+)*$|^$",
-          "message" : "入力が正しくありません"
+      "presencesIfTargetIsNotInput": "q",
+      "checkSeveralSpecifiedFormats": {
+        "defaultRule": {
+          "pattern": "^[^,]+(,[^,]+)*$|^$",
+          "message": "入力が正しくありません"
         },
-        "specialRules" : [
+        "specialRules": [
           {
-            "target" : ["x", "nfn"],
-            "pattern" : "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$|^$",
-            "message" : "項目の指定は数値のみ可能です。"
+            "target": [
+              "x",
+              "nfn"
+            ],
+            "pattern": "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$|^$",
+            "message": "項目の指定は数値のみ可能です。"
           }
         ]
       }
     },
-    "f" : {
-      "presence": {"allowEmpty": false},
-      "checkSeveralSpecifiedFormats" : {
-        "defaultRule" : {
-          "pattern" : "^[^:,]+:[^:,]+(,[^:,]+:[^:,]+)*$|^@\\[.+\\]$",
-          "message" : "入力値が正しくありません。"
+    "f": {
+      "presence": {
+        "allowEmpty": false
+      },
+      "checkSeveralSpecifiedFormats": {
+        "defaultRule": {
+          "pattern": "^[^:,]+:[^:,]+(,[^:,]+:[^:,]+)*$|^@\\[.+\\]$",
+          "message": "入力値が正しくありません。"
         },
-        "specialRules" : [
+        "specialRules": [
           {
-            "target" : "t",
-            "pattern" : "^[^,]+(,[^,]+)*$",
-            "message" : "対象となる列名と新しい列名を、:(コロン)で区切って入力してください",
-            "looserPatternThanDefault" : true
+            "target": "t",
+            "pattern": "^[^,]+(,[^,]+)*$",
+            "message": "対象となる列名と新しい列名を、:(コロン)で区切って入力してください",
+            "looserPatternThanDefault": true
           },
           {
-            "target" : ["x", "nfn"],
-            "pattern" : "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$|^[1-9]?[0-9]+L?(:[^,:]+)?(,[1-9]?[0-9]+L?(:[^,:]+)?)*$ |^@\\[.+\\]$",
-            "message" : "項目の指定は数値のみ可能です。"
+            "target": [
+              "x",
+              "nfn"
+            ],
+            "pattern": "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$|^[1-9]?[0-9]+L?(:[^,:]+)?(,[1-9]?[0-9]+L?(:[^,:]+)?)*$ |^@\\[.+\\]$",
+            "message": "項目の指定は数値のみ可能です。"
           }
         ]
       }
     },
-    "k" : {
-      "checkSeveralSpecifiedFormats" : {
-        "defaultRule" : {
-          "pattern" : "^[^,]+(,[^,]+)*$|^$",
-          "message" : "入力が正しくありません"
+    "k": {
+      "checkSeveralSpecifiedFormats": {
+        "defaultRule": {
+          "pattern": "^[^,]+(,[^,]+)*$|^$",
+          "message": "入力が正しくありません"
         },
-        "specialRules" : [
+        "specialRules": [
           {
-            "target" : ["x", "nfn"],
-            "pattern" : "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$|^$",
-            "message" : "項目の指定は数値のみ可能です。"
+            "target": [
+              "x",
+              "nfn"
+            ],
+            "pattern": "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$|^$",
+            "message": "項目の指定は数値のみ可能です。"
           }
         ]
       }
@@ -92,7 +125,7 @@
       "name": "s",
       "type": "string",
       "label": "グループ内順序の指定",
-      "description":"●カンマ区切りで複数指定可\n●表記：【末尾に付与】無しは文字列の昇順、%nは数値の昇順、%rは文字列の降順、%nrは数値の降順\n●注意： グループ化に用いた項目を含めるとグループ内順序の指定が無効になるため、含めずに設定",
+      "description": "●カンマ区切りで複数指定可\n●表記：【末尾に付与】無しは文字列の昇順、%nは数値の昇順、%rは文字列の降順、%nrは数値の降順\n●注意： グループ化に用いた項目を含めるとグループ内順序の指定が無効になるため、含めずに設定",
       "optional": true
     },
     {
@@ -106,7 +139,7 @@
       "name": "f",
       "type": "string",
       "label": "行ずらしの項目名(必須)",
-      "description":"●カンマ区切りで複数指定可\n  項目名時:*,？ 使用可\n  項目番号時:0−3,5,0L 等使用可"
+      "description": "●カンマ区切りで複数指定可\n  項目名時:*,？ 使用可\n  項目番号時:0−3,5,0L 等使用可"
     },
     {
       "name": "t",
