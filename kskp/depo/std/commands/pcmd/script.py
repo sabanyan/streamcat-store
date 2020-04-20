@@ -1925,7 +1925,7 @@ class GroupBy2Command(Command):
 
                 targets[i] <<= nm.mbest(k = k, s = f'{fld}%nr,uxt%nr',
                                         i = subcmd)
-                targets[i] <<= nm.mjoin(k = k, m = msum[i], f = f'uxt_min,uxt_range', o = 'lastmaxjoin.csv')
+                targets[i] <<= nm.mjoin(k = k, m = msum[i], f = f'uxt_min,uxt_range')
                 targets[i] <<= nm.mcal(c = '(${uxt}-${uxt_min})/${uxt_range}',
                                        a = a, precision = precision)
                 targets[i] <<= nm.mcal(c = f'"{fld}"', a = 'fld')
