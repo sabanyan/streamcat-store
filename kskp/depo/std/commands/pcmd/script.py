@@ -474,17 +474,20 @@ class GroupBy2Command(Command):
 
             fs = f.split(',')
             total = [None] * len(fs)
+            msummary = [None] * len(fs)
             targets = [None] * len(fs)
             subcmd_o = None
 
             for i, fld in enumerate(fs):
 
                 total[i] <<= nm.mcount(k = f'{k},{fld}', a = '__dcnt', i = subcmd)
+                msummary[i] <<= nm.msummary(k = k, f = fld, c = 'count:__count',
+                                            i = subcmd)
 
                 targets[i] <<= nm.mcount(k = k, a = '__ddcnt', i = total[i])
                 targets[i] <<= nm.msetstr(a = 'fld', v = fld)
                 targets[i] <<= nm.mnjoin(k = f'{k},fld', f = '__count', 
-                                         m = self.all_msums)
+                                         m = msummary[i])
                 targets[i] <<= nm.mcal(c = '${__ddcnt}!=${__count}', a = a)
                 targets[i] <<= nm.mcut(f = f'{k},fld,{a}')
 
@@ -720,6 +723,7 @@ class GroupBy2Command(Command):
                 targets[i] <<= nm.mkeybreak(i = subcmd, k = k, s = fld)
                 targets[i] <<= nm.mcal(a = 'fld', c = f'if($s{{bot}}=="1","{fld}",nulls())')
                 targets[i] <<= nm.mcal(a = a, c = f'if($s{{bot}}=="1",$s{{{fld}}},nulls())')
+                # targets[i] <<= nm.msel(c = f'$s{{bot}}=="1"')
                 targets[i] <<= nm.mdelnull(f = a)
 
             subcmd_o <<= nm.m2cat(i = targets)
@@ -1781,8 +1785,8 @@ class GroupBy2Command(Command):
                 msum[i] <<= nm.mcross(k = k, f = '__val__', s = '__tmpcol__')
                 
 
-                targets[i] <<= nm.mdelnull(f = fld, i = subcmd)
-                targets[i] <<= nm.mbest(k = k, s = f'{fld}%n,uxt%n')
+                targets[i] <<= nm.mbest(k = k, s = f'{fld}%n,uxt%n',
+                                        i = subcmd)
                 targets[i] <<= nm.mjoin(k = k, m = msum[i], f = f'uxt_min,uxt_range')
                 targets[i] <<= nm.mcal(c = '(${uxt}-${uxt_min})/${uxt_range}',
                                        a = a, precision = precision)
@@ -1920,7 +1924,7 @@ class GroupBy2Command(Command):
 
                 targets[i] <<= nm.mbest(k = k, s = f'{fld}%nr,uxt%nr',
                                         i = subcmd)
-                targets[i] <<= nm.mjoin(k = k, m = msum[i], f = f'uxt_min,uxt_range')
+                targets[i] <<= nm.mjoin(k = k, m = msum[i], f = f'uxt_min,uxt_range', o = 'lastmaxjoin.csv')
                 targets[i] <<= nm.mcal(c = '(${uxt}-${uxt_min})/${uxt_range}',
                                        a = a, precision = precision)
                 targets[i] <<= nm.mcal(c = f'"{fld}"', a = 'fld')
@@ -2617,6 +2621,7 @@ class GroupBy2Command(Command):
             'miss',
             'strmin',
             'strmax',
+            'strucount',
             'has_dup',
             'value_count'
         ]
