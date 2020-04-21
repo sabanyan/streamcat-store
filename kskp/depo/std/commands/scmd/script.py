@@ -758,10 +758,11 @@ class RunsCommand(SCommand):
                 
                 mcmd_errors = []
                 while True:
-                    # サブプロセスが終了するまで待つ
+                    # サブプロセスが終了するまで待つ(単位は秒)
                     p.join(timeout=1)
 
                     # 標準エラー出力から出力内容を取得する
+                    # (出力バッファがFULLになるとサブプロセスが終了しないので注意)
                     # (既に開いているファイル記述子をWrapするためにopenを用いている
                     #  recv_connオブジェクトでcloseするのでclosefd=Falseとする)
                     for line in open(recv_conn.fileno(), mode='r', closefd=False):
