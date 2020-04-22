@@ -701,13 +701,17 @@ class RemoteFolderSaverCommand(SaverCommand):
         return DataSource(parent_uuid, label, rfolder, loader_step)
 
 class RunsCommand(SCommand):
+
+    # 最低必要ディスクサイズ(1Mbyte)
+    MIN_REQUIRED_DISK_SIZE = 1024 * 1024
+
     def __init__(self):
         super().__init__()
         self.i_ports = [Port('*', 'mcmd')]
         self.o_ports = [Port('*', 'datum?')]
 
     def run(self, args, inputs):
-        import io
+        import psutil
         from multiprocessing import Process, Manager, Pipe
 
         def do_runs(nm_list, results, exs, out):
@@ -732,6 +736,12 @@ class RunsCommand(SCommand):
                     import traceback
                     traceback.print_exc(file=fpe)
                 exs.append(e)
+
+        # ディスクの空き容量を確認する
+        # (Managerがtmpファイルを作成するが容量不足の時にその旨の例外を返さないので事前に確認する)
+        disk_info = psutil.disk_usage('/')
+        if disk_info.free < RunsCommand.MIN_REQUIRED_DISK_SIZE:
+            raise Exception('ディスクの空き容量がありません')
 
         # NYSOLコマンドのリストを作成する
         nm_list = [nysol_module.content for nysol_module in inputs.values()]
@@ -767,7 +777,7 @@ class RunsCommand(SCommand):
                     #  recv_connオブジェクトでcloseするのでclosefd=Falseとする)
                     for line in open(recv_conn.fileno(), mode='r', closefd=False):
                         print(line, end='', file=sys.stderr)
-                        if line.startswith('#ERROR#') and 'kgshell' not in line:
+                        if line.startswith('#ERROR#') and 'script RUN KGERROR runmain on kgshell' not in line:
                             mcmd_errors.append(line)
 
                     # 子プロセスがまだ終了していない場合はNoneが返されます
