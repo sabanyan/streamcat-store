@@ -1,47 +1,57 @@
 {
   "id": "mselstr",
-  "rules" : {
-    "f" : {
-      "presence": {"allowEmpty": false},
-      "checkSeveralSpecifiedFormats" : {
-        "defaultRule" : {
-          "pattern" : "^[^,]+(,[^,]+)*$",
-          "message" : "入力が正しくありません"
+  "rules": {
+    "f": {
+      "presence": {
+        "allowEmpty": false
+      },
+      "checkSeveralSpecifiedFormats": {
+        "defaultRule": {
+          "pattern": "^[^,]+(,[^,]+)*$",
+          "message": "入力が正しくありません"
         },
-        "specialRules" : [
+        "specialRules": [
           {
-            "target" : ["x", "nfn"],
-            "pattern" : "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$",
-            "message" : "項目の指定は数値のみ可能です。"
+            "target": [
+              "x",
+              "nfn"
+            ],
+            "pattern": "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$",
+            "message": "項目の指定は数値のみ可能です。"
           }
         ]
       }
     },
-    "v" : {
-      "presence": {"allowEmpty": false},
-      "format" : {
-        "pattern" : "^[^,]+(,[^,]+)*$",
-        "message" : "入力が正しくありません"
+    "v": {
+      "presence": {
+        "allowEmpty": false
+      },
+      "format": {
+        "pattern": "^[^,]+(,[^,]+)*$",
+        "message": "入力が正しくありません"
       }
     },
-    "k" : {
-      "checkSeveralSpecifiedFormats" : {
-        "defaultRule" : {
-          "pattern" : "^[^,]+(,[^,]+)*$|^$",
-          "message" : "入力が正しくありません"
+    "k": {
+      "checkSeveralSpecifiedFormats": {
+        "defaultRule": {
+          "pattern": "^[^,]+(,[^,]+)*$|^$",
+          "message": "入力が正しくありません"
         },
-        "specialRules" : [
+        "specialRules": [
           {
-            "target" : ["x", "nfn"],
-            "pattern" : "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$|^$",
-            "message" : "項目の指定は数値のみ可能です。"
+            "target": [
+              "x",
+              "nfn"
+            ],
+            "pattern": "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$|^$",
+            "message": "項目の指定は数値のみ可能です。"
           }
         ]
       }
     },
-    "bufcount" : {
-      "specifiedFormatIfTargetInput" : {
-        "target" : "bufcount",
+    "bufcount": {
+      "specifiedFormatIfTargetInput": {
+        "target": "bufcount",
         "pattern": "^[1-9]?[0-9]*$|^0$|^$",
         "message": "0以上の整数を半角で入力してください"
       }
@@ -183,6 +193,6 @@
   "version": "0.7.0",
   "label": "文字列による行選択",
   "classification": "row_edit",
-  "description": "f=で指定した項目の値が、v=で指定した文字列に一致すれば、その行を選択する。",
+  "description": "指定した文字列に一致する行を選択する",
   "url": "./static/pdf/mcmd/row_edit/mselstr.pdf"
 }

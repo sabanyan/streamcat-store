@@ -4,22 +4,34 @@
     {
       "name": "group1",
       "label": "条件式の設定（必須）",
-      "params": ["c"]
+      "params": [
+        "c"
+      ]
     },
     {
       "name": "group3",
       "label": "項目名・項目番号についての設定（省略可）",
-      "params": ["x", "nfn", "nfno"]
+      "params": [
+        "x",
+        "nfn",
+        "nfno"
+      ]
     },
     {
       "name": "group4",
       "label": "システム管理用設定（作業領域・ログ出力）",
-      "params": [ "tmpPath", "assert_diffSize","r"]
+      "params": [
+        "tmpPath",
+        "assert_diffSize",
+        "r"
+      ]
     }
   ],
-  "rules" : {
-    "c" : {
-      "presence": {"allowEmpty": false}
+  "rules": {
+    "c": {
+      "presence": {
+        "allowEmpty": false
+      }
     }
   },
   "params": [
@@ -87,6 +99,6 @@
   "version": "0.7.0",
   "label": "条件式による行選択",
   "classification": "row_edit",
-  "description": "条件式にマッチした行とそれ以外に分ける",
+  "description": "計算式による選択を行う",
   "url": "./static/pdf/mcmd/row_edit/msel.pdf"
 }
