@@ -4,77 +4,105 @@
     {
       "name": "group1",
       "label": "グループの設定(必須)",
-      "params": ["k"]
+      "params": [
+        "k"
+      ]
     },
     {
       "name": "group2",
       "label": "グループ内のソートの設定（省略可)",
-      "params": ["s"]
+      "params": [
+        "s"
+      ]
     },
     {
       "name": "group4",
       "label": "追加する項目名の設定(省略可)",
-      "params": ["a"]
+      "params": [
+        "a"
+      ]
     },
     {
       "name": "group3",
       "label": "その他(省略可)",
-      "params": ["q"]
+      "params": [
+        "q"
+      ]
     },
     {
       "name": "group10",
       "label": "項目名・項目番号についての設定（省略可）",
-      "params": ["x", "nfn", "nfno"]
+      "params": [
+        "x",
+        "nfn",
+        "nfno"
+      ]
     },
     {
       "name": "group20",
       "label": "システム管理用設定（作業領域・ログ出力）",
-      "params": ["tmpPath", "assert_diffSize", "assert_nullout", "assert_nullkey"]
+      "params": [
+        "tmpPath",
+        "assert_diffSize",
+        "assert_nullout",
+        "assert_nullkey"
+      ]
     }
   ],
-  "rules" : {
-    "k" : {
-      "presence": {"allowEmpty": false},
-      "checkSeveralSpecifiedFormats" : {
-        "defaultRule" : {
-          "pattern" : "^[^,]+(,[^,]+)*$",
-          "message" : "入力が正しくありません"
+  "rules": {
+    "k": {
+      "presence": {
+        "allowEmpty": false
+      },
+      "checkSeveralSpecifiedFormats": {
+        "defaultRule": {
+          "pattern": "^[^,]+(,[^,]+)*$",
+          "message": "入力が正しくありません"
         },
-        "specialRules" : [
+        "specialRules": [
           {
-            "target" : ["x", "nfn"],
-            "pattern" : "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$",
-            "message" : "項目の指定は数値のみ可能です。"
+            "target": [
+              "x",
+              "nfn"
+            ],
+            "pattern": "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$",
+            "message": "項目の指定は数値のみ可能です。"
           }
         ]
       }
     },
-    "s" : {
-      "checkSeveralSpecifiedFormats" : {
-        "defaultRule" : {
-          "pattern" : "^[^,]+(,[^,]+)*$|^$",
-          "message" : "入力が正しくありません"
+    "s": {
+      "checkSeveralSpecifiedFormats": {
+        "defaultRule": {
+          "pattern": "^[^,]+(,[^,]+)*$|^$",
+          "message": "入力が正しくありません"
         },
-        "specialRules" : [
+        "specialRules": [
           {
-            "target" : ["x", "nfn"],
-            "pattern" : "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$|^$",
-            "message" : "項目の指定は数値のみ可能です。"
+            "target": [
+              "x",
+              "nfn"
+            ],
+            "pattern": "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$|^$",
+            "message": "項目の指定は数値のみ可能です。"
           }
         ]
       }
     },
-    "a" :{
-      "checkSeveralSpecifiedFormats" : {
-        "defaultRule" : {
-          "pattern" : "^[^,]+,[^,]+$|^$|^@\\[.+\\]$",
-          "message" : "先端と終端の印を出力する項目名は２つかつ,(コンマ)で指定してください。"
+    "a": {
+      "checkSeveralSpecifiedFormats": {
+        "defaultRule": {
+          "pattern": "^[^,]+,[^,]+$|^$|^@\\[.+\\]$",
+          "message": "先端と終端の印を出力する項目名は２つかつ,(コンマ)で指定してください。"
         },
-        "specialRules" : [
+        "specialRules": [
           {
-            "target" : ["x", "nfn"],
-            "pattern" : "^[1-9]?[0-9]+L?,[1-9]?[0-9]+L?$|^$|^@\\[.+\\]$",
-            "message" : "先端と終端の印を出力する項目名は２つかつ,(コンマ)で指定してください。"
+            "target": [
+              "x",
+              "nfn"
+            ],
+            "pattern": "^[1-9]?[0-9]+L?,[1-9]?[0-9]+L?$|^$|^@\\[.+\\]$",
+            "message": "先端と終端の印を出力する項目名は２つかつ,(コンマ)で指定してください。"
           }
         ]
       }
@@ -91,7 +119,7 @@
       "name": "s",
       "type": "string",
       "label": "グループ内順序の指定",
-      "description" : "●カンマ区切りで複数指定可\n●表記：【末尾に付与】無しは文字列の昇順、%nは数値の昇順、%rは文字列の降順、%nrは数値の降順\n●注意： グループ化に用いた項目を含めるとグループ内順序の指定が無効になるため、含めずに設定します",
+      "description": "●カンマ区切りで複数指定可\n●表記：【末尾に付与】無しは文字列の昇順、%nは数値の昇順、%rは文字列の降順、%nrは数値の降順\n●注意： グループ化に用いた項目を含めるとグループ内順序の指定が無効になるため、含めずに設定します",
       "optional": true
     },
     {
@@ -166,7 +194,7 @@
     ]
   ],
   "version": "0.7.0",
-  "label": "キーブレイク箇所",
+  "label": "キーブレイク箇所の付与",
   "classification": "table_grouping",
   "description": "キー項目の値が変化する先頭と終端にフラグを付与する",
   "url": "./static/pdf/mcmd/table_grouping/mkeybreak.pdf"

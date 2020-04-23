@@ -1,32 +1,39 @@
 {
   "id": "mbucket",
   "rules": {
-    "f":{
-      "presence": {"allowEmpty": false},
-      "checkSeveralSpecifiedFormats" : {
-        "defaultRule" : {
-          "pattern" : "^[^:,]+:[^:,]+(,[^:,]+:[^:,]+)*$|^@\\[.+\\]$",
-          "message" : "対象となる列名と新しい列名を、:(コロン)で区切って入力してください"
+    "f": {
+      "presence": {
+        "allowEmpty": false
+      },
+      "checkSeveralSpecifiedFormats": {
+        "defaultRule": {
+          "pattern": "^[^:,]+:[^:,]+(,[^:,]+:[^:,]+)*$|^@\\[.+\\]$",
+          "message": "対象となる列名と新しい列名を、:(コロン)で区切って入力してください"
         },
-        "specialRules" : [
+        "specialRules": [
           {
-            "target" : ["x", "nfn"],
-            "pattern" : "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$|^[1-9]?[0-9]+L?:[^,:]+(,[1-9]?[0-9]+L?:[^,:]+)*$",
-            "message" : "項目の指定は数値のみ可能です。"
+            "target": [
+              "x",
+              "nfn"
+            ],
+            "pattern": "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$|^[1-9]?[0-9]+L?:[^,:]+(,[1-9]?[0-9]+L?:[^,:]+)*$",
+            "message": "項目の指定は数値のみ可能です。"
           }
         ]
       }
     },
-    "n":{
-      "presence": {"allowEmpty": false},
-      "format" : {
+    "n": {
+      "presence": {
+        "allowEmpty": false
+      },
+      "format": {
         "pattern": "^[1-9]?[0-9]+(,[1-9]?[0-9]+)*$|^@\\[.+\\]$",
         "message": "0以上の整数を半角で入力してください"
       }
     },
-    "bufcount" : {
-      "specifiedFormatIfTargetInput" : {
-        "target" : "bufcount",
+    "bufcount": {
+      "specifiedFormatIfTargetInput": {
+        "target": "bufcount",
         "pattern": "^[1-9]?[0-9]*$|^$|^@\\[.+\\]$",
         "message": "0以上の整数を半角で入力してください"
       }
@@ -59,9 +66,17 @@
       "name": "F",
       "type": "select",
       "label": "出力形式",
-      "options":{
-        "labels": ["パケット番号のみを表示","パケットの範囲のみを表示","パケット番号とパケット番号の両方を表示"],
-        "values": ["0","1","2"]
+      "options": {
+        "labels": [
+          "パケット番号のみを表示",
+          "パケットの範囲のみを表示",
+          "パケット番号とパケット番号の両方を表示"
+        ],
+        "values": [
+          "0",
+          "1",
+          "2"
+        ]
       },
       "optional": true
     },
@@ -148,8 +163,8 @@
     ]
   ],
   "version": "0.7.0",
-  "label": "行分割",
+  "label": "一次元均等化バケット分割",
   "classification": "table_split",
-  "description": "f=で指定した数値項目をn=で指定した数の区間に分割する。-rngを指定すると範囲均等分割、指定しなければ件数均等分割となる。",
+  "description": "1つの数値項目を、指定した数の区間に分割する",
   "url": "./static/pdf/mcmd/table_split/mbucket.pdf"
 }
