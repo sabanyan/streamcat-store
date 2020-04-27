@@ -184,7 +184,7 @@ class Datum(BaseModel):
         # return Path(self._to_rel_path(self._path))
 
         # 絶対パスを返す
-        return Path(self._to_abs_path(self._path))
+        return Path(Datum._to_abs_path(self._path))
 
     @path.setter
     def path(self, path):
@@ -193,7 +193,7 @@ class Datum(BaseModel):
 
     @property
     def path_exists(self):
-        path = self._to_abs_path(self._path)
+        path = Datum._to_abs_path(self._path)
         return os.path.exists(path)
 
     @property
@@ -361,20 +361,23 @@ class Datum(BaseModel):
 
         results = self.session.query(Datum).filter(Datum._path == rel_old_path).all()
         for result in results:
-            result._path = self._to_rel_path(new_path).as_posix()
+            result._path = Datum._to_rel_path(new_path).as_posix()
             result._modifier_id = (modifier or self.session.user).id
             self.session.update(result)
 
     def _update_include_path(self, old_path, new_path, modifier=None):
+        import re
         # 同じディレクトリを含むpath列を、ディレクトリの移動に合わせて変更する
         rel_old_path = Datum._to_rel_path(old_path).as_posix()
+        # ファイルパスに正規表現文字が含まれていればエスケープする
+        old_path_pattern = '^' + re.escape(rel_old_path)
+        # SQLのワイルドカード%と_をエスケープする
         results = self.session.query(Datum)\
-                         .filter(Datum.path!=None)\
-                         .filter(Datum._path.like(rel_old_path + '/%')).all()
-        import re
+                         .filter(Datum._path!=None)\
+                         .filter(Datum._path.startswith(rel_old_path + '/', autoescape=True)).all()
         for result in results:
-            rel_new_path = self._to_rel_path(new_path).as_posix()
-            replaced_path = re.sub('^'+rel_old_path, rel_new_path, result._path)
+            rel_new_path = Datum._to_rel_path(new_path).as_posix()
+            replaced_path = re.sub('^'+old_path_pattern, rel_new_path, result._path)
 
             result._path = replaced_path
             result._modifier_id = (modifier or self.session.user).id
