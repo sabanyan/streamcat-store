@@ -270,9 +270,11 @@ class Datum(BaseModel):
         import re
         for result in results:
             if result._path.startswith('/'):
-                replaced_path = re.sub('^'+abs_old_path, new_path, result._path)
+                pattern = re.escape(abs_old_path)
+                replaced_path = re.sub('^'+pattern, new_path, result._path)
             else:
-                replaced_path = re.sub('^'+rel_old_path, new_path, result._path)
+                pattern = re.escape(rel_old_path)
+                replaced_path = re.sub('^'+pattern, new_path, result._path)
             session.query(Datum).filter(Datum.id==result.id).update({'_path'   : replaced_path
                                                                     ,'modifier': modifier})
 
