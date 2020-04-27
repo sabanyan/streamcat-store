@@ -329,6 +329,52 @@ class RunfuncCommand(Command):
         """
         pass
 
+class TestCountBelowMean(Command):
+    def __init__(self):
+        super().__init__()
+        self.i_ports = [Port('i', 'frame')]
+        self.o_ports = [Port('o', 'frame')]
+
+
+    def run(self, args, inputs):
+        import fnmatch as fn 
+        
+        _args = copy.deepcopy(args)
+
+        f = _args.get('f')
+        k = _args.get('k')
+        a = 'count_below_mean'
+
+        fs = f.split(',')
+
+        subcmd = copy.deepcopy(inputs['i'].content)
+        subcmd_o = None
+        msummaries = None
+
+        # get index of columns
+        self.header = copy.deepcopy(inputs['i'].content).getline(header=True)
+        self.header = next(self.header)
+
+        # parse wildcard/list expressions here
+
+        colnames = [col for col in self.header for f in fs 
+            if fn.fnmatch(col, f)]
+        targets = [None] * len(colnames)
+
+        msummaries <<= nm.msummary(i = subcmd, k = k, f = colnames, c = 'mean:__mean')
+
+        subcmd <<= nm.mnjoin(k = k, f = 'fld,__mean', m = msummaries)
+
+        for i, fld in enumerate(colnames):
+            targets[i] <<= nm.msel(i = subcmd, c = f'$s{{fld}}=="{fld}"')
+            targets[i] <<= nm.mcal(c = f'${{{fld}}}>${{__mean}}', a = a)
+            targets[i] <<= nm.msum(k = f'{k},fld', f = a)
+            
+        subcmd_o <<= nm.mcut(i = targets, f = f'{k},fld,{a}')
+
+        nysol_module_o= NysolModule()
+        nysol_module_o.set_content(subcmd_o)
+        return {'o': nysol_module_o}
 
 class GroupBy2Command(Command):
     def __init__(self):

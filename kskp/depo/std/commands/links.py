@@ -16,6 +16,7 @@ class CommandLink:
     from kskp.depo.std.commands.pcmd.square_command import Square
 
     COMMAND_TABLE = {
+        'test_countbelowmean':TestCountBelowMean(),
         # テスト用コマンド
         'square': Square(),
         # mコマンド
