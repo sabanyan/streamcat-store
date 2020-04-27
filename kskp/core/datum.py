@@ -265,8 +265,8 @@ class Datum(BaseModel):
         from sqlalchemy import or_
         results = session.query(Datum.id, Datum._path)\
                          .filter(Datum.type!=Datum.FLOW_TYPE)\
-                         .filter(or_(Datum._path.like(rel_old_path + '/%'),\
-                                     Datum._path.like(abs_old_path + '/%'))).all()
+                         .filter(or_(Datum._path.startswith(rel_old_path + '/', autoescape=True),\
+                                     Datum._path.startswith(abs_old_path + '/', autoescape=True))).all()
         import re
         for result in results:
             if result._path.startswith('/'):
