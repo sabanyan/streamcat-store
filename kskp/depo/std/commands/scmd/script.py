@@ -122,6 +122,7 @@ class CacheSaverCommand(SaverCommand):
             node_id = args['datum_id']
             # TODO: RunsCommand実行前にFlowにキャッシュありの情報を更新すると、同じフローの同時実行に支障があるだろう
             flow.set_cache(node_id, cache.uuid, None)
+            Flow.update_data(flow.uuid, flow.label, flow.flow_data, None)
 
         # NYSOLコマンドを作成する
         cmd = inputs['i'].content

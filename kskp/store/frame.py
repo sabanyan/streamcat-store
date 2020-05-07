@@ -123,6 +123,18 @@ class Frame(Datum):
         finally:
             session.commit()
 
+    def duplicate(self, new_label, user_id):
+        """
+        自身の複製を作成する
+        """
+        import io
+        new_frame = Frame(self.parent_uuid, new_label, io.BytesIO(b''), user_id)
+        # # ファイルは複製元と共有する(浅いコピー)
+        # new_frame.path = self.path
+        # # 文字コードと改行コードの判定結果も複製する
+        # new_frame.data = {'encoding':self.encoding, 'newline':self.newline}
+        return new_frame
+
     @staticmethod
     def update_label(uuid, label, modifier):
         """
