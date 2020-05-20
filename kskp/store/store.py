@@ -89,9 +89,13 @@ class Store(Datum):
         from kskp.store import Folder
         return Folder(self.session, self, label, self.session.user)
 
+    def create_project_folder(self, label):
+        from kskp.store import ProjectFolder
+        return ProjectFolder(self.session, self, label, self.session.user)
+
     def create_awss3(self, label, bucket_name):
         from kskp.store import AwsS3
-        return AwsS3(self._session, self, label, bucket_name, self.session.user)
+        return AwsS3(self.session, self, label, bucket_name, self.session.user)
 
     def create_database(self, label, database_conn):
         from kskp.store import Database
