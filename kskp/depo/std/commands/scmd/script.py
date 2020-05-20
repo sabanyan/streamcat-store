@@ -710,6 +710,11 @@ class RunsCommand(SCommand):
         self.i_ports = [Port('*', 'mcmd')]
         self.o_ports = [Port('*', 'datum?')]
 
+    def run_nysol(self, nm_list):
+        # NYSOL Pythonを実行する
+        ret = nm.runs(nm_list, msg='on', throwexc=True)
+        return ret
+
     def run(self, args, inputs):
         import psutil
         from multiprocessing import Process, Manager, Pipe
@@ -729,7 +734,8 @@ class RunsCommand(SCommand):
                 # 標準エラー出力のファイル記述子(No.2)を親プロセスへのPIPEに変更する
                 os.dup2(out.fileno(), sys.stderr.fileno())
                 # NYSOL Pythonを実行する
-                ret = nm.runs(nm_list, msg='on', throwexc=True)
+                # ret = nm.runs(nm_list, msg='on', throwexc=True)
+                ret = self.run_nysol(nm_list)
                 results.extend(ret)
             except Exception as e:
                 with open('/dev/stderr', 'w') as fpe:
@@ -818,6 +824,20 @@ class RunsCommand(SCommand):
                 i += 1
 
             return ret
+
+
+class FieldNamesCommand(RunsCommand):
+    def __init__(self):
+        super().__init__()
+        self.i_ports = [Port('*', 'mcmd')]
+        self.o_ports = [Port('*', 'datum?')]
+
+    def run_nysol(self, nm_list):
+        ret = []
+        for nm_flow in nm_list:
+            # ヘッダ行の取得を実行する
+            ret.append(nm_flow.fldname())
+        return ret
 
 from kskp.store import Activity
 

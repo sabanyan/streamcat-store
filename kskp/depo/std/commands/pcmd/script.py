@@ -49,6 +49,16 @@ class PCommand(Command):
 
         return nysol_module
 
+    def get_field_names(self, nysol_module):
+        """
+        NYSOLフローの結果データのヘッダ行を取得する
+        """
+        # ヘッダ行を取得するときに標準エラーに出力されるエラーメッセージを取得するため
+        # FieldNamesCommandを用いる
+        from kskp.depo.std.commands import FieldNamesCommand
+        fldNamesCmd = FieldNamesCommand()
+        return fldNamesCmd.run(args={}, inputs={'i': nysol_module})
+
     def run(self, args, inputs):
         """
         実際実行(for override)
@@ -330,7 +340,7 @@ class RunfuncCommand(Command):
         pass
 
 
-class GroupBy2Command(Command):
+class GroupBy2Command(PCommand):
     def __init__(self):
         super().__init__()
         self.i_ports = [Port('i', 'frame')]
@@ -2631,8 +2641,11 @@ class GroupBy2Command(Command):
 
         sys.setrecursionlimit(2**20)
 
-        self.header = inputs['i'].content.getline(header=True)
-        self.header = next(self.header)
+        # self.header = inputs['i'].content.getline(header=True)
+        # self.header = next(self.header)
+
+        # ヘッダ行を取得する
+        self.header = self.get_field_names(inputs['i'])
 
         k = _args.get('k')
         prec = _args.get('precision')
