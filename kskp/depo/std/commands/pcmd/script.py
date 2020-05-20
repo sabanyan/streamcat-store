@@ -2983,10 +2983,8 @@ class MultiMcalWCCommand(Command):
         cmd_o = None
         first = True
 
-        # get header list
-        # self.header <<= nm.mread(inputs['i'].content).getline(header=True)
-        self.header = inputs['i'].content.getline(header=True)
-        self.header = next(self.header)
+        # ヘッダ行を取得する
+        self.header = self.get_field_names(inputs['i'])
 
         xoption = _args.pop('x') if 'x' in _args else False
         
@@ -3060,10 +3058,9 @@ class MvAvgCommand(Command):
             _args['q'] = True
 
         xoption = _args.get('x')
-
-        # get index of columns
-        self.header = inputs['i'].content.getline(header=True)
-        self.header = next(self.header)
+        
+        # ヘッダ行を取得する
+        self.header = self.get_field_names(inputs['i'])
 
         fatlist = []
 
@@ -3145,9 +3142,8 @@ class MvStatsCommand(Command):
         if 's' not in _args or (_args['s'] == ''):
             _args['q'] = True
 
-        # get index of columns
-        self.header = inputs['i'].content.getline(header=True)
-        self.header = next(self.header)
+        # ヘッダ行を取得する
+        self.header = self.get_field_names(inputs['i'])
 
         xoption = _args.pop('x') if 'x' in _args else False
 
@@ -3234,9 +3230,8 @@ class MvSimCommand(Command):
         if 's' not in _args or (_args['s'] == ''):
             _args['q'] = True
 
-        # get index of columns
-        self.header = inputs['i'].content.getline(header=True)
-        self.header = next(self.header)
+        # ヘッダ行を取得する
+        self.header = self.get_field_names(inputs['i'])
 
         xoption = _args.pop('x') if 'x' in _args else False
 
