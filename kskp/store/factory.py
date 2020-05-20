@@ -234,7 +234,7 @@ class DatumFactory():
         # ルートフォルダが存在しない場合はルートフォルダを作成する
         # (最初にライブラリ画面にアクセスする時はルートフォルダ自身も存在しません)
         if root is None:
-            new_root = self.create_root(label='ROOT_FOLDER')
+            new_root = self.create_root(label='ライブラリ')
             # folderレコードをDBに格納する
             new_root.save()
 

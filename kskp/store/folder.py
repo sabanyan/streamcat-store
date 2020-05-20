@@ -65,8 +65,7 @@ class Folder(Store):
         Folderのdata列を更新する
         """
         # レコードを取得する
-        folder = self.session.query(Folder).filter(Folder.uuid==self.uuid)\
-                                      .filter(Folder.type==Datum.FOLDER_TYPE).one_or_none()
+        folder = self.session.query(Folder).filter(Folder.uuid==self.uuid).one_or_none()
         if folder is None:
             raise Exception('no folder is found by designated id.')
 
@@ -228,9 +227,9 @@ class Folder(Store):
                 return True
         return False
 
-    def to_json(self):
-        return {'uuid'      : self.uuid,
-                'type'      : Datum.FOLDER_TYPE,
-                'label'     : self.label,
-                'creator'   : self.creator_str,
-                'createdAt' : self.created_at_str}
+    # def to_json(self):
+    #     return {'uuid'      : self.uuid,
+    #             'type'      : Datum.FOLDER_TYPE,
+    #             'label'     : self.label,
+    #             'creator'   : self.creator_str,
+    #             'createdAt' : self.created_at_str}
