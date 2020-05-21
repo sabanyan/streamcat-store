@@ -755,17 +755,23 @@ class RunsCommand(SCommand):
                 p = Process(target=do_runs, kwargs={'nm_list':nm_list, 'results':results, 'exs':exs, 'out':send_conn})
                 # サブプロセスを開始する
                 p.start()
-                # サブプロセスが終了するまで待つ
-                p.join()
-
-                # 標準エラー出力から出力内容を取得する
-                # (既に開いているファイル記述子をWrapするためにopenを用いている
-                #  recv_connオブジェクトでcloseするのでclosefd=Falseとする)
+                
                 mcmd_errors = []
-                for line in open(recv_conn.fileno(), mode='r', closefd=False):
-                    print(line, end='', file=sys.stderr)
-                    if line.startswith('#ERROR#') and 'kgshell' not in line:
-                        mcmd_errors.append(line)
+                while True:
+                    # サブプロセスが終了するまで待つ
+                    p.join(timeout=1)
+
+                    # 標準エラー出力から出力内容を取得する
+                    # (既に開いているファイル記述子をWrapするためにopenを用いている
+                    #  recv_connオブジェクトでcloseするのでclosefd=Falseとする)
+                    for line in open(recv_conn.fileno(), mode='r', closefd=False):
+                        print(line, end='', file=sys.stderr)
+                        if line.startswith('#ERROR#') and 'kgshell' not in line:
+                            mcmd_errors.append(line)
+
+                    # 子プロセスがまだ終了していない場合はNoneが返されます
+                    if p.exitcode is not None:
+                        break
 
             except Exception:
                 raise
