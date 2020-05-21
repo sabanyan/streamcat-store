@@ -278,10 +278,17 @@ class WinCp932ReadCommand(PCommand):
         # if f and p are defined, read from provided arguments
         if (_f is not None) and (_p is not None):
             cmd = nm.mread(i = f'{_p}/{_f}')
+            encoding = 'cp932'
         else:
             cmd = nysol_module.content
+            if nysol_module.encoding is None or nysol_module.encoding == 'UNKNOWN':
+                # 入力データの文字コードが未判定の場合
+                # 判定してもわからなかった場合はUTF-8で試してみる
+                encoding = 'utf-8'
+            else:
+                encoding = nysol_module.encoding
 
-        cmd <<= nm.runfunc(to_utf8, source_encoding='cp932')
+        cmd <<= nm.runfunc(to_utf8, source_encoding=encoding)
     
         return {'o': NysolModule(cmd)}
     
