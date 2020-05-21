@@ -1,107 +1,122 @@
 {
   "id": "plaintext2csv",
-  "rules" : {
-    "field" : {
-      "checkSeveralSpecifiedFormats" : {
-        "defaultRule" : {
-          "pattern" : "^[1-9].[0-9]*$|^[1-9]$|^@\\[.+\\]$|^$",
-          "message" : "1以上の整数を半角で入力してください"
+  "rules": {
+    "field": {
+      "checkSeveralSpecifiedFormats": {
+        "defaultRule": {
+          "pattern": "^[1-9].[0-9]*$|^[1-9]$|^@\\[.+\\]$|^$",
+          "message": "1以上の整数を半角で入力してください"
         }
       }
     },
-    "attr" : {
-      "checkSeveralSpecifiedFormats" : {
-        "defaultRule" : {
-        "pattern" : "^[1-9][0-9]*$|^[1-9][0-9]*-[1-9][0-9]*$",
-        "message" : "行番号の指定は、1以上の整数で、範囲を指定する場合は−(ハイフン）区切りで入力してください" 
+    "attr": {
+      "checkSeveralSpecifiedFormats": {
+        "defaultRule": {
+          "pattern": "^[1-9][0-9]*$|^[1-9][0-9]*-[1-9][0-9]*$",
+          "message": "行番号の指定は、1以上の整数で、範囲を指定する場合は−(ハイフン）区切りで入力してください"
         }
       }
     },
-    "observe" : {
-      "presence": {"allowEmpty": false},
-      "checkSeveralSpecifiedFormats" : {
-        "defaultRule" : {
-          "pattern" : "^[1-9].[0-9]*$|^[1-9]$|^@\\[.+\\]$|^$",
-          "message" : "1以上の整数を半角で入力してください"
+    "observe": {
+      "presence": {
+        "allowEmpty": false
+      },
+      "checkSeveralSpecifiedFormats": {
+        "defaultRule": {
+          "pattern": "^[1-9].[0-9]*$|^[1-9]$|^@\\[.+\\]$|^$",
+          "message": "1以上の整数を半角で入力してください"
         }
       },
-      "compareNumbersLargerThan" : {
-        "target" : "field",
-        "message":"観測値は列名行より下に設定してください"
+      "compareNumbersLargerThan": {
+        "target": "field",
+        "message": "観測値は列名行より下に設定してください"
       }
     },
-    "except_chr" : {
-      "onlyOneInput" : {
-        "target" : ["except_null"]
+    "except_chr": {
+      "onlyOneInput": {
+        "target": [
+          "except_null"
+        ]
       }
     },
-    "except_null" : {
-      "onlyOneInput" : {
-        "target" : ["except_chr"]
+    "except_null": {
+      "onlyOneInput": {
+        "target": [
+          "except_chr"
+        ]
       }
     },
-    "except_end_chr" : {
-      "onlyOneInput" : {
-        "target" : ["except_end_range","except_end_null"]
+    "except_end_chr": {
+      "onlyOneInput": {
+        "target": [
+          "except_end_range",
+          "except_end_null"
+        ]
       }
     },
-    "except_end_range" : {
-      "checkSeveralSpecifiedFormats" : {
-        "defaultRule" : {
-          "pattern" : "^[1-9].[0-9]*$|^[1-9]$|^@\\[.+\\]$|^$",
-          "message" : "1以上の整数を半角で入力してください"
+    "except_end_range": {
+      "checkSeveralSpecifiedFormats": {
+        "defaultRule": {
+          "pattern": "^[1-9].[0-9]*$|^[1-9]$|^@\\[.+\\]$|^$",
+          "message": "1以上の整数を半角で入力してください"
         }
       },
-      "onlyOneInput" : {
-        "target" : ["except_end_chr","except_end_null"]
+      "onlyOneInput": {
+        "target": [
+          "except_end_chr",
+          "except_end_null"
+        ]
       }
     },
-    "except_end_null" : {
-      "onlyOneInput" : {
-        "target" : ["except_end_chr","except_end_range"]
+    "except_end_null": {
+      "onlyOneInput": {
+        "target": [
+          "except_end_chr",
+          "except_end_range"
+        ]
       }
     }
   },
-  "params" : [
+  "params": [
     {
-      "name" : "field",
-      "type" : "string",
-      "label" : "列名【行位置】:1始まりの行番号"
+      "name": "field",
+      "type": "string",
+      "label": "列名【行位置】:1始まりの行番号"
     },
     {
-      "name" : "attr",
-      "type" : "string",
-      "label" : "属性【行範囲】:1始まり行番号範囲 (例:1-2)"
+      "name": "attr",
+      "type": "string",
+      "label": "属性【行範囲】:1始まり行番号範囲 (例:1-2)"
     },
     {
-      "name" : "observe",
-      "type" : "string",
-      "label" : "観測値【開始行】:1始まり行番号"
+      "name": "observe",
+      "type": "string",
+      "label": "観測値【開始行】:1始まり行番号"
     },
     {
-      "name" : "except_chr",
-      "type" : "string",
-      "label" : "不要行条件【開始】：文字列の場合(正規表現)"
+      "name": "except_chr",
+      "type": "string",
+      "label": "不要行条件【開始】：文字列の場合(正規表現)"
     },
     {
-      "name" : "except_end_chr",
-      "type" : "string",
-      "label" : "不要行条件【終了】：文字列の場合(正規表現)"
+      "name": "except_end_chr",
+      "type": "string",
+      "label": "不要行条件【終了】：文字列の場合(正規表現)"
     },
     {
-      "name" : "except_end_range",
-      "type" : "string",
-      "label" : "不要行条件【終了】：開始からの固定行の場合"
+      "name": "except_end_range",
+      "type": "string",
+      "label": "不要行条件【終了】：開始からの固定行の場合"
     },
     {
-      "name" : "except_null",
-      "type" : "boolean",
-      "label" : "不要行条件【開始】：空行で始まる"
+      "name": "except_null",
+      "type": "boolean",
+      "label": "不要行条件【開始】：空行で始まる"
     },
     {
-      "name" : "except_end_null",
-      "type" : "boolean",
-      "label" : "不要行条件【終了】：空行で終わる"
+      "name": "except_end_null",
+      "type": "boolean",
+      "label": "不要行条件【終了】：空行で終わる"
     }
   ],
   "ports": [
@@ -121,6 +136,6 @@
   "version": "0.3",
   "label": "CSVデータの抽出",
   "classification": "data_format",
-  "description": "プレーンテキストからCSV(列名、観測値)と属性を分離する。開始終了条件指定により不要行を削除できる。",
+  "description": "不完全なCSVから、不要部分を除きCSV領域のみ出力する",
   "url": ""
 }
