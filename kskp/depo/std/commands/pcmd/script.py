@@ -244,13 +244,54 @@ class WinCp932ReadCommand(PCommand):
         super().__init__()
 
     def run(self, args, inputs):
-        f = None
-        f <<= inputs['i'].content
 
-        args_string = (PCMD_DIR / 'src/windows_cp932_csv_read.sh').as_posix()
-        args_string += self.replace_args(args)
+        def to_utf8(source_encoding):
+            """
+            ストリームでcp932→utf8に変換するコマンド
+            """
+            try:
+                import io
+                # stdinのencodingがデフォルトでutf-8なので、設定し直す。
+                input_stream = io.TextIOWrapper(sys.stdin.buffer, encoding=source_encoding, errors ='ignore')
+                # flush()すると連続でプレビューした時にnm.runs()で処理が帰ってくる見たい？
+                input_stream.flush()
+                for line in input_stream:
+                    # 標準出力するときも自動でutf-8に変換されるので、printだけでいい
+                    print(line, end='')
+                # flushをする
+                sys.stdout.flush()
+            except Exception as e:
+                with open('/dev/stderr', 'w') as fpe:
+                    import traceback
+                    traceback.print_exc(file=fpe)
+            
+        # flushをしないと、デバッグ用のprintなども入ってしまう
+        sys.stdout.flush()
 
-        return {'o': self.module(f, args_string)}
+        nysol_module = inputs['i']
+
+        # get args (filename f and path p)
+        _args = copy.deepcopy(args)
+        _f = args.get('f')
+        _p = args.get('p')
+
+        # if f and p are defined, read from provided arguments
+        if (_f is not None) and (_p is not None):
+            cmd = nm.mread(i = f'{_p}/{_f}')
+        else:
+            cmd = nysol_module.content
+
+        cmd <<= nm.runfunc(to_utf8, source_encoding='cp932')
+    
+        return {'o': NysolModule(cmd)}
+    
+        # f = None
+        # f <<= inputs['i'].content
+
+        # args_string = (PCMD_DIR / 'src/windows_cp932_csv_read.sh').as_posix()
+        # args_string += self.replace_args(args)
+
+        # return {'o': self.module(f, args_string)}
 
        #pythonによる変換
        #不安定なので無効化しておく
