@@ -1,27 +1,32 @@
 {
   "id": "mtrafld",
-  "rules" : {
-    "f":{
-      "presencesIfTargetIsInput" : "r",
-      "checkSeveralSpecifiedFormats" : {
-        "defaultRule" : {
-          "pattern" : "^[^:,]+(:[^:,]+)?(,[^:,]+(:[^:,]+)?)*$|^$",
-          "message" : "対象の項目名と新項目名を、:(コロン)で区切って入力してください"
+  "rules": {
+    "f": {
+      "presencesIfTargetIsInput": "r",
+      "checkSeveralSpecifiedFormats": {
+        "defaultRule": {
+          "pattern": "^[^:,]+(:[^:,]+)?(,[^:,]+(:[^:,]+)?)*$|^$",
+          "message": "対象の項目名と新項目名を、:(コロン)で区切って入力してください"
         },
-        "specialRules" : [
+        "specialRules": [
           {
-            "target" : ["x", "nfn"],
-            "pattern" : "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$|^[1-9]?[0-9]+L?(:[^,:]+)?(,[1-9]?[0-9]+L?(:[^,:]+)?)*$|^$",
-            "message" : "項目の指定は数値のみ可能です。"
+            "target": [
+              "x",
+              "nfn"
+            ],
+            "pattern": "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$|^[1-9]?[0-9]+L?(:[^,:]+)?(,[1-9]?[0-9]+L?(:[^,:]+)?)*$|^$",
+            "message": "項目の指定は数値のみ可能です。"
           }
         ]
       }
     },
-    "a" : {
-      "presence": {"allowEmpty": false},
-      "format" : {
-        "pattern" : "^[^,]+$",
-        "message" : "項目名は一つのみ入力してください。"
+    "a": {
+      "presence": {
+        "allowEmpty": false
+      },
+      "format": {
+        "pattern": "^[^,]+$",
+        "message": "項目名は一つのみ入力してください。"
       }
     }
   },
@@ -129,6 +134,6 @@
   "version": "0.7.0",
   "label": "クロス表をトランザクション項目に変換(Mtrafld)",
   "classification": "value_crossing",
-  "description": "f=で指定した項目値とその値の「ペア」のアイテムを作成し、それらを連結し新しいベクトル項目として出力する。",
+  "description": "複数項目の値を要素とするベクトル項目を作成する",
   "url": "./static/pdf/mcmd/value_crossing/mtrafld.pdf"
 }

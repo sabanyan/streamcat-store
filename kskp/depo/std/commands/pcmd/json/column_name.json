@@ -3,7 +3,7 @@
   "id": "column_name",
   "label": "項目順の変更",
   "classification": "col_edit",
-  "description": "先頭と末尾に、指定した項目名の順番に列を並び替える。",
+  "description": "ワイルドカードを用いて、先頭、末尾に移動したい列を指定する",
   "ports": [
     [
       {

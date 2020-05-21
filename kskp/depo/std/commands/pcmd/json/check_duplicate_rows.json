@@ -3,7 +3,7 @@
   "id": "check_duplicate_rows",
   "label": "重複行の抽出",
   "classification": "validation",
-  "description": "重複行の抽出を行う",
+  "description": "キー項目に対して、重複行がある場合に出力する",
   "ports": [
     [
       {

@@ -1,9 +1,9 @@
 {
   "version": "0.7.0",
   "id": "column_unique_name",
-  "label": "項目名ユニーク化",
+  "label": "項目名のユニーク化",
   "classification": "col_edit",
-  "description": "全ての項目名がユニークになるように、項目名を変更する。",
+  "description": "項目名がユニークになるように、項目名を変更する",
   "ports": [
     [
       {
