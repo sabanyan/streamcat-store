@@ -2918,7 +2918,7 @@ class GroupBy2Command(PCommand):
         return {'o': nysol_module_o}
 
 
-class MultiMcalCommand(Command):
+class MultiMcalCommand(PCommand):
     def __init__(self):
         super().__init__()
         self.i_ports = [Port('i', 'frame')]
@@ -2954,7 +2954,7 @@ class MultiMcalCommand(Command):
         return {'o': nysol_module_o}
 
 
-class MultiMcalWCCommand(Command):
+class MultiMcalWCCommand(PCommand):
     def __init__(self):
         super().__init__()
         self.i_ports = [Port('i', 'frame')]
@@ -3028,7 +3028,7 @@ class MultiMcalWCCommand(Command):
         return {'o': nysol_module_o}
         
 
-class MvAvgCommand(Command):
+class MvAvgCommand(PCommand):
     def __init__(self):
         super().__init__()
         self.i_ports = [Port('i', 'frame')]
@@ -3111,7 +3111,7 @@ class MvAvgCommand(Command):
         return {'o': nysol_module_o}
 
 
-class MvStatsCommand(Command):
+class MvStatsCommand(PCommand):
     def __init__(self):
         super().__init__()
         self.i_ports = [Port('i', 'frame')]
@@ -3200,7 +3200,7 @@ class MvStatsCommand(Command):
         return {'o': nysol_module_o}
 
 
-class MvSimCommand(Command):
+class MvSimCommand(PCommand):
     def __init__(self):
         super().__init__()
         self.i_ports = [Port('i', 'frame')]
