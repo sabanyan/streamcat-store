@@ -4,48 +4,65 @@
     {
       "name": "group2",
       "label": "グループの設定（省略可)",
-      "params": ["k"]
+      "params": [
+        "k"
+      ]
     },
     {
       "name": "group1",
       "label": "追加する項目名の設定 (必須)",
-      "params": ["a"]
+      "params": [
+        "a"
+      ]
     },
     {
-        "name": "group3",
-        "label": "その他（省略可)",
-        "params": ["q"]
+      "name": "group3",
+      "label": "その他（省略可)",
+      "params": [
+        "q"
+      ]
     },
     {
       "name": "group10",
       "label": "項目名・項目番号についての設定（省略可）",
-      "params": ["x", "nfn", "nfno"]
+      "params": [
+        "x",
+        "nfn",
+        "nfno"
+      ]
     },
     {
       "name": "group20",
       "label": "システム管理用設定（作業領域・ログ出力）",
-      "params": [ "tmpPath", "assert_diffSize", "assert_nullkey"]
+      "params": [
+        "tmpPath",
+        "assert_diffSize",
+        "assert_nullkey"
+      ]
     }
   ],
-  "rules" : {
-    "a" : {
-      "presencesIfTargetIsNotInput" : "nfn",
-      "format" : {
-        "pattern" : "^[^,]+|^$",
-        "message" : "一項目のみ入力してください"
+  "rules": {
+    "a": {
+      "presencesIfTargetIsNotInput": "nfn",
+      "format": {
+        "pattern": "^[^,]+|^$",
+        "message": "一項目のみ入力してください"
       }
     },
-    "k" : {
-      "checkSeveralSpecifiedFormats" : {
-        "defaultRule" : {
-          "pattern" : "^[^,]+(,[^,]+)*$|^$",
-          "message" : "入力値が正しくありません。"
+    "k": {
+      "checkSeveralSpecifiedFormats": {
+        "defaultRule": {
+          "pattern": "^[^,]+(,[^,]+)*$|^$",
+          "message": "入力値が正しくありません。"
         },
-        "specialRules" : [
+        "specialRules": [
           {
-            "target" : ["x", "nfn"],
-            "pattern" : "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$|^$",
-            "message" : "項目の指定は数値のみ可能です。"
+            "target": [
+              "x",
+              "nfn"
+            ],
+            "pattern": "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$|^$",
+            "message": "項目の指定は数値のみ可能です。"
           }
         ]
       }
@@ -123,8 +140,8 @@
     ]
   ],
   "version": "0.7.0",
-  "label": "行数カウント",
+  "label": "行数のカウント",
   "classification": "table_grouping",
-  "description": "k=指定時には集計キー毎の件数、指定しなければ全件数をカウントし、a=で指定した項目名で出力する。",
+  "description": "行数をカウントする",
   "url": "./static/pdf/mcmd/table_grouping/mcount.pdf"
 }

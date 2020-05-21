@@ -4,22 +4,34 @@
     {
       "name": "group1",
       "label": "計算式の設定（必須）",
-      "params": ["arglist"]
+      "params": [
+        "arglist"
+      ]
     },
     {
       "name": "group2",
       "label": "項目名・項目番号についての設定（省略可）",
-      "params": ["x", "nfn", "nfno"]
+      "params": [
+        "x",
+        "nfn",
+        "nfno"
+      ]
     },
     {
       "name": "group3",
       "label": "その他（省略可）",
-      "params": ["precision"]
+      "params": [
+        "precision"
+      ]
     },
     {
       "name": "group4",
       "label": "システム管理用設定（作業領域・ログ出力）",
-      "params": [ "tmpPath", "assert_diffSize", "assert_nullout"]
+      "params": [
+        "tmpPath",
+        "assert_diffSize",
+        "assert_nullout"
+      ]
     }
   ],
   "params": [
@@ -40,7 +52,12 @@
           "label": "計算式"
         }
       ],
-      "default": [{"a": "", "c": ""}]
+      "default": [
+        {
+          "a": "",
+          "c": ""
+        }
+      ]
     },
     {
       "name": "precision",
@@ -74,7 +91,6 @@
       "label": "入力、出力件数比較を行う",
       "optional": true
     },
-    
     {
       "name": "assert_nullout",
       "type": "boolean",
@@ -103,8 +119,8 @@
     ]
   ],
   "version": "0.7.0",
-  "label": "複数列計算（個別式）",
+  "label": "複数項目の計算 (個別式)",
   "classification": "calculation",
-  "description": "複数列の計算を、個別に計算式を指定して行う。",
+  "description": "個別の式で、項目間の演算を行い、複数の結果を追加する",
   "url": "./static/pdf/mcmd/calculation/mcal.pdf"
 }
