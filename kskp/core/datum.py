@@ -265,14 +265,16 @@ class Datum(BaseModel):
         from sqlalchemy import or_
         results = session.query(Datum.id, Datum._path)\
                          .filter(Datum.type!=Datum.FLOW_TYPE)\
-                         .filter(or_(Datum._path.like(rel_old_path + '/%'),\
-                                     Datum._path.like(abs_old_path + '/%'))).all()
+                         .filter(or_(Datum._path.startswith(rel_old_path + '/', autoescape=True),\
+                                     Datum._path.startswith(abs_old_path + '/', autoescape=True))).all()
         import re
         for result in results:
             if result._path.startswith('/'):
-                replaced_path = re.sub('^'+abs_old_path, new_path, result._path)
+                pattern = re.escape(abs_old_path)
+                replaced_path = re.sub('^'+pattern, new_path, result._path)
             else:
-                replaced_path = re.sub('^'+rel_old_path, new_path, result._path)
+                pattern = re.escape(rel_old_path)
+                replaced_path = re.sub('^'+pattern, new_path, result._path)
             session.query(Datum).filter(Datum.id==result.id).update({'_path'   : replaced_path
                                                                     ,'modifier': modifier})
 
