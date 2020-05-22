@@ -281,7 +281,7 @@ class Library:
         # (最初にライブラリ画面にアクセスする時はルートフォルダ自身も存在しません)
         if root is None:
             new_root = Folder(parent_uuid=None,
-                              label='ROOT_FOLDER',
+                              label='ライブラリ',
                               creator=user_id)
             # folderレコードをDBに格納する
             new_root.save()
