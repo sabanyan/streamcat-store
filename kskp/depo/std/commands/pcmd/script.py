@@ -49,6 +49,18 @@ class PCommand(Command):
 
         return nysol_module
 
+    def get_field_names(self, nysol_module):
+        """
+        NYSOLフローの結果データのヘッダ行を取得する
+        """
+        # ヘッダ行を取得するときに標準エラーに出力されるエラーメッセージを取得するため
+        # FieldNamesCommandを用いる
+        from kskp.depo.std.commands import FieldNamesCommand
+        fldNamesCmd = FieldNamesCommand()
+        results = fldNamesCmd.run(args={}, inputs={'i': nysol_module})
+        # 'i'キーへの入力結果は'i'キーを指定して取得する
+        return results['i']
+
     def run(self, args, inputs):
         """
         実際実行(for override)
@@ -330,7 +342,7 @@ class RunfuncCommand(Command):
         pass
 
 
-class GroupBy2Command(Command):
+class GroupBy2Command(PCommand):
     def __init__(self):
         super().__init__()
         self.i_ports = [Port('i', 'frame')]
@@ -723,8 +735,8 @@ class GroupBy2Command(Command):
                 targets[i] <<= nm.mkeybreak(i = subcmd, k = k, s = fld)
                 targets[i] <<= nm.mcal(a = 'fld', c = f'if($s{{bot}}=="1","{fld}",nulls())')
                 targets[i] <<= nm.mcal(a = a, c = f'if($s{{bot}}=="1",$s{{{fld}}},nulls())')
-                # targets[i] <<= nm.msel(c = f'$s{{bot}}=="1"')
-                targets[i] <<= nm.mdelnull(f = a)
+                targets[i] <<= nm.msel(c = f'$s{{bot}}=="1"')
+                # targets[i] <<= nm.mdelnull(f = a)
 
             subcmd_o <<= nm.m2cat(i = targets)
             subcmd_o <<= nm.mcut(f = f'{k},fld,{a}')
@@ -751,8 +763,8 @@ class GroupBy2Command(Command):
                 targets[i] <<= nm.mkeybreak(i = subcmd, k = k, s = fld)
                 targets[i] <<= nm.mcal(a = 'fld', c = f'if($s{{top}}=="1","{fld}",nulls())')
                 targets[i] <<= nm.mcal(a = a, c = f'if($s{{top}}=="1",$s{{{fld}}},nulls())')
-                # targets[i] <<= nm.msel(c = f'$s{{top}}=="1"')
-                targets[i] <<= nm.mdelnull(f = a)
+                targets[i] <<= nm.msel(c = f'$s{{top}}=="1"')
+                # targets[i] <<= nm.mdelnull(f = a)
 
             subcmd_o <<= nm.m2cat(i = targets)
             subcmd_o <<= nm.mcut(f = f'{k},fld,{a}')
@@ -2631,8 +2643,11 @@ class GroupBy2Command(Command):
 
         sys.setrecursionlimit(2**20)
 
-        self.header = inputs['i'].content.getline(header=True)
-        self.header = next(self.header)
+        # self.header = inputs['i'].content.getline(header=True)
+        # self.header = next(self.header)
+
+        # ヘッダ行を取得する
+        self.header = self.get_field_names(inputs['i'])
 
         k = _args.get('k')
         prec = _args.get('precision')
