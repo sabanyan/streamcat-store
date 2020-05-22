@@ -96,6 +96,7 @@ from .frame import Frame
 from .cache import Cache
 from .flow import Flow
 from .folder import Folder
+from .project_folder import ProjectFolder
 from .awss3 import AwsS3
 from .remote_folder import RemoteFolder
 from .trashcan import TrashCan

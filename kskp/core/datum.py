@@ -23,6 +23,7 @@ class Datum(BaseModel):
     # DEFAULT_LIBRARY_PATH = (STORE_DIR / 'frames/csv').as_posix()
     DEFAULT_LIBRARY_PATH = 'cmn'
     FOLDER_TYPE = 'folder'
+    PROJECT_TYPE = 'project'
     AWSS3_TYPE  = 'awss3'
     RFOLDER_TYPE = 'rfolder'
     DATABASE_TYPE = 'database'
@@ -45,7 +46,7 @@ class Datum(BaseModel):
     _path       = Column('path', String, nullable=False)
     _label      = Column('label', String)
     # PostgreSQLのENUM型の要素を変更してもSQLAlchemyから自動的に変更がかからないので手動で変更する必要がある
-    type        = Column(ENUM(FOLDER_TYPE, AWSS3_TYPE, RFOLDER_TYPE, DATABASE_TYPE, FLOW_TYPE, FRAME_TYPE, TRASH_TYPE, name='data_type'), nullable=False)
+    type        = Column(ENUM(FOLDER_TYPE, PROJECT_TYPE, AWSS3_TYPE, RFOLDER_TYPE, DATABASE_TYPE, FLOW_TYPE, FRAME_TYPE, TRASH_TYPE, name='data_type'), nullable=False)
     data        = Column(JSONB)
     creator     = Column(INTEGER)
     modifier    = Column(INTEGER)
