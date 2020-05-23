@@ -240,8 +240,8 @@ class FlowDumper:
         # Flowの参照uuidを変更する
         for new_flow_uuid in flow_uuids.values():
             flow = self.factory.data.find_by_uuid(new_flow_uuid, type=Datum.FLOW_TYPE)
-            for old_uuid, new_uuid in uuids.items():
-                flow.replace_uuid(old_uuid, new_uuid)
+            flow.replace_uuids(uuids)
+            flow.update_data(flow.label, flow.flow_data)
 
         # 展開したファイルを削除する
         import shutil

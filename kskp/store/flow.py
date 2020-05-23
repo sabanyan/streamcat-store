@@ -159,6 +159,27 @@ class Flow(Datum):
         # 複製を作成する
         parent = self.find_parent()
         new_flow = parent.create_flow(new_label, new_flow_data)
+
+        # フロー間でキャッシュを共有すると、キャッシュ削除操作により不整合が発生する
+        # そのためフローを複製する時はキャッシュも複製する
+        import io
+        from kskp.store.factory import DatumFactory
+        old_new_uuid_pairs = {}
+        for cache_uuid in new_flow.get_cache_frame_uuids():
+            factory = DatumFactory(self.session)
+            if not factory.exists(cache_uuid):
+                continue
+            cache = factory.find_by_uuid(cache_uuid)
+            # キャッシュを複製する(ファイルは複製されない)
+            parent = cache.find_parent()
+            new_cache = parent.create_frame(cache.label + ' のコピー', io.BytesIO(b''))
+            # ファイルは複製元と共有する(浅いコピー)
+            new_cache.save(file_path=cache.path)
+            # 新旧キャッシュの対応リストに記録する
+            old_new_uuid_pairs[cache_uuid] = new_cache.uuid
+        # フローのキャッシュUUIDを新しいキャッシュUUIDに置き換える
+        new_flow.replace_uuids(old_new_uuid_pairs)
+
         return new_flow
 
     @staticmethod
@@ -197,85 +218,186 @@ class Flow(Datum):
 
         return sql
 
+    # def get_src_frame_uuids(self):
+    #     """
+    #     参照する入力frameを全て取得する
+    #     """
+    #     from sqlalchemy import select, column, text, String
+    #     from sqlalchemy.sql import alias
+
+    #     inner_sql = Flow._get_select_stmt_for_nodes().\
+    #                      where(text(f"uuid = '{self.uuid}' ")).\
+    #                      alias('F')
+    #     sql = select([column('uuid', String)], distinct=True).select_from(inner_sql).\
+    #           where(text(f"type = 'frame'")).\
+    #           where(text(f"(cacheCreatedAt is null or cacheCreatedAt = '' )")).\
+    #           where(text(f"uuid is not null and uuid <> '' "))
+
+    #     results = self.session.execute(sql)
+    #     return [str(result['uuid']) for result in results]
+
+    # def get_cache_frame_uuids(self):
+    #     """
+    #     参照するキャッシュframeを全て取得する
+    #     """
+    #     from sqlalchemy import select, column, text, String
+    #     from sqlalchemy.sql import alias
+
+    #     inner_sql = Flow._get_select_stmt_for_nodes().\
+    #                      where(text(f"uuid = '{self.uuid}' ")).\
+    #                      alias('F')
+    #     sql = select([column('uuid', String)], distinct=True).select_from(inner_sql).\
+    #           where(text(f"type = 'frame'")).\
+    #           where(text(f"(cacheCreatedAt is not null and cacheCreatedAt <> '' )")).\
+    #           where(text(f"uuid is not null and uuid <> '' "))
+
+    #     results = self.session.execute(sql)
+    #     return [str(result['uuid']) for result in results]
+
+    # def get_sub_flow_uuids(self):
+    #     """
+    #     参照するSub Flowを全て取得する
+    #     """
+    #     from sqlalchemy import select, column, text, String
+    #     from sqlalchemy.sql import alias
+
+    #     inner_sql = Flow._get_select_stmt_for_nodes().\
+    #                      where(text(f"uuid = '{self.uuid}' ")).\
+    #                      alias('F')
+    #     sql = select([column('uuid', String)], distinct=True).select_from(inner_sql).\
+    #           where(text(f"type = 'flow'")).\
+    #           where(text(f"uuid is not null and uuid <> '' "))
+
+    #     results = self.session.execute(sql)
+    #     return [str(result['uuid']) for result in results]
+
+    # def get_store_uuids(self):
+    #     """
+    #     参照するStoreを全て取得する
+    #     """
+    #     from sqlalchemy import select, column, text, String
+    #     from sqlalchemy.sql import alias
+
+    #     inner_sql = Flow._get_select_stmt_for_nodes().\
+    #                      where(text(f"uuid = '{self.uuid}' ")).\
+    #                      alias('F')
+    #     sql = select([column('uuid', String)], distinct=True).select_from(inner_sql).\
+    #           where(text(f"type = 'store'")).\
+    #           where(text(f"uuid is not null and uuid <> '' "))
+
+    #     results = self.session.execute(sql)
+    #     return [str(result['uuid']) for result in results]
+
     def get_src_frame_uuids(self):
         """
         参照する入力frameを全て取得する
         """
-        from sqlalchemy import select, column, text, String
-        from sqlalchemy.sql import alias
+        ret = []
+        flow_json = self.flow_data
+        
+        if 'nodes' not in flow_json:
+            return ret
 
-        inner_sql = Flow._get_select_stmt_for_nodes().\
-                         where(text(f"uuid = '{self.uuid}' ")).\
-                         alias('F')
-        sql = select([column('uuid', String)], distinct=True).select_from(inner_sql).\
-              where(text(f"type = 'frame'")).\
-              where(text(f"(cacheCreatedAt is null or cacheCreatedAt = '' )")).\
-              where(text(f"uuid is not null and uuid <> '' "))
-
-        results = self.session.execute(sql)
-        return [str(result['uuid']) for result in results]
+        for node in flow_json['nodes']:
+            if node['type'] != 'frame':
+                continue
+            if 'cacheCreatedAt' in node and\
+                node['cacheCreatedAt'] is not None and\
+                node['cacheCreatedAt'] != '':
+                # cacheCreatedAtに日時が入っている場合はキャッシュである
+                continue
+            if 'uuid' not in node or node['uuid'] is None or node['uuid'] == '':
+                continue
+            if node['uuid'] in ret:
+                continue
+            ret.append(node['uuid'])
+        return ret
 
     def get_cache_frame_uuids(self):
         """
         参照するキャッシュframeを全て取得する
         """
-        from sqlalchemy import select, column, text, String
-        from sqlalchemy.sql import alias
+        ret = []
+        flow_json = self.flow_data
+        
+        if 'nodes' not in flow_json:
+            return ret
 
-        inner_sql = Flow._get_select_stmt_for_nodes().\
-                         where(text(f"uuid = '{self.uuid}' ")).\
-                         alias('F')
-        sql = select([column('uuid', String)], distinct=True).select_from(inner_sql).\
-              where(text(f"type = 'frame'")).\
-              where(text(f"(cacheCreatedAt is not null and cacheCreatedAt <> '' )")).\
-              where(text(f"uuid is not null and uuid <> '' "))
-
-        results = self.session.execute(sql)
-        return [str(result['uuid']) for result in results]
+        for node in flow_json['nodes']:
+            if node['type'] != 'frame':
+                continue
+            if 'cacheCreatedAt' not in node or\
+                node['cacheCreatedAt'] is None or\
+                node['cacheCreatedAt'] == '':
+                # cacheCreatedAtに日時が入っていない場合は入力フレームである
+                continue
+            if 'uuid' not in node or node['uuid'] is None or node['uuid'] == '':
+                continue
+            if node['uuid'] in ret:
+                continue
+            ret.append(node['uuid'])
+        return ret
 
     def get_sub_flow_uuids(self):
         """
         参照するSub Flowを全て取得する
         """
-        from sqlalchemy import select, column, text, String
-        from sqlalchemy.sql import alias
+        ret = []
+        flow_json = self.flow_data
 
-        inner_sql = Flow._get_select_stmt_for_nodes().\
-                         where(text(f"uuid = '{self.uuid}' ")).\
-                         alias('F')
-        sql = select([column('uuid', String)], distinct=True).select_from(inner_sql).\
-              where(text(f"type = 'flow'")).\
-              where(text(f"uuid is not null and uuid <> '' "))
+        if 'nodes' not in flow_json:
+            return ret
 
-        results = self.session.execute(sql)
-        return [str(result['uuid']) for result in results]
+        for node in flow_json['nodes']:
+            if node['type'] != 'flow':
+                continue
+            if 'uuid' not in node or node['uuid'] is None or node['uuid'] == '':
+                continue
+            if node['uuid'] in ret:
+                continue
+            ret.append(node['uuid'])
+        return ret
 
     def get_store_uuids(self):
         """
         参照するStoreを全て取得する
         """
-        from sqlalchemy import select, column, text, String
-        from sqlalchemy.sql import alias
+        ret = []
+        flow_json = self.flow_data
 
-        inner_sql = Flow._get_select_stmt_for_nodes().\
-                         where(text(f"uuid = '{self.uuid}' ")).\
-                         alias('F')
-        sql = select([column('uuid', String)], distinct=True).select_from(inner_sql).\
-              where(text(f"type = 'store'")).\
-              where(text(f"uuid is not null and uuid <> '' "))
+        for node in flow_json['nodes']:
+            if node['type'] != 'store':
+                continue
+            if 'uuid' not in node or node['uuid'] is None or node['uuid'] == '':
+                continue
+            if node['uuid'] in ret:
+                continue
+            ret.append(node['uuid'])
+        return ret
 
-        results = self.session.execute(sql)
-        return [str(result['uuid']) for result in results]
+    # def replace_uuid(self, old_uuid, new_uuid):
+    #     """
+    #     参照uuidを置き換える
+    #     """
+    #     flow_data = self.flow_data
+    #     for node in flow_data['nodes']:
+    #         if 'uuid' in node and node['uuid'] == old_uuid:
+    #             node['uuid'] = new_uuid
+    #     self.update_data(self.label, flow_data)
 
-    def replace_uuid(self, old_uuid, new_uuid):
+    def replace_uuids(self, old_new_uuid_pairs):
         """
         参照uuidを置き換える
         """
         flow_data = self.flow_data
+        if 'nodes' not in flow_data:
+            return
+
         for node in flow_data['nodes']:
-            if 'uuid' in node and node['uuid'] == old_uuid:
-                node['uuid'] = new_uuid
-        self.update_data(self.label, flow_data)
+            for old_uuid, new_uuid in old_new_uuid_pairs.items():
+                if 'uuid' in node and node['uuid'] == old_uuid:
+                    node['uuid'] = new_uuid
+                    break
 
     def set_cache(self, node_id, cache_uuid):
         from datetime import datetime, timedelta, timezone
@@ -286,7 +408,7 @@ class Flow(Datum):
                 node['uuid'] = cache_uuid
                 # 記録時間はUTC、表示時間は現地時間にすべきでは？？
                 node['cacheCreatedAt'] = datetime.now(timezone(timedelta(hours=+9), 'JST')).strftime('%Y-%m-%d %H:%M:%S')
-        self.update_data(self.label, flow_data)
+        # self.update_data(self.label, flow_data)
 
     def to_json(self):
         return {'uuid'      : self.uuid,
