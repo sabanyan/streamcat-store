@@ -99,7 +99,7 @@ class Frame(Datum):
     #     finally:
     #         self.session.commit()
 
-    def update_data(self, label, modifier=None):
+    def update_label(self, label, modifier=None):
         """
         Frameのdata列を更新する
         """
