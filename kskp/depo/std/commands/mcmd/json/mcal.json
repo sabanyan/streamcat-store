@@ -4,30 +4,47 @@
     {
       "name": "group1",
       "label": "計算式の設定（必須）",
-      "params": ["a","c"]
+      "params": [
+        "a",
+        "c"
+      ]
     },
     {
       "name": "group2",
       "label": "項目名・項目番号についての設定（省略可）",
-      "params": ["x", "nfn", "nfno"]
+      "params": [
+        "x",
+        "nfn",
+        "nfno"
+      ]
     },
     {
       "name": "group3",
       "label": "その他（省略可）",
-      "params": ["precision"]
+      "params": [
+        "precision"
+      ]
     },
     {
       "name": "group4",
       "label": "システム管理用設定（作業領域・ログ出力）",
-      "params": [ "tmpPath", "assert_diffSize", "assert_nullout"]
+      "params": [
+        "tmpPath",
+        "assert_diffSize",
+        "assert_nullout"
+      ]
     }
   ],
   "rules": {
     "a": {
-      "presence": {"allowEmpty": false}
+      "presence": {
+        "allowEmpty": false
+      }
     },
     "c": {
-      "presence": {"allowEmpty": false}
+      "presence": {
+        "allowEmpty": false
+      }
     }
   },
   "params": [
@@ -104,6 +121,6 @@
   "version": "0.7.0",
   "label": "計算",
   "classification": "calculation",
-  "description": "列項目間の演算を行う",
+  "description": "項目間の演算を行い、1つの結果を追加する",
   "url": "./static/pdf/mcmd/calculation/mcal.pdf"
 }

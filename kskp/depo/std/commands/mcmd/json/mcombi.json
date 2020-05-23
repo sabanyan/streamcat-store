@@ -1,48 +1,61 @@
 {
   "id": "mcombi",
-  "rules" : {
-    "a" : {
-      "presencesIfTargetIsNotInput" : ["nfn", "nfno"],
-      "specifiedFormatIfTargetInput" : {
-        "target" : "a",
-        "pattern" : "^[^,]+$|^$",
-        "message" : "入力が正しくありません。"
+  "rules": {
+    "a": {
+      "presencesIfTargetIsNotInput": [
+        "nfn",
+        "nfno"
+      ],
+      "specifiedFormatIfTargetInput": {
+        "target": "a",
+        "pattern": "^[^,]+$|^$",
+        "message": "入力が正しくありません。"
       }
     },
-    "f" : {
-      "presence": {"allowEmpty": false},
-      "checkSeveralSpecifiedFormats" : {
-        "defaultRule" : {
-          "pattern" : "^[^,]+(,[^,]+)*$",
-          "message" : "入力値が正しくありません。"
+    "f": {
+      "presence": {
+        "allowEmpty": false
+      },
+      "checkSeveralSpecifiedFormats": {
+        "defaultRule": {
+          "pattern": "^[^,]+(,[^,]+)*$",
+          "message": "入力値が正しくありません。"
         },
-        "specialRules" : [
+        "specialRules": [
           {
-            "target" : ["x", "nfn"],
-            "pattern" : "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$",
-            "message" : "項目の指定は数値のみ可能です。"
+            "target": [
+              "x",
+              "nfn"
+            ],
+            "pattern": "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$",
+            "message": "項目の指定は数値のみ可能です。"
           }
         ]
       }
     },
-    "k" : {
-      "checkSeveralSpecifiedFormats" : {
-        "defaultRule" : {
-          "pattern" : "^[^,]+(,[^,]+)*$|^$",
-          "message" : "入力値が正しくありません。"
+    "k": {
+      "checkSeveralSpecifiedFormats": {
+        "defaultRule": {
+          "pattern": "^[^,]+(,[^,]+)*$|^$",
+          "message": "入力値が正しくありません。"
         },
-        "specialRules" : [
+        "specialRules": [
           {
-            "target" : ["x", "nfn"],
-            "pattern" : "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$|^$",
-            "message" : "項目の指定は数値のみ可能です。"
+            "target": [
+              "x",
+              "nfn"
+            ],
+            "pattern": "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$|^$",
+            "message": "項目の指定は数値のみ可能です。"
           }
         ]
       }
     },
-    "n" : {
-      "presence": {"allowEmpty": false},
-      "format" : {
+    "n": {
+      "presence": {
+        "allowEmpty": false
+      },
+      "format": {
         "pattern": "^[1-9]?[0-9]*$|^@\\[.+\\]$",
         "message": "1以上の整数を半角で入力してください"
       }
@@ -146,8 +159,8 @@
     ]
   ],
   "version": "0.7.0",
-  "label": "組合せ計算",
+  "label": "組合せの生成",
   "classification": "value_crossing",
-  "description": "f=で指定した項目についてn=で指定した数の組み合わせを求め、a=で指定した項目名で出力する",
+  "description": "指定した項目の値に対して、値の組合せ または 順列 を列として持つ行を生成する",
   "url": "./static/pdf/mcmd/value_crossing/mcombi.pdf"
 }

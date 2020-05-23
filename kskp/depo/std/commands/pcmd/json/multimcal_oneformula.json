@@ -4,48 +4,68 @@
     {
       "name": "group1",
       "label": "計算式の設定（必須）",
-      "params": ["targets", "a", "c"]
+      "params": [
+        "targets",
+        "a",
+        "c"
+      ]
     },
     {
       "name": "group2",
       "label": "項目名・項目番号についての設定（省略可）",
-      "params": ["x", "nfn", "nfno"]
+      "params": [
+        "x",
+        "nfn",
+        "nfno"
+      ]
     },
     {
       "name": "group3",
       "label": "その他（省略可）",
-      "params": ["precision"]
+      "params": [
+        "precision"
+      ]
     },
     {
       "name": "group4",
       "label": "システム管理用設定（作業領域・ログ出力）",
-      "params": ["tmpPath","assert_diffSize", "assert_nullout"]
+      "params": [
+        "tmpPath",
+        "assert_diffSize",
+        "assert_nullout"
+      ]
     }
-  ],  
+  ],
   "rules": {
     "targets": {
-      "presence": {"allowEmpty": false}
+      "presence": {
+        "allowEmpty": false
+      }
     },
     "a": {
-      "presence": {"allowEmpty": false}
+      "presence": {
+        "allowEmpty": false
+      }
     },
     "c": {
-      "presence": {"allowEmpty": false}
+      "presence": {
+        "allowEmpty": false
+      }
     }
   },
   "params": [
     {
       "name": "targets",
       "type": "string",
-      "label" : "対象とする項目",
-      "description" : "項目名時:*,？,[...] 使用可\n項目番号時:0−3,5,0L 等使用可"
+      "label": "対象とする項目",
+      "description": "項目名時:*,？,[...] 使用可\n項目番号時:0−3,5,0L 等使用可"
     },
     {
       "name": "a",
       "type": "string",
       "label": "追加する項目名",
       "description": "&:元の項目名を表す記号",
-      "default": "new_&" 
+      "default": "new_&"
     },
     {
       "name": "c",
@@ -86,7 +106,6 @@
       "label": "入力、出力件数比較を行う",
       "optional": true
     },
-    
     {
       "name": "assert_nullout",
       "type": "boolean",
@@ -115,8 +134,8 @@
     ]
   ],
   "version": "0.7.0",
-  "label": "複数列計算（共通式）",
+  "label": "複数項目の計算 (共通式)",
   "classification": "calculation",
-  "description": "複数列の計算を、同一の式を全ての列に適用して行う。",
+  "description": "同一の式を、複数の項目に適用し、複数の結果を追加する",
   "url": "./static/pdf/mcmd/calculation/mcal.pdf"
 }
