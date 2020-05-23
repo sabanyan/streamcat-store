@@ -245,8 +245,8 @@ class FlowDumper:
         # Flowの参照uuidを変更する
         for new_flow_uuid in flow_uuids.values():
             flow = Flow.find_by_uuid(new_flow_uuid)
-            for old_uuid, new_uuid in uuids.items():
-                flow.replace_uuid(old_uuid, new_uuid, creator)
+            flow.replace_uuids(uuids, creator)
+            Flow.update_data(flow.uuid, flow.label, flow.flow_data, creator)
 
         # 展開したファイルを削除する
         import shutil
