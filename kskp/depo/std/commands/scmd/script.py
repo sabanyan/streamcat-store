@@ -698,13 +698,22 @@ class RemoteFolderSaverCommand(SaverCommand):
         return parent.create_datasource(label, rfolder, loader_step)
 
 class RunsCommand(SCommand):
+
+    # 最低必要ディスクサイズ(1Mbyte)
+    MIN_REQUIRED_DISK_SIZE = 1024 * 1024
+
     def __init__(self):
         super().__init__()
         self.i_ports = [Port('*', 'mcmd')]
         self.o_ports = [Port('*', 'datum?')]
 
+    def run_nysol(self, nm_list):
+        # NYSOL Pythonを実行する
+        ret = nm.runs(nm_list, msg='on', throwexc=True)
+        return ret
+
     def run(self, args, inputs):
-        import io
+        import psutil
         from multiprocessing import Process, Manager, Pipe
 
         def do_runs(nm_list, results, exs, out):
@@ -722,13 +731,20 @@ class RunsCommand(SCommand):
                 # 標準エラー出力のファイル記述子(No.2)を親プロセスへのPIPEに変更する
                 os.dup2(out.fileno(), sys.stderr.fileno())
                 # NYSOL Pythonを実行する
-                ret = nm.runs(nm_list, msg='on', throwexc=True)
+                # ret = nm.runs(nm_list, msg='on', throwexc=True)
+                ret = self.run_nysol(nm_list)
                 results.extend(ret)
             except Exception as e:
                 with open('/dev/stderr', 'w') as fpe:
                     import traceback
                     traceback.print_exc(file=fpe)
                 exs.append(e)
+
+        # ディスクの空き容量を確認する
+        # (Managerがtmpファイルを作成するが容量不足の時にその旨の例外を返さないので事前に確認する)
+        disk_info = psutil.disk_usage('/')
+        if disk_info.free < RunsCommand.MIN_REQUIRED_DISK_SIZE:
+            raise Exception('ディスクの空き容量がありません')
 
         # NYSOLコマンドのリストを作成する
         nm_list = [nysol_module.content for nysol_module in inputs.values()]
@@ -752,17 +768,24 @@ class RunsCommand(SCommand):
                 p = Process(target=do_runs, kwargs={'nm_list':nm_list, 'results':results, 'exs':exs, 'out':send_conn})
                 # サブプロセスを開始する
                 p.start()
-                # サブプロセスが終了するまで待つ
-                p.join()
-
-                # 標準エラー出力から出力内容を取得する
-                # (既に開いているファイル記述子をWrapするためにopenを用いている
-                #  recv_connオブジェクトでcloseするのでclosefd=Falseとする)
+                
                 mcmd_errors = []
-                for line in open(recv_conn.fileno(), mode='r', closefd=False):
-                    print(line, end='', file=sys.stderr)
-                    if line.startswith('#ERROR#') and 'kgshell' not in line:
-                        mcmd_errors.append(line)
+                while True:
+                    # サブプロセスが終了するまで待つ(単位は秒)
+                    p.join(timeout=1)
+
+                    # 標準エラー出力から出力内容を取得する
+                    # (出力バッファがFULLになるとサブプロセスが終了しないので注意)
+                    # (既に開いているファイル記述子をWrapするためにopenを用いている
+                    #  recv_connオブジェクトでcloseするのでclosefd=Falseとする)
+                    for line in open(recv_conn.fileno(), mode='r', closefd=False):
+                        print(line, end='', file=sys.stderr)
+                        if line.startswith('#ERROR#') and 'script RUN KGERROR runmain on kgshell' not in line:
+                            mcmd_errors.append(line)
+
+                    # 子プロセスがまだ終了していない場合はNoneが返されます
+                    if p.exitcode is not None:
+                        break
 
             except Exception:
                 raise
@@ -798,6 +821,20 @@ class RunsCommand(SCommand):
                 i += 1
 
             return ret
+
+
+class FieldNamesCommand(RunsCommand):
+    def __init__(self):
+        super().__init__()
+        self.i_ports = [Port('*', 'mcmd')]
+        self.o_ports = [Port('*', 'datum?')]
+
+    def run_nysol(self, nm_list):
+        ret = []
+        for nm_flow in nm_list:
+            # ヘッダ行の取得を実行する
+            ret.append(nm_flow.fldname())
+        return ret
 
 from kskp.store import Activity
 

@@ -1,36 +1,46 @@
 {
   "id": "mstats",
-  "rules" : {
-    "c" : {
-      "presence": {"allowEmpty": false}
+  "rules": {
+    "c": {
+      "presence": {
+        "allowEmpty": false
+      }
     },
-    "f" : {
-      "presence": {"allowEmpty": false},
-      "checkSeveralSpecifiedFormats" : {
-        "defaultRule" : {
-          "pattern" : "^[^,]+(,[^,]+)*$",
-          "message" : "入力が正しくありません"
+    "f": {
+      "presence": {
+        "allowEmpty": false
+      },
+      "checkSeveralSpecifiedFormats": {
+        "defaultRule": {
+          "pattern": "^[^,]+(,[^,]+)*$",
+          "message": "入力が正しくありません"
         },
-        "specialRules" : [
+        "specialRules": [
           {
-            "target" : ["x", "nfn"],
-            "pattern" : "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$",
-            "message" : "項目の指定は数値のみ可能です。"
+            "target": [
+              "x",
+              "nfn"
+            ],
+            "pattern": "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$",
+            "message": "項目の指定は数値のみ可能です。"
           }
         ]
       }
     },
-    "k" : {
-      "checkSeveralSpecifiedFormats" : {
-        "defaultRule" : {
-          "pattern" : "^[^,]+(,[^,]+)*$|^$",
-          "message" : "入力が正しくありません"
+    "k": {
+      "checkSeveralSpecifiedFormats": {
+        "defaultRule": {
+          "pattern": "^[^,]+(,[^,]+)*$|^$",
+          "message": "入力が正しくありません"
         },
-        "specialRules" : [
+        "specialRules": [
           {
-            "target" : ["x", "nfn"],
-            "pattern" : "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$|^$",
-            "message" : "項目の指定は数値のみ可能です。"
+            "target": [
+              "x",
+              "nfn"
+            ],
+            "pattern": "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$|^$",
+            "message": "項目の指定は数値のみ可能です。"
           }
         ]
       }
@@ -41,9 +51,55 @@
       "name": "c",
       "type": "select",
       "label": "統計量を指定",
-      "options":{
-        "labels": ["件数(NULL値以外)","ユニーク件数","合計","算術平均","偏差平方和","分散","分散(不偏推定値)","標準偏差","標準偏差(不偏分散のsqrt)","変動係数","最頻値","最小値","最大値","範囲","中央値","第1四分位点","第3四分位点","四分位範囲","歪度","歪度 (不偏推定値)","尖度","尖度 (不偏推定値)"],
-        "values": ["count","ucount","sum","mean","devsq","var","uvar","sd","usd","cv","mode","min","max","range","median","qtile1","qtile3","qrange","skew","uskew","kurt","ukurt"]
+      "options": {
+        "labels": [
+          "件数(NULL値以外)",
+          "ユニーク件数",
+          "合計",
+          "算術平均",
+          "偏差平方和",
+          "分散",
+          "分散(不偏推定値)",
+          "標準偏差",
+          "標準偏差(不偏分散のsqrt)",
+          "変動係数",
+          "最頻値",
+          "最小値",
+          "最大値",
+          "範囲",
+          "中央値",
+          "第1四分位点",
+          "第3四分位点",
+          "四分位範囲",
+          "歪度",
+          "歪度 (不偏推定値)",
+          "尖度",
+          "尖度 (不偏推定値)"
+        ],
+        "values": [
+          "count",
+          "ucount",
+          "sum",
+          "mean",
+          "devsq",
+          "var",
+          "uvar",
+          "sd",
+          "usd",
+          "cv",
+          "mode",
+          "min",
+          "max",
+          "range",
+          "median",
+          "qtile1",
+          "qtile3",
+          "qrange",
+          "skew",
+          "uskew",
+          "kurt",
+          "ukurt"
+        ]
       }
     },
     {
@@ -140,8 +196,8 @@
     ]
   ],
   "version": "0.7.0",
-  "label": "一変数の統計量算出",
+  "label": "単数の統計量の計算",
   "classification": "table_grouping",
-  "description": "f=で指定した数値項目について、c=で指定した統計量の計算をする。",
+  "description": "複数の数値項目に対して、1つの統計量を計算する  (特徴量: 22種類)",
   "url": "./static/pdf/mcmd/table_grouping/mstats.pdf"
 }
