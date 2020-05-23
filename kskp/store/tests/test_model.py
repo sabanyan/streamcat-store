@@ -329,7 +329,7 @@ class LibraryTest(TestCaseBase):
         # ルートデータストアの直下にフレームを作成する
         frame = self.save_frame(root, 'フレームデータ', root_path / 'aaaa1.csv')
         # 作成したフレームのラベルを変更する
-        updated_frame = frame.update_data('新しいフレームデータ', self.USER2)
+        updated_frame = frame.update_label('新しいフレームデータ', self.USER2)
         # ラベルとディレクトリパスのみが変更されることを検証する
         self.assertEqual(updated_frame.id, frame.id)
         self.assertEqual(updated_frame.parent_id, frame.parent_id)
@@ -753,7 +753,7 @@ class LibraryTest(TestCaseBase):
         # ルートデータストアの直下にフレーム2を作成する
         frame2 = self.save_frame(root, 'フレームデータ', root_path / 'abc.csv')
         # フレーム1のラベル名を変更する
-        frame1.update_data('新しいフレームデータ1', self.USER2)
+        frame1.update_label('新しいフレームデータ1', self.USER2)
         # フレーム1のラベル名の変更に従って、CSVファイル名が変更されていることを検証する
         self.assertEqual(frame1.path, root_path / '新しいフレームデータ1')
         self.assertEqual(frame2.path, root_path / '新しいフレームデータ1')

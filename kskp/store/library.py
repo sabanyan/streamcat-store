@@ -93,7 +93,7 @@ class Library:
         """
         with Factory(modifier) as factory:
             frame = factory.data.find_by_uuid(frame_uuid)
-            return frame.update_data(label)
+            return frame.update_label(label)
 
     @staticmethod
     def delete_frame(frame_uuid):
