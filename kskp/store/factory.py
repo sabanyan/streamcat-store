@@ -375,6 +375,18 @@ class DatumFactory():
 
         return query.count() > 0
 
+    def exists_by_id(self, id, type=None):
+        """
+        指定されたidを持つDatumが存在する場合はTrueを返す
+        """
+        from kskp.store import Datum
+        query = self._session.query(Datum).filter(Datum.id==id)
+
+        if type is not None:
+            query = query.filter(Datum.type==type)
+
+        return query.count() > 0
+
     def trashcan_exists(self):
         """
         ゴミ箱が存在する場合はTrueを返す
