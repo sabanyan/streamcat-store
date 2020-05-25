@@ -26,10 +26,10 @@ class Folder(Store):
         """
         指定されたidを持つFolderを取得する
         """
-        folder = session.query(Folder).filter(Folder.id==id).one_or_none()
-        if folder is None:
-            raise Exception('no folder is found by designated id.')
-        return folder
+        datum = session.query(Datum).filter(Datum.id==id).one_or_none()
+        if datum is None:
+            raise Exception(f'no folder is found by designated id({id}).')
+        return Folder.convert_to_folder(datum)
 
     @staticmethod
     def find_by_uuid(uuid):
@@ -52,6 +52,11 @@ class Folder(Store):
             return False
         result = session.query(Datum).filter(Datum.uuid==uuid)\
                                      .filter(Datum.type==Datum.FOLDER_TYPE).count()
+        return result > 0
+
+    @staticmethod
+    def exist_by_id(id):
+        result = session.query(Datum).filter(Datum.id==id).count()
         return result > 0
 
     @staticmethod

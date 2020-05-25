@@ -295,7 +295,7 @@ class Datum(BaseModel):
 
     def get_pref_folder_path(self):
         from kskp.store import Folder
-        if self.prev_parent_id is None:
+        if self.prev_parent_id is None or not Folder.exist_by_id(self.prev_parent_id):
             return None
         else:
             prev_parent = Folder.find_by_id(self.prev_parent_id)
