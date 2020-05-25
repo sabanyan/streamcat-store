@@ -2,7 +2,7 @@ import os
 import datetime
 
 # from .abc_command import AbcCommand
-from kskp.store import Datum, Folder, Frame, Flow, Database, RemoteFolder, TrashCan
+from kskp.store import Datum, Folder, ProjectFolder, Frame, Flow, Database, RemoteFolder, TrashCan
 
 class ChildrenGetter:
 
@@ -59,6 +59,8 @@ class ChildrenGetter:
             return None
         elif datum.type == Datum.FOLDER_TYPE:
             return Folder.convert_to_folder(datum)
+        elif datum.type == Datum.PROJECT_TYPE:
+            return ProjectFolder.convert_to_folder(datum)
         elif datum.type == Datum.FRAME_TYPE:
             return Frame.convert_to_frame(datum)
         elif datum.type == Datum.FLOW_TYPE:
