@@ -87,6 +87,7 @@ from .folder import Folder
 from .project_folder import ProjectFolder
 from .awss3 import AwsS3
 from .remote_folder import RemoteFolder
+from .trashcan import TrashCan
 from .vis import Vis, BokehPlotVis
 from .datasource import DataSource
 from .activity import Activity
