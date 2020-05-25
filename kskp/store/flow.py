@@ -20,6 +20,9 @@ class Flow(Datum):
         # data列の値を作成する
         self.data = {'label' : label, 'flow' : flow_data}
 
+        # フローデータの妥当性を検証する
+        self.valid_uuids_in_flowdata_or_raise()
+
     def save(self):
         """
         Flowを保存する
@@ -51,10 +54,15 @@ class Flow(Datum):
         #     if not Flow.exists(flow_uuid):
         #         raise Exception(f'フロー({flow_uuid})がライブラリにありません')
 
+        # フローデータの妥当性を検証する
+        self.valid_uuids_in_flowdata_or_raise()
+
         # ラベルに'\0'が含まれていれば取り除く
         new_label = Datum.escape_label(label)
         # 更新データを作成する
-        data = {'label' : new_label, 'flow' : flow_data}
+        # data = {'label' : new_label, 'flow' : flow_data}
+        data = self.data.copy()
+        data['flow'] = flow_data
         # flow.data = data
 
         # フローのインポート処理で引っかかるので以下のチェックを一旦外す
@@ -84,34 +92,38 @@ class Flow(Datum):
         # ここでflowを返すとtest_model.pyでテストが通らない
         return self
 
-    def move(self, parent_uuid, modifier=None):
-        """
-        指定されたStoreの直下に移動する
-        """
-        # UUID値の形式チェックをする
-        Datum.valid_uuid_or_raise(parent_uuid)
+    # def move(self, parent_uuid, modifier=None):
+    #     """
+    #     指定されたStoreの直下に移動する
+    #     """
+    #     # UUID値の形式チェックをする
+    #     Datum.valid_uuid_or_raise(parent_uuid)
 
-        try:
-            from kskp.store.factory import DatumFactory
-            to_folder = DatumFactory(self.session).find_by_uuid(parent_uuid)
-        except Exception as e:
-            raise Exception('移動先の指定はフォルダのUUIDしか許可していません')
+    #     from kskp.store.factory import DatumFactory
+    #     to_folder = DatumFactory(self.session).find_by_uuid(parent_uuid)
+    #     if to_folder.type != Datum.FOLDER_TYPE and to_folder.type != Datum.TRASH_TYPE:
+    #         raise Exception('移動先の指定はフォルダまたはゴミ箱のUUIDしか許可していません')
 
-        if parent_uuid == self.uuid:
-            raise Exception('移動先と移動元の指定が同じです')
+    #     if parent_uuid == self.uuid:
+    #         raise Exception('移動先と移動元の指定が同じです')
 
-        try:
-            # レコードを更新する
-            self.parent_id = to_folder.id
-            self._modifier_id = (modifier or self.session.user).id
-            self.session.update(self)
-        except Exception as e:
-            self.session.rollback()
-            raise e
-        finally:
-            self.session.commit()
+    #     # 移動元フォルダのidを覚えておく
+    #     data = self.data.copy()
+    #     data['prev_parent_id'] = self.parent_id
 
-        return self
+    #     try:
+    #         # レコードを更新する
+    #         self.parent_id = to_folder.id
+    #         self._data = data
+    #         self._modifier_id = (modifier or self.session.user).id
+    #         self.session.update(self)
+    #     except Exception as e:
+    #         self.session.rollback()
+    #         raise e
+    #     finally:
+    #         self.session.commit()
+
+    #     return self
         
     def delete(self):
         """
@@ -217,6 +229,21 @@ class Flow(Datum):
               )
 
         return sql
+
+    def valid_uuids_in_flowdata_or_raise(self):
+        from kskp.store.factory import DatumFactory
+        factory = DatumFactory(self.session)
+        # 参照するフレームがゴミ箱に存在しないことを確認する
+        for frame_uuid in self.get_src_frame_uuids():
+            if factory.trashed(frame_uuid):
+                frame = factory.find_by_uuid(frame_uuid)
+                raise Exception(f'ゴミ箱にあるフレーム({frame.label})は使用できません')
+
+        # 参照するサブフローがゴミ箱に存在しないことを確認する
+        for flow_uuid in self.get_sub_flow_uuids():
+            if factory.trashed(flow_uuid):
+                flow = factory.find_by_uuid(flow_uuid)
+                raise Exception(f'ゴミ箱にあるフロー({flow.label})は使用できません')
 
     # def get_src_frame_uuids(self):
     #     """
@@ -409,13 +436,6 @@ class Flow(Datum):
                 # 記録時間はUTC、表示時間は現地時間にすべきでは？？
                 node['cacheCreatedAt'] = datetime.now(timezone(timedelta(hours=+9), 'JST')).strftime('%Y-%m-%d %H:%M:%S')
         # self.update_data(self.label, flow_data)
-
-    def to_json(self):
-        return {'uuid'      : self.uuid,
-                'type'      : Datum.FLOW_TYPE,
-                'label'     : self.label,
-                'creator'   : self.creator_str,
-                'createdAt' : self.created_at_str}
 
     @staticmethod
     def create_flow(request_json, creator, data_source_name=None):

@@ -120,7 +120,7 @@ class Frame(Datum):
         try:
             # 同じファイルに対応するドキュメントのpath列を、ファイル名の移動に合わせて変更する
             self._update_same_path(old_path, new_path, modifier)
-            # labelとdata列を更新する
+            # label列を更新する
             self._update_label_imp(new_label, modifier)
         except Exception as e:
             self.session.rollback()
@@ -398,6 +398,7 @@ class Frame(Datum):
         ret =  {'uuid'      : self.uuid,
                 'type'      : self.type,
                 'label'     : self.label,
+                'prevFolderPath' : self.get_prev_folder_path(),
                 'creator'   : self.creator_str,
                 'createdAt' : self.created_at_str}
 

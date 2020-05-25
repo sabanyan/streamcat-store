@@ -151,6 +151,22 @@ class DatumFactory():
                     }
         return Flow(self._session, parent, label, flow_data, self._session.user)
 
+    def find_by_id(self, id, type=None):
+        """
+        指定されたidを持つDatumを取得する
+        """
+        from kskp.core import Datum
+        query = self._session.query(Datum).filter(Datum.id==id)
+
+        if type is not None:
+            query = query.filter(Datum.type==type)
+
+        # 結果が1件以外の場合はNoResultFoundが送出される
+        datum = query.one()
+        datum.session = self._session
+
+        return datum
+
     def find_by_uuid(self, uuid, type=None):
         """
         指定されたuuidを持つDatumを取得する
@@ -191,6 +207,16 @@ class DatumFactory():
         roots[0].session = self._session
         
         return roots[0]
+
+    def find_trashcan(self):
+        """
+        ゴミ箱を取得する
+        """
+        from kskp.store import Datum
+        trashcan = self._session.query(Datum).filter(Datum.type==Datum.TRASH_TYPE).one_or_none()
+        if trashcan is None:
+            raise Exception('no trush can is found by designated id.')
+        return trashcan
 
     def find_all_subflows(self, no_inputs=True, no_outputs=True):
         """
@@ -284,9 +310,23 @@ class DatumFactory():
         """
         フローフォルダを取得する、存在しない場合は作成する
         """
-        FLOW_FOLDER_UUID  = 'ff37fe34-9c25-4Ad0-b74A-affda3712a45'
+        FLOW_FOLDER_UUID  = 'ff37fe34-9c25-4ad0-b74a-affda3712a45'
         FLOW_FOLDER_LABEL = 'フロー'
         return self._get_or_make_dir_path(FLOW_FOLDER_UUID, FLOW_FOLDER_LABEL)
+
+    def load_trash_folder(self):
+        """
+        ゴミ箱フォルダを取得する、存在しない場合は作成する
+        """
+        from kskp.store import TrashCan
+        if self.trashcan_exists():
+            trash = self.find_trashcan()
+        else:
+            # ゴミ箱が無い場合は作成する
+            root = self.load_root()
+            trash = root.create_trashcan()
+            trash.save()
+        return trash
 
     def _get_or_make_dir_path(self, uuid, label):
         # 特定用途のフォルダのUUIDは決め打ちである
@@ -335,6 +375,37 @@ class DatumFactory():
 
         return query.count() > 0
 
+    def trashcan_exists(self):
+        """
+        ゴミ箱が存在する場合はTrueを返す
+        """
+        from kskp.store import Datum
+        result = self._session.query(Datum).filter(Datum.type==Datum.TRASH_TYPE).count()
+        return result > 0
+
+    def trashed(self, uuid):
+        """
+        ゴミ箱の中にある場合はTrueを返す
+        """
+        from kskp.store import Datum
+        sql = f"""
+        WITH RECURSIVE R AS (
+            SELECT id, parent_id, uuid, type, path FROM data WHERE uuid = '{uuid}'
+            UNION ALL
+            SELECT D.id, D.parent_id, D.uuid, D.type, D.path FROM data D JOIN R ON D.id = R.parent_id
+        )
+        SELECT uuid, path, type FROM R
+        WHERE type = '{Datum.TRASH_TYPE}'
+        """
+        try:
+            results = self._session.execute(sql)
+        except Exception as e:
+            self._session.rollback()
+            raise e
+        finally:
+            pass
+
+        return len([result for result in results]) > 0
 
 class StoreFactory():
 

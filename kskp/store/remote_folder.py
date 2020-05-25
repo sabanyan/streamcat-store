@@ -65,7 +65,9 @@ class RemoteFolder(Folder, Mountable):
             self._update_include_path(old_path, new_path, modifier)
 
             # レコードを更新する
-            data = {'conn' : remoteFolderConn.to_json()}
+            # data = {'conn' : remoteFolderConn.to_json()}
+            data = datum.data.copy()
+            data['conn'] = remoteFolderConn.to_json()
             result = self.session.query(Datum).filter(Datum.uuid==self.uuid).one_or_none()
             if result is not None:
                 result._label = new_label
@@ -118,6 +120,7 @@ class RemoteFolder(Folder, Mountable):
         ret =  {'uuid'      : self.uuid,
                 'type'      : Datum.RFOLDER_TYPE,
                 'label'     : self.label,
+                'prevFolderPath' : self.get_prev_folder_path(),
                 'creator'   : self.creator_str,
                 'createdAt' : self.created_at_str}
 

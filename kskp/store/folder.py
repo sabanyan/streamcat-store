@@ -200,7 +200,9 @@ class Folder(Store):
                         dir_path.rmdir()
                     dir_path = dir_path.parent
         except PermissionError as e:
-            # ファイルに対する権限がない場合
+            # ディレクトリに対する権限がない場合
+            raise e
+        except OSError as e:
             raise e
 
     @staticmethod

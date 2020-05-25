@@ -67,7 +67,9 @@ class AwsS3(Folder, Mountable):
             self._update_include_path(old_path, new_path, modifier)
 
             # レコードを更新する
-            data = {'bucket' : bucket_name}
+            # data = {'bucket' : bucket_name}
+            data = datum.data.copy()
+            data['bucket'] = bucket_name
             result = self.session.query(Datum).filter(Datum.uuid==self.uuid).one_or_none()
             if result is not None:
                 result._label = new_label
@@ -195,6 +197,7 @@ class AwsS3(Folder, Mountable):
         ret =  {'uuid'      : self.uuid,
                 'type'      : Datum.AWSS3_TYPE,
                 'label'     : self.label,
+                'prevFolderPath' : self.get_prev_folder_path(),
                 'bucket'    : self.bucket_name,
                 'creator'   : self.creator_str,
                 'createdAt' : self.created_at_str}
