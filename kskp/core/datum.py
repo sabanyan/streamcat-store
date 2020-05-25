@@ -167,6 +167,8 @@ class Datum(BaseModel):
 
     @property
     def prev_parent_id(self):
+        if self.data2 is None:
+            return None
         return self.data2.get('prev_parent_id')
 
     @prev_parent_id.setter

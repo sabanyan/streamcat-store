@@ -28,7 +28,7 @@ class ProjectFolder(Folder):
         """
         指定されたidを持つFolderを取得する
         """
-        folder = session.query(Folder).filter(Folder.id==id).one_or_none()
+        folder = session.query(ProjectFolder).filter(ProjectFolder.id==id).one_or_none()
         if folder is None:
             raise Exception('no folder is found by designated id.')
         return folder
@@ -42,7 +42,7 @@ class ProjectFolder(Folder):
                                     .filter(Datum.type==Datum.PROJECT_TYPE).one_or_none()
         if datum is None:
             raise Exception('no folder is found by designated id.')
-        return Folder.convert_to_folder(datum)
+        return ProjectFolder.convert_to_folder(datum)
 
     @staticmethod
     def exists(uuid):
@@ -108,7 +108,7 @@ class ProjectFolder(Folder):
         finally:
             session.commit()
 
-        return Folder.convert_to_folder(datum)
+        return ProjectFolder.convert_to_folder(datum)
 
     def delete(self):
         """

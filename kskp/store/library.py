@@ -305,6 +305,8 @@ class Library:
             return None
         elif datum.type == Datum.FOLDER_TYPE:
             return Folder.convert_to_folder(datum)
+        elif datum.type == Datum.PROJECT_TYPE:
+            return ProjectFolder.convert_to_folder(datum)
         elif datum.type == Datum.AWSS3_TYPE:
             return AwsS3.convert_to_awss3(datum)
         elif datum.type == Datum.FRAME_TYPE:
