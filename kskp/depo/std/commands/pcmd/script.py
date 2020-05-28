@@ -1274,6 +1274,11 @@ class GroupBy2Command(PCommand):
             tcalcs = None
             subcmd_o = None
 
+            # take starting key columns
+            _keys = None
+            _keys <<= nm.mcut(f = k, i = subcmd)
+            _keys <<= nm.muniq(k = k)
+
             # tcalcs <<= nm.msummary(f = f, c = 'count:__count',
             #                          k = k, i = subcmd)
             msumres = None
@@ -1293,14 +1298,15 @@ class GroupBy2Command(PCommand):
                 precalcs[i] <<= nm.msortf(f = f'{k},__qtNo')
 
                 targets[i] <<= nm.mnjoin(i = tcalcs, k = f'{k},__T1', K = f'{k},__qtNo',
-                                        f = f'{fld}:__{fld}X1', m = precalcs[i])
+                                        f = f'{fld}:__{fld}X1', m = precalcs[i], n = True)
                 targets[i] <<= nm.mnjoin(k = f'{k},__T2', K = f'{k},__qtNo',
-                                        f = f'{fld}:__{fld}X2', m = precalcs[i])
+                                        f = f'{fld}:__{fld}X2', m = precalcs[i], n = True)
                 targets[i] <<= nm.msel(c = f'$s{{fld}}=="{fld}"')
                 targets[i] <<= nm.mcal(a = f'{a}_{n}', c = f'if(${{__T1}}==${{__T2}},${{__{fld}X1}},(${{__T2}}-${{__T}})*${{__{fld}X1}}+(${{__T}}-${{__T1}})*${{__{fld}X2}})')
                 targets[i] <<= nm.mcut(f = f'{k},fld,{a}_{n}')
 
-            subcmd_o <<= nm.m2cat(i = targets)
+            # subcmd_o <<= nm.m2cat(i = targets)
+            subcmd_o <<= nm.mnjoin(i = _keys, k = k, m = targets, n = True)
 
             return subcmd_o
 
@@ -2799,7 +2805,7 @@ class GroupBy2Command(PCommand):
         cmd_i <<= nm.mnullto(f = k, v = tmp_key)
         
         keys <<= nm.mcut(f = k, i = cmd_i)
-        keys <<= nm.muniq()
+        keys <<= nm.muniq(k = k)
 
         expanded_k = ','.join([k,'fld'])
 
