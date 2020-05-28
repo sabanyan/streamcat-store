@@ -2759,6 +2759,12 @@ class GroupBy2Command(PCommand):
 
         # parse inputs into list-of-dictionaries form
         for arglist in allargs:
+            if arglist.get('fld'):
+                rows_fld = arglist.get('fld')
+                if ',' in rows_fld:
+                        errmsg = self.generateCommandErrorMessage('MultipleRowsTargetError', 'fld', rows_fld)
+                        raise Exception(errmsg)
+                
             if arglist.get('c'):
                 # sys.__stderr__.write(repr(arglist))
 
@@ -2776,6 +2782,19 @@ class GroupBy2Command(PCommand):
 
                 fs = arglist.get('f')
                 if fs:
+                    if ('%' in fs) or ('&' in fs): 
+                        errmsg = self.generateCommandErrorMessage('TargetFieldForbiddenCharacterError', 'f', fs)
+                        raise Exception(errmsg)
+
+                    if len(fs.split(',')) > len(set(fs.split(','))):
+                        errmsg = self.generateCommandErrorMessage('TargetFieldConflictError', 'f', fs)
+                        raise Exception(errmsg)
+
+                    if '' in fs.split(','):
+                        errmsg = self.generateCommandErrorMessage('EmptyTargetFieldError', 'f', fs)
+                        raise Exception(errmsg)
+                        
+
                     fs = [a for a in self.header 
                         for target in arglist['f'].split(',')
                         if fn.fnmatch(a, target)]
@@ -2783,6 +2802,11 @@ class GroupBy2Command(PCommand):
                     arglist['f'] = ','.join(fs)
 
                 cs = arglist.pop('c').split(',')
+                
+                if len(cs) > len(set(cs)):
+                    errmsg = self.generateCommandErrorMessage('CalcConflictError', 'c', ','.join(cs))
+                    raise Exception(errmsg)
+                
                 cs_msummary = []
                 cs_custom_nysol = []
                 cs_grouped = []
@@ -2790,17 +2814,26 @@ class GroupBy2Command(PCommand):
                 for i,c in enumerate(cs):
                     if ':' in c:
                         cleft, cright = c.split(':')
+
+                        if cright == '':
+                            errmsg = self.generateCommandErrorMessage('EmptyCalcNewNameError', 'c', c)
+                            raise Exception(errmsg)
+                        
                         final_fs.append(cright)
                     elif c:
                         cleft = c
                         final_fs.append(cleft)
+                        
                     
                     if cleft in msummaryoptions:
                         cs_msummary.append(cs[i])
                     elif cleft in (x for y in grouped_calcs.values() for x in y):
                         cs_grouped.append(cs[i])
-                    elif cleft:
+                    elif cleft in nysol_calcs:
                         cs_custom_nysol.append(cs[i])
+                    else:
+                        errmsg = self.generateCommandErrorMessage('CalcNotFoundError', c, cleft)
+                        raise Exception(errmsg)
 
                     if cleft in msum_dependencies:
                         msum_prereqs.update(msum_dependencies[cleft])
@@ -2821,6 +2854,9 @@ class GroupBy2Command(PCommand):
                 ns = arglist.get('n')
                 if ns:
                     ns = ns.split(',')
+                    if len(cs) > 1:
+                        errmsg = self.generateCommandErrorMessage('MultipleParamCalcError', 'c', ','.join(cs))
+                        raise Exception(errmsg)
 
                 for calc in cs_custom_nysol:
                     if ns:
@@ -2855,10 +2891,10 @@ class GroupBy2Command(PCommand):
                             calclist.append({'c': _thisgroup, 
                                         'optype' : 'aggregate',
                                         **arglist})
-            else:
-                pass
-                # errmsg = self.generateCommandErrorMessage('EmptyTargetFieldError', 'c', "''")
-                # raise Exception(errmsg)
+            elif all(value != '' for value in arglist.values()):
+                errmsg = self.generateCommandErrorMessage('EmptyTargetFieldError', 'c', "''")
+                raise Exception(errmsg)
+            
         # sys.__stderr__.write(repr(calclist))
 
         cmd = [None] * len(calclist)
