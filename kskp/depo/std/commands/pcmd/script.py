@@ -2745,6 +2745,13 @@ class GroupBy2Command(PCommand):
 
         k = _args.get('k')
         prec = _args.get('precision')
+        formatstring = _args.pop('format')
+
+        # check format string for errors
+        if any(char in formatstring for char in '*?[],:\\'):
+            errmsg = self.generateCommandErrorMessage('ResultsColForbiddenCharacterError', 'format', formatstring)
+            raise Exception(errmsg)
+
         xs = []
 
         calclist = []
@@ -2762,8 +2769,8 @@ class GroupBy2Command(PCommand):
             if arglist.get('fld'):
                 rows_fld = arglist.get('fld')
                 if ',' in rows_fld:
-                        errmsg = self.generateCommandErrorMessage('MultipleRowsTargetError', 'fld', rows_fld)
-                        raise Exception(errmsg)
+                    errmsg = self.generateCommandErrorMessage('MultipleRowsTargetError', 'fld', rows_fld)
+                    raise Exception(errmsg)
                 
             if arglist.get('c'):
                 # sys.__stderr__.write(repr(arglist))
@@ -3020,7 +3027,6 @@ class GroupBy2Command(PCommand):
         # sys.__stderr__.write(repr(cmd)+'\n\n')
         # cmd_o <<= nm.mdelnull(i = cmd, f = '__val__')
 
-        formatstring = _args.pop('format')
         colformat = ['']
 
         for char in formatstring:
