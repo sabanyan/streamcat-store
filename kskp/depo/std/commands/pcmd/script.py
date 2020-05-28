@@ -1481,9 +1481,11 @@ class GroupBy2Command(PCommand):
                         for line in dlist:
                             # input cleanup goes here
                             try:
-                                targetcol.append(float('nan' if line[f_loc]=='' else line[f_loc]))
+                                # if the value can be converted to float, included
+                                targetcol.append(float(line[f_loc]))
                             except ValueError:
-                                pass
+                                # otherwise, place nan
+                                targetcol.append(float('nan'))
 
                         if targetcol == []:
                             print(f'{id},{fld},')
@@ -1493,11 +1495,11 @@ class GroupBy2Command(PCommand):
                             mean = y.dot(np.arange(len(y)))/y.sum()
 
                             # output cleanup goes here
-                            if math.isnan(mean) or math.isinf(mean):
+                            if np.isfinite(mean):
+                                print(f'{id},{fld},{mean:.{precision}g}')
+                            else:
                                 # print empty string
                                 print(f'{id},{fld},')
-                            else:
-                                print(f'{id},{fld},{mean:.{precision}g}')
 
             sys.__stdout__.flush()#not needed for bigger data
 
@@ -1538,9 +1540,11 @@ class GroupBy2Command(PCommand):
                         for line in dlist:
                             # input cleanup goes here
                             try:
-                                targetcol.append(float('nan' if line[f_loc]=='' else line[f_loc]))
+                                # if the value can be converted to float, included
+                                targetcol.append(float(line[f_loc]))
                             except ValueError:
-                                pass
+                                # otherwise, place nan
+                                targetcol.append(float('nan'))
 
                         if targetcol == []:
                             print(f'{id},{fld},')
@@ -1553,11 +1557,11 @@ class GroupBy2Command(PCommand):
                             variance = moment2 - mean ** 2
 
                             # output cleanup goes here
-                            if math.isnan(variance) or math.isinf(variance):
+                            if np.isfinite(variance):
+                                print(f'{id},{fld},{variance:.{precision}g}')
+                            else:
                                 # print empty string
                                 print(f'{id},{fld},')
-                            else:
-                                print(f'{id},{fld},{variance:.{precision}g}')
                                 
             sys.__stdout__.flush()#not needed for bigger data
 
