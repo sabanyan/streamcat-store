@@ -2358,6 +2358,11 @@ class GroupBy2Command(PCommand):
             # fix time column
             subcmd = self.fixtimecolumn(subcmd, x, dateformat)
 
+            # # take starting key columns
+            # _keys = None
+            # _keys <<= nm.mcut(f = k, i = subcmd)
+            # _keys <<= nm.muniq(k = k)
+
             for i, fld in enumerate(fs):
                 mslide[i] <<= nm.mslide(k = k, s = 'uxt%n', t = n, r = True, 
                                         f = f'{fld}:{fld}_up_', i = subcmd)
@@ -2366,8 +2371,8 @@ class GroupBy2Command(PCommand):
                                          f = f'{fld}:{fld}_down_', i = subcmd)
                 
                 targets[i] <<= nm.mjoin(k = f'{k},uxt', f = f'{fld}_up_*',
-                                        m = mslide[i])
-                targets[i] <<= nm.mdelnull(f = f'{fld}_up_*,{fld}_down_*')
+                                        m = mslide[i], n = True)
+                # targets[i] <<= nm.mdelnull(f = f'{fld}_up_*,{fld}_down_*')
                 targets[i] <<= nm.mcal(c = f'max(${{{fld}_up*}},${{{fld}_down_*}})',
                                        a = '__rollmax__')
                 targets[i] <<= nm.mcal(c = f'${{{fld}}}>${{__rollmax__}}',
@@ -2379,6 +2384,7 @@ class GroupBy2Command(PCommand):
 
 
             subcmd_o <<= nm.mread(i = targets)
+            # subcmd_o <<= nm.mnjoin(i = _keys, k = k, m = targets, n = True)
 
             return subcmd_o
 
