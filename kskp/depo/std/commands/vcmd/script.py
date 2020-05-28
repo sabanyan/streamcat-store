@@ -595,10 +595,10 @@ class CsvToRepetitivieWaveCommand(VisualizersBokehPlot):
         colors = self.get_colors(len(source))
         for label, color in zip(source,colors):
             # 線
-            plot.line('x', 'y', source=source[label], legend=label, color=color, alpha=0.75, muted_color=color, muted_alpha=0.2)
+            plot.line('x', 'y', source=source[label], legend=label, color=color, alpha=0.75, muted_color=color, muted_alpha=0.2, line_width=2)
             # 点
             if disableMarker != True:
-                plot.circle('x', 'y', source=source[label], legend=label, color=color, alpha=0.9, muted_color=color, muted_alpha=0.2, size=8)
+                plot.circle('x', 'y', source=source[label], legend=label, color=color, alpha=0.9, muted_color=color, muted_alpha=0.2, size=5)
         
         # 起点
         if disableEvent != True and xs_event is not None:
@@ -673,10 +673,10 @@ class CsvToRepetitivieWaveCommand(VisualizersBokehPlot):
             colors = self.get_colors(len(statics_source))
             for label, color in zip(statics_source,colors):
                 # 線
-                statics_plot.line('x', 'y', source=ColumnDataSource(data=statics_source[label]), legend=label, color=color, alpha=0.75, muted_color=color, muted_alpha=0.2)
+                statics_plot.line('x', 'y', source=ColumnDataSource(data=statics_source[label]), legend=label, color=color, alpha=0.75, muted_color=color, muted_alpha=0.2,line_width=2)
                 # 点
                 if disableMarker != True:
-                    statics_plot.circle('x', 'y', source=ColumnDataSource(data=statics_source[label]), legend=label, color=color, alpha=0.9, muted_color=color, muted_alpha=0.2, size=8)
+                    statics_plot.circle('x', 'y', source=ColumnDataSource(data=statics_source[label]), legend=label, color=color, alpha=0.9, muted_color=color, muted_alpha=0.2, size=5)
                 # 面
                 keys = list(statics_source.keys())
                 length = len(keys)
