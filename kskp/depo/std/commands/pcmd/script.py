@@ -1447,6 +1447,7 @@ class GroupBy2Command(PCommand):
         # body of this method adapted from:
         # github.com/nysol/nysol_python/blob/master/scripts/sample/mkfeature.py
         try:
+            import math
             import numpy as np
             
             f = kwargs.get('f')
@@ -1472,8 +1473,9 @@ class GroupBy2Command(PCommand):
                         # valuetype check goes here
                         targetcol = []
                         for line in dlist:
+                            # input cleanup goes here
                             try:
-                                targetcol.append(float(line[f_loc]))
+                                targetcol.append(float('nan' if line[f_loc]=='' else line[f_loc]))
                             except ValueError:
                                 pass
 
@@ -1484,7 +1486,12 @@ class GroupBy2Command(PCommand):
 
                             mean = y.dot(np.arange(len(y)))/y.sum()
 
-                            print(f'{id},{fld},{mean:.{precision}g}')
+                            # output cleanup goes here
+                            if math.isnan(mean) or math.isinf(mean):
+                                # print empty string
+                                print(f'{id},{fld},')
+                            else:
+                                print(f'{id},{fld},{mean:.{precision}g}')
 
             sys.__stdout__.flush()#not needed for bigger data
 
@@ -1523,7 +1530,7 @@ class GroupBy2Command(PCommand):
                         # valuetype check goes here
                         targetcol = []
                         for line in dlist:
-                            # imput cleanup goes here
+                            # input cleanup goes here
                             try:
                                 targetcol.append(float('nan' if line[f_loc]=='' else line[f_loc]))
                             except ValueError:
@@ -1540,7 +1547,8 @@ class GroupBy2Command(PCommand):
                             variance = moment2 - mean ** 2
 
                             # output cleanup goes here
-                            if math.isnan(variance):
+                            if math.isnan(variance) or math.isinf(variance):
+                                # print empty string
                                 print(f'{id},{fld},')
                             else:
                                 print(f'{id},{fld},{variance:.{precision}g}')
