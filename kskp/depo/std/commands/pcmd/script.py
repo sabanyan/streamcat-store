@@ -348,6 +348,70 @@ class GroupBy2Command(PCommand):
         self.i_ports = [Port('i', 'frame')]
         self.o_ports = [Port('o', 'frame')]
 
+    def generateCommandErrorMessage(self, errcode, errfield, errinput, param_calc = ''):
+        '''
+        Function for creating error messages. 
+        '''
+        from string import Template
+
+        commandname = '特徴量の計算' # 将来、コマンド名はCmdJSONから取得（？）
+
+        errormessages = {
+            # 項目名指定に関わるエラー
+            'TargetFieldForbiddenCharacterError':'半角の%と&は、項目名に使用できません。 ${fieldinput} ',
+            'TargetFieldConflictError' : '項目名が重複しています。 ${fieldinput}',
+            'EmptyTargetFieldError' : '空文字列で項目名が指定されています。 ${fieldinput}',
+            'MultipleRowsTargetError' : '複数の項目名は指定できません。 ${fieldinput}',
+            'UnknownTargetFieldError' : '項目名の指定が正しくありません。${fieldinput}',
+            
+            # 結果列指定に関わるエラー
+            'ResultsColForbiddenCharacterError' : '半角の（ *　?　[　]　,　:　\\ ）は、項目名に使用できません。${fieldinput}',
+            'ResultsColConflictError' : '出力項目名が重複しています。%指定、&指定、ワイルドカード指定など、重複する出力項目名となる設定がないかを、確認してください。${fieldinput}',
+            'UnknownResultsColError' : '名前付けルールの設定の指定が正しくありません。${fieldinput}',
+            
+            # 統計量指定に関わるエラー
+            'CalcNotFoundError' : '指定は、有効な統計量指定子ではありません。${fieldinput}',
+            # 'CalcNotFoundError' : '＜その値＞は、有効な統計量指定子ではありません。${fieldinput}',
+            'CalcConflictError' : '統計量が重複しています。${fieldinput}',
+            'EmptyCalcNewNameError' : ':指定で、別名が指定されましたが、別名が空文字列です。${fieldinput}',
+            'EmptyCalcError' : '空文字列で統計量が指定されています。${fieldinput}',
+            'MultipleParamCalcError' : 'パラメータ有りの統計量では、複数の統計量は指定できません。${fieldinput}',
+            'UnknownCalcError' : '統計量の指定が正しくありません。${fieldinput}',
+            
+            # パラメータ指定に関わるエラー
+            'ParameterTypeError'  : '${calc} のパラメータへの ${fieldinput} 指定が正しくありません。${correct_type} を指定してください',
+            'ParameterOutOfBoundsError' : '${calc} のパラメータへの ${fieldinput} 指定が正しくありません ${correct_value} で指定してください',
+            'ParameterFormatError' : '${calc} のパラメータへの ${fieldinput} 指定が正しくありません。${correct_format}で指定してください',
+            'UnknownParameterError' : '${calc} のパラメータへの ${fieldinput} 指定が正しくありません'
+        }
+
+        # このdictは、パラメータの情報が入ってる
+        # {
+        # '統計量キー' : { 'correct_type' : パラメータの正しい型
+        #                'correct_value' : パラメータの正しい範囲
+        #               }
+        # }
+
+        param_info = {
+            'autocorr' : {'correct_type' : '数値', 
+                          'correct_value' : '正の整数' },
+            'range_count' : {'correct_type' : '数値', 
+                             'correct_value' : '全ての数値', 
+                             'correct_format' : '開始＜終了の;区切り'},
+        }
+
+        if param_calc != '':
+            # パラメータに関わるエラーの場合、パラメータの情報もエラーメッセージに含む
+            template_strings = {'fieldinput' : errinput, 'calc' : param_calc, **param_info[param_calc]}
+        else:
+            template_strings = {'fieldinput' : errinput}
+
+
+        message = Template(errormessages[errcode]).safe_substitute(template_strings)
+
+        return f'【コマンド：{commandname}】【オプション欄：{errfield}】{message}'
+
+
     def fixtimecolumn(self, flow, col, dateformat = 'date'):
         if dateformat == 'date':
             # details for this regex in https://kskds.docbase.io/posts/1317416
@@ -2536,7 +2600,7 @@ class GroupBy2Command(PCommand):
         import fnmatch as fn
 
         _args = copy.deepcopy(args)
-
+        
         msummaryoptions = [
             'sum',
             'mean',
@@ -2791,7 +2855,10 @@ class GroupBy2Command(PCommand):
                             calclist.append({'c': _thisgroup, 
                                         'optype' : 'aggregate',
                                         **arglist})
-
+            else:
+                pass
+                # errmsg = self.generateCommandErrorMessage('EmptyTargetFieldError', 'c', "''")
+                # raise Exception(errmsg)
         # sys.__stderr__.write(repr(calclist))
 
         cmd = [None] * len(calclist)
