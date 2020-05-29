@@ -379,6 +379,7 @@ class GroupBy2Command(PCommand):
             'UnknownCalcError' : '統計量の指定が正しくありません。${fieldinput}',
             
             # パラメータ指定に関わるエラー
+            'ParameterConflictError' : 'パラメータが重複しています。${fieldinput}',
             'ParameterTypeError'  : '${calc} のパラメータへの ${fieldinput} 指定が正しくありません。${correct_type} を指定してください',
             'ParameterOutOfBoundsError' : '${calc} のパラメータへの ${fieldinput} 指定が正しくありません ${correct_value} で指定してください',
             'ParameterFormatError' : '${calc} のパラメータへの ${fieldinput} 指定が正しくありません。${correct_format}で指定してください',
@@ -387,17 +388,36 @@ class GroupBy2Command(PCommand):
 
         # このdictは、パラメータの情報が入ってる
         # {
-        # '統計量キー' : { 'correct_type' : パラメータの正しい型
-        #                'correct_value' : パラメータの正しい範囲
+        # '統計量キー' : { 'correct_type' : パラメータの正しいデータ型,
+        #                'correct_value' : パラメータの正しい範囲,
+        #                'correct_format' : パラメータの正しい書き方が（ある場合）
         #               }
         # }
 
         param_info = {
-            'autocorr' : {'correct_type' : '数値', 
-                          'correct_value' : '正の整数' },
+            'value_count' : {'correct_type' : '全ての文字越',
+                             'correct_value' : '全ての文字列'},
+            'sym_looking' : {'correct_type' : '数値', 
+                             'correct_value' : '正の数値'},
+            'large_sd' : {'correct_type' : '数値', 
+                          'correct_value' : '正の数値'},
+            'ratio_beyond_rsigma' : {'correct_type' : '数値', 
+                                     'correct_value' : '正の数値'},
+            'binned_entropy' : {'correct_type' : '数値', 
+                                'correct_value' : '２以上の整数'},
+            'quantile' : {'correct_type' : '数値', 
+                          'correct_value' : '０−１の数値'},
             'range_count' : {'correct_type' : '数値', 
                              'correct_value' : '全ての数値', 
                              'correct_format' : '開始＜終了の;区切り'},
+            'autocorr' : {'correct_type' : '数値', 
+                          'correct_value' : '正の整数' },
+            'crossing_m' : {'correct_type' : '数値', 
+                            'correct_value' : '全ての数値'},
+            'peaks' : {'correct_type' : '数値', 
+                       'correct_value' : '１以上の整数'},
+            'imq' : {'correct_type' : '数値', 
+                     'correct_value' : '０−１の数値'}
         }
 
         if param_calc != '':
@@ -1187,6 +1207,17 @@ class GroupBy2Command(PCommand):
             k = kwargs.get('k')
             n = kwargs.get('n')
 
+            calcid = 'sym_looking'
+
+            try:
+                param = float(n)
+                if (not param.is_integer()) or param < 0:
+                    errmsg = self.generateCommandErrorMessage('ParameterOutOfBoundsError', 'n', n, param_calc = calcid)
+                    raise Exception(errmsg)
+            except ValueError:
+                errmsg = self.generateCommandErrorMessage('ParameterTypeError', 'n', n, param_calc = calcid)
+                raise Exception(errmsg)
+
             msumres = None
             condition = [f'($s{{fld}}=="{fld}")' for fld in f.split(',')]
             msumres <<= nm.msel(i = self.all_msums, c = '||'.join(condition))
@@ -1218,6 +1249,21 @@ class GroupBy2Command(PCommand):
             k = kwargs.get('k')
             n = kwargs.get('n')
 
+            calcid = 'large_sd'
+
+            try:
+                # check if float
+                param = float(n)
+                
+                # check if negative
+                if param < 0:
+                    errmsg = self.generateCommandErrorMessage('ParameterOutOfBoundsError', 'n', n, param_calc = calcid)
+                    raise Exception(errmsg)
+            except ValueError:
+                errmsg = self.generateCommandErrorMessage('ParameterTypeError', 'n', n, param_calc = calcid)
+                raise Exception(errmsg)
+            
+            
             msumres = None
             condition = [f'($s{{fld}}=="{fld}")' for fld in f.split(',')]
             msumres <<= nm.msel(i = self.all_msums, c = '||'.join(condition))
@@ -1278,9 +1324,25 @@ class GroupBy2Command(PCommand):
             f = kwargs.get('f')
             a = kwargs.get('a')
             k = kwargs.get('k')
-            nmin, nmax = kwargs.get('n').split(';')
-            n = f'{nmin};{nmax}'
+            n = kwargs.get('n')
+            nmin, nmax = n.split(';')
 
+            calcid = 'range_count'
+
+            try:
+                # check if float
+                param_min = float(nmin)
+                param_max = float(nmax)
+                
+                # check if outside 0-1
+                if param_min >= param_max:
+                    errmsg = self.generateCommandErrorMessage('ParameterFormatError', 'n', n, param_calc = calcid)
+                    raise Exception(errmsg)
+            except ValueError:
+                errmsg = self.generateCommandErrorMessage('ParameterTypeError', 'n', n, param_calc = calcid)
+                raise Exception(errmsg)
+            
+            
             subcmd <<= nm.m2cross(k = k, a = 'fld,__val', f = f)
             subcmd <<= nm.mcal(a = '__inrange',
                 c = f'${{__val}}>={float(nmin)} && ${{__val}} < {float(nmax)}')
@@ -1301,6 +1363,20 @@ class GroupBy2Command(PCommand):
             a = kwargs.get('a')
             k = kwargs.get('k')
             n = kwargs.get('n')
+
+            calcid = 'ratio_beyond_rsigma'
+
+            try:
+                # check if float (not str)
+                param = float(n)
+                
+                # check if negative
+                if param < 0:
+                    errmsg = self.generateCommandErrorMessage('ParameterOutOfBoundsError', 'n', n, param_calc = calcid)
+                    raise Exception(errmsg)
+            except ValueError:
+                errmsg = self.generateCommandErrorMessage('ParameterTypeError', 'n', n, param_calc = calcid)
+                raise Exception(errmsg)
 
             fs = f.split(',')
             targets = [None] * len(fs)
@@ -1331,6 +1407,20 @@ class GroupBy2Command(PCommand):
             a = kwargs.get('a')
             k = kwargs.get('k')
             n = kwargs.get('n')
+
+            calcid = 'quantile'
+
+            try:
+                # check if float
+                param = float(n)
+                
+                # check if outside 0-1
+                if param < 0 or param > 1:
+                    errmsg = self.generateCommandErrorMessage('ParameterOutOfBoundsError', 'n', n, param_calc = calcid)
+                    raise Exception(errmsg)
+            except ValueError:
+                errmsg = self.generateCommandErrorMessage('ParameterTypeError', 'n', n, param_calc = calcid)
+                raise Exception(errmsg)
 
             fs = f.split(',')
             targets = [None] * len(fs)
@@ -1386,6 +1476,21 @@ class GroupBy2Command(PCommand):
             k = kwargs.get('k')
             n = kwargs.get('n')
 
+            calcid = 'binned_entropy'
+
+            try:
+                # check if float
+                param = float(n)
+                
+                # check if not integer or less than 2
+                if (not param.is_integer()) or param < 2:
+                    errmsg = self.generateCommandErrorMessage('ParameterOutOfBoundsError', 'n', n, param_calc = calcid)
+                    raise Exception(errmsg)
+            except ValueError:
+                errmsg = self.generateCommandErrorMessage('ParameterTypeError', 'n', n, param_calc = calcid)
+                raise Exception(errmsg)
+            
+            
             fs = f.split(',')
             targets = [None] * len(fs)
             msummary = None
@@ -2327,6 +2432,20 @@ class GroupBy2Command(PCommand):
             precision = kwargs.get('precision')
             dateformat = kwargs.pop('dateformat')
 
+            calcid = 'imq' 
+
+            try:
+                # check if float
+                param = float(n)
+                
+                # check if out of bounds
+                if param < 0 or param > 1:
+                    errmsg = self.generateCommandErrorMessage('ParameterOutOfBoundsError', 'n', n, param_calc = calcid)
+                    raise Exception(errmsg)
+            except ValueError:
+                errmsg = self.generateCommandErrorMessage('ParameterTypeError', 'n', n, param_calc = calcid)
+                raise Exception(errmsg)
+
             fs = f.split(',')
             targets = [None] * len(fs)
             mcal = [None] * len(fs)
@@ -2377,6 +2496,15 @@ class GroupBy2Command(PCommand):
             k = kwargs.get('k')
             n = kwargs.get('n')
 
+            calcid = 'crossing_m'
+
+            try:
+                # check if float
+                param = float(n)
+            except ValueError:
+                errmsg = self.generateCommandErrorMessage('ParameterTypeError', 'n', n, param_calc = calcid)
+                raise Exception(errmsg)
+
             dateformat = kwargs.pop('dateformat')
 
             subcmd_o = None
@@ -2414,6 +2542,20 @@ class GroupBy2Command(PCommand):
             x = kwargs.get('x')
             k = kwargs.get('k')
             n = kwargs.get('n')
+
+            calcid = 'peaks'
+
+            try:
+                # check if float
+                param = float(n)
+                
+                # check if not integer or less than 1
+                if (not param.is_integer()) or param < 1:
+                    errmsg = self.generateCommandErrorMessage('ParameterOutOfBoundsError', 'n', n, param_calc = calcid)
+                    raise Exception(errmsg)
+            except ValueError:
+                errmsg = self.generateCommandErrorMessage('ParameterTypeError', 'n', n, param_calc = calcid)
+                raise Exception(errmsg)
 
             dateformat = kwargs.pop('dateformat')
 
@@ -2469,6 +2611,20 @@ class GroupBy2Command(PCommand):
             k = kwargs.get('k')
             n = kwargs.get('n')
             precision = kwargs.get('precision')
+
+            calcid = 'autocorr'
+
+            try:
+                # check if float
+                param = float(n)
+                
+                # check if not integer
+                if not param.is_integer():
+                    errmsg = self.generateCommandErrorMessage('ParameterOutOfBoundsError', 'n', n, param_calc = calcid)
+                    raise Exception(errmsg)
+            except ValueError:
+                errmsg = self.generateCommandErrorMessage('ParameterTypeError', 'n', n, param_calc = calcid)
+                raise Exception(errmsg)
 
             dateformat = kwargs.pop('dateformat')
 
@@ -2861,6 +3017,10 @@ class GroupBy2Command(PCommand):
                 ns = arglist.get('n')
                 if ns:
                     ns = ns.split(',')
+                    if len(ns) > len(set(ns)):
+                        errmsg = self.generateCommandErrorMessage('ParameterConflictError', 'n', ','.join(ns))
+                        raise Exception(errmsg)
+                    
                     if len(cs) > 1:
                         errmsg = self.generateCommandErrorMessage('MultipleParamCalcError', 'c', ','.join(cs))
                         raise Exception(errmsg)
@@ -2911,7 +3071,14 @@ class GroupBy2Command(PCommand):
         for calcdict in calclist:
             pass
             optype = calcdict.get('optype')
-            if optype == 'msummary':
+            if 'fld' in calcdict.keys():
+                if ':' in calcdict['c']:
+                    calcname = calcdict['c'].split(':')[1]
+                else:
+                    calcname = calcdict['c']
+                finalname = formatstring.replace('%', calcname).replace('&', calcdict['fld'])
+                
+            elif optype == 'msummary':
                 for c_opt in calcdict['c'].split(','):
                     for f_opt in calcdict['f'].split(','):
                         # construct list of final colnames
@@ -2921,7 +3088,6 @@ class GroupBy2Command(PCommand):
                             calcname = c_opt
                             
                         finalname = formatstring.replace('%', calcname).replace('&', f_opt)
-                        resultcols.append(finalname)
 
             elif optype == 'custom':
                 if ':' in calcdict['c']:
@@ -2935,7 +3101,6 @@ class GroupBy2Command(PCommand):
                     calcname += f'_{calcdict["n"]}'
                     
                 finalname = formatstring.replace('%', calcname).replace('&', calcdict['f'])
-                resultcols.append(finalname)
                 
             elif optype == 'aggregate':
                 for c_opt in calcdict['c']:
@@ -2950,7 +3115,8 @@ class GroupBy2Command(PCommand):
                         calcname += f'_{calcdict["n"]}'
                         
                     finalname = formatstring.replace('%', calcname).replace('&', calcdict['f'])
-                    resultcols.append(finalname)
+
+            resultcols.append(finalname)
         
         # test for duplicates in resultcolumns
         if len(resultcols) > len(set(resultcols)):
