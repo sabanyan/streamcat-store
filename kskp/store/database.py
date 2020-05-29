@@ -153,11 +153,11 @@ class Database(Store):
         ret =  {'uuid'      : self.uuid,
                 'type'      : Datum.DATABASE_TYPE,
                 'label'     : self.label,
-                'prevFolderPath' : self.get_prev_folder_path(),
                 'creator'   : self.creator_str,
                 'createdAt' : self.created_at_str}
 
         if self.readable:
+            ret['prevFolderPath'] = self.get_prev_folder_path()
             database_conn = DatabaseConn.from_json(self.data['conn'])
             ret.update(database_conn.to_json())
 

@@ -26,6 +26,13 @@ class Datum(BaseModel):
     FRAME_TYPE  = 'frame'
     TRASH_TYPE = 'trash'
 
+    RESULT_FOLDER_UUID  = 'aacb4914-0695-40fc-b14b-95b7f1f81707'
+    RESULT_FOLDER_LABEL = '実行結果'
+    CACHE_FOLDER_UUID  = 'cc9f050d-b007-414e-a6e0-6d31a9c13395'
+    CACHE_FOLDER_LABEL = 'キャッシュ'
+    FLOW_FOLDER_UUID  = 'ff37fe34-9c25-4ad0-b74a-affda3712a45'
+    FLOW_FOLDER_LABEL = 'フロー'
+
     # Datum.pathの基点ディレクトリ
     STORE_DIR = Path(__file__).parent.parent / 'depo/files'
 
@@ -366,25 +373,66 @@ class Datum(BaseModel):
 
         return self
 
-    def put_back(self, modifier):
+    def throw_away(self):
+        """
+        ゴミ箱にほかす
+        """
+        from kskp.store.factory import DatumFactory
+        factory = DatumFactory(self.session)
+        trash_folder = factory.load_trash_folder()
+
+        self.move(trash_folder.uuid)
+
+    def put_back(self):
         """
         直前の親のStoreの直下に移動する
         """
-        if self.prev_parent_id is None:
-            raise Exception(f'このDatum({self.label})は移動したことがありません')
+        moved_data, exps = self._put_back_inner(self)
+        if len(moved_data) == 0:
+            if len(exps) == 0:
+                from kskp.store import NothingToPutbackException
+                raise NothingToPutbackException('元に戻すファイルがありませんでした')
+            elif len(exps) == 1:
+                raise exps[0]
+            else:
+                raise Exception('全てのファイルを戻せませんでした')
+        else:
+            if len(exps) > 0:
+                raise Exception('一部のファイルを戻せませんでした')
+        return moved_data
 
+    def _put_back_inner(self, datum):
+        from kskp.store import Folder
         from kskp.store.factory import DatumFactory
-        factory = DatumFactory(self.session)
 
-        prev_parent_uuid = factory.find_by_id(self.prev_parent_id).uuid
+        if isinstance(datum, Folder) and datum.prev_parent_id is None:
+            # 移動対象がprev_parent_idを持たないフォルダの場合
+            # その下のファイルを個別に移動する
+            children = datum.find_children()
+            moved_data = []
+            exps = []
+            for child in children:
+                moved_datum, exp = self._put_back_inner(child)
+                moved_data.extend(moved_datum)
+                exps.extend(exp)
+            return moved_data, exps
+        else:
+            try:
+                if datum.prev_parent_id is None:
+                    raise Exception(f'このDatum({datum.label})は移動したことがありません')
 
-        from kskp.store import TrashCan
-        if not factory.exists(prev_parent_uuid):
-            raise Exception('戻り先フォルダが削除されたため移動できません')
-        elif factory.trashed(prev_parent_uuid):
-            raise Exception('戻り先フォルダがゴミ箱の中なので移動できません')
+                factory = DatumFactory(self.session)
+                prev_parent_uuid = factory.find_by_id(datum.prev_parent_id).uuid
 
-        return self.move(prev_parent_uuid, modifier)
+                if not factory.exists(prev_parent_uuid):
+                    raise Exception('戻り先フォルダが削除されたため移動できません')
+                elif factory.trashed(prev_parent_uuid):
+                    raise Exception('戻り先フォルダがゴミ箱の中なので移動できません')
+
+                # 戻り先フォルダに移動する
+                return [datum.move(prev_parent_uuid)], []
+            except Exception as e:
+                return [], [e]
 
     def get_prev_folder_path(self):
         from kskp.store.factory import DatumFactory
@@ -399,12 +447,14 @@ class Datum(BaseModel):
         return f'Datum({self.id}, {self._label}, {self.type})'
 
     def to_json(self):
-        return {'uuid'      : self.uuid,
+        ret =  {'uuid'      : self.uuid,
                 'type'      : self.type,
                 'label'     : self.label,
-                'prevFolderPath' : self.get_prev_folder_path(),
                 'creator'   : self.creator_str,
                 'createdAt' : self.created_at_str}
+        if self.readable:
+            ret['prevFolderPath'] = self.get_prev_folder_path()
+        return ret
 
     def _readable_or_raise(self):
         from kskp.store.auth import NotAuthorizedException

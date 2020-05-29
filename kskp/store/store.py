@@ -125,9 +125,13 @@ class Store(Datum):
         cache.is_cache = True
         return cache
 
-    def is_system_folder():
-        from kskp.store import FLOW_FOLDER_UUID, RESULT_FOLDER_UUID, CACHE_FOLDER_UUID
-        return self.uuid in (FLOW_FOLDER_UUID, RESULT_FOLDER_UUID, CACHE_FOLDER_UUID)
+    def create_trashcan(self):
+        from kskp.store import TrashCan
+        return TrashCan(self.session, self, self.session.user)
+
+    def is_system_folder(self):
+        from kskp.core import Datum
+        return self.uuid in (Datum.FLOW_FOLDER_UUID, Datum.RESULT_FOLDER_UUID, Datum.CACHE_FOLDER_UUID)
 
     # def save(self, datum):
     #     """

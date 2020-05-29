@@ -94,6 +94,77 @@ class Folder(Store):
 
         return folder
 
+
+    def throw_away(self):
+        """
+        Folderを中身のファイルも一緒にゴミ箱にほかす
+        """
+        from kskp.store.factory import DatumFactory
+        factory = DatumFactory(self.session)
+        trash_folder = factory.load_trash_folder()
+
+        if self.parent_id is None:
+            raise Exception('ルートフォルダは削除できません')
+
+        thrown_count, obstacle_count = self._throw_away_inner(trash_folder, self)
+
+        if obstacle_count == 0 and not self.is_system_folder():
+            # 中のファイル全て削除可能であればフォルダ(ファイル)ごとゴミ箱へ移動する
+            self.move(trash_folder.uuid)
+            thrown_count += 1
+
+        if thrown_count == 0:
+            raise Exception('削除できませんでした')
+
+    def _throw_away_inner(self, parent, datum):
+        if isinstance(datum, Folder):
+            # フォルダ直下のフォルダとデータベースとドキュメントを取得する
+            children = datum.find_children()
+
+            # ゴミ箱に捨てても削除前の階層構造を維持するため、削除対象フォルダの形代をゴミ箱に作成する
+            trashed_folder = parent.create_folder(datum.label)
+            trashed_folder.save()
+            trashed_folder = parent.find_child_by_uuid(trashed_folder.uuid)
+
+            throwables = []
+            thrown_count = 0
+            obstacle_count = 0
+
+            for child in children:
+                child_thrown_count, child_obstacle_count = self._throw_away_inner(trashed_folder, child)
+                # 削除可能リストの作成
+                if child_obstacle_count == 0:
+                    throwables.append(child)
+                # 削除ファイルと削除不可ファイルを集計する
+                thrown_count += child_thrown_count
+                obstacle_count += child_obstacle_count
+
+            if obstacle_count == 0 and not datum.is_system_folder():
+                # 全部捨る場合はフォルダごとゴミ箱へ移動する
+                trashed_folder.delete()
+            else:
+                # 一部捨てる場合はそれらを形代フォルダへ移動する
+                for throwable in throwables:
+                    throwable.move(trashed_folder.uuid)
+                    thrown_count += 1
+                # 捨るものがなかった場合は形代フォルダを作らない
+                if thrown_count == 0:
+                    trashed_folder.delete()
+
+            return thrown_count, obstacle_count
+
+        elif datum.type == Datum.FRAME_TYPE or datum.type == Datum.FLOW_TYPE:
+            # 削除しようとするフレーム/サブフローが、フローで使用されていない場合に削除する
+            using_flow_uuids = datum.get_flow_uuids_using_me()
+            if len(using_flow_uuids) == 0:
+                return 0, 0
+            else:
+                return 0, 1
+
+        else:
+            # データベース接続、リモートフォルダ接続
+            return 0, 0
+
     def delete(self):
         """
         Folderを削除する

@@ -124,7 +124,23 @@ class Flow(Datum):
     #         self.session.commit()
 
     #     return self
-        
+
+    def throw_away(self):
+        """
+        Flowをゴミ箱にほかす
+        """
+        from kskp.store.factory import DatumFactory
+        factory = DatumFactory(self.session)
+        trash_folder = factory.load_trash_folder()
+
+        # 削除しようとするflowが、フローで使用されている場合は例外を送出する
+        using_flow_uuids = self.get_flow_uuids_using_me()
+        if len(using_flow_uuids) > 0:
+            flow = factory.find_by_uuid(using_flow_uuids[0])
+            raise Exception(f'このフローは別のフロー({flow.label})で使用しているため削除できません')
+
+        self.move(trash_folder.uuid)
+
     def delete(self):
         """
         Flowを削除する
