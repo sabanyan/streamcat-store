@@ -348,7 +348,7 @@ class GroupBy2Command(PCommand):
         self.i_ports = [Port('i', 'frame')]
         self.o_ports = [Port('o', 'frame')]
 
-    def generateCommandErrorMessage(self, errcode, errfield, errinput, param_calc = ''):
+    def generateCommandErrorMessage(self, errcode, errfield, errinput = '', param_calc = ''):
         '''
         Function for creating error messages. 
         '''
@@ -2898,11 +2898,68 @@ class GroupBy2Command(PCommand):
                             calclist.append({'c': _thisgroup, 
                                         'optype' : 'aggregate',
                                         **arglist})
+
             elif all(value != '' for value in arglist.values()):
+                # if c is empty and the rest is not empty
                 errmsg = self.generateCommandErrorMessage('EmptyTargetFieldError', 'c', "''")
                 raise Exception(errmsg)
             
         # sys.__stderr__.write(repr(calclist))
+
+        # check for conflicting final result column names here
+        resultcols = []
+        for calcdict in calclist:
+            pass
+            optype = calcdict.get('optype')
+            if optype == 'msummary':
+                for c_opt in calcdict['c'].split(','):
+                    for f_opt in calcdict['f'].split(','):
+                        # construct list of final colnames
+                        if ':' in c_opt:
+                            calcname = c_opt.split(':')[1]
+                        else:
+                            calcname = c_opt
+                            
+                        finalname = formatstring.replace('%', calcname).replace('&', f_opt)
+                        resultcols.append(finalname)
+
+            elif optype == 'custom':
+                if ':' in calcdict['c']:
+                    calcname = calcdict['c'].split(':')[1]
+                else:
+                    calcname = calcdict['c']
+                
+                # if calc has parameter, append to end
+                if calcdict.get('n'):
+                    # set string for calcname (& substitution)
+                    calcname += f'_{calcdict["n"]}'
+                    
+                finalname = formatstring.replace('%', calcname).replace('&', calcdict['f'])
+                resultcols.append(finalname)
+                
+            elif optype == 'aggregate':
+                for c_opt in calcdict['c']:
+                    if ':' in c_opt:
+                        calcname = c_opt.split(':')[1]
+                    else:
+                        calcname = c_opt
+
+                    # if calc has parameter, append to end
+                    if calcdict.get('n'):
+                        # set string for calcname (& substitution)
+                        calcname += f'_{calcdict["n"]}'
+                        
+                    finalname = formatstring.replace('%', calcname).replace('&', calcdict['f'])
+                    resultcols.append(finalname)
+        
+        # test for duplicates in resultcolumns
+        if len(resultcols) > len(set(resultcols)):
+            errmsg = self.generateCommandErrorMessage('ResultsColConflictError', 'format, c, f, n')
+            raise Exception(errmsg)
+        
+        # sys.__stderr__.write(repr(resultcols))
+                
+        
 
         cmd = [None] * len(calclist)
         cmd_o = None
