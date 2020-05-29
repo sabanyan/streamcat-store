@@ -600,7 +600,7 @@ class Datum(BaseModel):
         if uuid is None:
             return False
         import re
-        return re.match("[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}", uuid)
+        return re.match("^[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}$", uuid)
 
     @staticmethod
     def valid_uuid_or_raise(uuid):

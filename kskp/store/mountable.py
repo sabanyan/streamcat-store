@@ -10,20 +10,20 @@ class Mountable():
     mount可能な抽象クラス
     """
     def mount(self, mount_point_path):
-        self_abs_path = mount_point_path
-        path = Path(self_abs_path)
-        if not path.exists():
-            raise Exception('mount point(%s) does not exist' % self_abs_path)
-        elif not path.is_dir():
-            raise Exception('mount point(%s) is not directory' % self_abs_path)
-        elif Mountable._has_children(path):
-            raise Exception('mount point(%s) has files' % self_abs_path)
-        elif Mountable.is_mount(path):
+        # self_abs_path = mount_point_path
+        # path = Path(self_abs_path)
+        if not mount_point_path.exists():
+            raise Exception('mount point(%s) does not exist' % mount_point_path)
+        elif not mount_point_path.is_dir():
+            raise Exception('mount point(%s) is not directory' % mount_point_path)
+        elif Mountable._has_children(mount_point_path):
+            raise Exception('mount point(%s) has files' % mount_point_path)
+        elif Mountable.is_mount(mount_point_path):
             # python3.7でis_mount()は追加される
-            raise Exception('mount point(%s) already mounted on' % self_abs_path)
+            raise Exception('mount point(%s) already mounted on' % mount_point_path)
 
         # mountコマンドを作成する
-        mount_cmd = self._get_mount_cmd(self_abs_path)
+        mount_cmd = self._get_mount_cmd(mount_point_path)
         
         try:
             # 共有フォルダをマウントする
@@ -35,20 +35,20 @@ class Mountable():
             raise Exception('"mount" command returned error --> ' + str(e))
 
     def unmount(self, mount_point_path):
-        self_abs_path = mount_point_path
-        path = Path(self_abs_path)
-        if not path.exists():
-            raise Exception('sudo mount point(%s) does not exist' % self_abs_path)
+        # self_abs_path = mount_point_path
+        # path = Path(self_abs_path)
+        if not mount_point_path.exists():
+            raise Exception('sudo mount point(%s) does not exist' % mount_point_path)
 
         # python3.7でis_mount()は追加される
-        if not Mountable.is_mount(path):
+        if not Mountable.is_mount(mount_point_path):
             return
 
         try:
             # マウント解除を実行する
             # (/etc/sudoersに %admin ALL = (ALL) NOPASSWD:/sbin/umount
             #  を追加するとテスト実行時にはパスワードを聞かれない)
-            umount_cmd = 'sudo umount %s' % self_abs_path
+            umount_cmd = 'sudo umount %s' % mount_point_path.as_posix()
             umount_ret= Mountable._exec_command(umount_cmd)
 
             # 念のためWAITを入れています
@@ -129,18 +129,18 @@ class Mountable():
             pass
 
         for result in results:
-            mount_point_dir = result[1]
-            if not Mountable.is_mount(Path(mount_point_dir)):
+            mount_point_path = Path(Datum._to_abs_path(result[1]))
+            if not Mountable.is_mount(mount_point_path):
                 uuid = str(result[0])
                 type = str(result[2])
                 from kskp.store.factory import DatumFactory
                 factory = DatumFactory(session)
                 if type == Datum.AWSS3_TYPE:
                     awss3 = factory.find_by_uuid(uuid)
-                    awss3.mount(mount_point_dir)
+                    awss3.mount(mount_point_path)
                 elif type == Datum.RFOLDER_TYPE:
                     folder = factory.find_by_uuid(uuid)
-                    folder.mount(mount_point_dir)
+                    folder.mount(mount_point_path)
                 else:
                     raise Exception('undefined type found!')
 
