@@ -166,7 +166,7 @@ class DatumFactory():
         try:
             datum = query.one()
         except NoResultFound:
-            raise Exception(f'指定したDatum({uuid})は存在しませんでした')
+            raise Exception(f'指定したDatum({id})は存在しませんでした')
         datum.session = self._session
 
         return datum

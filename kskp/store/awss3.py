@@ -121,7 +121,7 @@ class AwsS3(Folder, Mountable):
         goofys_path = shutil.which('goofys')
         if goofys_path is None:
             raise Exception('AWS S3 mount command, goofys is not found.')
-        return goofys_path + ' %s %s' % (self.bucket_name, mount_point_path)
+        return goofys_path + ' %s %s' % (self.bucket_name, mount_point_path.as_posix())
 
 
     # def _remove_reference_only_recursively(self):

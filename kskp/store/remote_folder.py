@@ -32,7 +32,7 @@ class RemoteFolder(Folder, Mountable):
         # フォルダに紐付くディレクトリ(path列で指定されるディレクトリ)がなければ作成する
         self.path = self._make_dir()
         # ここでリモートフォルダをマウントする
-        self.mount(self._path)
+        self.mount(self.path)
         try:
             # Dataテーブルにレコードを新規追加する
             self.session.add(self)
