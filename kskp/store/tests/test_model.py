@@ -183,7 +183,7 @@ class LibraryTest(TestCaseBase):
         """
         フォルダの移動を元に戻す
         """
-        updated_folder.put_back(self.USER1)
+        updated_folder.put_back()
         # parent_id, path, modifierが変更されることを検証する
         self.assertEqual(updated_folder.id, folder_src.id)
         self.assertEqual(updated_folder.parent_id, root.id)
@@ -352,7 +352,7 @@ class LibraryTest(TestCaseBase):
             """
             リモートフォルダの移動を元に戻す
             """
-            folder.put_back(self.USER1)
+            folder.put_back()
             # ラベルとディレクトリパスのみが変更されることを検証する
             self.assertEqual(folder.id, folder.id)
             self.assertEqual(folder.parent_id, root.id)
@@ -577,7 +577,7 @@ class LibraryTest(TestCaseBase):
         """
         フレームの移動を元に戻す
         """
-        updated_frame.put_back(self.USER1)
+        updated_frame.put_back()
         # parent_id, path, modifierが変更されることを検証する
         self.assertEqual(updated_frame.id, frame_src.id)
         self.assertEqual(updated_frame.parent_id, root.id)
@@ -628,7 +628,7 @@ class LibraryTest(TestCaseBase):
         フレームの移動を元に戻す
         (戻しても変更したファイル・ラベル名は戻らない)
         """
-        updated_frame.put_back(self.USER1)
+        updated_frame.put_back()
         # parent_id, path, modifierが変更されることを検証する
         self.assertEqual(updated_frame.id, frame_src.id)
         self.assertEqual(updated_frame.parent_id, root.id)
@@ -897,7 +897,7 @@ class LibraryTest(TestCaseBase):
         """
         フローの移動を元に戻す
         """
-        updated_flow.put_back(self.USER1)
+        updated_flow.put_back()
         # parent_id, path, modifierが変更されることを検証する
         self.assertEqual(updated_flow.id, flow_src.id)
         self.assertEqual(updated_flow.parent_id, root.id)

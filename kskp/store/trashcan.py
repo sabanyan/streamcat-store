@@ -34,3 +34,23 @@ class TrashCan(Folder):
             raise Exception('You can not add trash can. A trash can already exists.')
         # ゴミ箱フォルダを保存する
         super().save()
+
+    def trash_all(self):
+        """
+        ゴミ箱を空にする
+        """
+        # ゴミ箱直下のフォルダとファイルを削除する
+        for child in self.find_children():
+            self._trash_all_inner(child)
+
+    def _trash_all_inner(self, datum):
+        if isinstance(datum, Folder):
+            # フォルダ直下のフォルダとファイルを削除する
+            for child in datum.find_children():
+                self._trash_all_inner(child)
+            # フォルダを削除する
+            datum.delete()
+        else:
+            # ファイルを削除する
+            datum.delete()
+

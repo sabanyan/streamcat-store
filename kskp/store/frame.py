@@ -195,6 +195,21 @@ class Frame(Datum):
             result._modifier_id = (modifier or self.session.user).id
             self.session.update(result)
 
+    def throw_away(self):
+        """
+        Frameをゴミ箱にほかす
+        """
+        from kskp.store.factory import DatumFactory
+        factory = DatumFactory(self.session)
+        trash_folder = factory.load_trash_folder()
+
+        # 削除しようとするframeが、フローで使用されている場合は例外を送出する
+        flow_labels = factory.get_flows_referencing_frame(self.uuid)
+        if len(flow_labels) > 0:
+            raise Exception(f'このCSVファイルはフロー({flow_labels[0]})で使用しているため削除できません')
+
+        self.move(trash_folder.uuid)
+
     def delete(self):
         """
         Frameを削除する
@@ -398,11 +413,11 @@ class Frame(Datum):
         ret =  {'uuid'      : self.uuid,
                 'type'      : self.type,
                 'label'     : self.label,
-                'prevFolderPath' : self.get_prev_folder_path(),
                 'creator'   : self.creator_str,
                 'createdAt' : self.created_at_str}
 
         if self.readable:
+            ret['prevFolderPath'] = self.get_prev_folder_path()
             ret['encoding'] = self.encoding_str
             ret['newline'] = self.newline_str
 

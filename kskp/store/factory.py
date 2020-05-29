@@ -155,6 +155,7 @@ class DatumFactory():
         """
         指定されたidを持つDatumを取得する
         """
+        from kskp.store import NoResultFound
         from kskp.core import Datum
         query = self._session.query(Datum).filter(Datum.id==id)
 
@@ -162,7 +163,10 @@ class DatumFactory():
             query = query.filter(Datum.type==type)
 
         # 結果が1件以外の場合はNoResultFoundが送出される
-        datum = query.one()
+        try:
+            datum = query.one()
+        except NoResultFound:
+            raise Exception(f'指定したDatum({uuid})は存在しませんでした')
         datum.session = self._session
 
         return datum
@@ -173,6 +177,7 @@ class DatumFactory():
         """
         # UUID値の形式チェックをする
         from kskp.core import Datum
+        from kskp.store import NoResultFound
         Datum.valid_uuid_or_raise(uuid)
 
         from kskp.store import Datum
@@ -182,7 +187,10 @@ class DatumFactory():
             query = query.filter(Datum.type==type)
 
         # 結果が1件以外の場合はNoResultFoundが送出される
-        datum = query.one()
+        try:
+            datum = query.one()
+        except NoResultFound:
+            raise Exception(f'指定したDatum({uuid})は存在しませんでした')
         datum.session = self._session
 
         return datum
@@ -294,25 +302,22 @@ class DatumFactory():
         """
         実行結果フォルダを取得する、存在しない場合は作成する
         """
-        RESULT_FOLDER_UUID  = 'aacb4914-0695-40fc-b14b-95b7f1f81707'
-        RESULT_FOLDER_LABEL = '実行結果'
-        return self._get_or_make_dir_path(RESULT_FOLDER_UUID, RESULT_FOLDER_LABEL)
+        from kskp.core import Datum
+        return self._get_or_make_dir_path(Datum.RESULT_FOLDER_UUID, Datum.RESULT_FOLDER_LABEL)
 
     def load_cache_folder(self):
         """
         キャッシュフォルダを取得する、存在しない場合は作成する
         """
-        CACHE_FOLDER_UUID  = 'cc9f050d-b007-414e-a6e0-6d31a9c13395'
-        CACHE_FOLDER_LABEL = 'キャッシュ'
-        return self._get_or_make_dir_path(CACHE_FOLDER_UUID, CACHE_FOLDER_LABEL)
+        from kskp.core import Datum
+        return self._get_or_make_dir_path(Datum.CACHE_FOLDER_UUID, Datum.CACHE_FOLDER_LABEL)
 
     def load_flow_folder(self):
         """
         フローフォルダを取得する、存在しない場合は作成する
         """
-        FLOW_FOLDER_UUID  = 'ff37fe34-9c25-4ad0-b74a-affda3712a45'
-        FLOW_FOLDER_LABEL = 'フロー'
-        return self._get_or_make_dir_path(FLOW_FOLDER_UUID, FLOW_FOLDER_LABEL)
+        from kskp.core import Datum
+        return self._get_or_make_dir_path(Datum.FLOW_FOLDER_UUID, Datum.FLOW_FOLDER_LABEL)
 
     def load_trash_folder(self):
         """
