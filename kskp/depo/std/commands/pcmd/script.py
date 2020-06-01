@@ -1212,329 +1212,292 @@ class GroupBy2Command(PCommand):
                 traceback.print_exc(file=fpe)
 
     def symmetry_looking(self,subcmd, **kwargs):
+        f = kwargs.get('f')
+        a = kwargs.get('a')
+        k = kwargs.get('k')
+        n = kwargs.get('n')
+
+        calcid = 'sym_looking'
+
         try:
-            f = kwargs.get('f')
-            a = kwargs.get('a')
-            k = kwargs.get('k')
-            n = kwargs.get('n')
-
-            calcid = 'sym_looking'
-
-            try:
-                param = float(n)
-                if (not param.is_integer()) or param < 0:
-                    errmsg = self.generateCommandErrorMessage('ParameterOutOfBoundsError', 'n', n, param_calc = calcid)
-                    raise Exception(errmsg)
-            except ValueError:
-                errmsg = self.generateCommandErrorMessage('ParameterTypeError', 'n', n, param_calc = calcid)
+            param = float(n)
+            if (not param.is_integer()) or param < 0:
+                errmsg = self.generateCommandErrorMessage('ParameterOutOfBoundsError', 'n', n, param_calc = calcid)
                 raise Exception(errmsg)
+        except ValueError:
+            errmsg = self.generateCommandErrorMessage('ParameterTypeError', 'n', n, param_calc = calcid)
+            raise Exception(errmsg)
 
-            msumres = None
-            condition = [f'($s{{fld}}=="{fld}")' for fld in f.split(',')]
-            msumres <<= nm.msel(i = self.all_msums, c = '||'.join(condition))
+        msumres = None
+        condition = [f'($s{{fld}}=="{fld}")' for fld in f.split(',')]
+        msumres <<= nm.msel(i = self.all_msums, c = '||'.join(condition))
 
-            subcmd <<= nm.mnjoin(k = k, f = 'fld,__mean,__median,__max,__min',
-                                 m = msumres)
-            # subcmd <<= nm.msummary(f = f, k = k, 
-            #             c = 'mean:__mean,median:__median,max:__max,min:__min')
-            subcmd <<= nm.mcal(c = '${__max}-${__min}',
-                               a = 'max_min')
-            subcmd <<= nm.mcal(c = 'abs(${__mean}-${__median})',
-                               a = 'mean_median')
-            subcmd <<= nm.mcal(c = f'${{mean_median}}<${{max_min}}*{n}', 
-                               a = f'{a}_{n}')
+        subcmd <<= nm.mnjoin(k = k, f = 'fld,__mean,__median,__max,__min',
+                                m = msumres)
+        # subcmd <<= nm.msummary(f = f, k = k, 
+        #             c = 'mean:__mean,median:__median,max:__max,min:__min')
+        subcmd <<= nm.mcal(c = '${__max}-${__min}',
+                            a = 'max_min')
+        subcmd <<= nm.mcal(c = 'abs(${__mean}-${__median})',
+                            a = 'mean_median')
+        subcmd <<= nm.mcal(c = f'${{mean_median}}<${{max_min}}*{n}', 
+                            a = f'{a}_{n}')
 
-            subcmd <<= nm.mcut(f = f'{k},fld,{a}_{n}')
+        subcmd <<= nm.mcut(f = f'{k},fld,{a}_{n}')
 
-            return subcmd
-
-        except Exception as e:
-            import traceback
-            with open('/dev/stderr', 'w') as fpe:
-                traceback.print_exc(file=fpe)
+        return subcmd
         
     def large_standard_dev(self,subcmd, **kwargs):
+        f = kwargs.get('f')
+        a = kwargs.get('a')
+        k = kwargs.get('k')
+        n = kwargs.get('n')
+
+        calcid = 'large_sd'
+
         try:
-            f = kwargs.get('f')
-            a = kwargs.get('a')
-            k = kwargs.get('k')
-            n = kwargs.get('n')
-
-            calcid = 'large_sd'
-
-            try:
-                # check if float
-                param = float(n)
-                
-                # check if negative
-                if param < 0:
-                    errmsg = self.generateCommandErrorMessage('ParameterOutOfBoundsError', 'n', n, param_calc = calcid)
-                    raise Exception(errmsg)
-            except ValueError:
-                errmsg = self.generateCommandErrorMessage('ParameterTypeError', 'n', n, param_calc = calcid)
+            # check if float
+            param = float(n)
+            
+            # check if negative
+            if param < 0:
+                errmsg = self.generateCommandErrorMessage('ParameterOutOfBoundsError', 'n', n, param_calc = calcid)
                 raise Exception(errmsg)
-            
-            
-            msumres = None
-            condition = [f'($s{{fld}}=="{fld}")' for fld in f.split(',')]
-            msumres <<= nm.msel(i = self.all_msums, c = '||'.join(condition))
+        except ValueError:
+            errmsg = self.generateCommandErrorMessage('ParameterTypeError', 'n', n, param_calc = calcid)
+            raise Exception(errmsg)
+        
+        
+        msumres = None
+        condition = [f'($s{{fld}}=="{fld}")' for fld in f.split(',')]
+        msumres <<= nm.msel(i = self.all_msums, c = '||'.join(condition))
 
-            subcmd <<= nm.mnjoin(k = k, f = 'fld,__sd,__max,__min',
-                                 m = msumres)
-            # subcmd <<= nm.msummary(f = f, k = k, 
-            #             c = 'sd:__sd,max:__max,min:__min')
-            subcmd <<= nm.mcal(c = '${__max}-${__min}', a = '__diff')
-            subcmd <<= nm.mcal(c = f'${{__sd}}>${{__diff}}*{n}', 
-                               a = f'{a}_{n}')
+        subcmd <<= nm.mnjoin(k = k, f = 'fld,__sd,__max,__min',
+                                m = msumres)
+        # subcmd <<= nm.msummary(f = f, k = k, 
+        #             c = 'sd:__sd,max:__max,min:__min')
+        subcmd <<= nm.mcal(c = '${__max}-${__min}', a = '__diff')
+        subcmd <<= nm.mcal(c = f'${{__sd}}>${{__diff}}*{n}', 
+                            a = f'{a}_{n}')
 
-            subcmd <<= nm.mcut(f = f'{k},fld,{a}_{n}')
+        subcmd <<= nm.mcut(f = f'{k},fld,{a}_{n}')
 
-            return subcmd
-
-        except Exception as e:
-            import traceback
-            with open('/dev/stderr', 'w') as fpe:
-                traceback.print_exc(file=fpe)
+        return subcmd
 
     def value_count(self,subcmd, **kwargs):
+        f = kwargs.get('f')
+        a = kwargs.get('a')
+        k = kwargs.get('k')
+        n = kwargs.get('n')
+
+        # TODO: 関数化？
+        strparam = False
         try:
-            f = kwargs.get('f')
-            a = kwargs.get('a')
-            k = kwargs.get('k')
-            n = kwargs.get('n')
+            n = float(n)
+            if n%1 == 0:
+                n = int(n)
+        except ValueError:
+            strparam = True
+            
+        subcmd <<= nm.m2cross(k = k, a = 'fld,__val', f = f)
 
-            # TODO: 関数化？
-            strparam = False
-            try:
-                n = float(n)
-                if n%1 == 0:
-                    n = int(n)
-            except ValueError:
-                strparam = True
-                
-            subcmd <<= nm.m2cross(k = k, a = 'fld,__val', f = f)
+        if strparam:
+            subcmd <<= nm.mcal(a = '__eq', c = f'$s{{__val}}=="{n}"')
+        else:
+            subcmd <<= nm.mcal(a = '__eq', c = f'${{__val}}=={n}')
 
-            if strparam:
-                subcmd <<= nm.mcal(a = '__eq', c = f'$s{{__val}}=="{n}"')
-            else:
-                subcmd <<= nm.mcal(a = '__eq', c = f'${{__val}}=={n}')
+        subcmd <<= nm.msum(k = f'{k},fld', f = f'__eq:{a}_{n}')
 
-            subcmd <<= nm.msum(k = f'{k},fld', f = f'__eq:{a}_{n}')
+        subcmd <<= nm.mcut(f = f'{k},fld,{a}_{n}')
 
-            subcmd <<= nm.mcut(f = f'{k},fld,{a}_{n}')
-
-            return subcmd
-
-        except Exception as e:
-            import traceback
-            with open('/dev/stderr', 'w') as fpe:
-                traceback.print_exc(file=fpe)
+        return subcmd
 
     def range_count(self,subcmd, **kwargs):
+        f = kwargs.get('f')
+        a = kwargs.get('a')
+        k = kwargs.get('k')
+        n = kwargs.get('n')
+
+        calcid = 'range_count'
+
         try:
-            f = kwargs.get('f')
-            a = kwargs.get('a')
-            k = kwargs.get('k')
-            n = kwargs.get('n')
             nmin, nmax = n.split(';')
+        except ValueError:
+            errmsg = self.generateCommandErrorMessage('ParameterFormatError', 'n', n, param_calc = calcid)
+            raise Exception(errmsg)
 
-            calcid = 'range_count'
-
-            try:
-                # check if float
-                param_min = float(nmin)
-                param_max = float(nmax)
-                
-                # check if outside 0-1
-                if param_min >= param_max:
-                    errmsg = self.generateCommandErrorMessage('ParameterFormatError', 'n', n, param_calc = calcid)
-                    raise Exception(errmsg)
-            except ValueError:
-                errmsg = self.generateCommandErrorMessage('ParameterTypeError', 'n', n, param_calc = calcid)
-                raise Exception(errmsg)
+        try:
+            # check if float
+            param_min = float(nmin)
+            param_max = float(nmax)
+        except ValueError:
+            errmsg = self.generateCommandErrorMessage('ParameterTypeError', 'n', n, param_calc = calcid)
+            raise Exception(errmsg)
             
-            
-            subcmd <<= nm.m2cross(k = k, a = 'fld,__val', f = f)
-            subcmd <<= nm.mcal(a = '__inrange',
-                c = f'${{__val}}>={float(nmin)} && ${{__val}} < {float(nmax)}')
-            subcmd <<= nm.msum(k = f'{k},fld', f = f'__inrange:{a}_{n}')
+            # check if outside 0-1
+        if param_min >= param_max:
+            errmsg = self.generateCommandErrorMessage('ParameterFormatError', 'n', n, param_calc = calcid)
+            raise Exception(errmsg)
 
-            subcmd <<= nm.mcut(f = f'{k},fld,{a}_{n}')
+        
+        subcmd <<= nm.m2cross(k = k, a = 'fld,__val', f = f)
+        subcmd <<= nm.mcal(a = '__inrange',
+            c = f'${{__val}}>={float(nmin)} && ${{__val}} < {float(nmax)}')
+        subcmd <<= nm.msum(k = f'{k},fld', f = f'__inrange:{a}_{n}')
 
-            return subcmd
+        subcmd <<= nm.mcut(f = f'{k},fld,{a}_{n}')
 
-        except Exception as e:
-            import traceback
-            with open('/dev/stderr', 'w') as fpe:
-                traceback.print_exc(file=fpe)
+        return subcmd
 
     def ratio_beyond_rsigma(self,subcmd, **kwargs):
+        f = kwargs.get('f')
+        a = kwargs.get('a')
+        k = kwargs.get('k')
+        n = kwargs.get('n')
+
+        calcid = 'ratio_beyond_rsigma'
+
         try:
-            f = kwargs.get('f')
-            a = kwargs.get('a')
-            k = kwargs.get('k')
-            n = kwargs.get('n')
-
-            calcid = 'ratio_beyond_rsigma'
-
-            try:
-                # check if float (not str)
-                param = float(n)
-                
-                # check if negative
-                if param < 0:
-                    errmsg = self.generateCommandErrorMessage('ParameterOutOfBoundsError', 'n', n, param_calc = calcid)
-                    raise Exception(errmsg)
-            except ValueError:
-                errmsg = self.generateCommandErrorMessage('ParameterTypeError', 'n', n, param_calc = calcid)
+            # check if float (not str)
+            param = float(n)
+            
+            # check if negative
+            if param < 0:
+                errmsg = self.generateCommandErrorMessage('ParameterOutOfBoundsError', 'n', n, param_calc = calcid)
                 raise Exception(errmsg)
+        except ValueError:
+            errmsg = self.generateCommandErrorMessage('ParameterTypeError', 'n', n, param_calc = calcid)
+            raise Exception(errmsg)
 
-            fs = f.split(',')
-            targets = [None] * len(fs)
-            subcmd_o = None
+        fs = f.split(',')
+        targets = [None] * len(fs)
+        subcmd_o = None
 
-            subcmd <<= nm.mnjoin(k = k, m = self.all_msums, f = 'fld,__mean,__sd,__count')
+        subcmd <<= nm.mnjoin(k = k, m = self.all_msums, f = 'fld,__mean,__sd,__count')
 
-            for i, fld in enumerate(fs):
-                targets[i] <<= nm.msel(c = f'$s{{fld}}=="{fld}"', i = subcmd)
-                targets[i] <<= nm.mcal(c = f'(abs(${{{fld}}}-${{__mean}}))>=({n}*${{__sd}})', 
-                                       a = f'__ratio')
+        for i, fld in enumerate(fs):
+            targets[i] <<= nm.msel(c = f'$s{{fld}}=="{fld}"', i = subcmd)
+            targets[i] <<= nm.mcal(c = f'(abs(${{{fld}}}-${{__mean}}))>=({n}*${{__sd}})', 
+                                    a = f'__ratio')
 
-            subcmd_o <<= nm.msum(k = f'{k},fld', f = f'__ratio', i = targets)
-            subcmd_o <<= nm.mcal(c = '${__ratio}/${__count}', a = f'{a}_{n}')
+        subcmd_o <<= nm.msum(k = f'{k},fld', f = f'__ratio', i = targets)
+        subcmd_o <<= nm.mcal(c = '${__ratio}/${__count}', a = f'{a}_{n}')
 
-            subcmd_o <<= nm.mcut(f = f'{k},fld,{a}_{n}')
+        subcmd_o <<= nm.mcut(f = f'{k},fld,{a}_{n}')
 
-            return subcmd_o
+        return subcmd_o
 
-        except Exception as e:
-            import traceback
-            with open('/dev/stderr', 'w') as fpe:
-                traceback.print_exc(file=fpe)
+def quantile(self,subcmd, **kwargs):
+    f = kwargs.get('f')
+    a = kwargs.get('a')
+    k = kwargs.get('k')
+    n = kwargs.get('n')
 
-    def quantile(self,subcmd, **kwargs):
-        try:
-            f = kwargs.get('f')
-            a = kwargs.get('a')
-            k = kwargs.get('k')
-            n = kwargs.get('n')
+    calcid = 'quantile'
 
-            calcid = 'quantile'
+    try:
+        # check if float
+        param = float(n)
+        
+        # check if outside 0-1
+        if param < 0 or param > 1:
+            errmsg = self.generateCommandErrorMessage('ParameterOutOfBoundsError', 'n', n, param_calc = calcid)
+            raise Exception(errmsg)
+    except ValueError:
+        errmsg = self.generateCommandErrorMessage('ParameterTypeError', 'n', n, param_calc = calcid)
+        raise Exception(errmsg)
 
-            try:
-                # check if float
-                param = float(n)
-                
-                # check if outside 0-1
-                if param < 0 or param > 1:
-                    errmsg = self.generateCommandErrorMessage('ParameterOutOfBoundsError', 'n', n, param_calc = calcid)
-                    raise Exception(errmsg)
-            except ValueError:
-                errmsg = self.generateCommandErrorMessage('ParameterTypeError', 'n', n, param_calc = calcid)
-                raise Exception(errmsg)
+    fs = f.split(',')
+    targets = [None] * len(fs)
+    precalcs = [None] * len(fs)
+    tcalcs = None
+    subcmd_o = None
 
-            fs = f.split(',')
-            targets = [None] * len(fs)
-            precalcs = [None] * len(fs)
-            tcalcs = None
-            subcmd_o = None
+    # take starting key columns
+    _keys = None
+    _keys <<= nm.mcut(f = k, i = subcmd)
+    _keys <<= nm.muniq(k = k)
 
-            # take starting key columns
-            _keys = None
-            _keys <<= nm.mcut(f = k, i = subcmd)
-            _keys <<= nm.muniq(k = k)
+    # tcalcs <<= nm.msummary(f = f, c = 'count:__count',
+    #                          k = k, i = subcmd)
+    msumres = None
+    condition = [f'($s{{fld}}=="{fld}")' for fld in f.split(',')]
+    msumres <<= nm.msel(i = self.all_msums, c = '||'.join(condition))
 
-            # tcalcs <<= nm.msummary(f = f, c = 'count:__count',
-            #                          k = k, i = subcmd)
-            msumres = None
-            condition = [f'($s{{fld}}=="{fld}")' for fld in f.split(',')]
-            msumres <<= nm.msel(i = self.all_msums, c = '||'.join(condition))
+    tcalcs <<= nm.mnjoin(i = subcmd, k = k, f = 'fld,__count',
+                            m = msumres)
+    tcalcs <<= nm.mcal(a = '__qtRate', c = f'if(${{__count}}==0,nulln(),{n})')
+    tcalcs <<= nm.mcal(a = '__T', c = '1-${__qtRate}+${__count}*${__qtRate}')
+    tcalcs <<= nm.mcal(a = '__T1', c = 'int(${__T})')
+    tcalcs <<= nm.mcal(a = '__T2', c = 'if(fract(${__T})==0,${__T1},${__T1}+1)')
 
-            tcalcs <<= nm.mnjoin(i = subcmd, k = k, f = 'fld,__count',
-                                 m = msumres)
-            tcalcs <<= nm.mcal(a = '__qtRate', c = f'if(${{__count}}==0,nulln(),{n})')
-            tcalcs <<= nm.mcal(a = '__T', c = '1-${__qtRate}+${__count}*${__qtRate}')
-            tcalcs <<= nm.mcal(a = '__T1', c = 'int(${__T})')
-            tcalcs <<= nm.mcal(a = '__T2', c = 'if(fract(${__T})==0,${__T1},${__T1}+1)')
+    for i, fld in enumerate(fs):
+        precalcs[i] <<= nm.mnumber(i = subcmd, s = f'{fld}%n', k = k, 
+                                    a = '__qtNo', S = 1)
+        precalcs[i] <<= nm.msortf(f = f'{k},__qtNo')
 
-            for i, fld in enumerate(fs):
-                precalcs[i] <<= nm.mnumber(i = subcmd, s = f'{fld}%n', k = k, 
-                                          a = '__qtNo', S = 1)
-                precalcs[i] <<= nm.msortf(f = f'{k},__qtNo')
+        targets[i] <<= nm.mnjoin(i = tcalcs, k = f'{k},__T1', K = f'{k},__qtNo',
+                                f = f'{fld}:__{fld}X1', m = precalcs[i], n = True)
+        targets[i] <<= nm.mnjoin(k = f'{k},__T2', K = f'{k},__qtNo',
+                                f = f'{fld}:__{fld}X2', m = precalcs[i], n = True)
+        targets[i] <<= nm.msel(c = f'$s{{fld}}=="{fld}"')
+        targets[i] <<= nm.mcal(a = f'{a}_{n}', c = f'if(${{__T1}}==${{__T2}},${{__{fld}X1}},(${{__T2}}-${{__T}})*${{__{fld}X1}}+(${{__T}}-${{__T1}})*${{__{fld}X2}})')
+        targets[i] <<= nm.mcut(f = f'{k},fld,{a}_{n}')
 
-                targets[i] <<= nm.mnjoin(i = tcalcs, k = f'{k},__T1', K = f'{k},__qtNo',
-                                        f = f'{fld}:__{fld}X1', m = precalcs[i], n = True)
-                targets[i] <<= nm.mnjoin(k = f'{k},__T2', K = f'{k},__qtNo',
-                                        f = f'{fld}:__{fld}X2', m = precalcs[i], n = True)
-                targets[i] <<= nm.msel(c = f'$s{{fld}}=="{fld}"')
-                targets[i] <<= nm.mcal(a = f'{a}_{n}', c = f'if(${{__T1}}==${{__T2}},${{__{fld}X1}},(${{__T2}}-${{__T}})*${{__{fld}X1}}+(${{__T}}-${{__T1}})*${{__{fld}X2}})')
-                targets[i] <<= nm.mcut(f = f'{k},fld,{a}_{n}')
+    # subcmd_o <<= nm.m2cat(i = targets)
+    subcmd_o <<= nm.mnjoin(i = _keys, k = k, m = targets, n = True)
 
-            # subcmd_o <<= nm.m2cat(i = targets)
-            subcmd_o <<= nm.mnjoin(i = _keys, k = k, m = targets, n = True)
-
-            return subcmd_o
-
-        except Exception as e:
-            import traceback
-            with open('/dev/stderr', 'w') as fpe:
-                traceback.print_exc(file=fpe)
+    return subcmd_o
 
     def binned_entropy(self,subcmd, **kwargs):
+        f = kwargs.get('f')
+        a = kwargs.get('a')
+        k = kwargs.get('k')
+        n = kwargs.get('n')
+
+        calcid = 'binned_entropy'
+
         try:
-            f = kwargs.get('f')
-            a = kwargs.get('a')
-            k = kwargs.get('k')
-            n = kwargs.get('n')
-
-            calcid = 'binned_entropy'
-
-            try:
-                # check if float
-                param = float(n)
-                
-                # check if not integer or less than 2
-                if (not param.is_integer()) or param < 2:
-                    errmsg = self.generateCommandErrorMessage('ParameterOutOfBoundsError', 'n', n, param_calc = calcid)
-                    raise Exception(errmsg)
-            except ValueError:
-                errmsg = self.generateCommandErrorMessage('ParameterTypeError', 'n', n, param_calc = calcid)
+            # check if float
+            param = float(n)
+            
+            # check if not integer or less than 2
+            if (not param.is_integer()) or param < 2:
+                errmsg = self.generateCommandErrorMessage('ParameterOutOfBoundsError', 'n', n, param_calc = calcid)
                 raise Exception(errmsg)
-            
-            
-            fs = f.split(',')
-            targets = [None] * len(fs)
-            msummary = None
-            subcmd_o = None
+        except ValueError:
+            errmsg = self.generateCommandErrorMessage('ParameterTypeError', 'n', n, param_calc = calcid)
+            raise Exception(errmsg)
+        
+        
+        fs = f.split(',')
+        targets = [None] * len(fs)
+        msummary = None
+        subcmd_o = None
 
-            # msummary <<= nm.mcut(i = self.all_msums, f = f'{k},fld,__count')
-            condition = [f'($s{{fld}}=="{fld}")' for fld in f.split(',')]
-            msummary <<= nm.msel(i = self.all_msums, c = '||'.join(condition))
+        # msummary <<= nm.mcut(i = self.all_msums, f = f'{k},fld,__count')
+        condition = [f'($s{{fld}}=="{fld}")' for fld in f.split(',')]
+        msummary <<= nm.msel(i = self.all_msums, c = '||'.join(condition))
 
-            subcmd <<= nm.mbucket(k = k, f = [f'{fld}:__{fld}_no' for fld in fs],
-                                  n = n, rng = True)
+        subcmd <<= nm.mbucket(k = k, f = [f'{fld}:__{fld}_no' for fld in fs],
+                                n = n, rng = True)
 
-            for i, fld in enumerate(fs):
-                targets[i] <<= nm.mcount(k = f'{k},__{fld}_no', a = f'__{fld}hcount',
-                                        i = subcmd)
+        for i, fld in enumerate(fs):
+            targets[i] <<= nm.mcount(k = f'{k},__{fld}_no', a = f'__{fld}hcount',
+                                    i = subcmd)
 
-                targets[i] <<= nm.mnjoin(k = k, m = msummary, f = 'fld,__count')
-                targets[i] <<= nm.msel(c = f'$s{{fld}}=="{fld}"')
-                targets[i] <<= nm.mcal(c = f'(${{__{fld}hcount}}/${{__count}})*ln(${{__{fld}hcount}}/${{__count}})',
-                                       a = '__probs')
-                targets[i] <<= nm.mcut(f = f'{k},fld,__probs')
+            targets[i] <<= nm.mnjoin(k = k, m = msummary, f = 'fld,__count')
+            targets[i] <<= nm.msel(c = f'$s{{fld}}=="{fld}"')
+            targets[i] <<= nm.mcal(c = f'(${{__{fld}hcount}}/${{__count}})*ln(${{__{fld}hcount}}/${{__count}})',
+                                    a = '__probs')
+            targets[i] <<= nm.mcut(f = f'{k},fld,__probs')
 
-            subcmd_o <<= nm.msum(k = f'{k},fld', f = '__probs', i = targets)
-            subcmd_o <<= nm.mcal(c = '${__probs}*-1', a = f'{a}_{n}')
+        subcmd_o <<= nm.msum(k = f'{k},fld', f = '__probs', i = targets)
+        subcmd_o <<= nm.mcal(c = '${__probs}*-1', a = f'{a}_{n}')
 
-            subcmd_o <<= nm.mcut(f = f'{k},fld,{a}_{n}')
+        subcmd_o <<= nm.mcut(f = f'{k},fld,{a}_{n}')
 
-            return subcmd_o
-
-        except Exception as e:
-            import traceback
-            with open('/dev/stderr', 'w') as fpe:
-                traceback.print_exc(file=fpe)
+        return subcmd_o
 
     def energy_ratio_by_chunks(self,subcmd, **kwargs):
         try:
@@ -2434,251 +2397,227 @@ class GroupBy2Command(PCommand):
     # --------------- 3 vars -----------------------
 
     def index_mass_quantile(self,subcmd, **kwargs):
+        f = kwargs.get('f')
+        a = kwargs.get('a')
+        k = kwargs.get('k')
+        x = kwargs.get('x')
+        n = kwargs.get('n')
+        precision = kwargs.get('precision')
+        dateformat = kwargs.pop('dateformat')
+
+        calcid = 'imq' 
+
         try:
-            f = kwargs.get('f')
-            a = kwargs.get('a')
-            k = kwargs.get('k')
-            x = kwargs.get('x')
-            n = kwargs.get('n')
-            precision = kwargs.get('precision')
-            dateformat = kwargs.pop('dateformat')
-
-            calcid = 'imq' 
-
-            try:
-                # check if float
-                param = float(n)
-                
-                # check if out of bounds
-                if param < 0 or param > 1:
-                    errmsg = self.generateCommandErrorMessage('ParameterOutOfBoundsError', 'n', n, param_calc = calcid)
-                    raise Exception(errmsg)
-            except ValueError:
-                errmsg = self.generateCommandErrorMessage('ParameterTypeError', 'n', n, param_calc = calcid)
+            # check if float
+            param = float(n)
+            
+            # check if out of bounds
+            if param < 0 or param > 1:
+                errmsg = self.generateCommandErrorMessage('ParameterOutOfBoundsError', 'n', n, param_calc = calcid)
                 raise Exception(errmsg)
+        except ValueError:
+            errmsg = self.generateCommandErrorMessage('ParameterTypeError', 'n', n, param_calc = calcid)
+            raise Exception(errmsg)
 
-            fs = f.split(',')
-            targets = [None] * len(fs)
-            mcal = [None] * len(fs)
-            msum = [None] * len(fs)
-            msummary = [None] * len(fs)
+        fs = f.split(',')
+        targets = [None] * len(fs)
+        mcal = [None] * len(fs)
+        msum = [None] * len(fs)
+        msummary = [None] * len(fs)
 
-            subcmd_o = None
+        subcmd_o = None
 
-            # fix time column
-            subcmd = self.fixtimecolumn(subcmd, x, dateformat)
-            x = 'uxt'
+        # fix time column
+        subcmd = self.fixtimecolumn(subcmd, x, dateformat)
+        x = 'uxt'
 
-            for i, fld in enumerate(fs):
-                mcal[i] <<= nm.mcal(c = f'abs(${{{fld}}})', a = f'__abs{fld}', 
-                                    i = subcmd)
-                msum[i] <<= mcal[i].msum(k = k, f = f'__abs{fld}')
+        for i, fld in enumerate(fs):
+            mcal[i] <<= nm.mcal(c = f'abs(${{{fld}}})', a = f'__abs{fld}', 
+                                i = subcmd)
+            msum[i] <<= mcal[i].msum(k = k, f = f'__abs{fld}')
 
-                msummary[i] <<= nm.msummary(i = subcmd, k = k, f = fld,
-                                        c = 'count:__count')
+            msummary[i] <<= nm.msummary(i = subcmd, k = k, f = fld,
+                                    c = 'count:__count')
 
-                targets[i] <<= nm.maccum(k = k, s = f'{x}%n', f = f'__abs{fld}:__abs{fld}_a',
-                                         i = mcal[i])
-                targets[i] <<= nm.mjoin(k = k, f = f'__abs{fld}:__abs{fld}_ttl',
-                                        m = msum[i])
-                targets[i] <<= nm.mnjoin(k = k, f = f'fld,__count', m = msummary[i])
-                targets[i] <<= nm.mcal(c = f'(${{__abs{fld}_a}}/${{__abs{fld}_ttl}})>={n}',
-                                       a = '__mc')
-                targets[i] <<= nm.mbest(k = k, s = f'__mc%nr,{x}%n', size = 1)
-                targets[i] <<= nm.mcal(c = f'(${{{x}}})/${{__count}}', a = f'{a}_{n}',
-                                       precision = precision)
+            targets[i] <<= nm.maccum(k = k, s = f'{x}%n', f = f'__abs{fld}:__abs{fld}_a',
+                                        i = mcal[i])
+            targets[i] <<= nm.mjoin(k = k, f = f'__abs{fld}:__abs{fld}_ttl',
+                                    m = msum[i])
+            targets[i] <<= nm.mnjoin(k = k, f = f'fld,__count', m = msummary[i])
+            targets[i] <<= nm.mcal(c = f'(${{__abs{fld}_a}}/${{__abs{fld}_ttl}})>={n}',
+                                    a = '__mc')
+            targets[i] <<= nm.mbest(k = k, s = f'__mc%nr,{x}%n', size = 1)
+            targets[i] <<= nm.mcal(c = f'(${{{x}}})/${{__count}}', a = f'{a}_{n}',
+                                    precision = precision)
 
-                targets[i] <<= nm.mcut(f = f'{k},fld,{a}_{n}')
+            targets[i] <<= nm.mcut(f = f'{k},fld,{a}_{n}')
 
-            subcmd_o <<= nm.m2cat(i = targets)
+        subcmd_o <<= nm.m2cat(i = targets)
 
-            return subcmd_o
-
-        except Exception as e:
-            import traceback
-            with open('/dev/stderr', 'w') as fpe:
-                traceback.print_exc(file=fpe)
+        return subcmd_o
 
     def numbercrossing(self, subcmd, **kwargs):
+        f = kwargs.get('f')
+        a = kwargs.get('a')
+        x = kwargs.get('x')
+        k = kwargs.get('k')
+        n = kwargs.get('n')
+
+        calcid = 'crossing_m'
+
         try:
-            f = kwargs.get('f')
-            a = kwargs.get('a')
-            x = kwargs.get('x')
-            k = kwargs.get('k')
-            n = kwargs.get('n')
+            # check if float
+            param = float(n)
+        except ValueError:
+            errmsg = self.generateCommandErrorMessage('ParameterTypeError', 'n', n, param_calc = calcid)
+            raise Exception(errmsg)
 
-            calcid = 'crossing_m'
+        dateformat = kwargs.pop('dateformat')
 
-            try:
-                # check if float
-                param = float(n)
-            except ValueError:
-                errmsg = self.generateCommandErrorMessage('ParameterTypeError', 'n', n, param_calc = calcid)
-                raise Exception(errmsg)
+        subcmd_o = None
 
-            dateformat = kwargs.pop('dateformat')
+        fs = f.split(',')
+        targets = [None] * len(fs) 
 
-            subcmd_o = None
+        # fix time column
+        subcmd = self.fixtimecolumn(subcmd, x, dateformat)
 
-            fs = f.split(',')
-            targets = [None] * len(fs) 
+        for i, fld in enumerate(fs):
+            targets[i] <<= nm.mcal(c = f'${{{fld}}}>{n}', a = '__pos', 
+                                i = subcmd)
+            targets[i] <<= nm.mslide(k = k, s = 'uxt%n', f = '__pos:__posN')
+            targets[i] <<= nm.mcal(c = '${__pos}!=${__posN}', a = '__diffT')
+            targets[i] <<= nm.mcount(k = k + ',__diffT', a = '__cnt')
+            targets[i] <<= nm.mbest(k = k, s = '__diffT%nr', size = 1)
+            targets[i] <<= nm.mcal(c = 'if(${__diffT}==0,0,${__cnt})', 
+                                    a = f'{a}_{n}')
+            targets[i] <<= nm.msetstr(a = 'fld', v = fld)
 
-            # fix time column
-            subcmd = self.fixtimecolumn(subcmd, x, dateformat)
+        subcmd_o <<= nm.mcut(i = targets, f = f'{k},fld,{a}_{n}')
 
-            for i, fld in enumerate(fs):
-                targets[i] <<= nm.mcal(c = f'${{{fld}}}>{n}', a = '__pos', 
-                                   i = subcmd)
-                targets[i] <<= nm.mslide(k = k, s = 'uxt%n', f = '__pos:__posN')
-                targets[i] <<= nm.mcal(c = '${__pos}!=${__posN}', a = '__diffT')
-                targets[i] <<= nm.mcount(k = k + ',__diffT', a = '__cnt')
-                targets[i] <<= nm.mbest(k = k, s = '__diffT%nr', size = 1)
-                targets[i] <<= nm.mcal(c = 'if(${__diffT}==0,0,${__cnt})', 
-                                      a = f'{a}_{n}')
-                targets[i] <<= nm.msetstr(a = 'fld', v = fld)
-
-            subcmd_o <<= nm.mcut(i = targets, f = f'{k},fld,{a}_{n}')
-
-            return subcmd_o
-
-        except Exception as e:
-            import traceback
-            with open('/dev/stderr', 'w') as fpe:
-                traceback.print_exc(file=fpe)
+        return subcmd_o
 
     def countpeaks(self, subcmd, **kwargs):
+        f = kwargs.get('f')
+        a = kwargs.get('a')
+        x = kwargs.get('x')
+        k = kwargs.get('k')
+        n = kwargs.get('n')
+
+        calcid = 'peaks'
+
         try:
-            f = kwargs.get('f')
-            a = kwargs.get('a')
-            x = kwargs.get('x')
-            k = kwargs.get('k')
-            n = kwargs.get('n')
-
-            calcid = 'peaks'
-
-            try:
-                # check if float
-                param = float(n)
-                
-                # check if not integer or less than 1
-                if (not param.is_integer()) or param < 1:
-                    errmsg = self.generateCommandErrorMessage('ParameterOutOfBoundsError', 'n', n, param_calc = calcid)
-                    raise Exception(errmsg)
-            except ValueError:
-                errmsg = self.generateCommandErrorMessage('ParameterTypeError', 'n', n, param_calc = calcid)
+            # check if float
+            param = float(n)
+            
+            # check if not integer or less than 1
+            if (not param.is_integer()) or param < 1:
+                errmsg = self.generateCommandErrorMessage('ParameterOutOfBoundsError', 'n', n, param_calc = calcid)
                 raise Exception(errmsg)
+        except ValueError:
+            errmsg = self.generateCommandErrorMessage('ParameterTypeError', 'n', n, param_calc = calcid)
+            raise Exception(errmsg)
 
-            dateformat = kwargs.pop('dateformat')
+        dateformat = kwargs.pop('dateformat')
 
-            subcmd_o = None
+        subcmd_o = None
 
-            fs = f.split(',')
-            targets = [None] * len(fs) 
-            mslide = [None] * len(fs) 
+        fs = f.split(',')
+        targets = [None] * len(fs) 
+        mslide = [None] * len(fs) 
 
-            # fix time column
-            subcmd = self.fixtimecolumn(subcmd, x, dateformat)
+        # fix time column
+        subcmd = self.fixtimecolumn(subcmd, x, dateformat)
 
-            # # take starting key columns
-            # _keys = None
-            # _keys <<= nm.mcut(f = k, i = subcmd)
-            # _keys <<= nm.muniq(k = k)
+        # # take starting key columns
+        # _keys = None
+        # _keys <<= nm.mcut(f = k, i = subcmd)
+        # _keys <<= nm.muniq(k = k)
 
-            for i, fld in enumerate(fs):
-                mslide[i] <<= nm.mslide(k = k, s = 'uxt%n', t = n, r = True, 
-                                        f = f'{fld}:{fld}_up_', i = subcmd)
+        for i, fld in enumerate(fs):
+            mslide[i] <<= nm.mslide(k = k, s = 'uxt%n', t = n, r = True, 
+                                    f = f'{fld}:{fld}_up_', i = subcmd)
 
-                targets[i] <<= nm.mslide(k = k, s = 'uxt%n', t = n,
-                                         f = f'{fld}:{fld}_down_', i = subcmd)
-                
-                targets[i] <<= nm.mjoin(k = f'{k},uxt', f = f'{fld}_up_*',
-                                        m = mslide[i], n = True)
-                # targets[i] <<= nm.mdelnull(f = f'{fld}_up_*,{fld}_down_*')
-                targets[i] <<= nm.mcal(c = f'max(${{{fld}_up*}},${{{fld}_down_*}})',
-                                       a = '__rollmax__')
-                targets[i] <<= nm.mcal(c = f'${{{fld}}}>${{__rollmax__}}',
-                                       a = f'{a}_{n}')
+            targets[i] <<= nm.mslide(k = k, s = 'uxt%n', t = n,
+                                        f = f'{fld}:{fld}_down_', i = subcmd)
+            
+            targets[i] <<= nm.mjoin(k = f'{k},uxt', f = f'{fld}_up_*',
+                                    m = mslide[i], n = True)
+            # targets[i] <<= nm.mdelnull(f = f'{fld}_up_*,{fld}_down_*')
+            targets[i] <<= nm.mcal(c = f'max(${{{fld}_up*}},${{{fld}_down_*}})',
+                                    a = '__rollmax__')
+            targets[i] <<= nm.mcal(c = f'${{{fld}}}>${{__rollmax__}}',
+                                    a = f'{a}_{n}')
 
-                targets[i] <<= nm.msum(k = k, f = f'{a}_{n}')
-                targets[i] <<= nm.mcal(a = 'fld', c = f'"{fld}"')
-                targets[i] <<= nm.mcut(f = f'{k},fld,{a}_{n}')
+            targets[i] <<= nm.msum(k = k, f = f'{a}_{n}')
+            targets[i] <<= nm.mcal(a = 'fld', c = f'"{fld}"')
+            targets[i] <<= nm.mcut(f = f'{k},fld,{a}_{n}')
 
 
-            subcmd_o <<= nm.mread(i = targets)
-            # subcmd_o <<= nm.mnjoin(i = _keys, k = k, m = targets, n = True)
+        subcmd_o <<= nm.mread(i = targets)
+        # subcmd_o <<= nm.mnjoin(i = _keys, k = k, m = targets, n = True)
 
-            return subcmd_o
-
-        except Exception as e:
-            import traceback
-            with open('/dev/stderr', 'w') as fpe:
-                traceback.print_exc(file=fpe)
+        return subcmd_o
 
     def autocorrelation(self, subcmd, **kwargs):
+        f = kwargs.get('f')
+        a = kwargs.get('a')
+        x = kwargs.get('x')
+        k = kwargs.get('k')
+        n = kwargs.get('n')
+        precision = kwargs.get('precision')
+
+        calcid = 'autocorr'
+
         try:
-            f = kwargs.get('f')
-            a = kwargs.get('a')
-            x = kwargs.get('x')
-            k = kwargs.get('k')
-            n = kwargs.get('n')
-            precision = kwargs.get('precision')
-
-            calcid = 'autocorr'
-
-            try:
-                # check if float
-                param = float(n)
-                
-                # check if not integer
-                if not param.is_integer():
-                    errmsg = self.generateCommandErrorMessage('ParameterOutOfBoundsError', 'n', n, param_calc = calcid)
-                    raise Exception(errmsg)
-            except ValueError:
-                errmsg = self.generateCommandErrorMessage('ParameterTypeError', 'n', n, param_calc = calcid)
+            # check if float
+            param = float(n)
+            
+            # check if not integer
+            if not param.is_integer():
+                errmsg = self.generateCommandErrorMessage('ParameterOutOfBoundsError', 'n', n, param_calc = calcid)
                 raise Exception(errmsg)
+        except ValueError:
+            errmsg = self.generateCommandErrorMessage('ParameterTypeError', 'n', n, param_calc = calcid)
+            raise Exception(errmsg)
 
-            dateformat = kwargs.pop('dateformat')
+        dateformat = kwargs.pop('dateformat')
 
-            subcmd_o = None
+        subcmd_o = None
 
-            fs = f.split(',')
-            targets = [None] * len(fs)
-            msummary = [None] * len(fs)
+        fs = f.split(',')
+        targets = [None] * len(fs)
+        msummary = [None] * len(fs)
 
-            # fix time column
-            subcmd = self.fixtimecolumn(subcmd, x, dateformat)
+        # fix time column
+        subcmd = self.fixtimecolumn(subcmd, x, dateformat)
 
-            for i, fld in enumerate(fs):
-                if n == 0:
-                    targets[i] <<= nm.muniq(k = k, i = subcmd)
-                    targets[i] <<= nm.mcut(f = k)
-                    targets[i] <<= nm.msetstr(v = fld, a = 'fld') 
-                    targets[i] <<= nm.msetstr(v = 1, a = a)
-                else:
-                    msummary[i] <<= nm.msummary(i = subcmd, k = k, f = fld,
-                                        c = f'mean:__mean,var:__var,count:__count')
+        for i, fld in enumerate(fs):
+            if n == 0:
+                targets[i] <<= nm.muniq(k = k, i = subcmd)
+                targets[i] <<= nm.mcut(f = k)
+                targets[i] <<= nm.msetstr(v = fld, a = 'fld') 
+                targets[i] <<= nm.msetstr(v = 1, a = a)
+            else:
+                msummary[i] <<= nm.msummary(i = subcmd, k = k, f = fld,
+                                    c = f'mean:__mean,var:__var,count:__count')
 
-                    targets[i] <<= nm.mjoin(i = subcmd, m = msummary[i], k = k,
-                            f = 'fld,__mean,__var,__count')
+                targets[i] <<= nm.mjoin(i = subcmd, m = msummary[i], k = k,
+                        f = 'fld,__mean,__var,__count')
 
-                    targets[i] <<= nm.mslide(k = k, s = 'uxt%n', t = n, l = True, 
-                                            f = f'{fld}:__{fld}_L')
-                    targets[i] <<= nm.mcal(c = f'(${{{fld}}}-${{__mean}})*(${{__{fld}_L}}-${{__mean}})',
-                                           a = f'__{fld}_m')
-                    targets[i] <<= nm.msum(k = k, f = f'__{fld}_m')
-                    targets[i] <<= nm.msetstr(a = '__lag', v = n)
-                    targets[i] <<= nm.mcal(a = f'{a}_{n}', precision = precision,
-                        c = f'${{__{fld}_m}}/(${{__count}}-${{__lag}})/${{__var}}')
-                    targets[i] <<= nm.mcut(f = f'{k},fld,{a}_{n}')
+                targets[i] <<= nm.mslide(k = k, s = 'uxt%n', t = n, l = True, 
+                                        f = f'{fld}:__{fld}_L')
+                targets[i] <<= nm.mcal(c = f'(${{{fld}}}-${{__mean}})*(${{__{fld}_L}}-${{__mean}})',
+                                        a = f'__{fld}_m')
+                targets[i] <<= nm.msum(k = k, f = f'__{fld}_m')
+                targets[i] <<= nm.msetstr(a = '__lag', v = n)
+                targets[i] <<= nm.mcal(a = f'{a}_{n}', precision = precision,
+                    c = f'${{__{fld}_m}}/(${{__count}}-${{__lag}})/${{__var}}')
+                targets[i] <<= nm.mcut(f = f'{k},fld,{a}_{n}')
 
-            subcmd_o <<= nm.m2cat(i = targets)
+        subcmd_o <<= nm.m2cat(i = targets)
 
-            return subcmd_o
-
-        except Exception as e:
-            import traceback
-            with open('/dev/stderr', 'w') as fpe:
-                traceback.print_exc(file=fpe)
+        return subcmd_o
     
     def c3(self,subcmd, **kwargs):
         try:
@@ -2968,6 +2907,15 @@ class GroupBy2Command(PCommand):
                 s = arglist.get('s')
                 if x or s: 
                     # test for forbidden characters in time setting
+                    if any(char in x for char in '*?[],:\&％'):
+                        errmsg = self.generateCommandErrorMessage('TimecolForbiddenCharacterError', 'x', x)
+                        raise Exception(errmsg)
+                    x_list = x.split(',')
+                    
+                    if '' in x_list:
+                        errmsg = self.generateCommandErrorMessage('EmptyTimecolError', 'x', x)
+                        raise Exception(errmsg)
+                    
                     arglist['dateformat'] = _args['dateformat']
 
                     if x and x not in xs:
