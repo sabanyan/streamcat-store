@@ -364,7 +364,7 @@ class GroupBy2Command(PCommand):
             'UnknownKeyFieldError' : 'キー項目の指定は正しくありません。${fieldinput}',
             
             # 時間軸に関わるエラー
-            'TimecolForbiddenCharacterError' : '半角の（ *　?　[　]　,　:　\　&　％ ）は、時間軸の項目の指定に使用できません。${fieldinput}',
+            'TimecolForbiddenCharacterError' : '半角の（ *　?　[　]　,　:　\\　&　％ ）は、時間軸の項目の指定に使用できません。${fieldinput}',
             'EmptyTimecolFieldError' : '空文字列で時間軸の項目名が指定されています。${fieldinput}',
             'UnknownTimecolFieldError' : 'キー項目の指定は正しくありません。${fieldinput}',
 
@@ -1290,6 +1290,8 @@ class GroupBy2Command(PCommand):
         k = kwargs.get('k')
         n = kwargs.get('n')
 
+        calcid = 'value_count'
+        
         # TODO: 関数化？
         strparam = False
         try:
@@ -1298,6 +1300,9 @@ class GroupBy2Command(PCommand):
                 n = int(n)
         except ValueError:
             strparam = True
+            if n == '':
+                errmsg = self.generateCommandErrorMessage('ParameterOutOfBoundsError', 'n', n, param_calc = calcid)
+                raise Exception(errmsg)
             
         subcmd <<= nm.m2cross(k = k, a = 'fld,__val', f = f)
 
@@ -1387,67 +1392,67 @@ class GroupBy2Command(PCommand):
 
         return subcmd_o
 
-def quantile(self,subcmd, **kwargs):
-    f = kwargs.get('f')
-    a = kwargs.get('a')
-    k = kwargs.get('k')
-    n = kwargs.get('n')
+    def quantile(self,subcmd, **kwargs):
+        f = kwargs.get('f')
+        a = kwargs.get('a')
+        k = kwargs.get('k')
+        n = kwargs.get('n')
 
-    calcid = 'quantile'
+        calcid = 'quantile'
 
-    try:
-        # check if float
-        param = float(n)
-        
-        # check if outside 0-1
-        if param < 0 or param > 1:
-            errmsg = self.generateCommandErrorMessage('ParameterOutOfBoundsError', 'n', n, param_calc = calcid)
+        try:
+            # check if float
+            param = float(n)
+            
+            # check if outside 0-1
+            if param < 0 or param > 1:
+                errmsg = self.generateCommandErrorMessage('ParameterOutOfBoundsError', 'n', n, param_calc = calcid)
+                raise Exception(errmsg)
+        except ValueError:
+            errmsg = self.generateCommandErrorMessage('ParameterTypeError', 'n', n, param_calc = calcid)
             raise Exception(errmsg)
-    except ValueError:
-        errmsg = self.generateCommandErrorMessage('ParameterTypeError', 'n', n, param_calc = calcid)
-        raise Exception(errmsg)
 
-    fs = f.split(',')
-    targets = [None] * len(fs)
-    precalcs = [None] * len(fs)
-    tcalcs = None
-    subcmd_o = None
+        fs = f.split(',')
+        targets = [None] * len(fs)
+        precalcs = [None] * len(fs)
+        tcalcs = None
+        subcmd_o = None
 
-    # take starting key columns
-    _keys = None
-    _keys <<= nm.mcut(f = k, i = subcmd)
-    _keys <<= nm.muniq(k = k)
+        # take starting key columns
+        _keys = None
+        _keys <<= nm.mcut(f = k, i = subcmd)
+        _keys <<= nm.muniq(k = k)
 
-    # tcalcs <<= nm.msummary(f = f, c = 'count:__count',
-    #                          k = k, i = subcmd)
-    msumres = None
-    condition = [f'($s{{fld}}=="{fld}")' for fld in f.split(',')]
-    msumres <<= nm.msel(i = self.all_msums, c = '||'.join(condition))
+        # tcalcs <<= nm.msummary(f = f, c = 'count:__count',
+        #                          k = k, i = subcmd)
+        msumres = None
+        condition = [f'($s{{fld}}=="{fld}")' for fld in f.split(',')]
+        msumres <<= nm.msel(i = self.all_msums, c = '||'.join(condition))
 
-    tcalcs <<= nm.mnjoin(i = subcmd, k = k, f = 'fld,__count',
-                            m = msumres)
-    tcalcs <<= nm.mcal(a = '__qtRate', c = f'if(${{__count}}==0,nulln(),{n})')
-    tcalcs <<= nm.mcal(a = '__T', c = '1-${__qtRate}+${__count}*${__qtRate}')
-    tcalcs <<= nm.mcal(a = '__T1', c = 'int(${__T})')
-    tcalcs <<= nm.mcal(a = '__T2', c = 'if(fract(${__T})==0,${__T1},${__T1}+1)')
+        tcalcs <<= nm.mnjoin(i = subcmd, k = k, f = 'fld,__count',
+                                m = msumres)
+        tcalcs <<= nm.mcal(a = '__qtRate', c = f'if(${{__count}}==0,nulln(),{n})')
+        tcalcs <<= nm.mcal(a = '__T', c = '1-${__qtRate}+${__count}*${__qtRate}')
+        tcalcs <<= nm.mcal(a = '__T1', c = 'int(${__T})')
+        tcalcs <<= nm.mcal(a = '__T2', c = 'if(fract(${__T})==0,${__T1},${__T1}+1)')
 
-    for i, fld in enumerate(fs):
-        precalcs[i] <<= nm.mnumber(i = subcmd, s = f'{fld}%n', k = k, 
-                                    a = '__qtNo', S = 1)
-        precalcs[i] <<= nm.msortf(f = f'{k},__qtNo')
+        for i, fld in enumerate(fs):
+            precalcs[i] <<= nm.mnumber(i = subcmd, s = f'{fld}%n', k = k, 
+                                        a = '__qtNo', S = 1)
+            precalcs[i] <<= nm.msortf(f = f'{k},__qtNo')
 
-        targets[i] <<= nm.mnjoin(i = tcalcs, k = f'{k},__T1', K = f'{k},__qtNo',
-                                f = f'{fld}:__{fld}X1', m = precalcs[i], n = True)
-        targets[i] <<= nm.mnjoin(k = f'{k},__T2', K = f'{k},__qtNo',
-                                f = f'{fld}:__{fld}X2', m = precalcs[i], n = True)
-        targets[i] <<= nm.msel(c = f'$s{{fld}}=="{fld}"')
-        targets[i] <<= nm.mcal(a = f'{a}_{n}', c = f'if(${{__T1}}==${{__T2}},${{__{fld}X1}},(${{__T2}}-${{__T}})*${{__{fld}X1}}+(${{__T}}-${{__T1}})*${{__{fld}X2}})')
-        targets[i] <<= nm.mcut(f = f'{k},fld,{a}_{n}')
+            targets[i] <<= nm.mnjoin(i = tcalcs, k = f'{k},__T1', K = f'{k},__qtNo',
+                                    f = f'{fld}:__{fld}X1', m = precalcs[i], n = True)
+            targets[i] <<= nm.mnjoin(k = f'{k},__T2', K = f'{k},__qtNo',
+                                    f = f'{fld}:__{fld}X2', m = precalcs[i], n = True)
+            targets[i] <<= nm.msel(c = f'$s{{fld}}=="{fld}"')
+            targets[i] <<= nm.mcal(a = f'{a}_{n}', c = f'if(${{__T1}}==${{__T2}},${{__{fld}X1}},(${{__T2}}-${{__T}})*${{__{fld}X1}}+(${{__T}}-${{__T1}})*${{__{fld}X2}})')
+            targets[i] <<= nm.mcut(f = f'{k},fld,{a}_{n}')
 
-    # subcmd_o <<= nm.m2cat(i = targets)
-    subcmd_o <<= nm.mnjoin(i = _keys, k = k, m = targets, n = True)
+        # subcmd_o <<= nm.m2cat(i = targets)
+        subcmd_o <<= nm.mnjoin(i = _keys, k = k, m = targets, n = True)
 
-    return subcmd_o
+        return subcmd_o
 
     def binned_entropy(self,subcmd, **kwargs):
         f = kwargs.get('f')
@@ -2905,6 +2910,11 @@ def quantile(self,subcmd, **kwargs):
 
                 x = arglist.get('x')
                 s = arglist.get('s')
+
+                if x == '':
+                    errmsg = self.generateCommandErrorMessage('EmptyTimecolFieldError', 'x', x)
+                    raise Exception(errmsg)
+                
                 if x or s: 
                     # test for forbidden characters in time setting
                     if any(char in x for char in '*?[],:\&％'):
@@ -2913,7 +2923,7 @@ def quantile(self,subcmd, **kwargs):
                     x_list = x.split(',')
                     
                     if '' in x_list:
-                        errmsg = self.generateCommandErrorMessage('EmptyTimecolError', 'x', x)
+                        errmsg = self.generateCommandErrorMessage('EmptyTimecolFieldError', 'x', x)
                         raise Exception(errmsg)
                     
                     arglist['dateformat'] = _args['dateformat']
