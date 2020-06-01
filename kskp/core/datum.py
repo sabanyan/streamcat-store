@@ -307,15 +307,15 @@ class Datum(BaseModel):
         """
         指定されたStoreの直下に移動する
         """
-        from kskp.store import Store
+        from kskp.store import Store, Folder
         from kskp.store.factory import DatumFactory
 
         # UUID値の形式チェックをする
         Datum.valid_uuid_or_raise(parent_uuid)
 
         to_folder = DatumFactory(self.session).find_by_uuid(parent_uuid)
-        if to_folder.type != Datum.FOLDER_TYPE and to_folder.type != Datum.TRASH_TYPE:
-            raise Exception('移動先の指定はフォルダまたはゴミ箱のUUIDしか許可していません')
+        if not isinstance(to_folder, Folder):
+            raise Exception('移動先の指定はフォルダ、プロジェクトまたはゴミ箱のUUIDしか許可していません')
 
         # # 移動対象がマウントポイントの場合は、path列を変更することはマウントポイントを変更することになるので
         # # とりあえずエラーとする
