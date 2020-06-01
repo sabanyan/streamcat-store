@@ -1,6 +1,10 @@
 from kskp.core import Datum
 from kskp.store import Folder, RemoteFolderConn, Mountable
 
+# 
+# TODO: 継承元をFolderからStoreに変更する。
+# Folderは下にファイルやフォルダを作成できるものという定義なので
+# 
 class RemoteFolder(Folder, Mountable):
 
     __mapper_args__ = {

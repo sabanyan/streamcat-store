@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 from kskp.store import (
     Datum,
+    Folder,
     DatabaseConn,
 )
 
@@ -23,8 +24,8 @@ class FlowDumper:
         if self.factory.data.exists(uuid, type=Datum.FLOW_TYPE):
             archive_name = self.factory.data.find_by_uuid(uuid, type=Datum.FLOW_TYPE).label
             self._get_flow(self.gathering_path, gathered_uuids, uuid)
-        elif self.factory.data.exists(uuid, type=Datum.FOLDER_TYPE):
-            archive_name = self.factory.data.find_by_uuid(uuid, type=Datum.FOLDER_TYPE).label
+        elif self.factory.data.exists(uuid):
+            archive_name = self.factory.data.find_by_uuid(uuid).label
             self._get_folder(self.gathering_path, gathered_uuids, uuid)
 
         # アーカイブファイルを作成する
@@ -38,7 +39,9 @@ class FlowDumper:
         return (archive_path, archive_name)
 
     def _get_folder(self, parent_tmp_path, gathered_uuids, folder_uuid):
-        folder = self.factory.data.find_by_uuid(folder_uuid, type=Datum.FOLDER_TYPE)
+        folder = self.factory.data.find_by_uuid(folder_uuid)
+        if not isinstance(folder, Folder):
+            raise Exception(f'{folder.label}はフォルダまたはプロジェクトではありません')
         children = folder.find_children()
 
         if len(children) == 0:
@@ -48,7 +51,7 @@ class FlowDumper:
         tmp_path.mkdir()
 
         for child in children:
-            if child.type == Datum.FOLDER_TYPE:
+            if isinstance(child, Folder):
                 gathered_uuids.union(self._get_folder(tmp_path, gathered_uuids, child.uuid))
             elif child.type == Datum.FLOW_TYPE:
                 gathered_uuids.union(self._get_flow(tmp_path, gathered_uuids, child.uuid))
