@@ -357,6 +357,17 @@ class GroupBy2Command(PCommand):
         commandname = '特徴量の計算' # 将来、コマンド名はCmdJSONから取得（？）
 
         errormessages = {
+            # キー項目指定に関わるエラー
+            'KeyFieldForbiddenCharacterError' : '半角の%と&は、キー項目名に使用できません。 ${fieldinput} ',
+            'KeyFieldConflictError' : 'キー項目名が重複しています。${fieldinput}',
+            'EmptyKeyFieldError' : '空文字列でキー項目名が指定されています。${fieldinput}',
+            'UnknownKeyFieldError' : 'キー項目の指定は正しくありません。${fieldinput}',
+            
+            # 時間軸に関わるエラー
+            'TimecolForbiddenCharacterError' : '半角の（ *　?　[　]　,　:　\　&　％ ）は、時間軸の項目の指定に使用できません。${fieldinput}',
+            'EmptyTimecolFieldError' : '空文字列で時間軸の項目名が指定されています。${fieldinput}',
+            'UnknownTimecolFieldError' : 'キー項目の指定は正しくありません。${fieldinput}',
+
             # 項目名指定に関わるエラー
             'TargetFieldForbiddenCharacterError':'半角の%と&は、項目名に使用できません。 ${fieldinput} ',
             'TargetFieldConflictError' : '項目名が重複しています。 ${fieldinput}',
@@ -2474,7 +2485,7 @@ class GroupBy2Command(PCommand):
                 targets[i] <<= nm.mcal(c = f'(${{__abs{fld}_a}}/${{__abs{fld}_ttl}})>={n}',
                                        a = '__mc')
                 targets[i] <<= nm.mbest(k = k, s = f'__mc%nr,{x}%n', size = 1)
-                targets[i] <<= nm.mcal(c = f'(${{{x}}} + 1)/${{__count}}', a = f'{a}_{n}',
+                targets[i] <<= nm.mcal(c = f'(${{{x}}})/${{__count}}', a = f'{a}_{n}',
                                        precision = precision)
 
                 targets[i] <<= nm.mcut(f = f'{k},fld,{a}_{n}')
@@ -2908,6 +2919,28 @@ class GroupBy2Command(PCommand):
             errmsg = self.generateCommandErrorMessage('ResultsColForbiddenCharacterError', 'format', formatstring)
             raise Exception(errmsg)
 
+        # check keystring here
+        # if empty, pass
+        if not k:
+            pass
+        # if not empty
+        else:
+            # check forbidden characters
+            if any(char in k for char in '%&'):
+                errmsg = self.generateCommandErrorMessage('KeyFieldForbiddenCharacterError', 'k', k)
+                raise Exception(errmsg)
+
+            k_list = k.split(',')
+            if len(k_list) > len(set(k_list)):
+                # check conflict
+                errmsg = self.generateCommandErrorMessage('KeyFieldConflictError', 'k', k)
+                raise Exception(errmsg)
+            elif '' in k_list:
+                # check empty
+                errmsg = self.generateCommandErrorMessage('EmptyKeyFieldError', 'k', k)
+                raise Exception(errmsg)
+                
+
         xs = []
 
         calclist = []
@@ -2934,7 +2967,9 @@ class GroupBy2Command(PCommand):
                 x = arglist.get('x')
                 s = arglist.get('s')
                 if x or s: 
+                    # test for forbidden characters in time setting
                     arglist['dateformat'] = _args['dateformat']
+
                     if x and x not in xs:
                         xs.append(x)
                     if s: 
@@ -3069,7 +3104,6 @@ class GroupBy2Command(PCommand):
         # check for conflicting final result column names here
         resultcols = []
         for calcdict in calclist:
-            pass
             optype = calcdict.get('optype')
             if 'fld' in calcdict.keys():
                 if ':' in calcdict['c']:
@@ -3077,6 +3111,7 @@ class GroupBy2Command(PCommand):
                 else:
                     calcname = calcdict['c']
                 finalname = formatstring.replace('%', calcname).replace('&', calcdict['fld'])
+                resultcols.append(finalname)
                 
             elif optype == 'msummary':
                 for c_opt in calcdict['c'].split(','):
@@ -3088,6 +3123,7 @@ class GroupBy2Command(PCommand):
                             calcname = c_opt
                             
                         finalname = formatstring.replace('%', calcname).replace('&', f_opt)
+                        resultcols.append(finalname)
 
             elif optype == 'custom':
                 if ':' in calcdict['c']:
@@ -3101,6 +3137,7 @@ class GroupBy2Command(PCommand):
                     calcname += f'_{calcdict["n"]}'
                     
                 finalname = formatstring.replace('%', calcname).replace('&', calcdict['f'])
+                resultcols.append(finalname)
                 
             elif optype == 'aggregate':
                 for c_opt in calcdict['c']:
@@ -3115,15 +3152,15 @@ class GroupBy2Command(PCommand):
                         calcname += f'_{calcdict["n"]}'
                         
                     finalname = formatstring.replace('%', calcname).replace('&', calcdict['f'])
+                    resultcols.append(finalname)
 
-            resultcols.append(finalname)
         
         # test for duplicates in resultcolumns
         if len(resultcols) > len(set(resultcols)):
             errmsg = self.generateCommandErrorMessage('ResultsColConflictError', 'format, c, f, n')
             raise Exception(errmsg)
         
-        # sys.__stderr__.write(repr(resultcols))
+        sys.__stderr__.write(repr(resultcols))
                 
         
 
