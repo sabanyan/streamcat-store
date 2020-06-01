@@ -3160,7 +3160,7 @@ class GroupBy2Command(PCommand):
             errmsg = self.generateCommandErrorMessage('ResultsColConflictError', 'format, c, f, n')
             raise Exception(errmsg)
         
-        sys.__stderr__.write(repr(resultcols))
+        # sys.__stderr__.write(repr(resultcols))
                 
         
 
