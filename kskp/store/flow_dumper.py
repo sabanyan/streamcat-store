@@ -51,7 +51,7 @@ class FlowDumper:
         tmp_path.mkdir()
 
         for child in children:
-            if child.type == Datum.FOLDER_TYPE:
+            if isinstance(child, Folder):
                 gathered_uuids.union(self._get_folder(tmp_path, gathered_uuids, child.uuid))
             elif child.type == Datum.FLOW_TYPE:
                 gathered_uuids.union(self._get_flow(tmp_path, gathered_uuids, child.uuid))

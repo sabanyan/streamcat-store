@@ -214,12 +214,14 @@ class Datum(BaseModel):
         """
         指定されたStoreの直下に移動する
         """
+        from kskp.store import Folder
+
         # UUID値の形式チェックをする
         Datum.valid_uuid_or_raise(parent_uuid)
 
         to_folder = Datum.find_by_uuid(parent_uuid)
-        if to_folder.type != Datum.FOLDER_TYPE and to_folder.type != Datum.TRASH_TYPE:
-            raise Exception('移動先の指定はフォルダまたはゴミ箱のUUIDしか許可していません')
+        if to_folder.type != Datum.FOLDER_TYPE and to_folder.type != Datum.PROJECT_TYPE and to_folder.type != Datum.TRASH_TYPE:
+            raise Exception('移動先の指定はフォルダ、プロジェクトまたはゴミ箱のUUIDしか許可していません')
 
         if parent_uuid == self.uuid:
             raise Exception('移動先と移動元の指定が同じです')
@@ -250,7 +252,6 @@ class Datum(BaseModel):
 
                 # ファイル名の移動によって他のDatumのpathが変更が必要であれば変更する
                 Datum.update_same_path(old_path, new_path, modifier)
-                from kskp.store import Folder
                 if isinstance(self, Folder):
                     Datum.update_include_path(old_path, new_path, modifier)
 
