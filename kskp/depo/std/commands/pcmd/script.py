@@ -1667,11 +1667,14 @@ class GroupBy2Command(PCommand):
                             mean = y.dot(np.arange(len(y)))/y.sum()
 
                             # output cleanup goes here
-                            if np.isfinite(mean):
-                                print(f'{id},{fld},{mean:.{precision}g}')
-                            else:
+                            if (mean is None) or (mean == '') or (mean ==  'None'):
                                 # print empty string
                                 print(f'{id},{fld},')
+                            else:
+                                if np.isfinite(float(mean)):
+                                    print(f'{id},{fld},{mean:.{precision}g}')
+                                else:
+                                    print(f'{id},{fld},')
 
             sys.__stdout__.flush()#not needed for bigger data
 
@@ -1729,11 +1732,15 @@ class GroupBy2Command(PCommand):
                             variance = moment2 - mean ** 2
 
                             # output cleanup goes here
-                            if np.isfinite(variance):
-                                print(f'{id},{fld},{variance:.{precision}g}')
-                            else:
+                            if (variance is None) or (variance == '') or (variance ==  'None'):
                                 # print empty string
                                 print(f'{id},{fld},')
+                            else:
+                                if np.isfinite(float(variance)):
+                                    print(f'{id},{fld},{variance:.{precision}g}')
+                                else:
+                                    print(f'{id},{fld},')
+                                    
                                 
             sys.__stdout__.flush()#not needed for bigger data
 
