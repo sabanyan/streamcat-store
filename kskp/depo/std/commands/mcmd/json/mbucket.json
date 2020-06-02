@@ -39,11 +39,61 @@
       }
     }
   },
+  "groups": [
+    {
+      "name": "group1",
+      "label": "グループの設定 (省略可)",
+      "params": [
+        "k"
+      ]
+    },
+    {
+      "name": "group4",
+      "label": "バケット分割の設定 (必須)",
+      "params": [
+        "f",
+        "n",
+        "rng",
+        "F"
+      ]
+    },
+    {
+      "name": "group3",
+      "label": "その他 (省略可)",
+      "params": [
+        "q",
+        "r"
+      ]
+    },
+    {
+      "name": "group10",
+      "label": "項目名・項目番号についての設定（省略可）",
+      "params": [
+        "x",
+        "nfn",
+        "nfno"
+      ]
+    },
+    {
+      "name": "group20",
+      "label": "システム管理用設定（作業領域・ログ出力）",
+      "params": [
+        "precision",
+        "tmpPath",
+        "bufcount",
+        "assert_diffSize",
+        "assert_nullout",
+        "assert_nullkey",
+        "assert_nullin"
+      ]
+    }
+  ],
   "params": [
     {
       "name": "f",
       "type": "string",
-      "label": "対象列名(必須)"
+      "label": "対象とする項目名と追加項目名の指定",
+      "description": "対象列名、追加列名の順で コロン区切りで指定\nカンマ区切りで複数指定可"
     },
     {
       "name": "n",
@@ -53,7 +103,7 @@
     {
       "name": "rng",
       "type": "boolean",
-      "label": "バケットの範囲均等指定",
+      "label": "件数ではなく、範囲が均等になるように分割する",
       "optional": true
     },
     {
@@ -65,7 +115,8 @@
     {
       "name": "F",
       "type": "select",
-      "label": "出力形式",
+      "label": "バケットの値の形式",
+      "description": "省略時はバケット番号が値となる",
       "options": {
         "labels": [
           "パケット番号のみを表示",
@@ -83,7 +134,8 @@
     {
       "name": "k",
       "type": "string",
-      "label": "バケット分割を行う単位となる列名",
+      "label": "グループ化する項目名",
+      "description": "カンマ区切りで複数指定可",
       "optional": true
     },
     {
@@ -140,6 +192,14 @@
       "type": "string",
       "label": "作業ファイル格納パス名",
       "optional": true
+    },
+    {
+      "name": "precision",
+      "type": "string",
+      "label": "有効桁数",
+      "description": "1〜16の整数",
+      "optional": true,
+      "default": 10
     }
   ],
   "ports": [
@@ -159,6 +219,6 @@
   "version": "0.7.0",
   "label": "一次元均等化バケット分割",
   "classification": "table_split",
-  "description": "1つの数値項目を、指定した数の区間に分割する",
+  "description": "数値項目を、指定した数の区間に分割する",
   "url": "./static/pdf/mcmd/table_split/mbucket.pdf"
 }
