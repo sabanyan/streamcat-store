@@ -376,7 +376,7 @@ class GroupBy2Command(PCommand):
             'UnknownTargetFieldError' : '項目名の指定が正しくありません。${fieldinput}',
             
             # 結果列指定に関わるエラー
-            'ResultsColForbiddenCharacterError' : '半角の（ *　?　[　]　,　:　\\ ）は、項目名に使用できません。${fieldinput}',
+            'ResultsColForbiddenCharacterError' : '半角の（ *　?　[　]　,　:　\\ \' \"）は、項目名に使用できません。${fieldinput}',
             'ResultsColConflictError' : '出力項目名が重複しています。%指定、&指定、ワイルドカード指定など、重複する出力項目名となる設定がないかを、確認してください。${fieldinput}',
             'UnknownResultsColError' : '名前付けルールの設定の指定が正しくありません。${fieldinput}',
             
@@ -2859,7 +2859,7 @@ class GroupBy2Command(PCommand):
         formatstring = _args.pop('format')
 
         # check format string for errors
-        if any(char in formatstring for char in '*?[],:\\'):
+        if any(char in formatstring for char in '*?[],:\\\"\' '):
             errmsg = self.generateCommandErrorMessage('ResultsColForbiddenCharacterError', 'format', formatstring)
             raise Exception(errmsg)
 
