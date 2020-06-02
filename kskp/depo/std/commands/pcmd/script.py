@@ -357,10 +357,13 @@ class GroupBy2Command(PCommand):
         commandname = '特徴量の計算' # 将来、コマンド名はCmdJSONから取得（？）
 
         errormessages = {
+            'FieldNotFoundError' : '指定した項目名は存在しません。${fieldinput}',
+
             # キー項目指定に関わるエラー
             'KeyFieldForbiddenCharacterError' : '半角の%と&は、キー項目名に使用できません。 ${fieldinput} ',
             'KeyFieldConflictError' : 'キー項目名が重複しています。${fieldinput}',
             'EmptyKeyFieldError' : '空文字列でキー項目名が指定されています。${fieldinput}',
+            'KeyTargetConflictError' : 'キー項目名と計算対項目名が重複しています。計算対象項目には、キー項目を指定できません。${fieldinput}',
             'UnknownKeyFieldError' : 'キー項目の指定は正しくありません。${fieldinput}',
             
             # 時間軸に関わるエラー
@@ -442,6 +445,27 @@ class GroupBy2Command(PCommand):
 
         return f'【コマンド：{commandname}】【オプション欄：{errfield}】{message}'
 
+    def expandWildCards(self, to_expand):
+        """
+        takes a comma separated string and parses wildcard expressions within.
+        
+        """
+        import fnmatch as fn
+        expanded = []
+        
+        for elem in to_expand.split(','):
+            matched = False
+            for col in self.header:
+                if fn.fnmatch(col, elem):
+                    expanded += [col]
+                    matched = True
+                    
+            if not matched:
+                # notfound error
+                return 'FieldNotFoundError'
+        
+        return expanded
+        
 
     def fixtimecolumn(self, flow, col, dateformat = 'date'):
         if dateformat == 'date':
@@ -2879,10 +2903,16 @@ class GroupBy2Command(PCommand):
                 # check conflict
                 errmsg = self.generateCommandErrorMessage('KeyFieldConflictError', 'k', k)
                 raise Exception(errmsg)
-            elif '' in k_list:
+            if '' in k_list:
                 # check empty
                 errmsg = self.generateCommandErrorMessage('EmptyKeyFieldError', 'k', k)
                 raise Exception(errmsg)
+            for _keycol in k_list:
+                # if not wildcard expression
+                if not any(char in _keycol for char in '*?[]'):
+                    if _keycol not in self.header:
+                        errmsg = self.generateCommandErrorMessage('FieldNotFoundError', 'k', _keycol)
+                        raise Exception(errmsg)
                 
 
         xs = []
@@ -2922,9 +2952,13 @@ class GroupBy2Command(PCommand):
                         raise Exception(errmsg)
                     x_list = x.split(',')
                     
-                    if '' in x_list:
-                        errmsg = self.generateCommandErrorMessage('EmptyTimecolFieldError', 'x', x)
-                        raise Exception(errmsg)
+                    for _xcol in x_list:
+                        if _xcol == '':
+                            errmsg = self.generateCommandErrorMessage('EmptyTimecolFieldError', 'x', x)
+                            raise Exception(errmsg)
+                        if _xcol not in self.header:
+                            errmsg = self.generateCommandErrorMessage('FieldNotFoundError', 'x', _xcol)
+                            raise Exception(errmsg)
                     
                     arglist['dateformat'] = _args['dateformat']
 
@@ -2938,22 +2972,32 @@ class GroupBy2Command(PCommand):
 
                 fs = arglist.get('f')
                 if fs:
+                    fs_list = fs.split(',')
                     if ('%' in fs) or ('&' in fs): 
                         errmsg = self.generateCommandErrorMessage('TargetFieldForbiddenCharacterError', 'f', fs)
                         raise Exception(errmsg)
 
-                    if len(fs.split(',')) > len(set(fs.split(','))):
+                    if len(fs_list) > len(set(fs_list)):
                         errmsg = self.generateCommandErrorMessage('TargetFieldConflictError', 'f', fs)
                         raise Exception(errmsg)
 
-                    if '' in fs.split(','):
-                        errmsg = self.generateCommandErrorMessage('EmptyTargetFieldError', 'f', fs)
-                        raise Exception(errmsg)
+                    for _fcol in fs_list:
+                        if _fcol == '':
+                            errmsg = self.generateCommandErrorMessage('EmptyTargetFieldError', 'f', fs)
+                            raise Exception(errmsg)
+                        # if not wildcard expression
+                        if not any(char in _fcol for char in '*?[]'):
+                            if _fcol not in self.header:
+                                errmsg = self.generateCommandErrorMessage('FieldNotFoundError', 'f', _fcol)
+                                raise Exception(errmsg)
                         
-
-                    fs = [a for a in self.header 
-                        for target in arglist['f'].split(',')
-                        if fn.fnmatch(a, target)]
+                    # expand wildcard
+                    fs = self.expandWildCards(arglist['f'])
+                    
+                    if type(fs) == str:
+                        errmsg = self.generateCommandErrorMessage('FieldNotFoundError', 'f', arglist['f'])
+                        raise Exception(errmsg)
+                    
                     all_fs += [f for f in fs if f not in all_fs]
                     arglist['f'] = ','.join(fs)
 
@@ -3134,9 +3178,22 @@ class GroupBy2Command(PCommand):
 
         colstocut = xs + [f for f in all_fs if f not in xs]
 
-        if not k:
+        if k:
+            # expand key list
+            k_list = self.expandWildCards(k)
+            if type(k_list) == str:
+                errmsg = self.generateCommandErrorMessage('FieldNotFoundError', 'k', k)
+                raise Exception(errmsg)
+                
+            k = ','.join(k_list)
+        else:
             k = '__key__'
             cmd_i <<= nm.mcal(a = k, c = '"all"')
+
+        # check if there is conflict in key column and data column settings
+        if any(_keycol in colstocut for _keycol in k.split(',')):
+            errmsg = self.generateCommandErrorMessage('KeyTargetConflictError', 'k', k)
+            raise Exception(errmsg)
             
         # replace null key values with uuid
         tmp_key = '!!' + str(uuid.uuid4())
