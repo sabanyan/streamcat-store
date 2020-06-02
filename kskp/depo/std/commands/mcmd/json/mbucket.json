@@ -48,7 +48,7 @@
     {
       "name": "n",
       "type": "string",
-      "label": "行数(必須)"
+      "label": "分割数(必須)"
     },
     {
       "name": "rng",
@@ -84,12 +84,6 @@
       "name": "k",
       "type": "string",
       "label": "バケット分割を行う単位となる列名",
-      "optional": true
-    },
-    {
-      "name": "O",
-      "type": "string",
-      "label": "バケット範囲出力ファイル",
       "optional": true
     },
     {
