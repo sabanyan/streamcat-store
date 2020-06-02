@@ -418,7 +418,7 @@ class GroupBy2Command(PCommand):
                                 'correct_value' : '２以上の整数'},
             'quantile' : {'correct_type' : '数値', 
                           'correct_value' : '０−１の数値'},
-            'range_count' : {'correct_type' : '数値', 
+            'range_count' : {'correct_type' : '数値;数値', 
                              'correct_value' : '全ての数値', 
                              'correct_format' : '開始＜終了の;区切り'},
             'autocorr' : {'correct_type' : '数値', 
@@ -1221,7 +1221,7 @@ class GroupBy2Command(PCommand):
 
         try:
             param = float(n)
-            if (not param.is_integer()) or param < 0:
+            if param <= 0:
                 errmsg = self.generateCommandErrorMessage('ParameterOutOfBoundsError', 'n', n, param_calc = calcid)
                 raise Exception(errmsg)
         except ValueError:
@@ -1260,7 +1260,7 @@ class GroupBy2Command(PCommand):
             param = float(n)
             
             # check if negative
-            if param < 0:
+            if param <= 0:
                 errmsg = self.generateCommandErrorMessage('ParameterOutOfBoundsError', 'n', n, param_calc = calcid)
                 raise Exception(errmsg)
         except ValueError:
@@ -1366,8 +1366,8 @@ class GroupBy2Command(PCommand):
             # check if float (not str)
             param = float(n)
             
-            # check if negative
-            if param < 0:
+            # check if negative or 0
+            if param <= 0:
                 errmsg = self.generateCommandErrorMessage('ParameterOutOfBoundsError', 'n', n, param_calc = calcid)
                 raise Exception(errmsg)
         except ValueError:
@@ -2579,7 +2579,7 @@ class GroupBy2Command(PCommand):
             param = float(n)
             
             # check if not integer
-            if not param.is_integer():
+            if (not param.is_integer()) or param < 1:
                 errmsg = self.generateCommandErrorMessage('ParameterOutOfBoundsError', 'n', n, param_calc = calcid)
                 raise Exception(errmsg)
         except ValueError:
