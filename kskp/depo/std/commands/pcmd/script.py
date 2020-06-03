@@ -395,7 +395,7 @@ class GroupBy2Command(PCommand):
             # パラメータ指定に関わるエラー
             'ParameterConflictError' : 'パラメータが重複しています。${fieldinput}',
             'ParameterTypeError'  : '${calc} のパラメータへの ${fieldinput} 指定が正しくありません。${correct_type} を指定してください',
-            'ParameterOutOfBoundsError' : '${calc} のパラメータへの ${fieldinput} 指定が正しくありません ${correct_value} で指定してください',
+            'ParameterOutOfBoundsError' : '${calc} のパラメータへの ${fieldinput} 指定が正しくありません。 ${correct_value} で指定してください',
             'ParameterFormatError' : '${calc} のパラメータへの ${fieldinput} 指定が正しくありません。${correct_format}で指定してください',
             'UnknownParameterError' : '${calc} のパラメータへの ${fieldinput} 指定が正しくありません'
         }
@@ -409,8 +409,8 @@ class GroupBy2Command(PCommand):
         # }
 
         param_info = {
-            'value_count' : {'correct_type' : '全ての文字越',
-                             'correct_value' : '全ての文字列'},
+            'value_count' : {'correct_type' : '全ての文字列',
+                             'correct_value' : '数値か文字列'},
             'sym_looking' : {'correct_type' : '数値', 
                              'correct_value' : '正の数値'},
             'large_sd' : {'correct_type' : '数値', 
@@ -425,7 +425,7 @@ class GroupBy2Command(PCommand):
                              'correct_value' : '全ての数値', 
                              'correct_format' : '開始＜終了の;区切り'},
             'autocorr' : {'correct_type' : '数値', 
-                          'correct_value' : '正の整数' },
+                          'correct_value' : '１以上の整数' },
             'crossing_m' : {'correct_type' : '数値', 
                             'correct_value' : '全ての数値'},
             'peaks' : {'correct_type' : '数値', 
