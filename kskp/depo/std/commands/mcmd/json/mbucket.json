@@ -48,21 +48,27 @@
       ]
     },
     {
-      "name": "group4",
-      "label": "バケット分割の設定 (必須)",
+      "name": "group2",
+      "label": "バケット分割の設定",
       "params": [
         "f",
         "n",
-        "rng",
-        "F"
+        "rng"
       ]
     },
     {
-      "name": "group3",
+      "name": "group4",
+      "label": "出力の設定",
+      "params": [
+        "F",
+        "r"
+      ]
+    },
+    {
+      "name": "group9",
       "label": "その他 (省略可)",
       "params": [
-        "q",
-        "r"
+        "q"
       ]
     },
     {
@@ -92,13 +98,14 @@
     {
       "name": "f",
       "type": "string",
-      "label": "対象とする項目名と追加項目名の指定",
+      "label": "対象とする項目名と追加項目名の指定(必須)",
       "description": "対象列名、追加列名の順で コロン区切りで指定\nカンマ区切りで複数指定可"
     },
     {
       "name": "n",
       "type": "string",
-      "label": "分割数(必須)"
+      "label": "バケット分割の数(必須)",
+      "description": "2以上の整数を指定する"
     },
     {
       "name": "rng",
@@ -109,19 +116,19 @@
     {
       "name": "r",
       "type": "boolean",
-      "label": "バケットの番号を逆順に出力",
+      "label": "バケットの番号を逆順にして出力する",
       "optional": true
     },
     {
       "name": "F",
       "type": "select",
-      "label": "バケットの値の形式",
-      "description": "省略時はバケット番号が値となる",
+      "label": "バケットの値の出力形式の設定",
+      "description": "番号、範囲の指定が可能(省略時は番号が値となる)",
       "options": {
         "labels": [
-          "パケット番号のみを表示",
-          "パケットの範囲のみを表示",
-          "パケット番号とパケット番号の両方を表示"
+          "パケット番号　(例　1,2,...)",
+          "パケット範囲　(例　_1.5,1.5_3,...)",
+          "パケット番号と範囲　(例　1:_1.5,2:1.5_3,...)"
         ],
         "values": [
           "0",
@@ -197,7 +204,7 @@
       "name": "precision",
       "type": "string",
       "label": "有効桁数",
-      "description": "1〜16の整数",
+      "description": "1〜16の整数(省略時は10)",
       "optional": true,
       "default": 10
     }

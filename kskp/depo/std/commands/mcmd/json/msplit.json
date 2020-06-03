@@ -6,7 +6,7 @@
       "label": "概要",
       "params": [
       ],
-      "description":"対象とする項目の値を区切り文字で分割し、新しい項目に先頭から順番に割り当てる\n\n注意:\n 項目数不足時：収まらない値は無視される\n 項目数が余る時: 余った項目の値はNULLとする"
+      "description":"値をもとに区切り文字で分割し、指定した項目名リストを最大項目数として展開する\n展開した項目には先頭から順番に分割値を割り当て、不足時はNULLとする"
     },    
     {
       "name": "group2",
@@ -18,15 +18,9 @@
     },
     {
       "name": "group4",
-      "label": "追加する項目名の設定(必須)",
+      "label": "出力の設定",
       "params": [
-        "a"
-      ]
-    },
-    {
-      "name": "group3",
-      "label": "その他(省略可)",
-      "params": [
+        "a",
         "r"
       ]
     },
@@ -87,19 +81,20 @@
     {
       "name": "f",
       "type": "string",
-      "label": "対象とする項目名",
+      "label": "対象とする項目名(必須)",
       "description": "1項目のみ指定可能"
     },
     {
       "name": "delim",
       "type": "string",
       "label": "区切り文字",
-      "description": "省略時は半角スペース"
+      "description": "省略時は半角スペース",
+      "optional": true
     },
     {
       "name": "a",
       "type": "string",
-      "label": "分割した値の項目名",
+      "label": "追加する項目名リスト(必須)",
       "description":"カンマ区切りで指定する"
     },
     {
@@ -142,6 +137,7 @@
       "name": "precision",
       "type": "string",
       "label": "有効桁数",
+      "description": "1〜16の整数(省略時は10)",
       "optional": true,
       "default": 10
     }
