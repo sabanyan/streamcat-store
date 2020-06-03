@@ -1,5 +1,56 @@
 {
   "id": "msplit",
+  "groups": [
+    {
+      "name": "group0",
+      "label": "概要",
+      "params": [
+      ],
+      "description":"対象とする項目の値を区切り文字で分割し、新しい項目に先頭から順番に割り当てる\n\n注意:\n 項目数不足時：収まらない値は無視される\n 項目数が余る時: 余った項目の値はNULLとする"
+    },    
+    {
+      "name": "group2",
+      "label": "分割の設定",
+      "params": [
+        "f",
+        "delim"
+      ]
+    },
+    {
+      "name": "group4",
+      "label": "追加する項目名の設定(必須)",
+      "params": [
+        "a"
+      ]
+    },
+    {
+      "name": "group3",
+      "label": "その他(省略可)",
+      "params": [
+        "r"
+      ]
+    },
+    {
+      "name": "group10",
+      "label": "項目名・項目番号についての設定（省略可）",
+      "params": [
+        "x",
+        "nfn",
+        "nfno"
+      ]
+    },
+    {
+      "name": "group20",
+      "label": "システム管理用設定（作業領域・ログ出力）",
+      "params": [
+        "precision",
+        "tmpPath",
+        "assert_diffSize",
+        "assert_nullout",
+        "assert_nullkey"
+      ]
+    }
+  ],
   "rules": {
     "f": {
       "presence": {
@@ -36,17 +87,25 @@
     {
       "name": "f",
       "type": "string",
-      "label": "対象列名"
+      "label": "対象とする項目名",
+      "description": "1項目のみ指定可能"
+    },
+    {
+      "name": "delim",
+      "type": "string",
+      "label": "区切り文字",
+      "description": "省略時は半角スペース"
     },
     {
       "name": "a",
       "type": "string",
-      "label": "新項目名"
+      "label": "分割した値の項目名",
+      "description":"カンマ区切りで指定する"
     },
     {
       "name": "r",
       "type": "boolean",
-      "label": "f=で指定した項目を取り除く",
+      "label": "分割前の項目は削除して出力する",
       "optional": true
     },
     {
@@ -78,6 +137,13 @@
       "type": "string",
       "label": "作業ファイル格納パス名",
       "optional": true
+    },
+    {
+      "name": "precision",
+      "type": "string",
+      "label": "有効桁数",
+      "optional": true,
+      "default": 10
     }
   ],
   "ports": [
