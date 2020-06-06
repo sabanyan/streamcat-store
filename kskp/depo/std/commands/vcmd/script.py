@@ -143,7 +143,7 @@ from bokeh.models import HoverTool, Select, Legend, ColumnDataSource
 from bokeh.io import output_file, show
 from bokeh.models.callbacks import CustomJS
 from bokeh.models import Span
-
+import pprint
 from numpy import histogram
 import itertools
 
@@ -186,6 +186,13 @@ class CsvToLineGraphCommand(VisualizersBokehPlot):
 
         # dfの作成
         df = pd.DataFrame(matrix, columns=column_names)
+        
+        # 無効値の置換処理
+        invaildIndexNames = df[(df[y_axis_column] == '') | (df[y_axis_column] == 'Na') | (df[y_axis_column] == 'Inf') | (df[y_axis_column] == 'NaN')].index
+        df.drop(invaildIndexNames , inplace=True)
+
+        invaildIndexNames = df[(df[x_axis_column] == '') | (df[x_axis_column] == 'Na') | (df[x_axis_column] == 'Inf') | (df[x_axis_column] == 'NaN')].index
+        df.drop(invaildIndexNames , inplace=True)
 
         # Data Typeの指定
 
@@ -203,6 +210,7 @@ class CsvToLineGraphCommand(VisualizersBokehPlot):
         elif x_axis_format_select == "custom":
             df[x_axis_column] = pd.to_datetime(df[x_axis_column], format=timeseries_format_custom)   
      
+
         df[y_axis_column] = df[y_axis_column].astype(float)
         df[data_column] = df[data_column].astype(str)
 
@@ -217,15 +225,20 @@ class CsvToLineGraphCommand(VisualizersBokehPlot):
 
         # 3. 折れ線の作成
         line_list = {}
+        scatter_list = {}
         for label, df in named_dfs.items():
-            line_list[label] = hv.Curve(df, x_axis_column, y_axis_column).opts(width=1040, height=600, framewise=True)
+            line_list[label] = hv.Curve(df, x_axis_column, y_axis_column).opts(framewise=True)
+            scatter_list[label] = hv.Scatter(df, x_axis_column, y_axis_column).opts(framewise=True, size=5)
 
-        ndoverlay = hv.NdOverlay(line_list).opts(legend_position='top',
+        ndoverlay = hv.NdOverlay(line_list)
+        scatter = hv.NdOverlay(scatter_list)
+        overlay = (ndoverlay * scatter).opts(legend_position='top',
                                                  width=graph_width, height=graph_height,
                                                  xlabel=x_axis_label, ylabel=y_axis_label)
 
+
         renderer = hv.renderer('bokeh')
-        plot = renderer.get_plot(ndoverlay).state
+        plot = renderer.get_plot(overlay).state
 
         return plot
 
@@ -267,11 +280,16 @@ class CsvToHistogramCommand(VisualizersBokehPlot):
         # dfの作成
         df = pd.DataFrame(matrix, columns=column_names)
 
+        # 無効値の置換処理
+        invaildIndexNames = df[(df[x_axis_column] == '') | (df[x_axis_column] == 'Na') | (df[x_axis_column] == 'Inf') | (df[x_axis_column] == 'NaN')].index
+        df.drop(invaildIndexNames , inplace=True)
+
         # Data Typeの指定
         # ヒストグラム
         # 横軸：date
         # 縦軸：float
         # データ系列：string
+
         df[x_axis_column] = df[x_axis_column].astype(float)
         df[data_column] = df[data_column].astype(str)
 
@@ -350,6 +368,10 @@ class CsvToBoxplotCommand(VisualizersBokehPlot):
         # 縦軸：float
         # データ系列：string
 
+        # 無効値の置換処理
+        invaildIndexNames = df[(df[y_axis_column] == '') | (df[y_axis_column] == 'Na') | (df[y_axis_column] == 'Inf') | (df[y_axis_column] == 'NaN')].index
+        df.drop(invaildIndexNames , inplace=True)
+
         df[y_axis_column] = df[y_axis_column].astype(float)
         df[data_column] = df[data_column].astype(str)
 
@@ -388,6 +410,9 @@ class CsvToScatterCommand(VisualizersBokehPlot):
         # グラフ表示要素の設定
         withoutContourLine  = args.get('withoutContourLine') if args.get('withoutContourLine') else False
         
+        pp = pprint.PrettyPrinter(indent=4)
+        pp.pprint(withoutContourLine)
+        pp.pprint("-----------------------")
         # グラフサイズの設定
         graph_width     = int(args.get('width'))
         graph_height    = int(args.get('height'))
@@ -404,6 +429,13 @@ class CsvToScatterCommand(VisualizersBokehPlot):
         # 横軸：float
         # 縦軸：float
         # データ系列：string
+
+        # 無効値の置換処理
+        invaildIndexNames = df[(df[y_axis_column] == '') | (df[y_axis_column] == 'Na') | (df[y_axis_column] == 'Inf') | (df[y_axis_column] == 'NaN')].index
+        df.drop(invaildIndexNames , inplace=True)
+
+        invaildIndexNames = df[(df[x_axis_column] == '') | (df[x_axis_column] == 'Na') | (df[x_axis_column] == 'Inf') | (df[x_axis_column] == 'NaN')].index
+        df.drop(invaildIndexNames , inplace=True)
         
         df[x_axis_column] = df[x_axis_column].astype(float)
         df[y_axis_column] = df[y_axis_column].astype(float)
@@ -476,6 +508,13 @@ class CsvToRepetitivieWaveCommand(VisualizersBokehPlot):
 
         # dfの作成
         df = pd.DataFrame(matrix, columns=column_names)
+
+        # 無効値の置換処理
+        invaildIndexNames = df[(df[y_axis_column] == '') | (df[y_axis_column] == 'Na') | (df[y_axis_column] == 'Inf') | (df[y_axis_column] == 'NaN')].index
+        df.drop(invaildIndexNames , inplace=True)
+
+        invaildIndexNames = df[(df[x_axis_column] == '') | (df[x_axis_column] == 'Na') | (df[x_axis_column] == 'Inf') | (df[x_axis_column] == 'NaN')].index
+        df.drop(invaildIndexNames , inplace=True)
  
         # Data Typeの指定
         # Visualizers
@@ -556,10 +595,10 @@ class CsvToRepetitivieWaveCommand(VisualizersBokehPlot):
         colors = self.get_colors(len(source))
         for label, color in zip(source,colors):
             # 線
-            plot.line('x', 'y', source=source[label], legend=label, color=color, alpha=0.75, muted_color=color, muted_alpha=0.2)
+            plot.line('x', 'y', source=source[label], legend=label, color=color, alpha=0.75, muted_color=color, muted_alpha=0.2, line_width=2)
             # 点
             if disableMarker != True:
-                plot.circle('x', 'y', source=source[label], legend=label, color=color, alpha=0.9, muted_color=color, muted_alpha=0.2, size=8)
+                plot.circle('x', 'y', source=source[label], legend=label, color=color, alpha=0.9, muted_color=color, muted_alpha=0.2, size=5)
         
         # 起点
         if disableEvent != True and xs_event is not None:
@@ -634,10 +673,10 @@ class CsvToRepetitivieWaveCommand(VisualizersBokehPlot):
             colors = self.get_colors(len(statics_source))
             for label, color in zip(statics_source,colors):
                 # 線
-                statics_plot.line('x', 'y', source=ColumnDataSource(data=statics_source[label]), legend=label, color=color, alpha=0.75, muted_color=color, muted_alpha=0.2)
+                statics_plot.line('x', 'y', source=ColumnDataSource(data=statics_source[label]), legend=label, color=color, alpha=0.75, muted_color=color, muted_alpha=0.2,line_width=2)
                 # 点
                 if disableMarker != True:
-                    statics_plot.circle('x', 'y', source=ColumnDataSource(data=statics_source[label]), legend=label, color=color, alpha=0.9, muted_color=color, muted_alpha=0.2, size=8)
+                    statics_plot.circle('x', 'y', source=ColumnDataSource(data=statics_source[label]), legend=label, color=color, alpha=0.9, muted_color=color, muted_alpha=0.2, size=5)
                 # 面
                 keys = list(statics_source.keys())
                 length = len(keys)
