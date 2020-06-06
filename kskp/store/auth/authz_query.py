@@ -52,9 +52,11 @@ class AuthzQuery():
     def update(self, values, update_args=None):
         # synchronize_session='fetch'でSQLを2回発行するらしい
         result = self._query.update(values, update_args=update_args)
-
         return result
 
+    def delete(self):
+        result = self._query.delete()
+        return result
 
 class AuthzDatumQuery(AuthzQuery):
 
