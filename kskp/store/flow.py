@@ -451,8 +451,8 @@ class Flow(Datum):
 
         flow_data = self.flow_data
 
-        if 'nodes' not in flow_json:
-            return ret
+        if 'nodes' not in flow_data:
+            return
 
         for node in flow_data['nodes']:
             if node['id'] == node_id:
