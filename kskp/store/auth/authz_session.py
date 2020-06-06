@@ -183,8 +183,13 @@ class AuthzSession(Session):
     def delete(self, obj):
         from kskp.core import Datum
         if isinstance(obj, Datum):
-            if not self.writable_by_id(self.user, obj.id):
+            if self.writable_by_id(self.user, obj.id):
+                # 削除データの権限を全て削除する
+                from kskp.store.factory import AuthFactory
+                AuthFactory(self).delete_all_by_datum_id(obj.id)
+            else:
                 raise NotAuthorizedException((f'{self.user.name}は更新権限がないため{obj.label}を削除できません'))
+
         elif not self.has_admin():
             # Datum以外の書き込みは管理者権限が必要
             raise NotAuthorizedException('no anthz!')   

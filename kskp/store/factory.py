@@ -471,6 +471,14 @@ class AuthFactory():
                                    .filter(Auth.datum_id==datum_id).count()
         return count > 0
 
+    def delete_all_by_datum_id(self, datum_id):
+        """
+        Authzテーブルから指定したDatumの権限情報を全て削除する
+        """
+        from kskp.store.auth import Auth
+        self._session.query(Auth).filter(Auth.datum_id==datum_id).delete()
+        self._session.commit()
+
 from kskp.store.auth import Group
 
 class GroupFactory():
