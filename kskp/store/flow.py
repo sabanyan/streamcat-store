@@ -408,6 +408,9 @@ class Flow(Datum):
         ret = []
         flow_json = self.flow_data
 
+        if 'nodes' not in flow_json:
+            return ret
+
         for node in flow_json['nodes']:
             if node['type'] != 'store':
                 continue
@@ -433,6 +436,7 @@ class Flow(Datum):
         参照uuidを置き換える
         """
         flow_data = self.flow_data
+
         if 'nodes' not in flow_data:
             return
 
@@ -446,6 +450,10 @@ class Flow(Datum):
         from datetime import datetime, timedelta, timezone
 
         flow_data = self.flow_data
+
+        if 'nodes' not in flow_json:
+            return ret
+
         for node in flow_data['nodes']:
             if node['id'] == node_id:
                 node['uuid'] = cache_uuid
