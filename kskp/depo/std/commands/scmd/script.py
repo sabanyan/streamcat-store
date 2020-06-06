@@ -49,7 +49,8 @@ class SaverCommand(SCommand):
     def append_writecsv_cmd(self, cmd, frame_path):
         abs_frame_path = frame_path.as_posix()
         # リストが渡されても処理できるようi=に入力値を渡している
-        return nm.writecsv(i=cmd, o=abs_frame_path)
+        # writecsvは0Byteデータが入力されるとエラーになるのでm2teeを使う
+        return nm.m2tee(i=cmd, o=abs_frame_path)
 
     def make_folder(self, store, folder1_label, folder2_label, folder2_file_name):
         # フロー名フォルダがなければ作成する
@@ -673,7 +674,7 @@ class RemoteFolderSaverCommand(SaverCommand):
 
         # Nysol Python
         cmd = inputs['i'].content
-        cmd <<= nm.writecsv(o=path_str)
+        cmd <<= nm.m2tee(o=path_str)
 
         # DataSourceを保存するフォルダを用意する
         flow_label = args['flow_label']
