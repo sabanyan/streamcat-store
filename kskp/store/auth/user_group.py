@@ -1,14 +1,7 @@
 import os
-import uuid
-import random
-import platform
-import datetime
-
-from pathlib import Path
-from sqlalchemy.orm import aliased
-from sqlalchemy import Column, Integer, String, text, PrimaryKeyConstraint
-
-from kskp.auth import BaseModel, session
+from sqlalchemy import Column, text, PrimaryKeyConstraint
+from sqlalchemy.dialects.postgresql import INTEGER, TIMESTAMP
+from kskp.store import BaseModel
 
 class UserGroup(BaseModel):
     # テーブル名の定義
@@ -19,44 +12,58 @@ class UserGroup(BaseModel):
         PrimaryKeyConstraint('user_id', 'group_id'),
     )
 
+    # 定義先スキーマ
+    if 'KSKP_POSTGRESQL_SCHEMA_NAME' in os.environ:
+        # テスト環境用のスキーマ
+        __table_args__ = __table_args__ + ({'schema': os.environ['KSKP_POSTGRESQL_SCHEMA_NAME']} ,)
+
     # 列名と列のデータ型等の定義
-    user_id     = Column(String)
-    group_id    = Column(String)
-    creator     = Column(Integer)
-    modifier    = Column(Integer)
-    created_at  = Column(String, default=text('CURRENT_TIMESTAMP'))
-    modified_at = Column(String, default=text('CURRENT_TIMESTAMP'))
-    
-    def __init__(self, user_id, group_id, creator=None):
+    user_id      = Column(INTEGER, primary_key=True)
+    group_id     = Column(INTEGER, primary_key=True)
+    _creator_id  = Column('creator', INTEGER)
+    _modifier_id = Column('modifier', INTEGER)
+    created_at   = Column(TIMESTAMP, default=text('statement_timestamp()'))
+    modified_at  = Column(TIMESTAMP, default=text('statement_timestamp()'), onupdate=text('statement_timestamp()'))
+
+    def __init__(self, session, user_id, group_id, creator=None):
         """
         コンストラクタ
         """
+        # SQLAlchemy Session
+        self.session = session
+
         self.user_id = user_id
         self.group_id = group_id
 
         # creator, modifier
-        self.creator = creator
-        self.modifier = creator
+        if creator is not None:
+            self._creator_id = creator.id
+            self._modifier_id = creator.id
+
+    @property
+    def creator(self):
+        from kskp.store.factory import UserFactory
+        if self._creator_id is None:
+            return None
+        return UserFactory(self.session).find_by_id(self._creator_id)
+
+    @property
+    def modifier(self):
+        from kskp.store.factory import UserFactory
+        if self._modifier_id is None:
+            return None
+        return UserFactory(self.session).find_by_id(self._modifier_id)
 
     def save(self):
         """
         UserGroupを保存する
         """
-        session.add(self)
-        session.commit()
+        self.session.add(self)
+        self.session.commit()
 
     def delete(self):
         """
         UserGroupを削除する
         """
-        session.query(UserGroup).filter(UserGroup.user_id==self.user_id)\
-                                .filter(UserGroup.group_id==self.group_id).delete()
-        session.commit()
-
-    @staticmethod
-    def delete_all_by_user_id(user_id):
-        """
-        UsersGroupsテーブルから指定したユーザの所属情報を全て削除する
-        """
-        session.query(UserGroup).filter(UserGroup.user_id==user_id).delete()
-        session.commit()
+        self.session.delete(self)
+        self.session.commit()

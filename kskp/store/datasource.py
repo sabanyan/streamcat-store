@@ -1,7 +1,7 @@
-from kskp.store import Datum, Flow
+from kskp.store import Flow
 
 class DataSource(Flow):
-    def __init__(self, parent_uuid, label, store, loader_step, creator=None):
+    def __init__(self, session, parent, label, store, loader_step, creator=None):
         """
         コンストラクタ
         """
@@ -63,10 +63,10 @@ class DataSource(Flow):
                 ]
             ],
             "params": [],
-            "creator": Datum.get_user_name_by_user_id(self.creator),
+            "creator": self.creator_str,
             "createdAt": self.created_at_str,
             "projectId": None,
             "description": ""
         }
         
-        super().__init__(parent_uuid, label, flow_data, creator)
+        super().__init__(session, parent, label, flow_data, creator)
