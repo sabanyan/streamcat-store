@@ -1,23 +1,18 @@
-import os
-import json
-import shutil
-import shlex
-import subprocess
-from time import sleep
-from pathlib import Path
-
 from kskp.core import Datum
-from . import ss as session
 from kskp.store import Folder, Mountable
 
 class AwsS3(Folder, Mountable):
 
-    def __init__(self, parent_uuid, label, bucket_name, creator=None):
+    __mapper_args__ = {
+        'polymorphic_identity' : 'awss3'
+    }
+
+    def __init__(self, session, parent, label, bucket_name, creator=None):
         """
         コンストラクタ
         bucket_name : AWS S3のバケットネームを指定する
         """
-        super().__init__(parent_uuid, label, creator)
+        super().__init__(session, parent, label, creator)
 
         # データタイプを設定する
         self.type = Datum.AWSS3_TYPE
@@ -28,102 +23,71 @@ class AwsS3(Folder, Mountable):
         # S3のオブジェクトを用意する
         # self._s3 = boto3.resource('s3')
 
-    @staticmethod
-    def find_by_uuid(uuid):
-        """
-        指定されたuuidを持つバケットを取得する
-        """
-        # UUID値の形式チェックをする
-        Datum.valid_uuid_or_raise(uuid)
-        datum = session.query(Datum).filter(Datum.uuid==uuid)\
-                                    .filter(Datum.type==Datum.AWSS3_TYPE).one_or_none()
-        if datum is None:
-            raise Exception('no bucket is found by designated id.')
-        return AwsS3.convert_to_awss3(datum)
-
-    @staticmethod
-    def exists(uuid):
-        """
-        指定されたuuidを持つバケットが存在する場合はTrueを返す
-        """
-        # UUID値の形式チェックをする
-        if not Datum.is_valid_uuid(uuid):
-            return False
-        result = session.query(Datum).filter(Datum.uuid==uuid)\
-                                     .filter(Datum.type==Datum.AWSS3_TYPE).count()
-        return result > 0
-
-    @staticmethod
-    def convert_to_awss3(datum):
-        parent_uuid = Datum.get_uuid_by_id(datum.parent_id)
-        bucket_name = datum.data2['bucket']
-        awss3 = AwsS3(parent_uuid, datum.label, bucket_name, datum.creator)
-        awss3.id = datum.id
-        awss3.uuid = datum.uuid
-        awss3._path = datum._path
-        awss3.data = datum.data
-        awss3.modifier = datum.modifier
-        awss3.created_at = datum.created_at
-        awss3.modified_at = datum.modified_at
-        return awss3
-
     def save(self):
         """
         バケットを保存する
         """
         # 既にルートフォルダが存在する場合は、parent_id=NULLを許可しない
-        if self.parent_id is None and Datum.count_root() > 0:
+        from kskp.store.factory import DatumFactory
+        if self.parent_id is None and DatumFactory(self.session).count_root() > 0:
             raise Exception('You can not add root bucket. A root already exists.')
-        # フォルダに紐付くディレクトリ(path列で指定されるディレクトリ)がなければ作成する
-        self.path = Path(self._make_dir())
-        # ここでAWS S3 バケットをマウントする
-        self.mount(self._path)
+
+        # 既存のファイルと重複しないファイル名を取得する
+        self.path = Datum.make_unique_path(self.path)
+
+        # 新規追加前にファイルパスを退避する
+        self_path = self.path
+
         try:
             # Dataテーブルにレコードを新規追加する
-            session.add(self)
+            self.session.add(self)
+            # フォルダに紐付くディレクトリ(path列で指定されるディレクトリ)がなければ作成する
+            self._make_dir(self_path)
+            # ここでリモートフォルダをマウントする
+            self.mount(self_path)
         except Exception as e:
-            session.rollback()
+            self.unmount(self_path)
+            self._remove_dir(self_path)
+            self.session.rollback()
             raise e
         finally:
-            session.commit()
+            self.session.commit()
 
-    @staticmethod
-    def update_data(uuid, label, bucket_name, modifier):
+    def update_data(self, label, bucket_name, modifier=None):
         """
         バケットのdata列を更新する
         """
-        # UUID値の形式チェックをする
-        Datum.valid_uuid_or_raise(uuid)
-        # レコードを取得する
-        datum = session.query(Datum).filter(Datum.uuid==uuid)\
-                                    .filter(Datum.type==Datum.AWSS3_TYPE).one_or_none()
-        if datum is None:
-            raise Exception('no bucket is found by designated id.')
-
         # ラベルに'\0'が含まれていれば取り除く
         new_label = Datum.escape_label(label)
 
-        # ファイルを移動する
-        old_path = datum._path
-        new_path = Folder._move_dir(old_path, new_label)
+        # ラベル名からファイルパスを作成する
+        old_path = self.path
+        new_path = old_path.parent / Datum.escape_filename(new_label)
+        new_path = Datum.make_unique_path(new_path, except_path=old_path)
 
         try:
             # ディレクトリ名の移動によって他のDatumのpathが変更が必要であれば変更する
-            Datum.update_same_path(old_path, new_path, modifier)
-            Datum.update_include_path(old_path, new_path, modifier)
+            self._update_same_path(old_path, new_path, modifier)
+            self._update_include_path(old_path, new_path, modifier)
 
             # レコードを更新する
-            data = {'bucket' : bucket_name}
-            session.query(Datum).filter(Datum.uuid==uuid).update({'_label'   :new_label
-                                                                 ,'data'    :data
-                                                                 ,'modifier':modifier})
+            # data = {'bucket' : bucket_name}
+            data = self.data.copy()
+            data['bucket'] = bucket_name
+            self._label = new_label
+            self._data = data
+            self._modifier_id = (modifier or self.session.user).id
+            self.session.update(self)
+
+            # ファイルを移動する
+            Datum.move_file(old_path, new_path)
         except Exception as e:
-            session.rollback()
+            self.session.rollback()
             raise e
         finally:
-            session.commit()
+            self.session.commit()
 
-        return AwsS3.convert_to_awss3(datum)
+        return self
 
     def delete(self):
         """
@@ -134,35 +98,34 @@ class AwsS3(Folder, Mountable):
         if len(uuids) > 0:
             raise Exception(
                 'フロー(%s)で使用しているCSVファイルが登録解除対象になっているため削除できません' % uuids[0])
-
         try:
             # フレームレコードを削除する
-            # session.query(Datum).filter(Datum.id==self.id)\
-            #                        .filter(Datum.type==Datum.AWSS3_TYPE).delete()
+            # session.delete(self)
 
             # 自身のフォルダ以下の全てのフォルダとドキュメントをエントリーから削除する
             self._remove_reference_only_recursively()
 
             # AWS S3 バケットをマウント解除する
-            self.unmount(self._path)
+            self.unmount(self.path)
             # ディレクトリを削除する
-            self._remove_dir()
+            self._remove_dir(self.path)
         except Exception as e:
-            session.rollback()
+            self.session.rollback()
             raise e
         finally:
-            session.commit()
+            self.session.commit()
 
     @property
     def bucket_name(self):
-        return self.data2['bucket']
+        return self.data['bucket']
 
     def _get_mount_cmd(self, mount_point_path):
+        import shutil
         # S3をマウントするgoofysコマンドの有無を確認する
         goofys_path = shutil.which('goofys')
         if goofys_path is None:
             raise Exception('AWS S3 mount command, goofys is not found.')
-        return goofys_path + ' %s %s' % (self.bucket_name, mount_point_path)
+        return goofys_path + ' %s %s' % (self.bucket_name, mount_point_path.as_posix())
 
 
     # def _remove_reference_only_recursively(self):
@@ -231,14 +194,17 @@ class AwsS3(Folder, Mountable):
     #     """
     #     while self._exists(key):
     #         # ファイル名の末尾に'_1'を付加するメソッドを流用する
-    #         key = Datum._get_another_file_name(key)
+    #         key = Datum._increment_file_name(key)
     #     return key
 
     def to_json(self):
-        return {'uuid'      : self.uuid,
+        ret =  {'uuid'      : self.uuid,
                 'type'      : Datum.AWSS3_TYPE,
                 'label'     : self.label,
-                'prevFolderPath' : self.get_pref_folder_path(),
                 'bucket'    : self.bucket_name,
-                'creator'   : Datum.get_user_name_by_user_id(self.creator),
+                'creator'   : self.creator_str,
                 'createdAt' : self.created_at_str}
+        if self.readable:
+            ret['prevFolderPath'] = self.get_prev_folder_path()
+            ret['bucket'] = self.bucket_name
+        return ret

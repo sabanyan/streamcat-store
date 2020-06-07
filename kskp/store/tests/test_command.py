@@ -6,15 +6,16 @@ import pprint
 from pathlib import Path
 from datetime import datetime
 
-from kskp.store import Library, STORE_DIR, Flow
+from kskp.store import Library, Flow
 from kskp.engine import execute, FlowJsonLink, FlowLinkContext
+from .test_case_base import TestCaseBase
 
-class CommandTest(unittest.TestCase):
+class CommandTest(TestCaseBase):
     
     @classmethod
     def setUpClass(cls):
-        # テスト用スキーマを作成する
-        from kskp.core import Datum
+        # 親クラスのsetUpClass()を実行する
+        TestCaseBase.setUpClass()
 
         # テスト用テーブルを作成する
         from kskp.store import engine
@@ -36,22 +37,12 @@ class CommandTest(unittest.TestCase):
         INSERT INTO {schema}.test VALUES(1, 'a', 'b', '1900-12-31', '1900-12-31 01:01:01.123456', '1:10:00')
         """.format(schema=os.environ['KSKP_POSTGRESQL_SCHEMA_NAME'])
         engine.execute(insert_test)
-    
 
     @classmethod
     def tearDownClass(cls):
-        # ライブラリフォルダを削除する
-        from kskp.core import Datum
-        library_path = STORE_DIR / Library.load_root().path 
-        import shutil
-        shutil.rmtree(library_path.as_posix())
-        # Sessionを閉じる
-        from kskp.store import ss as session
-        session.close()
-        # スキーマを破棄する
-        from kskp.store import engine
-        from sqlalchemy import DDL
-        engine.execute(DDL('DROP SCHEMA IF EXISTS %s CASCADE' % os.environ['KSKP_POSTGRESQL_SCHEMA_NAME']))
+        # 親クラスのtearDownClass()を実行する
+        TestCaseBase.tearDownClass()
+
 
     flow_data = {
         "projectId": None, 
@@ -190,7 +181,7 @@ def get_frame_by_uuid(uuid, header=True):
     import csv
     result = []
     frame = Library.load_frame(uuid)
-    with open(STORE_DIR / frame.path, 'r') as f:
+    with open(frame.path, 'r') as f:
         rows = csv.reader(f)
         if header:
             header = next(rows)
