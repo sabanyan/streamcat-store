@@ -28,14 +28,20 @@ class Folder(Store):
             raise Exception('You can not add root folder. A root already exists.')
 
         if file_path is None:
-            # フォルダに紐付くディレクトリ(path列で指定されるディレクトリ)がなければ作成する
-            self._path = Datum._to_rel_path(self._make_dir()).as_posix()
+            # 既存のファイルと重複しないファイル名を取得する
+            self.path = Datum.make_unique_path(self.path)
         else:
             self.path = file_path
+
+        # 新規追加前にファイルパスを退避する
+        self_path = self.path
 
         try:
             # Dataテーブルにレコードを新規追加する
             self.session.add(self)
+            # ドキュメントに紐付くファイル(path列で指定されるファイル)がなければ作成する
+            if file_path is None:
+                self._make_dir(self_path)
         except Exception as e:
             self.session.rollback()
             raise e
@@ -64,35 +70,31 @@ class Folder(Store):
         """
         Folderのdata列を更新する
         """
-        # レコードを取得する
-        folder = self.session.query(Folder).filter(Folder.uuid==self.uuid).one_or_none()
-        if folder is None:
-            raise Exception('no folder is found by designated id.')
-
         # ラベルに'\0'が含まれていれば取り除く
         new_label = Datum.escape_label(label)
 
-        # ファイルを移動する
-        old_path = folder.path
-        new_path = Folder._move_dir(old_path, new_label)
+        # ラベル名からファイルパスを作成する    
+        old_path = self.path
+        new_path = old_path.parent / Datum.escape_filename(new_label)
+        new_path = Datum.make_unique_path(new_path, except_path=old_path)
 
         try:
             # ディレクトリ名の移動によって他のDatumのpathが変更が必要であれば変更する
             self._update_same_path(old_path, new_path, modifier)
             self._update_include_path(old_path, new_path, modifier)
-
             # レコードを更新する
-            folder._label = new_label
-            folder._modifier_id = (modifier or self.session.user).id
-            self.session.update(folder)
-
+            self._label = new_label
+            self._modifier_id = (modifier or self.session.user).id
+            self.session.update(self)
+            # ファイルを移動する
+            Datum.move_file(old_path, new_path)
         except Exception as e:
             self.session.rollback()
             raise e
         finally:
             self.session.commit()
 
-        return folder
+        return self
 
 
     def throw_away(self):
@@ -176,7 +178,7 @@ class Folder(Store):
             # フォルダレコードを削除する
             self.session.delete(self)
             # ディレクトリを削除する
-            self._remove_dir()
+            self._remove_dir(self.path)
         except Exception as e:
             self.session.rollback()
             raise e
@@ -233,23 +235,20 @@ class Folder(Store):
         path_to_root.reverse()
         return path_to_root
 
-    def _make_dir(self):
+    def _make_dir(self, path):
         """
         Folderに対応するディレクトリを作成する
         """
         try:
-            # 同じ名称のファイルが既に存在する場合、末尾に数字を付加したディレクトリ名で作成する
-            path = Folder.get_another_file_path(self.path)
-
             # フォルダに紐付くディレクトリ(path列で指定されるディレクトリ)がなければ作成する
-            if not os.path.isdir(path):
+            if not path.is_dir():
                 os.makedirs(path, exist_ok=True)
             return path
         except PermissionError as e:
             # ファイルに対する権限がない場合
             raise e
 
-    def _remove_dir(self):
+    def _remove_dir(self, path):
         """
         Folderに対応するディレクトリを削除する
         """
@@ -257,7 +256,7 @@ class Folder(Store):
         
         try:
             # 全てのフォルダから紐づかないディレクトリは物理削除する
-            dir_path = self.path
+            dir_path = path
 
             while dir_path != '' and dir_path != '/':
                 # 自分以外で同じディレクトリパス(相対パス)を使用しているフォルダの有無を確認する
@@ -275,16 +274,6 @@ class Folder(Store):
             raise e
         except OSError as e:
             raise e
-
-    @staticmethod
-    def _move_dir(old_path, new_label):
-        """
-        Folderのラベルに対応するディレクトリへ移動する
-        """
-        # ファイルを移動する
-        new_path = old_path.parent / Datum.escape_filename(new_label)
-        new_path = Datum.move_file(old_path, new_path)
-        return new_path
 
     def _dir_path_exists(self, dir_path, except_id):
         rel_path = Datum._to_rel_path(dir_path).as_posix()

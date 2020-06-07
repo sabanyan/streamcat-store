@@ -30,22 +30,23 @@ class Store(Datum):
 
         return data
 
-    def find_children_by_label(self, label):
+    def find_children_by_label(self, label, type=None):
         """
         指定したuuidの親と指定したラベル名のレコードを全て取得する
         """
-        from sqlalchemy import desc
         from sqlalchemy.orm import aliased
 
         f2 = aliased(Datum)
         sub_query = self.session.query(f2)
-        data = self.session.query(Datum)\
+        query = self.session.query(Datum)\
                         .filter(sub_query.filter(f2.id==Datum.parent_id)
                                          .filter(f2.uuid==self.uuid).exists())\
-                        .filter(Datum._label==label)\
-                        .order_by(Datum.type, desc(Datum.created_at)).all()
+                        .filter(Datum._label==label)
 
-        return data
+        if type is not None:
+            query = query.filter(Datum.type==type)
+
+        return query.all()
 
     def find_child_by_uuid(self, uuid):
         """
@@ -59,7 +60,7 @@ class Store(Datum):
 
         return data
 
-    def get_another_label_name(self, label, except_uuid=None):
+    def make_unique_label(self, label, except_uuid=None):
         """
         指定する親データストア内で、同じ名称のラベルがすでにある場合、末尾に数字を付加したラベル名を返す
         """

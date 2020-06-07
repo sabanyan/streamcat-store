@@ -51,8 +51,8 @@ class Frame(Datum):
             raise Exception('You can not add another root frame. A root already exists.')
 
         if file_path is None:
-            # ドキュメントに紐付くファイル(path列で指定されるファイル)がなければ作成する
-            self.path = self._make_file()
+            # 既存のファイルと重複しないファイル名を取得する
+            self.path = Datum.make_unique_path(self.path)
         elif file_path.exists():
             self.path = file_path
             # ファイルの文字コードを判定する
@@ -63,9 +63,15 @@ class Frame(Datum):
         else:
             raise Exception(f'指定したファイル({file_path})が存在しないためFrameを保存できません')
 
+        # 新規追加前にファイルパスを退避する
+        self_path = self.path
+
         try:
             # Dataテーブルにレコードを新規追加する
             self.session.add(self)
+            # ドキュメントに紐付くファイル(path列で指定されるファイル)がなければ作成する
+            if file_path is None:
+                self._make_file(self_path)
         except Exception as e:
             self.session.rollback()
             raise e
@@ -103,32 +109,28 @@ class Frame(Datum):
         """
         Frameのdata列を更新する
         """
-        # レコードを取得する
-        frame = self.session.query(Frame).filter(Frame.uuid==self.uuid)\
-                                    .filter(Frame.type==Frame.FRAME_TYPE).one_or_none()
-        if frame is None:
-            raise Exception('no frame is found by designated id.')
-
         # ラベルに'\0'が含まれていれば取り除く
         new_label = Datum.escape_label(label)
 
-        # ファイルを移動する
-        old_path = frame.path
+        # ラベル名からファイルパスを作成する
+        old_path = self.path
         new_path = old_path.parent / Datum.escape_filename(new_label)
-        new_path = Datum.move_file(old_path, new_path)
+        new_path = Datum.make_unique_path(new_path, except_path=old_path)
 
         try:
             # 同じファイルに対応するドキュメントのpath列を、ファイル名の移動に合わせて変更する
             self._update_same_path(old_path, new_path, modifier)
             # label列を更新する
             self._update_label_imp(new_label, modifier)
+            # ファイルを移動する
+            Datum.move_file(old_path, new_path)
         except Exception as e:
             self.session.rollback()
             raise e
         finally:
             self.session.commit()
 
-        return frame
+        return self
 
     def update_encoding_newline(self, encoding_str=None, newline_str=None, modifier=None):
         encoding = None
@@ -189,11 +191,9 @@ class Frame(Datum):
 
     def _update_label_imp(self, new_label, modifier):
         # label列を更新する
-        result = self.session.query(Frame).filter(Frame.uuid==self.uuid).one_or_none()
-        if result is not None:
-            result._label = new_label
-            result._modifier_id = (modifier or self.session.user).id
-            self.session.update(result)
+        self._label = new_label
+        self._modifier_id = (modifier or self.session.user).id
+        self.session.update(self)
 
     def throw_away(self):
         """
@@ -291,16 +291,13 @@ class Frame(Datum):
         wk = time.localtime(self.path.stat().st_mtime)
         return time.strftime('%Y/%m/%d %H:%M', wk)
 
-    def _make_file(self):
+    def _make_file(self, path):
         """
         Frameに対応するファイルを作成する
         """
         try:
-            # 同じ名称のファイルが既に存在する場合、末尾に数字を付加したファイル名で作成する
-            path = Datum.get_another_file_path(self.path)
-            # ドキュメントに紐付くファイル(path列で指定されるファイル)がなければ作成する
-            abs_dir_name = os.path.dirname(path)
-            os.makedirs(abs_dir_name, exist_ok=True)
+            # 親ディレクトリがなければ作成する
+            os.makedirs(path.parent, exist_ok=True)
             # ファイルを作成する
             self._save_file(path)
             return path
