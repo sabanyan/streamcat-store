@@ -45,33 +45,25 @@ class Database(Store):
         """
         Databaseのdata列を更新する
         """
-        # レコードを取得する
-        datum = self.session.query(Datum).filter(Datum.uuid==self.uuid)\
-                                    .filter(Datum.type==Datum.DATABASE_TYPE).one_or_none()
-        if datum is None:
-            raise Exception('no database is found by designated id.')
-
         # ラベルに'\0'が含まれていれば取り除く
         new_label = Datum.escape_label(label)
 
         try:
             # レコードを更新する
             # data = {'conn' : database_conn.to_json()}
-            data = datum.data.copy()
+            data = self.data.copy()
             data['conn'] = database_conn.to_json()
-            result = self.session.query(Datum).filter(Datum.uuid==self.uuid).one_or_none()
-            if result is not None:
-                result._label = new_label
-                result._data = data
-                result._modifier_id = (modifier or self.session.user).id
-                self.session.update(result)
+            self._label = new_label
+            self._data = data
+            self._modifier_id = (modifier or self.session.user).id
+            self.session.update(self)
         except Exception as e:
             self.session.rollback()
             raise e
         finally:
             self.session.commit()
 
-        return datum
+        return self
 
     # def move(self, parent_uuid, modifier=None):
     #     """

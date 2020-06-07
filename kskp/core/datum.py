@@ -307,7 +307,7 @@ class Datum(BaseModel):
         """
         指定されたStoreの直下に移動する
         """
-        from kskp.store import Store, Folder
+        from kskp.store import Mountable, Folder
         from kskp.store.factory import DatumFactory
 
         # UUID値の形式チェックをする
@@ -338,33 +338,37 @@ class Datum(BaseModel):
         new_data['prev_parent_id'] = self.parent_id
 
         # 移動後にラベル名が衝突したらラベル名を変更する
-        new_label = to_folder.get_another_label_name(self.label, except_uuid=self.uuid)
+        new_label = to_folder.make_unique_label(self.label, except_uuid=self.uuid)
 
         try:
-            if self.path is None:
-                new_path_str = ''
-            else:
-                # ファイルを移動する
+            if self.path is not None:
+                # ファイルパスを作成する
                 old_path = self.path
-                new_path = to_folder.path / self.path.name
-
-                # 移動対象がマウントポイントの場合は、path列を変更することはマウントポイントを変更することになるので
-                # parent_idとラベル名だけの変更になる, 移動対象がpath列を持たない場合も同じ処理になる
-                new_path = Datum.move_file(old_path, new_path)
-
-                # ファイル名の移動によって他のDatumのpathが変更が必要であれば変更する
-                self._update_same_path(old_path, new_path, modifier)
-                if isinstance(self, Store):
-                    self._update_include_path(old_path, new_path, modifier)
-                new_path_str = Datum._to_rel_path(new_path).as_posix()
+                if not old_path.exists() or Mountable.is_mount(old_path):
+                    # 移動対象がマウントポイントの場合は、path列を変更することはマウントポイントを変更することになるので
+                    # parent_idとラベル名だけの変更になる, 移動対象がpath列を持たない場合も同じ処理になる
+                    new_path = old_path
+                else:
+                    new_path = to_folder.path / self.path.name
+                    new_path = Datum.make_unique_path(new_path, except_path=old_path)
+                    # ファイル名の移動によって他のDatumのpathが変更が必要であれば変更する
+                    self._update_same_path(old_path, new_path, modifier)
+                    if isinstance(self, Folder):
+                        self._update_include_path(old_path, new_path, modifier)
 
             # レコードを更新する
             self.parent_id = to_folder.id
-            self._path = new_path_str
+            if self.path is not None:
+                self.path = new_path
             self._label = new_label
             self._data = new_data
             self._modifier_id = (modifier or self.session.user).id
             self.session.update(self)
+
+            # ファイルを移動する
+            if self.path is not None:
+                Datum.move_file(old_path, new_path)
+
         except Exception as e:
             self.session.rollback()
             raise e
@@ -515,16 +519,14 @@ class Datum(BaseModel):
         if new_path is None or new_path == '':
             raise Exception('move_file(): 移動先のファイルパスが指定されていません')
         
+        # 移動元と移動先ファイルパスが同じ場合は移動しない
+        if old_path == new_path:
+            return new_path
+
         try:
-            # ファイルを移動する(マウントポイントは移動できない)
-            from kskp.store import Mountable
-            if old_path.exists() and not Mountable.is_mount(old_path):
-                # 同じ名称のファイルが既に存在する場合、末尾に数字を付加したファイル名で作成する
-                new_path = Datum.get_another_file_path(new_path, except_path=old_path)
-                old_path.rename(new_path)
-                return new_path
-            else:
-                return old_path
+            # ファイルを移動する
+            old_path.rename(new_path)
+            return new_path
         except PermissionError as e:
             # ファイルに対する権限がない場合
             raise e
@@ -548,7 +550,7 @@ class Datum(BaseModel):
         return label.translate(trans_table)
 
     @staticmethod
-    def get_another_file_path(path, except_path=None):
+    def make_unique_path(path, except_path=None):
         """
         同じ名称のファイルが既に存在する場合、末尾に数字を付加したファイル名で作成する
         except_path : 存在チェックを除外するファイル名
@@ -556,9 +558,25 @@ class Datum(BaseModel):
         while path.exists() and path != except_path:
             filename = path.name
             dir_path = path.parent
-            new_filename = Datum._get_another_file_name(filename)
+            new_filename = Datum._increment_file_name(filename)
             path = dir_path / new_filename
         return path
+
+    @staticmethod
+    def _increment_file_name(filename):
+        """
+        ファイル名の末尾に'_1'を付加する、既に'_数字'が末尾にある場合は数字をインクリメントする。
+        """
+        (body, ext) = os.path.splitext(filename)
+        # 後ろから1番目の'_'でファイル名を区切る
+        bodylist = body.rsplit('_', 1)
+
+        # isdecimal()は全角数字もTrueになる
+        if len(bodylist) == 2 and bodylist[1].isdecimal():
+            nextNumber = int(bodylist[1]) + 1
+            return bodylist[0] + '_' + str(nextNumber) + ext
+        else:
+            return body + '_1' + ext
 
     @staticmethod
     def _to_abs_path(path):
@@ -575,22 +593,6 @@ class Datum(BaseModel):
             return path.relative_to(Datum.STORE_DIR)
         else:
             return path
-
-    @staticmethod
-    def _get_another_file_name(filename):
-        """
-        ファイル名の末尾に'_1'を付加する、既に'_数字'が末尾にある場合は数字をインクリメントする。
-        """
-        (body, ext) = os.path.splitext(filename)
-        # 後ろから1番目の'_'でファイル名を区切る
-        bodylist = body.rsplit('_', 1)
-
-        # isdecimal()は全角数字もTrueになる
-        if len(bodylist) == 2 and bodylist[1].isdecimal():
-            nextNumber = int(bodylist[1]) + 1
-            return bodylist[0] + '_' + str(nextNumber) + ext
-        else:
-            return body + '_1' + ext
 
     @staticmethod
     def is_valid_uuid(uuid):

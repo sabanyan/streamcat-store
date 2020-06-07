@@ -31,14 +31,23 @@ class AwsS3(Folder, Mountable):
         from kskp.store.factory import DatumFactory
         if self.parent_id is None and DatumFactory(self.session).count_root() > 0:
             raise Exception('You can not add root bucket. A root already exists.')
-        # フォルダに紐付くディレクトリ(path列で指定されるディレクトリ)がなければ作成する
-        self.path = self._make_dir()
-        # ここでAWS S3 バケットをマウントする
-        self.mount(self._path)
+
+        # 既存のファイルと重複しないファイル名を取得する
+        self.path = Datum.make_unique_path(self.path)
+
+        # 新規追加前にファイルパスを退避する
+        self_path = self.path
+
         try:
             # Dataテーブルにレコードを新規追加する
             self.session.add(self)
+            # フォルダに紐付くディレクトリ(path列で指定されるディレクトリ)がなければ作成する
+            self._make_dir(self_path)
+            # ここでリモートフォルダをマウントする
+            self.mount(self_path)
         except Exception as e:
+            self.unmount(self_path)
+            self._remove_dir(self_path)
             self.session.rollback()
             raise e
         finally:
@@ -48,18 +57,13 @@ class AwsS3(Folder, Mountable):
         """
         バケットのdata列を更新する
         """
-        # レコードを取得する
-        datum = self.session.query(Datum).filter(Datum.uuid==self.uuid)\
-                                    .filter(Datum.type==Datum.AWSS3_TYPE).one_or_none()
-        if datum is None:
-            raise Exception('no bucket is found by designated id.')
-
         # ラベルに'\0'が含まれていれば取り除く
         new_label = Datum.escape_label(label)
 
-        # ファイルを移動する
-        old_path = datum._path
-        new_path = Folder._move_dir(old_path, new_label)
+        # ラベル名からファイルパスを作成する
+        old_path = self.path
+        new_path = old_path.parent / Datum.escape_filename(new_label)
+        new_path = Datum.make_unique_path(new_path, except_path=old_path)
 
         try:
             # ディレクトリ名の移動によって他のDatumのpathが変更が必要であれば変更する
@@ -68,21 +72,22 @@ class AwsS3(Folder, Mountable):
 
             # レコードを更新する
             # data = {'bucket' : bucket_name}
-            data = datum.data.copy()
+            data = self.data.copy()
             data['bucket'] = bucket_name
-            result = self.session.query(Datum).filter(Datum.uuid==self.uuid).one_or_none()
-            if result is not None:
-                result._label = new_label
-                result._data = data
-                result._modifier_id = (modifier or self.session.user).id
-                self.session.update(result)
+            self._label = new_label
+            self._data = data
+            self._modifier_id = (modifier or self.session.user).id
+            self.session.update(self)
+
+            # ファイルを移動する
+            Datum.move_file(old_path, new_path)
         except Exception as e:
             self.session.rollback()
             raise e
         finally:
             self.session.commit()
 
-        return datum
+        return self
 
     def delete(self):
         """
@@ -93,7 +98,6 @@ class AwsS3(Folder, Mountable):
         if len(uuids) > 0:
             raise Exception(
                 'フロー(%s)で使用しているCSVファイルが登録解除対象になっているため削除できません' % uuids[0])
-
         try:
             # フレームレコードを削除する
             # session.delete(self)
@@ -102,9 +106,9 @@ class AwsS3(Folder, Mountable):
             self._remove_reference_only_recursively()
 
             # AWS S3 バケットをマウント解除する
-            self.unmount(self._path)
+            self.unmount(self.path)
             # ディレクトリを削除する
-            self._remove_dir()
+            self._remove_dir(self.path)
         except Exception as e:
             self.session.rollback()
             raise e
@@ -190,7 +194,7 @@ class AwsS3(Folder, Mountable):
     #     """
     #     while self._exists(key):
     #         # ファイル名の末尾に'_1'を付加するメソッドを流用する
-    #         key = Datum._get_another_file_name(key)
+    #         key = Datum._increment_file_name(key)
     #     return key
 
     def to_json(self):

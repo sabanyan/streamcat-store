@@ -54,7 +54,7 @@ class SaverCommand(SCommand):
 
     def make_folder(self, store, folder1_label, folder2_label, folder2_file_name):
         # フロー名フォルダがなければ作成する
-        results1 = store.find_children_by_label(folder1_label)
+        results1 = store.find_children_by_label(folder1_label, type=Datum.FOLDER_TYPE)
         if results1 is None or len(results1)==0:
             folder1 = store.create_folder(folder1_label)
             folder1.save()
@@ -62,7 +62,7 @@ class SaverCommand(SCommand):
             folder1 = results1[0]
 
         # 開始時間フォルダがなければ作成する
-        results2 = folder1.find_children_by_label(folder2_label)
+        results2 = folder1.find_children_by_label(folder2_label, type=Datum.FOLDER_TYPE)
         if results2 is None or len(results2)==0:
             folder2 = folder1.create_folder(folder2_label)
             folder2.path = folder2.path.parent / folder2_file_name
@@ -669,7 +669,7 @@ class RemoteFolderSaverCommand(SaverCommand):
 
         # 出力ファイルパスを作成する
         file_path = rfolder.path / dir_path.strip('/') / 'point_id' 
-        file_path = Datum.get_another_file_path(file_path)
+        file_path = Datum.make_unique_path(file_path)
         path_str = file_path.as_posix()
 
         # Nysol Python
