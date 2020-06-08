@@ -26,7 +26,7 @@ class Store(Datum):
             everyone_group = GroupFactory(self.session).load_everyone_group()
             everyone_group.join_user(self.session.user)
             if not AuthFactory(self.session).exists(everyone_group.id, datum.id):
-                everyone_group.init_authz(datum.id, True, True, True)
+                everyone_group.init_authz(datum.id, True, True)
 
         return data
 
@@ -34,6 +34,7 @@ class Store(Datum):
         """
         指定したuuidの親と指定したラベル名のレコードを全て取得する
         """
+        from sqlalchemy import desc
         from sqlalchemy.orm import aliased
 
         f2 = aliased(Datum)
@@ -45,6 +46,9 @@ class Store(Datum):
 
         if type is not None:
             query = query.filter(Datum.type==type)
+
+        # フロー名フォルダが重複している場合は最も新しいフォルダに結果を格納する
+        query = query.order_by(Datum.type, desc(Datum.created_at))
 
         return query.all()
 

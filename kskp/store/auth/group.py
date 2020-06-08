@@ -114,15 +114,22 @@ class Group(BaseModel):
             user_group = UserGroupFactory(self.session).find_by_id(user.id, self.id)
             user_group.delete()
 
-    def init_authz(self, datum_id, read, write, exec):
+    def init_authz(self, datum_id, read, write, exec=None):
+        from .auth import Auth
+        self._init_authz_inner(datum_id, Auth.READ_OP, permission=read)
+        self._init_authz_inner(datum_id, Auth.WRITE_OP, permission=write)
+        if exec is not None:
+            self._init_authz_inner(datum_id, Auth.EXEC_OP, permission=exec)
+
+    def _init_authz_inner(self, datum_id, operation, permission):
         from kskp.store.factory import AuthFactory
         auth_factory = AuthFactory(self.session)
 
-        if auth_factory.exists(self.id, datum_id):
-            auth = auth_factory.find_by_id(self.id, datum_id)
-            auth.update(read, write, exec)
+        if auth_factory.exists(self.id, datum_id, operation):
+            auth = auth_factory.find_by_id(self.id, datum_id, operation)
+            auth.update(permission)
         else:
-            authz = auth_factory.create(self.id, datum_id, read=read, write=write, exec=exec)
+            authz = auth_factory.create(self.id, datum_id, operation, permission=permission)
             authz.save()
 
     @property

@@ -283,7 +283,7 @@ class DatumFactory():
             admin_group = group_factory.load_admin_group()
             admin_group.join_user(self._session.user)
             if not auth_factory.exists(admin_group.id, new_root.id):
-                admin_group.init_authz(new_root.id, True, True, False)
+                admin_group.init_authz(new_root.id, True, True)
 
             # 
             # ルートフォルダにEveryOneグループの権限設定がない場合、初期値を設定する
@@ -292,7 +292,7 @@ class DatumFactory():
             everyone_group = group_factory.load_everyone_group()
             everyone_group.join_user(self._session.user)
             if not auth_factory.exists(everyone_group.id, new_root.id):
-                everyone_group.init_authz(new_root.id, True, True, False)
+                everyone_group.init_authz(new_root.id, True, True)
 
             # 参照権限設定後にもう一度取得し直す
             root = self.find_by_uuid(new_root.uuid)
@@ -455,21 +455,24 @@ class AuthFactory():
     def __init__(self, session):
         self._session = session
 
-    def create(self, group_id, datum_id, read=None, write=None, exec=None):
+    def create(self, group_id, datum_id, operation, permission):
         from kskp.store.auth import Auth
-        return Auth(self._session, group_id, datum_id, read=read, write=write, exec=exec, creator=self._session.user)
+        return Auth(self._session, group_id, datum_id, operation, permission, creator=self._session.user)
 
-    def find_by_id(self, group_id, datum_id):
+    def find_by_id(self, group_id, datum_id, operation):
         from kskp.store.auth import Auth
         # SQLAlchemyのidentity mapにキャッシュされていればそれを返す
-        authz = self._session.query(Auth).get((group_id, datum_id))
+        authz = self._session.query(Auth).get((group_id, datum_id, operation))
         return authz
 
-    def exists(self, group_id, datum_id):
+    def exists(self, group_id, datum_id, operation=None):
         from kskp.store.auth import Auth
-        count = self._session.query(Auth).filter(Auth.group_id==group_id)\
-                                   .filter(Auth.datum_id==datum_id).count()
-        return count > 0
+        query = self._session.query(Auth).filter(Auth.group_id==group_id)\
+                                         .filter(Auth.datum_id==datum_id)
+        if operation is not None:
+            query = query.filter(Auth.operation==operation)
+
+        return query.count() > 0
 
     def delete_all_by_datum_id(self, datum_id):
         """

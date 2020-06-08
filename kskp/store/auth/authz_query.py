@@ -82,13 +82,15 @@ class AuthzDatumQuery(AuthzQuery):
         Dataテーブルと相関し、Datumにwrite権限があることを抽出条件とするExists句を返す
         """
         from sqlalchemy import func, text, column, select, exists, table
+        from .auth import Auth
 
         # 権限がない場合はUPDATEのWHEREはFalseとなる
         ta = table('auths').\
              join(table('groups'), text('auths.group_id=groups.id')).\
              join(table('users_groups'), text(f'groups.id=users_groups.group_id and users_groups.user_id={self._user.id}'))
         
-        tb = select([text('bool_and(auths.write) AS write')]).select_from(ta).where(text('auths.datum_id=data.id')).alias('V')
+        tb = select([text('bool_and(auths.permission) AS write')]).select_from(ta).\
+             where(text(f"auths.datum_id=data.id AND auths.operation='{Auth.WRITE_OP}' ")).alias('V')
 
         stmt = exists(select([1]).select_from(tb).where(text('write=True')))
         
