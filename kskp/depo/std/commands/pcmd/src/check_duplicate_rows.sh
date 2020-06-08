@@ -129,8 +129,10 @@ readonly COLUM_NAME_DUPLICATION='__dup_total__'   #重複数
 readonly COLUM_NAME_ROW_NO='__RowNo_BeginWith1__'  #1始まりの行番号
 readonly COLUM_NAME_DUPLICATION_NO='__dup_no__'   #重複の連番
 
-readonly TMP_FILE_NAME="/home/kskp/kskp/data/tmp/tmp.csv"
-readonly TMP_INPUT_NAME="/home/kskp/kskp/data/tmp/input.csv"
+
+# tmpファイル名生成 (同時実行の可能性を考えて、ファイル名にUUIDを入れておく)
+readonly UUID=`uuidgen`
+readonly TMP_FILE_NAME="/tmp/__pcmdTMP_check_duplicate_rows_${UUID}.csv"
 
 
 # -qオプションで、キー項目の %数字 列名を除去するための列名変更リストの生成

@@ -280,6 +280,22 @@ class Flow(Datum):
         new_flow_data['createdAt'] = datetime.now(JST).strftime('%Y-%m-%d %H:%M:%S')
         # 複製を作成する
         new_flow = Flow(self.parent_uuid, new_label, new_flow_data, user_id)
+        # フロー間でキャッシュを共有すると、キャッシュ削除操作により不整合が発生する
+        # そのためフローを複製する時はキャッシュも複製する
+        old_new_uuid_pairs = {}
+        for cache_uuid in new_flow.get_cache_frame_uuids():
+            cache = Frame.find_by_uuid(cache_uuid)
+            if cache is None:
+                continue
+            # キャッシュを複製する(ファイルは複製されない)
+            new_cache = cache.duplicate(cache.label + ' のコピー', user_id)
+            # ファイルは複製元と共有する(浅いコピー)
+            new_cache.add_entry_from_path(cache.path)
+            # 新旧キャッシュの対応リストに記録する
+            old_new_uuid_pairs[cache_uuid] = new_cache.uuid
+        # フローのキャッシュUUIDを新しいキャッシュUUIDに置き換える
+        new_flow.replace_uuids(old_new_uuid_pairs, user_id)
+
         return new_flow
 
     def get_src_frame_uuids(self):
@@ -295,7 +311,7 @@ class Flow(Datum):
         for node in flow_json['nodes']:
             if node['type'] != 'frame':
                 continue
-            if 'cacheCreatedAt' is node and\
+            if 'cacheCreatedAt' in node and\
                 node['cacheCreatedAt'] is not None and\
                 node['cacheCreatedAt'] != '':
                 # cacheCreatedAtに日時が入っている場合はキャッシュである
@@ -320,7 +336,7 @@ class Flow(Datum):
         for node in flow_json['nodes']:
             if node['type'] != 'frame':
                 continue
-            if 'cacheCreatedAt' is not node or\
+            if 'cacheCreatedAt' not in node or\
                 node['cacheCreatedAt'] is None or\
                 node['cacheCreatedAt'] == '':
                 # cacheCreatedAtに日時が入っていない場合は入力フレームである
@@ -359,6 +375,9 @@ class Flow(Datum):
         ret = []
         flow_json = self.flow_data
 
+        if 'nodes' not in flow_json:
+            return ret
+
         for node in flow_json['nodes']:
             if node['type'] != 'store':
                 continue
@@ -369,26 +388,46 @@ class Flow(Datum):
             ret.append(node['uuid'])
         return ret
 
-    def replace_uuid(self, old_uuid, new_uuid, user_id):
+    # def replace_uuid(self, old_uuid, new_uuid, user_id):
+    #     """
+    #     参照uuidを置き換える
+    #     """
+    #     flow_data = self.flow_data
+    #     for node in flow_data['nodes']:
+    #         if 'uuid' in node and node['uuid'] == old_uuid:
+    #             node['uuid'] = new_uuid
+    #     # Flow.update_data(self.uuid, self.label, flow_data, user_id)
+
+    def replace_uuids(self, old_new_uuid_pairs, user_id):
         """
         参照uuidを置き換える
         """
         flow_data = self.flow_data
+
+        if 'nodes' not in flow_data:
+            return
+
         for node in flow_data['nodes']:
-            if 'uuid' in node and node['uuid'] == old_uuid:
-                node['uuid'] = new_uuid
-        Flow.update_data(self.uuid, self.label, flow_data, user_id)
+            for old_uuid, new_uuid in old_new_uuid_pairs.items():
+                if 'uuid' in node and node['uuid'] == old_uuid:
+                    node['uuid'] = new_uuid
+                    break
+        # Flow.update_data(self.uuid, self.label, flow_data, user_id)
 
     def set_cache(self, node_id, cache_uuid, user_id):
         from datetime import datetime, timedelta, timezone
 
         flow_data = self.flow_data
+
+        if 'nodes' not in flow_data:
+            return
+
         for node in flow_data['nodes']:
             if node['id'] == node_id:
                 node['uuid'] = cache_uuid
                 # 記録時間はUTC、表示時間は現地時間にすべきでは？？
                 node['cacheCreatedAt'] = datetime.now(timezone(timedelta(hours=+9), 'JST')).strftime('%Y-%m-%d %H:%M:%S')
-        Flow.update_data(self.uuid, self.label, flow_data, user_id)
+        # Flow.update_data(self.uuid, self.label, flow_data, user_id)
 
     def to_json(self):
         return {'uuid'      : self.uuid,
