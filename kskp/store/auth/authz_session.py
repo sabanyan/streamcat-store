@@ -103,10 +103,11 @@ class AuthzSession(Session):
         if inspect.isclass(datum_type) and hasattr(datum_type, '__tablename__') and datum_type.__tablename__ == 'data':
             # ユーザが属する全てのグループについて、Datumを参照する権限がTrueまたはNullの場合にのみ
             # Datum.readable=Trueとする
-            subquery = self._session.query(func.bool_and(Auth.read).label("read")).\
+            subquery = self._session.query(func.bool_and(Auth.permission).label("read")).\
                                      outerjoin(Group, Group.id==Auth.group_id).\
                                      outerjoin(UserGroup, UserGroup.group_id==Group.id).\
-                                     filter(UserGroup.user_id==self.user.id)
+                                     filter(UserGroup.user_id==self.user.id).\
+                                     filter(Auth.operation==Auth.READ_OP)
 
             query = self._session.query(datum_type).\
                                   options(with_expression(Datum.user, literal_column(f"'{self.user.name}'"))).\
@@ -145,12 +146,12 @@ class AuthzSession(Session):
             everyone_group = GroupFactory(self).load_everyone_group()
             everyone_group.join_user(self.user)
             # everyoneグループへ追加データの権限を付与する
-            everyone_group.init_authz(obj.id, True, True, True)
+            everyone_group.init_authz(obj.id, True, True)
 
             # 本人グループが無ければ作成し、ユーザを本人グループに所属させる
             self_group = self.user.load_self_group()
             # 本人グループへ追加データの権限を付与する
-            self_group.init_authz(obj.id, True, True, True)
+            self_group.init_authz(obj.id, True, True)
 
         else:
             if not self.has_admin():
@@ -207,10 +208,11 @@ class AuthzSession(Session):
         from .user_group import UserGroup
         from .group import Group
 
-        query = self._session.query(func.bool_and(Auth.write).label("write")).\
+        query = self._session.query(func.bool_and(Auth.permission).label("write")).\
                               outerjoin(Group, Group.id==Auth.group_id).\
                               outerjoin(UserGroup, UserGroup.group_id==Group.id).\
-                              filter(UserGroup.user_id==self.user.id)
+                              filter(UserGroup.user_id==self.user.id).\
+                              filter(Auth.operation==Auth.READ_OP)
 
         result = query.filter(Auth.datum_id==datum_id).one_or_none()
 
