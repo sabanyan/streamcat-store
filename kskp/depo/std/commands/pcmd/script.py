@@ -3665,7 +3665,7 @@ class MvSimCommand(PCommand):
         # f is a wildcard/number expression
         # a is a colname that may have & in it
         # c specifies the statistic to be taken 
-        fctlist = []
+        factlist = []
         output_rule = _args.pop('a')
         for arglist in _args.pop('fctlist'):
             f1 = arglist.pop('f1')
@@ -3690,26 +3690,25 @@ class MvSimCommand(PCommand):
                 f2cols = [a for a in self.header for f in f2s
                     if fn.fnmatch(a, f)]
                 
-            # parse pairs
                 
             for op in ops:
                 for t in ts:
                     for f2col in f2cols:
-                        fctlist.append({'f': f'{f1},{f2col}', 
+                        factlist.append({'f': f'{f1},{f2col}', 
                             'a': output_rule.replace('&', f'{f1}_{f2col}').replace('#',t).replace('%',op), 
                             'c': op,
                             't': t})
 
 
         # factlist is now a list of dictionaries of the fact options:
-        # [{'f': 'f1', 'a': 'a1', 'c': 'c1', 't':, 't1'},
-        #  {'f': 'f2', 'a': 'a2', 'c': 'c2', 't':, 't2'},
+        # [{'f': 'f1,f2', 'a': 'a1', 'c': 'c1', 't':, 't1'},
+        #  {'f': 'f3,f4', 'a': 'a2', 'c': 'c2', 't':, 't2'},
         #  ...]
-        for fctdict in fctlist:
+        for factdict in factlist:
             # arg = args.copy()
 
             # perform mmvsim on field specified by 'a' field, with skip = 0
-            cmd_o <<= nm.mmvsim({'skip': 0, **_args, **fctdict})
+            cmd_o <<= nm.mmvsim({'skip': 0, **_args, **factdict})
 
         # pass output
         nysol_module_o= NysolModule()
