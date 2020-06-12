@@ -3643,10 +3643,16 @@ class MvSimCommand(PCommand):
     def run(self, args, inputs):
         import fnmatch as fn
         _args = copy.deepcopy(args)
+        # _args contents:
+        # 
+        # 
+        # 
+        # 
+        # a
         
         cmd_o = None
         cmd_o <<= inputs['i'].content
-            
+
         # sorting parameters
         if 's' not in _args or (_args['s'] == ''):
             _args['q'] = True
@@ -3659,44 +3665,51 @@ class MvSimCommand(PCommand):
         # f is a wildcard/number expression
         # a is a colname that may have & in it
         # c specifies the statistic to be taken 
-        factlist = []
-        for arglist in _args.pop('factlist'):
-            fs = arglist.pop('f').split(',')
-            aexp = arglist.pop('a')
+        fctlist = []
+        output_rule = _args.pop('a')
+        for arglist in _args.pop('fctlist'):
+            f1 = arglist.pop('f1')
+            
+            # check for multiple items in f1 here
+            
+            f2s = arglist.pop('f2').split(',')
             ops = arglist.pop('c').split(',')
             ts = arglist.pop('t').split(',')
 
             if xoption:
                 # parse number expression
                 targets = []
-                for f in fs:
+                for f in f2s:
                     f = self.parse(f)
                     targets += list(f) if type(f) is range else [f]
 
-                colnames = [self.header[num] for num in targets]
+                f2cols = [self.header[num] for num in targets]
 
             else:
                 # parse wildcard, list expression
-                colnames = [a for a in self.header for f in fs 
+                f2cols = [a for a in self.header for f in f2s
                     if fn.fnmatch(a, f)]
+                
+            # parse pairs
                 
             for op in ops:
                 for t in ts:
-                    factlist.append({'f': ','.join(colnames), 
-                        'a': aexp.replace('#',t).replace('%',op), 
-                        'c': op,
-                        't': t})
+                    for f2col in f2cols:
+                        fctlist.append({'f': f'{f1},{f2col}', 
+                            'a': output_rule.replace('&', f'{f1}_{f2col}').replace('#',t).replace('%',op), 
+                            'c': op,
+                            't': t})
 
 
         # factlist is now a list of dictionaries of the fact options:
         # [{'f': 'f1', 'a': 'a1', 'c': 'c1', 't':, 't1'},
         #  {'f': 'f2', 'a': 'a2', 'c': 'c2', 't':, 't2'},
         #  ...]
-        for factdict in factlist:
+        for fctdict in fctlist:
             # arg = args.copy()
 
             # perform mmvsim on field specified by 'a' field, with skip = 0
-            cmd_o <<= nm.mmvsim({'skip': 0, **_args, **factdict})
+            cmd_o <<= nm.mmvsim({'skip': 0, **_args, **fctdict})
 
         # pass output
         nysol_module_o= NysolModule()
