@@ -19,7 +19,8 @@
       "name": "group3",
       "label": "計算対象と結果の項目設定（必須）",
       "params": [
-        "factlist"
+        "a",
+        "fctlist"
       ]
     },
     {
@@ -65,13 +66,24 @@
       "description": "カンマ区切りで複数指定可"
     },
     {
-      "name": "factlist",
+      "name": "a",
+      "type": "string",
+      "label": "結果項目名",
+      "description": "&:元の二つの項目名を表す記号\n%:類似度名を表わす記号\n#:期間数を表わす記号"
+    },
+    {
+      "name": "fctlist",
       "type": "list",
       "label": "計算対象の設定",
-      "description": "【対象項目】項目名時:*,？,[...] 使用可\n\t項目番号時:0−3,5,0L 等使用可\n【類似度名】カンマ区切りで統計量指定可。\n\t指定可能類似度名:covar, ucovar, pearson, spearman, kendall, euclid, cosine, cityblock, hamming, chi, phi, jaccard, support, lift\n【期間数】データ件数で指定する。１以上の整数をカンマ区切りで複数指定可\n【結果項目名】%:類似度名を表わす記号\n\t#:期間数を表わす記号",
+      "description": "【対象項目】項目名時:*,？,[...] 使用可\n\t項目番号時:0−3,5,0L 等使用可\n【類似度名】カンマ区切りで統計量指定可。\n\t指定可能類似度名:covar, ucovar, pearson, spearman, kendall, euclid, cosine, cityblock, hamming, chi, phi, jaccard, support, lift\n【期間数】データ件数で指定する。１以上の整数をカンマ区切りで複数指定可",
       "elements": [
         {
-          "name": "f",
+          "name": "f1",
+          "type": "string",
+          "label": "対象項目"
+        },
+        {
+          "name": "f2",
           "type": "string",
           "label": "対象項目"
         },
@@ -84,17 +96,12 @@
           "name": "t",
           "type": "string",
           "label": "期間数"
-        },
-        {
-          "name": "a",
-          "type": "string",
-          "label": "結果項目名"
         }
       ],
       "default": [
         {
-          "f": "",
-          "a": "",
+          "f1": "",
+          "f2": "",
           "c": "",
           "t": ""
         }
