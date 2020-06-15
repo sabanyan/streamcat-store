@@ -2999,7 +2999,7 @@ class GroupBy2Command(PCommand):
                                 raise Exception(errmsg)
                         
                     # expand wildcard
-                    fs = self.expandWildCards(arglist['f'])
+                    fs = self.expandWildCards(fs)
                     
                     if type(fs) == str:
                         errmsg = self.generateCommandErrorMessage('FieldNotFoundError', 'f', arglist['f'])
@@ -3139,13 +3139,18 @@ class GroupBy2Command(PCommand):
                     calcname = calcdict['c'].split(':')[1]
                 else:
                     calcname = calcdict['c']
-                
+                    
+                if calcdict.get('x'):
+                    fldname = calcdict['f'] + '_' + calcdict['x'] 
+                else:
+                    fldname = calcdict['f']
+                    
                 # if calc has parameter, append to end
                 if calcdict.get('n'):
                     # set string for calcname (& substitution)
                     calcname += f'_{calcdict["n"]}'
                     
-                finalname = formatstring.replace('%', calcname).replace('&', calcdict['f'])
+                finalname = formatstring.replace('%', calcname).replace('&', fldname)
                 resultcols.append(finalname)
                 
             elif optype == 'aggregate':
@@ -3155,12 +3160,17 @@ class GroupBy2Command(PCommand):
                     else:
                         calcname = c_opt
 
+                    if calcdict.get('x'):
+                        fldname = calcdict['f'] + '_' + calcdict['x'] 
+                    else:
+                        fldname = calcdict['f']
+
                     # if calc has parameter, append to end
                     if calcdict.get('n'):
                         # set string for calcname (& substitution)
                         calcname += f'_{calcdict["n"]}'
                         
-                    finalname = formatstring.replace('%', calcname).replace('&', calcdict['f'])
+                    finalname = formatstring.replace('%', calcname).replace('&', fldname)
                     resultcols.append(finalname)
 
         
@@ -3303,6 +3313,14 @@ class GroupBy2Command(PCommand):
 
             cmd[i] <<= nm.m2cross(k = expanded_k, f= final_cs, 
                     a = '__type__,__val__')
+            
+            if calcdict.get('x'):
+                #add timecol to fld
+                x = calcdict['x']
+                cmd[i] <<= nm.mcal(a = 'fldname', c = f'$s{{fld}}+"_{x}"')
+                cmd[i] <<= nm.mcut(f = 'fld', r = True)
+                cmd[i] <<= nm.mfldname(f = 'fldname:fld')
+                
 
         
         # cmd_o <<= nm.m2cat(i = cmd)
