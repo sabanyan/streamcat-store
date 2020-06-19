@@ -343,6 +343,86 @@ class RunfuncCommand(Command):
 
 
 class GroupBy2Command(PCommand):
+
+    # クラス変数
+    commandname = '特徴量の計算' # 将来、コマンド名はCmdJSONから取得（？）
+    errormessages = {
+        'FieldNotFoundError' : '指定した項目名は存在しません。${fieldinput}',
+
+        # キー項目指定に関わるエラー
+        'KeyFieldForbiddenCharacterError' : '半角の%と&は、キー項目名に使用できません。 ${fieldinput} ',
+        'KeyFieldConflictError' : 'キー項目名が重複しています。${fieldinput}',
+        'EmptyKeyFieldError' : '空文字列でキー項目名が指定されています。${fieldinput}',
+        'KeyTargetConflictError' : 'キー項目名と計算対項目名が重複しています。計算対象項目には、キー項目を指定できません。${fieldinput}',
+        'UnknownKeyFieldError' : 'キー項目の指定は正しくありません。${fieldinput}',
+        
+        # 時間軸に関わるエラー
+        'TimecolForbiddenCharacterError' : '半角の（ *　?　[　]　,　:　\\　&　％ ）は、時間軸の項目の指定に使用できません。${fieldinput}',
+        'EmptyTimecolFieldError' : '空文字列で時間軸の項目名が指定されています。${fieldinput}',
+        'UnknownTimecolFieldError' : 'キー項目の指定は正しくありません。${fieldinput}',
+
+        # 項目名指定に関わるエラー
+        'TargetFieldForbiddenCharacterError':'半角の%と&は、項目名に使用できません。 ${fieldinput} ',
+        'TargetFieldConflictError' : '項目名が重複しています。 ${fieldinput}',
+        'EmptyTargetFieldError' : '空文字列で項目名が指定されています。 ${fieldinput}',
+        'MultipleRowsTargetError' : '複数の項目名は指定できません。 ${fieldinput}',
+        'UnknownTargetFieldError' : '項目名の指定が正しくありません。${fieldinput}',
+        
+        # 結果列指定に関わるエラー
+        'ResultsColForbiddenCharacterError' : '半角の（ *　?　[　]　,　:　\\ \' \"）は、項目名に使用できません。${fieldinput}',
+        'ResultsColConflictError' : '出力項目名が重複しています。%指定、&指定、ワイルドカード指定など、重複する出力項目名となる設定がないかを、確認してください。${fieldinput}',
+        'UnknownResultsColError' : '名前付けルールの設定の指定が正しくありません。${fieldinput}',
+        
+        # 統計量指定に関わるエラー
+        'CalcNotFoundError' : '指定は、有効な統計量指定子ではありません。${fieldinput}',
+        # 'CalcNotFoundError' : '＜その値＞は、有効な統計量指定子ではありません。${fieldinput}',
+        'CalcConflictError' : '統計量が重複しています。${fieldinput}',
+        'EmptyCalcNewNameError' : ':指定で、別名が指定されましたが、別名が空文字列です。${fieldinput}',
+        'EmptyCalcError' : '空文字列で統計量が指定されています。${fieldinput}',
+        'MultipleParamCalcError' : 'パラメータ有りの統計量では、複数の統計量は指定できません。${fieldinput}',
+        'UnknownCalcError' : '統計量の指定が正しくありません。${fieldinput}',
+        
+        # パラメータ指定に関わるエラー
+        'ParameterConflictError' : 'パラメータが重複しています。${fieldinput}',
+        'ParameterTypeError'  : '${calc} のパラメータへの ${fieldinput} 指定が正しくありません。${correct_type} を指定してください',
+        'ParameterOutOfBoundsError' : '${calc} のパラメータへの ${fieldinput} 指定が正しくありません。 ${correct_value} で指定してください',
+        'ParameterFormatError' : '${calc} のパラメータへの ${fieldinput} 指定が正しくありません。${correct_format}で指定してください',
+        'UnknownParameterError' : '${calc} のパラメータへの ${fieldinput} 指定が正しくありません'
+        }
+
+    # このdictは、パラメータの情報が入ってる
+    # {
+    # '統計量キー' : { 'correct_type' : パラメータの正しいデータ型,
+    #                'correct_value' : パラメータの正しい範囲,
+    #                'correct_format' : パラメータの正しい書き方が（ある場合）
+    #               }
+    # }
+    param_info = {
+        'value_count' : {'correct_type' : '全ての文字列',
+                            'correct_value' : '数値か文字列'},
+        'sym_looking' : {'correct_type' : '数値', 
+                            'correct_value' : '正の数値'},
+        'large_sd' : {'correct_type' : '数値', 
+                        'correct_value' : '正の数値'},
+        'ratio_beyond_rsigma' : {'correct_type' : '数値', 
+                                    'correct_value' : '正の数値'},
+        'binned_entropy' : {'correct_type' : '数値', 
+                            'correct_value' : '２以上の整数'},
+        'quantile' : {'correct_type' : '数値', 
+                        'correct_value' : '０−１の数値'},
+        'range_count' : {'correct_type' : '数値;数値', 
+                            'correct_value' : '全ての数値', 
+                            'correct_format' : '開始＜終了の;区切り'},
+        'autocorr' : {'correct_type' : '数値', 
+                        'correct_value' : '１以上の整数' },
+        'crossing_m' : {'correct_type' : '数値', 
+                        'correct_value' : '全ての数値'},
+        'peaks' : {'correct_type' : '数値', 
+                    'correct_value' : '１以上の整数'},
+        'imq' : {'correct_type' : '数値', 
+                    'correct_value' : '０−１の数値'}
+    }
+
     def __init__(self):
         super().__init__()
         self.i_ports = [Port('i', 'frame')]
@@ -354,96 +434,16 @@ class GroupBy2Command(PCommand):
         '''
         from string import Template
 
-        commandname = '特徴量の計算' # 将来、コマンド名はCmdJSONから取得（？）
-
-        errormessages = {
-            'FieldNotFoundError' : '指定した項目名は存在しません。${fieldinput}',
-
-            # キー項目指定に関わるエラー
-            'KeyFieldForbiddenCharacterError' : '半角の%と&は、キー項目名に使用できません。 ${fieldinput} ',
-            'KeyFieldConflictError' : 'キー項目名が重複しています。${fieldinput}',
-            'EmptyKeyFieldError' : '空文字列でキー項目名が指定されています。${fieldinput}',
-            'KeyTargetConflictError' : 'キー項目名と計算対項目名が重複しています。計算対象項目には、キー項目を指定できません。${fieldinput}',
-            'UnknownKeyFieldError' : 'キー項目の指定は正しくありません。${fieldinput}',
-            
-            # 時間軸に関わるエラー
-            'TimecolForbiddenCharacterError' : '半角の（ *　?　[　]　,　:　\\　&　％ ）は、時間軸の項目の指定に使用できません。${fieldinput}',
-            'EmptyTimecolFieldError' : '空文字列で時間軸の項目名が指定されています。${fieldinput}',
-            'UnknownTimecolFieldError' : 'キー項目の指定は正しくありません。${fieldinput}',
-
-            # 項目名指定に関わるエラー
-            'TargetFieldForbiddenCharacterError':'半角の%と&は、項目名に使用できません。 ${fieldinput} ',
-            'TargetFieldConflictError' : '項目名が重複しています。 ${fieldinput}',
-            'EmptyTargetFieldError' : '空文字列で項目名が指定されています。 ${fieldinput}',
-            'MultipleRowsTargetError' : '複数の項目名は指定できません。 ${fieldinput}',
-            'UnknownTargetFieldError' : '項目名の指定が正しくありません。${fieldinput}',
-            
-            # 結果列指定に関わるエラー
-            'ResultsColForbiddenCharacterError' : '半角の（ *　?　[　]　,　:　\\ \' \"）は、項目名に使用できません。${fieldinput}',
-            'ResultsColConflictError' : '出力項目名が重複しています。%指定、&指定、ワイルドカード指定など、重複する出力項目名となる設定がないかを、確認してください。${fieldinput}',
-            'UnknownResultsColError' : '名前付けルールの設定の指定が正しくありません。${fieldinput}',
-            
-            # 統計量指定に関わるエラー
-            'CalcNotFoundError' : '指定は、有効な統計量指定子ではありません。${fieldinput}',
-            # 'CalcNotFoundError' : '＜その値＞は、有効な統計量指定子ではありません。${fieldinput}',
-            'CalcConflictError' : '統計量が重複しています。${fieldinput}',
-            'EmptyCalcNewNameError' : ':指定で、別名が指定されましたが、別名が空文字列です。${fieldinput}',
-            'EmptyCalcError' : '空文字列で統計量が指定されています。${fieldinput}',
-            'MultipleParamCalcError' : 'パラメータ有りの統計量では、複数の統計量は指定できません。${fieldinput}',
-            'UnknownCalcError' : '統計量の指定が正しくありません。${fieldinput}',
-            
-            # パラメータ指定に関わるエラー
-            'ParameterConflictError' : 'パラメータが重複しています。${fieldinput}',
-            'ParameterTypeError'  : '${calc} のパラメータへの ${fieldinput} 指定が正しくありません。${correct_type} を指定してください',
-            'ParameterOutOfBoundsError' : '${calc} のパラメータへの ${fieldinput} 指定が正しくありません。 ${correct_value} で指定してください',
-            'ParameterFormatError' : '${calc} のパラメータへの ${fieldinput} 指定が正しくありません。${correct_format}で指定してください',
-            'UnknownParameterError' : '${calc} のパラメータへの ${fieldinput} 指定が正しくありません'
-        }
-
-        # このdictは、パラメータの情報が入ってる
-        # {
-        # '統計量キー' : { 'correct_type' : パラメータの正しいデータ型,
-        #                'correct_value' : パラメータの正しい範囲,
-        #                'correct_format' : パラメータの正しい書き方が（ある場合）
-        #               }
-        # }
-
-        param_info = {
-            'value_count' : {'correct_type' : '全ての文字列',
-                             'correct_value' : '数値か文字列'},
-            'sym_looking' : {'correct_type' : '数値', 
-                             'correct_value' : '正の数値'},
-            'large_sd' : {'correct_type' : '数値', 
-                          'correct_value' : '正の数値'},
-            'ratio_beyond_rsigma' : {'correct_type' : '数値', 
-                                     'correct_value' : '正の数値'},
-            'binned_entropy' : {'correct_type' : '数値', 
-                                'correct_value' : '２以上の整数'},
-            'quantile' : {'correct_type' : '数値', 
-                          'correct_value' : '０−１の数値'},
-            'range_count' : {'correct_type' : '数値;数値', 
-                             'correct_value' : '全ての数値', 
-                             'correct_format' : '開始＜終了の;区切り'},
-            'autocorr' : {'correct_type' : '数値', 
-                          'correct_value' : '１以上の整数' },
-            'crossing_m' : {'correct_type' : '数値', 
-                            'correct_value' : '全ての数値'},
-            'peaks' : {'correct_type' : '数値', 
-                       'correct_value' : '１以上の整数'},
-            'imq' : {'correct_type' : '数値', 
-                     'correct_value' : '０−１の数値'}
-        }
-
         if param_calc != '':
             # パラメータに関わるエラーの場合、パラメータの情報もエラーメッセージに含む
-            template_strings = {'fieldinput' : errinput, 'calc' : param_calc, **param_info[param_calc]}
+            template_strings = {'fieldinput' : errinput, 'calc' : param_calc, **self.param_info[param_calc]}
         else:
             template_strings = {'fieldinput' : errinput}
 
 
-        message = Template(errormessages[errcode]).safe_substitute(template_strings)
+        message = Template(self.errormessages[errcode]).safe_substitute(template_strings)
 
-        return f'【コマンド：{commandname}】【オプション欄：{errfield}】{message}'
+        return f'【コマンド：{self.commandname}】【オプション欄：{errfield}】{message}'
 
     def expandWildCards(self, to_expand):
         """
@@ -3640,10 +3640,17 @@ class MvStatsCommand(PCommand):
 
 
 class MvSimCommand(PCommand):
+    
+    commandname = '複数の移動窓の類似度の計算'
+    errormessages = {
+        'TestError' : 'This is a test'
+    }
+    
     def __init__(self):
         super().__init__()
         self.i_ports = [Port('i', 'frame')]
         self.o_ports = [Port('o', 'frame')]
+        
 
     def parse(self, exp):
         if '-' in exp:
@@ -3658,42 +3665,78 @@ class MvSimCommand(PCommand):
             return int(exp)
 
 
+    def generateCommandErrorMessage(self, *args):
+        # とりあえず、エラー処理機能は特徴量の計算のコマンドの実装を参照する
+        # TODO：　親コマンドレベルに機能の実装を移動する
+        errhandler = GroupBy2Command()
+        errhandler.commandname = self.commandname
+        errhandler.errormessages = self.errormessages
+
+        return errhandler.generateCommandErrorMessage(*args)
+
     def run(self, args, inputs):
         import fnmatch as fn
         _args = copy.deepcopy(args)
-        # _args contents:
-        # 
-        # 
-        # 
-        # 
-        # a
+
         
         cmd_o = None
         cmd_o <<= inputs['i'].content
-
-        # sorting parameters
-        if 's' not in _args or (_args['s'] == ''):
-            _args['q'] = True
 
         # ヘッダ行を取得する
         self.header = self.get_field_names(inputs['i'])
 
         xoption = _args.pop('x') if 'x' in _args else False
 
+        # 共通オプションの処理・エラー処理
+        # 集計キー指定
+        
+        # ソートする列指定
+        if 's' not in _args or (_args['s'] == ''):
+            _args['q'] = True
+        else:
+            # x option or no, this goes straight into the mmvsim
+            # need only to check the syntax etc (no need to expand)
+            s_list = _args['s'].split(',')
+            if [''] in s_list:
+                # EmptySortFieldError
+                pass
+            
+            
+            # xオプションが指定されたら、有効な指定を確認する
+            if xoption:
+                pass
+            
+
+
+        # if x is True, make sure to transform k and s inputs to names, too
+
+        #   transform k input
+
         # f is a wildcard/number expression
         # a is a colname that may have & in it
         # c specifies the statistic to be taken 
         factlist = []
+        
+        # errmsg = self.generateCommandErrorMessage('TestError', 'x')
+        # raise Exception(errmsg)
+        
         output_rule = _args.pop('a')
         for arglist in _args.pop('fctlist'):
             f1 = arglist.pop('f1')
+            if xoption:
+                if 'L' in f1:
+                    f1_loc = len(self.header) - int(f1.strip('L')) - 1
+                elif '-' in f1:
+                    #raise multiple f1 error
+                    pass
+                else:
+                    f1_loc = int(f1)
+                    
+                f1_name = self.header[f1_loc]
             
             # check for multiple items in f1 here
             
             f2s = arglist.pop('f2').split(',')
-            ops = arglist.pop('c').split(',')
-            ts = arglist.pop('t').split(',')
-
             if xoption:
                 # parse number expression
                 targets = []
@@ -3701,21 +3744,27 @@ class MvSimCommand(PCommand):
                     f = self.parse(f)
                     targets += list(f) if type(f) is range else [f]
 
-                f2cols = [self.header[num] for num in targets]
+                f2cols = [(num,self.header[num]) for num in targets]
 
             else:
                 # parse wildcard, list expression
-                f2cols = [a for a in self.header for f in f2s
+                f2cols = [(a,a) for a in self.header for f in f2s
                     if fn.fnmatch(a, f)]
+                
+                
+            ops = arglist.pop('c').split(',')
+            ts = arglist.pop('t').split(',')
+
                 
                 
             for op in ops:
                 for t in ts:
                     for f2col in f2cols:
-                        factlist.append({'f': f'{f1},{f2col}', 
-                            'a': output_rule.replace('&', f'{f1}_{f2col}').replace('#',t).replace('%',op), 
+                        factlist.append({'f': f'{f1},{f2col[0]}', 
+                            'a': output_rule.replace('&', f'{f1_name}_{f2col[1]}').replace('#',t).replace('%',op), 
                             'c': op,
-                            't': t})
+                            't': t,
+                            'x': xoption})
 
 
         # factlist is now a list of dictionaries of the fact options:
