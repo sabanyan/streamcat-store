@@ -71,6 +71,10 @@ class Session():
 
 class AuthzSession(Session):
 
+    def __init__(self, session_factory, user):
+        super().__init__(session_factory, user)
+        self._readable_query = self._make_readable_query()
+
     @property
     def user(self):
         if self._user is None:
@@ -89,38 +93,75 @@ class AuthzSession(Session):
         pathとdataプロパティは参照された時に権限を判定し、NGなら例外を送出する
         """
         import inspect
-        from sqlalchemy import func, literal_column
         from sqlalchemy.orm import with_expression
-        from sqlalchemy.dialects.postgresql import BOOLEAN
+        from sqlalchemy.sql.expression import literal_column
         from kskp.core import Datum
         from .authz_query import AuthzQuery, AuthzDatumQuery
-        from .auth import Auth
-        from .user_group import UserGroup
-        from .group import Group
 
         # datum_typeがDatumクラスかDatumを継承するクラスか否かを判定する
         # TODO: もう少し確実な判定方法に変更したい
         if inspect.isclass(datum_type) and hasattr(datum_type, '__tablename__') and datum_type.__tablename__ == 'data':
-            # ユーザが属する全てのグループについて、Datumを参照する権限がTrueまたはNullの場合にのみ
-            # Datum.readable=Trueとする
-            subquery = self._session.query(func.bool_and(Auth.permission).label("read")).\
-                                     outerjoin(Group, Group.id==Auth.group_id).\
-                                     outerjoin(UserGroup, UserGroup.group_id==Group.id).\
-                                     filter(UserGroup.user_id==self.user.id).\
-                                     filter(Auth.operation==Auth.READ_OP)
 
-            query = self._session.query(datum_type).\
-                                  options(with_expression(Datum.user, literal_column(f"'{self.user.name}'"))).\
-                                  options(with_expression(Datum.readable, subquery.filter(Auth.datum_id==Datum.id).label('readable')))
-            # query = self._session.query(datum_type).\
-            #                       options(with_expression(Datum.readable, literal_column('false', type_=BOOLEAN).label('readable')))
-            
+            # 下記を両方満たす場合にのみreadable=Trueとする
+            # ・ユーザが属する全てのグループについて、Datumを参照する権限がTrue
+            # ・Datumが属する全ての親フォルダについて、Datumを参照する権限がTrue
+            readable_query = self._readable_query
+
+            query = self._session.query(Datum).\
+                                  options(with_expression(Datum.readable, readable_query.label('readable'))).\
+                                  options(with_expression(Datum.user, literal_column(f"'{self.user.name}'")))
+
             return AuthzDatumQuery(query, self)
 
         else:
             query = self._session.query(datum_type, *args)
             return AuthzQuery(query, self)
     
+    def _make_readable_query(self):
+        from sqlalchemy.orm import aliased
+        from sqlalchemy.sql.expression import select, func, literal_column, text, false
+        from kskp.core import Datum
+        from .auth import Auth
+        from .user_group import UserGroup
+        from .group import Group
+
+        # 相関条件を記述するとSQLAlchemyがFROM句にdataテーブルを追加するので、
+        # それを回避するためtextで記述する
+        Datum_id = text(str(Datum.id.compile()))
+
+        # cte: Common Table Expression WITH句のこと
+        D0 = aliased(Datum, name='D0')
+        R = select([D0.id.label('leaf_id'), D0.id, D0.parent_id]).select_from(D0).\
+            where(D0.id==Datum_id).\
+            cte(name='R', recursive=True)
+
+        # WITH句にUNION ALLを用いて再帰クエリとする
+        D = aliased(Datum, name='D')
+        R = R.union_all(
+                select([R.c.leaf_id, D.id, D.parent_id]).\
+                select_from(R.join(D, D.id==R.c.parent_id))
+            )
+
+        # select_from(Auth.join(Group, ...))と記述できないので、select()が使えない、そのためquery()を使う
+        subquery = self._session.query(func.coalesce(func.bool_and(Auth.permission),false()).label("read")).\
+                                outerjoin(Group, Group.id==Auth.group_id).\
+                                outerjoin(UserGroup, UserGroup.group_id==Group.id).\
+                                filter(UserGroup.user_id==self.user.id).\
+                                filter(Auth.datum_id==R.c.id).\
+                                filter(Auth.operation==Auth.READ_OP).label('')
+
+        subquery = select([func.bool_and(subquery).label('readable')]).select_from(R).\
+                   where(R.c.leaf_id==Datum_id).as_scalar()
+
+
+        # SELECT句内にWITH句を記述する必要があるが、SQLAlchemyではそれができないようだ
+        # そのため、ここでWITH句を含むSELECT文をtextで記述してこれをメインのSELECT文に含める
+        subquery = str(subquery.compile(compile_kwargs={"literal_binds": True}))
+
+        # query.count()でSQLAlchemyがエラーを送出するため、
+        # これを回避するためtextをselectオブジェクトでラップする
+        return select([literal_column(subquery)]).as_scalar()
+
     def add(self, obj):
         from kskp.core import Datum
         from kskp.store import Folder
