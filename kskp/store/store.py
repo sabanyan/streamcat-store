@@ -14,6 +14,9 @@ class Store(Datum):
         """
         from sqlalchemy import desc
 
+        # 参照権限が無ければ直下の子Datumは取得できない
+        self._readable_or_raise()
+
         data = self.session.query(Datum).filter(Datum.parent_id==self.id).\
                             order_by(Datum.type, desc(Datum.created_at)).all()
 
@@ -37,6 +40,9 @@ class Store(Datum):
         from sqlalchemy import desc
         from sqlalchemy.orm import aliased
 
+        # 参照権限が無ければ直下の子Datumは取得できない
+        self._readable_or_raise()
+
         f2 = aliased(Datum)
         sub_query = self.session.query(f2)
         query = self.session.query(Datum)\
@@ -56,6 +62,10 @@ class Store(Datum):
         """
         自分の直下の子から指定されたUUIDのDatumを取得する
         """
+
+        # 参照権限が無ければ直下の子Datumは取得できない
+        self._readable_or_raise()
+
         # UUID値の形式チェックをする
         Datum.valid_uuid_or_raise(uuid)
 

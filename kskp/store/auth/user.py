@@ -27,7 +27,7 @@ class User(BaseModel):
     created_at    = Column(TIMESTAMP, default=text('statement_timestamp()'))
     modified_at   = Column(TIMESTAMP, default=text('statement_timestamp()'), onupdate=text('statement_timestamp()'))
 
-    def __init__(self, session, email, password, name, creator=None):
+    def __init__(self, session, email, password, name):
         """
         コンストラクタ
         """
@@ -42,9 +42,9 @@ class User(BaseModel):
         self.name = name
 
         # creator, modifier
-        if creator is not None:
-            self._creator_id = creator.id
-            self._modifier_id = creator.id
+        if session.user is not None:
+            self._creator_id = session.user.id
+            self._modifier_id = session.user.id
 
     def _get_password_hash(self, email, password):
         """
@@ -147,9 +147,10 @@ class User(BaseModel):
         """
         Userを削除する
         """
-        from .user_group import UserGroup
+        from kskp.store.factory import UserGroupFactory
         # users_groupsテーブルから全ての削除ユーザの行を削除する
-        UserGroup.delete_all_by_user_id(self.id)
+        user_group_factory = UserGroupFactory(self.session)
+        user_group_factory.delete_all_by_user_id(self.id)
         # usersテーブルから削除ユーザの行を削除する
         self.session.delete(self)
         self.session.commit()
