@@ -463,6 +463,8 @@ class AuthFactory():
         from kskp.store.auth import Auth
         # SQLAlchemyのidentity mapにキャッシュされていればそれを返す
         authz = self._session.query(Auth).get((group_id, datum_id, operation))
+        if authz is None:
+            raise Exception('No authz is found by designated store id')
         return authz
 
     def exists(self, group_id, datum_id, operation=None):
@@ -481,6 +483,7 @@ class AuthFactory():
         from kskp.store.auth import Auth
         self._session.query(Auth).filter(Auth.datum_id==datum_id).delete()
         self._session.commit()
+
 
 from kskp.store.auth import Group
 
@@ -539,7 +542,7 @@ class UserGroupFactory():
         return self._session.query(UserGroup).\
                        filter(UserGroup.user_id==user_id).\
                        filter(UserGroup.group_id==group_id).\
-                       one_or_none()
+                       one()
 
     def delete_all_by_user_id(self, user_id):
         """
@@ -562,6 +565,8 @@ class UserFactory():
     def find_by_id(self, user_id):
         # SQLAlchemyのidentity mapにキャッシュされていればそれを返す
         user = self._session.query(User).get(user_id)
+        if user is None:
+            raise Exception('No user is found by designated store id')
         return user
 
     def find_by_uuid(self, uuid):
@@ -569,14 +574,14 @@ class UserFactory():
         from kskp.core import Datum
         Datum.valid_uuid_or_raise(uuid)
 
-        user = self._session.query(User).filter(User.uuid==uuid).one_or_none()
+        user = self._session.query(User).filter(User.uuid==uuid).one()
         return user
 
     def find_by_email(self, email):
         """
         指定されたuuidを持つFrameを取得する
         """
-        user = self._session.query(User).filter(User.email==email).one_or_none()
+        user = self._session.query(User).filter(User.email==email).one()
         return user
 
     def exists(self, uuid):

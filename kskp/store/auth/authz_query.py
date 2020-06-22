@@ -64,6 +64,11 @@ class AuthzDatumQuery(AuthzQuery):
         return AuthzDatumQuery(self._query.filter(*criterion), self._session)
 
     def update(self, values, update_args=None):
+        """
+        実は今は使っていないようだ
+        一括更新に使うかもしれない
+        """
+
         # 権限がない場合はUPDATEのWHEREはFalseとなる
         exists_stmt = self._get_authz_exists_stmt()
         

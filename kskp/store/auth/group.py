@@ -81,7 +81,7 @@ class Group(BaseModel):
             raise Exception('Can not delete the group that has user(s).')
         # 削除によってどのグループからも所有されなくなるデータがある場合は例外を送出する
         count = self.session.query(Auth).filter(Auth.group_id == self.id)\
-                                    .filter(Auth.own == 1).count()
+                                        .filter(Auth.own == 1).count()
         # 削除グループに対する権限情報をauthsテーブルから全て削除する
 
         # グループを削除する
@@ -147,8 +147,7 @@ class Group(BaseModel):
         from kskp.store import Datum
         return {
             'id'       : self.id,
-            'name'     : self.name,
-            'is_admin' : self.is_admin,               
+            'name'     : self.name,              
             'creator'  : self.creator_str,
             'createdAt': self.created_at_str
         }

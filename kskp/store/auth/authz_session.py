@@ -170,7 +170,7 @@ class AuthzSession(Session):
         if isinstance(obj, Datum):
             # Datumの新規追加時はその親フォルダの変更権限を判定する
             # (ROOTフォルダの新規追加の場合は変更を許可する)
-            if obj.parent_id is not None and not self.writable_by_id(self.user, obj.parent_id):
+            if obj.parent_id is not None and not self.writable_by_id(self.user, obj):
                 parent = obj.find_parent()
                 raise NotAuthorizedException(f'{self.user.name}は{parent.label}の変更権限がないため{obj.label}を新規追加できませんでした')
 
@@ -204,7 +204,7 @@ class AuthzSession(Session):
         from kskp.core import Datum
         if isinstance(obj, Datum):
             # Datumの変更権限を判定する
-            if not self.writable_by_id(self.user, obj.id):
+            if not self.writable_by_id(self.user, obj):
                 raise NotAuthorizedException((f'{self.user.name}は更新権限がないため{obj.label}を更新できません'))
             if obj._data is not None:
                 # JSON列への変更はflag_modified()を使ってSQLAlchemyに知らせないとDBに反映されない
@@ -225,7 +225,7 @@ class AuthzSession(Session):
     def delete(self, obj):
         from kskp.core import Datum
         if isinstance(obj, Datum):
-            if self.writable_by_id(self.user, obj.id):
+            if self.writable_by_id(self.user, obj):
                 # 削除データの権限を全て削除する
                 from kskp.store.factory import AuthFactory
                 AuthFactory(self).delete_all_by_datum_id(obj.id)
@@ -239,12 +239,11 @@ class AuthzSession(Session):
         # 削除する
         self._session.delete(obj)
 
-    def writable_by_id(self, user, datum_id):
+    def writable_by_id(self, user, datum):
         """
         ユーザIDとDatumについて書き込み権限の有無を判定する
         """
-        from sqlalchemy import func
-
+        from sqlalchemy import func, or_
         from .auth import Auth
         from .user_group import UserGroup
         from .group import Group
@@ -252,10 +251,17 @@ class AuthzSession(Session):
         query = self._session.query(func.bool_and(Auth.permission).label("write")).\
                               outerjoin(Group, Group.id==Auth.group_id).\
                               outerjoin(UserGroup, UserGroup.group_id==Group.id).\
-                              filter(UserGroup.user_id==self.user.id).\
-                              filter(Auth.operation==Auth.READ_OP)
+                              filter(UserGroup.user_id==user.id).\
+                              filter(Auth.operation==Auth.WRITE_OP)
 
-        result = query.filter(Auth.datum_id==datum_id).one_or_none()
+        if datum.id is None:
+            # Datumの新規追加の場合(datum.id=None)は親フォルダの書き込み権限だけを判定する
+            query = query.filter(Auth.datum_id==datum.parent_id)
+        else:
+            # 親フォルダとDatumの両方の書き込み権限がある場合にのみ、書き込みOKの判定をする
+            query = query.filter(or_(Auth.datum_id==datum.parent_id, Auth.datum_id==datum.id))
+
+        result = query.one_or_none()
 
         return result.write == True
 

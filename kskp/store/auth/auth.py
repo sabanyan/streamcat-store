@@ -83,3 +83,9 @@ class Auth(BaseModel):
         finally:
             self.session.commit()
 
+    def delete(self):
+        """
+        Authを削除する
+        """
+        self.session.delete(self)
+        self.session.commit()
