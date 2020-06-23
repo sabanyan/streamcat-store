@@ -3643,6 +3643,20 @@ class MvSimCommand(PCommand):
     
     commandname = '複数の移動窓の類似度の計算'
     errormessages = {
+        
+        # キー列に対するエラー
+        'KeyConflictError' : '項目名が重複しています。${fieldinput}',
+        'KeyNumberConflictError' : '項目番号が重複しています。${fieldinput}',
+        'KeyNumberSettingError' : 'キー項目番号の指定は正しくありません。${fieldinput}',
+        'KeyFieldNotFoundError' : '指定した項目名は存在しません。${fieldinput}',
+        'KeyFieldNumberNotFoundError' : '指定した項目番号は存在しません。${fieldinput}',
+        'EmptyKeyFieldError' : '空文字列でキー項目名が指定されています。${fieldinput}',
+        'KeyFieldForbiddenCharacterError' : '半角の（ :　\　&　％　＃ ）は、キー項目の指定に使用できません。${fieldinput}',
+        
+        # ソート設定に対するエラー
+        'SortFieldConflictError' : '項目名が重複しています。${fieldinput}',
+        'SortFieldNumberSettingError' : 'ソート項目番号の指定は正しくありません。${fieldinput}',
+        
         'TestError' : 'This is a test'
     }
     
@@ -3664,6 +3678,17 @@ class MvSimCommand(PCommand):
         else:
             return int(exp)
 
+    def numberExpIsValid(self, exp):
+        allowed = set('0123456789-L')
+        return set(exp) <= allowed
+    
+    def numberExpOutOfRange(self, exp):
+        keynums = exp.strip('L').split('-')
+        for num in keynums:
+            if int(num) > len(self.header):
+                return True
+        
+        return False
 
     def generateCommandErrorMessage(self, *args):
         # とりあえず、エラー処理機能は特徴量の計算のコマンドの実装を参照する
@@ -3685,32 +3710,103 @@ class MvSimCommand(PCommand):
         # ヘッダ行を取得する
         self.header = self.get_field_names(inputs['i'])
 
-        xoption = _args.pop('x') if 'x' in _args else False
+        xoption = _args.get('x')
 
         # 共通オプションの処理・エラー処理
         # 集計キー指定
         
+        # if key setting is not empty
+        k = _args.get('k')
+        if k:
+            k_list = k.split(',')
+            
+            if xoption:
+                if len(k_list) != len(set(k_list)):
+                    errmsg = self.generateCommandErrorMessage('KeyNumberConflictError', 'k', k)
+                    raise Exception(errmsg)
+                
+                for key in k_list:
+                    if not self.numberExpIsValid(key):
+                        errmsg = self.generateCommandErrorMessage('KeyNumberSettingError', 'k', key)
+                        raise Exception(errmsg)
+                    
+                    if key == '':
+                        errmsg = self.generateCommandErrorMessage('EmptyKeyFieldError', 'k', key)
+                        raise Exception(errmsg)
+
+                    if self.numberExpOutOfRange(key):
+                        errmsg = self.generateCommandErrorMessage('KeyFieldNumberNotFoundError', 'k', key)
+                        raise Exception(errmsg)
+                
+            else:
+                if len(k_list) != len(set(k_list)):
+                    errmsg = self.generateCommandErrorMessage('KeyConflictError', 'k', k)
+                    raise Exception(errmsg)
+                
+                for key in k_list:
+                    # forbidden characters
+                    if ':\\%&#' in key:
+                        errmsg = self.generateCommandErrorMessage('KeyFieldForbiddenCharacterError', 'k', key)
+                        raise Exception(errmsg)
+                    
+                    if key == '':
+                        errmsg = self.generateCommandErrorMessage('EmptyKeyFieldError', 'k', key)
+                        raise Exception(errmsg)
+                        
+                    if key not in self.header:
+                        errmsg = self.generateCommandErrorMessage('KeyFieldNotFoundError', 'k', key)
+                        raise Exception(errmsg)
+        
+        
         # ソートする列指定
+        # if no sort column setting, set q flag (no sort) to true 
         if 's' not in _args or (_args['s'] == ''):
             _args['q'] = True
         else:
-            # x option or no, this goes straight into the mmvsim
-            # need only to check the syntax etc (no need to expand)
-            s_list = _args['s'].split(',')
-            if [''] in s_list:
-                # EmptySortFieldError
-                pass
+            s_opt = _args['s'].split(',')
             
+            s_list = []
+            # separate column and sort order input
+            for elem in s_opt:
+                parts = elem.split('%')
+                
+                if parts[0] == '':
+                    # EmptySortFieldError
+                    pass
+                
+                if len(parts) == 2:
+                    # there is both column and sort order
+                    s_list.append(parts)
+                    pass 
+                elif len(parts) == 1:
+                    # there is only column
+                    s_list.append(parts + [''])
+                    pass
+                else:
+                    pass # format error
+
+            # s_list is now a list of lists containing the column and sort order
+            # user inputs:
+            # s_list = [['col1', 'n'], ['col2', ''], ...]
             
             # xオプションが指定されたら、有効な指定を確認する
-            if xoption:
-                pass
+            for col in s_list:
+                if xoption:
+                    # check for bad expression (not 0-9, -, or L)
+                    # check if out of bounds
+                    
+                    pass
+                else:
+                    # check non existence
+                    
+                    pass
             
-
-
-        # if x is True, make sure to transform k and s inputs to names, too
-
-        #   transform k input
+            
+            s_list_final = ['%'.join(elem) for elem in s_list]
+            # print(s_list_final)
+            _args['s'] = s_list_final
+            # _args['s'] = ['col1%n', 'col2', ...]
+            
 
         # f is a wildcard/number expression
         # a is a colname that may have & in it
@@ -3733,6 +3829,8 @@ class MvSimCommand(PCommand):
                     f1_loc = int(f1)
                     
                 f1_name = self.header[f1_loc]
+            else: 
+                f1_name = f1
             
             # check for multiple items in f1 here
             
@@ -3763,8 +3861,7 @@ class MvSimCommand(PCommand):
                         factlist.append({'f': f'{f1},{f2col[0]}', 
                             'a': output_rule.replace('&', f'{f1_name}_{f2col[1]}').replace('#',t).replace('%',op), 
                             'c': op,
-                            't': t,
-                            'x': xoption})
+                            't': t})
 
 
         # factlist is now a list of dictionaries of the fact options:
