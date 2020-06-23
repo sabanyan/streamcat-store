@@ -333,7 +333,7 @@ class Frame(Datum):
                     break
 
     def _frame_path_exists(self, path, except_id):
-        rel_path = Datum._to_rel_path(path).as_posix()
+        rel_path = Datum._to_rel_path(path)
 
         result = self.session.query(Datum._path).filter(Datum._path == rel_path)\
                                            .filter(Datum.type == Datum.FRAME_TYPE)\

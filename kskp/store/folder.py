@@ -126,7 +126,8 @@ class Folder(Store):
             # ゴミ箱に捨てても削除前の階層構造を維持するため、削除対象フォルダの形代をゴミ箱に作成する
             trashed_folder = parent.create_folder(datum.label)
             trashed_folder.save()
-            trashed_folder = parent.find_child_by_uuid(trashed_folder.uuid)
+            # trashed_folder = parent.find_child_by_uuid(trashed_folder.uuid)
+            trashed_folder = trashed_folder.reload()
 
             throwables = []
             thrown_count = 0
@@ -276,10 +277,10 @@ class Folder(Store):
             raise e
 
     def _dir_path_exists(self, dir_path, except_id):
-        rel_path = Datum._to_rel_path(dir_path).as_posix()
+        rel_path = Datum._to_rel_path(dir_path)
 
         results = self.session.query(Datum._path)\
-                 .filter(Datum._path.like(rel_path + '%'))\
+                 .filter(Datum._path.like(rel_path.as_posix() + '%'))\
                  .filter(Datum.id != except_id).all()
 
         for result in results:

@@ -21,7 +21,7 @@ class Activity(Datum):
         super().__init__(session, parent, Activity.TYPE, label, creator)
 
         # Activityはファイルに保存せず、データベースに保存する
-        self._path = ''
+        self._path = None
 
         # 処理の開始時刻を取得する
         from datetime import datetime, timezone

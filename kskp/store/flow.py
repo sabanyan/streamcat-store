@@ -15,7 +15,7 @@ class Flow(Datum):
         super().__init__(session, parent, Datum.FLOW_TYPE, label, creator)
 
         # フローデータはファイルに保存せず、データベースに保存する
-        self._path = ''
+        self._path = None
 
         # data列の値を作成する
         self.data = {'label' : label, 'flow' : flow_data}
