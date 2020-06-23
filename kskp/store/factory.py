@@ -325,18 +325,18 @@ class DatumFactory():
         """
         from kskp.store import TrashCan
         if self.trashcan_exists():
-            trash = self.find_trashcan()
+            return self.find_trashcan()
         else:
             # ゴミ箱が無い場合は作成する
             root = self.load_root()
             trash = root.create_trashcan()
             trash.save()
-        return trash
+            return trash.reload()
 
     def _get_or_make_dir_path(self, uuid, label):
         # 特定用途のフォルダのUUIDは決め打ちである
         if self.exists(uuid):
-            folder = self.find_by_uuid(uuid)
+            return self.find_by_uuid(uuid)
         else:
             # UUID値の形式チェックをする
             from kskp.core import Datum
@@ -348,7 +348,7 @@ class DatumFactory():
             # Folderのコンストラクタで付番したUUIDを捨てて、特定用途のフォルダのUUIDを格納する
             folder.uuid = uuid
             folder.save()
-        return folder
+            return folder.reload()
 
     def get_flows_referencing_frame(self, frame_uuid):
         """

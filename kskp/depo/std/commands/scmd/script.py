@@ -58,6 +58,7 @@ class SaverCommand(SCommand):
         if results1 is None or len(results1)==0:
             folder1 = store.create_folder(folder1_label)
             folder1.save()
+            folder1 = folder1.reload()
         else:
             folder1 = results1[0]
 
@@ -67,7 +68,8 @@ class SaverCommand(SCommand):
             folder2 = folder1.create_folder(folder2_label)
             folder2.path = folder2.path.parent / folder2_file_name
             folder2.save()
-        else:            
+            folder2 = folder2.reload()
+        else:
             if isinstance(results2[0], Store):
                 folder2 = results2[0]
             else:
@@ -82,7 +84,7 @@ class SaverCommand(SCommand):
         frame = store.create_frame(label, f)
         # RunsCommandの実行前にFrameを登録する
         frame.save()
-        return store.find_child_by_uuid(frame.uuid)
+        return frame.reload()
 
 class CacheSaverCommand(SaverCommand):
     """
@@ -133,7 +135,7 @@ class CacheSaverCommand(SaverCommand):
         cache = store.create_cache(label, f)
         # RunsCommandの実行前にCacheを登録する
         cache.save()
-        cache = store.find_child_by_uuid(cache.uuid)
+        cache = cache.reload()
         # FrameとCacheを区別するためのフラグ
         cache.is_cache = True
         return cache

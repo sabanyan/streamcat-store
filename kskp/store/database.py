@@ -17,7 +17,7 @@ class Database(Store):
         super().__init__(session, parent, Datum.DATABASE_TYPE, label, creator)
  
         # 接続情報はデータベースに保存する
-        self._path = ''
+        self._path = None
 
         # data列の値を作成する
         if database_conn is None:

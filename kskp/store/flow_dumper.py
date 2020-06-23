@@ -171,7 +171,7 @@ class FlowDumper:
         frame_folder = parent.create_folder('FromOtherServer')
         frame_folder.save()
         # 保存後に参照権限を取得するためDBから取得する
-        frame_folder = self.factory.data.find_by_uuid(frame_folder.uuid)
+        frame_folder = frame_folder.reload()
 
         # フローフォルダを取得する
         flow_folder = self.factory.data.load_flow_folder()
