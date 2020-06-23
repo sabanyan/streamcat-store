@@ -7,6 +7,10 @@ class AuthzQuery():
         self._session = authz_session
         self._user = authz_session.user
 
+    def __str__(self):
+        # パラメタに値をバインドした後のSQL文を返す
+        return str(self._query.statement.compile(compile_kwargs={"literal_binds": True}))
+
     @staticmethod
     def _is_base_model(obj):
         from kskp.store import BaseModel
