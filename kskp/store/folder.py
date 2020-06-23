@@ -29,19 +29,19 @@ class Folder(Store):
 
         if file_path is None:
             # 既存のファイルと重複しないファイル名を取得する
-            self.path = Datum.make_unique_path(self.path)
+            self._path = Datum.make_unique_path(self._path)
         else:
-            self.path = file_path
+            self._path = file_path
 
-        # 新規追加前にファイルパスを退避する
-        self_path = self.path
+        # # 新規追加前にファイルパスを退避する
+        # self_path = self.path
 
         try:
             # Dataテーブルにレコードを新規追加する
             self.session.add(self)
             # ドキュメントに紐付くファイル(path列で指定されるファイル)がなければ作成する
             if file_path is None:
-                self._make_dir(self_path)
+                self._make_dir(self._path)
         except Exception as e:
             self.session.rollback()
             raise e
@@ -74,7 +74,7 @@ class Folder(Store):
         new_label = Datum.escape_label(label)
 
         # ラベル名からファイルパスを作成する    
-        old_path = self.path
+        old_path = self._path
         new_path = old_path.parent / Datum.escape_filename(new_label)
         new_path = Datum.make_unique_path(new_path, except_path=old_path)
 
@@ -179,7 +179,7 @@ class Folder(Store):
             # フォルダレコードを削除する
             self.session.delete(self)
             # ディレクトリを削除する
-            self._remove_dir(self.path)
+            self._remove_dir(self._path)
         except Exception as e:
             self.session.rollback()
             raise e
@@ -284,9 +284,9 @@ class Folder(Store):
                  .filter(Datum.id != except_id).all()
 
         for result in results:
-            if result._path == rel_path:
+            if result._path == dir_path:
                 return True
-            if os.path.commonpath([result._path, rel_path]) == rel_path:
+            if os.path.commonpath([result._path, dir_path]) == dir_path:
                 return True
         return False
 

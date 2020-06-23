@@ -52,9 +52,9 @@ class Frame(Datum):
 
         if file_path is None:
             # 既存のファイルと重複しないファイル名を取得する
-            self.path = Datum.make_unique_path(self.path)
+            self._path = Datum.make_unique_path(self._path)
         elif file_path.exists():
-            self.path = file_path
+            self._path = file_path
             # ファイルの文字コードを判定する
             with open(file_path, 'rb') as f:
                 encoding = Frame._detect_encoding(f)
@@ -63,15 +63,15 @@ class Frame(Datum):
         else:
             raise Exception(f'指定したファイル({file_path})が存在しないためFrameを保存できません')
 
-        # 新規追加前にファイルパスを退避する
-        self_path = self.path
+        # # 新規追加前にファイルパスを退避する
+        # self_path = self.path
 
         try:
             # Dataテーブルにレコードを新規追加する
             self.session.add(self)
             # ドキュメントに紐付くファイル(path列で指定されるファイル)がなければ作成する
             if file_path is None:
-                self._make_file(self_path)
+                self._make_file(self._path)
         except Exception as e:
             self.session.rollback()
             raise e
@@ -113,7 +113,7 @@ class Frame(Datum):
         new_label = Datum.escape_label(label)
 
         # ラベル名からファイルパスを作成する
-        old_path = self.path
+        old_path = self._path
         new_path = old_path.parent / Datum.escape_filename(new_label)
         new_path = Datum.make_unique_path(new_path, except_path=old_path)
 
@@ -253,11 +253,11 @@ class Frame(Datum):
 
     @property
     def file_size(self):
-        return self.path.stat().st_size
+        return self._path.stat().st_size
 
     @property
     def file_exists(self):
-        return self.path.exists()
+        return self._path.exists()
 
     @property
     def encoding(self):
@@ -288,7 +288,7 @@ class Frame(Datum):
     @property
     def modified_at_str(self):
         import time
-        wk = time.localtime(self.path.stat().st_mtime)
+        wk = time.localtime(self._path.stat().st_mtime)
         return time.strftime('%Y/%m/%d %H:%M', wk)
 
     def _make_file(self, path):
@@ -311,15 +311,15 @@ class Frame(Datum):
         """
         try:
             # ファイルが存在しなければ削除処理はしない
-            if not self.path.exists():
+            if not self._path.exists():
                 return
             # 自分以外で同じファイルを使用しているFrameがあれば削除しない
-            if self._frame_path_exists(self.path, except_id=self.id):
+            if self._frame_path_exists(self._path, except_id=self.id):
                 return
-            if not self.path.is_file():
-                raise Exception('Can not delete %s, because it is not reguler file.' % self.path)
+            if not self._path.is_file():
+                raise Exception(f'Can not delete {self._path}, because it is not reguler file.')
             # ファイルを物理削除する
-            self.path.unlink()
+            self._path.unlink()
         except PermissionError as e:
             # ファイルに対する権限がない場合
             raise e
@@ -333,11 +333,9 @@ class Frame(Datum):
                     break
 
     def _frame_path_exists(self, path, except_id):
-        rel_path = Datum._to_rel_path(path)
-
-        result = self.session.query(Datum._path).filter(Datum._path == rel_path)\
-                                           .filter(Datum.type == Datum.FRAME_TYPE)\
-                                           .filter(Datum.id != except_id).count()
+        result = self.session.query(Datum._path).filter(Datum._path == path)\
+                                                .filter(Datum.type == Datum.FRAME_TYPE)\
+                                                .filter(Datum.id != except_id).count()
         return result > 0
 
     @staticmethod

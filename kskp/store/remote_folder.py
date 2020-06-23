@@ -35,10 +35,10 @@ class RemoteFolder(Folder, Mountable):
             raise Exception('You can not add root remote folder. A root already exists.')
 
         # 既存のファイルと重複しないファイル名を取得する
-        self.path = Datum.make_unique_path(self.path)
+        self._path = Datum.make_unique_path(self._path)
 
         # 新規追加前にファイルパスを退避する
-        self_path = self.path
+        self_path = self._path
 
         try:
             # Dataテーブルにレコードを新規追加する
@@ -63,7 +63,7 @@ class RemoteFolder(Folder, Mountable):
         new_label = Datum.escape_label(label)
 
         # ラベル名からファイルパスを作成する
-        old_path = self.path
+        old_path = self._path
         new_path = old_path.parent / Datum.escape_filename(new_label)
         new_path = Datum.make_unique_path(new_path, except_path=old_path)
 
@@ -105,9 +105,9 @@ class RemoteFolder(Folder, Mountable):
             self._remove_reference_only_recursively()
 
             # 共有フォルダをマウント解除する
-            self.unmount(self.path)
+            self.unmount(self._path)
             # ディレクトリを削除する
-            self._remove_dir(self.path)
+            self._remove_dir(self._path)
         except Exception as e:
             self.session.rollback()
             raise e

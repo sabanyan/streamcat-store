@@ -66,8 +66,7 @@ class SaverCommand(SCommand):
         results2 = folder1.find_children_by_label(folder2_label, type=Datum.FOLDER_TYPE)
         if results2 is None or len(results2)==0:
             folder2 = folder1.create_folder(folder2_label)
-            folder2.path = folder2.path.parent / folder2_file_name
-            folder2.save()
+            folder2.save(file_path = folder2.path.parent / folder2_file_name)
             folder2 = folder2.reload()
         else:
             if isinstance(results2[0], Store):

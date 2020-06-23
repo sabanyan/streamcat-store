@@ -24,12 +24,14 @@ class Datum(BaseModel):
         def process_bind_param(self, value, dialect):
             if value is None:
                 return ''
-            return value.as_posix()
+            # return value.as_posix()
+            return Datum._to_rel_path(value).as_posix()
 
         def process_result_value(self, value, dialect):
-            if value=='':
+            if value=='' or value is None:
                 return None
-            return Path(value)
+            # return Path(value)
+            return Datum._to_abs_path(Path(value))
 
         # _pathに対してLike式を用いる時に必要
         def coerce_compared_value(self, op, value):
@@ -112,10 +114,9 @@ class Datum(BaseModel):
         # pathは親フォルダのpathを引き継ぐ
         if parent is None:
             # 親フォルダがない場合はデフォルトパスとする
-            self._path = self.DEFAULT_LIBRARY_PATH
+            self._path = Datum._to_abs_path(self.DEFAULT_LIBRARY_PATH)
         else:
             dir_name = Datum.escape_filename(label)
-            # self._path = os.path.join(parent._path, dir_name)
             self._path = parent._path / dir_name
 
         # label
@@ -138,6 +139,11 @@ class Datum(BaseModel):
     @property
     def path(self):
         from kskp.store import Mountable
+        # 
+        # TODO:
+        # remount()処理はここに記述せずに、Mountable側でpathプロパティを再定義して
+        # そこで、remount()処理を記述したいと思う。
+        # 
 
         # 参照権限が無ければ例外を送出する
         self._readable_or_raise()
@@ -183,15 +189,14 @@ class Datum(BaseModel):
         # 絶対パスを返す
         return Path(Datum._to_abs_path(self._path))
 
-    @path.setter
-    def path(self, path):
-        # Pathオブジェクトを受け取る
-        self._path = Datum._to_rel_path(path)
+    # @path.setter
+    # def path(self, path):
+    #     # Pathオブジェクトを受け取る
+    #     self._path = Datum._to_rel_path(path)
 
     @property
     def path_exists(self):
-        path = Datum._to_abs_path(self._path)
-        return os.path.exists(path)
+        return self._path.exists()
 
     @property
     def label(self):
@@ -338,15 +343,16 @@ class Datum(BaseModel):
         new_label = to_folder.make_unique_label(self.label, except_uuid=self.uuid)
 
         try:
-            if self.path is not None:
+            if self._path is not None:
                 # ファイルパスを作成する
-                old_path = self.path
+                old_path = self._path
                 if not old_path.exists() or Mountable.is_mount(old_path):
                     # 移動対象がマウントポイントの場合は、path列を変更することはマウントポイントを変更することになるので
                     # parent_idとラベル名だけの変更になる, 移動対象がpath列を持たない場合も同じ処理になる
                     new_path = old_path
                 else:
-                    new_path = to_folder.path / self.path.name
+                    # 移動先フォルダの参照権限は必要ということにした
+                    new_path = to_folder.path / self._path.name
                     new_path = Datum.make_unique_path(new_path, except_path=old_path)
                     # ファイル名の移動によって他のDatumのpathが変更が必要であれば変更する
                     self._update_same_path(old_path, new_path, modifier)
@@ -355,15 +361,15 @@ class Datum(BaseModel):
 
             # レコードを更新する
             self.parent_id = to_folder.id
-            if self.path is not None:
-                self.path = new_path
+            if self._path is not None:
+                self._path = new_path
             self._label = new_label
             self._data = new_data
             self._modifier_id = (modifier or self.session.user).id
             self.session.update(self)
 
             # ファイルを移動する
-            if self.path is not None:
+            if self._path is not None:
                 Datum.move_file(old_path, new_path)
 
         except Exception as e:
@@ -466,9 +472,7 @@ class Datum(BaseModel):
 
     def _update_same_path(self, old_path, new_path, modifier):
         # 同じファイルに対応するフォルダのpath列を、ファイル名の移動に合わせて変更する
-        rel_old_path = Datum._to_rel_path(old_path)
-
-        results = self.session.query(Datum).filter(Datum._path == rel_old_path).all()
+        results = self.session.query(Datum).filter(Datum._path == old_path).all()
         for result in results:
             result._path = Datum._to_rel_path(new_path)
             result._modifier_id = (modifier or self.session.user).id
@@ -479,14 +483,15 @@ class Datum(BaseModel):
         # 同じディレクトリを含むpath列を、ディレクトリの移動に合わせて変更する
         rel_old_path = Datum._to_rel_path(old_path).as_posix()
         # ファイルパスに正規表現文字が含まれていればエスケープする
-        old_path_pattern = '^' + re.escape(rel_old_path)
+        old_path_pattern = '^' + re.escape(rel_old_path) + '/'
         # SQLのワイルドカード%と_をエスケープする
         results = self.session.query(Datum)\
                          .filter(Datum._path!=None)\
                          .filter(Datum._path.like(rel_old_path + '/' + '%')).all()
         for result in results:
-            rel_new_path = Datum._to_rel_path(new_path).as_posix()
-            replaced_path = re.sub(old_path_pattern, rel_new_path, result._path.as_posix())
+            rel_new_path = Datum._to_rel_path(new_path).as_posix() + '/'
+            rel_result_path = Datum._to_rel_path(result._path).as_posix()
+            replaced_path = re.sub(old_path_pattern, rel_new_path, rel_result_path)
 
             result._path = Path(replaced_path)
             result._modifier_id = (modifier or self.session.user).id
