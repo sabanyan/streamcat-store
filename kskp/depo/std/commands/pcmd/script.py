@@ -3678,6 +3678,7 @@ class MvSimCommand(PCommand):
         'Target2ConflictError' : '項目名が重複しています。${fieldinput}',
         'Target2FieldNotFoundError' : '指定した項目名は存在しません。${fieldinput}',
         'Target2FieldNumberNotFoundError' : '指定した項目番号は存在しません。${fieldinput}',
+        'Target2FieldNumberSettingError' : '計算対象項目番号の指定は正しくありません。${fieldinput}',
         'Target2ForbiddenCharacterError' : '半角の（ :　\　&　％　＃ ）は、計算対象項目の指定に使用できません。${fieldinput}',
         'Target2EmptyError' : '空文字列で計算対象項目が指定されています。${fieldinput}',
         
@@ -3833,6 +3834,10 @@ class MvSimCommand(PCommand):
                         errmsg = self.generateCommandErrorMessage('SortFieldNotFoundError', 's', s_opt)
                         raise Exception(errmsg)
                 
+                if parts[1] not in ['', 'n', 'r', 'nr']:
+                    errmsg = self.generateCommandErrorMessage('SortFieldOrderError', 's', s_opt)
+                    raise Exception(errmsg)
+                    
                 
                 if parts[0] == '':
                     errmsg = self.generateCommandErrorMessage('EmptySortFieldError', 's', s_opt)
@@ -3897,7 +3902,7 @@ class MvSimCommand(PCommand):
                 if 'L' in f1:
                     f1_loc = len(self.header) - int(f1.strip('L')) - 1
                 elif self.containsAny(f1, '-,'):
-                    errmsg = self.generateCommandErrorMessage('Target1MultipleFieldNumberNotFoundError', 'f1', f1)
+                    errmsg = self.generateCommandErrorMessage('Target1MultipleFieldNumberError', 'f1', f1)
                     raise Exception(errmsg)
                 else:
                     f1_loc = int(f1)
@@ -3942,6 +3947,10 @@ class MvSimCommand(PCommand):
                 # parse number expression
                 targets = []
                 for f in f2_list:
+                    if not self.numberExpIsValid(f):
+                        errmsg = self.generateCommandErrorMessage('Target2FieldNumberSettingError', 'f2', f)
+                        raise Exception(errmsg)
+                        
                     f = self.parse(f)
                     targets += list(f) if type(f) is range else [f]
 
