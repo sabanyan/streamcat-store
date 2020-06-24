@@ -61,8 +61,8 @@ class Flow(Datum):
         new_label = Datum.escape_label(label)
         # 更新データを作成する
         # data = {'label' : new_label, 'flow' : flow_data}
-        data = self.data.copy()
-        data['flow'] = flow_data
+        # data = self.data.copy()
+        # data['flow'] = flow_data
         # flow.data = data
 
         # フローのインポート処理で引っかかるので以下のチェックを一旦外す
@@ -80,7 +80,7 @@ class Flow(Datum):
         try:
             # レコードを更新する
             self._label = new_label
-            self._data = data
+            self.data['flow'] = flow_data
             self._modifier_id = (modifier or self.session.user).id
             self.session.update(self)
         except Exception as e:

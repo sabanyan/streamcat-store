@@ -72,10 +72,10 @@ class AwsS3(Folder, Mountable):
 
             # レコードを更新する
             # data = {'bucket' : bucket_name}
-            data = self.data.copy()
-            data['bucket'] = bucket_name
+            # data = self.data.copy()
+            # data['bucket'] = bucket_name
             self._label = new_label
-            self._data = data
+            self.data['bucket'] = bucket_name
             self._modifier_id = (modifier or self.session.user).id
             self.session.update(self)
 
