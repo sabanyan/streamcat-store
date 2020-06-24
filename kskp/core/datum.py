@@ -40,6 +40,30 @@ class Datum(BaseModel):
             else:
                 return self
 
+    class AuthzDict():
+        """
+        特定のキーへは参照権限を必要とするDictのラッパー
+        """
+        def __init__(self, dict_value, datum):
+            self._dict = dict_value
+            self._datum = datum
+
+        def _check_readable(self, key):
+            if key in ('flow', 'conn', 'bucket'):
+                self._datum._readable_or_raise()
+
+        def get(self, key):
+            self._check_readable(key)
+            return self._dict.get(key)
+
+        def __getitem__(self, key):
+            self._check_readable(key)
+            return self._dict[key]
+
+        def __setitem__(self, key, value):
+            self._dict[key] = value
+
+
     # ルートフォルダのPath
     DEFAULT_LIBRARY_PATH = Path('cmn')
 
@@ -220,19 +244,14 @@ class Datum(BaseModel):
     @property
     def data(self):
         # 参照権限が無ければ例外を送出する
-        self._readable_or_raise()
-        return self._data
+        # self._readable_or_raise()
+        if self._data is None:
+            return None
+        return Datum.AuthzDict(self._data, self)
 
     @data.setter
-    def data(self, data):
-        self._data = data
-
-    # @property
-    # def content(self):
-    #     """
-    #     Engineから参照する
-    #     """
-    #     return self
+    def data(self, value):
+        self._data = value
 
     @property
     def created_at_str(self):
@@ -332,12 +351,12 @@ class Datum(BaseModel):
         if self.type == Datum.FOLDER_TYPE:
             pass
 
-        # 移動元フォルダのidを覚えておく
-        if self.data is None:
-            new_data = {}
-        else:
-            new_data = self.data.copy()
-        new_data['prev_parent_id'] = self.parent_id
+        # # 移動元フォルダのidを覚えておく
+        # if self.data is None:
+        #     new_data = {}
+        # else:
+        #     new_data = self.data.copy()
+        # new_data['prev_parent_id'] = self.parent_id
 
         # 移動後にラベル名が衝突したらラベル名を変更する
         new_label = to_folder.make_unique_label(self.label, except_uuid=self.uuid)
@@ -360,11 +379,13 @@ class Datum(BaseModel):
                         self._update_include_path(old_path, new_path, modifier)
 
             # レコードを更新する
+            if self.data is None:
+                self.data = {}
+            self.data['prev_parent_id'] = self.parent_id
             self.parent_id = to_folder.id
             if self._path is not None:
                 self._path = new_path
             self._label = new_label
-            self._data = new_data
             self._modifier_id = (modifier or self.session.user).id
             self.session.update(self)
 
