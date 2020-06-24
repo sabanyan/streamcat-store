@@ -3834,9 +3834,10 @@ class MvSimCommand(PCommand):
                         errmsg = self.generateCommandErrorMessage('SortFieldNotFoundError', 's', s_opt)
                         raise Exception(errmsg)
                 
-                if parts[1] not in ['', 'n', 'r', 'nr']:
-                    errmsg = self.generateCommandErrorMessage('SortFieldOrderError', 's', s_opt)
-                    raise Exception(errmsg)
+                if len(parts) > 1:
+                    if parts[1] not in ['', 'n', 'r', 'nr']:
+                        errmsg = self.generateCommandErrorMessage('SortFieldOrderError', 's', s_opt)
+                        raise Exception(errmsg)
                     
                 
                 if parts[0] == '':
@@ -3963,14 +3964,16 @@ class MvSimCommand(PCommand):
             else:
                 f2cols = []
                 
-                for f in f2_list:
-                    if f not in self.header:
-                        errmsg = self.generateCommandErrorMessage('Target2FieldNotFoundError', 'f2', f2s)
+                for elem in f2_list:
+                    matched = False
+                    for col in self.header:
+                        if fn.fnmatch(col, elem):
+                            f2cols.append((col, col))
+                            matched = True
+                            
+                    if not matched:
+                        errmsg = self.generateCommandErrorMessage('Target2FieldNotFoundError', 'f2', elem)
                         raise Exception(errmsg)
-                    
-                    for target in self.header:
-                        if fn.fnmatch(target, f):
-                            f2cols.append((f, f))
                 
                 
             ops = arglist.get('c')
@@ -4002,7 +4005,7 @@ class MvSimCommand(PCommand):
                 raise Exception(errmsg)
             
             for t in ts_list:
-                if len(ts_list) != len(set(op_list)):
+                if len(ts_list) != len(set(ts_list)):
                     errmsg = self.generateCommandErrorMessage('WindowSizeConflictError', 't', t)
                     raise Exception(errmsg)
                 
