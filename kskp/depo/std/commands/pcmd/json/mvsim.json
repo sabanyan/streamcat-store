@@ -10,7 +10,7 @@
     },
     {
       "name": "group2",
-      "label": "時系列の設定（省略可）",
+      "label": "ソートの設定（省略可）",
       "params": [
         "s"
       ]
@@ -76,7 +76,7 @@
       "name": "fctlist",
       "type": "list",
       "label": "計算対象の設定",
-      "description": "【対象項目】項目名時:*,？,[...] 使用可\n\t項目番号時:0−3,5,0L 等使用可\n【類似度名】カンマ区切りで統計量指定可。\n\t指定可能類似度名:covar, ucovar, pearson, spearman, kendall, euclid, cosine, cityblock, hamming, chi, phi, jaccard, support, lift\n【期間数】データ件数で指定する。１以上の整数をカンマ区切りで複数指定可",
+      "description": "【対象項目】項目名時:*,？,[...] 使用可\n\t項目番号時:0−3,5,0L 等使用可\n【類似度名】カンマ区切りで統計量指定可。\n\t指定可能類似度名:covar, ucovar, pearson, spearman, kendall, euclid, cosine, cityblock, hamming, chi, phi, jaccard, support, lift\n【対象行数】データ件数で指定する。１以上の整数をカンマ区切りで複数指定可",
       "elements": [
         {
           "name": "f1",
@@ -96,7 +96,7 @@
         {
           "name": "t",
           "type": "string",
-          "label": "期間数"
+          "label": "対象行数"
         }
       ],
       "default": [
