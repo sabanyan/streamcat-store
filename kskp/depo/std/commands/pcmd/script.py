@@ -3010,6 +3010,10 @@ class GroupBy2Command(PCommand):
 
                 cs = arglist.pop('c').split(',')
                 
+                if '' in cs:
+                    errmsg = self.generateCommandErrorMessage('EmptyCalcError', 'c', ','.join(cs))
+                    raise Exception(errmsg)
+                
                 if len(cs) > len(set(cs)):
                     errmsg = self.generateCommandErrorMessage('CalcConflictError', 'c', ','.join(cs))
                     raise Exception(errmsg)
