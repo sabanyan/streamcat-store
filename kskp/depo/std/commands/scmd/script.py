@@ -719,7 +719,25 @@ class RunsCommand(SCommand):
 
     def run(self, args, inputs):
         import psutil
+        import subprocess
         from multiprocessing import Process, Manager, Pipe
+
+        def human(size):
+            B = "B"
+            KB = "KB" 
+            MB = "MB"
+            GB = "GB"
+            TB = "TB"
+            UNITS = [KB, MB, GB, TB]
+            HUMANFMT = "%d %s"
+            HUMANRADIX = 1024.
+
+            for u in UNITS[:-1]:
+                if size < HUMANRADIX : return HUMANFMT % (size, u)
+                size /= HUMANRADIX
+
+            return HUMANFMT % (round(size),  UNITS[-1])
+
 
         def do_runs(nm_list, results, exs, out):
             """
@@ -774,6 +792,7 @@ class RunsCommand(SCommand):
                 # サブプロセスを開始する
                 p.start()
                 
+                max_tmp_size = 0
                 mcmd_errors = []
                 while True:
                     # サブプロセスが終了するまで待つ(単位は秒)
@@ -788,6 +807,15 @@ class RunsCommand(SCommand):
                         if line.startswith('#ERROR#') and 'script RUN KGERROR runmain on kgshell' not in line:
                             mcmd_errors.append(line)
 
+                    # 最大Tmpサイズを測る
+                    try:
+                        res = subprocess.check_output('/usr/bin/du -sx /tmp', shell=True, universal_newlines=True)
+                        tmp_size = int(res.split()[0])
+                        max_tmp_size = max(tmp_size, max_tmp_size)
+                    except:
+                        # Do nothing
+                        pass
+
                     # 子プロセスがまだ終了していない場合はNoneが返されます
                     if p.exitcode is not None:
                         break
@@ -800,6 +828,9 @@ class RunsCommand(SCommand):
                 # p.close()
                 recv_conn.close()
                 send_conn.close()
+
+            # 標準エラー出力に最大Tmpサイズを出力する
+            print('Max size of /tmp: ', human(max_tmp_size), file=sys.stderr)
 
             # NYSOL Pythonのエラー処理
             if len(mcmd_errors) > 0:
