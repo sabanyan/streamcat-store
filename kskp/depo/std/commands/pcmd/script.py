@@ -3693,7 +3693,7 @@ class MvSimCommand(PCommand):
         'SimEmptyError' : '空文字列で類似度が指定されています。${fieldinput}',
         
         # 期間数指定に対するエラー
-        'WindowSizeConflictError' : '対象行数が重複しています。',
+        'WindowSizeConflictError' : '対象行数が重複しています。${fieldinput}',
         'WindowSizeFormatError' : '対象行数への  指定が正しくありません。２以上の整数を指定してください',
         'WindowSizeValueError' : '対象行数への ${fieldinput} 指定が正しくありません。２以上の整数で指定してください',
         'WindowSizeEmptyError' : '空文字列で対象行数が指定されています。${fieldinput}',
@@ -4014,10 +4014,11 @@ class MvSimCommand(PCommand):
                 errmsg = self.generateCommandErrorMessage('WindowSizeEmptyError', 't', ts)
                 raise Exception(errmsg)
             
+            if len(ts_list) != len(set(ts_list)):
+                errmsg = self.generateCommandErrorMessage('WindowSizeConflictError', 't', ts)
+                raise Exception(errmsg)
+            
             for t in ts_list:
-                if len(ts_list) != len(set(ts_list)):
-                    errmsg = self.generateCommandErrorMessage('WindowSizeConflictError', 't', t)
-                    raise Exception(errmsg)
                 
                 try:
                     t = float(t)
