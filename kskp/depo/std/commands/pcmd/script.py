@@ -3694,7 +3694,7 @@ class MvSimCommand(PCommand):
         
         # 期間数指定に対するエラー
         'WindowSizeConflictError' : '対象行数が重複しています。${fieldinput}',
-        'WindowSizeFormatError' : '対象行数への  指定が正しくありません。２以上の整数を指定してください',
+        'WindowSizeFormatError' : '対象行数への ${fieldinput} 指定が正しくありません。２以上の整数を指定してください',
         'WindowSizeValueError' : '対象行数への ${fieldinput} 指定が正しくありません。２以上の整数で指定してください',
         'WindowSizeEmptyError' : '空文字列で対象行数が指定されています。${fieldinput}',
 
@@ -4021,11 +4021,12 @@ class MvSimCommand(PCommand):
             for t in ts_list:
                 
                 try:
-                    t = float(t)
+                    _t = float(t)
                     
-                    if not t.is_integer():
+                    if (not _t.is_integer()) or (_t < 2):
                         errmsg = self.generateCommandErrorMessage('WindowSizeValueError', 't', t)
                         raise Exception(errmsg)
+                    
                 except ValueError:
                     errmsg = self.generateCommandErrorMessage('WindowSizeFormatError', 't', t)
                     raise Exception(errmsg)
@@ -4044,7 +4045,7 @@ class MvSimCommand(PCommand):
 
 
         if len(final_cols) != len(set(final_cols)):
-            errmsg = self.generateCommandErrorMessage('ResultsColConflictError', 'a, c, f, n')
+            errmsg = self.generateCommandErrorMessage('ResultsColConflictError', 'a, c, f1, f2, t')
             raise Exception(errmsg)
 
         # factlist is now a list of dictionaries of the fact options:
