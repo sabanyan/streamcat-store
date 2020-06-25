@@ -3936,16 +3936,16 @@ class MvSimCommand(PCommand):
             f2s = arglist.get('f2')
             f2_list = f2s.split(',')
             
+            if '' in f2_list:
+                errmsg = self.generateCommandErrorMessage('Target2EmptyError', 'f2', f2s)
+                raise Exception(errmsg)
+            
             if self.containsAny(f2s, ':\\&%#'):
                 errmsg = self.generateCommandErrorMessage('Target2ForbiddenCharacterError', 'f2', f2s)
                 raise Exception(errmsg)
             
             if len(f2_list) != len(set(f2_list)):
                 errmsg = self.generateCommandErrorMessage('Target2ConflictError', 'f2', f2s)
-                raise Exception(errmsg)
-
-            if '' in f2_list:
-                errmsg = self.generateCommandErrorMessage('Target2EmptyError', 'f2', f2s)
                 raise Exception(errmsg)
             
             if xoption:
