@@ -3820,6 +3820,10 @@ class MvSimCommand(PCommand):
                 parts = elem.split('%')
                 
                 s_columns.append(parts[0])
+                
+                if parts[0] == '':
+                    errmsg = self.generateCommandErrorMessage('EmptySortFieldError', 's', s_opt)
+                    raise Exception(errmsg)
 
                 if xoption:
                     if not self.numberExpIsValid(parts[0]):
@@ -3843,10 +3847,6 @@ class MvSimCommand(PCommand):
                         errmsg = self.generateCommandErrorMessage('SortFieldOrderError', 's', s_opt)
                         raise Exception(errmsg)
                     
-                
-                if parts[0] == '':
-                    errmsg = self.generateCommandErrorMessage('EmptySortFieldError', 's', s_opt)
-                    raise Exception(errmsg)
                 
 
                 if len(parts) == 2:
@@ -3918,7 +3918,7 @@ class MvSimCommand(PCommand):
                     errmsg = self.generateCommandErrorMessage('Target1FieldNumberNotFoundError', 'f1', f1)
                     raise Exception(errmsg)                
             else: 
-                if ',' in f1:
+                if self.containsAny(f1, ',?*[]'):
                     errmsg = self.generateCommandErrorMessage('Target1MultipleFieldError', 'f1', f1)
                     raise Exception(errmsg)
                     
