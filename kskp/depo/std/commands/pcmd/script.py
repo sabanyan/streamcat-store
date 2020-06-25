@@ -3768,10 +3768,6 @@ class MvSimCommand(PCommand):
             k_list = k.split(',')
             
             if xoption:
-                if len(k_list) != len(set(k_list)):
-                    errmsg = self.generateCommandErrorMessage('KeyNumberConflictError', 'k', k)
-                    raise Exception(errmsg)
-                
                 for key in k_list:
                     if not self.numberExpIsValid(key):
                         errmsg = self.generateCommandErrorMessage('KeyNumberSettingError', 'k', key)
@@ -3784,6 +3780,10 @@ class MvSimCommand(PCommand):
                     if self.numberExpOutOfRange(key):
                         errmsg = self.generateCommandErrorMessage('KeyFieldNumberNotFoundError', 'k', key)
                         raise Exception(errmsg)
+                    
+                if len(k_list) != len(set(k_list)):
+                    errmsg = self.generateCommandErrorMessage('KeyNumberConflictError', 'k', k)
+                    raise Exception(errmsg)
                 
             else:
                 if len(k_list) != len(set(k_list)):
