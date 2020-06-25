@@ -3677,6 +3677,7 @@ class MvSimCommand(PCommand):
         'Target1MultipleFieldError' : '１つ目の計算対象項目指定で、複数の項目名を指定できません。${fieldinput}',
         'Target1MultipleFieldNumberError' : '１つ目の計算対象項目指定で、複数の項目番号を指定できません。${fieldinput}',
         'Target1ForbiddenCharacterError' : '半角の（ :　\　&　％　＃ ）は、計算対象項目の指定に使用できません。${fieldinput}',
+        'Target1FieldNumberSettingError' : '計算対象項目番号の指定は正しくありません。${fieldinput}',
         'Target1EmptyError' : '空文字列で計算対象項目が指定されています。${fieldinput}',
         
         'Target2ConflictError' : '項目名が重複しています。${fieldinput}',
@@ -3910,7 +3911,11 @@ class MvSimCommand(PCommand):
                     errmsg = self.generateCommandErrorMessage('Target1MultipleFieldNumberError', 'f1', f1)
                     raise Exception(errmsg)
                 else:
-                    f1_loc = int(f1)
+                    if self.numberExpIsValid(f1):
+                        f1_loc = int(f1)
+                    else:
+                        errmsg = self.generateCommandErrorMessage('Target1FieldNumberSettingError', 'f1', f1)
+                        raise Exception(errmsg)
                     
                 try:
                     f1_name = self.header[f1_loc]
@@ -3986,6 +3991,11 @@ class MvSimCommand(PCommand):
             allowed_ops = ['covar', 'ucovar', 'pearson', 'spearman', 'kendall', 
                            'euclid', 'cosine', 'cityblock', 'hamming', 'chi', 
                            'phi', 'jaccard', 'support', 'lift']
+            
+            if '' in op_list:
+                errmsg = self.generateCommandErrorMessage('SimEmptyError', 'c', ops)
+                raise Exception(errmsg)
+                
             for op in op_list:
                 if op not in allowed_ops:
                     errmsg = self.generateCommandErrorMessage('SimNotFoundError', 'c', op)
@@ -3995,10 +4005,6 @@ class MvSimCommand(PCommand):
                 errmsg = self.generateCommandErrorMessage('SimConflictError', 'c', ops)
                 raise Exception(errmsg)
             
-            if '' in op_list:
-                errmsg = self.generateCommandErrorMessage('SimEmptyError', 'c', ops)
-                raise Exception(errmsg)
-                
                 
             
             ts = arglist.pop('t')
