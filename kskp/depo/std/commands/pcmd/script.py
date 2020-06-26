@@ -203,9 +203,9 @@ class CheckDuplicateRowsCommand(PCommand):
 
     def run(self, args, inputs):
 
-        COLNUM = '__colnumber__'
-        DUPCOUNT = '__duplicate_row_count__'
-        DUPNUM = '__duplicate_number__'
+        COLNUM = '__RowNo_BeginWith1__'
+        DUPCOUNT = '__dup_total__'
+        DUPNUM = '__dup_no__'
         
         targetcols = args.get('k')
         
