@@ -1,7 +1,7 @@
 {
   "version": "0.7.0",
   "id": "columns_to_rows",
-  "label": "列項目の行展開",
+  "label": "項目の行展開",
   "classification": "col_edit",
   "description": "f=で指定した複数の列項目に対して、各項目の行を連結した新たな項目をa=で指定した名前で作成する",
   "ports": [
