@@ -217,7 +217,7 @@
       "label": "時間軸項目のデータ型",
       "options": {
         "labels": [
-          "暦型（YYYYMMDDhhmmss少数6桁まで）",
+          "暦型（YYYYMMDDhhmmss小数6桁まで）",
           "数値"
         ],
         "values": [
