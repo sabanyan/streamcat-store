@@ -51,8 +51,8 @@
     ]
   ],
   "version": "0.7.0",
-  "label": "列項目を行展開してgroupby処理する",
+  "label": "項目を行展開したgroupby処理",
   "classification": "col_edit",
-  "description": "複数の列項目を、指定した新規列名で、行データへ展開し、複数の統計量を適用した結果を、新規列名と統計量からなる列名として出力する。",
+  "description": "列項目を行展開して、GroupBy処理を行う (特徴量: 22種類)",
   "url": ""
 }

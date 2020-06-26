@@ -1,6 +1,7 @@
 # 独自コマンド
 import sys
 import copy
+import uuid
 import nysol.mcmd as nm
 import numpy as np
 import fnmatch as fn
@@ -120,6 +121,18 @@ class PCommand(Command):
         nysol_module.set_content(flow_obj)
 
         return nysol_module
+
+    def get_field_names(self, nysol_module):
+        """
+        NYSOLフローの結果データのヘッダ行を取得する
+        """
+        # ヘッダ行を取得するときに標準エラーに出力されるエラーメッセージを取得するため
+        # FieldNamesCommandを用いる
+        from kskp.depo.std.commands import FieldNamesCommand
+        fldNamesCmd = FieldNamesCommand()
+        results = fldNamesCmd.run(args={}, inputs={'i': nysol_module})
+        # 'i'キーへの入力結果は'i'キーを指定して取得する
+        return results['i']
 
     def run(self, args, inputs):
         """
@@ -444,25 +457,218 @@ class RunfuncCommand(Command):
         pass
 
 
-class GroupBy2Command(Command):
+class GroupBy2Command(PCommand):
+
+    # クラス変数
+    commandname = '特徴量の計算' # 将来、コマンド名はCmdJSONから取得（？）
+    errormessages = {
+        'FieldNotFoundError' : '指定した項目名は存在しません。${fieldinput}',
+
+        # キー項目指定に関わるエラー
+        'KeyFieldForbiddenCharacterError' : '半角の%と&は、キー項目名に使用できません。 ${fieldinput} ',
+        'KeyFieldConflictError' : 'キー項目名が重複しています。${fieldinput}',
+        'EmptyKeyFieldError' : '空文字列でキー項目名が指定されています。${fieldinput}',
+        'KeyTargetConflictError' : 'キー項目名と計算対項目名が重複しています。計算対象項目には、キー項目を指定できません。${fieldinput}',
+        'UnknownKeyFieldError' : 'キー項目の指定は正しくありません。${fieldinput}',
+        
+        # 時間軸に関わるエラー
+        'TimecolForbiddenCharacterError' : '半角の（ *　?　[　]　,　:　\\　&　％ ）は、時間軸の項目の指定に使用できません。${fieldinput}',
+        'EmptyTimecolFieldError' : '空文字列で時間軸の項目名が指定されています。${fieldinput}',
+        'UnknownTimecolFieldError' : 'キー項目の指定は正しくありません。${fieldinput}',
+
+        # 項目名指定に関わるエラー
+        'TargetFieldForbiddenCharacterError':'半角の%と&は、項目名に使用できません。 ${fieldinput} ',
+        'TargetFieldConflictError' : '項目名が重複しています。 ${fieldinput}',
+        'EmptyTargetFieldError' : '空文字列で項目名が指定されています。 ${fieldinput}',
+        'MultipleRowsTargetError' : '複数の項目名は指定できません。 ${fieldinput}',
+        'UnknownTargetFieldError' : '項目名の指定が正しくありません。${fieldinput}',
+        
+        # 結果列指定に関わるエラー
+        'ResultsColForbiddenCharacterError' : '半角の（ *　?　[　]　,　:　\\ \' \"）は、項目名に使用できません。${fieldinput}',
+        'ResultsColConflictError' : '出力項目名が重複しています。%指定、&指定、ワイルドカード指定など、重複する出力項目名となる設定がないかを、確認してください。${fieldinput}',
+        'UnknownResultsColError' : '名前付けルールの設定の指定が正しくありません。${fieldinput}',
+        
+        # 統計量指定に関わるエラー
+        'CalcNotFoundError' : '指定は、有効な統計量指定子ではありません。${fieldinput}',
+        # 'CalcNotFoundError' : '＜その値＞は、有効な統計量指定子ではありません。${fieldinput}',
+        'CalcConflictError' : '統計量が重複しています。${fieldinput}',
+        'EmptyCalcNewNameError' : ':指定で、別名が指定されましたが、別名が空文字列です。${fieldinput}',
+        'EmptyCalcError' : '空文字列で統計量が指定されています。${fieldinput}',
+        'MultipleParamCalcError' : 'パラメータ有りの統計量では、複数の統計量は指定できません。${fieldinput}',
+        'UnknownCalcError' : '統計量の指定が正しくありません。${fieldinput}',
+        
+        # パラメータ指定に関わるエラー
+        'ParameterConflictError' : 'パラメータが重複しています。${fieldinput}',
+        'ParameterTypeError'  : '${calc} のパラメータへの ${fieldinput} 指定が正しくありません。${correct_type} を指定してください',
+        'ParameterOutOfBoundsError' : '${calc} のパラメータへの ${fieldinput} 指定が正しくありません。 ${correct_value} で指定してください',
+        'ParameterFormatError' : '${calc} のパラメータへの ${fieldinput} 指定が正しくありません。${correct_format}で指定してください',
+        'UnknownParameterError' : '${calc} のパラメータへの ${fieldinput} 指定が正しくありません'
+        }
+
+    # このdictは、パラメータの情報が入ってる
+    # {
+    # '統計量キー' : { 'correct_type' : パラメータの正しいデータ型,
+    #                'correct_value' : パラメータの正しい範囲,
+    #                'correct_format' : パラメータの正しい書き方が（ある場合）
+    #               }
+    # }
+    param_info = {
+        'value_count' : {'correct_type' : '全ての文字列',
+                            'correct_value' : '数値か文字列'},
+        'sym_looking' : {'correct_type' : '数値', 
+                            'correct_value' : '正の数値'},
+        'large_sd' : {'correct_type' : '数値', 
+                        'correct_value' : '正の数値'},
+        'ratio_beyond_rsigma' : {'correct_type' : '数値', 
+                                    'correct_value' : '正の数値'},
+        'binned_entropy' : {'correct_type' : '数値', 
+                            'correct_value' : '２以上の整数'},
+        'quantile' : {'correct_type' : '数値', 
+                        'correct_value' : '０−１の数値'},
+        'range_count' : {'correct_type' : '数値;数値', 
+                            'correct_value' : '全ての数値', 
+                            'correct_format' : '開始＜終了の;区切り'},
+        'autocorr' : {'correct_type' : '数値', 
+                        'correct_value' : '１以上の整数' },
+        'crossing_m' : {'correct_type' : '数値', 
+                        'correct_value' : '全ての数値'},
+        'peaks' : {'correct_type' : '数値', 
+                    'correct_value' : '１以上の整数'},
+        'imq' : {'correct_type' : '数値', 
+                    'correct_value' : '０−１の数値'}
+    }
+
     def __init__(self):
         super().__init__()
         self.i_ports = [Port('i', 'frame')]
         self.o_ports = [Port('o', 'frame')]
 
+    def generateCommandErrorMessage(self, errcode, errfield, errinput = '', param_calc = ''):
+        '''
+        Function for creating error messages. 
+        '''
+        from string import Template
+
+        if param_calc != '':
+            # パラメータに関わるエラーの場合、パラメータの情報もエラーメッセージに含む
+            template_strings = {'fieldinput' : errinput, 'calc' : param_calc, **self.param_info[param_calc]}
+        else:
+            template_strings = {'fieldinput' : errinput}
+
+
+        message = Template(self.errormessages[errcode]).safe_substitute(template_strings)
+
+        return f'【コマンド：{self.commandname}】【オプション欄：{errfield}】{message}'
+
+    def expandWildCards(self, to_expand):
+        """
+        takes a comma separated string and parses wildcard expressions within.
+        
+        """
+        import fnmatch as fn
+        expanded = []
+        
+        for elem in to_expand.split(','):
+            matched = False
+            for col in self.header:
+                if fn.fnmatch(col, elem):
+                    expanded += [col]
+                    matched = True
+                    
+            if not matched:
+                # notfound error
+                return 'FieldNotFoundError'
+        
+        return expanded
+        
+
     def fixtimecolumn(self, flow, col, dateformat = 'date'):
         if dateformat == 'date':
-            flow <<= nm.mcal(a = '__INT__', 
-                    c = f'uxt( s2t(regexstr($s{{{col}}},"^[0-9]{{14,14}}|^[0-9]{{6,6}}") ) )')
+            # details for this regex in https://kskds.docbase.io/posts/1317416
+            flow <<= nm.mcal(a = "__isvalidformat",
+                             c= f'regexm($s{{{col}}},"^(((([0-9]{{2}}(([2468][048])|([13579][26])|(0[48])))|((([02468][048])|([13579][26])|(0[048]))(00)))((((0[13578])|(1[02]))((0[1-9])|([1-2][0-9])|(3[01])))|(((0[469])|(11))((0[1-9])|([1-2][0-9])|(30)))|((02)((0[1-9])|([1-2][0-9])))))|([0-9]{{4}}((((0[13578])|(1[02]))((0[1-9])|([0-2][0-9])|(3[01])))|(((0[469])|(11))((0[1-9])|([0-2][0-9])|(30)))|((02)((0[1-9])|(1[0-9])|(2[0-8]))))))((([0-1][0-9])|(2[0-3]))([0-5][0-9]){{2}})([.][0-9]{{1,6}})?$")')
+
+            flow <<= nm.mcal(a = '__int__',
+                             c = f'if($s{{__isvalidformat}}=="1",regexstr($s{{{col}}},"^.{{14,14}}"),nulls())')
+        
+            flow <<= nm.mcal(a = f'__UXT__', 
+                    c = 'uxt( s2t($s{__int__}))')
+            
             flow <<= nm.mcal(a = '__FLAC__', 
-                    c = f'regexstr($s{{{col}}},"[.][0-9]{{0,6}}$")')
+                    c = f'if($s{{__isvalidformat}}=="1",regexstr($s{{{col}}},"[.][0-9]{{1,6}}$"),nulls())')
+            
             flow <<= nm.mcal(a = 'uxt',
-                    c = 'if( isnull($s{__FLAC__}), $s{__INT__}, $s{__INT__}+$s{__FLAC__} )')
+                    c = 'if( isnull($s{__FLAC__}), $s{__UXT__}, $s{__UXT__}+$s{__FLAC__} )')
+            
+            flow <<= nm.mcut(f = '__UXT__,__FLAC__,__isvalidformat', r = True)
         else:
-            flow <<= nm.mfldname(f = f'{col}:uxt')
+            flow <<= nm.mcal(a = "__isvalidformat",
+                             c = f'regexm($s{{{col}}},"^[+,-]?([0-9]+|(([0-9]+[.][0-9]*)|([0-9]*[.][0-9]+))([E,e][+,-]?[0-9]*)?)$")')
+            flow <<= nm.mcal(a = 'uxt',
+                             c = f'if($s{{__isvalidformat}}=="1",${{{col}}},nulln())')
+            flow <<= nm.mcut(f = '__isvalidformat', r = True)
+            
+        flow <<= nm.mdelnull(f = 'uxt')
         
         return flow
 
+    def remove_nonnumber(self, flow, cols):
+        """
+        ●NYSOLの数値の表記の仕様
+        KSKP全体でみたときに不整合な状態にならないように
+        NYSOLが数値と判断するものだけを数値とみなすために、仕様の確認を行った。
+
+        当初はマニュアルの例を参考にしたが、
+        マニュアルの例から想像できないパターンも数値と判断されることがわかったため
+        実際にデータを作って確認し、推測した仕様をもとに実装した。
+
+        ●数値と判断される文字列の例
+        12, -12, +12, 12., 12.00, 0.12, .12, +.12, 0.12e, 0.12E, -.12E2, .12e+01
+
+        ●推測された仕様
+        条件(1)~(4)のいずれかを満たした文字列は、数値とみなす
+        (1)下記条件①と②の両方を満たす文字列
+        ①先頭に1個以下の符号(+または-)
+        ②1個以下の小数点(.)と、1個以上の数字(0-9)を持つ文字列
+        (2)(1)の末尾に、1個の指数記号(Eまたはe)を持つ文字列
+        (3)(2)の末尾に、1個以下の符号(+または-)を持つ文字列
+        (4)(3)の末尾に、０個以上の数字（0-9)を持つ文字列
+
+        ●数値判定のための正規表現(mcalのcオプションの引数として使う)
+        regexm($s{値},"^[+,-]?([0-9]+|(([0-9]+[.][0-9]*)|([0-9]*[.][0-9]+))([E,e][+,-]?[0-9]*)?)$")
+
+        【補足】条件との対応関係
+        条件      正規表現
+        (1)①      ^[+,-]?
+        (1)②      [0-9]+|(([0-9]+[.][0-9]*)|([0-9]*[.][0-9]+))
+        (2-4)    ([E,e][+,-]?[0-9]*)?
+        """
+        flow = copy.deepcopy(flow)
+        
+        if isinstance(cols, str):
+            cols = cols.split(',')
+        
+        for col in cols:
+            # mark non-number rows
+            flow <<= nm.mcal(a = f'__numflag{col}__',
+              c = f'regexm($s{{{col}}},"^[+,-]?([0-9]+|(([0-9]+[.][0-9]*)|([0-9]*[.][0-9]+))([E,e][+,-]?[0-9]*)?)$")')
+            flow <<= nm.mcal(a = f'__notnullflag{col}__',
+              c = f'not(isnull(${{{col}}}))')
+            
+            # make new col with only number values and NULL
+            flow <<= nm.mcal(a = f'__new{col}__',
+                             c = f'if(${{__numflag{col}__}}==1,$s{{{col}}},nulls())')
+        
+        # delete old cols
+        flow <<= nm.mcut(f = cols, r = True)
+        flow <<= nm.mcut(f = '__numflag*__,__notnullflag*__', r = True)
+        
+        # rename new cols
+        flow <<= nm.mfldname(f = [f'__new{col}__:{col}' for col in cols])
+
+        return flow
+        
+        
     def rows(self, subcmd, **kwargs):
         try:
             a = kwargs.get('a')
@@ -492,7 +698,7 @@ class GroupBy2Command(Command):
             allrows <<= nm.mcount(i = subcmd, k = k, a = '__allrows')
 
             subcmd <<= nm.msummary(k = k, f = f, c = 'count:__count')
-            subcmd <<= nm.mjoin(k = k, m = allrows, f = '__allrows', K = k)
+            subcmd <<= nm.mnjoin(k = k, m = allrows, f = '__allrows')
 
             subcmd <<= nm.mcal(a = '__missingcount', c = '${__allrows}-${__count}')
             subcmd <<= nm.mcal(a = a, c = '$s{__missingcount}')
@@ -514,17 +720,20 @@ class GroupBy2Command(Command):
 
             fs = f.split(',')
             total = [None] * len(fs)
+            msummary = [None] * len(fs)
             targets = [None] * len(fs)
             subcmd_o = None
 
             for i, fld in enumerate(fs):
 
                 total[i] <<= nm.mcount(k = f'{k},{fld}', a = '__dcnt', i = subcmd)
+                msummary[i] <<= nm.msummary(k = k, f = fld, c = 'count:__count',
+                                            i = subcmd)
 
                 targets[i] <<= nm.mcount(k = k, a = '__ddcnt', i = total[i])
                 targets[i] <<= nm.msetstr(a = 'fld', v = fld)
                 targets[i] <<= nm.mnjoin(k = f'{k},fld', f = '__count', 
-                                         m = self.all_msums)
+                                         m = msummary[i])
                 targets[i] <<= nm.mcal(c = '${__ddcnt}!=${__count}', a = a)
                 targets[i] <<= nm.mcut(f = f'{k},fld,{a}')
 
@@ -551,7 +760,7 @@ class GroupBy2Command(Command):
 
                 targets[i] <<= nm.mcount(k = f'{k},{fld}', a = '__dcnt', 
                                          i = subcmd)
-                targets[i] <<= nm.mbest(k = k, f = f'{fld}%n', size = 1)    
+                targets[i] <<= nm.mbest(k = k, s = f'{fld}%n', size = 1)    
                 targets[i] <<= nm.mcal(c = '${__dcnt}>1', a = a)
                 targets[i] <<= nm.msetstr(a = 'fld', v = fld)
                 targets[i] <<= nm.mcut(f = f'{k},fld,{a}')
@@ -579,7 +788,7 @@ class GroupBy2Command(Command):
 
                 targets[i] <<= nm.mcount(k = f'{k},{fld}', a = '__dcnt', 
                                          i = subcmd)
-                targets[i] <<= nm.mbest(k = k, f = f'{fld}%nr', size = 1)    
+                targets[i] <<= nm.mbest(k = k, s = f'{fld}%nr', size = 1)    
                 targets[i] <<= nm.mcal(c = '${__dcnt}>1', a = a)
                 targets[i] <<= nm.msetstr(a = 'fld', v = fld)
                 targets[i] <<= nm.mcut(f = f'{k},fld,{a}')
@@ -648,16 +857,24 @@ class GroupBy2Command(Command):
             # subcmd <<= nm.mstdin()
 
             fs = f.split(',')
+
+            flags = None
+            flags <<= nm.msummary(i = subcmd, c = 'min', k = k, f = f)
+            flags <<= nm.mcal(a = '__hasnegative', c = '${min}<0')
+            flags <<= nm.mcal(a = '__haszero', c = '${min}==0') 
+            
             for fld in fs:
-                subcmd <<= nm.mcal(a = f'{fld}_ln', c = f'ln(abs(${{{fld}}}))',
+                subcmd <<= nm.mcal(a = f'{fld}_ln', c = f'ln(${{{fld}}})',
                                 precision = precision)
                 subcmd <<= nm.mcut(f = fld, r = True)
                 subcmd <<= nm.mfldname(f = f'{fld}_ln:{fld}')
 
             subcmd <<= nm.msummary(c = 'mean', f = f, k = k,
                                 precision = precision)
+            
+            subcmd <<= nm.mjoin(k = f'{k},fld', m = flags, f = '__hasnegative,__haszero')
 
-            subcmd <<= nm.mcal(a = a, c = 'exp(${mean})', 
+            subcmd <<= nm.mcal(a = a, c = 'if($b{__hasnegative},nulln(),if($b{__haszero},0,exp(${mean})))', 
                             precision = precision)
 
             finalcols = f'{k},fld,{a}'
@@ -682,7 +899,14 @@ class GroupBy2Command(Command):
             # subcmd = None
             # subcmd <<= nm.mstdin()
 
+            flags = None
             fs = f.split(',')
+
+
+            flags <<= nm.msummary(i = subcmd, c = 'min', k = k, f = f)
+            flags <<= nm.mcal(a = '__hasnegative', c = '${min}<0')
+            flags <<= nm.mcal(a = '__haszero', c = '${min}==0') 
+
             for fld in fs:
                 subcmd <<= nm.mcal(a = f'{fld}_inv', c = f'1/${{{fld}}}',
                                 precision = precision)
@@ -692,7 +916,10 @@ class GroupBy2Command(Command):
             subcmd <<= nm.msummary(c = 'sum,count', f = f, k = k,
                                 precision = precision)
 
-            subcmd <<= nm.mcal(a = a, c = '${count}/${sum}', precision = precision)
+            subcmd <<= nm.mjoin(k = f'{k},fld', m = flags, f = '__hasnegative,__haszero')
+            
+            subcmd <<= nm.mcal(a = a, c = 'if(${__hasnegative}==1,nulln(),if(${__haszero}==1,0,${count}/${sum}))',
+                               precision = precision)
 
             finalcols = ','.join([k,'fld',a])
             subcmd <<= nm.mcut(f = finalcols)
@@ -717,7 +944,7 @@ class GroupBy2Command(Command):
             # subcmd <<= nm.msummary(k = k, f = f, c = 'var:__var,sd:__sd')
             condition = [f'($s{{fld}}=="{fld}")' for fld in f.split(',')]
             subcmd_o <<= nm.msel(i = self.all_msums, c = '||'.join(condition))
-            subcmd_o <<= nm.mcal(c = '${__var}>${__sd}', a = a)
+            subcmd_o <<= nm.mcal(c = 'if(isnull(${__var}),nullb(),${__var}>${__sd})', a = a)
             subcmd_o <<= nm.mcut(f = f'{k},fld,{a}')
 
             return subcmd_o
@@ -742,7 +969,8 @@ class GroupBy2Command(Command):
                 targets[i] <<= nm.mkeybreak(i = subcmd, k = k, s = fld)
                 targets[i] <<= nm.mcal(a = 'fld', c = f'if($s{{bot}}=="1","{fld}",nulls())')
                 targets[i] <<= nm.mcal(a = a, c = f'if($s{{bot}}=="1",$s{{{fld}}},nulls())')
-                targets[i] <<= nm.mdelnull(f = a)
+                targets[i] <<= nm.msel(c = f'$s{{bot}}=="1"')
+                # targets[i] <<= nm.mdelnull(f = a)
 
             subcmd_o <<= nm.m2cat(i = targets)
             subcmd_o <<= nm.mcut(f = f'{k},fld,{a}')
@@ -769,7 +997,8 @@ class GroupBy2Command(Command):
                 targets[i] <<= nm.mkeybreak(i = subcmd, k = k, s = fld)
                 targets[i] <<= nm.mcal(a = 'fld', c = f'if($s{{top}}=="1","{fld}",nulls())')
                 targets[i] <<= nm.mcal(a = a, c = f'if($s{{top}}=="1",$s{{{fld}}},nulls())')
-                targets[i] <<= nm.mdelnull(f = a)
+                targets[i] <<= nm.msel(c = f'$s{{top}}=="1"')
+                # targets[i] <<= nm.mdelnull(f = a)
 
             subcmd_o <<= nm.m2cat(i = targets)
             subcmd_o <<= nm.mcut(f = f'{k},fld,{a}')
@@ -849,6 +1078,7 @@ class GroupBy2Command(Command):
 
             flds = f.split(',')
             fldnames = [fld + '_mean' for fld in flds]
+
             subcmd <<= nm.mjoin(k = k, K = k, m = meancalc, 
                                 f = ','.join(fldnames))
 
@@ -1104,7 +1334,6 @@ class GroupBy2Command(Command):
 
             subcmd_o = None
 
-
             subcmd <<= nm.mnjoin(k = k, f = 'fld,__mean', m = self.all_msums)
 
             for i, fld in enumerate(fs):
@@ -1122,224 +1351,297 @@ class GroupBy2Command(Command):
                 traceback.print_exc(file=fpe)
 
     def symmetry_looking(self,subcmd, **kwargs):
+        f = kwargs.get('f')
+        a = kwargs.get('a')
+        k = kwargs.get('k')
+        n = kwargs.get('n')
+
+        calcid = 'sym_looking'
+
         try:
-            f = kwargs.get('f')
-            a = kwargs.get('a')
-            k = kwargs.get('k')
-            n = kwargs.get('n')
+            param = float(n)
+            if param <= 0:
+                errmsg = self.generateCommandErrorMessage('ParameterOutOfBoundsError', 'n', n, param_calc = calcid)
+                raise Exception(errmsg)
+        except ValueError:
+            errmsg = self.generateCommandErrorMessage('ParameterTypeError', 'n', n, param_calc = calcid)
+            raise Exception(errmsg)
 
-            msumres = None
-            condition = [f'($s{{fld}}=="{fld}")' for fld in f.split(',')]
-            msumres <<= nm.msel(i = self.all_msums, c = '||'.join(condition))
+        msumres = None
+        condition = [f'($s{{fld}}=="{fld}")' for fld in f.split(',')]
+        msumres <<= nm.msel(i = self.all_msums, c = '||'.join(condition))
 
-            subcmd <<= nm.mnjoin(k = k, f = 'fld,__mean,__median,__max,__min',
-                                 m = msumres)
-            # subcmd <<= nm.msummary(f = f, k = k, 
-            #             c = 'mean:__mean,median:__median,max:__max,min:__min')
-            subcmd <<= nm.mcal(c = '${__max}-${__min}',
-                               a = 'max_min')
-            subcmd <<= nm.mcal(c = 'abs(${__mean}-${__median})',
-                               a = 'mean_median')
-            subcmd <<= nm.mcal(c = f'${{mean_median}}<${{max_min}}*{n}', 
-                               a = f'{a}_{n}')
+        subcmd <<= nm.mnjoin(k = k, f = 'fld,__mean,__median,__max,__min',
+                                m = msumres)
+        # subcmd <<= nm.msummary(f = f, k = k, 
+        #             c = 'mean:__mean,median:__median,max:__max,min:__min')
+        subcmd <<= nm.mcal(c = '${__max}-${__min}',
+                            a = 'max_min')
+        subcmd <<= nm.mcal(c = 'abs(${__mean}-${__median})',
+                            a = 'mean_median')
+        subcmd <<= nm.mcal(c = f'${{mean_median}}<${{max_min}}*{n}', 
+                            a = f'{a}_{n}')
 
-            subcmd <<= nm.mcut(f = f'{k},fld,{a}_{n}')
+        subcmd <<= nm.mcut(f = f'{k},fld,{a}_{n}')
 
-            return subcmd
-
-        except Exception as e:
-            import traceback
-            with open('/dev/stderr', 'w') as fpe:
-                traceback.print_exc(file=fpe)
+        return subcmd
         
     def large_standard_dev(self,subcmd, **kwargs):
+        f = kwargs.get('f')
+        a = kwargs.get('a')
+        k = kwargs.get('k')
+        n = kwargs.get('n')
+
+        calcid = 'large_sd'
+
         try:
-            f = kwargs.get('f')
-            a = kwargs.get('a')
-            k = kwargs.get('k')
-            n = kwargs.get('n')
+            # check if float
+            param = float(n)
+            
+            # check if negative
+            if param <= 0:
+                errmsg = self.generateCommandErrorMessage('ParameterOutOfBoundsError', 'n', n, param_calc = calcid)
+                raise Exception(errmsg)
+        except ValueError:
+            errmsg = self.generateCommandErrorMessage('ParameterTypeError', 'n', n, param_calc = calcid)
+            raise Exception(errmsg)
+        
+        
+        msumres = None
+        condition = [f'($s{{fld}}=="{fld}")' for fld in f.split(',')]
+        msumres <<= nm.msel(i = self.all_msums, c = '||'.join(condition))
 
-            msumres = None
-            condition = [f'($s{{fld}}=="{fld}")' for fld in f.split(',')]
-            msumres <<= nm.msel(i = self.all_msums, c = '||'.join(condition))
+        subcmd <<= nm.mnjoin(k = k, f = 'fld,__sd,__max,__min',
+                                m = msumres)
+        # subcmd <<= nm.msummary(f = f, k = k, 
+        #             c = 'sd:__sd,max:__max,min:__min')
+        subcmd <<= nm.mcal(c = '${__max}-${__min}', a = '__diff')
+        subcmd <<= nm.mcal(c = f'${{__sd}}>${{__diff}}*{n}', 
+                            a = f'{a}_{n}')
 
-            subcmd <<= nm.mnjoin(k = k, f = 'fld,__sd,__max,__min',
-                                 m = msumres)
-            # subcmd <<= nm.msummary(f = f, k = k, 
-            #             c = 'sd:__sd,max:__max,min:__min')
-            subcmd <<= nm.mcal(c = '${__max}-${__min}', a = '__diff')
-            subcmd <<= nm.mcal(c = f'${{__sd}}>${{__diff}}*{n}', 
-                               a = f'{a}_{n}')
+        subcmd <<= nm.mcut(f = f'{k},fld,{a}_{n}')
 
-            subcmd <<= nm.mcut(f = f'{k},fld,{a}_{n}')
-
-            return subcmd
-
-        except Exception as e:
-            import traceback
-            with open('/dev/stderr', 'w') as fpe:
-                traceback.print_exc(file=fpe)
+        return subcmd
 
     def value_count(self,subcmd, **kwargs):
+        f = kwargs.get('f')
+        a = kwargs.get('a')
+        k = kwargs.get('k')
+        n = kwargs.get('n')
+
+        calcid = 'value_count'
+        
+        # TODO: 関数化？
+        strparam = False
         try:
-            f = kwargs.get('f')
-            a = kwargs.get('a')
-            k = kwargs.get('k')
-            n = kwargs.get('n')
+            n = float(n)
+            if n%1 == 0:
+                n = int(n)
+        except ValueError:
+            strparam = True
+            if n == '':
+                errmsg = self.generateCommandErrorMessage('ParameterOutOfBoundsError', 'n', n, param_calc = calcid)
+                raise Exception(errmsg)
+            
+        subcmd <<= nm.m2cross(k = k, a = 'fld,__val', f = f)
 
-            subcmd <<= nm.m2cross(k = k, a = 'fld,__val', f = f)
+        if strparam:
+            subcmd <<= nm.mcal(a = '__eq', c = f'$s{{__val}}=="{n}"')
+        else:
             subcmd <<= nm.mcal(a = '__eq', c = f'${{__val}}=={n}')
-            subcmd <<= nm.msum(k = f'{k},fld', f = f'__eq:{a}_{n}')
 
-            subcmd <<= nm.mcut(f = f'{k},fld,{a}_{n}')
+        subcmd <<= nm.msum(k = f'{k},fld', f = f'__eq:{a}_{n}')
 
-            return subcmd
+        subcmd <<= nm.mcut(f = f'{k},fld,{a}_{n}')
 
-        except Exception as e:
-            import traceback
-            with open('/dev/stderr', 'w') as fpe:
-                traceback.print_exc(file=fpe)
+        return subcmd
 
     def range_count(self,subcmd, **kwargs):
+        f = kwargs.get('f')
+        a = kwargs.get('a')
+        k = kwargs.get('k')
+        n = kwargs.get('n')
+
+        calcid = 'range_count'
+
         try:
-            f = kwargs.get('f')
-            a = kwargs.get('a')
-            k = kwargs.get('k')
-            nmin, nmax = kwargs.get('n').split(';')
-            n = f'{nmin};{nmax}'
+            nmin, nmax = n.split(';')
+        except ValueError:
+            errmsg = self.generateCommandErrorMessage('ParameterFormatError', 'n', n, param_calc = calcid)
+            raise Exception(errmsg)
 
-            subcmd <<= nm.m2cross(k = k, a = 'fld,__val', f = f)
-            subcmd <<= nm.mcal(a = '__inrange',
-                c = f'${{__val}}>={float(nmin)} && ${{__val}} < {float(nmax)}')
-            subcmd <<= nm.msum(k = f'{k},fld', f = f'__inrange:{a}_{n}')
+        try:
+            # check if float
+            param_min = float(nmin)
+            param_max = float(nmax)
+        except ValueError:
+            errmsg = self.generateCommandErrorMessage('ParameterTypeError', 'n', n, param_calc = calcid)
+            raise Exception(errmsg)
+            
+            # check if outside 0-1
+        if param_min >= param_max:
+            errmsg = self.generateCommandErrorMessage('ParameterFormatError', 'n', n, param_calc = calcid)
+            raise Exception(errmsg)
 
-            subcmd <<= nm.mcut(f = f'{k},fld,{a}_{n}')
+        
+        subcmd <<= nm.m2cross(k = k, a = 'fld,__val', f = f)
+        subcmd <<= nm.mcal(a = '__inrange',
+            c = f'${{__val}}>={float(nmin)} && ${{__val}} < {float(nmax)}')
+        subcmd <<= nm.msum(k = f'{k},fld', f = f'__inrange:{a}_{n}')
 
-            return subcmd
+        subcmd <<= nm.mcut(f = f'{k},fld,{a}_{n}')
 
-        except Exception as e:
-            import traceback
-            with open('/dev/stderr', 'w') as fpe:
-                traceback.print_exc(file=fpe)
+        return subcmd
 
     def ratio_beyond_rsigma(self,subcmd, **kwargs):
+        f = kwargs.get('f')
+        a = kwargs.get('a')
+        k = kwargs.get('k')
+        n = kwargs.get('n')
+
+        calcid = 'ratio_beyond_rsigma'
+
         try:
-            f = kwargs.get('f')
-            a = kwargs.get('a')
-            k = kwargs.get('k')
-            n = kwargs.get('n')
+            # check if float (not str)
+            param = float(n)
+            
+            # check if negative or 0
+            if param <= 0:
+                errmsg = self.generateCommandErrorMessage('ParameterOutOfBoundsError', 'n', n, param_calc = calcid)
+                raise Exception(errmsg)
+        except ValueError:
+            errmsg = self.generateCommandErrorMessage('ParameterTypeError', 'n', n, param_calc = calcid)
+            raise Exception(errmsg)
 
-            fs = f.split(',')
-            targets = [None] * len(fs)
-            subcmd_o = None
+        fs = f.split(',')
+        targets = [None] * len(fs)
+        subcmd_o = None
 
-            subcmd <<= nm.mnjoin(k = k, m = self.all_msums, f = 'fld,__mean,__sd,__count')
+        subcmd <<= nm.mnjoin(k = k, m = self.all_msums, f = 'fld,__mean,__sd,__count')
 
-            for i, fld in enumerate(fs):
-                targets[i] <<= nm.msel(c = f'$s{{fld}}=="{fld}"', i = subcmd)
-                targets[i] <<= nm.mcal(c = f'(abs(${{{fld}}}-${{__mean}}))>=({n}*${{__sd}})', 
-                                       a = f'__ratio')
+        for i, fld in enumerate(fs):
+            targets[i] <<= nm.msel(c = f'$s{{fld}}=="{fld}"', i = subcmd)
+            targets[i] <<= nm.mcal(c = f'(abs(${{{fld}}}-${{__mean}}))>=({n}*${{__sd}})', 
+                                    a = f'__ratio')
 
-            subcmd_o <<= nm.msum(k = f'{k},fld', f = f'__ratio', i = targets)
-            subcmd_o <<= nm.mcal(c = '${__ratio}/${__count}', a = f'{a}_{n}')
+        subcmd_o <<= nm.msum(k = f'{k},fld', f = f'__ratio', i = targets)
+        subcmd_o <<= nm.mcal(c = '${__ratio}/${__count}', a = f'{a}_{n}')
 
-            subcmd_o <<= nm.mcut(f = f'{k},fld,{a}_{n}')
+        subcmd_o <<= nm.mcut(f = f'{k},fld,{a}_{n}')
 
-            return subcmd_o
-
-        except Exception as e:
-            import traceback
-            with open('/dev/stderr', 'w') as fpe:
-                traceback.print_exc(file=fpe)
+        return subcmd_o
 
     def quantile(self,subcmd, **kwargs):
+        f = kwargs.get('f')
+        a = kwargs.get('a')
+        k = kwargs.get('k')
+        n = kwargs.get('n')
+
+        calcid = 'quantile'
+
         try:
-            f = kwargs.get('f')
-            a = kwargs.get('a')
-            k = kwargs.get('k')
-            n = kwargs.get('n')
+            # check if float
+            param = float(n)
+            
+            # check if outside 0-1
+            if param < 0 or param > 1:
+                errmsg = self.generateCommandErrorMessage('ParameterOutOfBoundsError', 'n', n, param_calc = calcid)
+                raise Exception(errmsg)
+        except ValueError:
+            errmsg = self.generateCommandErrorMessage('ParameterTypeError', 'n', n, param_calc = calcid)
+            raise Exception(errmsg)
 
-            fs = f.split(',')
-            targets = [None] * len(fs)
-            precalcs = [None] * len(fs)
-            tcalcs = None
-            subcmd_o = None
+        fs = f.split(',')
+        targets = [None] * len(fs)
+        precalcs = [None] * len(fs)
+        tcalcs = None
+        subcmd_o = None
 
-            # tcalcs <<= nm.msummary(f = f, c = 'count:__count',
-            #                          k = k, i = subcmd)
-            msumres = None
-            condition = [f'($s{{fld}}=="{fld}")' for fld in f.split(',')]
-            msumres <<= nm.msel(i = self.all_msums, c = '||'.join(condition))
+        # take starting key columns
+        _keys = None
+        _keys <<= nm.mcut(f = k, i = subcmd)
+        _keys <<= nm.muniq(k = k)
 
-            tcalcs <<= nm.mnjoin(i = subcmd, k = k, f = 'fld,__count',
-                                 m = msumres)
-            tcalcs <<= nm.msetstr(a = '__qtRate', v = n)
-            tcalcs <<= nm.mcal(a = '__T', c = '1-${__qtRate}+${__count}*${__qtRate}')
-            tcalcs <<= nm.mcal(a = '__T1', c = 'int(${__T})')
-            tcalcs <<= nm.mcal(a = '__T2', c = 'if(fract(${__T})==0,${__T1},${__T1}+1)')
+        # tcalcs <<= nm.msummary(f = f, c = 'count:__count',
+        #                          k = k, i = subcmd)
+        msumres = None
+        condition = [f'($s{{fld}}=="{fld}")' for fld in f.split(',')]
+        msumres <<= nm.msel(i = self.all_msums, c = '||'.join(condition))
 
-            for i, fld in enumerate(fs):
-                precalcs[i] <<= nm.mnumber(i = subcmd, s = f'{fld}%n', k = k, 
-                                          a = '__qtNo', S = 1)
-                precalcs[i] <<= nm.msortf(f = f'{k},__qtNo')
+        tcalcs <<= nm.mnjoin(i = subcmd, k = k, f = 'fld,__count',
+                                m = msumres)
+        tcalcs <<= nm.mcal(a = '__qtRate', c = f'if(${{__count}}==0,nulln(),{n})')
+        tcalcs <<= nm.mcal(a = '__T', c = '1-${__qtRate}+${__count}*${__qtRate}')
+        tcalcs <<= nm.mcal(a = '__T1', c = 'int(${__T})')
+        tcalcs <<= nm.mcal(a = '__T2', c = 'if(fract(${__T})==0,${__T1},${__T1}+1)')
 
-                targets[i] <<= nm.mjoin(i = tcalcs, k = f'{k},__T1', K = f'{k},__qtNo',
-                                        f = f'{fld}:__{fld}X1', m = precalcs[i])
-                targets[i] <<= nm.mjoin(k = f'{k},__T2', K = f'{k},__qtNo',
-                                        f = f'{fld}:__{fld}X2', m = precalcs[i])
-                targets[i] <<= nm.msel(c = f'$s{{fld}}=="{fld}"')
-                targets[i] <<= nm.mcal(a = f'{a}_{n}', c = f'if(${{__T1}}==${{__T2}},${{__{fld}X1}},(${{__T2}}-${{__T}})*${{__{fld}X1}}+(${{__T}}-${{__T1}})*${{__{fld}X2}})')
-                targets[i] <<= nm.mcut(f = f'{k},fld,{a}_{n}')
+        for i, fld in enumerate(fs):
+            precalcs[i] <<= nm.mnumber(i = subcmd, s = f'{fld}%n', k = k, 
+                                        a = '__qtNo', S = 1)
+            precalcs[i] <<= nm.msortf(f = f'{k},__qtNo')
 
-            subcmd_o <<= nm.m2cat(i = targets)
+            targets[i] <<= nm.mnjoin(i = tcalcs, k = f'{k},__T1', K = f'{k},__qtNo',
+                                    f = f'{fld}:__{fld}X1', m = precalcs[i], n = True)
+            targets[i] <<= nm.mnjoin(k = f'{k},__T2', K = f'{k},__qtNo',
+                                    f = f'{fld}:__{fld}X2', m = precalcs[i], n = True)
+            targets[i] <<= nm.msel(c = f'$s{{fld}}=="{fld}"')
+            targets[i] <<= nm.mcal(a = f'{a}_{n}', c = f'if(${{__T1}}==${{__T2}},${{__{fld}X1}},(${{__T2}}-${{__T}})*${{__{fld}X1}}+(${{__T}}-${{__T1}})*${{__{fld}X2}})')
+            targets[i] <<= nm.mcut(f = f'{k},fld,{a}_{n}')
 
-            return subcmd_o
+        # subcmd_o <<= nm.m2cat(i = targets)
+        subcmd_o <<= nm.mnjoin(i = _keys, k = k, m = targets, n = True)
 
-        except Exception as e:
-            import traceback
-            with open('/dev/stderr', 'w') as fpe:
-                traceback.print_exc(file=fpe)
+        return subcmd_o
 
     def binned_entropy(self,subcmd, **kwargs):
+        f = kwargs.get('f')
+        a = kwargs.get('a')
+        k = kwargs.get('k')
+        n = kwargs.get('n')
+
+        calcid = 'binned_entropy'
+
         try:
-            f = kwargs.get('f')
-            a = kwargs.get('a')
-            k = kwargs.get('k')
-            n = kwargs.get('n')
+            # check if float
+            param = float(n)
+            
+            # check if not integer or less than 2
+            if (not param.is_integer()) or param < 2:
+                errmsg = self.generateCommandErrorMessage('ParameterOutOfBoundsError', 'n', n, param_calc = calcid)
+                raise Exception(errmsg)
+        except ValueError:
+            errmsg = self.generateCommandErrorMessage('ParameterTypeError', 'n', n, param_calc = calcid)
+            raise Exception(errmsg)
+        
+        
+        fs = f.split(',')
+        targets = [None] * len(fs)
+        msummary = None
+        subcmd_o = None
 
-            fs = f.split(',')
-            targets = [None] * len(fs)
-            msummary = None
-            subcmd_o = None
+        # msummary <<= nm.mcut(i = self.all_msums, f = f'{k},fld,__count')
+        condition = [f'($s{{fld}}=="{fld}")' for fld in f.split(',')]
+        msummary <<= nm.msel(i = self.all_msums, c = '||'.join(condition))
 
-            # msummary <<= nm.mcut(i = self.all_msums, f = f'{k},fld,__count')
-            condition = [f'($s{{fld}}=="{fld}")' for fld in f.split(',')]
-            msummary <<= nm.msel(i = self.all_msums, c = '||'.join(condition))
+        subcmd <<= nm.mbucket(k = k, f = [f'{fld}:__{fld}_no' for fld in fs],
+                                n = n, rng = True)
 
-            subcmd <<= nm.mbucket(k = k, f = [f'{fld}:__{fld}_no' for fld in fs],
-                                  n = n, rng = True)
+        for i, fld in enumerate(fs):
+            targets[i] <<= nm.mcount(k = f'{k},__{fld}_no', a = f'__{fld}hcount',
+                                    i = subcmd)
 
-            for i, fld in enumerate(fs):
-                targets[i] <<= nm.mcount(k = f'{k},__{fld}_no', a = f'__{fld}hcount',
-                                        i = subcmd)
+            targets[i] <<= nm.mnjoin(k = k, m = msummary, f = 'fld,__count')
+            targets[i] <<= nm.msel(c = f'$s{{fld}}=="{fld}"')
+            targets[i] <<= nm.mcal(c = f'(${{__{fld}hcount}}/${{__count}})*ln(${{__{fld}hcount}}/${{__count}})',
+                                    a = '__probs')
+            targets[i] <<= nm.mcut(f = f'{k},fld,__probs')
 
-                targets[i] <<= nm.mnjoin(k = k, m = msummary, f = 'fld,__count')
-                targets[i] <<= nm.msel(c = f'$s{{fld}}=="{fld}"')
-                targets[i] <<= nm.mcal(c = f'(${{__{fld}hcount}}/${{__count}})*ln(${{__{fld}hcount}}/${{__count}})',
-                                       a = '__probs')
-                targets[i] <<= nm.mcut(f = f'{k},fld,__probs')
+        subcmd_o <<= nm.msum(k = f'{k},fld', f = '__probs', i = targets)
+        subcmd_o <<= nm.mcal(c = '${__probs}*-1', a = f'{a}_{n}')
 
-            subcmd_o <<= nm.msum(k = f'{k},fld', f = '__probs', i = targets)
-            subcmd_o <<= nm.mcal(c = '${__probs}*-1', a = f'{a}_{n}')
+        subcmd_o <<= nm.mcut(f = f'{k},fld,{a}_{n}')
 
-            subcmd_o <<= nm.mcut(f = f'{k},fld,{a}_{n}')
-
-            return subcmd_o
-
-        except Exception as e:
-            import traceback
-            with open('/dev/stderr', 'w') as fpe:
-                traceback.print_exc(file=fpe)
+        return subcmd_o
 
     def energy_ratio_by_chunks(self,subcmd, **kwargs):
         try:
@@ -1438,51 +1740,12 @@ class GroupBy2Command(Command):
         # body of this method adapted from:
         # github.com/nysol/nysol_python/blob/master/scripts/sample/mkfeature.py
         try:
+            import math
             import numpy as np
             
             f = kwargs.get('f')
             a = kwargs.get('a')
-            x = kwargs.get('x')
-            k = kwargs.get('k')
-            precision = kwargs.get('precision')
-
-            headerline = True
-
-            for dlist in nm.mstdin().keyblock(f'{k}', x, header = True):
-                id = ','.join(dlist[0][:len(k.split(','))])
-
-                if headerline:
-                    header = dlist[0]
-                    print(f'{k},fld,{a}')
-                    headerline = False
-
-                else:
-                    for fld in f.split(','):
-                        f_loc = header.index(fld)
-
-                        targetcol = [float(xdlist[f_loc]) for xdlist in dlist]
-
-                        y = np.abs(np.fft.rfft(targetcol))
-
-                        mean = y.dot(np.arange(len(y)))/y.sum()
-
-                        print(f'{id},{fld},{mean:.{precision}g}')
-            sys.__stdout__.flush()#not needed for bigger data
-
-        except Exception as e:
-            import traceback
-            with open('/dev/stderr', 'w') as fpe:
-                traceback.print_exc(file=fpe)
-
-    def frequencyvar(self, **kwargs):
-        # body of this method adapted from:
-        # github.com/nysol/nysol_python/blob/master/scripts/sample/mkfeature.py
-        try:
-            import numpy as np
-            
-            f = kwargs.get('f')
-            a = kwargs.get('a')
-            x = kwargs.get('x')
+            x = 'uxt' # kwargs.get('x')
             k = kwargs.get('k')
             precision = kwargs.get('precision')
 
@@ -1500,14 +1763,100 @@ class GroupBy2Command(Command):
                     for fld in f.split(','):
                         f_loc = header.index(fld)
 
-                        y = np.abs(np.fft.rfft([float(xdlist[f_loc]) 
-                                                for xdlist in dlist]))
+                        # valuetype check goes here
+                        targetcol = []
+                        for line in dlist:
+                            # input cleanup goes here
+                            try:
+                                # if the value can be converted to float, included
+                                targetcol.append(float(line[f_loc]))
+                            except ValueError:
+                                # otherwise, place nan
+                                targetcol.append(float('nan'))
 
-                        mean = y.dot(np.arange(len(y)))/y.sum()
-                        moment2 = y.dot(np.arange(len(y))**2)/y.sum()
-                        variance = moment2 - mean ** 2
+                        if targetcol == []:
+                            print(f'{id},{fld},')
+                        else:
+                            y = np.abs(np.fft.rfft(targetcol))
 
-                        print(f'{id},{fld},{variance:.{precision}g}')
+                            mean = y.dot(np.arange(len(y)))/y.sum()
+
+                            # output cleanup goes here
+                            if (mean is None) or (mean == '') or (mean ==  'None'):
+                                # print empty string
+                                print(f'{id},{fld},')
+                            else:
+                                if np.isfinite(float(mean)):
+                                    print(f'{id},{fld},{mean:.{precision}g}')
+                                else:
+                                    print(f'{id},{fld},')
+
+            sys.__stdout__.flush()#not needed for bigger data
+
+        except Exception as e:
+            import traceback
+            with open('/dev/stderr', 'w') as fpe:
+                traceback.print_exc(file=fpe)
+
+    def frequencyvar(self, **kwargs):
+        # body of this method adapted from:
+        # github.com/nysol/nysol_python/blob/master/scripts/sample/mkfeature.py
+        try:
+            import math
+            import numpy as np
+            
+            f = kwargs.get('f')
+            a = kwargs.get('a')
+            x = 'uxt' # kwargs.get('x')
+            k = kwargs.get('k')
+            precision = kwargs.get('precision')
+
+            headerline = True
+
+            for dlist in nm.mstdin().keyblock(f'{k}', f'{x}%n', header = True):
+                id = ','.join(dlist[0][:len(k.split(','))])
+
+                if headerline:
+                    header = dlist[0]
+                    print(f'{k},fld,{a}')
+                    headerline = False
+
+                else:
+                    for fld in f.split(','):
+                        f_loc = header.index(fld)
+
+                        # valuetype check goes here
+                        targetcol = []
+                        for line in dlist:
+                            # input cleanup goes here
+                            try:
+                                # if the value can be converted to float, included
+                                targetcol.append(float(line[f_loc]))
+                            except ValueError:
+                                # otherwise, place nan
+                                targetcol.append(float('nan'))
+
+                        if targetcol == []:
+                            print(f'{id},{fld},')
+                        else:
+                            y = np.abs(np.fft.rfft(targetcol))
+
+                            mean = y.dot(np.arange(len(y)))/y.sum()
+
+                            moment2 = y.dot(np.arange(len(y))**2)/y.sum()
+                            variance = moment2 - mean ** 2
+
+                            # output cleanup goes here
+                            if (variance is None) or (variance == '') or (variance ==  'None'):
+                                # print empty string
+                                print(f'{id},{fld},')
+                            else:
+                                if np.isfinite(float(variance)):
+                                    print(f'{id},{fld},{variance:.{precision}g}')
+                                else:
+                                    print(f'{id},{fld},')
+                                    
+                                
             sys.__stdout__.flush()#not needed for bigger data
 
         except Exception as e:
@@ -1593,7 +1942,6 @@ class GroupBy2Command(Command):
             subcmd <<= nm.m2cross(k = f'{k},fld', f = 'mean,var', a = f'type,{a}')
             subcmd <<= nm.mcal(a = 'tmp_colnames', c = '$s{fld}+"_"+$s{type}')
             subcmd <<= nm.mcross(f = f'{a}', s = 'tmp_colnames', k = k)
-
             for fld in fs:
                 subcmd <<= nm.mcal(a = fld, precision = precision,
                     c = f'(${{{fld}_prod_mean}}-(${{{fld}_mean}}*${{uxt_mean}}))/${{uxt_var}}')
@@ -1608,40 +1956,33 @@ class GroupBy2Command(Command):
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
 
-    def slopebyorder(self, subcmd, **kwargs):
+    def pearson(self, subcmd, **kwargs):
         try:
             f = kwargs.get('f')
             a = kwargs.get('a')
             x = kwargs.get('x')
             k = kwargs.get('k')
             precision = kwargs.get('precision')
+            dateformat = kwargs.pop('dateformat')
 
             fs = f.split(',')
 
-            # fix "time" column
-            ordercol = '__order__'
-            subcmd <<= nm.mnumber(k = k, a = f'{ordercol}', s = f'{k},{x}%n', S = '1')
+            sims = [None] * len(fs)
+            subcmd_o = None
 
-            for fld in fs: 
-                subcmd <<= nm.mcal(a = f'{fld}_prod',c = f'${{{fld}}}*${{{ordercol}}}')
+            subcmd = self.fixtimecolumn(subcmd, x, dateformat)
+            x = 'uxt'
             
-            prod_fldnames = ','.join([f'{fld}_prod' for fld in fs])
+            for i,fld in enumerate(fs): 
+                sims[i] <<= nm.msim(i = subcmd, k = k, c = 'pearson', 
+                                    f = f'{x},{fld}', a = 'fld2,fld')
             
-            subcmd <<= nm.msummary(k = k, f = f'{prod_fldnames},{f},{ordercol}',
-                                c = 'mean,var')
-        
-            subcmd <<= nm.m2cross(k = f'{k},fld', f = 'mean,var', a = f'type,{a}')
-            subcmd <<= nm.mcal(a = 'tmp_colnames', c = '$s{fld}+"_"+$s{type}')
-            subcmd <<= nm.mcross(f = f'{a}', s = 'tmp_colnames', k = k)
+            subcmd_o <<= nm.m2cat(i = sims)
+            subcmd_o <<= nm.mfldname(f = f'pearson:{a}')
+            
+            subcmd_o <<= nm.mcut(f = f'{k},fld,{a}')
 
-            for fld in fs:
-                subcmd <<= nm.mcal(a = fld, precision = precision,
-                    c = f'(${{{fld}_prod_mean}}-(${{{fld}_mean}}*${{{ordercol}_mean}}))/${{{ordercol}_var}}')
-            
-            subcmd <<= nm.mcross(f = f, s = 'fld', k = k)
-            subcmd <<= nm.mcut(f = f'{k},fld,{a}')
-
-            return subcmd
+            return subcmd_o
             
         except Exception as e:
             import traceback
@@ -1673,6 +2014,7 @@ class GroupBy2Command(Command):
 
             # fix time column
             subcmd = self.fixtimecolumn(subcmd, x, dateformat)
+
 
             meanval = nm.mstats(k = k, i = subcmd, f = f'uxt,{f}', c = 'mean')
 
@@ -1732,11 +2074,12 @@ class GroupBy2Command(Command):
                             tmpfile.write(line)
                 
                 subcmd_o <<= nm.mcut(i = _temp, f = [k, 'fld'] + finalcols)
-
-                return subcmd_o
             else:
+                
                 subcmd_o <<= nm.mcut(i = targets, f = [k, 'fld'] + finalcols)
-                return subcmd_o
+
+            
+            return subcmd_o
             
         except Exception as e:
             import traceback
@@ -1945,7 +2288,7 @@ class GroupBy2Command(Command):
             subcmd = self.fixtimecolumn(subcmd, x, dateformat)
 
             for i, fld in enumerate(fs):
-                targets[i] <<= nm.mslide(k = k, s = 'uxt', i = subcmd, 
+                targets[i] <<= nm.mslide(k = k, s = 'uxt%n', i = subcmd, 
                                          f = f'{fld}:__shifted{fld}')
                 targets[i] <<= nm.mcal(c = f'${{__shifted{fld}}}-${{{fld}}}', 
                                        a = a)
@@ -1982,7 +2325,7 @@ class GroupBy2Command(Command):
             subcmd = self.fixtimecolumn(subcmd, x, dateformat)
 
             for i, fld in enumerate(fs):
-                targets[i] <<= nm.mslide(k = k, s = 'uxt', i = subcmd, 
+                targets[i] <<= nm.mslide(k = k, s = 'uxt%n', i = subcmd, 
                                          f = f'{fld}:__shifted{fld}')
                 targets[i] <<= nm.mcal(c = f'abs(${{__shifted{fld}}}-${{{fld}}})', 
                                        a = a)
@@ -2016,8 +2359,8 @@ class GroupBy2Command(Command):
             subcmd = self.fixtimecolumn(subcmd, x, dateformat)
 
             for fld in fs:
-                subcmd <<= nm.msortf(f = f'{k},uxt')
-                subcmd <<= nm.mcal(c = f'abs(${{{fld}}}-#{{{fld}}}', a = f'__tmp{fld}__')
+                subcmd <<= nm.msortf(f = f'{k},uxt%n')
+                subcmd <<= nm.mcal(c = f'abs(${{{fld}}}-#{{{fld}}})', a = f'__tmp{fld}__')
                 subcmd <<= nm.mcut(f = fld, r = True)
                 subcmd <<= nm.mfldname(f = f'__tmp{fld}__:{fld}')
             
@@ -2108,7 +2451,7 @@ class GroupBy2Command(Command):
                                         f = 'fld,__mean')
                 targets[i] <<= nm.msel(c = f'$s{{fld}}=="{fld}"')
 
-                targets[i] <<= nm.msortf(f = f'{k},uxt')
+                targets[i] <<= nm.msortf(f = f'{k},uxt%n')
                 targets[i] <<= nm.mcal(c = f'${{__mean}}<=${{{fld}}}', a = '__above')
                 targets[i] <<= nm.mcount(q = True, k = f'{k},__above', a = '__a_count')
                 targets[i] <<= nm.mbest(k = k, s = '__above%nr,__a_count%nr', size = 1)
@@ -2150,7 +2493,7 @@ class GroupBy2Command(Command):
                                         f = 'fld,__mean')
                 targets[i] <<= nm.msel(c = f'$s{{fld}}=="{fld}"')
 
-                targets[i] <<= nm.msortf(f = f'{k},uxt')
+                targets[i] <<= nm.msortf(f = f'{k},uxt%n')
                 targets[i] <<= nm.mcal(c = f'${{__mean}}<=${{{fld}}}', a = '__below')
                 targets[i] <<= nm.mcount(q = True, k = f'{k},__below', a = '__b_count')
                 targets[i] <<= nm.mbest(k = k, s = '__below%nr,__b_count%nr', size = 1)
@@ -2185,9 +2528,9 @@ class GroupBy2Command(Command):
             subcmd = self.fixtimecolumn(subcmd, x, dateformat)
 
             for i, fld in enumerate(fs):
-                targets[i] <<= nm.mslide(k = k, s = 'uxt', f = f'{fld}:__shifted{fld}',
+                targets[i] <<= nm.mslide(k = k, s = 'uxt%n', f = f'{fld}:__shifted{fld}',
                                          t = 2, i = subcmd)
-                targets[i] <<= nm.mcal(c = f'(${{__shifted{fld}2}}-2*${{__shifted{fld}1}}+${{{fld}}})/2',
+                targets[i] <<= nm.mcal(c = f'(${{__shifted{fld}2}}-2*${{__shifted{fld}1}}+${{{fld}}})',
                                        a = a)
                 targets[i] <<= nm.mavg(k = k, f = a, precision = precision)
                 targets[i] <<= nm.msetstr(a = 'fld', v = fld)
@@ -2205,192 +2548,227 @@ class GroupBy2Command(Command):
     # --------------- 3 vars -----------------------
 
     def index_mass_quantile(self,subcmd, **kwargs):
+        f = kwargs.get('f')
+        a = kwargs.get('a')
+        k = kwargs.get('k')
+        x = kwargs.get('x')
+        n = kwargs.get('n')
+        precision = kwargs.get('precision')
+        dateformat = kwargs.pop('dateformat')
+
+        calcid = 'imq' 
+
         try:
-            f = kwargs.get('f')
-            a = kwargs.get('a')
-            k = kwargs.get('k')
-            x = kwargs.get('x')
-            n = kwargs.get('n')
-            precision = kwargs.get('precision')
+            # check if float
+            param = float(n)
+            
+            # check if out of bounds
+            if param < 0 or param > 1:
+                errmsg = self.generateCommandErrorMessage('ParameterOutOfBoundsError', 'n', n, param_calc = calcid)
+                raise Exception(errmsg)
+        except ValueError:
+            errmsg = self.generateCommandErrorMessage('ParameterTypeError', 'n', n, param_calc = calcid)
+            raise Exception(errmsg)
 
-            fs = f.split(',')
-            targets = [None] * len(fs)
-            mcal = [None] * len(fs)
-            msum = [None] * len(fs)
-            msummary = [None] * len(fs)
+        fs = f.split(',')
+        targets = [None] * len(fs)
+        mcal = [None] * len(fs)
+        msum = [None] * len(fs)
+        msummary = [None] * len(fs)
 
-            subcmd_o = None
+        subcmd_o = None
 
-            # fix time column
-            # subcmd = self.fixtimecolumn(subcmd, x, dateformat)
+        # fix time column
+        subcmd = self.fixtimecolumn(subcmd, x, dateformat)
+        x = 'uxt'
 
-            for i, fld in enumerate(fs):
-                mcal[i] <<= nm.mcal(c = f'abs(${{{fld}}})', a = f'__abs{fld}', 
-                                    i = subcmd)
-                msum[i] <<= mcal[i].msum(k = k, f = f'__abs{fld}')
+        for i, fld in enumerate(fs):
+            mcal[i] <<= nm.mcal(c = f'abs(${{{fld}}})', a = f'__abs{fld}', 
+                                i = subcmd)
+            msum[i] <<= mcal[i].msum(k = k, f = f'__abs{fld}')
 
-                msummary[i] <<= nm.msel(i = self.all_msums, 
-                                        c = f'$s{{fld}}=="{fld}"')
+            msummary[i] <<= nm.msummary(i = subcmd, k = k, f = fld,
+                                    c = 'count:__count')
 
-                targets[i] <<= nm.maccum(k = k, s = f'{x}%n', f = f'__abs{fld}:__abs{fld}_a',
-                                         i = mcal[i])
-                targets[i] <<= nm.mjoin(k = k, f = f'__abs{fld}:__abs{fld}_ttl',
-                                        m = msum[i])
-                targets[i] <<= nm.mnjoin(k = k, f = f'fld,__count', m = msummary[i])
-                targets[i] <<= nm.mcal(c = f'(${{__abs{fld}_a}}/${{__abs{fld}_ttl}})>={n}',
-                                       a = '__mc')
-                targets[i] <<= nm.mbest(k = k, s = f'__mc%nr,{x}%n', size = 1)
-                targets[i] <<= nm.mcal(c = f'(${{{x}}} + 1)/${{__count}}', a = f'{a}_{n}',
-                                       precision = precision)
+            targets[i] <<= nm.maccum(k = k, s = f'{x}%n', f = f'__abs{fld}:__abs{fld}_a',
+                                        i = mcal[i])
+            targets[i] <<= nm.mjoin(k = k, f = f'__abs{fld}:__abs{fld}_ttl',
+                                    m = msum[i])
+            targets[i] <<= nm.mnjoin(k = k, f = f'fld,__count', m = msummary[i])
+            targets[i] <<= nm.mcal(c = f'(${{__abs{fld}_a}}/${{__abs{fld}_ttl}})>={n}',
+                                    a = '__mc')
+            targets[i] <<= nm.mbest(k = k, s = f'__mc%nr,{x}%n', size = 1)
+            targets[i] <<= nm.mcal(c = f'(${{{x}}})/${{__count}}', a = f'{a}_{n}',
+                                    precision = precision)
 
-                targets[i] <<= nm.mcut(f = f'{k},fld,{a}_{n}')
+            targets[i] <<= nm.mcut(f = f'{k},fld,{a}_{n}')
 
-            subcmd_o <<= nm.m2cat(i = targets)
+        subcmd_o <<= nm.m2cat(i = targets)
 
-            return subcmd_o
-
-        except Exception as e:
-            import traceback
-            with open('/dev/stderr', 'w') as fpe:
-                traceback.print_exc(file=fpe)
+        return subcmd_o
 
     def numbercrossing(self, subcmd, **kwargs):
+        f = kwargs.get('f')
+        a = kwargs.get('a')
+        x = kwargs.get('x')
+        k = kwargs.get('k')
+        n = kwargs.get('n')
+
+        calcid = 'crossing_m'
+
         try:
-            f = kwargs.get('f')
-            a = kwargs.get('a')
-            x = kwargs.get('x')
-            k = kwargs.get('k')
-            n = kwargs.get('n')
+            # check if float
+            param = float(n)
+        except ValueError:
+            errmsg = self.generateCommandErrorMessage('ParameterTypeError', 'n', n, param_calc = calcid)
+            raise Exception(errmsg)
 
-            dateformat = kwargs.pop('dateformat')
+        dateformat = kwargs.pop('dateformat')
 
-            subcmd_o = None
+        subcmd_o = None
 
-            fs = f.split(',')
-            targets = [None] * len(fs) 
+        fs = f.split(',')
+        targets = [None] * len(fs) 
 
-            # fix time column
-            subcmd = self.fixtimecolumn(subcmd, x, dateformat)
+        # fix time column
+        subcmd = self.fixtimecolumn(subcmd, x, dateformat)
 
-            for i, fld in enumerate(fs):
-                targets[i] <<= nm.mcal(c = f'${{{fld}}}>{n}', a = '__pos', 
-                                   i = subcmd)
-                targets[i] <<= nm.mslide(k = k, s = 'uxt', f = '__pos:__posN')
-                targets[i] <<= nm.mcal(c = '${__pos}!=${__posN}', a = '__diffT')
-                targets[i] <<= nm.mcount(k = k + ',__diffT', a = '__cnt')
-                targets[i] <<= nm.mbest(k = k, s = '__diffT%nr', size = 1)
-                targets[i] <<= nm.mcal(c = 'if(${__diffT}==0,0,${__cnt})', 
-                                      a = f'{a}_{n}')
-                targets[i] <<= nm.msetstr(a = 'fld', v = fld)
+        for i, fld in enumerate(fs):
+            targets[i] <<= nm.mcal(c = f'${{{fld}}}>{n}', a = '__pos', 
+                                i = subcmd)
+            targets[i] <<= nm.mslide(k = k, s = 'uxt%n', f = '__pos:__posN')
+            targets[i] <<= nm.mcal(c = '${__pos}!=${__posN}', a = '__diffT')
+            targets[i] <<= nm.mcount(k = k + ',__diffT', a = '__cnt')
+            targets[i] <<= nm.mbest(k = k, s = '__diffT%nr', size = 1)
+            targets[i] <<= nm.mcal(c = 'if(${__diffT}==0,0,${__cnt})', 
+                                    a = f'{a}_{n}')
+            targets[i] <<= nm.msetstr(a = 'fld', v = fld)
 
-            subcmd_o <<= nm.mcut(i = targets, f = f'{k},fld,{a}_{n}')
+        subcmd_o <<= nm.mcut(i = targets, f = f'{k},fld,{a}_{n}')
 
-            return subcmd_o
-
-        except Exception as e:
-            import traceback
-            with open('/dev/stderr', 'w') as fpe:
-                traceback.print_exc(file=fpe)
+        return subcmd_o
 
     def countpeaks(self, subcmd, **kwargs):
+        f = kwargs.get('f')
+        a = kwargs.get('a')
+        x = kwargs.get('x')
+        k = kwargs.get('k')
+        n = kwargs.get('n')
+
+        calcid = 'peaks'
+
         try:
-            f = kwargs.get('f')
-            a = kwargs.get('a')
-            x = kwargs.get('x')
-            k = kwargs.get('k')
-            n = kwargs.get('n')
+            # check if float
+            param = float(n)
+            
+            # check if not integer or less than 1
+            if (not param.is_integer()) or param < 1:
+                errmsg = self.generateCommandErrorMessage('ParameterOutOfBoundsError', 'n', n, param_calc = calcid)
+                raise Exception(errmsg)
+        except ValueError:
+            errmsg = self.generateCommandErrorMessage('ParameterTypeError', 'n', n, param_calc = calcid)
+            raise Exception(errmsg)
 
-            dateformat = kwargs.pop('dateformat')
+        dateformat = kwargs.pop('dateformat')
 
-            subcmd_o = None
+        subcmd_o = None
 
-            fs = f.split(',')
-            targets = [None] * len(fs) 
-            mslide = [None] * len(fs) 
+        fs = f.split(',')
+        targets = [None] * len(fs) 
+        mslide = [None] * len(fs) 
 
-            # fix time column
-            subcmd = self.fixtimecolumn(subcmd, x, dateformat)
+        # fix time column
+        subcmd = self.fixtimecolumn(subcmd, x, dateformat)
 
-            for i, fld in enumerate(fs):
-                mslide[i] <<= nm.mslide(k = k, s = 'uxt', t = n, r = True, 
-                                        f = f'{fld}:{fld}_up_', i = subcmd)
+        # # take starting key columns
+        # _keys = None
+        # _keys <<= nm.mcut(f = k, i = subcmd)
+        # _keys <<= nm.muniq(k = k)
 
-                targets[i] <<= nm.mslide(k = k, s = 'uxt', t = n,
-                                         f = f'{fld}:{fld}_down_', i = subcmd)
-                
-                targets[i] <<= nm.mjoin(k = f'{k},uxt', f = f'{fld}_up_*',
-                                        m = mslide[i])
-                targets[i] <<= nm.mdelnull(f = f'{fld}_up_*,{fld}_down_*')
-                targets[i] <<= nm.mcal(c = f'max(${{{fld}_up*}},${{{fld}_down_*}})',
-                                       a = '__rollmax__')
-                targets[i] <<= nm.mcal(c = f'${{{fld}}}>${{__rollmax__}}',
-                                       a = f'{a}_{n}')
+        for i, fld in enumerate(fs):
+            mslide[i] <<= nm.mslide(k = k, s = 'uxt%n', t = n, r = True, 
+                                    f = f'{fld}:{fld}_up_', i = subcmd)
 
-                targets[i] <<= nm.msum(k = k, f = f'{a}_{n}')
-                targets[i] <<= nm.mcal(a = 'fld', c = f'"{fld}"')
-                targets[i] <<= nm.mcut(f = f'{k},fld,{a}_{n}')
+            targets[i] <<= nm.mslide(k = k, s = 'uxt%n', t = n,
+                                        f = f'{fld}:{fld}_down_', i = subcmd)
+            
+            targets[i] <<= nm.mjoin(k = f'{k},uxt', f = f'{fld}_up_*',
+                                    m = mslide[i], n = True)
+            # targets[i] <<= nm.mdelnull(f = f'{fld}_up_*,{fld}_down_*')
+            targets[i] <<= nm.mcal(c = f'max(${{{fld}_up*}},${{{fld}_down_*}})',
+                                    a = '__rollmax__')
+            targets[i] <<= nm.mcal(c = f'${{{fld}}}>${{__rollmax__}}',
+                                    a = f'{a}_{n}')
+
+            targets[i] <<= nm.msum(k = k, f = f'{a}_{n}')
+            targets[i] <<= nm.mcal(a = 'fld', c = f'"{fld}"')
+            targets[i] <<= nm.mcut(f = f'{k},fld,{a}_{n}')
 
 
-            subcmd_o <<= nm.mread(i = targets)
+        subcmd_o <<= nm.mread(i = targets)
+        # subcmd_o <<= nm.mnjoin(i = _keys, k = k, m = targets, n = True)
 
-            return subcmd_o
-
-        except Exception as e:
-            import traceback
-            with open('/dev/stderr', 'w') as fpe:
-                traceback.print_exc(file=fpe)
+        return subcmd_o
 
     def autocorrelation(self, subcmd, **kwargs):
+        f = kwargs.get('f')
+        a = kwargs.get('a')
+        x = kwargs.get('x')
+        k = kwargs.get('k')
+        n = kwargs.get('n')
+        precision = kwargs.get('precision')
+
+        calcid = 'autocorr'
+
         try:
-            f = kwargs.get('f')
-            a = kwargs.get('a')
-            x = kwargs.get('x')
-            k = kwargs.get('k')
-            n = kwargs.get('n')
-            precision = kwargs.get('precision')
+            # check if float
+            param = float(n)
+            
+            # check if not integer
+            if (not param.is_integer()) or param < 1:
+                errmsg = self.generateCommandErrorMessage('ParameterOutOfBoundsError', 'n', n, param_calc = calcid)
+                raise Exception(errmsg)
+        except ValueError:
+            errmsg = self.generateCommandErrorMessage('ParameterTypeError', 'n', n, param_calc = calcid)
+            raise Exception(errmsg)
 
-            dateformat = kwargs.pop('dateformat')
+        dateformat = kwargs.pop('dateformat')
 
-            subcmd_o = None
+        subcmd_o = None
 
-            fs = f.split(',')
-            targets = [None] * len(fs)
-            msummary = [None] * len(fs)
+        fs = f.split(',')
+        targets = [None] * len(fs)
+        msummary = [None] * len(fs)
 
-            # fix time column
-            subcmd = self.fixtimecolumn(subcmd, x, dateformat)
+        # fix time column
+        subcmd = self.fixtimecolumn(subcmd, x, dateformat)
 
-            for i, fld in enumerate(fs):
-                if n == 0:
-                    targets[i] <<= nm.muniq(k = k, i = subcmd)
-                    targets[i] <<= nm.mcut(f = k)
-                    targets[i] <<= nm.msetstr(v = fld, a = 'fld') 
-                    targets[i] <<= nm.msetstr(v = 1, a = a)
-                else:
-                    msummary[i] <<= nm.msel(i = self.all_msums, 
-                                        c = f'$s{{fld}}=="{fld}"')
+        for i, fld in enumerate(fs):
+            if n == 0:
+                targets[i] <<= nm.muniq(k = k, i = subcmd)
+                targets[i] <<= nm.mcut(f = k)
+                targets[i] <<= nm.msetstr(v = fld, a = 'fld') 
+                targets[i] <<= nm.msetstr(v = 1, a = a)
+            else:
+                msummary[i] <<= nm.msummary(i = subcmd, k = k, f = fld,
+                                    c = f'mean:__mean,var:__var,count:__count')
 
-                    targets[i] <<= nm.mjoin(i = subcmd, m = msummary[i], k = k,
-                            f = 'fld,__mean,__var,__count')
+                targets[i] <<= nm.mjoin(i = subcmd, m = msummary[i], k = k,
+                        f = 'fld,__mean,__var,__count')
 
-                    targets[i] <<= nm.mslide(k = k, s = 'uxt', t = n, l = True, 
-                                            f = f'{fld}:__{fld}_L')
-                    targets[i] <<= nm.mcal(c = f'(${{{fld}}}-${{__mean}})*(${{__{fld}_L}}-${{__mean}})',
-                                           a = f'__{fld}_m')
-                    targets[i] <<= nm.msum(k = k, f = f'__{fld}_m')
-                    targets[i] <<= nm.msetstr(a = '__lag', v = n)
-                    targets[i] <<= nm.mcal(a = f'{a}_{n}', precision = precision,
-                        c = f'${{__{fld}_m}}/(${{__count}}-${{__lag}})/${{__var}}')
-                    targets[i] <<= nm.mcut(f = f'{k},fld,{a}_{n}')
+                targets[i] <<= nm.mslide(k = k, s = 'uxt%n', t = n, l = True, 
+                                        f = f'{fld}:__{fld}_L')
+                targets[i] <<= nm.mcal(c = f'(${{{fld}}}-${{__mean}})*(${{__{fld}_L}}-${{__mean}})',
+                                        a = f'__{fld}_m')
+                targets[i] <<= nm.msum(k = k, f = f'__{fld}_m')
+                targets[i] <<= nm.msetstr(a = '__lag', v = n)
+                targets[i] <<= nm.mcal(a = f'{a}_{n}', precision = precision,
+                    c = f'${{__{fld}_m}}/(${{__count}}-${{__lag}})/${{__var}}')
+                targets[i] <<= nm.mcut(f = f'{k},fld,{a}_{n}')
 
-            subcmd_o <<= nm.m2cat(i = targets)
+        subcmd_o <<= nm.m2cat(i = targets)
 
-            return subcmd_o
-
-        except Exception as e:
-            import traceback
-            with open('/dev/stderr', 'w') as fpe:
-                traceback.print_exc(file=fpe)
+        return subcmd_o
     
     def c3(self,subcmd, **kwargs):
         try:
@@ -2479,7 +2857,7 @@ class GroupBy2Command(Command):
         import fnmatch as fn
 
         _args = copy.deepcopy(args)
-
+        
         msummaryoptions = [
             'sum',
             'mean',
@@ -2543,7 +2921,7 @@ class GroupBy2Command(Command):
             'varf' : self.frequencyvar,
             'fft_agg' : self.fft_agg,
             'slope' : self.slope,
-            'slope_pearson' : self.slopebyorder,
+            'slope_pearson' : self.pearson,
             'firstmin' : self.firstmin,
             'firstmax' : self.firstmax,
             'lastmin' : self.lastmin,
@@ -2599,20 +2977,66 @@ class GroupBy2Command(Command):
             'energy_ratio_by_chunks': ['count','sd'],
             'longest_strike_above_mean' : ['mean'],
             'longest_strike_below_mean' : ['mean'],
-            'imq' : ['count'],
-            'autocorr' : ['mean', 'var', 'count'],
             'linregress': ['count']
         } 
+
+        supports_str = [
+            'rows',
+            'miss',
+            'strmin',
+            'strmax',
+            'strucount',
+            'has_dup',
+            'value_count'
+        ]
 
         msum_prereqs = set()
 
         sys.setrecursionlimit(2**20)
 
-        self.header = inputs['i'].content.getline(header=True)
-        self.header = next(self.header)
+        # self.header = inputs['i'].content.getline(header=True)
+        # self.header = next(self.header)
+
+        # ヘッダ行を取得する
+        self.header = self.get_field_names(inputs['i'])
 
         k = _args.get('k')
         prec = _args.get('precision')
+        formatstring = _args.pop('format')
+
+        # check format string for errors
+        if any(char in formatstring for char in '*?[],:\\\"\' '):
+            errmsg = self.generateCommandErrorMessage('ResultsColForbiddenCharacterError', 'format', formatstring)
+            raise Exception(errmsg)
+
+        # check keystring here
+        # if empty, pass
+        if not k:
+            pass
+        # if not empty
+        else:
+            # check forbidden characters
+            if any(char in k for char in '%&'):
+                errmsg = self.generateCommandErrorMessage('KeyFieldForbiddenCharacterError', 'k', k)
+                raise Exception(errmsg)
+
+            k_list = k.split(',')
+            if len(k_list) > len(set(k_list)):
+                # check conflict
+                errmsg = self.generateCommandErrorMessage('KeyFieldConflictError', 'k', k)
+                raise Exception(errmsg)
+            if '' in k_list:
+                # check empty
+                errmsg = self.generateCommandErrorMessage('EmptyKeyFieldError', 'k', k)
+                raise Exception(errmsg)
+            for _keycol in k_list:
+                # if not wildcard expression
+                if not any(char in _keycol for char in '*?[]'):
+                    if _keycol not in self.header:
+                        errmsg = self.generateCommandErrorMessage('FieldNotFoundError', 'k', _keycol)
+                        raise Exception(errmsg)
+                
+
         xs = []
 
         calclist = []
@@ -2627,13 +3051,39 @@ class GroupBy2Command(Command):
 
         # parse inputs into list-of-dictionaries form
         for arglist in allargs:
+            if arglist.get('fld'):
+                rows_fld = arglist.get('fld')
+                if ',' in rows_fld:
+                    errmsg = self.generateCommandErrorMessage('MultipleRowsTargetError', 'fld', rows_fld)
+                    raise Exception(errmsg)
+                
             if arglist.get('c'):
                 # sys.__stderr__.write(repr(arglist))
 
                 x = arglist.get('x')
                 s = arglist.get('s')
+
+                if x == '':
+                    errmsg = self.generateCommandErrorMessage('EmptyTimecolFieldError', 'x', x)
+                    raise Exception(errmsg)
+                
                 if x or s: 
+                    # test for forbidden characters in time setting
+                    if any(char in x for char in '*?[],:\&％'):
+                        errmsg = self.generateCommandErrorMessage('TimecolForbiddenCharacterError', 'x', x)
+                        raise Exception(errmsg)
+                    x_list = x.split(',')
+                    
+                    for _xcol in x_list:
+                        if _xcol == '':
+                            errmsg = self.generateCommandErrorMessage('EmptyTimecolFieldError', 'x', x)
+                            raise Exception(errmsg)
+                        if _xcol not in self.header:
+                            errmsg = self.generateCommandErrorMessage('FieldNotFoundError', 'x', _xcol)
+                            raise Exception(errmsg)
+                    
                     arglist['dateformat'] = _args['dateformat']
+
                     if x and x not in xs:
                         xs.append(x)
                     if s: 
@@ -2644,13 +3094,45 @@ class GroupBy2Command(Command):
 
                 fs = arglist.get('f')
                 if fs:
-                    fs = [a for a in self.header 
-                        for target in arglist['f'].split(',')
-                        if fn.fnmatch(a, target)]
+                    fs_list = fs.split(',')
+                    if ('%' in fs) or ('&' in fs): 
+                        errmsg = self.generateCommandErrorMessage('TargetFieldForbiddenCharacterError', 'f', fs)
+                        raise Exception(errmsg)
+
+                    if len(fs_list) > len(set(fs_list)):
+                        errmsg = self.generateCommandErrorMessage('TargetFieldConflictError', 'f', fs)
+                        raise Exception(errmsg)
+
+                    for _fcol in fs_list:
+                        if _fcol == '':
+                            errmsg = self.generateCommandErrorMessage('EmptyTargetFieldError', 'f', fs)
+                            raise Exception(errmsg)
+                        # if not wildcard expression
+                        if not any(char in _fcol for char in '*?[]'):
+                            if _fcol not in self.header:
+                                errmsg = self.generateCommandErrorMessage('FieldNotFoundError', 'f', _fcol)
+                                raise Exception(errmsg)
+                        
+                    # expand wildcard
+                    fs = self.expandWildCards(fs)
+                    
+                    if type(fs) == str:
+                        errmsg = self.generateCommandErrorMessage('FieldNotFoundError', 'f', arglist['f'])
+                        raise Exception(errmsg)
+                    
                     all_fs += [f for f in fs if f not in all_fs]
                     arglist['f'] = ','.join(fs)
 
                 cs = arglist.pop('c').split(',')
+                
+                if '' in cs:
+                    errmsg = self.generateCommandErrorMessage('EmptyCalcError', 'c', ','.join(cs))
+                    raise Exception(errmsg)
+                
+                if len(cs) > len(set(cs)):
+                    errmsg = self.generateCommandErrorMessage('CalcConflictError', 'c', ','.join(cs))
+                    raise Exception(errmsg)
+                
                 cs_msummary = []
                 cs_custom_nysol = []
                 cs_grouped = []
@@ -2658,20 +3140,37 @@ class GroupBy2Command(Command):
                 for i,c in enumerate(cs):
                     if ':' in c:
                         cleft, cright = c.split(':')
+
+                        if cright == '':
+                            errmsg = self.generateCommandErrorMessage('EmptyCalcNewNameError', 'c', c)
+                            raise Exception(errmsg)
+                        
                         final_fs.append(cright)
                     elif c:
                         cleft = c
                         final_fs.append(cleft)
+                        
                     
                     if cleft in msummaryoptions:
                         cs_msummary.append(cs[i])
                     elif cleft in (x for y in grouped_calcs.values() for x in y):
                         cs_grouped.append(cs[i])
-                    elif cleft:
+                    elif cleft in nysol_calcs:
                         cs_custom_nysol.append(cs[i])
+                    else:
+                        errmsg = self.generateCommandErrorMessage('CalcNotFoundError', c, cleft)
+                        raise Exception(errmsg)
 
                     if cleft in msum_dependencies:
                         msum_prereqs.update(msum_dependencies[cleft])
+
+                if 'count' in cs_msummary:
+                    # remove count
+                    cs_msummary.remove('count')
+                    # make separate entry for count
+                    calclist.append({'c': 'count', 
+                                'optype' : 'msummary',
+                                **arglist})
 
                 if cs_msummary:
                     calclist.append({'c': ','.join(cs_msummary), 
@@ -2681,6 +3180,13 @@ class GroupBy2Command(Command):
                 ns = arglist.get('n')
                 if ns:
                     ns = ns.split(',')
+                    if len(ns) > len(set(ns)):
+                        errmsg = self.generateCommandErrorMessage('ParameterConflictError', 'n', ','.join(ns))
+                        raise Exception(errmsg)
+                    
+                    if len(cs) > 1:
+                        errmsg = self.generateCommandErrorMessage('MultipleParamCalcError', 'c', ','.join(cs))
+                        raise Exception(errmsg)
 
                 for calc in cs_custom_nysol:
                     if ns:
@@ -2716,11 +3222,89 @@ class GroupBy2Command(Command):
                                         'optype' : 'aggregate',
                                         **arglist})
 
-
+            elif all(value != '' for value in arglist.values()):
+                # if c is empty and the rest is not empty
+                errmsg = self.generateCommandErrorMessage('EmptyTargetFieldError', 'c', "''")
+                raise Exception(errmsg)
+            
         # sys.__stderr__.write(repr(calclist))
+
+        # check for conflicting final result column names here
+        resultcols = []
+        for calcdict in calclist:
+            optype = calcdict.get('optype')
+            if 'fld' in calcdict.keys():
+                if ':' in calcdict['c']:
+                    calcname = calcdict['c'].split(':')[1]
+                else:
+                    calcname = calcdict['c']
+                finalname = formatstring.replace('%', calcname).replace('&', calcdict['fld'])
+                resultcols.append(finalname)
+                
+            elif optype == 'msummary':
+                for c_opt in calcdict['c'].split(','):
+                    for f_opt in calcdict['f'].split(','):
+                        # construct list of final colnames
+                        if ':' in c_opt:
+                            calcname = c_opt.split(':')[1]
+                        else:
+                            calcname = c_opt
+                            
+                        finalname = formatstring.replace('%', calcname).replace('&', f_opt)
+                        resultcols.append(finalname)
+
+            elif optype == 'custom':
+                if ':' in calcdict['c']:
+                    calcname = calcdict['c'].split(':')[1]
+                else:
+                    calcname = calcdict['c']
+                    
+                if calcdict.get('x'):
+                    fldname = calcdict['f'] + '_' + calcdict['x'] 
+                else:
+                    fldname = calcdict['f']
+                    
+                # if calc has parameter, append to end
+                if calcdict.get('n'):
+                    # set string for calcname (& substitution)
+                    calcname += f'_{calcdict["n"]}'
+                    
+                finalname = formatstring.replace('%', calcname).replace('&', fldname)
+                resultcols.append(finalname)
+                
+            elif optype == 'aggregate':
+                for c_opt in calcdict['c']:
+                    if ':' in c_opt:
+                        calcname = c_opt.split(':')[1]
+                    else:
+                        calcname = c_opt
+
+                    if calcdict.get('x'):
+                        fldname = calcdict['f'] + '_' + calcdict['x'] 
+                    else:
+                        fldname = calcdict['f']
+
+                    # if calc has parameter, append to end
+                    if calcdict.get('n'):
+                        # set string for calcname (& substitution)
+                        calcname += f'_{calcdict["n"]}'
+                        
+                    finalname = formatstring.replace('%', calcname).replace('&', fldname)
+                    resultcols.append(finalname)
+
+        
+        # test for duplicates in resultcolumns
+        if len(resultcols) > len(set(resultcols)):
+            errmsg = self.generateCommandErrorMessage('ResultsColConflictError', 'format, c, f, n')
+            raise Exception(errmsg)
+        
+        # sys.__stderr__.write(repr(resultcols))
+                
+        
 
         cmd = [None] * len(calclist)
         cmd_o = None
+        keys = None
 
 
         cmd_i = inputs['i'].content
@@ -2730,22 +3314,44 @@ class GroupBy2Command(Command):
 
         colstocut = xs + [f for f in all_fs if f not in xs]
 
-        if not k:
+        if k:
+            # expand key list
+            k_list = self.expandWildCards(k)
+            if type(k_list) == str:
+                errmsg = self.generateCommandErrorMessage('FieldNotFoundError', 'k', k)
+                raise Exception(errmsg)
+                
+            k = ','.join(k_list)
+        else:
             k = '__key__'
             cmd_i <<= nm.mcal(a = k, c = '"all"')
+
+        # check if there is conflict in key column and data column settings
+        if any(_keycol in colstocut for _keycol in k.split(',')):
+            errmsg = self.generateCommandErrorMessage('KeyTargetConflictError', 'k', k)
+            raise Exception(errmsg)
+            
+        # replace null key values with uuid
+        tmp_key = '!!' + str(uuid.uuid4())
+        cmd_i <<= nm.mnullto(f = k, v = tmp_key)
+        
+        keys <<= nm.mcut(f = k, i = cmd_i)
+        keys <<= nm.muniq(k = k)
 
         expanded_k = ','.join([k,'fld'])
 
         self.all_msums = None
-        premsums = [f'{f}:__{f}' for f in msum_prereqs]
-        # sys.__stderr__.write(repr(premsums)+'\n\n')
-        self.all_msums = nm.msummary(i = cmd_i, k = k, f = all_fs, 
-                            c = premsums, precision = prec)
+
+        if msum_prereqs:
+            premsums = [f'{f}:__{f}' for f in msum_prereqs]
+            # sys.__stderr__.write(repr(premsums)+'\n\n')
+            self.all_msums = self.remove_nonnumber(cmd_i, all_fs)
+            self.all_msums <<= nm.msummary(k = k, f = all_fs, 
+                                c = premsums, precision = prec)
 
         cmd_i <<= nm.mcut(f = f'{k}{","+",".join(colstocut) if len(colstocut) > 0 else ""}')
 
         ##### calculation portion:
-
         for i, calcdict in enumerate(calclist):
 
             cs = calcdict.get('c')
@@ -2757,7 +3363,11 @@ class GroupBy2Command(Command):
 
             # take the required stats for the required columns
             if optype == 'msummary':
-                cmd[i] <<= nm.msummary(i = cmd_i, **calcdict)
+                if cs is not 'count':
+                    cmd[i] = self.remove_nonnumber(cmd_i, calcdict['f'])
+                    cmd[i] <<= nm.msummary(**calcdict)
+                else:
+                    cmd[i] <<= nm.msummary(i = cmd_i, **calcdict)
 
                 final_cs = [c.split(':')[-1] for c in cs.split(',')]
 
@@ -2768,9 +3378,15 @@ class GroupBy2Command(Command):
                     calcdict['a'] = cs
 
                 cmd[i] <<= nm.mread(i=cmd_i)
+                
+                # sanitize if needed
+                if cs not in supports_str:
+                    cmd[i] = self.remove_nonnumber(cmd[i], calcdict['f'])
 
                 if cs in python_calcs:
                     # sys.__stderr__.write(repr(calcdict)+'\n')
+                    if calcdict.get('x'):
+                        cmd[i] = self.fixtimecolumn(cmd[i], calcdict.get('x'), calcdict.get('dateformat'))
                     cmd[i] <<= nm.runfunc(nysol_calcs[cs], **calcdict)
                 else:
                     cmd[i] = nysol_calcs[cs](cmd[i], **calcdict)
@@ -2781,6 +3397,8 @@ class GroupBy2Command(Command):
                     final_cs = [f'{calcdict["a"]}_{suff}' for suff in ['centroid','var','skew','kurtosis']]
                 elif n:
                     final_cs = [f'{calcdict["a"]}_{calcdict["n"]}']
+                # elif cs == 'slope_pearson':
+                #     final_cs = [f'{calcdict["a"]}({calcdict["x"]})']
                 else:
                     final_cs = [calcdict['a']]
             
@@ -2800,6 +3418,10 @@ class GroupBy2Command(Command):
                 # sys.__stderr__.write(repr(calcdict))
 
                 cmd[i] <<= nm.mread(i=cmd_i)
+                
+                # sanitize if needed
+                if cs not in supports_str:
+                    cmd[i] = self.remove_nonnumber(cmd[i], calcdict['f'])
 
                 # run thing
                 cmd[i] = nysol_calcs[_grp](cmd[i], **calcdict)                
@@ -2810,13 +3432,20 @@ class GroupBy2Command(Command):
 
             cmd[i] <<= nm.m2cross(k = expanded_k, f= final_cs, 
                     a = '__type__,__val__')
+            
+            if calcdict.get('x'):
+                #add timecol to fld
+                x = calcdict['x']
+                cmd[i] <<= nm.mcal(a = 'fldname', c = f'$s{{fld}}+"_{x}"')
+                cmd[i] <<= nm.mcut(f = 'fld', r = True)
+                cmd[i] <<= nm.mfldname(f = 'fldname:fld')
+                
 
         
         # cmd_o <<= nm.m2cat(i = cmd)
         # sys.__stderr__.write(repr(cmd)+'\n\n')
-        cmd_o <<= nm.mdelnull(i = cmd, f = '__val__')
+        # cmd_o <<= nm.mdelnull(i = cmd, f = '__val__')
 
-        formatstring = _args.pop('format')
         colformat = ['']
 
         for char in formatstring:
@@ -2833,16 +3462,21 @@ class GroupBy2Command(Command):
             if not sub.startswith('$'):
                 colformat[i] = f'"{sub}"' 
 
-        cmd_o <<= nm.mcal(a = 'unique_cols', c = '+'.join(colformat))
+        cmd_o <<= nm.mcal(i = cmd, a = 'unique_cols', c = '+'.join(colformat))
         cmd_o <<= nm.mcross(f = '__val__', s = 'unique_cols', k = k)
         cmd_o <<= nm.mcut(r = True, f = 'fld', nfno = _args.get('nfno'))
+        
+        # return tmp_key to null
+        cmd_final = None
+        cmd_final <<= nm.mnjoin(i = keys, k = k, m = cmd_o, N = True)
+        cmd_final <<= nm.mchgstr(f = k, c = f'{tmp_key}:', F = True)
 
         nysol_module_o= NysolModule()
-        nysol_module_o.set_content(cmd_o)
+        nysol_module_o.set_content(cmd_final)
         return {'o': nysol_module_o}
 
 
-class MultiMcalCommand(Command):
+class MultiMcalCommand(PCommand):
     def __init__(self):
         super().__init__()
         self.i_ports = [Port('i', 'frame')]
@@ -2878,7 +3512,7 @@ class MultiMcalCommand(Command):
         return {'o': nysol_module_o}
 
 
-class MultiMcalWCCommand(Command):
+class MultiMcalWCCommand(PCommand):
     def __init__(self):
         super().__init__()
         self.i_ports = [Port('i', 'frame')]
@@ -2907,10 +3541,8 @@ class MultiMcalWCCommand(Command):
         cmd_o = None
         first = True
 
-        # get header list
-        # self.header <<= nm.mread(inputs['i'].content).getline(header=True)
-        self.header = inputs['i'].content.getline(header=True)
-        self.header = next(self.header)
+        # ヘッダ行を取得する
+        self.header = self.get_field_names(inputs['i'])
 
         xoption = _args.pop('x') if 'x' in _args else False
         
@@ -2954,7 +3586,7 @@ class MultiMcalWCCommand(Command):
         return {'o': nysol_module_o}
         
 
-class MvAvgCommand(Command):
+class MvAvgCommand(PCommand):
     def __init__(self):
         super().__init__()
         self.i_ports = [Port('i', 'frame')]
@@ -2984,10 +3616,9 @@ class MvAvgCommand(Command):
             _args['q'] = True
 
         xoption = _args.get('x')
-
-        # get index of columns
-        self.header = inputs['i'].content.getline(header=True)
-        self.header = next(self.header)
+        
+        # ヘッダ行を取得する
+        self.header = self.get_field_names(inputs['i'])
 
         fatlist = []
 
@@ -3038,7 +3669,7 @@ class MvAvgCommand(Command):
         return {'o': nysol_module_o}
 
 
-class MvStatsCommand(Command):
+class MvStatsCommand(PCommand):
     def __init__(self):
         super().__init__()
         self.i_ports = [Port('i', 'frame')]
@@ -3069,9 +3700,8 @@ class MvStatsCommand(Command):
         if 's' not in _args or (_args['s'] == ''):
             _args['q'] = True
 
-        # get index of columns
-        self.header = inputs['i'].content.getline(header=True)
-        self.header = next(self.header)
+        # ヘッダ行を取得する
+        self.header = self.get_field_names(inputs['i'])
 
         xoption = _args.pop('x') if 'x' in _args else False
 
@@ -3128,11 +3758,73 @@ class MvStatsCommand(Command):
         return {'o': nysol_module_o}
 
 
-class MvSimCommand(Command):
+class MvSimCommand(PCommand):
+    
+    commandname = '複数の移動窓の類似度の計算'
+    errormessages = {
+        
+        # キー列に対するエラー
+        'KeyConflictError' : '項目名が重複しています。${fieldinput}',
+        'KeyNumberConflictError' : '項目番号が重複しています。${fieldinput}',
+        'KeyNumberSettingError' : 'キー項目番号の指定は正しくありません。${fieldinput}',
+        'KeyFieldNotFoundError' : '指定した項目名は存在しません。${fieldinput}',
+        'KeyFieldNumberNotFoundError' : '指定した項目番号は存在しません。${fieldinput}',
+        'EmptyKeyFieldError' : '空文字列でキー項目名が指定されています。${fieldinput}',
+        'KeyFieldForbiddenCharacterError' : '半角の（ :　\　&　％　＃ ）は、キー項目の指定に使用できません。${fieldinput}',
+        
+        # ソート設定に対するエラー
+        'SortFieldConflictError' : '項目名が重複しています。${fieldinput}',
+        'SortFieldNumberConflictError' : '項目番号が重複しています。${fieldinput}',
+        'SortFieldNumberSettingError' : 'ソート項目番号の指定は正しくありません。${fieldinput}',
+        'SortFieldNotFoundError' : '指定した項目名は存在しません。${fieldinput}',
+        'SortFieldNumberNotFoundError' : '指定した項目番号は存在しません。${fieldinput}',
+        'SortFieldForbiddenCharacterError': '半角の（ :　\　&　＃ ）は、ソートの項目名の指定に使用できません。${fieldinput}',
+        'EmptySortFieldError' : '空文字列でソートが指定されています。${fieldinput}',
+        'SortFieldOrderError' : 'ソート順の指定は正しくありません。指定可能なのは、（%n、%r、%nr）です。${fieldinput}',
+        
+        # 結果列名設定に対するエラー
+        'EmptyResultsColNameError' : '空文字列で結果項目名が指定されてます。${fieldinput}',
+        'ResultsColNameForbiddenCharacterError': '半角の（ :　\　,　*　?　[　] ）は、結果項目名の指定に使用できません。${fieldinput}',
+        
+        # 計算対象列に対するエラー
+        'Target1FieldNotFoundError' : '指定した項目名は存在しません。${fieldinput}',
+        'Target1FieldNumberNotFoundError' : '指定した項目番号は存在しません。${fieldinput}',
+        'Target1MultipleFieldError' : '１つ目の計算対象項目指定で、複数の項目名を指定できません。${fieldinput}',
+        'Target1MultipleFieldNumberError' : '１つ目の計算対象項目指定で、複数の項目番号を指定できません。${fieldinput}',
+        'Target1ForbiddenCharacterError' : '半角の（ :　\　&　％　＃ ）は、計算対象項目の指定に使用できません。${fieldinput}',
+        'Target1FieldNumberSettingError' : '計算対象項目番号の指定は正しくありません。${fieldinput}',
+        'Target1EmptyError' : '空文字列で計算対象項目が指定されています。${fieldinput}',
+        
+        'Target2ConflictError' : '項目名が重複しています。${fieldinput}',
+        'Target2FieldNotFoundError' : '指定した項目名は存在しません。${fieldinput}',
+        'Target2FieldNumberNotFoundError' : '指定した項目番号は存在しません。${fieldinput}',
+        'Target2FieldNumberSettingError' : '計算対象項目番号の指定は正しくありません。${fieldinput}',
+        'Target2ForbiddenCharacterError' : '半角の（ :　\　&　％　＃ ）は、計算対象項目の指定に使用できません。${fieldinput}',
+        'Target2EmptyError' : '空文字列で計算対象項目が指定されています。${fieldinput}',
+        
+        # 類似度指定に対するエラー
+        'SimConflictError': '類似度が重複しています。${fieldinput}',
+        'SimNotFoundError' : '${fieldinput} は、有効な類似度指定子ではありません。',
+        'SimEmptyError' : '空文字列で類似度が指定されています。${fieldinput}',
+        
+        # 期間数指定に対するエラー
+        'WindowSizeConflictError' : '対象行数が重複しています。${fieldinput}',
+        'WindowSizeFormatError' : '対象行数への ${fieldinput} 指定が正しくありません。２以上の整数を指定してください',
+        'WindowSizeValueError' : '対象行数への ${fieldinput} 指定が正しくありません。２以上の整数で指定してください',
+        'WindowSizeEmptyError' : '空文字列で対象行数が指定されています。${fieldinput}',
+
+        # 結果列重複エラー
+        'ResultsColConflictError' : '出力項目名が重複しています。%指定、&指定、#指定、ワイルドカード指定など、重複する出力項目名となる設定がないかを、確認してください。${fieldinput}',
+        
+        
+        'TestError' : 'This is a test'
+    }
+    
     def __init__(self):
         super().__init__()
         self.i_ports = [Port('i', 'frame')]
         self.o_ports = [Port('o', 'frame')]
+        
 
     def parse(self, exp):
         if '-' in exp:
@@ -3146,59 +3838,334 @@ class MvSimCommand(Command):
         else:
             return int(exp)
 
+    def numberExpIsValid(self, exp):
+        allowed = set('0123456789-L')
+        return set(exp) <= allowed
+    
+    def numberExpOutOfRange(self, exp):
+        keynums = exp.strip('L').split('-')
+        for num in keynums:
+            if int(num) > len(self.header):
+                return True
+        
+        return False
+
+    def containsAny(self, exp, str):
+        return any(char in exp for char in str)
+
+    def generateCommandErrorMessage(self, *args):
+        # とりあえず、エラー処理機能は特徴量の計算のコマンドの実装を参照する
+        # TODO：　親コマンドレベルに機能の実装を移動する
+        errhandler = GroupBy2Command()
+        errhandler.commandname = self.commandname
+        errhandler.errormessages = self.errormessages
+
+        return errhandler.generateCommandErrorMessage(*args)
 
     def run(self, args, inputs):
         import fnmatch as fn
         _args = copy.deepcopy(args)
+
         
         cmd_o = None
         cmd_o <<= inputs['i'].content
+
+        # ヘッダ行を取得する
+        self.header = self.get_field_names(inputs['i'])
+
+        xoption = _args.get('x')
+
+        # 共通オプションの処理・エラー処理
+        # 集計キー指定
+        
+        # if key setting is not empty
+        k = _args.get('k')
+        if k:
+            k_list = k.split(',')
             
-        # sorting parameters
+            if xoption:
+                for key in k_list:
+                    if not self.numberExpIsValid(key):
+                        errmsg = self.generateCommandErrorMessage('KeyNumberSettingError', 'k', key)
+                        raise Exception(errmsg)
+                    
+                    if key == '':
+                        errmsg = self.generateCommandErrorMessage('EmptyKeyFieldError', 'k', key)
+                        raise Exception(errmsg)
+
+                    if self.numberExpOutOfRange(key):
+                        errmsg = self.generateCommandErrorMessage('KeyFieldNumberNotFoundError', 'k', key)
+                        raise Exception(errmsg)
+                    
+                if len(k_list) != len(set(k_list)):
+                    errmsg = self.generateCommandErrorMessage('KeyNumberConflictError', 'k', k)
+                    raise Exception(errmsg)
+                
+            else:
+                if len(k_list) != len(set(k_list)):
+                    errmsg = self.generateCommandErrorMessage('KeyConflictError', 'k', k)
+                    raise Exception(errmsg)
+                
+                for key in k_list:
+                    # forbidden characters
+                    if self.containsAny(key, ':\\%&#'):
+                        errmsg = self.generateCommandErrorMessage('KeyFieldForbiddenCharacterError', 'k', key)
+                        raise Exception(errmsg)
+                    
+                    if key == '':
+                        errmsg = self.generateCommandErrorMessage('EmptyKeyFieldError', 'k', key)
+                        raise Exception(errmsg)
+                        
+                    if key not in self.header:
+                        errmsg = self.generateCommandErrorMessage('KeyFieldNotFoundError', 'k', key)
+                        raise Exception(errmsg)
+        
+        
+        # ソートする列指定
+        # if no sort column setting, set q flag (no sort) to true 
         if 's' not in _args or (_args['s'] == ''):
             _args['q'] = True
+        else:
+            s_opt = _args['s']
+            
+            s_list = []
+            s_columns = []
+            
+            # separate column and sort order input
+            for elem in s_opt.split(','):
+                parts = elem.split('%')
+                
+                s_columns.append(parts[0])
+                
+                if parts[0] == '':
+                    errmsg = self.generateCommandErrorMessage('EmptySortFieldError', 's', s_opt)
+                    raise Exception(errmsg)
 
-        # get index of columns
-        self.header = inputs['i'].content.getline(header=True)
-        self.header = next(self.header)
+                if xoption:
+                    if not self.numberExpIsValid(parts[0]):
+                        errmsg = self.generateCommandErrorMessage('SortFieldNumberSettingError', 's', s_opt)
+                        raise Exception(errmsg)
+                    
+                    if self.numberExpOutOfRange(parts[0]):
+                        errmsg = self.generateCommandErrorMessage('SortFieldNumberNotFoundError', 's', s_opt)
+                        raise Exception(errmsg)
+                else:
+                    if self.containsAny(parts[0], ':\\&#'):
+                        errmsg = self.generateCommandErrorMessage('SortFieldForbiddenCharacterError', 's', s_opt)
+                        raise Exception(errmsg)
+                        
+                    if parts[0] not in self.header:
+                        errmsg = self.generateCommandErrorMessage('SortFieldNotFoundError', 's', s_opt)
+                        raise Exception(errmsg)
+                
+                if len(parts) > 1:
+                    if parts[1] not in ['', 'n', 'r', 'nr']:
+                        errmsg = self.generateCommandErrorMessage('SortFieldOrderError', 's', s_opt)
+                        raise Exception(errmsg)
+                    
+                
 
-        xoption = _args.pop('x') if 'x' in _args else False
+                if len(parts) == 2:
+                    # there is both column and sort order
+                    s_list.append(parts)
+                elif len(parts) == 1:
+                    # there is only column
+                    s_list.append(parts + [''])
+                else:
+                    pass # format error
+            
+            # check for duplicates
+            if len(s_columns) != len(set(s_columns)):
+                if xoption:
+                    errmsg = self.generateCommandErrorMessage('SortFieldConflictError', 's', s_opt)
+                else:
+                    errmsg = self.generateCommandErrorMessage('SortFieldNumberConflictError', 's', s_opt)
+                raise Exception(errmsg)
+                
+
+            # s_list is now a list of lists containing the column and sort order
+            # user inputs:
+            # s_list = [['col1', 'n'], ['col2', ''], ...]
+            
+            _args['s'] = ['%'.join(elem) for elem in s_list]
+            # _args['s'] = ['col1%n', 'col2', ...]
+            
 
         # f is a wildcard/number expression
         # a is a colname that may have & in it
         # c specifies the statistic to be taken 
         factlist = []
-        for arglist in _args.pop('factlist'):
-            fs = arglist.pop('f').split(',')
-            aexp = arglist.pop('a')
-            ops = arglist.pop('c').split(',')
-            ts = arglist.pop('t').split(',')
-
+        final_cols = []
+        
+        # errmsg = self.generateCommandErrorMessage('TestError', 'x')
+        # raise Exception(errmsg)
+        
+        try:
+            output_rule = _args.pop('a')
+            
+            if self.containsAny(output_rule, ':\\,*?[]'):
+                errmsg = self.generateCommandErrorMessage('ResultsColNameForbiddenCharacterError', 'a', output_rule)
+                raise Exception(errmsg)
+                
+        except KeyError:
+            errmsg = self.generateCommandErrorMessage('EmptyResultsColNameError', 'a')
+            raise Exception(errmsg)
+        
+        
+        for arglist in _args.pop('fctlist'):
+            f1 = arglist.get('f1')
+            
+            if not f1:
+                errmsg = self.generateCommandErrorMessage('Target1EmptyError', 'f1', f1)
+                raise Exception(errmsg)
+                
+            if xoption:
+                if 'L' in f1:
+                    f1_loc = len(self.header) - int(f1.strip('L')) - 1
+                elif self.containsAny(f1, '-,'):
+                    errmsg = self.generateCommandErrorMessage('Target1MultipleFieldNumberError', 'f1', f1)
+                    raise Exception(errmsg)
+                else:
+                    if self.numberExpIsValid(f1):
+                        f1_loc = int(f1)
+                    else:
+                        errmsg = self.generateCommandErrorMessage('Target1FieldNumberSettingError', 'f1', f1)
+                        raise Exception(errmsg)
+                    
+                try:
+                    f1_name = self.header[f1_loc]
+                except IndexError:
+                    errmsg = self.generateCommandErrorMessage('Target1FieldNumberNotFoundError', 'f1', f1)
+                    raise Exception(errmsg)                
+            else: 
+                if self.containsAny(f1, ',?*[]'):
+                    errmsg = self.generateCommandErrorMessage('Target1MultipleFieldError', 'f1', f1)
+                    raise Exception(errmsg)
+                    
+                if self.containsAny(f1, ':\\&%#'):
+                    errmsg = self.generateCommandErrorMessage('Target1ForbiddenCharacterError', 'f1', f1)
+                    raise Exception(errmsg)
+                
+                if f1 not in self.header:
+                    errmsg = self.generateCommandErrorMessage('Target1FieldNotFoundError', 'f1', f1)
+                    raise Exception(errmsg)
+                
+                
+                f1_name = f1
+            
+            f2s = arglist.get('f2')
+            f2_list = f2s.split(',')
+            
+            if '' in f2_list:
+                errmsg = self.generateCommandErrorMessage('Target2EmptyError', 'f2', f2s)
+                raise Exception(errmsg)
+            
+            if self.containsAny(f2s, ':\\&%#'):
+                errmsg = self.generateCommandErrorMessage('Target2ForbiddenCharacterError', 'f2', f2s)
+                raise Exception(errmsg)
+            
+            if len(f2_list) != len(set(f2_list)):
+                errmsg = self.generateCommandErrorMessage('Target2ConflictError', 'f2', f2s)
+                raise Exception(errmsg)
+            
             if xoption:
                 # parse number expression
                 targets = []
-                for f in fs:
+                for f in f2_list:
+                    if not self.numberExpIsValid(f):
+                        errmsg = self.generateCommandErrorMessage('Target2FieldNumberSettingError', 'f2', f)
+                        raise Exception(errmsg)
+                        
                     f = self.parse(f)
                     targets += list(f) if type(f) is range else [f]
 
-                colnames = [self.header[num] for num in targets]
+                try:
+                    f2cols = [(num,self.header[num]) for num in targets]
+                except IndexError:
+                    errmsg = self.generateCommandErrorMessage('Target2FieldNumberNotFoundError', 'f2', f2s)
+                    raise Exception(errmsg)
 
             else:
-                # parse wildcard, list expression
-                colnames = [a for a in self.header for f in fs 
-                    if fn.fnmatch(a, f)]
+                f2cols = []
                 
-            for op in ops:
-                for t in ts:
-                    factlist.append({'f': ','.join(colnames), 
-                        'a': aexp.replace('#',t).replace('%',op), 
-                        'c': op,
-                        't': t})
+                for elem in f2_list:
+                    matched = False
+                    for col in self.header:
+                        if fn.fnmatch(col, elem):
+                            f2cols.append((col, col))
+                            matched = True
+                            
+                    if not matched:
+                        errmsg = self.generateCommandErrorMessage('Target2FieldNotFoundError', 'f2', elem)
+                        raise Exception(errmsg)
+                
+                
+            ops = arglist.get('c')
+            op_list = ops.split(',')
+            
+            allowed_ops = ['covar', 'ucovar', 'pearson', 'spearman', 'kendall', 
+                           'euclid', 'cosine', 'cityblock', 'hamming', 'chi', 
+                           'phi', 'jaccard', 'support', 'lift']
+            
+            if '' in op_list:
+                errmsg = self.generateCommandErrorMessage('SimEmptyError', 'c', ops)
+                raise Exception(errmsg)
+                
+            for op in op_list:
+                if op not in allowed_ops:
+                    errmsg = self.generateCommandErrorMessage('SimNotFoundError', 'c', op)
+                    raise Exception(errmsg)
+            
+            if len(op_list) != len(set(op_list)):
+                errmsg = self.generateCommandErrorMessage('SimConflictError', 'c', ops)
+                raise Exception(errmsg)
+            
+                
+            
+            ts = arglist.pop('t')
+            ts_list = ts.split(',')
+            
+            if '' in ts_list:
+                errmsg = self.generateCommandErrorMessage('WindowSizeEmptyError', 't', ts)
+                raise Exception(errmsg)
+            
+            if len(ts_list) != len(set(ts_list)):
+                errmsg = self.generateCommandErrorMessage('WindowSizeConflictError', 't', ts)
+                raise Exception(errmsg)
+            
+            for t in ts_list:
+                
+                try:
+                    _t = float(t)
+                    
+                    if (not _t.is_integer()) or (_t < 2):
+                        errmsg = self.generateCommandErrorMessage('WindowSizeValueError', 't', t)
+                        raise Exception(errmsg)
+                    
+                except ValueError:
+                    errmsg = self.generateCommandErrorMessage('WindowSizeFormatError', 't', t)
+                    raise Exception(errmsg)
+                
+                
+            for op in op_list:
+                for t in ts_list:
+                    for f2col in f2cols:
+                        final_colname = output_rule.replace('&', f'{f1_name}_{f2col[1]}').replace('#',t).replace('%',op)
+                        final_cols.append(final_colname)
+                        
+                        factlist.append({'f': f'{f1},{f2col[0]}', 
+                            'a': final_colname, 
+                            'c': op,
+                            't': t})
 
+
+        if len(final_cols) != len(set(final_cols)):
+            errmsg = self.generateCommandErrorMessage('ResultsColConflictError', 'a, c, f1, f2, t')
+            raise Exception(errmsg)
 
         # factlist is now a list of dictionaries of the fact options:
-        # [{'f': 'f1', 'a': 'a1', 'c': 'c1', 't':, 't1'},
-        #  {'f': 'f2', 'a': 'a2', 'c': 'c2', 't':, 't2'},
+        # [{'f': 'f1,f2', 'a': 'a1', 'c': 'c1', 't':, 't1'},
+        #  {'f': 'f3,f4', 'a': 'a2', 'c': 'c2', 't':, 't2'},
         #  ...]
         for factdict in factlist:
             # arg = args.copy()

@@ -4,93 +4,129 @@
     {
       "name": "group1",
       "label": "グループの設定 (省略可)",
-      "params": ["k"]
+      "params": [
+        "k"
+      ]
     },
     {
       "name": "group2",
       "label": "列ラベルを行ラベルへ移動する設定 (必須)",
-      "params": ["s"]
+      "params": [
+        "s"
+      ]
     },
     {
       "name": "group5",
       "label": "行ラベルを列ラベルへ移動する設定 (必須)",
-      "params": ["f","a"]
+      "params": [
+        "f",
+        "a"
+      ]
     },
     {
       "name": "group10",
       "label": "その他 (省略可)",
-      "params": ["q","v"]
+      "params": [
+        "q",
+        "v"
+      ]
     },
     {
       "name": "group15",
       "label": "項目名・項目番号についての設定（省略可）",
-      "params": ["x", "nfn", "nfno"]
+      "params": [
+        "x",
+        "nfn",
+        "nfno"
+      ]
     },
     {
       "name": "group20",
       "label": "システム管理用設定（作業領域・ログ出力）",
-      "params": ["tmpPath", "assert_diffSize", "assert_nullout", "assert_nullkey","assert_nullin"]
+      "params": [
+        "tmpPath",
+        "assert_diffSize",
+        "assert_nullout",
+        "assert_nullkey",
+        "assert_nullin"
+      ]
     }
   ],
-  "rules" : {
-    "f" : {
-      "presence": {"allowEmpty": false},
-      "checkSeveralSpecifiedFormats" : {
-        "defaultRule" : {
-          "pattern" : "^[^,]+(,[^,]+)*$",
-          "message" : "入力値が正しくありません。"
+  "rules": {
+    "f": {
+      "presence": {
+        "allowEmpty": false
+      },
+      "checkSeveralSpecifiedFormats": {
+        "defaultRule": {
+          "pattern": "^[^,]+(,[^,]+)*$",
+          "message": "入力値が正しくありません。"
         },
-        "specialRules" : [
+        "specialRules": [
           {
-            "target" : ["x", "nfn"],
-            "pattern" : "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$",
-            "message" : "項目の指定は数値のみ可能です。"
+            "target": [
+              "x",
+              "nfn"
+            ],
+            "pattern": "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$",
+            "message": "項目の指定は数値のみ可能です。"
           }
         ]
       }
     },
-    "s" : {
-      "presence": {"allowEmpty": false},
-      "checkSeveralSpecifiedFormats" : {
-        "defaultRule" : {
-          "pattern" : "^[^,]+(,[^,]+)*$",
-          "message" : "入力値が正しくありません。"
+    "s": {
+      "presence": {
+        "allowEmpty": false
+      },
+      "checkSeveralSpecifiedFormats": {
+        "defaultRule": {
+          "pattern": "^[^,]+(,[^,]+)*$",
+          "message": "入力値が正しくありません。"
         },
-        "specialRules" : [
+        "specialRules": [
           {
-            "target" : ["x", "nfn"],
-            "pattern" : "^[1-9]?[0-9]+(-[1-9]?[0-9]+)?(%n|%r|%nr)?(,[1-9]?[0-9]+(-[1-9]?[0-9]+)?(%n|%r|%nr)?)*$|^@\\[.+\\](%n|%r|%nr)?$",
-            "message" : "項目の指定は数値のみ可能です。"
+            "target": [
+              "x",
+              "nfn"
+            ],
+            "pattern": "^[1-9]?[0-9]+(-[1-9]?[0-9]+)?(%n|%r|%nr)?(,[1-9]?[0-9]+(-[1-9]?[0-9]+)?(%n|%r|%nr)?)*$|^@\\[.+\\](%n|%r|%nr)?$",
+            "message": "項目の指定は数値のみ可能です。"
           }
         ]
       }
     },
-    "a" : {
-      "checkSeveralSpecifiedFormats" : {
-        "defaultRule" : {
-          "pattern" : "^[^,]+(,[^,]+)*$|^$",
-          "message" : "入力値が正しくありません。"
+    "a": {
+      "checkSeveralSpecifiedFormats": {
+        "defaultRule": {
+          "pattern": "^[^,]+(,[^,]+)*$|^$",
+          "message": "入力値が正しくありません。"
         },
-        "specialRules" : [
+        "specialRules": [
           {
-            "target" : ["x", "nfn"],
-            "pattern" : "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$|^$",
-            "message" : "項目の指定は数値のみ可能です。"
+            "target": [
+              "x",
+              "nfn"
+            ],
+            "pattern": "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$|^$",
+            "message": "項目の指定は数値のみ可能です。"
           }
         ]
       }
     },
-    "k" : {
-      "checkSeveralSpecifiedFormats" : {
-        "defaultRule" : {
-          "pattern" : "^[^,]+(,[^,]+)*$|^$",
-          "message" : "入力値が正しくありません。"
+    "k": {
+      "checkSeveralSpecifiedFormats": {
+        "defaultRule": {
+          "pattern": "^[^,]+(,[^,]+)*$|^$",
+          "message": "入力値が正しくありません。"
         },
-        "specialRules" : [
+        "specialRules": [
           {
-            "target" : ["x", "nfn"],
-            "pattern" : "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$|^$",
-            "message" : "項目の指定は数値のみ可能です。"
+            "target": [
+              "x",
+              "nfn"
+            ],
+            "pattern": "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$|^$",
+            "message": "項目の指定は数値のみ可能です。"
           }
         ]
       }
@@ -114,7 +150,7 @@
       "name": "a",
       "type": "string",
       "label": "列ラベルから行へ移動したラベルを格納する項目名(省略可）",
-      "description":"必要な場合には指定が可能 【省略時は fld】",
+      "description": "必要な場合には指定が可能 【省略時は fld】",
       "default": "fld",
       "optional": true
     },
@@ -203,8 +239,8 @@
     ]
   ],
   "version": "0.7.0",
-  "label": "クロス集計 (入れ換え)",
+  "label": "クロス集計 (行・列を入れ換え)",
   "classification": "value_crossing",
-  "description": "行のラベルと列のラベルを入れ替える",
+  "description": "クロス集計を行う（行を列へと、列を行へ を同時に入れ替え）",
   "url": "./static/pdf/mcmd/value_crossing/mcross.pdf"
 }
