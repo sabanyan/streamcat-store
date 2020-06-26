@@ -202,13 +202,50 @@ class CheckDuplicateRowsCommand(PCommand):
         super().__init__()
 
     def run(self, args, inputs):
-        f = None
-        f <<= inputs['i'].content
 
-        args_string = (PCMD_DIR / 'src/check_duplicate_rows.sh').as_posix()
-        args_string += self.replace_args(args)
+        COLNUM = '__colnumber__'
+        DUPCOUNT = '__duplicate_row_count__'
+        DUPNUM = '__duplicate_number__'
+        
+        targetcols = args.get('k')
+        
+        
+        cmd_i = None
+        cmd_i <<= inputs['i'].content
 
-        return {'o': self.module(f, args_string)}
+        # number each line
+        cmd_i <<= nm.mcal(a = COLNUM, c = 'line()+1')
+        
+        cmd = None
+        cmd <<= nm.mcut(i = cmd_i, f = targetcols)
+        
+        # count dupes
+        cmd <<= nm.mnumber(k = targetcols, s = targetcols, a = DUPCOUNT, S = 1)
+        
+        # select rows with more than one instance
+        cmd <<= nm.msel(c = f'${{{DUPCOUNT}}}>=2')
+        
+        cmd <<= nm.mstats(k = targetcols, f = DUPCOUNT, c = 'max')
+        
+
+        cmd_o = None
+        cmd_o <<= nm.mnjoin(i = cmd_i, m = cmd, k = targetcols)
+        cmd_o <<= nm.mnumber(k = targetcols, s = targetcols, a = DUPNUM, S = 1)
+
+        cmd_o <<= nm.mfldname(q = True)
+        
+        # pass output
+        nysol_module_o = NysolModule()
+        nysol_module_o.set_content(cmd_o)
+        return {'o': nysol_module_o}
+        
+        # f = None
+        # f <<= inputs['i'].content
+
+        # args_string = (PCMD_DIR / 'src/check_duplicate_rows.sh').as_posix()
+        # args_string += self.replace_args(args)
+
+        # return {'o': self.module(f, args_string)}
 
 
 class MergeFSCommand(PCommand):
