@@ -237,8 +237,7 @@ class ColumnNameCommand(PCommand):
     def run(self, args, inputs):
         f = inputs['i'].content
 
-        _iter = copy.deepcopy(f).getline(header=True)
-        _colnames = CsvHeader(next(_iter))
+        _colnames = CsvHeader(self.get_field_names(inputs['i']))
 
         _args = copy.deepcopy(args)
         
