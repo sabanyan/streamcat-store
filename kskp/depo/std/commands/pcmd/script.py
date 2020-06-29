@@ -241,10 +241,13 @@ class ColumnNameCommand(PCommand):
 
         _args = copy.deepcopy(args)
         
-        if _args.get('l'):
-            _left = _args.get('l').split(',')
-        if _args.get('r'):
-            _right = _args.get('r').split(',')
+        _left = _args.get('head')
+        _right = _args.get('tail')
+        
+        if _left:
+            _left = _left.split(',')
+        if _right:
+            _right = _right.split(',')
         
         # if overlap, error
         if _left and _right:
