@@ -241,40 +241,35 @@ class ColumnNameCommand(PCommand):
 
         _args = copy.deepcopy(args)
         
-        _flds = _args.get('f').split(',') # ['a','b','*','c','d']
+        if _args.get('l'):
+            _left = _args.get('l').split(',')
+        if _args.get('r'):
+            _right = _args.get('r').split(',')
+        
+        # if overlap, error
+        if _left and _right:
+            for col in _left:
+                if col in _right:
+                    pass
 
-        _aster = False
+        # error checks go here
+
         _start = []
         _end = []
 
-        for _fld in _flds:
-            _matchedlist = []
+        if _left:
+            for _fld in _left:
+                # put into _start
+                _start.extend(_colnames.match(_fld))
 
-            if _fld == '*':
-                _aster = True
-            else:
-                # match pattern
-                _matchedlist = _colnames.match(_fld)
+        if _right:
+            for _fld in _right:
+                # put into _end
+                _end.extend(_colnames.match(_fld))
 
-                if _aster:
-                    # put into _end
-                    _end.extend(_matchedlist)
-                else:
-                    # put into _start
-                    _start.extend(_matchedlist)
 
-        # print(_start)
-        # print(_end)
-        # print(_header)
-        # print(_colnames.header)
-        # print(_colnames.unmatched)
+        _final = _start + _colnames.unmatched + _end
 
-        if _aster:
-            _final = _start + _colnames.unmatched + _end
-        else:
-            _final = _start + _end
-
-        _final = [val for val in _final if val != '']
 
         f <<= nm.mcut(f = _final)
 
