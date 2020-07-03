@@ -23,12 +23,13 @@ class CsvHeader:
     Essentially a wrapper class for the header row of a CSV file, with added
     functionality.
     """
-    def __init__(self,col_list):
+    def __init__(self,col_list, allow_multimatch = False):
         """
         Takes the list of column names.
         """
         self._header = col_list
         self._matched = []
+        self.allow_multimatch = allow_multimatch
         self._unmatched = copy.copy(self._header)
 
     @property
@@ -77,12 +78,15 @@ class CsvHeader:
         _pat = pattern.translate(str.maketrans({'[':'[[]',
                                                 ']':'[]]'}))
         
-        _matched = fn.filter(self._unmatched, _pat)
+        _matched = fn.filter(self._header, _pat)
 
         # update matched and unmatched lists
         self._matched.extend(_matched)
         self._unmatched = [col for col in self._unmatched if col not in _matched]
         
+        if not self.allow_multimatch:
+            pass
+
         return _matched
 
 
@@ -229,15 +233,59 @@ class ColumnUniqueNameCommand(PCommand):
 
 
 class ColumnNameCommand(PCommand):
+
+    commandname = '項目順の変更'
+    errormessages = {
+        
+        # キー列に対するエラー
+        'FieldNotFoundError' : '指定した項目名は存在しません。${fieldinput}',
+    }
+    
     def __init__(self):
         super().__init__()
         self.i_ports = [Port('i', 'frame')]
         self.o_ports = [Port('o', 'frame')]
 
+    def expandWildCards(self, to_expand):
+        """
+        takes a comma separated string and parses wildcard expressions within.
+        
+        """
+        import fnmatch as fn
+        expanded = []
+        
+        for elem in to_expand.split(','):
+            pattern = elem.translate(str.maketrans({'[':'[[]', 
+                                                    ']':'[]]'}))
+
+            matched = fn.filter(self.header, pattern)
+            
+            if not matched:
+                # notfound error
+                return {'error': 'FieldNotFoundError',
+                        'unmatched' : pattern}
+            
+            expanded.extend(matched)
+                    
+        
+        return expanded
+
+    def containsAny(self, exp, str):
+        return any(char in exp for char in str)
+
+    def generateCommandErrorMessage(self, *args):
+        # とりあえず、エラー処理機能は特徴量の計算のコマンドの実装を参照する
+        # TODO：　親コマンドレベルに機能の実装を移動する
+        errhandler = GroupBy2Command()
+        errhandler.commandname = self.commandname
+        errhandler.errormessages = self.errormessages
+
+        return errhandler.generateCommandErrorMessage(*args)
+
     def run(self, args, inputs):
         f = inputs['i'].content
 
-        _colnames = CsvHeader(self.get_field_names(inputs['i']))
+        self.header = self.get_field_names(inputs['i'])
 
         _args = copy.deepcopy(args)
         
@@ -245,33 +293,69 @@ class ColumnNameCommand(PCommand):
         _right = _args.get('tail')
         
         if _left:
-            _left = _left.split(',')
+            for col in _left.split(','):
+                if self.containsAny(col, ':%&\\'):
+                    err = self.generateCommandErrorMessage('ForbiddenCharacterError',
+                                                           'head', col)
+                    raise Exception(err)
+
+            _left_list = self.expandWildCards(_left)
+            if type(_left_list) == dict:
+                err = self.generateCommandErrorMessage(_left_list['error'], 
+                                                       'head', 
+                                                       _left_list['unmatched'])
+                raise Exception(err)
+
+            if len(_left_list) != len(set(_left_list)):
+                err = self.generateCommandErrorMessage('FieldConflictError',
+                                                        'head', _left)
+                raise Exception(err)
+        else:
+            _left_list = []
+            
+            
+            
         if _right:
-            _right = _right.split(',')
+            for col in _right.split(','):
+                if self.containsAny(col, ':%&\\'):
+                    err = self.generateCommandErrorMessage('ForbiddenCharacterError',
+                                                           'tail', col)
+                    raise Exception(err)
+
+            _right_list = self.expandWildCards(_right)
+            if type(_right_list) == dict:
+                err = self.generateCommandErrorMessage(_right_list['error'], 
+                                                       'tail', 
+                                                       _right_list['unmatched'])
+                raise Exception(err)
+            
+            if len(_right_list) != len(set(_right_list)):
+                err = self.generateCommandErrorMessage('FieldConflictError',
+                                                        'tail', _right)
+                raise Exception(err)
+        else:
+            _right_list = []
+
         
         # if overlap, error
         if _left and _right:
-            for col in _left:
-                if col in _right:
-                    pass
-
-        # error checks go here
-
-        _start = []
-        _end = []
-
-        if _left:
-            for _fld in _left:
-                # put into _start
-                _start.extend(_colnames.match(_fld))
-
-        if _right:
-            for _fld in _right:
-                # put into _end
-                _end.extend(_colnames.match(_fld))
+            for col in _left_list:
+                if col in _right_list:
+                    err = self.generateCommandErrorMessage('FieldConflictError',
+                                                           'head, tail', col)
+                    raise Exception(err)
+        
+        if (not _left) and (not _right):
+            err = self.generateCommanErrorMessage('NoInputError',
+                                                  'head,tail')
 
 
-        _final = _start + _colnames.unmatched + _end
+
+
+        _middle = [col for col in self.header if col not in _left_list + _right_list] 
+
+
+        _final = _left_list + _middle + _right_list
 
 
         f <<= nm.mcut(f = _final)
