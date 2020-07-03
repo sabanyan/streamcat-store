@@ -4,6 +4,7 @@ import copy
 import uuid
 import nysol.mcmd as nm
 import numpy as np
+import fnmatch as fn
 import nysol.util.mtemp as mtemp
 from nysol.util._utillib import mcsvout as mcsvout
 from pathlib import Path
@@ -12,6 +13,78 @@ from kskp.store import NysolModule
 from kskp.core import Command, Port
 
 PCMD_DIR = Path(__file__).resolve().parent
+
+
+class CsvHeader:
+    """
+    class for processing nysol-format wildcard matching (*,?) on data headers
+    Takes header list as argument for constructor
+
+    Essentially a wrapper class for the header row of a CSV file, with added
+    functionality.
+    """
+    def __init__(self,col_list):
+        """
+        Takes the list of column names.
+        """
+        self._header = col_list
+        self._matched = []
+        self._unmatched = copy.copy(self._header)
+
+    @property
+    def header(self):
+        """
+        Returns the unmodified header of the CSV file.
+        """
+        return self._header
+
+    @property
+    def matched(self):
+        """
+        Returns the list of columns that have ALREADY BEEN matched.
+        """
+        return self._matched
+
+    
+    @property
+    def unmatched(self):
+        """
+        Returns the column names in the list that have NOT YET been matched to
+        any patterns.
+
+        Done to ensure that each column only matches to the 
+        first pattern it matches.
+        """
+        return self._unmatched
+    
+    def reset_unmatched(self):
+        """
+        Resets the unmatched list back to the original header.
+        
+        Used in commands where different operations are done on different sets
+        of columns (i.e, groupby2)
+        """
+        self._umatched = self._header
+
+    def match(self, pattern):
+        """
+        Takes a query pattern and matches it to the YET UNMATCHED columns.
+        Returns the list of columns that match the pattern, and updates the 
+        matched and unmatched lists accordingly.
+        """
+        
+        # exclude [] from matching
+        _pat = pattern.translate(str.maketrans({'[':'[[]',
+                                                ']':'[]]'}))
+        
+        _matched = fn.filter(self._unmatched, _pat)
+
+        # update matched and unmatched lists
+        self._matched.extend(_matched)
+        self._unmatched = [col for col in self._unmatched if col not in _matched]
+        
+        return _matched
+
 
 class PCommand(Command):
     """
@@ -158,15 +231,54 @@ class ColumnUniqueNameCommand(PCommand):
 class ColumnNameCommand(PCommand):
     def __init__(self):
         super().__init__()
+        self.i_ports = [Port('i', 'frame')]
+        self.o_ports = [Port('o', 'frame')]
 
     def run(self, args, inputs):
-        f = None
-        f <<= inputs['i'].content
+        f = inputs['i'].content
 
-        args_string = (PCMD_DIR / 'src/column_name.sh').as_posix()
-        args_string += self.replace_args(args)
+        _colnames = CsvHeader(self.get_field_names(inputs['i']))
 
-        return {'o': self.module(f, args_string)}
+        _args = copy.deepcopy(args)
+        
+        _left = _args.get('head')
+        _right = _args.get('tail')
+        
+        if _left:
+            _left = _left.split(',')
+        if _right:
+            _right = _right.split(',')
+        
+        # if overlap, error
+        if _left and _right:
+            for col in _left:
+                if col in _right:
+                    pass
+
+        # error checks go here
+
+        _start = []
+        _end = []
+
+        if _left:
+            for _fld in _left:
+                # put into _start
+                _start.extend(_colnames.match(_fld))
+
+        if _right:
+            for _fld in _right:
+                # put into _end
+                _end.extend(_colnames.match(_fld))
+
+
+        _final = _start + _colnames.unmatched + _end
+
+
+        f <<= nm.mcut(f = _final)
+
+        nysol_module_o= NysolModule()
+        nysol_module_o.set_content(f)
+        return {'o': nysol_module_o}
 
 
 class GroupbyCommand(PCommand):
