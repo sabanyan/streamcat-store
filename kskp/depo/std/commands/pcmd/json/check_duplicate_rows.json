@@ -23,11 +23,6 @@
       "name": "k",
       "type": "string",
       "label": "キー項目名(必須)"
-    },
-    {
-      "name": "tmpPath",
-      "type": "string",
-      "label": "作業用のフォルダパス名を指定する。省略時は、カレントフォルダへ書き込む"
     }
   ],
   "url": ""
