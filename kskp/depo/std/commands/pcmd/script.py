@@ -23,7 +23,7 @@ class CsvHeader:
     Essentially a wrapper class for the header row of a CSV file, with added
     functionality.
     """
-    def __init__(self,col_list):
+    def __init__(self, col_list):
         """
         Takes the list of column names.
         """
@@ -324,6 +324,28 @@ class CheckDuplicateRowsCommand(PCommand):
     def __init__(self):
         super().__init__()
 
+    def expandWildCards(self, to_expand):
+        """
+        takes a comma separated string and parses wildcard expressions within.
+        
+        """
+        import fnmatch as fn
+        expanded = []
+        
+        for elem in to_expand.split(','):
+            matched = False
+            for col in self.header:
+                if fn.fnmatch(col, elem):
+                    expanded += [col]
+                    matched = True
+                    
+            if not matched:
+                # notfound error
+                return {'error': 'FieldNotFoundError',
+                        'unmatched' : elem}
+        
+        return expanded
+
     def containsAny(self, exp, str):
         """
         check for presence of any char in str from input exp. 
@@ -349,10 +371,17 @@ class CheckDuplicateRowsCommand(PCommand):
         targetcols = args.get('k')
         
         # error checks go here:
-        header = self.get_field_names(inputs['i'])
-        targets_list = targetcols.split(',')
+        self.header = self.get_field_names(inputs['i'])
+        expanded_list = self.expandWildCards(targetcols)
+        targets_list = []
 
-        for col in targets_list:
+        # check if expandWildCards returned a dict (error signature)
+        if type(expanded_list) == dict:
+            err = self.generateCommandErrorMessage(expanded_list['error'], 'k',
+                                                   expanded_list['unmatched'])
+            raise Exception(err)
+            
+        for col in expanded_list:
             # ForbiddenCharacterError
             if self.containsAny(col, ':%&\\'):
                 err = self.generateCommandErrorMessage('ForbiddenCharacterError', 'k', col)
@@ -364,15 +393,17 @@ class CheckDuplicateRowsCommand(PCommand):
                 raise Exception(err)
             
             # FieldNotFoundError
-            if col not in header:
+            if col not in self.header:
                 err = self.generateCommandErrorMessage('FieldNotFoundError', 'k', col)
                 raise Exception(err)
+
+            # FieldConflictError
+            if col in targets_list:
+                err = self.generateCommandErrorMessage('FieldConflictError', 'k', targetcols)
+                raise Exception(err)
+            else:
+                targets_list.append(col)
                 
-        # FieldConflictError
-        if len(targets_list) != len(set(targets_list)):
-            err = self.generateCommandErrorMessage('FieldConflictError', 'k', targetcols)
-            raise Exception(err)
-        
         
         cmd_i = None
         cmd_i <<= inputs['i'].content
