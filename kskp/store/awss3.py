@@ -117,7 +117,9 @@ class AwsS3(Folder, Mountable):
 
     @property
     def bucket_name(self):
-        return self.data['bucket']
+        # 参照権限が無ければ例外を送出する
+        self._readable_or_raise()
+        return self._data['bucket']
 
     def _get_mount_cmd(self, mount_point_path):
         import shutil

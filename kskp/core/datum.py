@@ -40,30 +40,6 @@ class Datum(BaseModel):
             else:
                 return self
 
-    class AuthzDict():
-        """
-        特定のキーへは参照権限を必要とするDictのラッパー
-        """
-        def __init__(self, dict_value, datum):
-            self._dict = dict_value
-            self._datum = datum
-
-        def _check_readable(self, key):
-            if key in ('flow', 'conn', 'bucket'):
-                self._datum._readable_or_raise()
-
-        def get(self, key):
-            self._check_readable(key)
-            return self._dict.get(key)
-
-        def __getitem__(self, key):
-            self._check_readable(key)
-            return self._dict[key]
-
-        def __setitem__(self, key, value):
-            self._dict[key] = value
-
-
     # ルートフォルダのPath
     DEFAULT_LIBRARY_PATH = Path('cmn')
 
@@ -244,10 +220,8 @@ class Datum(BaseModel):
     @property
     def data(self):
         # 参照権限が無ければ例外を送出する
-        # self._readable_or_raise()
-        if self._data is None:
-            return None
-        return Datum.AuthzDict(self._data, self)
+        self._readable_or_raise()
+        return self._data
 
     @data.setter
     def data(self, value):
