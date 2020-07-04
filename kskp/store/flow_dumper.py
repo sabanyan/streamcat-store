@@ -225,7 +225,7 @@ class FlowDumper:
                     with file.open('r') as f:
                         d = f.read()
                         db = json.loads(d)
-                    db_conn = DatabaseConn(db['dbms'], db['hostname'], db['port'], db['database'], db['user_id'], db['password'])
+                    db_conn = DatabaseConn(db)
                     database = frame_folder.create_database(label, db_conn)
                     uuids[file.stem] = database.uuid
                     database.save()

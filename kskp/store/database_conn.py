@@ -2,14 +2,32 @@ class DatabaseConn():
     """
     DBへの接続情報を保持する
     """
+    def __init__(self, conn_json:dict):
+        self._conn_json = conn_json
 
-    def __init__(self, dbms, hostname, port, database, user_id, password):
-        self.dbms = dbms
-        self.hostname = hostname
-        self.port = port
-        self.database = database
-        self.user_id = user_id
-        self.password = password
+    @property
+    def dbms(self) -> str:
+        return self._conn_json.get('dbms')
+
+    @property
+    def hostname(self) -> str:
+        return self._conn_json.get('hostname')
+
+    @property
+    def port(self) -> str:
+        return self._conn_json.get('port')
+
+    @property
+    def database(self) -> str:
+        return self._conn_json.get('database')
+
+    @property
+    def user_id(self) -> str:
+        return self._conn_json.get('user_id')
+
+    @property
+    def password(self) -> str:
+        return self._conn_json.get('password')
 
     def valid_or_raise(self):
         if self.dbms is None or self.dbms =='':
@@ -46,16 +64,9 @@ class DatabaseConn():
         else:
             return f'{dbms}://{user_id}:{password}@{hostname}:{port}/{database}'
 
-    @staticmethod
-    def from_json(conn):
-        return DatabaseConn(conn['dbms'],
-                            conn['hostname'],
-                            conn['port'],
-                            conn['database'],
-                            conn['user_id'],
-                            conn['password'])
-
     def to_json(self):
+        # self._conn_jsonに他のキーが入っている場合もあるので
+        # 改めてJSONデータを作成する
         return {'dbms'     : self.dbms,
                 'hostname' : self.hostname,
                 'port'     : self.port,
