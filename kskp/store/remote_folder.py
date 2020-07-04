@@ -118,11 +118,11 @@ class RemoteFolder(Folder, Mountable):
         """
         接続情報の形式チェックを行い、NGの場合は例外を送出する
         """
-        database_conn = RemoteFolderConn.from_json(self.data['conn'])
+        database_conn = RemoteFolderConn(self.data['conn'])
         return database_conn.valid_or_raise()
 
     def _get_mount_cmd(self, mount_point_path):
-        remote_folder_conn = RemoteFolderConn.from_json(self.data['conn'])
+        remote_folder_conn = RemoteFolderConn(self.data['conn'])
         return remote_folder_conn.get_mount_cmd(mount_point_path)
 
     def to_json(self):
@@ -134,7 +134,7 @@ class RemoteFolder(Folder, Mountable):
 
         if self.readable:
             ret['prevFolderPath'] = self.get_prev_folder_path()
-            remote_folder_conn = RemoteFolderConn.from_json(self.data['conn'])
+            remote_folder_conn = RemoteFolderConn(self.data['conn'])
             ret.update(remote_folder_conn.to_json())
 
         return ret
