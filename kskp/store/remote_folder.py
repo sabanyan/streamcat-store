@@ -114,16 +114,20 @@ class RemoteFolder(Folder, Mountable):
         finally:
             self.session.commit()
 
+
+    @property
+    def conn(self):
+        return RemoteFolderConn(self._data['conn'], self._readable_or_raise)
+
     def valid_or_raise(self):
         """
         接続情報の形式チェックを行い、NGの場合は例外を送出する
         """
-        database_conn = RemoteFolderConn(self.data['conn'])
+        database_conn = RemoteFolderConn(self._data['conn'])
         return database_conn.valid_or_raise()
 
     def _get_mount_cmd(self, mount_point_path):
-        remote_folder_conn = RemoteFolderConn(self.data['conn'])
-        return remote_folder_conn.get_mount_cmd(mount_point_path)
+        return self.conn.get_mount_cmd(mount_point_path)
 
     def to_json(self):
         ret =  {'uuid'      : self.uuid,
@@ -134,7 +138,6 @@ class RemoteFolder(Folder, Mountable):
 
         if self.readable:
             ret['prevFolderPath'] = self.get_prev_folder_path()
-            remote_folder_conn = RemoteFolderConn(self.data['conn'])
-            ret.update(remote_folder_conn.to_json())
+            ret.update(self.conn.to_json())
 
         return ret

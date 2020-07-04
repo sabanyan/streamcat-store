@@ -1,32 +1,45 @@
+from typing import Callable
+
 class DatabaseConn():
     """
     DBへの接続情報を保持する
     """
-    def __init__(self, conn_json:dict):
+    def __init__(self, conn_json:dict, readable_or_raise:Callable[[],None] = None):
         self._conn_json = conn_json
+
+        # readable_or_raise()が指定されない場合は権限判定をしない
+        empty_func = lambda: None
+        self._readable_or_raise = readable_or_raise or empty_func
 
     @property
     def dbms(self) -> str:
+        # 参照権限が無ければ例外を送出する
+        self._readable_or_raise()
         return self._conn_json.get('dbms')
 
     @property
     def hostname(self) -> str:
+        self._readable_or_raise()
         return self._conn_json.get('hostname')
 
     @property
     def port(self) -> str:
+        self._readable_or_raise()
         return self._conn_json.get('port')
 
     @property
     def database(self) -> str:
+        self._readable_or_raise()
         return self._conn_json.get('database')
 
     @property
     def user_id(self) -> str:
+        self._readable_or_raise()
         return self._conn_json.get('user_id')
 
     @property
     def password(self) -> str:
+        self._readable_or_raise()
         return self._conn_json.get('password')
 
     def valid_or_raise(self):

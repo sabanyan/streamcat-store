@@ -1,32 +1,45 @@
+from typing import Callable
+
 class RemoteFolderConn():
     """
     リモートフォルダの接続情報を保持する
     """
-    def __init__(self, conn_json:dict):
+    def __init__(self, conn_json:dict, readable_or_raise:Callable[[],None] = None):
         self._conn_json = conn_json
+
+        # readable_or_raise()が指定されない場合は権限判定をしない
+        empty_func = lambda: None
+        self._readable_or_raise = readable_or_raise or empty_func
 
     @property
     def protocol(self) -> str:
+        # 参照権限が無ければ例外を送出する
+        self._readable_or_raise()
         return self._conn_json.get('protocol')
 
     @property
     def hostname(self) -> str:
+        self._readable_or_raise()
         return self._conn_json.get('hostname')
 
     @property
     def domain(self) -> str:
+        self._readable_or_raise()
         return self._conn_json.get('domain')
 
     @property
     def directory(self) -> str:
+        self._readable_or_raise()
         return self._conn_json.get('directory')
 
     @property
     def user_id(self) -> str:
+        self._readable_or_raise()
         return self._conn_json.get('user_id')
 
     @property
     def password(self) -> str:
+        self._readable_or_raise()
         return self._conn_json.get('password')
 
     def valid_or_raise(self):
