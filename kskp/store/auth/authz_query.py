@@ -41,7 +41,7 @@ class AuthzQuery():
                 result.session = self._session
         return results
 
-    def count(self):
+    def count(self) -> int:
         return self._query.count()
 
     def filter(self, *criterion):

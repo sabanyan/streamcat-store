@@ -120,9 +120,9 @@ class Store(Datum):
         from kskp.store import RemoteFolder
         return RemoteFolder(self.session, self, label, remoteFolderConn, self.session.user)
 
-    def create_flow(self, label, flow_data):
+    def create_flow(self, label, flow_json):
         from kskp.store import Flow
-        return Flow(self.session, self, label, flow_data, self.session.user)
+        return Flow(self.session, self, label, flow_json, self.session.user)
 
     def create_datasource(self, label, store, loader_step):
         from kskp.store import DataSource

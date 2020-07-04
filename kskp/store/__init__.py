@@ -66,13 +66,6 @@ if _is_unittest():
 from sqlalchemy.ext.declarative import declarative_base
 BaseModel = declarative_base()
 
-# 管理者グループと管理者ユーザを作成する
-# (とりあえず、権限管理のないsessionで作成する)
-from kskp.store.factory import UnAuthzFactory
-from kskp.store.auth import add_admin_user_and_group
-with UnAuthzFactory() as db_session:
-    add_admin_user_and_group(db_session)
-
 from kskp.core import Datum, Port, Command
 
 from .exceptions import NothingToPutbackException, NoResultsException
@@ -83,6 +76,7 @@ from .mountable import Mountable
 from .lock_manager import LockManager, LockedDatumException
 from .frame import Frame
 # from .cache import Cache
+from .flow_data import FlowData
 from .flow import Flow
 from .folder import Folder
 from .project_folder import ProjectFolder
@@ -101,6 +95,13 @@ from .store_model import Store as StoreModel
 # from .flows import FlowLink
 
 from ..depo.std.commands import CommandLink, CommandsPathLink, CommandsPathFileSource, RunfuncCommand
+
+# 管理者グループと管理者ユーザを作成する
+# (とりあえず、権限管理のないsessionで作成する)
+from kskp.store.factory import UnAuthzFactory
+from kskp.store.auth import add_admin_user_and_group
+with UnAuthzFactory() as db_session:
+    add_admin_user_and_group(db_session)
 
 # テーブルを作成する
 BaseModel.metadata.create_all(bind=engine, checkfirst=True)

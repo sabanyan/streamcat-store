@@ -7,10 +7,10 @@ class Flow(Datum):
         'polymorphic_identity' : 'flow'
     }
 
-    def __init__(self, session, parent, label, flow_data, creator=None):
+    def __init__(self, session, parent, label, flow_json, creator=None):
         """
         コンストラクタ
-        flow_data : Flowデータを指定する
+        flow_json : Flow JSONデータを指定する
         """
         super().__init__(session, parent, Datum.FLOW_TYPE, label, creator)
 
@@ -18,10 +18,16 @@ class Flow(Datum):
         self._path = None
 
         # data列の値を作成する
-        self.data = {'label' : label, 'flow' : flow_data}
+        self.data = {'label' : label, 'flow' : flow_json}
 
         # フローデータの妥当性を検証する
         self.valid_uuids_in_flowdata_or_raise()
+
+    @property
+    def flow_data(self):
+        # return self.data['flow']
+        from kskp.store import FlowData
+        return FlowData(self._data['flow'], self._readable_or_raise)
 
     def save(self):
         """
@@ -40,7 +46,7 @@ class Flow(Datum):
         finally:
             self.session.commit()
 
-    def update_data(self, label, flow_data, modifier=None):
+    def update_data(self, label, flow_json, modifier=None):
         """
         Flowのdata列を更新する
         """
@@ -60,9 +66,9 @@ class Flow(Datum):
         # ラベルに'\0'が含まれていれば取り除く
         new_label = Datum.escape_label(label)
         # 更新データを作成する
-        # data = {'label' : new_label, 'flow' : flow_data}
+        # data = {'label' : new_label, 'flow' : flow_json}
         # data = self.data.copy()
-        # data['flow'] = flow_data
+        # data['flow'] = flow_json
         # flow.data = data
 
         # フローのインポート処理で引っかかるので以下のチェックを一旦外す
@@ -80,7 +86,7 @@ class Flow(Datum):
         try:
             # レコードを更新する
             self._label = new_label
-            self.data['flow'] = flow_data
+            self.data['flow'] = flow_json
             self._modifier_id = (modifier or self.session.user).id
             self.session.update(self)
         except Exception as e:
@@ -168,25 +174,21 @@ class Flow(Datum):
         """
         pass
 
-    @property
-    def flow_data(self):
-        return self.data['flow']
-
     def duplicate(self, new_label):
         """
         自身の複製を作成する
         """
         # ラベルと作成者については、指定された値を新たに設定する
-        new_flow_data = self.flow_data
-        new_flow_data['label'] = new_label
-        new_flow_data['creator'] = self.session.user.name
+        new_flow_json = self.flow_data.to_json()
+        new_flow_json['label'] = new_label
+        new_flow_json['creator'] = self.session.user.name
         # FIXIT : Dataテーブルのcreated_at列と時刻を合わせたい
         from datetime import datetime, timedelta, timezone
         JST = timezone(timedelta(hours=+9), 'JST')
-        new_flow_data['createdAt'] = datetime.now(JST).strftime('%Y-%m-%d %H:%M:%S')
+        new_flow_json['createdAt'] = datetime.now(JST).strftime('%Y-%m-%d %H:%M:%S')
         # 複製を作成する
         parent = self.find_parent()
-        new_flow = parent.create_flow(new_label, new_flow_data)
+        new_flow = parent.create_flow(new_label, new_flow_json)
 
         # フロー間でキャッシュを共有すると、キャッシュ削除操作により不整合が発生する
         # そのためフローを複製する時はキャッシュも複製する
@@ -336,12 +338,12 @@ class Flow(Datum):
         参照する入力frameを全て取得する
         """
         ret = []
-        flow_json = self.flow_data
+        flow_data = self.flow_data
         
-        if 'nodes' not in flow_json:
+        if not flow_data.has_nodes:
             return ret
 
-        for node in flow_json['nodes']:
+        for node in flow_data.nodes:
             if node['type'] != 'frame':
                 continue
             if 'cacheCreatedAt' in node and\
@@ -361,12 +363,12 @@ class Flow(Datum):
         参照するキャッシュframeを全て取得する
         """
         ret = []
-        flow_json = self.flow_data
+        flow_data = self.flow_data
         
-        if 'nodes' not in flow_json:
+        if not flow_data.has_nodes:
             return ret
 
-        for node in flow_json['nodes']:
+        for node in flow_data.nodes:
             if node['type'] != 'frame':
                 continue
             if 'cacheCreatedAt' not in node or\
@@ -386,12 +388,12 @@ class Flow(Datum):
         参照するSub Flowを全て取得する
         """
         ret = []
-        flow_json = self.flow_data
+        flow_data = self.flow_data
 
-        if 'nodes' not in flow_json:
+        if not flow_data.has_nodes:
             return ret
 
-        for node in flow_json['nodes']:
+        for node in flow_data.nodes:
             if node['type'] != 'flow':
                 continue
             if 'uuid' not in node or node['uuid'] is None or node['uuid'] == '':
@@ -406,12 +408,12 @@ class Flow(Datum):
         参照するStoreを全て取得する
         """
         ret = []
-        flow_json = self.flow_data
+        flow_data = self.flow_data
 
-        if 'nodes' not in flow_json:
+        if not flow_data.has_nodes:
             return ret
 
-        for node in flow_json['nodes']:
+        for node in flow_data.nodes:
             if node['type'] != 'store':
                 continue
             if 'uuid' not in node or node['uuid'] is None or node['uuid'] == '':
@@ -437,10 +439,10 @@ class Flow(Datum):
         """
         flow_data = self.flow_data
 
-        if 'nodes' not in flow_data:
+        if not flow_data.has_nodes:
             return
 
-        for node in flow_data['nodes']:
+        for node in flow_data.nodes:
             for old_uuid, new_uuid in old_new_uuid_pairs.items():
                 if 'uuid' in node and node['uuid'] == old_uuid:
                     node['uuid'] = new_uuid
@@ -451,10 +453,10 @@ class Flow(Datum):
 
         flow_data = self.flow_data
 
-        if 'nodes' not in flow_data:
+        if not flow_data.has_nodes:
             return
 
-        for node in flow_data['nodes']:
+        for node in flow_data.nodes:
             if node['id'] == node_id:
                 node['uuid'] = cache_uuid
                 # 記録時間はUTC、表示時間は現地時間にすべきでは？？

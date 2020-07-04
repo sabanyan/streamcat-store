@@ -170,3 +170,12 @@ class AuthTest(TestCaseBase):
 
         # フレームは削除可能
         frame.delete()
+
+    def test_writeless_frame(self):
+        """
+        更新権限のないFrameは更新できないことを検証する
+        """
+        # ルートフォルダを取得する
+        root = self.factory.data.load_root()
+
+        
