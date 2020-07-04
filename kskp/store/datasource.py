@@ -9,7 +9,7 @@ class DataSource(Flow):
         #     raise Exception('指定されたStoreがライブラリに存在しません')
 
         # PointとStepの繫がりを探索するFlowVisitorを使えばスマートに、Jsonデータを取得できるだろう
-        flow_data = {
+        flow_json = {
             "label": label,
             "nodes": [
                 {
@@ -69,4 +69,4 @@ class DataSource(Flow):
             "description": ""
         }
         
-        super().__init__(session, parent, label, flow_data, creator)
+        super().__init__(session, parent, label, flow_json, creator)

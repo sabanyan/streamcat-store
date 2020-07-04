@@ -66,8 +66,8 @@ class LibraryTest(TestCaseBase):
         # save()によりreadable=Noneになるため再取得する
         return self.factory.data.find_by_uuid(new_folder.uuid)
 
-    def save_flow(self, parent, label, flow_data):
-        new_flow = parent.create_flow(label, flow_data)
+    def save_flow(self, parent, label, flow_json):
+        new_flow = parent.create_flow(label, flow_json)
         new_flow.save()
         # save()によりreadable=Noneになるため再取得する
         return self.factory.data.find_by_uuid(new_flow.uuid)
@@ -757,7 +757,7 @@ class LibraryTest(TestCaseBase):
         frame = self.save_frame(root, 'フレームデータ',
                                    root_path / 'frame_for_flow.csv')
         # フローデータを作成する
-        flow_data = {
+        flow_json = {
             'projectId': 1,
             'label': 'テストフロー',
             'ports': [[],[]],
@@ -776,7 +776,7 @@ class LibraryTest(TestCaseBase):
             'createdAt': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         }
         # ルートデータストアの直下にフローを作成する
-        flow = self.save_flow(root, 'フロー', flow_data)
+        flow = self.save_flow(root, 'フロー', flow_json)
         # 作成したフローを取得する
         flow = self.factory.data.find_by_uuid(flow.uuid)
         # 作成したフローの値を検証する
@@ -786,7 +786,7 @@ class LibraryTest(TestCaseBase):
         self.assertIsNone(flow.path)
         self.assertEqual(flow.type, 'flow')
         self.assertEqual(flow.label, 'フロー')
-        self.assertEqual(flow.flow_data, flow_data)
+        self.assertEqual(flow.flow_data.to_json(), flow_json)
         self.assertEqual(flow.creator, self.USER1)
         self.assertEqual(flow.modifier, self.USER1)
         self.assertEqual(flow.creator, flow.modifier)
@@ -811,7 +811,7 @@ class LibraryTest(TestCaseBase):
         frame = self.save_frame(root, 'フレームデータ',
                                    root_path / 'frame_for_flow2.csv')
         # フローデータを作成する
-        flow_data = {
+        flow_json = {
             'projectId': 1,
             'label': 'テストフロー',
             'ports': [[],[]],
@@ -822,9 +822,9 @@ class LibraryTest(TestCaseBase):
             'createdAt': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         }
         # ルートデータストアの直下にフローを作成する
-        flow = self.save_flow(root, 'フロー', flow_data)
+        flow = self.save_flow(root, 'フロー', flow_json)
 
-        new_flow_data = {
+        new_flow_json = {
             'projectId': 2,
             'label': '新しいテストフロー',
             'ports': [[],[]],
@@ -843,7 +843,7 @@ class LibraryTest(TestCaseBase):
             'createdAt': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         }
         # 作成したフローを変更する
-        updated_flow = flow.update_data('新しいフロー', new_flow_data, self.USER2)
+        updated_flow = flow.update_data('新しいフロー', new_flow_json, self.USER2)
 
         # ラベルとディレクトリパスのみが変更されることを検証する
         self.assertEqual(updated_flow.id, flow.id)
@@ -852,7 +852,7 @@ class LibraryTest(TestCaseBase):
         self.assertIsNone(updated_flow.path)
         self.assertEqual(updated_flow.type, flow.type)
         self.assertEqual(updated_flow.label, '新しいフロー')
-        self.assertEqual(updated_flow.flow_data, new_flow_data)
+        self.assertEqual(updated_flow.flow_data.to_json(), new_flow_json)
         self.assertEqual(updated_flow.creator, self.USER1)
         self.assertEqual(updated_flow.modifier, self.USER2)
         self.assertEqual(updated_flow.created_at, flow.created_at)
@@ -869,7 +869,7 @@ class LibraryTest(TestCaseBase):
         # ルートデータストアを取得する
         root = self.factory.data.load_root()
         # ルートデータストアの直下にフローを作成する
-        flow_data = {
+        flow_json = {
             'projectId': 1,
             'label': 'フローSRC',
             'ports': [[],[]],
@@ -879,7 +879,7 @@ class LibraryTest(TestCaseBase):
             'creator': '足利義教',
             'createdAt': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         }
-        flow_src = self.save_flow(root, 'フローSRC', flow_data)
+        flow_src = self.save_flow(root, 'フローSRC', flow_json)
         # ルートデータストアの直下にフォルダを作成する
         folder_dst = self.save_folder(root, 'フォルダDST_B')
         # フローSRCをフォルダDSTへ移動する
@@ -919,7 +919,7 @@ class LibraryTest(TestCaseBase):
         # ルートデータストアを取得する
         root = self.factory.data.load_root()
         # ルートデータストアの直下にフローを作成する
-        flow_data = {
+        flow_json = {
             'projectId': 1,
             'label': 'フローSRC',
             'ports': [[],[]],
@@ -929,9 +929,9 @@ class LibraryTest(TestCaseBase):
             'creator': '足利義教',
             'createdAt': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         }
-        flow_src = self.save_flow(root, 'フローSRC', flow_data)
+        flow_src = self.save_flow(root, 'フローSRC', flow_json)
         # ルートデータストアの直下にフローを作成する
-        flow_dst = self.save_flow(root, 'フローDST', flow_data)
+        flow_dst = self.save_flow(root, 'フローDST', flow_json)
 
         # 存在しないフォルダへ移動しようとすると例外を送出する
         with self.assertRaises(Exception):
@@ -964,7 +964,7 @@ class LibraryTest(TestCaseBase):
         # ルートデータストアを取得する
         root = self.factory.data.load_root()
         # フローデータを作成する
-        flow_data = {
+        flow_json = {
             'projectId': 1,
             'label': 'テストフロー',
             'ports': [[],[]],
@@ -975,7 +975,7 @@ class LibraryTest(TestCaseBase):
             'createdAt': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         }
         # ルートデータストアの直下にフローを作成する
-        flow = self.save_flow(root, 'フロー', flow_data)
+        flow = self.save_flow(root, 'フロー', flow_json)
 
         # 作成したフレームの値を検証する
         self.assertIsNotNone(flow.id)

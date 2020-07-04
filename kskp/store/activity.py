@@ -74,7 +74,7 @@ class Activity(Datum):
                     datum.update_encoding_newline()
                     datum.update_label_only(new_label)
             elif isinstance(datum, DataSource):
-                datum.update_data(new_label, datum.flow_data)
+                datum.update_data(new_label, datum.flow_data.to_json())
 
 
 

@@ -1,3 +1,7 @@
+from typing import Union
+from kskp.core import Datum
+from kskp.store.folder import Folder
+from kskp.store.trashcan import TrashCan
 
 class Factory():
     """
@@ -127,7 +131,7 @@ class DatumFactory():
 
     def create_simple_flow(self, parent, label, data_source):
         from kskp.store import Flow
-        flow_data = {
+        flow_json = {
                         "label": label,
                         "nodes": [
                             {
@@ -149,9 +153,9 @@ class DatumFactory():
                         "projectId": None,
                         "description": ""
                     }
-        return Flow(self._session, parent, label, flow_data, self._session.user)
+        return Flow(self._session, parent, label, flow_json, self._session.user)
 
-    def find_by_id(self, id, type=None):
+    def find_by_id(self, id, type=None) -> Datum:
         """
         指定されたidを持つDatumを取得する
         """
@@ -171,7 +175,7 @@ class DatumFactory():
 
         return datum
 
-    def find_by_uuid(self, uuid, type=None):
+    def find_by_uuid(self, uuid, type=None) -> Datum:
         """
         指定されたuuidを持つDatumを取得する
         """
@@ -195,11 +199,11 @@ class DatumFactory():
 
         return datum
 
-    def count_root(self):
+    def count_root(self) -> int:
         from kskp.store import Datum
         return self._session.query(Datum).filter(Datum.parent_id == None).count()
 
-    def find_root(self):
+    def find_root(self) -> Union[Folder, None]:
         """
         親を持たないfolderレコードを全て取得する
         """
@@ -216,7 +220,7 @@ class DatumFactory():
         
         return roots[0]
 
-    def find_trashcan(self):
+    def find_trashcan(self) -> TrashCan:
         """
         ゴミ箱を取得する
         """
@@ -238,23 +242,19 @@ class DatumFactory():
 
         subflows = []
         for flow in flows:
-            
-            # 参照権限のないフローはサブフローか否かの判定ができない
-            if not flow.readable:
-                continue
 
-            flow_data = flow.data['flow']
+            flow_data = flow.flow_data
             # onの時にno_inputs（＝inputsがない）のサブフローは出さない
             if no_inputs:
-                if len(flow_data['ports'][0]) == 0:
+                if len(flow_data.ports[0]) == 0:
                     continue
 
             # onの時にno_outputs（＝outputsがない）のサブフローは出さない
             if no_outputs:
-                if len(flow_data['ports'][1]) == 0:
+                if len(flow_data.ports[1]) == 0:
                     continue
 
-            if len(flow_data['ports'][0]) > 0 or len(flow_data['ports'][1]) > 0:
+            if len(flow_data.ports[0]) > 0 or len(flow_data.ports[1]) > 0:
                 flow.session = self._session
                 subflows.append(flow)
 
@@ -333,7 +333,7 @@ class DatumFactory():
             trash.save()
             return trash.reload()
 
-    def _get_or_make_dir_path(self, uuid, label):
+    def _get_or_make_dir_path(self, uuid, label) -> Folder:
         # 特定用途のフォルダのUUIDは決め打ちである
         if self.exists(uuid):
             return self.find_by_uuid(uuid)
@@ -364,7 +364,7 @@ class DatumFactory():
         results = self._session.execute(sql)
         return [str(result['label']) for result in results]
 
-    def exists(self, uuid, type=None):
+    def exists(self, uuid, type=None) -> bool:
         """
         指定されたuuidを持つDatumが存在する場合はTrueを返す
         """
@@ -380,7 +380,7 @@ class DatumFactory():
 
         return query.count() > 0
 
-    def exists_by_id(self, id, type=None):
+    def exists_by_id(self, id, type=None) -> bool:
         """
         指定されたidを持つDatumが存在する場合はTrueを返す
         """
@@ -392,7 +392,7 @@ class DatumFactory():
 
         return query.count() > 0
 
-    def trashcan_exists(self):
+    def trashcan_exists(self) -> bool:
         """
         ゴミ箱が存在する場合はTrueを返す
         """
