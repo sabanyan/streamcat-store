@@ -2,14 +2,32 @@ class RemoteFolderConn():
     """
     リモートフォルダの接続情報を保持する
     """
+    def __init__(self, conn_json:dict):
+        self._conn_json = conn_json
 
-    def __init__(self, protocol, hostname, domain, directory, user_id, password):
-        self.protocol = protocol
-        self.hostname = hostname
-        self.domain = domain
-        self.directory = directory
-        self.user_id = user_id
-        self.password = password
+    @property
+    def protocol(self) -> str:
+        return self._conn_json.get('protocol')
+
+    @property
+    def hostname(self) -> str:
+        return self._conn_json.get('hostname')
+
+    @property
+    def domain(self) -> str:
+        return self._conn_json.get('domain')
+
+    @property
+    def directory(self) -> str:
+        return self._conn_json.get('directory')
+
+    @property
+    def user_id(self) -> str:
+        return self._conn_json.get('user_id')
+
+    @property
+    def password(self) -> str:
+        return self._conn_json.get('password')
 
     def valid_or_raise(self):
         if self.protocol is None or self.protocol =='':
@@ -36,16 +54,9 @@ class RemoteFolderConn():
         else:
             raise Exception('undefined remote protocol found')
 
-    @staticmethod
-    def from_json(conn):
-        return RemoteFolderConn(conn['protocol'],
-                                conn['hostname'],
-                                conn['domain'],
-                                conn['directory'],
-                                conn['user_id'],
-                                conn['password'])
-
     def to_json(self):
+        # self._conn_jsonに他のキーが入っている場合もあるので
+        # 改めてJSONデータを作成する
         return {'protocol' : self.protocol,
                 'hostname' : self.hostname,
                 'domain'   : self.domain,

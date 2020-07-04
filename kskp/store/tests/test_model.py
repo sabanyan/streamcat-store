@@ -14,6 +14,15 @@ class LibraryTest(TestCaseBase):
     # USER_ID1 = 88
     # USER_ID2 = 99
 
+    conn_json = {
+        'protocol' : 'smb',
+        'hostname' : "kskds-HP-Workstation-z620.local",
+        'domain'   : "WORKGROUP",
+        'directory': "share",
+        'user_id'  : "ksk-ds",
+        'password' : "kskanalytics"
+    }
+
     def setUp(self):
         pass
 
@@ -276,7 +285,7 @@ class LibraryTest(TestCaseBase):
             # ルートデータストアを取得する
             root = self.factory.data.load_root()
             # ルートデータストアの直下にリモートフォルダを作成する
-            conn = RemoteFolderConn('smb', "kskds-HP-Workstation-z620.local", "WORKGROUP", "share", "ksk-ds", "kskanalytics")
+            conn = RemoteFolderConn(self.conn_json)
             folder = self.save_rfolder(root, 'リモートフォルダ', conn)
             # 取得したフォルダの値を検証する
             self.assertIsNotNone(folder.id)
@@ -302,7 +311,7 @@ class LibraryTest(TestCaseBase):
             # ルートデータストアを取得する
             root = self.factory.data.load_root()
             # ルートデータストアの直下にリモートフォルダを作成する
-            conn = RemoteFolderConn('smb', "kskds-HP-Workstation-z620.local", "WORKGROUP", "share", "ksk-ds", "kskanalytics")
+            conn = RemoteFolderConn(self.conn_json)
             folder = self.save_rfolder(root, 'リモートフォルダ2', conn)
             # 作成したフォルダのラベルを変更する
             folder.update_data('新しいリモートフォルダ2', conn, self.USER2)
@@ -333,7 +342,7 @@ class LibraryTest(TestCaseBase):
             # ルートデータストアの直下にフォルダを作成する
             to_folder = self.save_folder(root, 'フォルダaabb')
             # ルートデータストアの直下にリモートフォルダを作成する
-            conn = RemoteFolderConn('smb', "kskds-HP-Workstation-z620.local", "WORKGROUP", "share", "ksk-ds", "kskanalytics")
+            conn = RemoteFolderConn(self.conn_json)
             folder = self.save_rfolder(root, 'リモートフォルダ3', conn)
             # 作成したフォルダのラベルを変更する
             folder.move(to_folder.uuid, self.USER2)
@@ -383,7 +392,7 @@ class LibraryTest(TestCaseBase):
             self.save(to_folder.path / 'aaaa1.csv')
             frame_src = self.save_frame(to_folder, 'フレームSRC', to_folder.path / 'aaaa1.csv')
             # ルートデータストアの直下にリモートフォルダを作成する
-            conn = RemoteFolderConn('smb', "kskds-HP-Workstation-z620.local", "WORKGROUP", "share", "ksk-ds", "kskanalytics")
+            conn = RemoteFolderConn(self.conn_json)
             folder = self.save_rfolder(root, 'リモートフォルダ4', conn)
 
             # 存在しないフォルダへ移動しようとすると例外を送出する
