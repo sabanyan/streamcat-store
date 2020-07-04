@@ -132,13 +132,13 @@ class Database(Store):
 
     @property
     def conn(self):
-        return DatabaseConn.from_json(self.data['conn'])
+        return DatabaseConn(self.data['conn'])
 
     def valid_or_raise(self):
         """
         DB接続情報の形式チェックを行い、NGの場合は例外を送出する
         """
-        database_conn = DatabaseConn.from_json(self.data['conn'])
+        database_conn = DatabaseConn(self.data['conn'])
         return database_conn.valid_or_raise()
 
     def to_json(self):
@@ -150,7 +150,7 @@ class Database(Store):
 
         if self.readable:
             ret['prevFolderPath'] = self.get_prev_folder_path()
-            database_conn = DatabaseConn.from_json(self.data['conn'])
+            database_conn = DatabaseConn(self.data['conn'])
             ret.update(database_conn.to_json())
 
         return ret
