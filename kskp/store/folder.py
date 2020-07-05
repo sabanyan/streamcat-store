@@ -24,7 +24,7 @@ class Folder(Store):
         """
         # 既にルートフォルダが存在する場合は、parent_id=NULLを許可しない
         from kskp.store.factory import DatumFactory
-        if self.parent_id is None and DatumFactory(self.session).count_root() > 0:
+        if self.parent_id is None and DatumFactory(self._session).count_root() > 0:
             raise Exception('You can not add root folder. A root already exists.')
 
         if file_path is None:
@@ -38,15 +38,15 @@ class Folder(Store):
 
         try:
             # Dataテーブルにレコードを新規追加する
-            self.session.add(self)
+            self._session.add(self)
             # ドキュメントに紐付くファイル(path列で指定されるファイル)がなければ作成する
             if file_path is None:
                 self._make_dir(self._path)
         except Exception as e:
-            self.session.rollback()
+            self._session.rollback()
             raise e
         finally:
-            self.session.commit()
+            self._session.commit()
 
     # def add_entry_from_path(self, file_path):
     #     """
@@ -84,15 +84,15 @@ class Folder(Store):
             self._update_include_path(old_path, new_path, modifier)
             # レコードを更新する
             self._label = new_label
-            self._modifier_id = (modifier or self.session.user).id
-            self.session.update(self)
+            self._modifier_id = (modifier or self._session.user).id
+            self._session.update(self)
             # ファイルを移動する
             Datum.move_file(old_path, new_path)
         except Exception as e:
-            self.session.rollback()
+            self._session.rollback()
             raise e
         finally:
-            self.session.commit()
+            self._session.commit()
 
         return self
 
@@ -102,7 +102,7 @@ class Folder(Store):
         Folderを中身のファイルも一緒にゴミ箱にほかす
         """
         from kskp.store.factory import DatumFactory
-        factory = DatumFactory(self.session)
+        factory = DatumFactory(self._session)
         trash_folder = factory.load_trash_folder()
 
         if self.parent_id is None:
@@ -177,14 +177,14 @@ class Folder(Store):
             raise Exception('空でないフォルダは削除できません')
         try:
             # フォルダレコードを削除する
-            self.session.delete(self)
+            self._session.delete(self)
             # ディレクトリを削除する
             self._remove_dir(self._path)
         except Exception as e:
-            self.session.rollback()
+            self._session.rollback()
             raise e
         finally:
-            self.session.commit()
+            self._session.commit()
 
     def remove_reference_only(self):
         """
@@ -210,26 +210,26 @@ class Folder(Store):
 
         try:
             # フォルダレコードを削除する
-            self.session.delete(self)
-            self.session.execute(sql)
+            self._session.delete(self)
+            self._session.execute(sql)
         except Exception as e:
-            self.session.rollback()
+            self._session.rollback()
             raise e
         finally:
-            self.session.commit()
+            self._session.commit()
 
     def get_folder_path(self):
         """
         現在のフォルダ階層パスをリスト型で返す(APIのFolderPath属性の作成で用いる)
         """
         # 指定されたUUIDのfolerレコードを取得する
-        datum = self.session.query(Datum).filter(Datum.uuid==self.uuid).one_or_none()
+        datum = self._session.query(Datum).filter(Datum.uuid==self.uuid).one_or_none()
 
         parent_id = datum.parent_id
         path_to_root = [{'type':datum.type, 'uuid':datum.uuid, 'label':datum.label}]
         # 取得したレコードから外部キー’parent_id’をたどり、途中のfolderレコードをリストに順に保存する
         while parent_id != None:
-            datum = self.session.query(Datum).filter(Datum.id==parent_id).one_or_none()
+            datum = self._session.query(Datum).filter(Datum.id==parent_id).one_or_none()
             path_to_root.append({'type':datum.type, 'uuid':datum.uuid, 'label':datum.label})
             parent_id = datum.parent_id
         # 保存したリストの並びを逆にする
@@ -279,7 +279,7 @@ class Folder(Store):
     def _dir_path_exists(self, dir_path, except_id):
         rel_path = Datum._to_rel_path(dir_path)
 
-        results = self.session.query(Datum._path)\
+        results = self._session.query(Datum._path)\
                  .filter(Datum._path.like(rel_path.as_posix() + '%'))\
                  .filter(Datum.id != except_id).all()
 

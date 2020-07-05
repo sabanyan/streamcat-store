@@ -100,7 +100,7 @@ class Datum(BaseModel):
         コンストラクタ
         """
         # SQLAlchemy Session
-        self.session = session
+        self._session = session
 
         # parent_id
         # (rootのみparent_idはNoneである)
@@ -157,7 +157,7 @@ class Datum(BaseModel):
             if self._path.is_dir:
                 if isinstance(self, Mountable):
                     # _pathがディレクトリで、かつマウントポイントの場合、再マウント処理をする
-                    Mountable.remount(self.session, self.id)
+                    Mountable.remount(self._session, self.id)
                     # return Path(self._path)
                 else:
                     # _pathがディレクトリで、かつマウントポイントでない場合は、再マウント処理はしない
@@ -174,7 +174,7 @@ class Datum(BaseModel):
                 pass
             else:
                 # pathに対応するファイルまたはディレクトリが無い場合、再マウント処理する
-                Mountable.remount(self.session, self.id)
+                Mountable.remount(self._session, self.id)
                 if not self._path.exists():
                     # 再マウント処理をしてもファイルまたはディレクトリがない場合は、例外を送出する
                     # (ここで例外を送出するとexists(path)で存在チェックができなくなる)
@@ -258,14 +258,14 @@ class Datum(BaseModel):
         from kskp.store.factory import UserFactory
         if self._creator_id is None:
             return None
-        return UserFactory(self.session).find_by_id(self._creator_id)
+        return UserFactory(self._session).find_by_id(self._creator_id)
 
     @property
     def modifier(self):
         from kskp.store.factory import UserFactory
         if self._modifier_id is None:
             return None
-        return UserFactory(self.session).find_by_id(self._modifier_id)
+        return UserFactory(self._session).find_by_id(self._modifier_id)
 
     @modifier.setter
     def modifier(self, modifier):
@@ -287,10 +287,10 @@ class Datum(BaseModel):
         """
         自分の親を取得する
         """
-        datum = self.session.query(Datum)\
+        datum = self._session.query(Datum)\
                             .filter(Datum.id==self.parent_id).one()
 
-        datum.session = self.session
+        # datum.session = self._session
         return datum
 
     def reload(self):
@@ -299,7 +299,7 @@ class Datum(BaseModel):
         (save()後に行うとreadableを設定できる)
         """
         from kskp.store.factory import DatumFactory
-        factory = DatumFactory(self.session)
+        factory = DatumFactory(self._session)
         return factory.find_by_id(self.id)
 
     def move(self, parent_uuid, modifier=None):
@@ -312,7 +312,7 @@ class Datum(BaseModel):
         # UUID値の形式チェックをする
         Datum.valid_uuid_or_raise(parent_uuid)
 
-        to_folder = DatumFactory(self.session).find_by_uuid(parent_uuid)
+        to_folder = DatumFactory(self._session).find_by_uuid(parent_uuid)
         if not isinstance(to_folder, Folder):
             raise Exception('移動先の指定はフォルダ、プロジェクトまたはゴミ箱のUUIDしか許可していません')
 
@@ -364,18 +364,18 @@ class Datum(BaseModel):
             if self._path is not None:
                 self._path = new_path
             self._label = new_label
-            self._modifier_id = (modifier or self.session.user).id
-            self.session.update(self)
+            self._modifier_id = (modifier or self._session.user).id
+            self._session.update(self)
 
             # ファイルを移動する
             if self._path is not None:
                 Datum.move_file(old_path, new_path)
 
         except Exception as e:
-            self.session.rollback()
+            self._session.rollback()
             raise e
         finally:
-            self.session.commit()
+            self._session.commit()
 
         return self
 
@@ -384,7 +384,7 @@ class Datum(BaseModel):
         ゴミ箱にほかす
         """
         from kskp.store.factory import DatumFactory
-        factory = DatumFactory(self.session)
+        factory = DatumFactory(self._session)
         trash_folder = factory.load_trash_folder()
 
         self.move(trash_folder.uuid)
@@ -427,7 +427,7 @@ class Datum(BaseModel):
                 if datum.prev_parent_id is None:
                     raise Exception(f'このDatum({datum.label})は移動したことがありません')
 
-                factory = DatumFactory(self.session)
+                factory = DatumFactory(self._session)
                 prev_parent_uuid = factory.find_by_id(datum.prev_parent_id).uuid
 
                 if not factory.exists(prev_parent_uuid):
@@ -442,7 +442,7 @@ class Datum(BaseModel):
 
     def get_prev_folder_path(self):
         from kskp.store.factory import DatumFactory
-        factory = DatumFactory(self.session)
+        factory = DatumFactory(self._session)
         if self.prev_parent_id is None or not factory.exists_by_id(self.prev_parent_id):
             return None
         else:
@@ -467,15 +467,15 @@ class Datum(BaseModel):
         if self.readable is None:
             raise NotAuthorizedException(f'{self.label}の参照権限がNoneです(save後のDatumオブジェクトは参照権限がNoneになります)')
         if not self.readable:
-            raise NotAuthorizedException(f'{self.session.user.name} ({self.user})は{self.label}の参照権限がありません({self.readable})')
+            raise NotAuthorizedException(f'{self._session.user.name} ({self.user})は{self.label}の参照権限がありません({self.readable})')
 
     def _update_same_path(self, old_path, new_path, modifier):
         # 同じファイルに対応するフォルダのpath列を、ファイル名の移動に合わせて変更する
-        results = self.session.query(Datum).filter(Datum._path == old_path).all()
+        results = self._session.query(Datum).filter(Datum._path == old_path).all()
         for result in results:
             result._path = Datum._to_rel_path(new_path)
-            result._modifier_id = (modifier or self.session.user).id
-            self.session.update(result)
+            result._modifier_id = (modifier or self._session.user).id
+            self._session.update(result)
 
     def _update_include_path(self, old_path, new_path, modifier=None):
         import re
@@ -484,7 +484,7 @@ class Datum(BaseModel):
         # ファイルパスに正規表現文字が含まれていればエスケープする
         old_path_pattern = '^' + re.escape(rel_old_path) + '/'
         # SQLのワイルドカード%と_をエスケープする
-        results = self.session.query(Datum)\
+        results = self._session.query(Datum)\
                          .filter(Datum._path!=None)\
                          .filter(Datum._path.like(rel_old_path + '/' + '%')).all()
         for result in results:
@@ -493,8 +493,8 @@ class Datum(BaseModel):
             replaced_path = re.sub(old_path_pattern, rel_new_path, rel_result_path)
 
             result._path = Path(replaced_path)
-            result._modifier_id = (modifier or self.session.user).id
-            self.session.update(result)
+            result._modifier_id = (modifier or self._session.user).id
+            self._session.update(result)
 
     def get_flow_uuids_using_me(self):
         """      .......
@@ -507,7 +507,7 @@ class Datum(BaseModel):
           and to_tsvector(data) @@ to_tsquery('{self.uuid}')
         """
         # SQLを発行する
-        results = self.session.execute(sql)
+        results = self._session.execute(sql)
         return [str(result[0]) for result in results]
 
     @staticmethod

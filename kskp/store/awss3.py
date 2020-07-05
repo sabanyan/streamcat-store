@@ -29,7 +29,7 @@ class AwsS3(Folder, Mountable):
         """
         # 既にルートフォルダが存在する場合は、parent_id=NULLを許可しない
         from kskp.store.factory import DatumFactory
-        if self.parent_id is None and DatumFactory(self.session).count_root() > 0:
+        if self.parent_id is None and DatumFactory(self._session).count_root() > 0:
             raise Exception('You can not add root bucket. A root already exists.')
 
         # 既存のファイルと重複しないファイル名を取得する
@@ -40,7 +40,7 @@ class AwsS3(Folder, Mountable):
 
         try:
             # Dataテーブルにレコードを新規追加する
-            self.session.add(self)
+            self._session.add(self)
             # フォルダに紐付くディレクトリ(path列で指定されるディレクトリ)がなければ作成する
             self._make_dir(self_path)
             # ここでリモートフォルダをマウントする
@@ -48,10 +48,10 @@ class AwsS3(Folder, Mountable):
         except Exception as e:
             self.unmount(self_path)
             self._remove_dir(self_path)
-            self.session.rollback()
+            self._session.rollback()
             raise e
         finally:
-            self.session.commit()
+            self._session.commit()
 
     def update_data(self, label, bucket_name, modifier=None):
         """
@@ -76,16 +76,16 @@ class AwsS3(Folder, Mountable):
             # data['bucket'] = bucket_name
             self._label = new_label
             self._data['bucket'] = bucket_name
-            self._modifier_id = (modifier or self.session.user).id
-            self.session.update(self)
+            self._modifier_id = (modifier or self._session.user).id
+            self._session.update(self)
 
             # ファイルを移動する
             Datum.move_file(old_path, new_path)
         except Exception as e:
-            self.session.rollback()
+            self._session.rollback()
             raise e
         finally:
-            self.session.commit()
+            self._session.commit()
 
         return self
 
@@ -110,10 +110,10 @@ class AwsS3(Folder, Mountable):
             # ディレクトリを削除する
             self._remove_dir(self._path)
         except Exception as e:
-            self.session.rollback()
+            self._session.rollback()
             raise e
         finally:
-            self.session.commit()
+            self._session.commit()
 
     @property
     def bucket_name(self):

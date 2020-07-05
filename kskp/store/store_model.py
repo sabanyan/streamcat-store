@@ -26,7 +26,7 @@ class Store(BaseModel):
     modified_at  = Column(TIMESTAMP, default=text('statement_timestamp()'), onupdate=text('statement_timestamp()'))
 
     def __init__(self, id=None, data=None, creator=None):
-        self.session = None
+        self._session = None
 
         self.id = id
         self.data = data
@@ -51,12 +51,12 @@ class Store(BaseModel):
         return User.find_by_id(self._modifier_id)
 
     def save(self):
-        self.session.add(self)
-        self.session.commit()
+        self._session.add(self)
+        self._session.commit()
 
     def delete(self):
-        self.session.delete(self)
-        self.session.commit()
+        self._session.delete(self)
+        self._session.commit()
 
     def __str__(self):
         return self.id

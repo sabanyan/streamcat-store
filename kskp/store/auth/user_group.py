@@ -30,7 +30,7 @@ class UserGroup(BaseModel):
         コンストラクタ
         """
         # SQLAlchemy Session
-        self.session = session
+        self._session = session
 
         self.user_id = user_id
         self.group_id = group_id
@@ -45,25 +45,25 @@ class UserGroup(BaseModel):
         from kskp.store.factory import UserFactory
         if self._creator_id is None:
             return None
-        return UserFactory(self.session).find_by_id(self._creator_id)
+        return UserFactory(self._session).find_by_id(self._creator_id)
 
     @property
     def modifier(self):
         from kskp.store.factory import UserFactory
         if self._modifier_id is None:
             return None
-        return UserFactory(self.session).find_by_id(self._modifier_id)
+        return UserFactory(self._session).find_by_id(self._modifier_id)
 
     def save(self):
         """
         UserGroupを保存する
         """
-        self.session.add(self)
-        self.session.commit()
+        self._session.add(self)
+        self._session.commit()
 
     def delete(self):
         """
         UserGroupを削除する
         """
-        self.session.delete(self)
-        self.session.commit()
+        self._session.delete(self)
+        self._session.commit()

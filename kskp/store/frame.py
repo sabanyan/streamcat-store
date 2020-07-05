@@ -47,7 +47,7 @@ class Frame(Datum):
         """
         # 既にルートフォルダが存在する場合は、parent_id=NULLを許可しない
         from kskp.store.factory import DatumFactory
-        if self.parent_id is None and DatumFactory(self.session).count_root() > 0:
+        if self.parent_id is None and DatumFactory(self._session).count_root() > 0:
             raise Exception('You can not add another root frame. A root already exists.')
 
         if file_path is None:
@@ -68,16 +68,16 @@ class Frame(Datum):
 
         try:
             # Dataテーブルにレコードを新規追加する
-            self.session.add(self)
+            self._session.add(self)
             # ドキュメントに紐付くファイル(path列で指定されるファイル)がなければ作成する
             if file_path is None:
                 self._make_file(self._path)
         except Exception as e:
-            self.session.rollback()
+            self._session.rollback()
             raise e
         finally:
             # 親フォルダのロックを解除する
-            self.session.commit()
+            self._session.commit()
 
     # def add_entry_from_path(self, file_path):
     #     """
@@ -125,10 +125,10 @@ class Frame(Datum):
             # ファイルを移動する
             Datum.move_file(old_path, new_path)
         except Exception as e:
-            self.session.rollback()
+            self._session.rollback()
             raise e
         finally:
-            self.session.commit()
+            self._session.commit()
 
         return self
 
@@ -163,13 +163,13 @@ class Frame(Datum):
 
         try:
             self._data = {'encoding':encoding, 'newline':newline}
-            self._modifier_id = (modifier or self.session.user).id
-            self.session.update(self)
+            self._modifier_id = (modifier or self._session.user).id
+            self._session.update(self)
         except Exception as e:
-            self.session.rollback()
+            self._session.rollback()
             raise e
         finally:
-            self.session.commit()
+            self._session.commit()
 
         return self
 
@@ -184,23 +184,23 @@ class Frame(Datum):
         try:
             self._update_label_imp(new_label, modifier)
         except Exception as e:
-            self.session.rollback()
+            self._session.rollback()
             raise e
         finally:
-            self.session.commit()
+            self._session.commit()
 
     def _update_label_imp(self, new_label, modifier):
         # label列を更新する
         self._label = new_label
-        self._modifier_id = (modifier or self.session.user).id
-        self.session.update(self)
+        self._modifier_id = (modifier or self._session.user).id
+        self._session.update(self)
 
     def throw_away(self):
         """
         Frameをゴミ箱にほかす
         """
         from kskp.store.factory import DatumFactory
-        factory = DatumFactory(self.session)
+        factory = DatumFactory(self._session)
         trash_folder = factory.load_trash_folder()
 
         # 削除しようとするframeが、フローで使用されている場合は例外を送出する
@@ -228,14 +228,14 @@ class Frame(Datum):
 
         try:
             # フレームレコードを削除する
-            self.session.delete(self)
+            self._session.delete(self)
             # ファイルを削除する
             self._remove_file()
         except Exception as e:
-            self.session.rollback()
+            self._session.rollback()
             raise e
         finally:
-            self.session.commit()
+            self._session.commit()
 
     def remove_reference_only(self):
         """
@@ -244,12 +244,12 @@ class Frame(Datum):
         """
         try:
             # フレームレコードを削除する
-            self.session.delete(self)
+            self._session.delete(self)
         except Exception as e:
-            self.session.rollback()
+            self._session.rollback()
             raise e
         finally:
-            self.session.commit()
+            self._session.commit()
 
     @property
     def file_size(self):
@@ -333,7 +333,7 @@ class Frame(Datum):
                     break
 
     def _frame_path_exists(self, path, except_id):
-        result = self.session.query(Datum._path).filter(Datum._path == path)\
+        result = self._session.query(Datum._path).filter(Datum._path == path)\
                                                 .filter(Datum.type == Datum.FRAME_TYPE)\
                                                 .filter(Datum.id != except_id).count()
         return result > 0

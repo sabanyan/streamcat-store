@@ -32,7 +32,7 @@ class User(BaseModel):
         コンストラクタ
         """
         # SQLAlchemy Session
-        self.session = session
+        self._session = session
 
         # UUIDを採番する
         self.uuid = str(uuid.uuid4())
@@ -73,14 +73,14 @@ class User(BaseModel):
         from kskp.store.factory import UserFactory
         if self._creator_id is None:
             return None
-        return UserFactory(self.session).find_by_id(self._creator_id)
+        return UserFactory(self._session).find_by_id(self._creator_id)
 
     @property
     def modifier(self):
         from kskp.store.factory import UserFactory
         if self._modifier_id is None:
             return None
-        return UserFactory(self.session).find_by_id(self._modifier_id)
+        return UserFactory(self._session).find_by_id(self._modifier_id)
 
     # def _require_admin_auth(func):
     #     """
@@ -113,35 +113,35 @@ class User(BaseModel):
         Userを保存する
         """
         # Usersテーブルにレコードを新規追加する
-        self.session.add(self)
-        self.session.commit()
+        self._session.add(self)
+        self._session.commit()
 
     def update_email(self, new_email, modifier=None):
         """
         Userのemail列を更新する
         """
         self.email = new_email
-        self._modifier_id = (modifier or self.session.user).id
-        self.session.update(self)
-        self.session.commit()
+        self._modifier_id = (modifier or self._session.user).id
+        self._session.update(self)
+        self._session.commit()
 
     def update_password(self, new_password, modifier=None):
         pass
 
     def update_name(self, new_name, modifier=None):
         self.name = new_name
-        self._modifier_id = (modifier or self.session.user).id
-        self.session.update(self)
-        self.session.commit()
+        self._modifier_id = (modifier or self._session.user).id
+        self._session.update(self)
+        self._session.commit()
 
     def update_self_group_id(self, new_group_id, modifier=None):
         self.self_group_id = new_group_id
         if modifier is None:
-            self._modifier_id = self.session.user and self.session.user.id
+            self._modifier_id = self._session.user and self._session.user.id
         else:
             self._modifier_id = modifier.id
-        self.session.update(self)
-        self.session.commit()
+        self._session.update(self)
+        self._session.commit()
 
     def delete(self):
         """
@@ -149,11 +149,11 @@ class User(BaseModel):
         """
         from kskp.store.factory import UserGroupFactory
         # users_groupsテーブルから全ての削除ユーザの行を削除する
-        user_group_factory = UserGroupFactory(self.session)
+        user_group_factory = UserGroupFactory(self._session)
         user_group_factory.delete_all_by_user_id(self.id)
         # usersテーブルから削除ユーザの行を削除する
-        self.session.delete(self)
-        self.session.commit()
+        self._session.delete(self)
+        self._session.commit()
 
 
     def authenticate(self, password):
@@ -192,7 +192,7 @@ class User(BaseModel):
         本人グループを取得する
         """
         from kskp.store.factory import GroupFactory
-        group_factory = GroupFactory(self.session)
+        group_factory = GroupFactory(self._session)
 
         if self.self_group_id is None:
             # 本人グループを作成する

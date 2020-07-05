@@ -81,20 +81,20 @@ class UnAuthzFactory():
 
     def find_user_by_email(self, email):
         user = UserFactory(self._session).find_by_email(email)
-        if user is not None:
-            user.session = self._session
+        # if user is not None:
+        #     user.session = self._session
         return user
 
     def find_user_by_id(self, user_id):
         user = UserFactory(self._session).find_by_id(user_id)
-        if user is not None:
-            user.session = self._session
+        # if user is not None:
+        #     user.session = self._session
         return user
 
     def load_admin_group(self):
         group = GroupFactory(self._session).load_admin_group()
-        if group is not None:
-            group.session = self._session
+        # if group is not None:
+        #     group.session = self._session
         return group
 
     def __enter__(self):
@@ -162,7 +162,7 @@ class DatumFactory():
             datum = query.one()
         except NoResultFound:
             raise Exception(f'指定したDatum({id})は存在しませんでした')
-        datum.session = self._session
+        # datum.session = self._session
 
         return datum
 
@@ -186,7 +186,7 @@ class DatumFactory():
             datum = query.one()
         except NoResultFound:
             raise Exception(f'指定したDatum({uuid})は存在しませんでした')
-        datum.session = self._session
+        # datum.session = self._session
 
         return datum
 
@@ -207,7 +207,7 @@ class DatumFactory():
         elif len(roots) > 1:
             raise Exception('More than 2 roots exist!!')
 
-        roots[0].session = self._session
+        # roots[0].session = self._session
         
         return roots[0]
 
@@ -246,7 +246,7 @@ class DatumFactory():
                     continue
 
             if len(flow_data.ports[0]) > 0 or len(flow_data.ports[1]) > 0:
-                flow.session = self._session
+                # flow.session = self._session
                 subflows.append(flow)
 
         return subflows
@@ -428,7 +428,7 @@ class StoreFactory():
                 'url'        : url,
                 'params'     : params}
         store = Store(id, data, self._session.user)
-        store.session = self._session
+        store._session = self._session
         return store
 
     def find_all(self):

@@ -17,7 +17,7 @@ class Store(Datum):
         # 参照権限が無ければ直下の子Datumは取得できない
         self._readable_or_raise()
 
-        data = self.session.query(Datum).filter(Datum.parent_id==self.id).\
+        data = self._session.query(Datum).filter(Datum.parent_id==self.id).\
                             order_by(Datum.type, desc(Datum.created_at)).all()
 
         # 
@@ -26,9 +26,9 @@ class Store(Datum):
         # 
         for datum in data:
             from kskp.store.factory import GroupFactory, AuthFactory
-            everyone_group = GroupFactory(self.session).load_everyone_group()
-            everyone_group.join_user(self.session.user)
-            if not AuthFactory(self.session).exists(everyone_group.id, datum.id):
+            everyone_group = GroupFactory(self._session).load_everyone_group()
+            everyone_group.join_user(self._session.user)
+            if not AuthFactory(self._session).exists(everyone_group.id, datum.id):
                 everyone_group.init_authz(datum.id, True, True)
 
         return data
@@ -44,8 +44,8 @@ class Store(Datum):
         self._readable_or_raise()
 
         f2 = aliased(Datum)
-        sub_query = self.session.query(f2)
-        query = self.session.query(Datum)\
+        sub_query = self._session.query(f2)
+        query = self._session.query(Datum)\
                         .filter(sub_query.filter(f2.id==Datum.parent_id)
                                          .filter(f2.uuid==self.uuid).exists())\
                         .filter(Datum._label==label)
@@ -69,7 +69,7 @@ class Store(Datum):
         # UUID値の形式チェックをする
         Datum.valid_uuid_or_raise(uuid)
 
-        data = self.session.query(Datum).filter(Datum.parent_id==self.id).\
+        data = self._session.query(Datum).filter(Datum.parent_id==self.id).\
                             filter(Datum.uuid==uuid).one()
 
         return data
@@ -102,47 +102,47 @@ class Store(Datum):
 
     def create_folder(self, label):
         from kskp.store import Folder
-        return Folder(self.session, self, label)
+        return Folder(self._session, self, label)
 
     def create_project_folder(self, label):
         from kskp.store import ProjectFolder
-        return ProjectFolder(self.session, self, label)
+        return ProjectFolder(self._session, self, label)
 
     def create_awss3(self, label, bucket_name):
         from kskp.store import AwsS3
-        return AwsS3(self.session, self, label, bucket_name)
+        return AwsS3(self._session, self, label, bucket_name)
 
     def create_database(self, label, database_conn):
         from kskp.store import Database
-        return Database(self.session, self, label, database_conn)
+        return Database(self._session, self, label, database_conn)
 
     def create_remote_folder(self, label, remoteFolderConn):
         from kskp.store import RemoteFolder
-        return RemoteFolder(self.session, self, label, remoteFolderConn)
+        return RemoteFolder(self._session, self, label, remoteFolderConn)
 
     def create_flow(self, label, flow_json):
         from kskp.store import Flow
-        return Flow(self.session, self, label, flow_json)
+        return Flow(self._session, self, label, flow_json)
 
     def create_datasource(self, label, store, loader_step):
         from kskp.store import DataSource
-        return DataSource(self.session, self, label, store, loader_step)
+        return DataSource(self._session, self, label, store, loader_step)
 
     def create_frame(self, label, stream):
         from kskp.store import Frame
-        return Frame(self.session, self, label, stream)
+        return Frame(self._session, self, label, stream)
 
     def create_cache(self, label, stream):
         # Cacheクラスはtype='frame'なので保存時にSQLAlchemyエラーになる
         # そのためキャッシュにはFrameクラスを用いる
         from kskp.store import Frame
-        cache = Frame(self.session, self, label, stream)
+        cache = Frame(self._session, self, label, stream)
         cache.is_cache = True
         return cache
 
     def create_trashcan(self):
         from kskp.store import TrashCan
-        return TrashCan(self.session, self)
+        return TrashCan(self._session, self)
 
     def is_system_folder(self):
         from kskp.core import Datum
