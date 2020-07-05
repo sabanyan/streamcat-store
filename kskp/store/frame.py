@@ -35,7 +35,7 @@ class Frame(Datum):
         self.stream = stream
 
         # data列の値を作成する
-        self.data = {'encoding':encoding, 'newline':newline}
+        self._data = {'encoding':encoding, 'newline':newline}
 
         # フローキャッシュの場合はTrue
         # data.type列='cache'を用意するべきだろうか？
@@ -59,7 +59,7 @@ class Frame(Datum):
             with open(file_path, 'rb') as f:
                 encoding = Frame._detect_encoding(f)
                 newline = Frame._detect_newline_code(f)
-            self.data = {'encoding':encoding, 'newline':newline}
+            self._data = {'encoding':encoding, 'newline':newline}
         else:
             raise Exception(f'指定したファイル({file_path})が存在しないためFrameを保存できません')
 
@@ -261,7 +261,7 @@ class Frame(Datum):
 
     @property
     def encoding(self):
-        return self.data.get('encoding') or 'UNKNOWN'
+        return self._data.get('encoding') or 'UNKNOWN'
 
     # @encoding.setter
     # def encoding(self, encoding):
@@ -274,7 +274,7 @@ class Frame(Datum):
 
     @property
     def newline(self):
-        return self.data.get('newline') or 'UNKNOWN'
+        return self._data.get('newline') or 'UNKNOWN'
 
     # @newline.setter
     # def newline(self, newline):

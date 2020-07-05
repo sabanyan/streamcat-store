@@ -23,7 +23,7 @@ class RemoteFolder(Folder, Mountable):
         # data列の値を作成する
         if remoteFolderConn is None:
             raise Exception('remoteFolderConn引数がNoneです')
-        self.data = {'conn' : remoteFolderConn.to_json()}
+        self._data = {'conn' : remoteFolderConn.to_json()}
 
     def save(self):
         """
@@ -77,7 +77,7 @@ class RemoteFolder(Folder, Mountable):
             # data = self.data.copy()
             # data['conn'] = remoteFolderConn.to_json()
             self._label = new_label
-            self.data['conn'] = remoteFolderConn.to_json()
+            self._data['conn'] = remoteFolderConn.to_json()
             self._modifier_id = (modifier or self.session.user).id
             self.session.update(self)
 

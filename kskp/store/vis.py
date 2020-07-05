@@ -13,15 +13,15 @@ class Vis(Datum):
         # Visデータは巨大になり得るので永続化する場合はFrameのようにファイルに保存することになるだろう
         column_names = column_names if column_names is not None else []
         matrix = matrix if matrix is not None else [[]]
-        self.data = {'column_names': column_names, 'matrix': matrix}
+        self._data = {'column_names': column_names, 'matrix': matrix}
 
     @property
     def column_names(self):
-        return self.data['column_names']
+        return self._data['column_names']
 
     @property
     def matrix(self):
-        return self.data['matrix']
+        return self._data['matrix']
 
     @property
     def result(self):
@@ -29,8 +29,8 @@ class Vis(Datum):
         テストコードで用いる
         """
         result = {}
-        result['header'] = self.data['column_names']
-        result['reader'] = self.data['matrix']
+        result['header'] = self._data['column_names']
+        result['reader'] = self._data['matrix']
         return result
         
     def to_html(self):
@@ -45,7 +45,7 @@ class BokehPlotVis(Vis):
 
         script = script if script is not None else []
         div = div if div is not None else [[]]
-        self.data = {'column_names': column_names, 'script': script, 'div': div}
+        self._data = {'column_names': column_names, 'script': script, 'div': div}
 
     @property
     def result(self):
@@ -53,8 +53,8 @@ class BokehPlotVis(Vis):
         テストコードで用いる
         """
         result = {}
-        result['script'] = self.data['script']
-        result['div'] = self.data['div']
+        result['script'] = self._data['script']
+        result['div'] = self._data['div']
         return result
 
     def to_html(self):

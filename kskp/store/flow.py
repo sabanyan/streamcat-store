@@ -18,7 +18,7 @@ class Flow(Datum):
         self._path = None
 
         # data列の値を作成する
-        self.data = {'label' : label, 'flow' : flow_json}
+        self._data = {'label' : label, 'flow' : flow_json}
 
         # フローデータの妥当性を検証する
         self.valid_uuids_in_flowdata_or_raise()
@@ -86,7 +86,7 @@ class Flow(Datum):
         try:
             # レコードを更新する
             self._label = new_label
-            self.data['flow'] = flow_json
+            self._data['flow'] = flow_json
             self._modifier_id = (modifier or self.session.user).id
             self.session.update(self)
         except Exception as e:
