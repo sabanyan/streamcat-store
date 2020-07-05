@@ -14,7 +14,7 @@ class TestCaseBase(unittest.TestCase):
         # 管理者ユーザのFactoryをOpenする
         cls.factory = Factory(admin_user)
         # AuthzSessionをUserオブジェクトに格納する
-        admin_user.session = cls.factory._session
+        admin_user._session = cls.factory._session
         # テストユーザを作成する
         test_user = cls.factory.user.create('test@kskp.io', 'testpass', 'Test')
         test_user.save()

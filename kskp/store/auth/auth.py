@@ -37,7 +37,7 @@ class Auth(BaseModel):
         コンストラクタ
         """
         # SQLAlchemy Session
-        self.session = session
+        self._session = session
 
         self.group_id = group_id
         self.datum_id = datum_id
@@ -54,38 +54,38 @@ class Auth(BaseModel):
         from kskp.store.factory import UserFactory
         if self._creator_id is None:
             return None
-        return UserFactory(self.session).find_by_id(self._creator_id)
+        return UserFactory(self._session).find_by_id(self._creator_id)
 
     @property
     def modifier(self):
         from kskp.store.factory import UserFactory
         if self._modifier_id is None:
             return None
-        return UserFactory(self.session).find_by_id(self._modifier_id)
+        return UserFactory(self._session).find_by_id(self._modifier_id)
         
     def save(self):
         """
         Authを保存する
         """
         # Authテーブルにレコードを新規追加する
-        self.session.add(self)
-        self.session.commit()
+        self._session.add(self)
+        self._session.commit()
 
     def update(self, permission):
         try:
             # レコードを更新する
             self.permission = permission
-            self._modifier_id = self.session.user and self.session.user.id
-            self.session.update(self)
+            self._modifier_id = self._session.user and self._session.user.id
+            self._session.update(self)
         except Exception as e:
-            self.session.rollback()
+            self._session.rollback()
             raise e
         finally:
-            self.session.commit()
+            self._session.commit()
 
     def delete(self):
         """
         Authを削除する
         """
-        self.session.delete(self)
-        self.session.commit()
+        self._session.delete(self)
+        self._session.commit()

@@ -30,16 +30,16 @@ class Database(Store):
         """
         # 既にルートフォルダが存在する場合は、parent_id=NULLを許可しない
         from kskp.store.factory import DatumFactory
-        if self.parent_id is None and DatumFactory(self.session).count_root() > 0:
+        if self.parent_id is None and DatumFactory(self._session).count_root() > 0:
             raise Exception('You can not add root folder. A root already exists.')
         try:
             # Dataテーブルにレコードを新規追加する
-            self.session.add(self)
+            self._session.add(self)
         except Exception as e:
-            self.session.rollback()
+            self._session.rollback()
             raise e
         finally:
-            self.session.commit()
+            self._session.commit()
 
     def update_data(self, label, database_conn, modifier=None):
         """
@@ -55,13 +55,13 @@ class Database(Store):
             # data['conn'] = database_conn.to_json()
             self._label = new_label
             self._data['conn'] = database_conn.to_json()
-            self._modifier_id = (modifier or self.session.user).id
-            self.session.update(self)
+            self._modifier_id = (modifier or self._session.user).id
+            self._session.update(self)
         except Exception as e:
-            self.session.rollback()
+            self._session.rollback()
             raise e
         finally:
-            self.session.commit()
+            self._session.commit()
 
         return self
 
@@ -108,17 +108,17 @@ class Database(Store):
         using_flow_uuids = self.get_flow_uuids_using_me()
         if len(using_flow_uuids) > 0:
             from kskp.store.factory import DatumFactory
-            using_flow_label = DatumFactory(self.session).find_by_uuid(using_flow_uuids[0]).label
+            using_flow_label = DatumFactory(self._session).find_by_uuid(using_flow_uuids[0]).label
             raise Exception('このStoreはローダ・セーバ(%s)で使用しているため削除できません' % using_flow_label)
 
         try:
             # Databaseレコードを削除する
-            self.session.delete(self)
+            self._session.delete(self)
         except Exception as e:
-            self.session.rollback()
+            self._session.rollback()
             raise e
         finally:
-            self.session.commit()
+            self._session.commit()
 
     def remove_reference_only(self):
         """

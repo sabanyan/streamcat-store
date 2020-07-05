@@ -1,3 +1,4 @@
+from kskp.store.auth.authz_query import Query
 from .exceptions import NotAuthorizedException
 
 class Session():
@@ -58,7 +59,8 @@ class Session():
         return self._session.execute(sql)
 
     def query(self, datum_type, *args):
-        return self._session.query(datum_type, *args)
+        query = self._session.query(datum_type, *args)
+        return Query(query, self)
 
     def add(self, obj):
         self._session.add(obj)
@@ -96,7 +98,7 @@ class AuthzSession(Session):
         from sqlalchemy.orm import with_expression
         from sqlalchemy.sql.expression import literal_column
         from kskp.core import Datum
-        from .authz_query import AuthzQuery, AuthzDatumQuery
+        from .authz_query import Query, AuthzDatumQuery
 
         # datum_typeがDatumクラスかDatumを継承するクラスか否かを判定する
         # TODO: もう少し確実な判定方法に変更したい
@@ -115,7 +117,7 @@ class AuthzSession(Session):
 
         else:
             query = self._session.query(datum_type, *args)
-            return AuthzQuery(query, self)
+            return Query(query, self)
     
     def _make_readable_query(self):
         from sqlalchemy.orm import aliased

@@ -35,16 +35,16 @@ class Flow(Datum):
         """
         # 既にルートフォルダが存在する場合は、parent_id=NULLを許可しない
         from kskp.store.factory import DatumFactory
-        if self.parent_id is None and DatumFactory(self.session).count_root() > 0:
+        if self.parent_id is None and DatumFactory(self._session).count_root() > 0:
             raise Exception('You can not add another root flow. A root already exists.')
         try:
             # Dataテーブルにレコードを新規追加する
-            self.session.add(self)
+            self._session.add(self)
         except Exception as e:
-            self.session.rollback()
+            self._session.rollback()
             raise e
         finally:
-            self.session.commit()
+            self._session.commit()
 
     def update_data(self, label, flow_json, modifier=None):
         """
@@ -87,13 +87,13 @@ class Flow(Datum):
             # レコードを更新する
             self._label = new_label
             self._data['flow'] = flow_json
-            self._modifier_id = (modifier or self.session.user).id
-            self.session.update(self)
+            self._modifier_id = (modifier or self._session.user).id
+            self._session.update(self)
         except Exception as e:
-            self.session.rollback()
+            self._session.rollback()
             raise e
         finally:
-            self.session.commit()
+            self._session.commit()
 
         # ここでflowを返すとtest_model.pyでテストが通らない
         return self
@@ -136,7 +136,7 @@ class Flow(Datum):
         Flowをゴミ箱にほかす
         """
         from kskp.store.factory import DatumFactory
-        factory = DatumFactory(self.session)
+        factory = DatumFactory(self._session)
         trash_folder = factory.load_trash_folder()
 
         # 削除しようとするflowが、フローで使用されている場合は例外を送出する
@@ -156,17 +156,17 @@ class Flow(Datum):
         using_flow_uuids = self.get_flow_uuids_using_me()
         if len(using_flow_uuids) > 0:
             from kskp.store.factory import DatumFactory
-            using_flow_label= DatumFactory(self.session).find_by_uuid(using_flow_uuids[0]).label
+            using_flow_label= DatumFactory(self._session).find_by_uuid(using_flow_uuids[0]).label
             raise Exception('このフローはフロー(%s)でサブフローとして使用しているため削除できません' % using_flow_label)
 
         try:
             # フレームレコードを削除する
-            self.session.delete(self)
+            self._session.delete(self)
         except Exception as e:
-            self.session.rollback()
+            self._session.rollback()
             raise e
         finally:
-            self.session.commit()
+            self._session.commit()
             
     def remove_reference_only(self):
         """
@@ -181,7 +181,7 @@ class Flow(Datum):
         # ラベルと作成者については、指定された値を新たに設定する
         new_flow_json = self.flow_data.to_json()
         new_flow_json['label'] = new_label
-        new_flow_json['creator'] = self.session.user.name
+        new_flow_json['creator'] = self._session.user.name
         # FIXIT : Dataテーブルのcreated_at列と時刻を合わせたい
         from datetime import datetime, timedelta, timezone
         JST = timezone(timedelta(hours=+9), 'JST')
@@ -196,7 +196,7 @@ class Flow(Datum):
         from kskp.store.factory import DatumFactory
         old_new_uuid_pairs = {}
         for cache_uuid in new_flow.get_cache_frame_uuids():
-            factory = DatumFactory(self.session)
+            factory = DatumFactory(self._session)
             if not factory.exists(cache_uuid):
                 continue
             cache = factory.find_by_uuid(cache_uuid)
@@ -250,7 +250,7 @@ class Flow(Datum):
 
     def valid_uuids_in_flowdata_or_raise(self):
         from kskp.store.factory import DatumFactory
-        factory = DatumFactory(self.session)
+        factory = DatumFactory(self._session)
         # 参照するフレームがゴミ箱に存在しないことを確認する
         for frame_uuid in self.get_src_frame_uuids():
             if factory.trashed(frame_uuid):

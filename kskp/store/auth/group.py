@@ -34,7 +34,7 @@ class Group(BaseModel):
         コンストラクタ
         """
         # SQLAlchemy Session
-        self.session = session
+        self._session = session
 
         # UUIDを採番する
         self.uuid = str(uuid.uuid4())
@@ -52,22 +52,22 @@ class Group(BaseModel):
         from kskp.store.factory import UserFactory
         if self._creator_id is None:
             return None
-        return UserFactory(self.session).find_by_id(self._creator_id)
+        return UserFactory(self._session).find_by_id(self._creator_id)
 
     @property
     def modifier(self):
         from kskp.store.factory import UserFactory
         if self._modifier_id is None:
             return None
-        return UserFactory(self.session).find_by_id(self._modifier_id)
+        return UserFactory(self._session).find_by_id(self._modifier_id)
 
     def save(self):
         """
         Groupを保存する
         """
         # Groupsテーブルにレコードを新規追加する
-        self.session.add(self)
-        self.session.commit()
+        self._session.add(self)
+        self._session.commit()
 
     def update_name(self, new_name):
         pass
@@ -76,25 +76,25 @@ class Group(BaseModel):
         from .auth import Auth
 
         # グループに一人以上のユーザが所属している場合は例外を送出する
-        count = self.session.query(UserGroup).filter(UserGroup.group_id == self.id).count()
+        count = self._session.query(UserGroup).filter(UserGroup.group_id == self.id).count()
         if count > 0:
             raise Exception('Can not delete the group that has user(s).')
         # 削除によってどのグループからも所有されなくなるデータがある場合は例外を送出する
-        count = self.session.query(Auth).filter(Auth.group_id == self.id)\
+        count = self._session.query(Auth).filter(Auth.group_id == self.id)\
                                         .filter(Auth.own == 1).count()
         # 削除グループに対する権限情報をauthsテーブルから全て削除する
 
         # グループを削除する
         # sys.__stderr__.write(f"self.id: {self.id}\n")
-        self.session.delete(self)
-        self.session.commit()
+        self._session.delete(self)
+        self._session.commit()
 
     def is_joined_user(self, user):
-        count = self.session.query(UserGroup).filter(UserGroup.group_id==self.id).filter(UserGroup.user_id==user.id).count()
+        count = self._session.query(UserGroup).filter(UserGroup.group_id==self.id).filter(UserGroup.user_id==user.id).count()
         return count > 0
 
     def has_joined_user(self):
-        count = self.session.query(UserGroup).filter(UserGroup.group_id==self.id).count()
+        count = self._session.query(UserGroup).filter(UserGroup.group_id==self.id).count()
         return count > 0
 
     def join_user(self, user):
@@ -102,7 +102,7 @@ class Group(BaseModel):
         グループにユーザを所属させる
         """
         if not self.is_joined_user(user):
-            user_group = UserGroup(self.session, user.id, self.id)
+            user_group = UserGroup(self._session, user.id, self.id)
             user_group.save()
     
     def leave_user(self, user):
@@ -111,7 +111,7 @@ class Group(BaseModel):
         """
         if self.is_joined_user(user):
             from kskp.store.factory import UserGroupFactory
-            user_group = UserGroupFactory(self.session).find_by_id(user.id, self.id)
+            user_group = UserGroupFactory(self._session).find_by_id(user.id, self.id)
             user_group.delete()
 
     def init_authz(self, datum_id, read, write, exec=None):
@@ -123,7 +123,7 @@ class Group(BaseModel):
 
     def _init_authz_inner(self, datum_id, operation, permission):
         from kskp.store.factory import AuthFactory
-        auth_factory = AuthFactory(self.session)
+        auth_factory = AuthFactory(self._session)
 
         if auth_factory.exists(self.id, datum_id, operation):
             auth = auth_factory.find_by_id(self.id, datum_id, operation)

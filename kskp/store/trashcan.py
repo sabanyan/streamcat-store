@@ -20,7 +20,7 @@ class TrashCan(Folder):
         """
         ゴミ箱が存在する場合はTrueを返す
         """
-        result = self.session.query(Datum).filter(Datum.type==Datum.TRASH_TYPE).count()
+        result = self._session.query(Datum).filter(Datum.type==Datum.TRASH_TYPE).count()
         return result > 0
 
     def save(self):
@@ -29,7 +29,7 @@ class TrashCan(Folder):
         """
         from kskp.store.factory import DatumFactory
         # 既にゴミ箱フォルダが存在する場合
-        factory = DatumFactory(self.session)
+        factory = DatumFactory(self._session)
         if factory.trashcan_exists():
             raise Exception('You can not add trash can. A trash can already exists.')
         # ゴミ箱フォルダを保存する
