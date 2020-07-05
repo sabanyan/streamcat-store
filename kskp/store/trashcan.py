@@ -7,11 +7,11 @@ class TrashCan(Folder):
         'polymorphic_identity' : 'trash'
     }
 
-    def __init__(self, session, parent, creator=None):
+    def __init__(self, session, parent):
         """
         コンストラクタ
         """
-        super().__init__(session, parent, 'ゴミ箱', creator)
+        super().__init__(session, parent, 'ゴミ箱')
 
         # データタイプを設定する
         self.type = Datum.TRASH_TYPE

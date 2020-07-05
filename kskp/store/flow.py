@@ -7,12 +7,12 @@ class Flow(Datum):
         'polymorphic_identity' : 'flow'
     }
 
-    def __init__(self, session, parent, label, flow_json, creator=None):
+    def __init__(self, session, parent, label, flow_json):
         """
         コンストラクタ
         flow_json : Flow JSONデータを指定する
         """
-        super().__init__(session, parent, Datum.FLOW_TYPE, label, creator)
+        super().__init__(session, parent, Datum.FLOW_TYPE, label)
 
         # フローデータはファイルに保存せず、データベースに保存する
         self._path = None

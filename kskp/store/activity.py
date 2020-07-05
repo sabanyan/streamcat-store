@@ -14,11 +14,11 @@ class Activity(Datum):
 
     TYPE = 'activity'
 
-    def __init__(self, session, parent, label, flow_uuid, creator=None):
+    def __init__(self, session, parent, label, flow_uuid):
         """
         コンストラクタ
         """
-        super().__init__(session, parent, Activity.TYPE, label, creator)
+        super().__init__(session, parent, Activity.TYPE, label)
 
         # Activityはファイルに保存せず、データベースに保存する
         self._path = None

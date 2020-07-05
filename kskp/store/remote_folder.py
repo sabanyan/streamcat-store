@@ -11,11 +11,11 @@ class RemoteFolder(Folder, Mountable):
         'polymorphic_identity' : 'rfolder'
     }
 
-    def __init__(self, session, parent, label, remoteFolderConn, creator=None):
+    def __init__(self, session, parent, label, remoteFolderConn):
         """
         コンストラクタ
         """
-        super().__init__(session, parent, label, creator)
+        super().__init__(session, parent, label)
 
         # データタイプを設定する
         self.type = Datum.RFOLDER_TYPE

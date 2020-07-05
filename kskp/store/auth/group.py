@@ -29,7 +29,7 @@ class Group(BaseModel):
     EVERYONE_GROUP_UUID  = 'ee16239b-5ffd-447c-9d05-411906ad7364'
     EVERYONE_GROUP_LABEL = 'EVERYONE'
 
-    def __init__(self, session, name, creator=None):
+    def __init__(self, session, name):
         """
         コンストラクタ
         """
@@ -43,9 +43,9 @@ class Group(BaseModel):
         # self.is_admin = is_admin
 
         # creator, modifier
-        if creator is not None:
-            self._creator_id = creator.id
-            self._modifier_id = creator.id
+        if session is not None and session.user is not None:
+            self._creator_id = session.user.id
+            self._modifier_id = session.user.id
 
     @property
     def creator(self):
@@ -102,7 +102,7 @@ class Group(BaseModel):
         グループにユーザを所属させる
         """
         if not self.is_joined_user(user):
-            user_group = UserGroup(self.session, user.id, self.id, self.session.user)
+            user_group = UserGroup(self.session, user.id, self.id)
             user_group.save()
     
     def leave_user(self, user):

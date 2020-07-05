@@ -32,7 +32,7 @@ class Auth(BaseModel):
     created_at   = Column(TIMESTAMP, default=text('statement_timestamp()'))
     modified_at  = Column(TIMESTAMP, default=text('statement_timestamp()'), onupdate=text('statement_timestamp()'))
 
-    def __init__(self, session, group_id, datum_id, operation, permission, creator=None):
+    def __init__(self, session, group_id, datum_id, operation, permission):
         """
         コンストラクタ
         """
@@ -45,9 +45,9 @@ class Auth(BaseModel):
         self.permission = permission
 
         # creator, modifier
-        if creator is not None:
-            self._creator_id = creator.id
-            self._modifier_id = creator.id
+        if session is not None and session.user is not None:
+            self._creator_id = session.user.id
+            self._modifier_id = session.user.id
 
     @property
     def creator(self):

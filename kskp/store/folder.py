@@ -9,11 +9,11 @@ class Folder(Store):
         'polymorphic_identity' : 'folder'
     }
 
-    def __init__(self, session, parent, label, creator=None):
+    def __init__(self, session, parent, label):
         """
         コンストラクタ
         """
-        super().__init__(session, parent, Datum.FOLDER_TYPE, label, creator)
+        super().__init__(session, parent, Datum.FOLDER_TYPE, label)
 
         # data列の値を作成する
         # self.data = {}

@@ -16,12 +16,12 @@ class Frame(Datum):
     # 改行コード変換テーブル
     NEWLINE_CONV_TABLE = {'\n':'LF', '\r\n':'CR+LF', '\r':'CR', 'UNKNOWN':'UNKNOWN'}
 
-    def __init__(self, session, parent, label, stream, creator=None):
+    def __init__(self, session, parent, label, stream):
         """
         コンストラクタ
         stream : Frameデータのファイルストリームを指定する
         """
-        super().__init__(session, parent, Datum.FRAME_TYPE, label, creator)
+        super().__init__(session, parent, Datum.FRAME_TYPE, label)
 
         # ファイルストリームの文字コードを推測する
         if stream is not None and hasattr(stream, 'seek'):

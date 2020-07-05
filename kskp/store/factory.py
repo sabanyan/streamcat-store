@@ -111,23 +111,14 @@ class DatumFactory():
 
     def __init__(self, session):
         self._session = session
-    
-    # def create_folder(self, parent, label):
-    #     from kskp.store import Folder
-    #     return Folder(self._session, parent, label, self._session.user)
-
-    # def create_frame(self, parent, label, stream):
-    #     from kskp.store import Frame
-    #     return Frame(self._session, parent, label, stream, self._session.user)
-
 
     def create_root(self, label):
         from kskp.store import Folder
-        return Folder(self._session, None, label, self._session.user)
+        return Folder(self._session, None, label)
 
     def create_datasource(self, parent, label, store, loader_step):
         from kskp.store import DataSource
-        return DataSource(self._session, parent, label, store, loader_step, self._session.user)
+        return DataSource(self._session, parent, label, store, loader_step)
 
     def create_simple_flow(self, parent, label, data_source):
         from kskp.store import Flow
@@ -153,7 +144,7 @@ class DatumFactory():
                         "projectId": None,
                         "description": ""
                     }
-        return Flow(self._session, parent, label, flow_json, self._session.user)
+        return Flow(self._session, parent, label, flow_json)
 
     def find_by_id(self, id, type=None) -> Datum:
         """
@@ -457,7 +448,7 @@ class AuthFactory():
 
     def create(self, group_id, datum_id, operation, permission):
         from kskp.store.auth import Auth
-        return Auth(self._session, group_id, datum_id, operation, permission, creator=self._session.user)
+        return Auth(self._session, group_id, datum_id, operation, permission)
 
     def find_by_id(self, group_id, datum_id, operation):
         from kskp.store.auth import Auth
@@ -493,7 +484,7 @@ class GroupFactory():
 
     def create(self, name):
         from kskp.store.auth import Group
-        return Group(self._session, name, self._session.user)
+        return Group(self._session, name)
 
     def find_by_id(self, group_id):
         return self._session.query(Group).filter(Group.id == group_id).one()

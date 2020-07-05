@@ -4,11 +4,11 @@ class Vis(Datum):
 
     TYPE = 'vis'
 
-    def __init__(self, session, parent, label, column_names, matrix, creator=None):
+    def __init__(self, session, parent, label, column_names, matrix):
         """
         data : Visデータを指定する
         """
-        super().__init__(session, parent, Vis.TYPE, label, creator)
+        super().__init__(session, parent, Vis.TYPE, label)
 
         # Visデータは巨大になり得るので永続化する場合はFrameのようにファイルに保存することになるだろう
         column_names = column_names if column_names is not None else []
@@ -40,8 +40,8 @@ class Vis(Datum):
 
 
 class BokehPlotVis(Vis):
-    def __init__(self, session, parent, label, column_names, script, div, creator=None):
-        super().__init__(session, parent, label, column_names, None, creator)
+    def __init__(self, session, parent, label, column_names, script, div):
+        super().__init__(session, parent, label, column_names, None)
 
         script = script if script is not None else []
         div = div if div is not None else [[]]

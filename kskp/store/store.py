@@ -5,8 +5,8 @@ class Store(Datum):
     Storeを表す
     (StoreとはLoaderの入力元となり得る、またはSaverの出力先となり得るもの)
     """
-    def __init__(self, session, parent, type, label, creator=None):
-        super().__init__(session, parent, type, label, creator)
+    def __init__(self, session, parent, type, label):
+        super().__init__(session, parent, type, label)
 
     def find_children(self):
         """
@@ -102,47 +102,47 @@ class Store(Datum):
 
     def create_folder(self, label):
         from kskp.store import Folder
-        return Folder(self.session, self, label, self.session.user)
+        return Folder(self.session, self, label)
 
     def create_project_folder(self, label):
         from kskp.store import ProjectFolder
-        return ProjectFolder(self.session, self, label, self.session.user)
+        return ProjectFolder(self.session, self, label)
 
     def create_awss3(self, label, bucket_name):
         from kskp.store import AwsS3
-        return AwsS3(self.session, self, label, bucket_name, self.session.user)
+        return AwsS3(self.session, self, label, bucket_name)
 
     def create_database(self, label, database_conn):
         from kskp.store import Database
-        return Database(self.session, self, label, database_conn, self.session.user)
+        return Database(self.session, self, label, database_conn)
 
     def create_remote_folder(self, label, remoteFolderConn):
         from kskp.store import RemoteFolder
-        return RemoteFolder(self.session, self, label, remoteFolderConn, self.session.user)
+        return RemoteFolder(self.session, self, label, remoteFolderConn)
 
     def create_flow(self, label, flow_json):
         from kskp.store import Flow
-        return Flow(self.session, self, label, flow_json, self.session.user)
+        return Flow(self.session, self, label, flow_json)
 
     def create_datasource(self, label, store, loader_step):
         from kskp.store import DataSource
-        return DataSource(self.session, self, label, store, loader_step, self.session.user)
+        return DataSource(self.session, self, label, store, loader_step)
 
     def create_frame(self, label, stream):
         from kskp.store import Frame
-        return Frame(self.session, self, label, stream, self.session.user)
+        return Frame(self.session, self, label, stream)
 
     def create_cache(self, label, stream):
         # Cacheクラスはtype='frame'なので保存時にSQLAlchemyエラーになる
         # そのためキャッシュにはFrameクラスを用いる
         from kskp.store import Frame
-        cache = Frame(self.session, self, label, stream, self.session.user)
+        cache = Frame(self.session, self, label, stream)
         cache.is_cache = True
         return cache
 
     def create_trashcan(self):
         from kskp.store import TrashCan
-        return TrashCan(self.session, self, self.session.user)
+        return TrashCan(self.session, self)
 
     def is_system_folder(self):
         from kskp.core import Datum
