@@ -10,11 +10,11 @@ class Database(Store):
         'polymorphic_identity' : 'database'
     }
 
-    def __init__(self, session, parent, label, database_conn, creator=None):
+    def __init__(self, session, parent, label, database_conn):
         """
         コンストラクタ
         """
-        super().__init__(session, parent, Datum.DATABASE_TYPE, label, creator)
+        super().__init__(session, parent, Datum.DATABASE_TYPE, label)
  
         # 接続情報はデータベースに保存する
         self._path = None

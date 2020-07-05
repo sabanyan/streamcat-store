@@ -42,7 +42,7 @@ class User(BaseModel):
         self.name = name
 
         # creator, modifier
-        if session.user is not None:
+        if session is not None and session.user is not None:
             self._creator_id = session.user.id
             self._modifier_id = session.user.id
 

@@ -95,7 +95,7 @@ class Datum(BaseModel):
         'polymorphic_on' : type
     }
 
-    def __init__(self, session, parent, datum_type, label, creator=None):
+    def __init__(self, session, parent, datum_type, label):
         """
         コンストラクタ
         """
@@ -126,9 +126,9 @@ class Datum(BaseModel):
         self.type = datum_type
 
         # creator, modifier
-        if creator is not None:
-            self._creator_id = creator.id
-            self._modifier_id = creator.id
+        if session is not None and session.user is not None:
+            self._creator_id = session.user.id
+            self._modifier_id = session.user.id
 
         # DBに保存する前のDatumへの参照権限は制限しない
         self.readable = True

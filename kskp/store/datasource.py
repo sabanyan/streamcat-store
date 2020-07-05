@@ -1,7 +1,7 @@
 from kskp.store import Flow
 
 class DataSource(Flow):
-    def __init__(self, session, parent, label, store, loader_step, creator=None):
+    def __init__(self, session, parent, label, store, loader_step):
         """
         コンストラクタ
         """
@@ -69,4 +69,4 @@ class DataSource(Flow):
             "description": ""
         }
         
-        super().__init__(session, parent, label, flow_json, creator)
+        super().__init__(session, parent, label, flow_json)

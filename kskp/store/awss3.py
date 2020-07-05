@@ -7,12 +7,12 @@ class AwsS3(Folder, Mountable):
         'polymorphic_identity' : 'awss3'
     }
 
-    def __init__(self, session, parent, label, bucket_name, creator=None):
+    def __init__(self, session, parent, label, bucket_name):
         """
         コンストラクタ
         bucket_name : AWS S3のバケットネームを指定する
         """
-        super().__init__(session, parent, label, creator)
+        super().__init__(session, parent, label)
 
         # データタイプを設定する
         self.type = Datum.AWSS3_TYPE
