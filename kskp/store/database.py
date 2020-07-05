@@ -22,7 +22,7 @@ class Database(Store):
         # data列の値を作成する
         if database_conn is None:
             raise Exception('database_conn引数がNoneです')
-        self.data = {'conn' : database_conn.to_json()}
+        self._data = {'conn' : database_conn.to_json()}
 
     def save(self):
         """
@@ -54,7 +54,7 @@ class Database(Store):
             # data = self.data.copy()
             # data['conn'] = database_conn.to_json()
             self._label = new_label
-            self.data['conn'] = database_conn.to_json()
+            self._data['conn'] = database_conn.to_json()
             self._modifier_id = (modifier or self.session.user).id
             self.session.update(self)
         except Exception as e:

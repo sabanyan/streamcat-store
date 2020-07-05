@@ -18,7 +18,7 @@ class AwsS3(Folder, Mountable):
         self.type = Datum.AWSS3_TYPE
 
         # data列の値を作成する
-        self.data = {'bucket' : bucket_name}
+        self._data = {'bucket' : bucket_name}
 
         # S3のオブジェクトを用意する
         # self._s3 = boto3.resource('s3')
@@ -75,7 +75,7 @@ class AwsS3(Folder, Mountable):
             # data = self.data.copy()
             # data['bucket'] = bucket_name
             self._label = new_label
-            self.data['bucket'] = bucket_name
+            self._data['bucket'] = bucket_name
             self._modifier_id = (modifier or self.session.user).id
             self.session.update(self)
 

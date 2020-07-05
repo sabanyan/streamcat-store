@@ -201,31 +201,35 @@ class Datum(BaseModel):
     @property
     def label(self):
         if self._label is None or self._label == '':
-            if self.data is None:
+            if self._data is None:
                 return ''
-            return self.data.get('label') or ''
+            return self._data.get('label') or ''
         else:
             return self._label
 
     @property
     def prev_parent_id(self):
-        if self.data is None:
+        if self._data is None:
             return None
-        return self.data.get('prev_parent_id')
+        return self._data.get('prev_parent_id')
 
     @prev_parent_id.setter
     def prev_parent_id(self, id):
-        self.data['prev_parent_id'] = id
+        self._data['prev_parent_id'] = id
+
+    # @property
+    # def data(self):
+    #     # 参照権限が無ければ例外を送出する
+    #     self._readable_or_raise()
+    #     return self._data
+
+    # @data.setter
+    # def data(self, value):
+    #     self._data = value
 
     @property
-    def data(self):
-        # 参照権限が無ければ例外を送出する
-        self._readable_or_raise()
-        return self._data
-
-    @data.setter
-    def data(self, value):
-        self._data = value
+    def data_is_empty(self):
+        return self._data is None or self._data == {}
 
     @property
     def created_at_str(self):
@@ -353,9 +357,9 @@ class Datum(BaseModel):
                         self._update_include_path(old_path, new_path, modifier)
 
             # レコードを更新する
-            if self.data is None:
-                self.data = {}
-            self.data['prev_parent_id'] = self.parent_id
+            if self._data is None:
+                self._data = {}
+            self._data['prev_parent_id'] = self.parent_id
             self.parent_id = to_folder.id
             if self._path is not None:
                 self._path = new_path
