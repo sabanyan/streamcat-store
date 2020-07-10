@@ -394,8 +394,57 @@ class GroupbyColumnsCommand(PCommand):
 
 
 class CheckDuplicateRowsCommand(PCommand):
+
+    commandname = '重複行の抽出'
+    errormessages = {
+        '' : '',
+        'FieldNotFoundError' : '指定した項目名は存在しません。${fieldinput}',
+        'ForbiddenCharacterError' : '半角の（ :　%　&　\\ ）は、項目名の指定に使用できません。 ${fieldinput}',
+        'FieldConflictError' : '同じ項目名が複数回指定されています。${fieldinput}',
+        'EmptyFieldNameError' : '空文字列の項目名は指定できません。${fieldinput}',
+        'UnknownError' : '項目名の指定は正しくありません。${fieldinput}'
+    }
+    
     def __init__(self):
         super().__init__()
+
+    def expandWildCards(self, to_expand):
+        """
+        takes a comma separated string and parses wildcard expressions within.
+        
+        """
+        import fnmatch as fn
+        expanded = []
+        
+        for elem in to_expand.split(','):
+            matched = False
+            for col in self.header:
+                if fn.fnmatch(col, elem):
+                    expanded += [col]
+                    matched = True
+                    
+            if not matched:
+                # notfound error
+                return {'error': 'FieldNotFoundError',
+                        'unmatched' : elem}
+        
+        return expanded
+
+    def containsAny(self, exp, str):
+        """
+        check for presence of any char in str from input exp. 
+        Returns True if anything exists
+        """
+        return any(char in exp for char in str)
+
+    def generateCommandErrorMessage(self, *args):
+        # とりあえず、エラー処理機能は特徴量の計算のコマンドの実装を参照する
+        # TODO：　親コマンドレベルに機能の実装を移動する
+        errhandler = GroupBy2Command()
+        errhandler.commandname = self.commandname
+        errhandler.errormessages = self.errormessages
+
+        return errhandler.generateCommandErrorMessage(*args)
 
     def run(self, args, inputs):
 
@@ -405,6 +454,40 @@ class CheckDuplicateRowsCommand(PCommand):
         
         targetcols = args.get('k')
         
+        # error checks go here:
+        self.header = self.get_field_names(inputs['i'])
+        expanded_list = self.expandWildCards(targetcols)
+        targets_list = []
+
+        # check if expandWildCards returned a dict (error signature)
+        if type(expanded_list) == dict:
+            err = self.generateCommandErrorMessage(expanded_list['error'], 'k',
+                                                   expanded_list['unmatched'])
+            raise Exception(err)
+            
+        for col in expanded_list:
+            # ForbiddenCharacterError
+            if self.containsAny(col, ':%&\\'):
+                err = self.generateCommandErrorMessage('ForbiddenCharacterError', 'k', col)
+                raise Exception(err)
+            
+            # EmptyFieldNameError
+            if col == '':
+                err = self.generateCommandErrorMessage('EmptyFieldNameError', 'k', col)
+                raise Exception(err)
+            
+            # FieldNotFoundError
+            if col not in self.header:
+                err = self.generateCommandErrorMessage('FieldNotFoundError', 'k', col)
+                raise Exception(err)
+
+            # FieldConflictError
+            if col in targets_list:
+                err = self.generateCommandErrorMessage('FieldConflictError', 'k', targetcols)
+                raise Exception(err)
+            else:
+                targets_list.append(col)
+                
         
         cmd_i = None
         cmd_i <<= inputs['i'].content
