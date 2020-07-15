@@ -125,7 +125,6 @@ class AuthzSession(Session):
         from kskp.core import Datum
         from .auth import Auth
         from .user_group import UserGroup
-        from .group import Group
 
         # 相関条件を記述するとSQLAlchemyがFROM句にdataテーブルを追加するので、
         # それを回避するためtextで記述する
@@ -146,8 +145,7 @@ class AuthzSession(Session):
 
         # select_from(Auth.join(Group, ...))と記述できないので、select()が使えない、そのためquery()を使う
         subquery = self._session.query(func.coalesce(func.bool_and(Auth.permission),false()).label("read")).\
-                                outerjoin(Group, Group.id==Auth.group_id).\
-                                outerjoin(UserGroup, UserGroup.group_id==Group.id).\
+                                outerjoin(UserGroup, UserGroup.group_id==Auth.group_id).\
                                 filter(UserGroup.user_id==self.user.id).\
                                 filter(Auth.datum_id==R.c.id).\
                                 filter(Auth.operation==Auth.READ_OP).label('')
@@ -245,24 +243,36 @@ class AuthzSession(Session):
         """
         ユーザIDとDatumについて書き込み権限の有無を判定する
         """
-        from sqlalchemy import func, or_
+        from sqlalchemy import func, false
+        from sqlalchemy.orm import aliased
         from .auth import Auth
         from .user_group import UserGroup
-        from .group import Group
 
-        query = self._session.query(func.bool_and(Auth.permission).label("write")).\
-                              outerjoin(Group, Group.id==Auth.group_id).\
-                              outerjoin(UserGroup, UserGroup.group_id==Group.id).\
-                              filter(UserGroup.user_id==user.id).\
-                              filter(Auth.operation==Auth.WRITE_OP)
+        A = aliased(Auth, name='A')
+        UG = aliased(UserGroup, name='UG')
+
+        query = self._session.query(func.coalesce(func.bool_and(A.permission),false()).label("write")).\
+                              outerjoin(UG, UG.group_id==A.group_id).\
+                              filter(UG.user_id==user.id).\
+                              filter(A.operation==A.WRITE_OP)
 
         if datum.id is None:
             # Datumの新規追加の場合(datum.id=None)は親フォルダの書き込み権限だけを判定する
-            query = query.filter(Auth.datum_id==datum.parent_id)
+            query = query.filter(A.datum_id==datum.parent_id)
         else:
             # 親フォルダとDatumの両方の書き込み権限がある場合にのみ、書き込みOKの判定をする
-            query = query.filter(or_(Auth.datum_id==datum.parent_id, Auth.datum_id==datum.id))
+            A0 = aliased(Auth, name='A0')
+            UG0 = aliased(UserGroup, name='UG0')
 
+            subquery = self._session.query(func.coalesce(func.bool_and(A0.permission),false()).label('write')).\
+                        select_from(UG0).outerjoin(A0, UG0.group_id==A0.group_id).\
+                        filter(UG0.user_id==UG.user_id).\
+                        filter(A0.operation==A.operation).\
+                        filter(A0.datum_id==datum.parent_id).label('')
+
+            query = query.filter(A.datum_id==datum.id).\
+                          filter(True == subquery)
+                                         
         result = query.one_or_none()
 
         return result.write == True
