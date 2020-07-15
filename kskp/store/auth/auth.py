@@ -6,6 +6,7 @@ from sqlalchemy.dialects.postgresql import INTEGER, BOOLEAN, TIMESTAMP, ENUM
 class Auth(BaseModel):
     READ_OP = 'read'
     WRITE_OP = 'write'
+    DELETE_OP = 'delete'
     EXEC_OP = 'exec'
     OWN_OP = 'own'
 
@@ -25,7 +26,7 @@ class Auth(BaseModel):
     # 列名と列のデータ型等の定義
     group_id     = Column(INTEGER, primary_key=True)
     datum_id     = Column(INTEGER, primary_key=True)
-    operation    = Column(ENUM(READ_OP, WRITE_OP, EXEC_OP, OWN_OP, name='op_type'), primary_key=True)
+    operation    = Column(ENUM(READ_OP, WRITE_OP, DELETE_OP, EXEC_OP, OWN_OP, name='op_type'), primary_key=True)
     permission   = Column(BOOLEAN, nullable=False)
     _creator_id  = Column('creator', INTEGER)
     _modifier_id = Column('modifier', INTEGER)

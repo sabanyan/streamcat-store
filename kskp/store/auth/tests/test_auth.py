@@ -142,34 +142,31 @@ class AuthTest(TestCaseBase):
         f = io.BytesIO(b'')
         frame = root.create_frame('CSV', f)
         frame.save()
-        frame = self.factory.data.find_by_id(frame.id)
+        frame = frame.reload()
 
         # フレームの参照権限を全て削除する
         self.factory.auth.delete_all_by_datum_id(frame.id)
 
+
+
+
         # 
         # 参照権限の削除後にframeオブジェクトのreadableをexpireした方がいい？
-        # 
-        # from kskp.core import Datum
-        # d = self._session.query(Datum).filter(Datum.id==datum_id).one()
-        # self._session._session.expire(d, ['readable'])
-        # # 
-        
+        #         
+        persistent_obj = self.factory._session._session.identity_map.values()
+        for obj in persistent_obj:
+            if isinstance(obj, Datum):
+                self.factory._session._session.expire(obj, ['readable'])
 
-        # フレームのreadableはFalseであること
-        self.assertFalse(frame.readable)
+
+
+        # フレームのreadableはNoneであること
+        self.assertIsNone(frame.readable)
 
         # フレームのpathは取得できないこと
         with self.assertRaises(NotAuthorizedException):
             frame.path
 
-        # フレームは更新可能
-        frame.update_label('WOW')
-        frame.update_label_only('WOW')
-        frame.update_encoding_newline(encoding_str='S_JIS', newline_str='\r')
-
-        # フレームは削除可能
-        frame.delete()
 
     def test_writeless_frame(self):
         """
@@ -177,5 +174,24 @@ class AuthTest(TestCaseBase):
         """
         # ルートフォルダを取得する
         root = self.factory.data.load_root()
+        # ルートフォルダの下にフレームを作成する
+        import io
+        f = io.BytesIO(b'')
+        frame = root.create_frame('CSV', f)
+        frame.save()
+        frame = frame.reload()
 
-        
+        # フレームの更新権限を全て削除する
+        self.factory.auth.delete_all_by_datum_id(frame.id)
+
+         # フレームは更新不可
+        with self.assertRaises(NotAuthorizedException):
+            frame.update_label('WOW')
+        with self.assertRaises(NotAuthorizedException):
+            frame.update_label_only('WOW')
+        with self.assertRaises(NotAuthorizedException):
+            frame.update_encoding_newline(encoding_str='S_JIS', newline_str='CR')
+
+        # フレームは削除不可
+        with self.assertRaises(NotAuthorizedException):
+            frame.delete()       

@@ -783,6 +783,7 @@ class RunsCommand(SCommand):
                     #  recv_connオブジェクトでcloseするのでclosefd=Falseとする)
                     for line in open(recv_conn.fileno(), mode='r', closefd=False):
                         print(line, end='', file=sys.stderr)
+                        sys.stderr.flush()
                         if line.startswith('#ERROR#') and 'script RUN KGERROR runmain on kgshell' not in line:
                             mcmd_errors.append(line)
 
