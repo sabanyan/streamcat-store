@@ -131,6 +131,33 @@ class AuthTest(TestCaseBase):
         with self.assertRaises(Exception):
             self.factory.auth.find_by_id(new_group.id, folder.id, Auth.WRITE_OP)
 
+
+    def test_no_authz(self):
+        """
+        権限レコードのないFrameは読み取れないことを検証する
+        """
+        # ルートフォルダを取得する
+        root = self.factory.data.load_root()
+        # ルートフォルダの下にフレームを作成する
+        import io
+        f = io.BytesIO(b'')
+        frame = root.create_frame('CSV', f)
+        frame.save()
+
+        # フレームの参照権限を全て削除する
+        self.factory.auth.delete_all_by_datum_id(frame.id)
+
+        # フローを再取得する
+        frame = frame.reload()
+
+        # フレームのreadableはNoneであること
+        self.assertFalse(frame.readable)
+
+        # フレームのpathは取得できないこと
+        with self.assertRaises(NotAuthorizedException):
+            frame.path
+
+
     def test_readless_frame(self):
         """
         参照権限のないFrameは読み取れないことを検証する
@@ -194,4 +221,308 @@ class AuthTest(TestCaseBase):
 
         # フレームは削除不可
         with self.assertRaises(NotAuthorizedException):
-            frame.delete()       
+            frame.delete()
+
+    
+    def test_readless_folder(self):
+        """
+        参照権限のないFolderは読み取れないことを検証する
+        """
+        # ルートフォルダを取得する
+        root = self.factory.data.load_root()
+        # ルートフォルダの下にフォルダを作成する
+        folder = root.create_folder('参照権限のないフォルダ')
+        folder.save()
+        folder = folder.reload()
+        # フォルダの下にフローを作成する
+        flow = folder.create_flow('フロー', {})
+        flow.save()
+        flow = flow.reload()
+
+        # フォルダの参照権限を全て削除する
+        self.factory.auth.delete_all_by_datum_id(folder.id)
+
+
+        # 
+        # 参照権限の削除後にframeオブジェクトのreadableをexpireした方がいい？
+        #         
+        persistent_obj = self.factory._session._session.identity_map.values()
+        for obj in persistent_obj:
+            if isinstance(obj, Datum):
+                self.factory._session._session.expire(obj, ['readable'])
+
+
+        # フローのreadableはNoneであること
+        self.assertIsNone(flow.readable)
+
+        # フォルダ内のDatumは参照できないこと
+        with self.assertRaises(NotAuthorizedException):
+            folder.find_children()
+        with self.assertRaises(NotAuthorizedException):
+            folder.find_children_by_label('フロー')
+        with self.assertRaises(NotAuthorizedException):
+            folder.find_child_by_uuid(flow.uuid)
+
+
+    def test_writeless_folder(self):
+        """
+        更新権限のないFolderは更新できないことを検証する
+        """
+        # ルートフォルダを取得する
+        root = self.factory.data.load_root()
+        # ルートフォルダの下にフォルダを作成する
+        folder = root.create_folder('更新権限のないフォルダ')
+        folder.save()
+        folder = folder.reload()
+        # フォルダの下にフローを作成する
+        flow = folder.create_flow('フロー', {})
+        flow.save()
+        flow = flow.reload()
+
+        # フォルダの更新権限を全て削除する
+        self.factory.auth.delete_all_by_datum_id(folder.id)
+
+        # フローは更新不可
+        with self.assertRaises(NotAuthorizedException):
+            flow.update_data('WOW', {})
+
+        # フローは削除不可
+        with self.assertRaises(NotAuthorizedException):
+            flow.delete()
+
+    def test_resolve_roles(self):
+        """
+        複数のロールで異なる権限判定の場合
+        """
+        # ルートフォルダを取得する
+        root = self.factory.data.load_root()
+        # ルートフォルダの下にフローを作成する
+        flow = root.create_flow('フロー', {})
+        flow.save()
+
+        # フォルダの参照権限を全て削除する
+        self.factory.auth.delete_all_by_datum_id(flow.id)
+
+        # ロールAを作成する
+        roleA = self.factory.group.create('roleA')
+        roleA.save()
+        # ロールBを作成する
+        roleB = self.factory.group.create('roleB')
+        roleB.save()
+
+        # ロールAにフローの参照・更新許可を付与する
+        roleA.init_authz(flow.id, True, True)
+        # ロールBにフローの参照・更新不可を付与する
+        roleB.init_authz(flow.id, False, False)
+
+        # TESTユーザをロールAとロールBに参加させる
+        roleA.join_user(self.USER2)
+        roleB.join_user(self.USER2)
+
+        # フローを再取得する
+        flow = flow.reload()
+
+        # フローのreadableはFalseであること
+        self.assertFalse(flow.readable)
+
+        # フレームのpathは取得できないこと
+        with self.assertRaises(NotAuthorizedException):
+            flow.path
+
+        # フローは更新不可
+        with self.assertRaises(NotAuthorizedException):
+            flow.update_data('WOW!', {})
+
+        # フローは削除不可
+        with self.assertRaises(NotAuthorizedException):
+            flow.delete()
+
+    def test_read_data_of_frame(self):
+        """
+        参照権限のないFrameでもdataプロパティは読み取れること
+        """
+        # ルートフォルダを取得する
+        root = self.factory.data.load_root()
+        # ルートフォルダの下にフレームを作成する
+        import io
+        f = io.BytesIO(b'')
+        frame = root.create_frame('CSV2', f)
+        frame.save()
+
+        # フレームの参照権限を全て削除する
+        self.factory.auth.delete_all_by_datum_id(frame.id)
+
+        # フローを再取得する
+        frame = frame.reload()
+
+        # フレームのreadableはNoneであること
+        self.assertFalse(frame.readable)
+
+        # フレームのメタデータは取得できること
+        self.assertEqual(frame.encoding_str, 'UNKNOWN')
+        self.assertEqual(frame.newline_str, 'UNKNOWN')
+
+    def test_read_data_of_flow(self):
+        """
+        参照権限のないFlowのnodesキーは読み取れないこと
+        """
+        # ルートフォルダを取得する
+        root = self.factory.data.load_root()
+        # ルートフォルダの下にフレームを作成する
+        import io
+        f = io.BytesIO(b'')
+        frame = root.create_frame('CSV2', f)
+        frame.save()
+        # ルートフォルダの下にフローを作成する
+        flow = self.factory.data.create_simple_flow(root, 'フロー', frame)
+        flow.save()
+
+        # フレームの参照権限を全て削除する
+        self.factory.auth.delete_all_by_datum_id(flow.id)
+
+        # フローを再取得する
+        flow = flow.reload()
+
+        # フローJSONのうちnodes以外のキーは取得できること
+        self.assertEqual(flow.flow_data.label, 'フロー')
+        self.assertEqual(flow.flow_data.description, '')
+        self.assertEqual(flow.flow_data.ports, [[],[]])
+        self.assertTrue(flow.flow_data.has_nodes)
+
+        # フローJSONのうちnodesキーは取得できないこと
+        with self.assertRaises(NotAuthorizedException):
+            flow.flow_data.nodes
+
+    def test_move(self):
+        """
+        必要最小限の権限設定でFlowを移動できること
+        """
+        # ルートフォルダを取得する
+        root = self.factory.data.load_root()
+        # ルートフォルダの下に移動元フォルダを作成する
+        from_folder = root.create_folder('移動元フォルダ')
+        from_folder.save()
+        # ルートフォルダの下に移動元フォルダを作成する
+        to_folder = root.create_folder('移動先フォルダ')
+        to_folder.save()
+        # 移動元フォルダの直下にフローを作成する
+        flow = from_folder.create_flow('フローA', {})
+        flow.save()
+
+        
+        # 移動元フォルダを参照不可にする
+        everyone_role = self.factory.group.load_everyone_group()
+        everyone_role.init_authz(from_folder.id, False, True)
+        # 移動先フォルダを参照・更新可能にする
+        everyone_role.init_authz(to_folder.id, True, True)
+        # フローを参照不可にする
+        everyone_role.init_authz(flow.id, False, True)
+
+        # フローを移動する
+        flow.move(to_folder.uuid)
+
+        # フローが移動できること
+        self.assertEqual(flow.parent_id, to_folder.id)
+
+    def test_not_move(self):
+        """
+        更新権限のないFolderからFlowは移動できないこと
+        """
+        # ルートフォルダを取得する
+        root = self.factory.data.load_root()
+        # ルートフォルダの下に移動元フォルダを作成する
+        from_folder = root.create_folder('移動元フォルダ')
+        from_folder.save()
+        # ルートフォルダの下に移動元フォルダを作成する
+        to_folder = root.create_folder('移動先フォルダ')
+        to_folder.save()
+        # 移動元フォルダの直下にフローを作成する
+        flow = from_folder.create_flow('フローB', {})
+        flow.save()
+        
+        # 移動元フォルダを更新不可にする
+        everyone_role = self.factory.group.load_everyone_group()
+        everyone_role.init_authz(from_folder.id, True, False)
+        # 移動先フォルダを更新不可にする
+        everyone_role.init_authz(to_folder.id, True, False)
+        # フローを参照・更新可能にする
+        everyone_role.init_authz(flow.id, True, True)
+
+        # フローを移動する
+        # 移動元フォルダが更新不可→フローBの更新不可なので、フローBの更新エラーが発生する
+        with self.assertRaises(NotAuthorizedException):
+            flow.move(to_folder.uuid)
+
+        # フローが移動していないこと
+        self.assertEqual(flow.parent_id, from_folder.id)
+
+
+    def test_folder_in_writeless_folder(self):
+        """
+        更新権限のないFolderの直下のFolder内にあるFlowは更新できること
+        """
+        # ルートフォルダを取得する
+        root = self.factory.data.load_root()
+        # ルートフォルダの下にフォルダ1を作成する
+        folder1 = root.create_folder('フォルダ1')
+        folder1.save()
+        # フォルダ1の下にフォルダ2を作成する
+        folder2 = folder1.create_folder('フォルダ2')
+        folder2.save()
+        # フォルダ2の下にフローを作成する
+        flow = folder2.create_flow('myFlow', {})
+        flow.save()
+
+        # フォルダ1を更新不可にする
+        everyone_role = self.factory.group.load_everyone_group()
+        everyone_role.init_authz(folder1.id, True, False)
+        
+        # フォルダ1は更新できない
+        with self.assertRaises(NotAuthorizedException):
+            folder1.update_data('フォルダ10')
+
+        # フォルダ2は更新できない
+        with self.assertRaises(NotAuthorizedException):
+            folder2.update_data('フォルダ20')
+
+        # フローは更新できること
+        flow.update_data('myFlow0', {})
+
+        # フォルダ2にフローを新規追加できること
+        folder2.create_flow('myFlow1', {})
+
+    def test_del_folder_has_writeless_flow(self):
+        """
+        更新権限のないFlowを親フォルダごと削除する
+        """
+        # ルートフォルダを取得する
+        root = self.factory.data.load_root()
+        # ルートフォルダの下にフォルダAを作成する
+        folder = root.create_folder('フォルダA')
+        folder.save()
+        folder = folder.reload()
+        # フォルダAの下にフロー1を作成する
+        flow1 = folder.create_flow('更新できないフロー', {})
+        flow1.save()
+        # フォルダAの下にフロー2を作成する
+        flow2 = folder.create_flow('更新できるフロー', {})
+        flow2.save()
+
+        # フローを更新不可にする
+        everyone_role = self.factory.group.load_everyone_group()
+        everyone_role.init_authz(flow1.id, True, False)
+
+        # フォルダAをほかす
+        with self.assertRaises(NotAuthorizedException):
+            folder.throw_away()
+
+        # フォルダAを削除する
+        # (空でないフォルダは削除できません)
+        with self.assertRaises(Exception):
+            folder.delete()
+
+        # flow1は削除されていないこと
+        self.assertTrue(self.factory.data.exists(flow1.uuid))
+
+        # flow2は削除されていること
+        self.assertFalse(self.factory.data.exists(flow2.uuid))

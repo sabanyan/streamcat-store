@@ -458,7 +458,7 @@ class AuthFactory():
             raise Exception('No authz is found by designated store id')
         return authz
 
-    def exists(self, group_id, datum_id, operation=None):
+    def exists(self, group_id, datum_id, operation=None) -> bool:
         from kskp.store.auth import Auth
         query = self._session.query(Auth).filter(Auth.group_id==group_id)\
                                          .filter(Auth.datum_id==datum_id)
@@ -486,10 +486,10 @@ class GroupFactory():
         from kskp.store.auth import Group
         return Group(self._session, name)
 
-    def find_by_id(self, group_id):
+    def find_by_id(self, group_id) -> Group:
         return self._session.query(Group).filter(Group.id == group_id).one()
 
-    def find_by_uuid(self, uuid):
+    def find_by_uuid(self, uuid) -> Group:
         return self._session.query(Group).filter(Group.uuid == uuid).one()
 
     def find_all(self):
@@ -519,7 +519,7 @@ class GroupFactory():
 
         return everyone_group
 
-    def exists(self, uuid):
+    def exists(self, uuid) -> bool:
         count = self._session.query(Group).filter(Group.uuid==uuid).count()
         return count > 0
 
@@ -529,7 +529,7 @@ class UserGroupFactory():
     def __init__(self, session):
         self._session = session
 
-    def find_by_id(self, user_id, group_id):
+    def find_by_id(self, user_id, group_id) -> UserGroup:
         return self._session.query(UserGroup).\
                        filter(UserGroup.user_id==user_id).\
                        filter(UserGroup.group_id==group_id).\
@@ -553,14 +553,14 @@ class UserFactory():
         from kskp.store.auth import User
         return User(self._session, email, password, name)
 
-    def find_by_id(self, user_id):
+    def find_by_id(self, user_id) -> User:
         # SQLAlchemyのidentity mapにキャッシュされていればそれを返す
         user = self._session.query(User).get(user_id)
         if user is None:
             raise Exception('No user is found by designated store id')
         return user
 
-    def find_by_uuid(self, uuid):
+    def find_by_uuid(self, uuid) -> User:
         # UUID値の形式チェックをする
         from kskp.core import Datum
         Datum.valid_uuid_or_raise(uuid)
@@ -568,13 +568,13 @@ class UserFactory():
         user = self._session.query(User).filter(User.uuid==uuid).one()
         return user
 
-    def find_by_email(self, email):
+    def find_by_email(self, email) -> User:
         """
         指定されたuuidを持つFrameを取得する
         """
         user = self._session.query(User).filter(User.email==email).one()
         return user
 
-    def exists(self, uuid):
+    def exists(self, uuid) -> bool:
         count = self._session.query(User).filter(User.uuid==uuid).count()
         return count > 0
