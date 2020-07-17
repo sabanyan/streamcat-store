@@ -126,7 +126,6 @@ class Folder(Store):
             # ゴミ箱に捨てても削除前の階層構造を維持するため、削除対象フォルダの形代をゴミ箱に作成する
             trashed_folder = parent.create_folder(datum.label)
             trashed_folder.save()
-            # trashed_folder = parent.find_child_by_uuid(trashed_folder.uuid)
             trashed_folder = trashed_folder.reload()
 
             throwables = []
@@ -157,12 +156,15 @@ class Folder(Store):
             return thrown_count, obstacle_count
 
         elif datum.type == Datum.FRAME_TYPE or datum.type == Datum.FLOW_TYPE:
-            # 削除しようとするフレーム/サブフローが、フローで使用されていない場合に削除する
-            using_flow_uuids = datum.get_flow_uuids_using_me()
-            if len(using_flow_uuids) == 0:
-                return 0, 0
-            else:
+            # 削除しようとするフレーム/サブフローの更新権限がない場合は削除できない
+            if not self._session.writable(datum):
                 return 0, 1
+            # 削除しようとするフレーム/サブフローが、フローで使用されてる場合は削除できない
+            using_flow_uuids = datum.get_flow_uuids_using_me()
+            if len(using_flow_uuids) > 0:
+                return 0, 1
+            # 削除可能!
+            return 0, 0
 
         else:
             # データベース接続、リモートフォルダ接続

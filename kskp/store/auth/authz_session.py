@@ -170,7 +170,7 @@ class AuthzSession(Session):
         if isinstance(obj, Datum):
             # Datumの新規追加時はその親フォルダの変更権限を判定する
             # (ROOTフォルダの新規追加の場合は変更を許可する)
-            if obj.parent_id is not None and not self.writable_by_id(self.user, obj):
+            if obj.parent_id is not None and not self.writable(obj):
                 parent = obj.find_parent()
                 raise NotAuthorizedException(f'{self.user.name}は{parent.label}の変更権限がないため{obj.label}を新規追加できませんでした')
 
@@ -204,7 +204,7 @@ class AuthzSession(Session):
         from kskp.core import Datum
         if isinstance(obj, Datum):
             # Datumの変更権限を判定する
-            if not self.writable_by_id(self.user, obj):
+            if not self.writable(obj):
                 raise NotAuthorizedException((f'{self.user.name}は更新権限がないため{obj.label}を更新できません'))
             if obj._data is not None:
                 # JSON列への変更はflag_modified()を使ってSQLAlchemyに知らせないとDBに反映されない
@@ -225,7 +225,7 @@ class AuthzSession(Session):
     def delete(self, obj):
         from kskp.core import Datum
         if isinstance(obj, Datum):
-            if self.writable_by_id(self.user, obj):
+            if self.writable(obj):
                 # 削除データの権限を全て削除する
                 from kskp.store.factory import AuthFactory
                 AuthFactory(self).delete_all_by_datum_id(obj.id)
@@ -239,7 +239,7 @@ class AuthzSession(Session):
         # 削除する
         self._session.delete(obj)
 
-    def writable_by_id(self, user, datum):
+    def writable(self, datum) -> bool:
         """
         ユーザIDとDatumについて書き込み権限の有無を判定する
         """
@@ -253,10 +253,13 @@ class AuthzSession(Session):
 
         query = self._session.query(func.coalesce(func.bool_and(A.permission),false()).label("write")).\
                               outerjoin(UG, UG.group_id==A.group_id).\
-                              filter(UG.user_id==user.id).\
+                              filter(UG.user_id==self.user.id).\
                               filter(A.operation==A.WRITE_OP)
 
-        if datum.id is None:
+        if datum.parent_id is None:
+            # ルートフォルダの場合は親フォルダの権限判定をしない
+            query = query.filter(A.datum_id==datum.id)
+        elif datum.id is None:
             # Datumの新規追加の場合(datum.id=None)は親フォルダの書き込み権限だけを判定する
             query = query.filter(A.datum_id==datum.parent_id)
         else:
