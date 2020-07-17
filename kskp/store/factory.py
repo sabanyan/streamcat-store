@@ -120,32 +120,6 @@ class DatumFactory():
         from kskp.store import DataSource
         return DataSource(self._session, parent, label, store, loader_step)
 
-    def create_simple_flow(self, parent, label, data_source):
-        from kskp.store import Flow
-        flow_json = {
-                        "label": label,
-                        "nodes": [
-                            {
-                                "id": "d",
-                                "type": "frame",
-                                "uuid": data_source.uuid,
-                                "error": {},
-                                "label": data_source.label,
-                                "invalid": {},
-                                "makeCache": False,
-                                "dataSource": "csv",
-                                "cacheCreatedAt": None
-                            }
-                        ],
-                        "ports": [[],[]],
-                        "params": [],
-                        "creator": self._session.user.name,
-                        "createdAt": data_source.created_at_str,
-                        "projectId": None,
-                        "description": ""
-                    }
-        return Flow(self._session, parent, label, flow_json)
-
     def find_by_id(self, id, type=None) -> Datum:
         """
         指定されたidを持つDatumを取得する

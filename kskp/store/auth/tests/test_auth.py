@@ -374,7 +374,7 @@ class AuthTest(TestCaseBase):
         frame = root.create_frame('CSV2', f)
         frame.save()
         # ルートフォルダの下にフローを作成する
-        flow = self.factory.data.create_simple_flow(root, 'フロー', frame)
+        flow = root.create_simple_flow(root, 'フロー', frame)
         flow.save()
 
         # フレームの参照権限を全て削除する
@@ -424,7 +424,7 @@ class AuthTest(TestCaseBase):
         # フローが移動できること
         self.assertEqual(flow.parent_id, to_folder.id)
 
-    def test_not_move(self):
+    def test_move_from_writeless_folder(self):
         """
         更新権限のないFolderからFlowは移動できないこと
         """
@@ -450,6 +450,37 @@ class AuthTest(TestCaseBase):
 
         # フローを移動する
         # 移動元フォルダが更新不可→フローBの更新不可なので、フローBの更新エラーが発生する
+        with self.assertRaises(NotAuthorizedException):
+            flow.move(to_folder.uuid)
+
+        # フローが移動していないこと
+        self.assertEqual(flow.parent_id, from_folder.id)
+
+
+    def test_move_to_writeless_folder(self):
+        """
+        更新権限のないFolderへFlowは移動できないこと
+        """
+        # ルートフォルダを取得する
+        root = self.factory.data.load_root()
+        # ルートフォルダの下に移動元フォルダを作成する
+        from_folder = root.create_folder('移動元フォルダ')
+        from_folder.save()
+        # ルートフォルダの下に移動元フォルダを作成する
+        to_folder = root.create_folder('移動先フォルダ')
+        to_folder.save()
+        # 移動元フォルダの直下にフローを作成する
+        flow = from_folder.create_flow('フローC', {})
+        flow.save()
+
+        # 移動先フォルダを更新不可にする
+        everyone_role = self.factory.group.load_everyone_group()
+        everyone_role.init_authz(to_folder.id, True, False)
+        # フローを参照・更新可能にする
+        everyone_role.init_authz(flow.id, True, True)
+
+        # フローを移動する
+        # (フローCの更新エラーになる)
         with self.assertRaises(NotAuthorizedException):
             flow.move(to_folder.uuid)
 
@@ -489,11 +520,12 @@ class AuthTest(TestCaseBase):
         flow.update_data('myFlow0', {})
 
         # フォルダ2にフローを新規追加できること
-        folder2.create_flow('myFlow1', {})
+        flow2 = folder2.create_flow('myFlow1', {})
+        flow2.save()
 
     def test_del_folder_has_writeless_flow(self):
         """
-        更新権限のないFlowを親フォルダごと削除する
+        更新権限のないFlowは親フォルダごと削除できないこと
         """
         # ルートフォルダを取得する
         root = self.factory.data.load_root()
@@ -504,16 +536,15 @@ class AuthTest(TestCaseBase):
         # フォルダAの下にフロー1を作成する
         flow1 = folder.create_flow('更新できないフロー', {})
         flow1.save()
-        # フォルダAの下にフロー2を作成する
-        flow2 = folder.create_flow('更新できるフロー', {})
-        flow2.save()
 
         # フローを更新不可にする
         everyone_role = self.factory.group.load_everyone_group()
         everyone_role.init_authz(flow1.id, True, False)
 
         # フォルダAをほかす
-        with self.assertRaises(NotAuthorizedException):
+        # (削除できませんでした)
+        # (なお、フォルダ内のファイルが1つでもほかすことができたら例外は送出しない)
+        with self.assertRaises(Exception):
             folder.throw_away()
 
         # フォルダAを削除する
@@ -521,8 +552,8 @@ class AuthTest(TestCaseBase):
         with self.assertRaises(Exception):
             folder.delete()
 
-        # flow1は削除されていないこと
+        # flow1はほかされていないこと
         self.assertTrue(self.factory.data.exists(flow1.uuid))
+        self.assertEqual(flow1.parent_id, folder.id)
+        self.assertEqual(folder.parent_id, root.id)
 
-        # flow2は削除されていること
-        self.assertFalse(self.factory.data.exists(flow2.uuid))

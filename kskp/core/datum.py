@@ -308,9 +308,13 @@ class Datum(BaseModel):
         """
         from kskp.store import Mountable, Folder
         from kskp.store.factory import DatumFactory
+        from kskp.store.auth import NotAuthorizedException
 
         # UUID値の形式チェックをする
         Datum.valid_uuid_or_raise(parent_uuid)
+
+        # 移動元フォルダのIDを控えておく
+        from_folder_id = self.parent_id
 
         to_folder = DatumFactory(self._session).find_by_uuid(parent_uuid)
         if not isinstance(to_folder, Folder):
@@ -355,6 +359,10 @@ class Datum(BaseModel):
                     self._update_same_path(old_path, new_path, modifier)
                     if isinstance(self, Folder):
                         self._update_include_path(old_path, new_path, modifier)
+            else:
+                # PylanceのWarning対策
+                old_path = None
+                new_path = None
 
             # レコードを更新する
             if self._data is None:
@@ -371,7 +379,22 @@ class Datum(BaseModel):
             if self._path is not None:
                 Datum.move_file(old_path, new_path)
 
+        except NotAuthorizedException as e:
+            # ROLLBACK
+            self._session.rollback()
+
+            user_name = self._session.user
+            from_folder = DatumFactory(self._session).find_by_id(from_folder_id)
+            if not self._session.writable(self):
+                raise NotAuthorizedException((f'{user_name}は更新権限がないため{self.label}を移動できません'))
+            elif not self._session.writable(from_folder):
+                raise NotAuthorizedException((f'{user_name}は{from_folder.label}の更新権限がないため{self.label}を移動できません'))
+            elif not self._session.writable(to_folder):
+                raise NotAuthorizedException((f'{user_name}は{to_folder.label}の更新権限がないため{self.label}を移動できません'))
+            else:
+                raise e
         except Exception as e:
+            # ROLLBACK
             self._session.rollback()
             raise e
         finally:
