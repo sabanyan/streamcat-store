@@ -37,14 +37,14 @@ class Activity(Datum):
         self._results.append((point, result_frame))
 
     @property
-    def result(self):
+    def results(self):
         def is_cache(datum):
             return type(datum) == Frame and datum.is_cache
         # Cacheは返さない
         # 同じPointにCacheとFrame(CacheとVis)が紐づくとややこしい
         return [(point, datum) for point, datum in self._results if not is_cache(datum)]
 
-    def count_result(self):
+    def count_results(self):
         return len(self._results)
 
     def save(self):

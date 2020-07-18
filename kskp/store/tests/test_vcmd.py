@@ -185,17 +185,21 @@ class VCmdTestCase(TestCaseBase):
         self.assertIsInstance(result['div'], str)
         self.assertIsInstance(result['script'], str)
 
-    def convert_from_activity_vis(self, activity):
+    def convert_from_activity_vis(self, lasts):
         """
         execute()の戻り値であるActivityから
         pointのidとvisのDictに置き換える
         """
-        return {point.id : vis.result for point, vis in activity.result}
+        from kskp.store import Activity
+        # Activityを取得して返り値とする
+        for point_id, datum in lasts.items():
+            if isinstance(datum, Activity):
+                return {point.id : vis.result for point, vis in datum.results}
 
     def exec_flow(self, vis_args):
         root = self.factory.data.load_root()
         flow = root.create_flow('CSV to graph', self.flow_csvtohtmltable)
         flow_link = FlowJsonLink(flow, self.factory, vis_args=vis_args)
-        activity = execute(flow_link, {}, {})
-        result = self.convert_from_activity_vis(activity)['d1']
+        lasts = execute(flow_link, {}, {})
+        result = self.convert_from_activity_vis(lasts)['d1']
         return result

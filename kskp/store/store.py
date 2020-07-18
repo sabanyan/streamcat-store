@@ -239,7 +239,6 @@ class NysolModule(Datum):
 class List(Datum):
     """
     リスト構造のデータを表す
-    現在はテストのみで用いる
     """
     def __init__(self, content=None):
         super().__init__(None, None, 'list', None)
@@ -267,3 +266,6 @@ class List(Datum):
 
     def __getitem__(self, index):
         return self._content[index]
+
+    def __len__(self):
+        return len(self._content)
