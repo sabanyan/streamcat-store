@@ -1,6 +1,7 @@
 # Store用コマンド
 import os
 import sys
+from kskp.store import activity
 import nysol.mcmd as nm
 
 from kskp.store import NysolModule, Datum, Store, Frame
@@ -17,7 +18,7 @@ class SaverCommand(SCommand):
     def __init__(self):
         super().__init__()
         self.i_ports = [Port('i', 'frame'), Port('store', 'store')]
-        self.o_ports = [Port('o', 'mcmd'), Port('u', 'frame')]
+        self.o_ports = [Port('o', 'mcmd')]
 
     def run(self, args, inputs):
         # Frameを作成する
@@ -43,8 +44,11 @@ class SaverCommand(SCommand):
         #     raise Exception(f"Illegal type : {type(inputs['i'])}")
         cmd = inputs['i'].content
         cmd = self.append_writecsv_cmd(cmd, frame.path)
- 
-        return {'o': NysolModule(cmd), 'u': frame}
+        # 出力フレームをRunsCommandに渡す
+        nysol_module = NysolModule(cmd)
+        nysol_module.context['frame'] = frame
+
+        return {'o': nysol_module}
 
     def append_writecsv_cmd(self, cmd, frame_path):
         abs_frame_path = frame_path.as_posix()
@@ -125,8 +129,11 @@ class CacheSaverCommand(SaverCommand):
         # NYSOLコマンドを作成する
         cmd = inputs['i'].content
         cmd = self.append_writecsv_cmd(cmd, cache.path)
+        # 出力フレームをRunsCommandに渡す
+        nysol_module = NysolModule(cmd)
+        nysol_module.context['frame'] = cache
 
-        return {'o': NysolModule(cmd), 'u': cache}
+        return {'o': nysol_module}
 
     def make_frame(self, store, label):
         import io
@@ -343,7 +350,7 @@ class DbSaverCommand(SaverCommand):
     def __init__(self):
         super().__init__()
         self.i_ports = [Port('i', 'frame'), Port('store', 'store'), Port('folder', 'store')]
-        self.o_ports = [Port('o', 'mcmd'), Port('u', 'frame')]
+        self.o_ports = [Port('o', 'mcmd')]
         self._tmp_file_path = None
 
     def run(self, args, inputs):
@@ -423,7 +430,11 @@ class DbSaverCommand(SaverCommand):
         datasource = self._create_data_source(result_folder, database, 'point_id', schema_name, table_name, args['activity_uuid'])
         datasource.save()
 
-        return {'o': NysolModule(cmd), 'u': datasource}  
+        # 出力DataSourceをRunsCommandに渡す
+        nysol_module = NysolModule(cmd)
+        nysol_module.context['frame'] = datasource
+
+        return {'o': nysol_module}  
         
     @staticmethod
     def _connect_to_db(db_uri):
@@ -644,7 +655,7 @@ class RemoteFolderSaverCommand(SaverCommand):
     def __init__(self):
         super().__init__()
         self.i_ports = [Port('i', 'frame'), Port('store', 'store'), Port('folder', 'store')]
-        self.o_ports = [Port('o', 'mcmd'), Port('u', 'frame')]
+        self.o_ports = [Port('o', 'mcmd')]
 
     def run(self, args, inputs):
         from kskp.store import Datum
@@ -689,7 +700,11 @@ class RemoteFolderSaverCommand(SaverCommand):
         datasource = self._create_data_source(result_folder, rfolder, 'point_id', path_str)
         datasource.save()
 
-        return {'o': NysolModule(cmd), 'u': datasource}  
+        # 出力DataSourceをRunsCommandに渡す
+        nysol_module = NysolModule(cmd)
+        nysol_module.context['frame'] = datasource
+
+        return {'o': NysolModule(cmd)}  
 
     @staticmethod
     def _create_data_source(parent, rfolder, label, file_path_str):
@@ -718,6 +733,7 @@ class RunsCommand(SCommand):
     def run(self, args, inputs):
         import psutil
         from multiprocessing import Process, Manager, Pipe
+        from kskp.store import List
 
         def do_runs(nm_list, results, exs, out):
             """
@@ -820,8 +836,10 @@ class RunsCommand(SCommand):
             # 入力ポートと出力ポートは同じキーで対応付ける
             i = 0
             ret = {}
-            for i_port_name in inputs.keys():
-                ret[i_port_name] = results[i]
+            for i_port_name, nysol_module in inputs.items():
+                frame = nysol_module.context.get('frame')
+                list = List(results[i])
+                ret[i_port_name] = frame or list
                 i += 1
 
             return ret
@@ -856,9 +874,20 @@ class ActivityCommand(SCommand):
             point = points[port_id]
             activity.add(point, datum)
 
-        if activity.count_result() == len(points):
-            # Activityを全て集め終えたら結果を出力Pointに渡し、処理を終了する
+        if activity.count_results() == len(points):
+            # Activityを全て集め終えたら実行結果情報を保存する
+            # (今は出力ファイル名にその情報を刻んでいる)
+            activity.save()
+            # Activityを出力Pointに渡し、処理を終了する
             return {'o': activity}
         else:
             # Noneを渡して、再びrun()を実行してもらう
             return {'o': None}
+
+    def dtor(self):
+        # TODO:
+        # Stepからargsとsuccessフラグをもらって、実行失敗の場合は
+        # ここでSaverが出力したファイルを削除する
+
+        # 本当はSaver自身が削除すべきだが、Saverが作成したファイルを自身で覚えていない
+        pass
