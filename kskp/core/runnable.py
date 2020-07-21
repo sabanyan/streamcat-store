@@ -12,7 +12,7 @@ class Command(Datum):
     """
 
     def __init__(self):
-        super().__init__(None, None, 'command', None)
+        super().__init__(None, None, 'command', self.__class__.__name__)
         self.i_ports = []
         self.o_ports = []
         self.params = []

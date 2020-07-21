@@ -1,7 +1,6 @@
 # Store用コマンド
 import os
 import sys
-from kskp.store import activity
 import nysol.mcmd as nm
 
 from kskp.store import NysolModule, Datum, Store, Frame
@@ -889,6 +888,9 @@ class ActivityCommand(SCommand):
             if isinstance(datum, list):
                 activity.add_exs(datum)
                 # Activityを出力Pointに渡し、処理を終了する
+                return {'o': activity}
+            elif isinstance(datum, Exception):
+                activity.add_exs([datum])
                 return {'o': activity}
 
         for port_id, datum in inputs.items():
