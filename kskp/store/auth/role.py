@@ -52,14 +52,14 @@ class Role(BaseModel):
         from kskp.store.factory import UserFactory
         if self._creator_id is None:
             return None
-        return UserFactory(self._session).find_by_id(self._creator_id)
+        return UserFactory(self._session).find_by_id(self._creator_id, allow_no_result=True)
 
     @property
     def modifier(self):
         from kskp.store.factory import UserFactory
         if self._modifier_id is None:
             return None
-        return UserFactory(self._session).find_by_id(self._modifier_id)
+        return UserFactory(self._session).find_by_id(self._modifier_id, allow_no_result=True)
 
     def save(self):
         """

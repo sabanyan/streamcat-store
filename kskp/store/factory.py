@@ -527,10 +527,10 @@ class UserFactory():
         from kskp.store.auth import User
         return User(self._session, email, password, name)
 
-    def find_by_id(self, user_id) -> User:
+    def find_by_id(self, user_id, allow_no_result=False) -> User:
         # SQLAlchemyのidentity mapにキャッシュされていればそれを返す
         user = self._session.query(User).get(user_id)
-        if user is None:
+        if user is None and not allow_no_result:
             raise Exception(f'No user is found by designated user_id({user_id})')
         return user
 
