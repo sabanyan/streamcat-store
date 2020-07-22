@@ -12,13 +12,11 @@ class Activity(Datum):
         'polymorphic_identity' : 'activity'
     }
 
-    TYPE = 'activity'
-
     def __init__(self, session, parent, label, flow_uuid):
         """
         コンストラクタ
         """
-        super().__init__(session, parent, Activity.TYPE, label)
+        super().__init__(session, parent, Datum.ACTIVITY_TYPE, label)
 
         # Activityはファイルに保存せず、データベースに保存する
         self._path = None
@@ -35,6 +33,17 @@ class Activity(Datum):
 
     def add(self, point, result_frame):
         self._results.append((point, result_frame))
+
+    def add_exs(self, exs):
+        self._data['exs'] = exs
+
+    @property
+    def exs(self):
+        return self._data.get('exs')
+
+    @property
+    def is_success(self):
+        return 'exs' not in self._data
 
     @property
     def results(self):

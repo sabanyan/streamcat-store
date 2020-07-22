@@ -1,6 +1,7 @@
 # ビジュアライズコマンド
 import os
 from kskp.core import Command, Port
+from kskp.store import List
 import nysol.mcmd as nm
 
 ErrMsg={
@@ -32,6 +33,10 @@ class CsvToTableCommand(VisualizersHtml):
         """
         ListデータをVisデータにして返す
         """
+        # 直前のRunsCommandがエラーを返した場合、直後のActivityCommandにエラーを渡す
+        if not isinstance(inputs['i'], List):
+            return {'o': inputs['i']}
+
         # 結果はVisに入れて返す
         from kskp.store import Vis
         column_names = inputs['i'][0] if len(inputs['i']) > 0 else []
@@ -47,7 +52,11 @@ class VisualizersBokehPlot(VisualizersCommand):
     def __init__(self):
         super().__init__()
 
-    def run(self, args, inputs):        
+    def run(self, args, inputs):
+        # 直前のRunsCommandがエラーを返した場合、直後のActivityCommandにエラーを渡す
+        if not isinstance(inputs['i'], List):
+            return {'o': inputs['i']}
+
         column_names = inputs['i'][0] if len(inputs['i']) > 0 else []
         matrix = inputs['i'][1:] if len(inputs['i']) > 1 else [[]]
         p = self.plot(args, column_names, matrix)

@@ -1,7 +1,6 @@
 # Store用コマンド
 import os
 import sys
-from kskp.store import activity
 import nysol.mcmd as nm
 
 from kskp.store import NysolModule, Datum, Store, Frame
@@ -816,30 +815,45 @@ class RunsCommand(SCommand):
                 recv_conn.close()
                 send_conn.close()
 
-            # NYSOL Pythonのエラー処理
-            if len(mcmd_errors) > 0:
-                from .mcmd_error_info import MCMDErrorInfo, MCMDError
-                mcmd_error_info = MCMDErrorInfo.parse_stderr(mcmd_errors[0])
-                raise MCMDError(mcmd_error_info)
+            # 例外
+            exs_list = []
 
-            if len(exs) > 0:
-                # writelistコマンドにCSV形式以外のデータが入力されると例外が送出されるようである
-                raise Exception('データを表示できませんでした。次の原因が考えられます ' + \
-                                '(データが空です / ' + \
-                                'データがCSV形式ではありません / ' + \
-                                '最終行が改行コードのみ)')
+            from .mcmd_error_info import MCMDErrorInfo, MCMDError
+            for mcmd_error in mcmd_errors:
+                mcmd_error_info = MCMDErrorInfo.parse_stderr(mcmd_error)
+                exs_list.append(MCMDError(mcmd_error_info))
+
+            # NYSOL Pythonの例外
+            exs_list.extend(exs)
+
+            # # NYSOL Pythonのエラー処理
+            # if len(mcmd_errors) > 0:
+            #     from .mcmd_error_info import MCMDErrorInfo, MCMDError
+            #     mcmd_error_info = MCMDErrorInfo.parse_stderr(mcmd_errors[0])
+            #     raise MCMDError(mcmd_error_info)
+
+            # if len(exs) > 0:
+            #     # writelistコマンドにCSV形式以外のデータが入力されると例外が送出されるようである
+            #     raise Exception('データを表示できませんでした。次の原因が考えられます ' + \
+            #                     '(データが空です / ' + \
+            #                     'データがCSV形式ではありません / ' + \
+            #                     '最終行が改行コードのみ)')
 
             if len(results) != len(inputs):
-                raise Exception('RunsCommandの入力ポートと出力ポートの数が異なります')
+                # raise Exception('RunsCommandの入力ポートと出力ポートの数が異なります')
+                exs_list.append(Exception('RunsCommandの入力ポートと出力ポートの数が異なります'))
 
             # resultsの要素はnm_listへのappend順に対応している?ため
             # 入力ポートと出力ポートは同じキーで対応付ける
             i = 0
             ret = {}
             for i_port_name, nysol_module in inputs.items():
-                frame = nysol_module.context.get('frame')
-                list = List(results[i])
-                ret[i_port_name] = frame or list
+                if len(exs_list) == 0:
+                    frame = nysol_module.context.get('frame')
+                    list = List(results[i])
+                    ret[i_port_name] = frame or list
+                else:
+                    ret[i_port_name] = exs_list
                 i += 1
 
             return ret
@@ -858,7 +872,6 @@ class FieldNamesCommand(RunsCommand):
             ret.append(nm_flow.fldname())
         return ret
 
-from kskp.store import Activity
 
 class ActivityCommand(SCommand):
     def __init__(self):
@@ -869,6 +882,16 @@ class ActivityCommand(SCommand):
     def run(self, args, inputs):
         activity = args['activity']
         points = args['points']
+
+        # 例外オブジェクトがあればActivityに保存する
+        for datum in inputs.values():
+            if isinstance(datum, list):
+                activity.add_exs(datum)
+                # Activityを出力Pointに渡し、処理を終了する
+                return {'o': activity}
+            elif isinstance(datum, Exception):
+                activity.add_exs([datum])
+                return {'o': activity}
 
         for port_id, datum in inputs.items():
             point = points[port_id]
