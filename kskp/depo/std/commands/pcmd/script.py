@@ -137,6 +137,13 @@ class PCommand(Command):
         results = fldNamesCmd.run(args={}, inputs={'i': nysol_module})
         # 'i'キーへの入力結果は'i'キーを指定して取得する
         return results['i']
+    
+    def do_runs(self, nysol_module):
+        from kskp.depo.std.commands import RunsCommand
+        runs_cmd = RunsCommand()
+        results = runs_cmd.run(args={}, inputs={'i': nysol_module})
+        # 'i'キーへの入力結果は'i'キーを指定して取得する
+        return results['i'] 
 
     def run(self, args, inputs):
         """
@@ -3552,6 +3559,19 @@ class GroupBy2Command(PCommand):
 
         cmd_i <<= nm.mcut(f = f'{k}{","+",".join(colstocut) if len(colstocut) > 0 else ""}')
 
+        ### Branching starts here
+        
+        TMP_PATH = '/tmp/groupbytest.csv'
+        
+        # output to tmpfile
+        cmd_i <<= nm.m2tee(o = TMP_PATH)
+
+        tmp_file_out = NysolModule()
+        tmp_file_out.set_content(cmd_i)
+        self.do_runs(tmp_file_out)
+
+
+
         ##### calculation portion:
         for i, calcdict in enumerate(calclist):
 
@@ -3561,14 +3581,16 @@ class GroupBy2Command(PCommand):
 
             calcdict['precision'] = prec
             calcdict['k'] = k
+            
+            cmd[i] <<= nm.mread(i = TMP_PATH)
 
             # take the required stats for the required columns
             if optype == 'msummary':
                 if cs is not 'count':
-                    cmd[i] = self.remove_nonnumber(cmd_i, calcdict['f'])
+                    cmd[i] = self.remove_nonnumber(calcdict['f'])
                     cmd[i] <<= nm.msummary(**calcdict)
                 else:
-                    cmd[i] <<= nm.msummary(i = cmd_i, **calcdict)
+                    cmd[i] <<= nm.msummary(**calcdict)
 
                 final_cs = [c.split(':')[-1] for c in cs.split(',')]
 
@@ -3578,7 +3600,6 @@ class GroupBy2Command(PCommand):
                 else:
                     calcdict['a'] = cs
 
-                cmd[i] <<= nm.mread(i=cmd_i)
                 
                 # sanitize if needed
                 if cs not in supports_str:
@@ -3617,8 +3638,6 @@ class GroupBy2Command(PCommand):
                         calcdict['a'][cleft] = cleft
                     calcdict['flags'].append(cleft)
                 # sys.__stderr__.write(repr(calcdict))
-
-                cmd[i] <<= nm.mread(i=cmd_i)
                 
                 # sanitize if needed
                 if cs not in supports_str:
