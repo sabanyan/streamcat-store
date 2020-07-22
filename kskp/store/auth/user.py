@@ -20,8 +20,8 @@ class User(BaseModel):
     email         = Column(String, nullable=False, unique=True)
     password      = Column(String)
     name          = Column(String, nullable=False)
-    # 本人グループのGroupId
-    self_group_id = Column(INTEGER, nullable=True)
+    # 本人ロールのRoleId
+    self_role_id = Column(INTEGER, nullable=True)
     _creator_id   = Column('creator', INTEGER)
     _modifier_id  = Column('modifier', INTEGER)
     created_at    = Column(TIMESTAMP, default=text('statement_timestamp()'))
@@ -84,7 +84,7 @@ class User(BaseModel):
 
     # def _require_admin_auth(func):
     #     """
-    #     操作ユーザがadminグループに所属していない場合は例外を送出する
+    #     操作ユーザがadminロールに所属していない場合は例外を送出する
     #     """
     #     @functools.wraps(func)
     #     def wrapper(self, *args, **kwargs):
@@ -99,7 +99,7 @@ class User(BaseModel):
     #         """.format(creator=str(self.creator))
     #         # SQLを発行する
     #         count = session.execute(sql).scalar()
-    #         # creatorはadminグループに所属していない場合は0件となる
+    #         # creatorはadminロールに所属していない場合は0件となる
     #         if count == 0:
     #             pprint.pprint(func)
     #             raise Exception("user id (%s) is not authorized to call function (%s.%s)." 
@@ -134,8 +134,8 @@ class User(BaseModel):
         self._session.update(self)
         self._session.commit()
 
-    def update_self_group_id(self, new_group_id, modifier=None):
-        self.self_group_id = new_group_id
+    def update_self_role_id(self, new_role_id, modifier=None):
+        self.self_role_id = new_role_id
         if modifier is None:
             self._modifier_id = self._session.user and self._session.user.id
         else:
@@ -147,10 +147,10 @@ class User(BaseModel):
         """
         Userを削除する
         """
-        from kskp.store.factory import UserGroupFactory
-        # users_groupsテーブルから全ての削除ユーザの行を削除する
-        user_group_factory = UserGroupFactory(self._session)
-        user_group_factory.delete_all_by_user_id(self.id)
+        from kskp.store.factory import UserRoleFactory
+        # users_rolesテーブルから全ての削除ユーザの行を削除する
+        user_role_factory = UserRoleFactory(self._session)
+        user_role_factory.delete_all_by_user_id(self.id)
         # usersテーブルから削除ユーザの行を削除する
         self._session.delete(self)
         self._session.commit()
@@ -176,9 +176,9 @@ class User(BaseModel):
         #               where D.id = A.datum_id
         #                 and D.uuid = uuid)
         #   and exists (select * from groups G
-        #               where G.id = A.group_id
+        #               where G.id = A.role_id
         #                 and exists (select * from users_groups UG
-        #                             where UG.group_id = G.id
+        #                             where UG.role_id = G.id
         #                               and exists (select * from users U
         #                                           where U.id = UG.user_id
         #                                             and U.id = self.id) ))
@@ -187,27 +187,27 @@ class User(BaseModel):
         pass
 
 
-    def load_self_group(self):
+    def load_self_role(self):
         """
-        本人グループを取得する
+        本人ロールを取得する
         """
-        from kskp.store.factory import GroupFactory
-        group_factory = GroupFactory(self._session)
+        from kskp.store.factory import RoleFactory
+        role_factory = RoleFactory(self._session)
 
-        if self.self_group_id is None:
-            # 本人グループを作成する
-            self_group = group_factory.create(self.name)
-            self_group.save()
-            # 本人グループを設定する
-            self.update_self_group_id(self_group.id)
+        if self.self_role_id is None:
+            # 本人ロールを作成する
+            self_role = role_factory.create(self.name)
+            self_role.save()
+            # 本人ロールを設定する
+            self.update_self_role_id(self_role.id)
         else:
-            self_group = group_factory.find_by_id(self.self_group_id)
-            if self_group is None:
-                raise Exception(f'本人グループ({self.self_group_id})は存在しません')
+            self_role = role_factory.find_by_id(self.self_role_id)
+            if self_role is None:
+                raise Exception(f'本人ロール({self.self_role_id})は存在しません')
 
-        self_group.join_user(self)
+        self_role.join_user(self)
 
-        return self_group
+        return self_role
 
     def __repr__(self):
         return f'User({self.id}, {self.name})'

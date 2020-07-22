@@ -8,7 +8,7 @@ class TestCaseBase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         # 管理者ユーザを取得する
-        from kskp.store.auth import Auth, Group, User
+        from kskp.store.auth import Auth, Role, User
         with UnAuthzFactory() as factory:
             admin_user = factory.find_user_by_email('admin@kskp.io')
         # 管理者ユーザのFactoryをOpenする
@@ -18,9 +18,9 @@ class TestCaseBase(unittest.TestCase):
         # テストユーザを作成する
         test_user = cls.factory.user.create('test@kskp.io', 'testpass', 'Test')
         test_user.save()
-        # EveryOneグループにテストユーザを加える
-        everyone_group = cls.factory.group.load_everyone_group()
-        everyone_group.join_user(test_user)
+        # EveryOneロールにテストユーザを加える
+        everyone_role = cls.factory.role.load_everyone_role()
+        everyone_role.join_user(test_user)
         # テストユーザのFactoryをOpenする
         cls.factory2 = Factory(test_user)
         # クラス変数に設定する

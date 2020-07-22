@@ -3,11 +3,11 @@ import uuid
 from sqlalchemy import Column, String, text
 from sqlalchemy.dialects.postgresql import INTEGER, TIMESTAMP, UUID
 from kskp.store import BaseModel
-from .user_group import UserGroup
+from .user_role import UserRole
 
-class Group(BaseModel):
+class Role(BaseModel):
     # テーブル名の定義
-    __tablename__ = 'groups'
+    __tablename__ = 'roles'
 
     # 定義先スキーマ
     if 'KSKP_POSTGRESQL_SCHEMA_NAME' in os.environ:
@@ -24,10 +24,10 @@ class Group(BaseModel):
     created_at   = Column(TIMESTAMP, default=text('statement_timestamp()'))
     modified_at  = Column(TIMESTAMP, default=text('statement_timestamp()'), onupdate=text('statement_timestamp()'))
 
-    ADMIN_GROUP_UUID    = 'aa19bfb3-1409-4082-98e3-c497849d6235'
-    ADMIN_GROUP_LABEL   = 'ADMIN'
-    EVERYONE_GROUP_UUID  = 'ee16239b-5ffd-447c-9d05-411906ad7364'
-    EVERYONE_GROUP_LABEL = 'EVERYONE'
+    ADMIN_ROLE_UUID    = 'aa19bfb3-1409-4082-98e3-c497849d6235'
+    ADMIN_ROLE_LABEL   = 'ADMIN'
+    EVERYONE_ROLE_UUID  = 'ee16239b-5ffd-447c-9d05-411906ad7364'
+    EVERYONE_ROLE_LABEL = 'EVERYONE'
 
     def __init__(self, session, name):
         """
@@ -63,9 +63,9 @@ class Group(BaseModel):
 
     def save(self):
         """
-        Groupを保存する
+        Roleを保存する
         """
-        # Groupsテーブルにレコードを新規追加する
+        # Rolesテーブルにレコードを新規追加する
         self._session.add(self)
         self._session.commit()
 
@@ -75,44 +75,44 @@ class Group(BaseModel):
     def delete(self):
         from .auth import Auth
 
-        # グループに一人以上のユーザが所属している場合は例外を送出する
-        count = self._session.query(UserGroup).filter(UserGroup.group_id == self.id).count()
+        # ロールに一人以上のユーザが所属している場合は例外を送出する
+        count = self._session.query(UserRole).filter(UserRole.role_id == self.id).count()
         if count > 0:
-            raise Exception('Can not delete the group that has user(s).')
-        # 削除によってどのグループからも所有されなくなるデータがある場合は例外を送出する
-        count = self._session.query(Auth).filter(Auth.group_id == self.id)\
+            raise Exception('Can not delete the role that has user(s).')
+        # 削除によってどのロールからも所有されなくなるデータがある場合は例外を送出する
+        count = self._session.query(Auth).filter(Auth.role_id == self.id)\
                                         .filter(Auth.own == 1).count()
-        # 削除グループに対する権限情報をauthsテーブルから全て削除する
+        # 削除ロールに対する権限情報をauthsテーブルから全て削除する
 
-        # グループを削除する
+        # ロールを削除する
         # sys.__stderr__.write(f"self.id: {self.id}\n")
         self._session.delete(self)
         self._session.commit()
 
     def is_joined_user(self, user):
-        count = self._session.query(UserGroup).filter(UserGroup.group_id==self.id).filter(UserGroup.user_id==user.id).count()
+        count = self._session.query(UserRole).filter(UserRole.role_id==self.id).filter(UserRole.user_id==user.id).count()
         return count > 0
 
     def has_joined_user(self):
-        count = self._session.query(UserGroup).filter(UserGroup.group_id==self.id).count()
+        count = self._session.query(UserRole).filter(UserRole.role_id==self.id).count()
         return count > 0
 
     def join_user(self, user):
         """
-        グループにユーザを所属させる
+        ロールにユーザを所属させる
         """
         if not self.is_joined_user(user):
-            user_group = UserGroup(self._session, user.id, self.id)
-            user_group.save()
+            user_role = UserRole(self._session, user.id, self.id)
+            user_role.save()
     
     def leave_user(self, user):
         """
-        グループからユーザを脱退させる
+        ロールからユーザを脱退させる
         """
         if self.is_joined_user(user):
-            from kskp.store.factory import UserGroupFactory
-            user_group = UserGroupFactory(self._session).find_by_id(user.id, self.id)
-            user_group.delete()
+            from kskp.store.factory import UserRoleFactory
+            user_role = UserRoleFactory(self._session).find_by_id(user.id, self.id)
+            user_role.delete()
 
     def init_authz(self, datum_id, read, write, exec=None):
         from .auth import Auth

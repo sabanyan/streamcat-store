@@ -29,7 +29,7 @@ class AuthTest(TestCaseBase):
         self.assertEqual(new_user.email, 'test-man@kskp.io')
         self.assertEqual(new_user.password, 'a7c87fc346ff10b75e7b83a3bf0f51cf449b6dcdc626a9ddffc0a88ec2d7bd91')
         self.assertEqual(new_user.name, 'I AM TEST')
-        self.assertIsNone(new_user.self_group_id)
+        self.assertIsNone(new_user.self_role_id)
         self.assertEqual(new_user.creator, self.USER1)
         self.assertEqual(new_user.modifier, self.USER1)
         self.assertIsNotNone(new_user.created_at)
@@ -42,64 +42,64 @@ class AuthTest(TestCaseBase):
         with self.assertRaises(NoResultFound):
             self.factory.user.find_by_email('test-man@kskp.io')
 
-    def test_create_get_delete_group(self):
+    def test_create_get_delete_role(self):
         """
-        Groupの作成・取得・削除を検証する
+        Roleの作成・取得・削除を検証する
         """
-        # 新規グループを追加する
-        new_group = self.factory.group.create('TEST GROUP')
-        new_group.save()
+        # 新規ロールを追加する
+        new_role = self.factory.role.create('TEST ROLE')
+        new_role.save()
 
-        # 新規グループを取得する
-        new_group = self.factory.group.find_by_id(new_group.id)
-        # 取得したグループの値を検証する
-        self.assertIsNotNone(new_group.id)
-        self.assertIsNotNone(new_group.uuid)
-        self.assertEqual(new_group.name, 'TEST GROUP')
-        self.assertEqual(new_group.creator, self.USER1)
-        self.assertEqual(new_group.modifier, self.USER1)
-        self.assertIsNotNone(new_group.created_at)
-        self.assertIsNotNone(new_group.modified_at)
-        self.assertEqual(new_group.created_at, new_group.modified_at)
+        # 新規ロールを取得する
+        new_role = self.factory.role.find_by_id(new_role.id)
+        # 取得したロールの値を検証する
+        self.assertIsNotNone(new_role.id)
+        self.assertIsNotNone(new_role.uuid)
+        self.assertEqual(new_role.name, 'TEST ROLE')
+        self.assertEqual(new_role.creator, self.USER1)
+        self.assertEqual(new_role.modifier, self.USER1)
+        self.assertIsNotNone(new_role.created_at)
+        self.assertIsNotNone(new_role.modified_at)
+        self.assertEqual(new_role.created_at, new_role.modified_at)
 
         # 新規ユーザを削除する
-        new_group.delete()
+        new_role.delete()
         # 削除後のユーザは取得できない
         with self.assertRaises(NoResultFound):
-            self.factory.group.find_by_uuid(new_group.uuid)
+            self.factory.role.find_by_uuid(new_role.uuid)
     
-    def test_join_leave_group(self):
+    def test_join_leave_role(self):
         """
-        Groupへの参加と脱退を検証する
+        Roleへの参加と脱退を検証する
         """
-        # 新規グループを追加する
-        new_group = self.factory.group.create('グループ')
-        new_group.save()
+        # 新規ロールを追加する
+        new_role = self.factory.role.create('ロール')
+        new_role.save()
 
-        # 新規グループにユーザを参加させる
-        new_group.join_user(self.USER2)
+        # 新規ロールにユーザを参加させる
+        new_role.join_user(self.USER2)
 
-        # UserGroupを取得する
-        user_group = self.factory.user_group.find_by_id(self.USER2.id, new_group.id)
-        # 取得したUserGroupを検証する
-        self.assertIsNotNone(user_group.user_id, self.USER2.id)
-        self.assertIsNotNone(user_group.group_id, new_group.id)
-        self.assertEqual(user_group.creator, self.USER1)
-        self.assertEqual(user_group.modifier, self.USER1)
-        self.assertIsNotNone(user_group.created_at)
-        self.assertIsNotNone(user_group.modified_at)
-        self.assertEqual(user_group.created_at, user_group.modified_at)
+        # UserRoleを取得する
+        user_role = self.factory.user_role.find_by_id(self.USER2.id, new_role.id)
+        # 取得したUserRoleを検証する
+        self.assertIsNotNone(user_role.user_id, self.USER2.id)
+        self.assertIsNotNone(user_role.role_id, new_role.id)
+        self.assertEqual(user_role.creator, self.USER1)
+        self.assertEqual(user_role.modifier, self.USER1)
+        self.assertIsNotNone(user_role.created_at)
+        self.assertIsNotNone(user_role.modified_at)
+        self.assertEqual(user_role.created_at, user_role.modified_at)
         
         # ユーザを脱退させる
-        new_group.leave_user(self.USER2)
+        new_role.leave_user(self.USER2)
 
     def test_create_get_delete_auth(self):
         """
         Authの作成・取得・削除を検証する
         """
-        # 新規グループを追加する
-        new_group = self.factory.group.create('権限グループ')
-        new_group.save()
+        # 新規ロールを追加する
+        new_role = self.factory.role.create('権限ロール')
+        new_role.save()
 
         # ルートフォルダを取得する
         root = self.factory.data.load_root()
@@ -109,13 +109,13 @@ class AuthTest(TestCaseBase):
         folder = self.factory.data.find_by_id(folder.id)
 
         # 新規権限を追加する
-        new_auth = self.factory.auth.create(new_group.id, folder.id, Auth.WRITE_OP, True)
+        new_auth = self.factory.auth.create(new_role.id, folder.id, Auth.WRITE_OP, True)
         new_auth.save()
 
         # 新規権限を取得する
-        new_auth = self.factory.auth.find_by_id(new_group.id, folder.id, Auth.WRITE_OP)
+        new_auth = self.factory.auth.find_by_id(new_role.id, folder.id, Auth.WRITE_OP)
         # 取得した権限を検証する
-        self.assertIsNotNone(new_auth.group_id, new_group.id)
+        self.assertIsNotNone(new_auth.role_id, new_role.id)
         self.assertIsNotNone(new_auth.datum_id, folder.id)
         self.assertIsNotNone(new_auth.operation, Auth.WRITE_OP)
         self.assertIsNotNone(new_auth.permission, True)
@@ -129,7 +129,7 @@ class AuthTest(TestCaseBase):
         folder.delete()
         # 削除後の権限は取得できない
         with self.assertRaises(Exception):
-            self.factory.auth.find_by_id(new_group.id, folder.id, Auth.WRITE_OP)
+            self.factory.auth.find_by_id(new_role.id, folder.id, Auth.WRITE_OP)
 
 
     def test_no_authz(self):
@@ -304,10 +304,10 @@ class AuthTest(TestCaseBase):
         self.factory.auth.delete_all_by_datum_id(flow.id)
 
         # ロールAを作成する
-        roleA = self.factory.group.create('roleA')
+        roleA = self.factory.role.create('roleA')
         roleA.save()
         # ロールBを作成する
-        roleB = self.factory.group.create('roleB')
+        roleB = self.factory.role.create('roleB')
         roleB.save()
 
         # ロールAにフローの参照・更新許可を付与する
@@ -411,7 +411,7 @@ class AuthTest(TestCaseBase):
 
         
         # 移動元フォルダを参照不可にする
-        everyone_role = self.factory.group.load_everyone_group()
+        everyone_role = self.factory.role.load_everyone_role()
         everyone_role.init_authz(from_folder.id, False, True)
         # 移動先フォルダを参照・更新可能にする
         everyone_role.init_authz(to_folder.id, True, True)
@@ -441,7 +441,7 @@ class AuthTest(TestCaseBase):
         flow.save()
         
         # 移動元フォルダを更新不可にする
-        everyone_role = self.factory.group.load_everyone_group()
+        everyone_role = self.factory.role.load_everyone_role()
         everyone_role.init_authz(from_folder.id, True, False)
         # 移動先フォルダを更新不可にする
         everyone_role.init_authz(to_folder.id, True, False)
@@ -474,7 +474,7 @@ class AuthTest(TestCaseBase):
         flow.save()
 
         # 移動先フォルダを更新不可にする
-        everyone_role = self.factory.group.load_everyone_group()
+        everyone_role = self.factory.role.load_everyone_role()
         everyone_role.init_authz(to_folder.id, True, False)
         # フローを参照・更新可能にする
         everyone_role.init_authz(flow.id, True, True)
@@ -505,7 +505,7 @@ class AuthTest(TestCaseBase):
         flow.save()
 
         # フォルダ1を更新不可にする
-        everyone_role = self.factory.group.load_everyone_group()
+        everyone_role = self.factory.role.load_everyone_role()
         everyone_role.init_authz(folder1.id, True, False)
         
         # フォルダ1は更新できない
@@ -538,7 +538,7 @@ class AuthTest(TestCaseBase):
         flow1.save()
 
         # フローを更新不可にする
-        everyone_role = self.factory.group.load_everyone_group()
+        everyone_role = self.factory.role.load_everyone_role()
         everyone_role.init_authz(flow1.id, True, False)
 
         # フォルダAをほかす

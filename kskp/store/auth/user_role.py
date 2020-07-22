@@ -3,13 +3,13 @@ from sqlalchemy import Column, text, PrimaryKeyConstraint
 from sqlalchemy.dialects.postgresql import INTEGER, TIMESTAMP
 from kskp.store import BaseModel
 
-class UserGroup(BaseModel):
+class UserRole(BaseModel):
     # テーブル名の定義
-    __tablename__ = 'users_groups'
+    __tablename__ = 'users_roles'
 
     # テーブルの制約
     __table_args__ = (
-        PrimaryKeyConstraint('user_id', 'group_id'),
+        PrimaryKeyConstraint('user_id', 'role_id'),
     )
 
     # 定義先スキーマ
@@ -19,13 +19,13 @@ class UserGroup(BaseModel):
 
     # 列名と列のデータ型等の定義
     user_id      = Column(INTEGER, primary_key=True)
-    group_id     = Column(INTEGER, primary_key=True)
+    role_id     = Column(INTEGER, primary_key=True)
     _creator_id  = Column('creator', INTEGER)
     _modifier_id = Column('modifier', INTEGER)
     created_at   = Column(TIMESTAMP, default=text('statement_timestamp()'))
     modified_at  = Column(TIMESTAMP, default=text('statement_timestamp()'), onupdate=text('statement_timestamp()'))
 
-    def __init__(self, session, user_id, group_id):
+    def __init__(self, session, user_id, role_id):
         """
         コンストラクタ
         """
@@ -33,7 +33,7 @@ class UserGroup(BaseModel):
         self._session = session
 
         self.user_id = user_id
-        self.group_id = group_id
+        self.role_id = role_id
 
         # creator, modifier
         if session is not None and session.user is not None:
@@ -56,14 +56,14 @@ class UserGroup(BaseModel):
 
     def save(self):
         """
-        UserGroupを保存する
+        UserRoleを保存する
         """
         self._session.add(self)
         self._session.commit()
 
     def delete(self):
         """
-        UserGroupを削除する
+        UserRoleを削除する
         """
         self._session.delete(self)
         self._session.commit()
