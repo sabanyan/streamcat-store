@@ -23,8 +23,8 @@ class Factory():
         self._data = DatumFactory(self._session)
         self._store = StoreFactory(self._session)
         self._auth = AuthFactory(self._session)
-        self._group = GroupFactory(self._session)
-        self._user_group = UserGroupFactory(self._session)
+        self._role = RoleFactory(self._session)
+        self._user_role = UserRoleFactory(self._session)
         self._user = UserFactory(self._session)
 
     def __enter__(self):
@@ -49,12 +49,12 @@ class Factory():
         return self._auth
 
     @property
-    def group(self):
-        return self._group
+    def role(self):
+        return self._role
 
     @property
-    def user_group(self):
-        return self._user_group
+    def user_role(self):
+        return self._user_role
 
     @property
     def user(self):
@@ -91,11 +91,11 @@ class UnAuthzFactory():
         #     user.session = self._session
         return user
 
-    def load_admin_group(self):
-        group = GroupFactory(self._session).load_admin_group()
-        # if group is not None:
-        #     group.session = self._session
-        return group
+    def load_admin_role(self):
+        role = RoleFactory(self._session).load_admin_role()
+        # if role is not None:
+        #     role.session = self._session
+        return role
 
     def __enter__(self):
         return self
@@ -238,26 +238,26 @@ class DatumFactory():
             new_root.save()
 
             # 
-            # ルートフォルダにAdminグループの権限設定がない場合、初期値を設定する
+            # ルートフォルダにAdminロールの権限設定がない場合、初期値を設定する
             # (後方互換)
             # 
-            from kskp.store.factory import GroupFactory, AuthFactory
-            group_factory = GroupFactory(self._session)
+            from kskp.store.factory import RoleFactory, AuthFactory
+            role_factory = RoleFactory(self._session)
             auth_factory = AuthFactory(self._session)
 
-            admin_group = group_factory.load_admin_group()
-            admin_group.join_user(self._session.user)
-            if not auth_factory.exists(admin_group.id, new_root.id):
-                admin_group.init_authz(new_root.id, True, True)
+            admin_role = role_factory.load_admin_role()
+            admin_role.join_user(self._session.user)
+            if not auth_factory.exists(admin_role.id, new_root.id):
+                admin_role.init_authz(new_root.id, True, True)
 
             # 
-            # ルートフォルダにEveryOneグループの権限設定がない場合、初期値を設定する
+            # ルートフォルダにEveryOneロールの権限設定がない場合、初期値を設定する
             # (後方互換)
             # 
-            everyone_group = group_factory.load_everyone_group()
-            everyone_group.join_user(self._session.user)
-            if not auth_factory.exists(everyone_group.id, new_root.id):
-                everyone_group.init_authz(new_root.id, True, True)
+            everyone_role = role_factory.load_everyone_role()
+            everyone_role.join_user(self._session.user)
+            if not auth_factory.exists(everyone_role.id, new_root.id):
+                everyone_role.init_authz(new_root.id, True, True)
 
             # 参照権限設定後にもう一度取得し直す
             root = self.find_by_uuid(new_root.uuid)
@@ -420,21 +420,21 @@ class AuthFactory():
     def __init__(self, session):
         self._session = session
 
-    def create(self, group_id, datum_id, operation, permission):
+    def create(self, role_id, datum_id, operation, permission):
         from kskp.store.auth import Auth
-        return Auth(self._session, group_id, datum_id, operation, permission)
+        return Auth(self._session, role_id, datum_id, operation, permission)
 
-    def find_by_id(self, group_id, datum_id, operation):
+    def find_by_id(self, role_id, datum_id, operation):
         from kskp.store.auth import Auth
         # SQLAlchemyのidentity mapにキャッシュされていればそれを返す
-        authz = self._session.query(Auth).get((group_id, datum_id, operation))
+        authz = self._session.query(Auth).get((role_id, datum_id, operation))
         if authz is None:
             raise Exception('No authz is found by designated store id')
         return authz
 
-    def exists(self, group_id, datum_id, operation=None) -> bool:
+    def exists(self, role_id, datum_id, operation=None) -> bool:
         from kskp.store.auth import Auth
-        query = self._session.query(Auth).filter(Auth.group_id==group_id)\
+        query = self._session.query(Auth).filter(Auth.role_id==role_id)\
                                          .filter(Auth.datum_id==datum_id)
         if operation is not None:
             query = query.filter(Auth.operation==operation)
@@ -450,70 +450,70 @@ class AuthFactory():
         self._session.commit()
 
 
-from kskp.store.auth import Group
+from kskp.store.auth import Role
 
-class GroupFactory():
+class RoleFactory():
     def __init__(self, session):
         self._session = session
 
     def create(self, name):
-        from kskp.store.auth import Group
-        return Group(self._session, name)
+        from kskp.store.auth import Role
+        return Role(self._session, name)
 
-    def find_by_id(self, group_id) -> Group:
-        return self._session.query(Group).filter(Group.id == group_id).one()
+    def find_by_id(self, role_id) -> Role:
+        return self._session.query(Role).filter(Role.id == role_id).one()
 
-    def find_by_uuid(self, uuid) -> Group:
-        return self._session.query(Group).filter(Group.uuid == uuid).one()
+    def find_by_uuid(self, uuid) -> Role:
+        return self._session.query(Role).filter(Role.uuid == uuid).one()
 
     def find_all(self):
         """
         全件取得する
         """
-        return self._session.query(Group).all()
+        return self._session.query(Role).all()
 
-    def load_admin_group(self):
-        if self.exists(Group.ADMIN_GROUP_UUID):
-            admin_group = self.find_by_uuid(Group.ADMIN_GROUP_UUID)
+    def load_admin_role(self):
+        if self.exists(Role.ADMIN_ROLE_UUID):
+            admin_role = self.find_by_uuid(Role.ADMIN_ROLE_UUID)
         else:
-            admin_group = Group(self._session, Group.ADMIN_GROUP_LABEL)
+            admin_role = Role(self._session, Role.ADMIN_ROLE_LABEL)
             # コンストラクタで付番したUUIDを捨てて、特定用途のUUIDを格納する
-            admin_group.uuid = Group.ADMIN_GROUP_UUID
-            admin_group.save()
-        return admin_group
+            admin_role.uuid = Role.ADMIN_ROLE_UUID
+            admin_role.save()
+        return admin_role
 
-    def load_everyone_group(self):
-        if self.exists(Group.EVERYONE_GROUP_UUID):
-            everyone_group = self.find_by_uuid(Group.EVERYONE_GROUP_UUID)
+    def load_everyone_role(self):
+        if self.exists(Role.EVERYONE_ROLE_UUID):
+            everyone_role = self.find_by_uuid(Role.EVERYONE_ROLE_UUID)
         else:
-            everyone_group = Group(self._session, Group.EVERYONE_GROUP_LABEL)
+            everyone_role = Role(self._session, Role.EVERYONE_ROLE_LABEL)
             # コンストラクタで付番したUUIDを捨てて、特定用途のUUIDを格納する
-            everyone_group.uuid = Group.EVERYONE_GROUP_UUID
-            everyone_group.save()
+            everyone_role.uuid = Role.EVERYONE_ROLE_UUID
+            everyone_role.save()
 
-        return everyone_group
+        return everyone_role
 
     def exists(self, uuid) -> bool:
-        count = self._session.query(Group).filter(Group.uuid==uuid).count()
+        count = self._session.query(Role).filter(Role.uuid==uuid).count()
         return count > 0
 
-from kskp.store.auth import UserGroup
+from kskp.store.auth import UserRole
 
-class UserGroupFactory():
+class UserRoleFactory():
     def __init__(self, session):
         self._session = session
 
-    def find_by_id(self, user_id, group_id) -> UserGroup:
-        return self._session.query(UserGroup).\
-                       filter(UserGroup.user_id==user_id).\
-                       filter(UserGroup.group_id==group_id).\
+    def find_by_id(self, user_id, role_id) -> UserRole:
+        return self._session.query(UserRole).\
+                       filter(UserRole.user_id==user_id).\
+                       filter(UserRole.role_id==role_id).\
                        one()
 
     def delete_all_by_user_id(self, user_id):
         """
-        UsersGroupsテーブルから指定したユーザの所属情報を全て削除する
+        UsersRolesテーブルから指定したユーザの所属情報を全て削除する
         """
-        self._session.query(UserGroup).filter(UserGroup.user_id==user_id).delete()
+        self._session.query(UserRole).filter(UserRole.user_id==user_id).delete()
         self._session.commit()
 
 
@@ -531,7 +531,7 @@ class UserFactory():
         # SQLAlchemyのidentity mapにキャッシュされていればそれを返す
         user = self._session.query(User).get(user_id)
         if user is None:
-            raise Exception('No user is found by designated store id')
+            raise Exception(f'No user is found by designated user_id({user_id})')
         return user
 
     def find_by_uuid(self, uuid) -> User:

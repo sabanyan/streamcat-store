@@ -96,12 +96,12 @@ from .store_model import Store as StoreModel
 
 from ..depo.std.commands import CommandLink, CommandsPathLink, CommandsPathFileSource, RunfuncCommand
 
-# 管理者グループと管理者ユーザを作成する
+# 管理者ロールと管理者ユーザを作成する
 # (とりあえず、権限管理のないsessionで作成する)
 from kskp.store.factory import UnAuthzFactory
-from kskp.store.auth import add_admin_user_and_group
-with UnAuthzFactory() as db_session:
-    add_admin_user_and_group(db_session)
+from kskp.store.auth import add_admin_user_and_role
+with UnAuthzFactory() as factory:
+    add_admin_user_and_role(factory)
 
 # テーブルを作成する
 BaseModel.metadata.create_all(bind=engine, checkfirst=True)

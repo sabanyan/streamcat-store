@@ -105,7 +105,7 @@ class AuthzSession(Session):
         if inspect.isclass(datum_type) and hasattr(datum_type, '__tablename__') and datum_type.__tablename__ == 'data':
 
             # 下記を両方満たす場合にのみreadable=Trueとする
-            # ・ユーザが属する全てのグループについて、Datumを参照する権限がTrue
+            # ・ユーザが属する全てのロールについて、Datumを参照する権限がTrue
             # ・Datumが属する全ての親フォルダについて、Datumを参照する権限がTrue
             readable_query = self._readable_query
 
@@ -124,7 +124,7 @@ class AuthzSession(Session):
         from sqlalchemy.sql.expression import select, func, literal_column, text, false
         from kskp.core import Datum
         from .auth import Auth
-        from .user_group import UserGroup
+        from .user_role import UserRole
 
         # 相関条件を記述するとSQLAlchemyがFROM句にdataテーブルを追加するので、
         # それを回避するためtextで記述する
@@ -143,10 +143,10 @@ class AuthzSession(Session):
                 select_from(R.join(D, D.id==R.c.parent_id))
             )
 
-        # select_from(Auth.join(Group, ...))と記述できないので、select()が使えない、そのためquery()を使う
+        # select_from(Auth.join(Role, ...))と記述できないので、select()が使えない、そのためquery()を使う
         subquery = self._session.query(func.coalesce(func.bool_and(Auth.permission),false()).label("read")).\
-                                outerjoin(UserGroup, UserGroup.group_id==Auth.group_id).\
-                                filter(UserGroup.user_id==self.user.id).\
+                                outerjoin(UserRole, UserRole.role_id==Auth.role_id).\
+                                filter(UserRole.user_id==self.user.id).\
                                 filter(Auth.datum_id==R.c.id).\
                                 filter(Auth.operation==Auth.READ_OP).label('')
 
@@ -165,7 +165,7 @@ class AuthzSession(Session):
     def add(self, obj):
         from kskp.core import Datum
         from kskp.store import Folder
-        from .group import Group
+        from .role import Role
 
         if isinstance(obj, Datum):
             # Datumの新規追加時はその親フォルダの変更権限を判定する
@@ -181,18 +181,17 @@ class AuthzSession(Session):
             self._session.flush([obj])
             self._session.expire(obj, ['readable'])
 
-            # everyoneグループが無ければ作成し、ユーザをeveryoneグループに所属させる
-            # everyone_group = Group.load_everyone_group()
-            from kskp.store.factory import GroupFactory
-            everyone_group = GroupFactory(self).load_everyone_group()
-            everyone_group.join_user(self.user)
-            # everyoneグループへ追加データの権限を付与する
-            everyone_group.init_authz(obj.id, True, True)
+            # everyoneロールが無ければ作成し、ユーザをeveryoneロールに所属させる
+            from kskp.store.factory import RoleFactory
+            everyone_role = RoleFactory(self).load_everyone_role()
+            everyone_role.join_user(self.user)
+            # everyoneロールへ追加データの権限を付与する
+            everyone_role.init_authz(obj.id, True, True)
 
-            # 本人グループが無ければ作成し、ユーザを本人グループに所属させる
-            self_group = self.user.load_self_group()
-            # 本人グループへ追加データの権限を付与する
-            self_group.init_authz(obj.id, True, True)
+            # 本人ロールが無ければ作成し、ユーザを本人ロールに所属させる
+            self_role = self.user.load_self_role()
+            # 本人ロールへ追加データの権限を付与する
+            self_role.init_authz(obj.id, True, True)
 
         else:
             if not self.has_admin():
@@ -246,13 +245,13 @@ class AuthzSession(Session):
         from sqlalchemy import func, false
         from sqlalchemy.orm import aliased
         from .auth import Auth
-        from .user_group import UserGroup
+        from .user_role import UserRole
 
         A = aliased(Auth, name='A')
-        UG = aliased(UserGroup, name='UG')
+        UG = aliased(UserRole, name='UG')
 
         query = self._session.query(func.coalesce(func.bool_and(A.permission),false()).label("write")).\
-                              outerjoin(UG, UG.group_id==A.group_id).\
+                              outerjoin(UG, UG.role_id==A.role_id).\
                               filter(UG.user_id==self.user.id).\
                               filter(A.operation==A.WRITE_OP)
 
@@ -265,10 +264,10 @@ class AuthzSession(Session):
         else:
             # 親フォルダとDatumの両方の書き込み権限がある場合にのみ、書き込みOKの判定をする
             A0 = aliased(Auth, name='A0')
-            UG0 = aliased(UserGroup, name='UG0')
+            UG0 = aliased(UserRole, name='UG0')
 
             subquery = self._session.query(func.coalesce(func.bool_and(A0.permission),false()).label('write')).\
-                        select_from(UG0).outerjoin(A0, UG0.group_id==A0.group_id).\
+                        select_from(UG0).outerjoin(A0, UG0.role_id==A0.role_id).\
                         filter(UG0.user_id==UG.user_id).\
                         filter(A0.operation==A.operation).\
                         filter(A0.datum_id==datum.parent_id).label('')
@@ -281,13 +280,13 @@ class AuthzSession(Session):
         return result.write == True
 
     def has_admin(self):
-        from .user_group import UserGroup
-        from .group import Group
+        from .user_role import UserRole
+        from .role import Role
 
-        subquery = self._session.query(Group).\
-                                 outerjoin(UserGroup, UserGroup.group_id==Group.id).\
-                                 filter(Group.uuid == Group.ADMIN_GROUP_UUID).\
-                                 filter(UserGroup.user_id==self.user.id)
+        subquery = self._session.query(Role).\
+                                 outerjoin(UserRole, UserRole.role_id==Role.id).\
+                                 filter(Role.uuid == Role.ADMIN_ROLE_UUID).\
+                                 filter(UserRole.user_id==self.user.id)
 
         ret = self._session.query(subquery.exists())
 
