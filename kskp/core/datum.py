@@ -51,6 +51,7 @@ class Datum(BaseModel):
     FLOW_TYPE   = 'flow'
     FRAME_TYPE  = 'frame'
     TRASH_TYPE = 'trash'
+    COMMAND_TYPE = 'command'
 
     RESULT_FOLDER_UUID  = 'aacb4914-0695-40fc-b14b-95b7f1f81707'
     RESULT_FOLDER_LABEL = '実行結果'
@@ -77,7 +78,7 @@ class Datum(BaseModel):
     _path        = Column('path', PathType, nullable=False)
     _label       = Column('label', String)
     # PostgreSQLのENUM型の要素を変更してもSQLAlchemyから自動的に変更がかからないので手動で変更する必要がある
-    type         = Column(ENUM(FOLDER_TYPE, PROJECT_TYPE, AWSS3_TYPE, RFOLDER_TYPE, DATABASE_TYPE, FLOW_TYPE, FRAME_TYPE, TRASH_TYPE, name='data_type'), nullable=False)
+    type         = Column(ENUM(FOLDER_TYPE, PROJECT_TYPE, AWSS3_TYPE, RFOLDER_TYPE, DATABASE_TYPE, FLOW_TYPE, FRAME_TYPE, TRASH_TYPE, COMMAND_TYPE, name='data_type'), nullable=False)
     _data        = Column('data', JSONB)
     _creator_id  = Column('creator', INTEGER)
     _modifier_id = Column('modifier', INTEGER)
