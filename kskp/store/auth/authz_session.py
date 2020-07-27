@@ -121,9 +121,10 @@ class AuthzSession(Session):
     
     def _make_readable_query(self):
         from sqlalchemy.orm import aliased
-        from sqlalchemy.sql.expression import select, func, literal_column, text, false
+        from sqlalchemy.sql.expression import select, func, literal_column, text, false, and_
         from kskp.core import Datum
         from .auth import Auth
+        from .user import User
         from .user_role import UserRole
 
         # 相関条件を記述するとSQLAlchemyがFROM句にdataテーブルを追加するので、
@@ -145,8 +146,8 @@ class AuthzSession(Session):
 
         # select_from(Auth.join(Role, ...))と記述できないので、select()が使えない、そのためquery()を使う
         subquery = self._session.query(func.coalesce(func.bool_and(Auth.permission),false()).label("read")).\
-                                outerjoin(UserRole, UserRole.role_id==Auth.role_id).\
-                                filter(UserRole.user_id==self.user.id).\
+                                outerjoin(UserRole, and_(UserRole.role_id==Auth.role_id, UserRole.user_id==self.user.id)).\
+                                outerjoin(User, User.self_role_id==Auth.role_id).\
                                 filter(Auth.datum_id==R.c.id).\
                                 filter(Auth.operation==Auth.READ_OP).label('')
 
@@ -220,7 +221,6 @@ class AuthzSession(Session):
         # Sessionにあるobjを期限切れ状態にすることで、objの参照時にDBからリロードされるようにする
         self.expire(obj)
 
-
     def delete(self, obj):
         from kskp.core import Datum
         if isinstance(obj, Datum):
@@ -242,17 +242,19 @@ class AuthzSession(Session):
         """
         ユーザIDとDatumについて書き込み権限の有無を判定する
         """
-        from sqlalchemy import func, false
+        from sqlalchemy import func, false, and_
         from sqlalchemy.orm import aliased
         from .auth import Auth
+        from .user import User
         from .user_role import UserRole
 
         A = aliased(Auth, name='A')
-        UG = aliased(UserRole, name='UG')
+        U = aliased(User, name='U')
+        UR = aliased(UserRole, name='UR')
 
-        query = self._session.query(func.coalesce(func.bool_and(A.permission),false()).label("write")).\
-                              outerjoin(UG, UG.role_id==A.role_id).\
-                              filter(UG.user_id==self.user.id).\
+        query = self._session.query(func.coalesce(func.bool_and(A.permission),false()).label('write')).\
+                              outerjoin(UR, and_(UR.role_id==A.role_id, UR.user_id==self.user.id)).\
+                              outerjoin(U, U.self_role_id==A.role_id).\
                               filter(A.operation==A.WRITE_OP)
 
         if datum.parent_id is None:
@@ -264,11 +266,12 @@ class AuthzSession(Session):
         else:
             # 親フォルダとDatumの両方の書き込み権限がある場合にのみ、書き込みOKの判定をする
             A0 = aliased(Auth, name='A0')
-            UG0 = aliased(UserRole, name='UG0')
+            U0 = aliased(User, name='U0')
+            UR0 = aliased(UserRole, name='UR0')
 
-            subquery = self._session.query(func.coalesce(func.bool_and(A0.permission),false()).label('write')).\
-                        select_from(UG0).outerjoin(A0, UG0.role_id==A0.role_id).\
-                        filter(UG0.user_id==UG.user_id).\
+            subquery = self._session.query(func.coalesce(func.bool_and(A0.permission),false()).label('write_of_parent')).\
+                        select_from(A0).outerjoin(UR0, and_(UR0.role_id==A0.role_id, UR0.user_id==self.user.id)).\
+                        outerjoin(U0, U0.self_role_id==U.self_role_id).\
                         filter(A0.operation==A.operation).\
                         filter(A0.datum_id==datum.parent_id).label('')
 

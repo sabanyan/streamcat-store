@@ -205,8 +205,6 @@ class User(BaseModel):
             if self_role is None:
                 raise Exception(f'本人ロール({self.self_role_id})は存在しません')
 
-        self_role.join_user(self)
-
         return self_role
 
     def __repr__(self):
