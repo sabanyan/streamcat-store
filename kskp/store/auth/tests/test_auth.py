@@ -393,6 +393,85 @@ class AuthTest(TestCaseBase):
         with self.assertRaises(NotAuthorizedException):
             flow.flow_data.nodes
 
+    def test_read_flow_by_self_role(self):
+        """
+        本人グループにのみ参照可能なFlowを参照できること
+        """
+        # ルートフォルダを取得する
+        root = self.factory.data.load_root()
+        # ルートフォルダの下にフローを作成する
+        flow = root.create_flow('所有者のみ参照できるフロー', {})
+        flow.save()
+        
+        # フローの参照権限を全て削除する
+        self.factory.auth.delete_all_by_datum_id(flow.id)
+
+        # USER1の本人グループに参照権限を付与する
+        self.USER1.load_self_role().init_authz(flow.id, True, False)
+
+        # フローを再取得する
+        flow = flow.reload()
+
+        # フローは参照可能
+        self.assertTrue(flow.readable)
+
+    def test_write_flow_by_self_role(self):
+        """
+        本人グループにのみ更新可能なFlowを更新できること
+        """
+        # ルートフォルダを取得する
+        root = self.factory.data.load_root()
+        # ルートフォルダの下にフローを作成する
+        flow = root.create_flow('所有者のみ更新できるフロー', {})
+        flow.save()
+        
+        # フローの権限を全て削除する
+        self.factory.auth.delete_all_by_datum_id(flow.id)
+
+        # USER1の本人グループに更新権限を付与する
+        self.USER1.load_self_role().init_authz(flow.id, False, True)
+
+        # フローを再取得する
+        flow = flow.reload()
+
+        # フローは更新可能
+        flow.update_data('変更したフロー名', {})
+
+        # フローは更新されていること
+        self.assertEqual(flow.label, '変更したフロー名')
+
+    def test_write_flow_by_self_role2(self):
+        """
+        本人グループにのみ更新可能なフォルダ内にあるFlowを更新できること
+        """
+        # ルートフォルダを取得する
+        root = self.factory.data.load_root()
+        # ルートフォルダの下にフォルダを作成する
+        folder = root.create_folder('所有者のみ更新できるフォルダ')
+        folder.save()
+        # フォルダの下にフローを作成する
+        flow = folder.create_flow('フロー', {})
+        flow.save()
+
+        # フォルダとフローの権限を全て削除する
+        self.factory.auth.delete_all_by_datum_id(folder.id)
+        self.factory.auth.delete_all_by_datum_id(flow.id)
+
+        # USER1の本人グループに更新権限を付与する
+        self.USER1.load_self_role().init_authz(folder.id, False, True)
+        self.USER1.load_self_role().init_authz(flow.id, False, True)
+
+        # フォルダとフローを再取得する
+        folder = folder.reload()
+        flow = flow.reload()
+
+        # フローは更新可能
+        flow.update_data('変更したフロー名2', {})
+
+        # フローは更新されていること
+        self.assertEqual(flow.label, '変更したフロー名2')        
+
+
     def test_move(self):
         """
         必要最小限の権限設定でFlowを移動できること
