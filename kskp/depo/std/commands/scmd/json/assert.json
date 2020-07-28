@@ -1,0 +1,33 @@
+{
+  "version": "0.7.0",
+  "id": "assert",
+  "label": "test用",
+  "classification": "validation",
+  "description": "test command",
+  "ports": [
+    [
+      {
+        "name": "i",
+        "type": "frame"
+      },
+      {
+        "name": "m",
+        "type": "frame"
+      }
+    ],
+    [
+      {
+        "name": "o",
+        "type": "frame"
+      }
+    ]
+  ],
+  "params": [
+    {
+      "name": "dlimit",
+      "type": "string",
+      "label": "差分取得基準値(必須)"
+    }
+  ],
+  "url": ""
+}

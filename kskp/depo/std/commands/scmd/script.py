@@ -879,10 +879,15 @@ class ActivityCommand(SCommand):
         self.i_ports = [Port('*', 'datum')]
         self.o_ports = [Port('o', 'activity')]
 
+
     def run(self, args, inputs):
+        print("------") 
+        print(inputs)
+        print(args)
+        print("------")
         activity = args['activity']
         points = args['points']
-
+        
         # 例外オブジェクトがあればActivityに保存する
         for datum in inputs.values():
             if isinstance(datum, list):
@@ -914,3 +919,287 @@ class ActivityCommand(SCommand):
 
         # 本当はSaver自身が削除すべきだが、Saverが作成したファイルを自身で覚えていない
         pass
+
+
+class AssertCommand(Command):
+    """
+    フローテストコマンド
+    """
+    def __init__(self):
+        super().__init__()
+        self.i_ports = [Port('i', 'frame'), Port('m', 'frame')]
+        self.o_ports = [Port('o', 'mcmd')]
+        
+    def run(self, args, inputs):
+        import difflib
+        import subprocess
+        from subprocess import PIPE
+        print("cant stop")
+        print(inputs["i"].content)
+        new_cmd_list = None
+        print(args)
+        # diff_list = diff_check(tmp_path_i, tmp_path_m, args['dlimit'])
+        # new_cmd_list <<= nm.runfunc(diff_check(tmp_path_i, tmp_path_m, args['dlimit']))
+        new_cmd_list = None
+        nysol_mod = NysolModule()
+        # return 0
+        return {'o': nysol_mod}# PCommandの方法を参照
+    
+
+    
+    # def run_old(self, args, inputs):
+        import difflib
+        import subprocess
+        from subprocess import PIPE
+        def diff_check(f1, f2, dlimit=10):
+            if dlimit == 0:
+                path = " " + f1 + " " + f2
+                return subprocess.Popen("diff -q" + str(path), shell=True, stdout=PIPE, stderr=PIPE)
+            else:
+                com_l = open(f1, "r")
+                com_r = open(f2, "r")
+                
+                d = difflib.Differ()
+                check = []
+                count = 0
+                for s,t in zip(com_l, com_r):
+                    if s != t and count < dlimit:
+                        check.append("\n".join(d.compare(s, t)))
+                        count += 1
+                com_l.close()
+                com_r.close()
+                return check
+
+
+        def diff_all(f1, f2):
+            start = time.time()
+
+            path = " " + f1 + " " + f2
+            subprocess.Popen("diff -q" + str(path), shell=True, stdout=PIPE, stderr=PIPE)
+            # このコマンドに与えられたデータは一度ファイルに保存されて、それを読み出す形でテストを行う
+            # saverCmd -> RunsCmd -> flow_testの入力 の流れ
+            # dlimit = kwargs.get('dlimit')# diff-limit
+            # dlimit = args['dlimit']
+            
+
+        import time
+        tmp_path_i = "/tmp/" + str(time.time) + "_i.csv"
+        tmp_path_m = "/tmp/" + str(time.time) + "_m.csv"
+        
+        nysol_module_i = NysolModule()
+        runs_cmd_i = RunsCommand()
+
+        #inputs から一時変数に格納する
+        test_i = inputs['i'].content
+        test_flow_cmds_i = None
+        test_flow_cmds_i <<= nm.m2tee(i=test_i, o=tmp_path_i)
+
+        nysol_module_i.set_content(test_flow_cmds_i)
+        results_i = runs_cmd_i.run(args={}, inputs={'o': nysol_module_i})
+
+
+        # print("test-12394")
+
+        # print(results_i)
+        # print(type(results_i))
+        # print(results_i['o'])# この時点でactivityが返ってくるかは調査
+        # print(type(results_i['o']))
+
+        # print("test-12394")
+        # print(args)
+        # print("test-12394")
+
+        #inputs から一時変数に格納する
+        test_m = inputs['m'].content
+        test_flow_cmds_m = None
+        test_flow_cmds_m <<= nm.m2tee(i=test_m, o=tmp_path_m)
+
+        nysol_module_m = NysolModule()
+        runs_cmd_m = RunsCommand()
+        nysol_module_m.set_content(test_flow_cmds_m)
+
+        results_m = runs_cmd_m.run(args={}, inputs={'': nysol_module_m})
+        return results_m
+        # results = saver_cmd.run(args={}, inputs={'i':test_flow_cmds, 'store'})#inputs['i']=nysol_module()?
+        # results_m
+        # nysol_module_diff = NysolModule()
+        new_cmd_list = None
+        # diff_list = diff_check(tmp_path_i, tmp_path_m, args['dlimit'])
+        new_cmd_list <<= nm.runfunc(diff_check(tmp_path_i, tmp_path_m, args['dlimit']))
+
+        nysol_mod = NysolModule()
+        return {'o': nysol_mod.set_content(new_cmd_list)}# PCommandの方法を参照
+    
+    # def run(self, args, inputs):
+        
+    #     import time
+        
+    #     nysol_module_i = NysolModule()
+    #     runs_cmd = RunsCommand()
+
+    #     #inputs から一時変数に格納する
+    #     test_flow_cmds = args.copy()
+    #     test_flow_cmds['i']  = inputs['i'].content
+    #     tmp_path_i = "/tmp/" + str(time.time) + "_i.csv"
+    #     test_flow_cmds <<= nm.m2tee(o=tmp_path_i)
+
+    #     # nysol_module_i.set_content(test_flow_cmds_i)
+    #     # results_i = runs_cmd.run(args={}, inputs={'i': nysol_module_i})
+
+    #     #inputs から一時変数に格納する
+    #     test_flow_cmds['m'] = inputs['m'].content
+    #     tmp_path_m = "/tmp/" + str(time.time) + "_m.csv"
+    #     test_flow_cmds <<= nm.m2tee(o=tmp_path_m)
+
+    #     # nysol_module_m = NysolModule()
+    #     # nysol_module_m.set_content(test_flow_cmds_m)
+
+    #     # results_m = runs_cmd.run(args={}, inputs={'m': nysol_module_m})
+    #     test_flow_cmds <<= nm.runfunc(self.diff_check(tmp_path_i, tmp_path_m, args['dlimit']))
+    #     nysol_mod = NysolModule()
+    #     return {'o': nysol_mod.set_content(test_flow_cmds)}# PCommandの方法を参照
+    
+
+    
+    import difflib
+    import subprocess
+    from subprocess import PIPE
+    def diff_check(f1, f2, dlimit=10):
+        if dlimit == 0:
+            path = " " + f1 + " " + f2
+            return subprocess.Popen("diff -q" + str(path), shell=True, stdout=PIPE, stderr=PIPE)
+        else:
+            com_l = open(f1, "r")
+            com_r = open(f2, "r")
+            
+            d = difflib.Differ()
+            check = []
+            count = 0
+            for s,t in zip(com_l, com_r):
+                if s != t and count < dlimit:
+                    check.append("\n".join(d.compare(s, t)))
+                    count += 1
+            com_l.close()
+            com_r.close()
+            return check
+
+
+    def diff_all(f1, f2):
+        start = time.time()
+
+        path = " " + f1 + " " + f2
+        subprocess.Popen("diff -q" + str(path), shell=True, stdout=PIPE, stderr=PIPE)
+
+
+
+    
+    # def run(self, args, inputs):
+    #     import difflib
+    #     import subprocess
+    #     from subprocess import PIPE
+    #     def diff_check(f1, f2, dlimit=10):
+    #         if dlimit == 0:
+    #             path = " " + f1 + " " + f2
+    #             return subprocess.Popen("diff -q" + str(path), shell=True, stdout=PIPE, stderr=PIPE)
+    #         else:
+    #             com_l = open(f1, "r")
+    #             com_r = open(f2, "r")
+                
+    #             d = difflib.Differ()
+    #             check = []
+    #             count = 0
+    #             for s,t in zip(com_l, com_r):
+    #                 if s != t and count < dlimit:
+    #                     check.append("\n".join(d.compare(s, t)))
+    #                     count += 1
+    #             com_l.close()
+    #             com_r.close()
+    #             return check
+
+
+    #     def diff_all(f1, f2):
+    #         start = time.time()
+
+    #         path = " " + f1 + " " + f2
+    #         subprocess.Popen("diff -q" + str(path), shell=True, stdout=PIPE, stderr=PIPE)
+    #         # このコマンドに与えられたデータは一度ファイルに保存されて、それを読み出す形でテストを行う
+    #         # saverCmd -> RunsCmd -> flow_testの入力 の流れ
+    #         # dlimit = kwargs.get('dlimit')# diff-limit
+    #         # dlimit = args['dlimit']
+            
+
+    #     import time
+    #     tmp_path_i = "/tmp/" + str(time.time) + "_i.csv"
+    #     tmp_path_m = "/tmp/" + str(time.time) + "_m.csv"
+        
+    #     nysol_module_i = NysolModule()
+    #     runs_cmd_i = RunsCommand()
+
+    #     #inputs から一時変数に格納する
+    #     test_i = inputs['i'].content
+    #     test_flow_cmds_i = None
+    #     test_flow_cmds_i <<= nm.m2tee(i=test_i, o=tmp_path_i)
+
+    #     nysol_module_i.set_content(test_flow_cmds_i)
+    #     results_i = runs_cmd_i.run(args={}, inputs={'o': nysol_module_i})
+
+
+    #     # print("test-12394")
+
+    #     # print(results_i)
+    #     # print(type(results_i))
+    #     # print(results_i['o'])# この時点でactivityが返ってくるかは調査
+    #     # print(type(results_i['o']))
+
+    #     # print("test-12394")
+    #     # print(args)
+    #     # print("test-12394")
+
+    #     #inputs から一時変数に格納する
+    #     test_m = inputs['m'].content
+    #     test_flow_cmds_m = None
+    #     test_flow_cmds_m <<= nm.m2tee(i=test_m, o=tmp_path_m)
+
+    #     nysol_module_m = NysolModule()
+    #     runs_cmd_m = RunsCommand()
+    #     nysol_module_m.set_content(test_flow_cmds_m)
+
+    #     results_m = runs_cmd_m.run(args={}, inputs={'': nysol_module_m})
+    #     # results = saver_cmd.run(args={}, inputs={'i':test_flow_cmds, 'store'})#inputs['i']=nysol_module()?
+    #     # results_m
+    #     # nysol_module_diff = NysolModule()
+    #     new_cmd_list = None
+    #     # diff_list = diff_check(tmp_path_i, tmp_path_m, args['dlimit'])
+    #     new_cmd_list <<= nm.runfunc(diff_check(tmp_path_i, tmp_path_m, args['dlimit']))
+
+    #     # sss = '"diff ' + str(tmp_path_i) + " " + str(tmp_path_m)
+    #     # new_cmd_list <<= nm.cmd(sss)
+
+    #     # for input_data in ['i', 'm']:
+    #     #     # ファイルのsaveを行う
+    #     #     save_cmd = SaverCommand()#instance
+    #     #     run_cmd = RunsCommand()
+    #     #     #save, return{'o': nysol_module}
+    #     #     nysol_module = nysolModule()
+    #     #     nysol_module <<= saverCommand()
+
+
+    #     #     cmd_o[input_data] <<= save_cmd.run(args, inputs)
+    #     #     cmd_o[input_data] <<= run_cmd.run(args, inputs)
+
+    #     #     # save_cmd.run(args, inputs[input_data].content)
+    #     #     # run_cmd.run(args, inputs[input_data].content)
+
+
+    #     #     # 将来的に、入力にはactivityの情報が渡される
+    #     #     my_args = args.copy()
+    #     #     my_args['i'] = inputs['i'].activity.path # 仮の記述、未実装
+        
+
+    #     # ここから比較の動作定義
+
+    #     # 結果が出たら、一時書き出したファイルの削除を行う
+    #     # del(i_path)
+    #     nysol_mod = NysolModule()
+    #     return {'o': nysol_mod.set_content(new_cmd_list)}# PCommandの方法を参照
+    
