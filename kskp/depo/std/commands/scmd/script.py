@@ -931,19 +931,61 @@ class AssertCommand(Command):
         self.o_ports = [Port('o', 'mcmd')]
         
     def run(self, args, inputs):
+        import uuid
         import difflib
         import subprocess
+        from pathlib import Path
         from subprocess import PIPE
-        print("cant stop")
-        print(inputs["i"].content)
-        new_cmd_list = None
-        print(args)
+
+        if 'i' not in inputs:
+            raise Exception('AssertCommandの入力ポートiに値が入力されていません')
+        elif 'm' not in inputs:
+            raise Exception('AssertCommandの入力ポートmに値が入力されていません')
+
+        if not isinstance(inputs['i'], NysolModule):
+            raise Exception('入力ポートiのAssertCommandの入力データ型が異なります')
+        elif not isinstance(inputs['m'], NysolModule):
+            raise Exception('入力ポートmのAssertCommandの入力データ型が異なります')
+
+
+        #inputs から一時変数に格納する
+        nysol_cmd_i = inputs['i'].content
+        nysol_cmd_m = inputs['m'].content
+
+        
+
+        # 一時ファイル作成用path
+        # tmp_path_i = Path("/tmp/" + str(uuid.uuid4()) + "_i.csv")
+        # tmp_path_m = Path("/tmp/" + str(uuid.uuid4()) + "_m.csv")
+        tmp_path_i = Path("/tmp/" + str(1) + "_i.csv")
+        tmp_path_m = Path("/tmp/" + str(1) + "_m.csv")
+        
+        # nysol_module_i = NysolModule()
+
+        # 一時ファイルを作成する
+        nysol_cmd_i <<= nm.m2tee(o=tmp_path_i.as_posix())
+        nysol_cmd_m <<= nm.m2tee(o=tmp_path_m.as_posix())
+        
+        # 一時ファイル生成までを実行する
+        runs_cmd_i = RunsCommand()
+        runs_cmd_i.run({}, {'i':NysolModule(nysol_cmd_i)})
+        runs_cmd_m = RunsCommand()
+        runs_cmd_m.run({}, {'m':NysolModule(nysol_cmd_m)})
+
+        if tmp_path_i.exists():
+            print('happy')
+
+
+
+
+
+
         # diff_list = diff_check(tmp_path_i, tmp_path_m, args['dlimit'])
         # new_cmd_list <<= nm.runfunc(diff_check(tmp_path_i, tmp_path_m, args['dlimit']))
         new_cmd_list = None
-        nysol_mod = NysolModule()
+        # nysol_mod = NysolModule()
         # return 0
-        return {'o': nysol_mod}# PCommandの方法を参照
+        return {'o': NysolModule(nysol_cmd_i)}# PCommandの方法を参照
     
 
     
