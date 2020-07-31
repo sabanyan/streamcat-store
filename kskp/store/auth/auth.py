@@ -68,9 +68,14 @@ class Auth(BaseModel):
         """
         Authを保存する
         """
-        # Authテーブルにレコードを新規追加する
-        self._session.add(self)
-        self._session.commit()
+        try:
+            # Authテーブルにレコードを新規追加する
+            self._session.add(self)
+        except Exception as e:
+            self._session.rollback()
+            raise e
+        finally:
+            self._session.commit()
 
     def update(self, permission):
         try:
@@ -88,5 +93,10 @@ class Auth(BaseModel):
         """
         Authを削除する
         """
-        self._session.delete(self)
-        self._session.commit()
+        try:
+            self._session.delete(self)
+        except Exception as e:
+            self._session.rollback()
+            raise e
+        finally:
+            self._session.commit()

@@ -58,12 +58,22 @@ class UserRole(BaseModel):
         """
         UserRoleを保存する
         """
-        self._session.add(self)
-        self._session.commit()
+        try:
+            self._session.add(self)
+        except Exception as e:
+            self._session.rollback()
+            raise e
+        finally:
+            self._session.commit()
 
     def delete(self):
         """
         UserRoleを削除する
         """
-        self._session.delete(self)
-        self._session.commit()
+        try:
+            self._session.delete(self)
+        except Exception as e:
+            self._session.rollback()
+            raise e
+        finally:
+            self._session.commit()

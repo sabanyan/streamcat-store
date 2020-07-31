@@ -429,7 +429,7 @@ class AuthFactory():
         # SQLAlchemyのidentity mapにキャッシュされていればそれを返す
         authz = self._session.query(Auth).get((role_id, datum_id, operation))
         if authz is None:
-            raise Exception('No authz is found by designated store id')
+            raise Exception('No authz is found by designated id')
         return authz
 
     def exists(self, role_id, datum_id, operation=None) -> bool:
@@ -446,8 +446,13 @@ class AuthFactory():
         Authzテーブルから指定したDatumの権限情報を全て削除する
         """
         from kskp.store.auth import Auth
-        self._session.query(Auth).filter(Auth.datum_id==datum_id).delete()
-        self._session.commit()
+        try:
+            self._session.query(Auth).filter(Auth.datum_id==datum_id).delete()
+        except Exception as e:
+            self._session.rollback()
+            raise e
+        finally:
+            self._session.commit()
 
 
 from kskp.store.auth import Role
@@ -513,9 +518,13 @@ class UserRoleFactory():
         """
         UsersRolesテーブルから指定したユーザの所属情報を全て削除する
         """
-        self._session.query(UserRole).filter(UserRole.user_id==user_id).delete()
-        self._session.commit()
-
+        try:
+            self._session.query(UserRole).filter(UserRole.user_id==user_id).delete()
+        except Exception as e:
+            self._session.rollback()
+            raise e
+        finally:
+            self._session.commit()
 
 from kskp.store.auth import User
 

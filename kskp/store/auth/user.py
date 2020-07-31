@@ -1,6 +1,5 @@
 import os
 import uuid
-import pprint
 from sqlalchemy import Column, String, text
 from sqlalchemy.dialects.postgresql import INTEGER, TIMESTAMP, UUID
 from .. import BaseModel
@@ -38,7 +37,7 @@ class User(BaseModel):
         self.uuid = str(uuid.uuid4())
 
         self.email = email
-        self.password = self._get_password_hash(email, password)
+        self.password = self._get_password_hash(self.uuid, password)
         self.name = name
 
         # creator, modifier
@@ -46,21 +45,21 @@ class User(BaseModel):
             self._creator_id = session.user.id
             self._modifier_id = session.user.id
 
-    def _get_password_hash(self, email, password):
+    def _get_password_hash(self, uuid, password):
         """
         パスワードのハッシュを作成する
         """ 
-        def get_salt(user_id):
+        def get_salt(uuid):
             """
-            固定ソルトとユーザID（現在はメールアドレス）
+            固定ソルトとユーザUUID
             """
             FIXED_SALT = b'd0d68c0d5bb78d78265c0d588f23bc60'
-            user_id_bytes = bytes(str(user_id), encoding='utf-8')
+            user_id_bytes = bytes(str(uuid), encoding='utf-8')
             return user_id_bytes + FIXED_SALT
 
         import hashlib
         STRETCH_COUNT = 100
-        salt = get_salt(email)
+        salt = get_salt(uuid)
         current_hash = b''
         password_bytes = bytes(password, encoding='utf-8')
         for _ in range(1, STRETCH_COUNT):
@@ -112,48 +111,79 @@ class User(BaseModel):
         """
         Userを保存する
         """
-        # Usersテーブルにレコードを新規追加する
-        self._session.add(self)
-        self._session.commit()
+        try:
+            # Usersテーブルにレコードを新規追加する
+            self._session.add(self)
+        except Exception as e:
+            self._session.rollback()
+            raise e
+        finally:
+            self._session.commit()
 
     def update_email(self, new_email, modifier=None):
         """
         Userのemail列を更新する
         """
-        self.email = new_email
-        self._modifier_id = (modifier or self._session.user).id
-        self._session.update(self)
-        self._session.commit()
+        try:
+            self.email = new_email
+            self._modifier_id = (modifier or self._session.user).id
+            self._session.update(self)
+        except Exception as e:
+            self._session.rollback()
+            raise e
+        finally:
+            self._session.commit()
 
     def update_password(self, new_password, modifier=None):
-        pass
+        try:
+            self.password = self._get_password_hash(self.uuid, new_password)
+            self._modifier_id = (modifier or self._session.user).id
+            self._session.update(self)
+        except Exception as e:
+            self._session.rollback()
+            raise e
+        finally:
+            self._session.commit()
 
     def update_name(self, new_name, modifier=None):
-        self.name = new_name
-        self._modifier_id = (modifier or self._session.user).id
-        self._session.update(self)
-        self._session.commit()
+        try:
+            self.name = new_name
+            self._modifier_id = (modifier or self._session.user).id
+            self._session.update(self)
+        except Exception as e:
+            self._session.rollback()
+            raise e
+        finally:
+            self._session.commit()
 
     def update_self_role_id(self, new_role_id, modifier=None):
-        self.self_role_id = new_role_id
-        if modifier is None:
-            self._modifier_id = self._session.user and self._session.user.id
-        else:
-            self._modifier_id = modifier.id
-        self._session.update(self)
-        self._session.commit()
+        try:
+            self.self_role_id = new_role_id
+            self._modifier_id = (modifier or self._session.user).id
+            self._session.update(self)
+        except Exception as e:
+            self._session.rollback()
+            raise e
+        finally:
+            self._session.commit()
 
     def delete(self):
         """
         Userを削除する
         """
         from kskp.store.factory import UserRoleFactory
-        # users_rolesテーブルから全ての削除ユーザの行を削除する
         user_role_factory = UserRoleFactory(self._session)
-        user_role_factory.delete_all_by_user_id(self.id)
-        # usersテーブルから削除ユーザの行を削除する
-        self._session.delete(self)
-        self._session.commit()
+        
+        try:
+            # users_rolesテーブルから全ての削除ユーザの行を削除する
+            user_role_factory.delete_all_by_user_id(self.id)
+            # usersテーブルから削除ユーザの行を削除する
+            self._session.delete(self)
+        except Exception as e:
+            self._session.rollback()
+            raise e
+        finally:
+            self._session.commit()
 
 
     def authenticate(self, password):
@@ -166,7 +196,7 @@ class User(BaseModel):
             return False
 
         # パスワード判定処理
-        return self._get_password_hash(self.email, password) == self.password
+        return self._get_password_hash(self.uuid, password) == self.password
 
     def has_read_authority(self, uuid):
         # select 

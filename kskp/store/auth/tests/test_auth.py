@@ -27,7 +27,6 @@ class AuthTest(TestCaseBase):
         self.assertIsNotNone(new_user.id)
         self.assertIsNotNone(new_user.uuid)
         self.assertEqual(new_user.email, 'test-man@kskp.io')
-        self.assertEqual(new_user.password, 'a7c87fc346ff10b75e7b83a3bf0f51cf449b6dcdc626a9ddffc0a88ec2d7bd91')
         self.assertEqual(new_user.name, 'I AM TEST')
         self.assertIsNone(new_user.self_role_id)
         self.assertEqual(new_user.creator, self.USER1)
@@ -41,6 +40,63 @@ class AuthTest(TestCaseBase):
         # 削除後のユーザは取得できない
         with self.assertRaises(NoResultFound):
             self.factory.user.find_by_email('test-man@kskp.io')
+
+    def test_create_user_by_user(self):
+        """
+        一般ユーザは、ユーザの作成ができないこと
+        """
+        # 新規ユーザを追加する
+        new_user = self.factory2.user.create('test-man2@kskp.io', 'tesepass', 'I AM TEST')
+        with self.assertRaises(NotAuthorizedException):
+            new_user.save()
+
+    def test_update_user_by_user(self):
+        """
+        一般ユーザは、他ユーザの変更ができないこと
+        """
+        # 新規ユーザを追加する
+        new_user = self.factory.user.create('test-man3@kskp.io', 'tesepass', 'I AM TEST')
+        new_user.save()
+
+        # 他ユーザで再取得する
+        new_user = self.factory2.user.find_by_uuid(new_user.uuid)
+        new_user_password = new_user.password
+
+        # E-Mailを変更する
+        with self.assertRaises(NotAuthorizedException):
+            new_user.update_email('abc@abc.com')
+
+        # パスワードを変更する
+        with self.assertRaises(NotAuthorizedException):
+            new_user.update_password('abc')
+
+        # ユーザ名を変更する
+        with self.assertRaises(NotAuthorizedException):
+            new_user.update_name('new name')
+
+        # ユーザ名・E-Mail・パスワードは変更されていないこと
+        self.assertEqual(new_user.email, 'test-man3@kskp.io')
+        self.assertEqual(new_user.password, new_user_password)
+        self.assertEqual(new_user.name, 'I AM TEST')
+
+    def test_delete_user_by_user(self):
+        """
+        一般ユーザは、他ユーザの削除ができないこと
+        """
+        # 新規ユーザを追加する
+        new_user = self.factory.user.create('test-man4@kskp.io', 'tesepass', 'I AM TEST')
+        new_user.save()
+
+        # 他ユーザで再取得する
+        new_user = self.factory2.user.find_by_uuid(new_user.uuid)
+
+        # 新規ユーザを削除する
+        with self.assertRaises(NotAuthorizedException):
+            new_user.delete()
+
+        # 削除後のユーザは取得できる
+        new_user = self.factory.user.find_by_email('test-man4@kskp.io')
+        self.assertIsNotNone(new_user)
 
     def test_create_get_delete_role(self):
         """
@@ -62,11 +118,37 @@ class AuthTest(TestCaseBase):
         self.assertIsNotNone(new_role.modified_at)
         self.assertEqual(new_role.created_at, new_role.modified_at)
 
-        # 新規ユーザを削除する
+        # 新規ロールを削除する
         new_role.delete()
-        # 削除後のユーザは取得できない
+        # 削除後のロールは取得できない
         with self.assertRaises(NoResultFound):
             self.factory.role.find_by_uuid(new_role.uuid)
+
+
+    def test_create_get_delete_role_by_user(self):
+        """
+        一般ユーザは、自身が作成したRoleの取得・更新・削除をできること
+        """
+        # ロールを追加する
+        new_role = self.factory2.role.create('MY ROLE')
+        new_role.save()
+
+        # ロールを取得する
+        new_role = self.factory2.role.find_by_id(new_role.id)
+
+        # ロール名を変更する
+        new_role.update_name('my role')
+
+        # 変更したロール名を検証する
+        new_role = self.factory2.role.find_by_id(new_role.id)
+        self.assertEqual(new_role.name, 'my role')
+
+        # 新規ロールを削除する
+        new_role.delete()
+        # 削除後のロールは取得できない
+        with self.assertRaises(NoResultFound):
+            self.factory2.role.find_by_uuid(new_role.uuid)
+
     
     def test_join_leave_role(self):
         """
@@ -131,6 +213,95 @@ class AuthTest(TestCaseBase):
         with self.assertRaises(Exception):
             self.factory.auth.find_by_id(new_role.id, folder.id, Auth.WRITE_OP)
 
+    def test_create_get_delete_auth_by_user(self):
+        """
+        一般ユーザは、自身が作成したDatumの権限を取得・更新・削除をできること
+        """
+        # 新規ロールを追加する
+        new_role = self.factory2.role.create('権限ロール')
+        new_role.save()
+
+        # ルートフォルダを取得する
+        root = self.factory2.data.load_root()
+        # ルートフォルダの下にフォルダを作成する
+        folder = root.create_folder('フォルダS')
+        folder.save()
+        folder = self.factory2.data.find_by_id(folder.id)
+
+        # 新規権限を追加する
+        new_auth = self.factory2.auth.create(new_role.id, folder.id, Auth.WRITE_OP, True)
+        new_auth.save()
+
+        # 新規権限を取得する
+        new_auth = self.factory2.auth.find_by_id(new_role.id, folder.id, Auth.WRITE_OP)
+
+        # 新規権限を削除する
+        folder.delete()
+        # 削除後の権限は取得できない
+        with self.assertRaises(Exception):
+            self.factory2.auth.find_by_id(new_role.id, folder.id, Auth.WRITE_OP)
+
+    def test_create_get_delete_auth_by_other_user(self):
+        """
+        一般ユーザは、他ユーザが作成したDatumの権限を取得・更新・削除をできないこと
+        """
+        # 新規ロールを追加する
+        new_role = self.factory2.role.create('権限ロール')
+        new_role.save()
+
+        # ルートフォルダを取得する
+        root = self.factory.data.load_root()
+        # ルートフォルダの下にフォルダを作成する
+        folder = root.create_folder('フォルダT')
+        folder.save()
+
+        # フォルダを取得する
+        folder = self.factory2.data.find_by_id(folder.id)
+
+        # 新規権限を追加する
+        new_auth = self.factory3.auth.create(new_role.id, folder.id, Auth.WRITE_OP, True)
+        with self.assertRaises(NotAuthorizedException):
+            new_auth.save()
+
+        # 新規権限を取得する
+        with self.assertRaises(Exception):
+            self.factory3.auth.find_by_id(new_role.id, folder.id, Auth.WRITE_OP)
+
+        # 新規権限を削除する
+        with self.assertRaises(NotAuthorizedException):
+            new_auth.delete()
+
+
+    def test_join_role_on_no_auth(self):
+        """
+        Roleにユーザを追加できるのは管理者かRoleの作成者のみである
+        """
+        # ロールを作成する
+        new_role = self.factory.role.create('ロール')
+        new_role.save()
+
+        # 管理者でもRoleの作成者でもないユーザは、
+        # ユーザの追加操作はできない
+        new_role = self.factory2.role.find_by_uuid(new_role.uuid)
+        with self.assertRaises(NotAuthorizedException):
+            new_role.join_user(self.USER2)
+
+    def test_leave_role_on_no_auth(self):
+        """
+        Roleからユーザを削除できるのは管理者かRoleの作成者のみである
+        """
+        # ロールを作成する
+        new_role = self.factory.role.create('ロール')
+        new_role.save()
+
+        # ロールにユーザを追加する
+        new_role.join_user(self.USER2)
+
+        # 管理者でもRoleの作成者でもないユーザは、
+        # ユーザの削除操作はできない
+        new_role = self.factory2.role.find_by_uuid(new_role.uuid)
+        with self.assertRaises(NotAuthorizedException):
+            new_role.leave_user(self.USER2)
 
     def test_no_authz(self):
         """
