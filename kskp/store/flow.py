@@ -25,9 +25,18 @@ class Flow(Datum):
 
     @property
     def flow_data(self):
-        # return self.data['flow']
         from kskp.store import FlowData
-        return FlowData(self._data['flow'], self._readable_or_raise)
+        return FlowData(self._data['flow'], self._readable_or_raise, self._executable_or_raise)
+
+    @property
+    def executable(self) -> bool:
+        # DBに保存する前のFlowの実行権限は制限しない
+        return self.id is None or self._session.executable(self)
+
+    def _executable_or_raise(self):
+        from kskp.store.auth import NotAuthorizedException
+        if not self.executable:
+            raise NotAuthorizedException(f'{self._session.user.name} ({self.user})は{self.label}の実行権限がありません')
 
     def save(self):
         """
@@ -343,7 +352,7 @@ class Flow(Datum):
         if not flow_data.has_nodes:
             return ret
 
-        for node in flow_data.nodes:
+        for node in flow_data.get_nodes():
             if node['type'] != 'frame':
                 continue
             if 'cacheCreatedAt' in node and\
@@ -368,7 +377,7 @@ class Flow(Datum):
         if not flow_data.has_nodes:
             return ret
 
-        for node in flow_data.nodes:
+        for node in flow_data.get_nodes():
             if node['type'] != 'frame':
                 continue
             if 'cacheCreatedAt' not in node or\
@@ -393,7 +402,7 @@ class Flow(Datum):
         if not flow_data.has_nodes:
             return ret
 
-        for node in flow_data.nodes:
+        for node in flow_data.get_nodes():
             if node['type'] != 'flow':
                 continue
             if 'uuid' not in node or node['uuid'] is None or node['uuid'] == '':
@@ -413,7 +422,7 @@ class Flow(Datum):
         if not flow_data.has_nodes:
             return ret
 
-        for node in flow_data.nodes:
+        for node in flow_data.get_nodes():
             if node['type'] != 'store':
                 continue
             if 'uuid' not in node or node['uuid'] is None or node['uuid'] == '':
@@ -442,7 +451,7 @@ class Flow(Datum):
         if not flow_data.has_nodes:
             return
 
-        for node in flow_data.nodes:
+        for node in flow_data.get_nodes():
             for old_uuid, new_uuid in old_new_uuid_pairs.items():
                 if 'uuid' in node and node['uuid'] == old_uuid:
                     node['uuid'] = new_uuid
@@ -456,7 +465,7 @@ class Flow(Datum):
         if not flow_data.has_nodes:
             return
 
-        for node in flow_data.nodes:
+        for node in flow_data.get_nodes():
             if node['id'] == node_id:
                 node['uuid'] = cache_uuid
                 # 記録時間はUTC、表示時間は現地時間にすべきでは？？

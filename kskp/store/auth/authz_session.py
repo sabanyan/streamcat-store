@@ -167,6 +167,7 @@ class AuthzSession(Session):
 
     def add(self, obj):
         from kskp.core import Datum
+        from kskp.store import Folder, Flow
         from kskp.store.auth import User, Role, UserRole, Auth
                 
         if isinstance(obj, Datum):
@@ -187,13 +188,15 @@ class AuthzSession(Session):
             from kskp.store.factory import RoleFactory
             everyone_role = RoleFactory(self).load_everyone_role()
             everyone_role.join_user(self.user)
+            # FolderまたはFlowの場合は実行権限を付与する
+            folder_or_flow = isinstance(obj, Folder) or isinstance(obj, Flow) or None
             # everyoneロールへ追加データの権限を付与する
-            everyone_role.init_authz(obj.id, True, True)
+            everyone_role.init_authz(obj.id, True, True, exec=folder_or_flow)
 
             # 本人ロールが無ければ作成し、ユーザを本人ロールに所属させる
             self_role = self.user.load_self_role()
             # 本人ロールへ追加データの権限を付与する
-            self_role.init_authz(obj.id, True, True)
+            self_role.init_authz(obj.id, True, True, exec=folder_or_flow)
 
         elif isinstance(obj, User):
             # 管理者のみユーザを新規追加できる
@@ -304,9 +307,24 @@ class AuthzSession(Session):
         # 削除する
         self._session.delete(obj)
 
+
     def writable(self, datum) -> bool:
         """
         ユーザIDとDatumについて書き込み権限の有無を判定する
+        """
+        from .auth import Auth
+        return self._operatable(datum, Auth.WRITE_OP)
+
+    def executable(self, datum) -> bool:
+        """
+        ユーザIDとDatumについて実行権限の有無を判定する
+        """
+        from .auth import Auth
+        return self._operatable(datum, Auth.EXEC_OP)
+
+    def _operatable(self, datum, operation) -> bool:
+        """
+        ユーザIDとDatumについてoperation権限の有無を判定する
         """
         from sqlalchemy import func, false, and_
         from sqlalchemy.orm import aliased
@@ -318,24 +336,24 @@ class AuthzSession(Session):
         U = aliased(User, name='U')
         UR = aliased(UserRole, name='UR')
 
-        query = self._session.query(func.coalesce(func.bool_and(A.permission),false()).label('write')).\
+        query = self._session.query(func.coalesce(func.bool_and(A.permission),false()).label('operation')).\
                               outerjoin(UR, and_(UR.role_id==A.role_id, UR.user_id==self.user.id)).\
                               outerjoin(U, U.self_role_id==A.role_id).\
-                              filter(A.operation==A.WRITE_OP)
+                              filter(A.operation==operation)
 
         if datum.parent_id is None:
             # ルートフォルダの場合は親フォルダの権限判定をしない
             query = query.filter(A.datum_id==datum.id)
         elif datum.id is None:
-            # Datumの新規追加の場合(datum.id=None)は親フォルダの書き込み権限だけを判定する
+            # Datumの新規追加の場合(datum.id=None)は親フォルダのoperation権限だけを判定する
             query = query.filter(A.datum_id==datum.parent_id)
         else:
-            # 親フォルダとDatumの両方の書き込み権限がある場合にのみ、書き込みOKの判定をする
+            # 親フォルダとDatumの両方のoperation権限がある場合にのみ、operationの実行がOKの判定をする
             A0 = aliased(Auth, name='A0')
             U0 = aliased(User, name='U0')
             UR0 = aliased(UserRole, name='UR0')
 
-            subquery = self._session.query(func.coalesce(func.bool_and(A0.permission),false()).label('write_of_parent')).\
+            subquery = self._session.query(func.coalesce(func.bool_and(A0.permission),false()).label('operation_of_parent')).\
                         select_from(A0).outerjoin(UR0, and_(UR0.role_id==A0.role_id, UR0.user_id==self.user.id)).\
                         outerjoin(U0, U0.self_role_id==U.self_role_id).\
                         filter(A0.operation==A.operation).\
@@ -343,10 +361,10 @@ class AuthzSession(Session):
 
             query = query.filter(A.datum_id==datum.id).\
                           filter(True == subquery)
-                                         
+
         result = query.one_or_none()
 
-        return result.write == True
+        return result.operation == True
 
     def has_admin(self) -> bool:
         from .user_role import UserRole
