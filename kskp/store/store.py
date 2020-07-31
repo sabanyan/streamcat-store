@@ -29,7 +29,10 @@ class Store(Datum):
             everyone_role = RoleFactory(self._session).load_everyone_role()
             everyone_role.join_user(self._session.user)
             if not AuthFactory(self._session).exists(everyone_role.id, datum.id):
-                everyone_role.init_authz(datum.id, True, True)
+                from kskp.store import Folder, Flow
+                # FolderまたはFlowの場合は実行権限を付与する
+                folder_or_flow = isinstance(datum, Folder) or isinstance(datum, Flow) or None
+                everyone_role.init_authz(datum.id, True, True, exec=folder_or_flow)
 
         return data
 

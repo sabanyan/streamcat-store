@@ -248,7 +248,7 @@ class DatumFactory():
             admin_role = role_factory.load_admin_role()
             admin_role.join_user(self._session.user)
             if not auth_factory.exists(admin_role.id, new_root.id):
-                admin_role.init_authz(new_root.id, True, True)
+                admin_role.init_authz(new_root.id, True, True, exec=True)
 
             # 
             # ルートフォルダにEveryOneロールの権限設定がない場合、初期値を設定する
@@ -257,7 +257,7 @@ class DatumFactory():
             everyone_role = role_factory.load_everyone_role()
             everyone_role.join_user(self._session.user)
             if not auth_factory.exists(everyone_role.id, new_root.id):
-                everyone_role.init_authz(new_root.id, True, True)
+                everyone_role.init_authz(new_root.id, True, True, exec=True)
 
             # 参照権限設定後にもう一度取得し直す
             root = self.find_by_uuid(new_root.uuid)

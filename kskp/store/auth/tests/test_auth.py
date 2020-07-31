@@ -562,7 +562,7 @@ class AuthTest(TestCaseBase):
 
         # フローJSONのうちnodesキーは取得できないこと
         with self.assertRaises(NotAuthorizedException):
-            flow.flow_data.nodes
+            flow.flow_data.get_nodes()
 
     def test_read_flow_by_self_role(self):
         """
@@ -807,3 +807,30 @@ class AuthTest(TestCaseBase):
         self.assertEqual(flow1.parent_id, folder.id)
         self.assertEqual(folder.parent_id, root.id)
 
+    def test_exec_execless_flow(self):
+        """
+        実行権限のないFlowは実行できないこと
+        """
+        # ルートフォルダを取得する
+        root = self.factory.data.load_root()
+        # ルートフォルダの下にフォルダAを作成する
+        folder = root.create_folder('フォルダA')
+        folder.save()
+        # フォルダAの下にフロー1を作成する
+        flow = folder.create_flow('実行できないフロー', {})
+        flow.save()
+
+        # フローを実行不可にする
+        everyone_role = self.factory.role.load_everyone_role()
+        everyone_role.init_authz(flow.id, True, True, exec=False)
+
+        # フローJSONのnodesを取得する
+        with self.assertRaises(NotAuthorizedException):
+            flow.flow_data.get_nodes(use_exec_auth=True)
+
+        # フローを実行可にする
+        everyone_role.init_authz(folder.id, False, False, exec=True)
+        everyone_role.init_authz(flow.id, False, False, exec=True)
+
+        # フローJSONのnodesを取得する
+        flow.flow_data.get_nodes(use_exec_auth=True)
