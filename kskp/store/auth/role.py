@@ -65,12 +65,25 @@ class Role(BaseModel):
         """
         Roleを保存する
         """
-        # Rolesテーブルにレコードを新規追加する
-        self._session.add(self)
-        self._session.commit()
+        try:
+            # Rolesテーブルにレコードを新規追加する
+            self._session.add(self)
+        except Exception as e:
+            self._session.rollback()
+            raise e
+        finally:
+            self._session.commit()
 
-    def update_name(self, new_name):
-        pass
+    def update_name(self, new_name, modifier=None):
+        try:
+            self.name = new_name
+            self._modifier_id = (modifier or self._session.user).id
+            self._session.update(self)
+        except Exception as e:
+            self._session.rollback()
+            raise e
+        finally:
+            self._session.commit()
 
     def delete(self):
         from .auth import Auth
@@ -79,15 +92,25 @@ class Role(BaseModel):
         count = self._session.query(UserRole).filter(UserRole.role_id == self.id).count()
         if count > 0:
             raise Exception('Can not delete the role that has user(s).')
-        # 削除によってどのロールからも所有されなくなるデータがある場合は例外を送出する
-        count = self._session.query(Auth).filter(Auth.role_id == self.id)\
-                                        .filter(Auth.own == 1).count()
-        # 削除ロールに対する権限情報をauthsテーブルから全て削除する
 
-        # ロールを削除する
-        # sys.__stderr__.write(f"self.id: {self.id}\n")
-        self._session.delete(self)
-        self._session.commit()
+        # 
+        # 削除によってどのロールからも所有されなくなるデータがある場合は例外を送出する
+        # (所有権は未実装なので、このチェックも未実装である
+        #  現在はDatum.creatorが所有者となっている)
+        # 
+        # count = self._session.query(Auth).filter(Auth.role_id == self.id)\
+        #                                  .filter(Auth.own == 1).count()
+
+        try:
+            # 削除ロールに対する権限情報をauthsテーブルから全て削除する
+            self._session.query(Auth).filter(Auth.role_id==self.id).delete()
+            # ロールを削除する
+            self._session.delete(self)
+        except Exception as e:
+            self._session.rollback()
+            raise e
+        finally:
+            self._session.commit()
 
     def is_joined_user(self, user):
         count = self._session.query(UserRole).filter(UserRole.role_id==self.id).filter(UserRole.user_id==user.id).count()
