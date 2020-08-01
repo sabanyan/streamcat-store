@@ -1,7 +1,8 @@
+from hashlib import new
 import os
 import uuid
 from sqlalchemy import Column, String, text
-from sqlalchemy.dialects.postgresql import INTEGER, TIMESTAMP, UUID
+from sqlalchemy.dialects.postgresql import INTEGER, TIMESTAMP, UUID, ENUM
 from .. import BaseModel
 
 class User(BaseModel):
@@ -13,14 +14,20 @@ class User(BaseModel):
         # テスト環境用のスキーマ
         __table_args__ = {'schema': os.environ['KSKP_POSTGRESQL_SCHEMA_NAME']}
 
+    TMP_STATE      = 'tmp'      # 仮登録状態
+    ACTIVE_STATE   = 'active'   # 登録状態
+    INACTIVE_STATE = 'inactive' # 論理削除状態
+
     # 列名と列のデータ型等の定義
     id            = Column(INTEGER, primary_key=True, autoincrement=True)
     uuid          = Column(UUID, nullable=False, unique=True)
     email         = Column(String, nullable=False, unique=True)
     password      = Column(String)
     name          = Column(String, nullable=False)
+    # ユーザ状態
+    state         = Column(ENUM(TMP_STATE, ACTIVE_STATE, INACTIVE_STATE, name='user_state'), nullable=False)
     # 本人ロールのRoleId
-    self_role_id = Column(INTEGER, nullable=True)
+    self_role_id  = Column(INTEGER, nullable=True)
     _creator_id   = Column('creator', INTEGER)
     _modifier_id  = Column('modifier', INTEGER)
     created_at    = Column(TIMESTAMP, default=text('statement_timestamp()'))
@@ -39,6 +46,9 @@ class User(BaseModel):
         self.email = email
         self.password = self._get_password_hash(self.uuid, password)
         self.name = name
+
+        # 本パスワードに変更する前は仮登録状態である
+        self.state = User.TMP_STATE
 
         # creator, modifier
         if session is not None and session.user is not None:
@@ -66,6 +76,10 @@ class User(BaseModel):
             hash_target = current_hash + password_bytes + salt
             current_hash = bytes(hashlib.sha256(hash_target).hexdigest(), 'ascii')
         return str(current_hash, encoding='utf-8')
+
+    @property
+    def is_temp(self):
+        return self.state == User.TMP_STATE
 
     @property
     def creator(self):
@@ -135,7 +149,16 @@ class User(BaseModel):
             self._session.commit()
 
     def update_password(self, new_password, modifier=None):
+        from .exceptions import InvalidPassword
+        
+        if new_password is None or new_password == '':
+            raise InvalidPassword('空のパスワードに変更できません')
+        if self._get_password_hash(self.uuid, new_password) == self.password:
+            raise InvalidPassword('同じパスワードに変更できません')
+
         try:
+            # 登録状態に変更する
+            self.state = User.ACTIVE_STATE
             self.password = self._get_password_hash(self.uuid, new_password)
             self._modifier_id = (modifier or self._session.user).id
             self._session.update(self)
@@ -166,6 +189,16 @@ class User(BaseModel):
             raise e
         finally:
             self._session.commit()
+
+    def reset_password(self, modifier=None):
+        """
+        管理者がパスワードをリセットする
+        """
+        new_password = str(uuid.uuid4)[0:8]
+        # 仮登録状態に変更する
+        self.state = User.ACTIVE_STATE
+        self.update_password(new_password, modifier=modifier)
+        return new_password
 
     def delete(self):
         """

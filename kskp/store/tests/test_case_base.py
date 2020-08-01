@@ -21,6 +21,10 @@ class TestCaseBase(unittest.TestCase):
         # テストユーザ2を作成する
         test_user2 = cls.factory.user.create('test2@kskp.io', 'testpass2', 'Test2')
         test_user2.save()
+        # 仮登録状態から登録状態にする
+        admin_user.update_password('adminpass0')
+        test_user.update_password('testpass0')
+        test_user2.update_password('testpass20')
         # EveryOneロールにテストユーザを加える
         everyone_role = cls.factory.role.load_everyone_role()
         everyone_role.join_user(test_user)

@@ -4,7 +4,7 @@ from kskp.store import engine, BaseModel
 
 from .stamp import Stamp
 
-from .exceptions import NotAuthorizedException
+from .exceptions import NotAuthorizedException, InvalidPassword
 from .auth import Auth
 from .user_role import UserRole
 from .role import Role
