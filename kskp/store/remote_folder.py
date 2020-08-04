@@ -133,11 +133,12 @@ class RemoteFolder(Folder, Mountable):
         ret =  {'uuid'      : self.uuid,
                 'type'      : Datum.RFOLDER_TYPE,
                 'label'     : self.label,
+                'readable'  : self.readable,
+                'prevFolderPath' : self.get_prev_folder_path(),
                 'creator'   : self.creator_str,
                 'createdAt' : self.created_at_str}
 
         if self.readable:
-            ret['prevFolderPath'] = self.get_prev_folder_path()
             ret.update(self.conn.to_json())
 
         return ret

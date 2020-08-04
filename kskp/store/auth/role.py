@@ -180,7 +180,7 @@ class Role(BaseModel):
 
     def to_json(self):
         return {
-            'id'       : self.id,
+            'uuid'     : self.uuid,
             'name'     : self.name,              
             'creator'  : self.creator_str,
             'createdAt': self.created_at_str

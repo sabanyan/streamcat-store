@@ -5,9 +5,9 @@ import os
 import sqlalchemy.types
 from pathlib import Path
 from kskp.store import BaseModel
-from sqlalchemy import Column, Integer, String, text, select
+from sqlalchemy import Column, String, text
 from sqlalchemy.sql import operators
-from sqlalchemy.orm import column_property, query_expression
+from sqlalchemy.orm import query_expression
 from sqlalchemy.dialects.postgresql import INTEGER, TIMESTAMP, JSONB, ENUM, UUID
 
 class Datum(BaseModel):
@@ -481,10 +481,10 @@ class Datum(BaseModel):
         ret =  {'uuid'      : self.uuid,
                 'type'      : self.type,
                 'label'     : self.label,
+                'readable'  : self.readable,
+                'prevFolderPath' : self.get_prev_folder_path(),
                 'creator'   : self.creator_str,
                 'createdAt' : self.created_at_str}
-        if self.readable:
-            ret['prevFolderPath'] = self.get_prev_folder_path()
         return ret
 
     def _readable_or_raise(self):

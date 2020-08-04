@@ -292,9 +292,3 @@ class Folder(Store):
                 return True
         return False
 
-    # def to_json(self):
-    #     return {'uuid'      : self.uuid,
-    #             'type'      : Datum.FOLDER_TYPE,
-    #             'label'     : self.label,
-    #             'creator'   : self.creator_str,
-    #             'createdAt' : self.created_at_str}
