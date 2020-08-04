@@ -72,7 +72,7 @@ def admin_exists():
     return count > 0
 
 # テーブルを作成する
-BaseModel.metadata.create_all(bind=engine, checkfirst=True)
+# BaseModel.metadata.create_all(bind=engine, checkfirst=True)
 
 def add_admin_user_and_role(factory):
     """

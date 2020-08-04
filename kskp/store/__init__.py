@@ -96,17 +96,30 @@ from .store_model import Store as StoreModel
 
 from ..depo.std.commands import CommandLink, CommandsPathLink, CommandsPathFileSource, RunfuncCommand
 
-# 管理者ロールと管理者ユーザを作成する
-# (とりあえず、権限管理のないsessionで作成する)
-from kskp.store.factory import UnAuthzFactory
-from kskp.store.auth import add_admin_user_and_role
-with UnAuthzFactory() as factory:
-    add_admin_user_and_role(factory)
+# factory.data.find_by_uuid()等で参照しているので、
+# 管理者ユーザの作成等の処理の前に記述する必要がある
+from sqlalchemy.orm.exc import NoResultFound
+
 
 # テーブルを作成する
 BaseModel.metadata.create_all(bind=engine, checkfirst=True)
 
-from sqlalchemy.orm.exc import NoResultFound
+# 管理者ロールと管理者ユーザを作成する
+from kskp.store.factory import UnAuthzFactory, Factory
+with UnAuthzFactory() as unauthz_factory:
+    admin_user = unauthz_factory.load_admin_user()
+
+    # User.load_self_role()でadmin_userオブジェクトを更新するため
+    # Factoryでamdin_userをリロードする
+    with Factory(admin_user) as factory:
+        admin_user = factory.user.find_by_id(admin_user.id)
+
+        # システムフォルダを作成する
+        with Factory(admin_user) as factory:
+            factory.data.load_cache_folder()
+            factory.data.load_trash_folder()
+
+
 from sqlalchemy import event, DDL
 
 @event.listens_for(BaseModel.metadata, 'after_create')

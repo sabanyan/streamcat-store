@@ -182,7 +182,8 @@ class User(BaseModel):
     def update_self_role_id(self, new_role_id, modifier=None):
         try:
             self.self_role_id = new_role_id
-            self._modifier_id = (modifier or self._session.user).id
+            if modifier or self._session.user:
+                self._modifier_id = (modifier or self._session.user).id
             self._session.update(self)
         except Exception as e:
             self._session.rollback()
@@ -265,8 +266,6 @@ class User(BaseModel):
             self.update_self_role_id(self_role.id)
         else:
             self_role = role_factory.find_by_id(self.self_role_id)
-            if self_role is None:
-                raise Exception(f'本人ロール({self.self_role_id})は存在しません')
 
         return self_role
 
