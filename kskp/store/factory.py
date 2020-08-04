@@ -77,7 +77,7 @@ class UnAuthzFactory():
     def create_admin_user(self):
         from kskp.store.auth import User
         # FIXIT:管理者パスワードはどうする？
-        return User(self._session, 'admin@kskp.io', 'adminpass', '管理者')
+        return User(self._session, 'admin@kskp.io', 'adminpass', 'システム管理者')
 
     def find_user_by_email(self, email):
         user = UserFactory(self._session).find_by_email(email)
@@ -96,6 +96,26 @@ class UnAuthzFactory():
         # if role is not None:
         #     role.session = self._session
         return role
+
+    def load_admin_user(self):
+        """
+        システム管理者を取得する、存在しない場合は作成する
+        """
+        # 管理者ロールが存在しない場合は作成する
+        admin_role = self.load_admin_role()
+
+        if admin_role.has_joined_user():
+            # 管理者ユーザが存在する場合は、idが最も小さいユーザを返す
+            admin_user = admin_role.get_joined_users()[0]
+        else:
+            # 管理者ユーザが存在しない場合はデフォルト管理者ユーザを作成する
+            # 初期管理者ユーザを作成する
+            admin_user = self.create_admin_user()
+            admin_user.save()
+            # 初期管理者ユーザを管理者ロールに参加させる
+            admin_role.join_user(admin_user)
+
+        return admin_user
 
     def __enter__(self):
         return self
@@ -149,7 +169,6 @@ class DatumFactory():
         from kskp.store import NoResultFound
         Datum.valid_uuid_or_raise(uuid)
 
-        from kskp.store import Datum
         query = self._session.query(Datum).filter(Datum.uuid==uuid)
 
         if type is not None:
@@ -165,14 +184,14 @@ class DatumFactory():
         return datum
 
     def count_root(self) -> int:
-        from kskp.store import Datum
+        from kskp.core import Datum
         return self._session.query(Datum).filter(Datum.parent_id == None).count()
 
     def find_root(self) -> Union[Folder, None]:
         """
         親を持たないfolderレコードを全て取得する
         """
-        from kskp.store import Datum
+        from kskp.core import Datum
         roots = self._session.query(Datum).filter(Datum.parent_id == None).all()
 
         if len(roots) == 0 :
@@ -189,7 +208,7 @@ class DatumFactory():
         """
         ゴミ箱を取得する
         """
-        from kskp.store import Datum
+        from kskp.core import Datum
         trashcan = self._session.query(Datum).filter(Datum.type==Datum.TRASH_TYPE).one_or_none()
         if trashcan is None:
             raise Exception('no trush can is found by designated id.')
@@ -201,7 +220,7 @@ class DatumFactory():
         no_inputs  =False : 入力ポートのないサブフローは取得しない
         no_outputs =False : 出力ポートのないサブフローは取得しない
         """
-        from kskp.store import Datum
+        from kskp.core import Datum
         # FIXIT : PostgreSQLのJSONB演算子を用いればSQLのみでサブフローを抽出できるはず
         flows = self._session.query(Datum).filter(Datum.type==Datum.FLOW_TYPE).all()
 
@@ -333,7 +352,7 @@ class DatumFactory():
         """
         指定されたuuidを持つDatumが存在する場合はTrueを返す
         """
-        from kskp.store import Datum
+        from kskp.core import Datum
         # UUID値の形式チェックをする
         if not Datum.is_valid_uuid(uuid):
             return False
@@ -349,7 +368,7 @@ class DatumFactory():
         """
         指定されたidを持つDatumが存在する場合はTrueを返す
         """
-        from kskp.store import Datum
+        from kskp.core import Datum
         query = self._session.query(Datum).filter(Datum.id==id)
 
         if type is not None:
@@ -361,7 +380,7 @@ class DatumFactory():
         """
         ゴミ箱が存在する場合はTrueを返す
         """
-        from kskp.store import Datum
+        from kskp.core import Datum
         result = self._session.query(Datum).filter(Datum.type==Datum.TRASH_TYPE).count()
         return result > 0
 
@@ -369,7 +388,7 @@ class DatumFactory():
         """
         ゴミ箱の中にある場合はTrueを返す
         """
-        from kskp.store import Datum
+        from kskp.core import Datum
         sql = f"""
         WITH RECURSIVE R AS (
             SELECT id, parent_id, uuid, type, path FROM data WHERE uuid = '{uuid}'

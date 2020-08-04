@@ -120,6 +120,18 @@ class Role(BaseModel):
         count = self._session.query(UserRole).filter(UserRole.role_id==self.id).count()
         return count > 0
 
+    def get_joined_users(self):
+        """
+        ロールに所属する全てのユーザを返す
+        (ユーザID順で返す)
+        """
+        from .user import User
+        query = self._session.query(User).\
+                              filter(User.id==UserRole.user_id).\
+                              filter(UserRole.role_id==self.id).\
+                              order_by(User.id)
+        return query.all()
+
     def join_user(self, user):
         """
         ロールにユーザを所属させる
@@ -167,7 +179,6 @@ class Role(BaseModel):
         return created_at_local.strftime('%Y-%m-%d %H:%M:%S')
 
     def to_json(self):
-        from kskp.store import Datum
         return {
             'id'       : self.id,
             'name'     : self.name,              
