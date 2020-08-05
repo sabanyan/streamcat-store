@@ -1,4 +1,3 @@
-from hashlib import new
 import os
 import uuid
 from sqlalchemy import Column, String, text
@@ -95,6 +94,17 @@ class User(BaseModel):
             return None
         return UserFactory(self._session).find_by_id(self._modifier_id, allow_no_result=True)
 
+    @property
+    def creator_str(self):
+        if self.creator is None:
+            return ''
+        return self.creator.name
+
+    @property
+    def created_at_str(self):
+        from kskp.core import Util
+        return Util.datetime_to_local_time_str(self.created_at)
+
     # def _require_admin_auth(func):
     #     """
     #     操作ユーザがadminロールに所属していない場合は例外を送出する
@@ -167,6 +177,8 @@ class User(BaseModel):
             raise e
         finally:
             self._session.commit()
+        
+        return self
 
     def update_name(self, new_name, modifier=None):
         try:
@@ -178,6 +190,8 @@ class User(BaseModel):
             raise e
         finally:
             self._session.commit()
+        
+        return self
 
     def update_self_role_id(self, new_role_id, modifier=None):
         try:
@@ -190,6 +204,8 @@ class User(BaseModel):
             raise e
         finally:
             self._session.commit()
+        
+        return self
 
     def reset_password(self, modifier=None):
         """
@@ -268,6 +284,16 @@ class User(BaseModel):
             self_role = role_factory.find_by_id(self.self_role_id)
 
         return self_role
+
+    def to_json(self):
+        return {
+            'uuid'     : self.uuid,
+            'email'    : self.email,
+            'name'     : self.name,    
+            'state'    : self.state,         
+            'creator'  : self.creator_str,
+            'createdAt': self.created_at_str
+        }
 
     def __repr__(self):
         return f'User({self.id}, {self.name})'
