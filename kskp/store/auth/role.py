@@ -61,6 +61,17 @@ class Role(BaseModel):
             return None
         return UserFactory(self._session).find_by_id(self._modifier_id, allow_no_result=True)
 
+    @property
+    def creator_str(self):
+        if self.creator is None:
+            return ''
+        return self.creator.name
+
+    @property
+    def created_at_str(self):
+        from kskp.core import Util
+        return Util.datetime_to_local_time_str(self.created_at)
+
     def save(self):
         """
         Roleを保存する
@@ -84,6 +95,8 @@ class Role(BaseModel):
             raise e
         finally:
             self._session.commit()
+
+        return self
 
     def delete(self):
         from .auth import Auth
