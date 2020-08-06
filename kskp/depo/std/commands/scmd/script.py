@@ -3,7 +3,7 @@ import os
 import sys
 import nysol.mcmd as nm
 
-from kskp.store import NysolModule, Datum, Store, Frame
+from kskp.store import NysolModule, Datum, Store, Frame, List
 from kskp.core import Command, Port
 
 class SCommand(Command):
@@ -921,7 +921,7 @@ class ActivityCommand(SCommand):
         pass
 
 
-class AssertCommand(Command):
+class AssertCommand(SCommand):
     """
     フローテストコマンド
     """
@@ -936,31 +936,184 @@ class AssertCommand(Command):
         import subprocess
         from pathlib import Path
         from subprocess import PIPE
+        import sys, csv
+
+
+        def test_py(tmp_path):
+            import sys, csv
+            f = None
+            sys.stdout.flush()
+            with open (tmp_path) as data:
+                print(data.read()) 
+            sys.stdout.flush()
+
+        def report_diff(diff_args):
+            """
+            差分の取得および出力データのインタフェース
+            """
+            try:
+                dlimit = diff_args["dlimit"]
+                comp_path = diff_args["comp_path"]
+                ret_diff = None
+                # 差分の取得を行う
+                # test_py(comp_path[0])
+
+                ret_diff = diff_getter(comp_path[0],comp_path[1],dlimit)
+                # if dlimit == 0:
+                #     ret_diff = diff_perfect_match(comp_path[0],comp_path[1])
+                # else:
+                #     ret_diff = diff_partial(comp_path[0],comp_path[1],dlimit)
+
+                # CSVを構築して、標準出力へ渡す
+                sys.stdout.flush()
+                diff_csv_maker(ret_diff)
+                # test_py(comp_path[0])
+                sys.stdout.flush()
+
+            except Exception as e:
+                import traceback
+                with open('dev/stderr', 'w')as fpe:
+                    traceback.print_exc(file=fpe)
+
+        # def diff_perfect_match(comp_path1, comp_path2):
+        #     """
+        #     ファイル完全一致であるかの判定を行う
+        #     ２ファイルのハッシュ値での比較
+        #     """
+        #     import hashlib
+        #     import filecmp
+
+        #     # return filecmp.cmpfiles(C)
+        #     # compare = filecmp()
+        #     if filecmp.cmp(comp_path1, comp_path2):
+        #         return True
+        #     else:
+        #         return ["A difference was found between the output data to be compared."]
+
+        #     # with open(comp_path1)as com_l:
+        #     #     with open (comp_path2)as com_r:
+        #     #         hash_l = hashlib.sha1()
+        #     #         hash_r = hashlib.sha1()
+        #     #         while len(chunk_l) == 0 or len(chunk_r) == 0:
+        #     #             chunk_l = com_l.read(2048 * hash_l.block_size)
+        #     #             chunk_r = com_r.read(2048 * hash_r.block_size)
+
+        #     #             if len(chunk_l) == 0 or len(chunk_r) == 0:
+        #     #                 break
+                        
+        #     #             hash_l.update(chunk_l)
+        #     #             hash_r.update(chunk_r)
+                    
+        #             # if str(hash_l) == str(hash_r):
+        #             #     return None
+        #             # else:
+        #             #     return ["A difference was found between the output data to be compared."]
+        #     # test_py(tmp_path_i.as_posix())
+
+        def diff_getter(comp_path1, comp_path2, dlimit):
+            """
+            2ファイル間での差分取得を行う
+            省メモリ化のため一行ずつ比較
+            dlimitは差分検出上限数、これを超えたら全体が間違っていると判断する
+            """
+            import difflib
+            from itertools import zip_longest
+            check = []
+            with open(comp_path1)as com_l:
+                with open(comp_path2)as com_r:
+                    row_number = 0
+                    for s,t in zip_longest(com_l, com_r, fillvalue='null'):
+                        # continue
+                        s, t = str(s), str(t)
+                        if s != t:
+                            # check.append("".join(d.compare(s, t)))
+                            diff_row = "l" + str(row_number) + ": ! " + s.rstrip('\n') + "    ! " + t.rstrip('\n')
+                            check.append(diff_row.replace(',', '、'))
+                            # 差分検出上限数チェック
+                            if len(check) > int(dlimit):
+                                # break
+                                return ["Due to a number of differences、 the output could not be completed."]
+                        row_number += 1
+            return check
+
+        def diff_csv_maker(diff_result):
+            """
+            差分取得の処理結果をもとに、コマンドとしての返却データを作成
+            runfuncを使用した場合、対象のコマンドでは標準出力にcsv形式のデータを渡す必要がある。（逆に、runfuncに対して、return を通してデータを返さない）
+            """
+            # 出力データの列
+            # output_columns = ["flow_UUID","parent_project_UUID", "date", "T/F", "diff"]
+            output_columns = ["flow_uuid", "date", "T/F", "diff"]
+            print(",".join(output_columns))
+
+            # データ列を初期化
+            flow_uuid = args["flow_uuid"]
+            # parent_project_UUID = "None"
+            date = "None"
+            TorF = "None"
+            diff = "undifined"
+            
+            # timeの設定
+            from datetime import datetime, timezone, timedelta
+            JST = timezone(timedelta(hours=+9), 'JST')
+            date = datetime.now(JST)
+
+            # TorFの判定 & diffの出力
+            if diff_result == [] or diff_result == None:
+                TorF = "True"
+                diff = 'nothing'
+            else:
+                TorF = "False"
+                diff = diff_result
+
+            output_datas = [flow_uuid, str(date), TorF]
+            # with open("./out888.txt", "wt")as f:
+            #     for s in diff:
+            #         f.writelines(s + '\n')
+            # print("")
+            # print(diff_result)
+            # print(",".join(output_datas))
+            # print(",".join(output_columns)+ "\n" + ",".join(output_datas) + str(diff))
+            isFirst = True
+            if isinstance(diff, list):
+                if len(diff) > 1:
+                    for output_diff in diff:
+                        if isFirst:
+                            print(",".join(output_datas) + "," + str(output_diff))
+                            isFirst = False
+                        else:
+                            print(",,," + output_diff)
+                else:
+                    print(",".join(output_datas)+ "," + str(diff[0]))
+            else:
+                print(",".join(output_datas)+ "," + str(diff))
+
 
         if 'i' not in inputs:
             raise Exception('AssertCommandの入力ポートiに値が入力されていません')
-        elif 'm' not in inputs:
+        if 'm' not in inputs:
             raise Exception('AssertCommandの入力ポートmに値が入力されていません')
 
-        if not isinstance(inputs['i'], NysolModule):
+        if not (isinstance(inputs['i'], NysolModule) or isinstance(inputs['i'], List)):
             raise Exception('入力ポートiのAssertCommandの入力データ型が異なります')
-        elif not isinstance(inputs['m'], NysolModule):
+        if not (isinstance(inputs['m'], NysolModule) or isinstance(inputs['m'], List)):
             raise Exception('入力ポートmのAssertCommandの入力データ型が異なります')
 
 
         #inputs から一時変数に格納する
         nysol_cmd_i = inputs['i'].content
         nysol_cmd_m = inputs['m'].content
-
-        
+        print("thanks")
+        print(inputs['i'].content)
+        print(inputs['m'].content)
+        print("thanks")
+        # print(args['flow_uuid'])#getできた
 
         # 一時ファイル作成用path
         # tmp_path_i = Path("/tmp/" + str(uuid.uuid4()) + "_i.csv")
         # tmp_path_m = Path("/tmp/" + str(uuid.uuid4()) + "_m.csv")
         tmp_path_i = Path("/tmp/" + str(1) + "_i.csv")
         tmp_path_m = Path("/tmp/" + str(1) + "_m.csv")
-        
-        # nysol_module_i = NysolModule()
 
         # 一時ファイルを作成する
         nysol_cmd_i <<= nm.m2tee(o=tmp_path_i.as_posix())
@@ -968,109 +1121,132 @@ class AssertCommand(Command):
         
         # 一時ファイル生成までを実行する
         runs_cmd_i = RunsCommand()
-        runs_cmd_i.run({}, {'i':NysolModule(nysol_cmd_i)})
+        q = runs_cmd_i.run({}, {'i':NysolModule(nysol_cmd_i)})
+        # activity_cmd = ActivityCommand()
+        runs_cmd_i_append = ActivityCommand()
+        # args, points = 出力ポイントのこと　これを渡す
+        # s = ActivityCommand().run({}, {'i': q})
         runs_cmd_m = RunsCommand()
         runs_cmd_m.run({}, {'m':NysolModule(nysol_cmd_m)})
 
-        if tmp_path_i.exists():
-            print('happy')
+        if not (tmp_path_i.exists() and tmp_path_m.exists()):
+            raise Exception('入力ファイルを一時ファイルに書き出せませんでした')
+        # else:
+        #     print("create temp file complete")
+        #     with open(tmp_path_i.as_posix())as f:
+        #         print(f.read())
 
-
-
-
+        # 作成した２ファイルから差分を算出する
+        
 
 
         # diff_list = diff_check(tmp_path_i, tmp_path_m, args['dlimit'])
-        # new_cmd_list <<= nm.runfunc(diff_check(tmp_path_i, tmp_path_m, args['dlimit']))
         new_cmd_list = None
-        # nysol_mod = NysolModule()
-        # return 0
-        return {'o': NysolModule(nysol_cmd_i)}# PCommandの方法を参照
-    
+        # new_cmd_list <<= nm.runfunc(report_diff(tmp_path_i.as_posix(), tmp_path_m.as_posix(), args['dlimit']))
+            
+        diff_args = {
+            "dlimit" : args["dlimit"],
+            "comp_path" : [tmp_path_i.as_posix(),tmp_path_m.as_posix()]
+        }
+
+        print("check開始........！")
+        new_cmd_list <<= nm.runfunc(report_diff, diff_args=diff_args)
+        # new_cmd_list <<= nm.runfunc(test_py, tmp_path_i.as_posix())
+        # print(new_cmd_list)
+        # new_cmd_list <<= nm.cmd('diff ' + tmp_path_i.as_posix() + ' ' + tmp_path_m.as_posix())
+        # new_cmd_list <<= nm.cmd('sed -e "s/,/、/g"')
+        # new_cmd_list <<= nm.cmd('sed -e ":loop;N;$!b loop;s/\n/ /g"')
+        # print("check")
+        # print(RunsCommand().run({}, {'o':NysolModule(new_cmd_list)}))
+        # print("checked")
+        return {'o': NysolModule(new_cmd_list)}# PCommandの方法を参照
+
+
+
 
     
-    # def run_old(self, args, inputs):
-        import difflib
-        import subprocess
-        from subprocess import PIPE
-        def diff_check(f1, f2, dlimit=10):
-            if dlimit == 0:
-                path = " " + f1 + " " + f2
-                return subprocess.Popen("diff -q" + str(path), shell=True, stdout=PIPE, stderr=PIPE)
-            else:
-                com_l = open(f1, "r")
-                com_r = open(f2, "r")
+    # # def run_old(self, args, inputs):
+    #     import difflib
+    #     import subprocess
+    #     from subprocess import PIPE
+    #     def diff_check(f1, f2, dlimit=10):
+    #         if dlimit == 0:
+    #             path = " " + f1 + " " + f2
+    #             return subprocess.Popen("diff -q" + str(path), shell=True, stdout=PIPE, stderr=PIPE)
+    #         else:
+    #             com_l = open(f1, "r")
+    #             com_r = open(f2, "r")
                 
-                d = difflib.Differ()
-                check = []
-                count = 0
-                for s,t in zip(com_l, com_r):
-                    if s != t and count < dlimit:
-                        check.append("\n".join(d.compare(s, t)))
-                        count += 1
-                com_l.close()
-                com_r.close()
-                return check
+    #             d = difflib.Differ()
+    #             check = []
+    #             count = 0
+    #             for s,t in zip(com_l, com_r):
+    #                 if s != t and count < dlimit:
+    #                     check.append("\n".join(d.compare(s, t)))
+    #                     count += 1
+    #             com_l.close()
+    #             com_r.close()
+    #             return check
 
 
-        def diff_all(f1, f2):
-            start = time.time()
+    #     def diff_all(f1, f2):
+    #         start = time.time()
 
-            path = " " + f1 + " " + f2
-            subprocess.Popen("diff -q" + str(path), shell=True, stdout=PIPE, stderr=PIPE)
-            # このコマンドに与えられたデータは一度ファイルに保存されて、それを読み出す形でテストを行う
-            # saverCmd -> RunsCmd -> flow_testの入力 の流れ
-            # dlimit = kwargs.get('dlimit')# diff-limit
-            # dlimit = args['dlimit']
+    #         path = " " + f1 + " " + f2
+    #         subprocess.Popen("diff -q" + str(path), shell=True, stdout=PIPE, stderr=PIPE)
+    #         # このコマンドに与えられたデータは一度ファイルに保存されて、それを読み出す形でテストを行う
+    #         # saverCmd -> RunsCmd -> flow_testの入力 の流れ
+    #         # dlimit = kwargs.get('dlimit')# diff-limit
+    #         # dlimit = args['dlimit']
             
 
-        import time
-        tmp_path_i = "/tmp/" + str(time.time) + "_i.csv"
-        tmp_path_m = "/tmp/" + str(time.time) + "_m.csv"
+    #     import time
+    #     tmp_path_i = "/tmp/" + str(time.time) + "_i.csv"
+    #     tmp_path_m = "/tmp/" + str(time.time) + "_m.csv"
         
-        nysol_module_i = NysolModule()
-        runs_cmd_i = RunsCommand()
+    #     nysol_module_i = NysolModule()
+    #     runs_cmd_i = RunsCommand()
 
-        #inputs から一時変数に格納する
-        test_i = inputs['i'].content
-        test_flow_cmds_i = None
-        test_flow_cmds_i <<= nm.m2tee(i=test_i, o=tmp_path_i)
+    #     #inputs から一時変数に格納する
+    #     test_i = inputs['i'].content
+    #     test_flow_cmds_i = None
+    #     test_flow_cmds_i <<= nm.m2tee(i=test_i, o=tmp_path_i)
 
-        nysol_module_i.set_content(test_flow_cmds_i)
-        results_i = runs_cmd_i.run(args={}, inputs={'o': nysol_module_i})
+    #     nysol_module_i.set_content(test_flow_cmds_i)
+    #     results_i = runs_cmd_i.run(args={}, inputs={'o': nysol_module_i})
 
 
-        # print("test-12394")
+    #     # print("test-12394")
 
-        # print(results_i)
-        # print(type(results_i))
-        # print(results_i['o'])# この時点でactivityが返ってくるかは調査
-        # print(type(results_i['o']))
+    #     # print(results_i)
+    #     # print(type(results_i))
+    #     # print(results_i['o'])# この時点でactivityが返ってくるかは調査
+    #     # print(type(results_i['o']))
 
-        # print("test-12394")
-        # print(args)
-        # print("test-12394")
+    #     # print("test-12394")
+    #     # print(args)
+    #     # print("test-12394")
 
-        #inputs から一時変数に格納する
-        test_m = inputs['m'].content
-        test_flow_cmds_m = None
-        test_flow_cmds_m <<= nm.m2tee(i=test_m, o=tmp_path_m)
+    #     #inputs から一時変数に格納する
+    #     test_m = inputs['m'].content
+    #     test_flow_cmds_m = None
+    #     test_flow_cmds_m <<= nm.m2tee(i=test_m, o=tmp_path_m)
 
-        nysol_module_m = NysolModule()
-        runs_cmd_m = RunsCommand()
-        nysol_module_m.set_content(test_flow_cmds_m)
+    #     nysol_module_m = NysolModule()
+    #     runs_cmd_m = RunsCommand()
+    #     nysol_module_m.set_content(test_flow_cmds_m)
 
-        results_m = runs_cmd_m.run(args={}, inputs={'': nysol_module_m})
-        return results_m
-        # results = saver_cmd.run(args={}, inputs={'i':test_flow_cmds, 'store'})#inputs['i']=nysol_module()?
-        # results_m
-        # nysol_module_diff = NysolModule()
-        new_cmd_list = None
-        # diff_list = diff_check(tmp_path_i, tmp_path_m, args['dlimit'])
-        new_cmd_list <<= nm.runfunc(diff_check(tmp_path_i, tmp_path_m, args['dlimit']))
+    #     results_m = runs_cmd_m.run(args={}, inputs={'': nysol_module_m})
+    #     return results_m
+    #     # results = saver_cmd.run(args={}, inputs={'i':test_flow_cmds, 'store'})#inputs['i']=nysol_module()?
+    #     # results_m
+    #     # nysol_module_diff = NysolModule()
+    #     new_cmd_list = None
+    #     # diff_list = diff_check(tmp_path_i, tmp_path_m, args['dlimit'])
+    #     new_cmd_list <<= nm.runfunc(diff_check(tmp_path_i, tmp_path_m, args['dlimit']))
 
-        nysol_mod = NysolModule()
-        return {'o': nysol_mod.set_content(new_cmd_list)}# PCommandの方法を参照
+    #     nysol_mod = NysolModule()
+    #     return {'o': nysol_mod.set_content(new_cmd_list)}# PCommandの方法を参照
     
     # def run(self, args, inputs):
         
@@ -1103,36 +1279,6 @@ class AssertCommand(Command):
     
 
     
-    import difflib
-    import subprocess
-    from subprocess import PIPE
-    def diff_check(f1, f2, dlimit=10):
-        if dlimit == 0:
-            path = " " + f1 + " " + f2
-            return subprocess.Popen("diff -q" + str(path), shell=True, stdout=PIPE, stderr=PIPE)
-        else:
-            com_l = open(f1, "r")
-            com_r = open(f2, "r")
-            
-            d = difflib.Differ()
-            check = []
-            count = 0
-            for s,t in zip(com_l, com_r):
-                if s != t and count < dlimit:
-                    check.append("\n".join(d.compare(s, t)))
-                    count += 1
-            com_l.close()
-            com_r.close()
-            return check
-
-
-    def diff_all(f1, f2):
-        start = time.time()
-
-        path = " " + f1 + " " + f2
-        subprocess.Popen("diff -q" + str(path), shell=True, stdout=PIPE, stderr=PIPE)
-
-
 
     
     # def run(self, args, inputs):

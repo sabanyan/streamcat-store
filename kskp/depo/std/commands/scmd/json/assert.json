@@ -1,9 +1,9 @@
 {
   "version": "0.7.0",
   "id": "assert",
-  "label": "test用",
+  "label": "参照データとの比較による差分出力",
   "classification": "validation",
-  "description": "test command",
+  "description": "入力データと参照データを照らし合わせて、差分情報を出力する",
   "ports": [
     [
       {
@@ -26,7 +26,7 @@
     {
       "name": "dlimit",
       "type": "string",
-      "label": "差分取得基準値(必須)"
+      "label": "差分取得限界数(必須)"
     }
   ],
   "url": ""
