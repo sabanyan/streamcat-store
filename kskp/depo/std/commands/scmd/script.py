@@ -58,6 +58,7 @@ class SaverCommand(SCommand):
         if results1 is None or len(results1)==0:
             folder1 = store.create_folder(folder1_label)
             folder1.save()
+            folder1 = folder1.reload()
         else:
             folder1 = results1[0]
 
@@ -65,9 +66,9 @@ class SaverCommand(SCommand):
         results2 = folder1.find_children_by_label(folder2_label, type=Datum.FOLDER_TYPE)
         if results2 is None or len(results2)==0:
             folder2 = folder1.create_folder(folder2_label)
-            folder2.path = folder2.path.parent / folder2_file_name
-            folder2.save()
-        else:            
+            folder2.save(file_path = folder2.path.parent / folder2_file_name)
+            folder2 = folder2.reload()
+        else:
             if isinstance(results2[0], Store):
                 folder2 = results2[0]
             else:
@@ -82,7 +83,7 @@ class SaverCommand(SCommand):
         frame = store.create_frame(label, f)
         # RunsCommandの実行前にFrameを登録する
         frame.save()
-        return store.find_child_by_uuid(frame.uuid)
+        return frame.reload()
 
 class CacheSaverCommand(SaverCommand):
     """
@@ -119,7 +120,7 @@ class CacheSaverCommand(SaverCommand):
             node_id = args['datum_id']
             # TODO: RunsCommand実行前にFlowにキャッシュありの情報を更新すると、同じフローの同時実行に支障があるだろう
             flow.set_cache(node_id, cache.uuid)
-            flow.update_data(flow.label, flow.flow_data)
+            flow.update_data(flow.label, flow.flow_data.to_json())
 
         # NYSOLコマンドを作成する
         cmd = inputs['i'].content
@@ -133,7 +134,7 @@ class CacheSaverCommand(SaverCommand):
         cache = store.create_cache(label, f)
         # RunsCommandの実行前にCacheを登録する
         cache.save()
-        cache = store.find_child_by_uuid(cache.uuid)
+        cache = cache.reload()
         # FrameとCacheを区別するためのフラグ
         cache.is_cache = True
         return cache
@@ -174,7 +175,7 @@ class LoaderCommand(SCommand):
             encoding = frame.encoding
 
         cmd = nm.m2tee(i=path)
-        # mreadで存在しないファイルパスを指定するとDockerごと落ちる ->　
+        # mreadで存在しないファイルパスを指定するとDockerごと落ちる -> 0.3.10で修正済
         # mreadは巨大ファイルの読み込みが遅い(全行入力してる?)
         # cmd = nm.mread({'i':path, 'n':65535})
         nysol_module = NysolModule(cmd)
@@ -782,6 +783,7 @@ class RunsCommand(SCommand):
                     #  recv_connオブジェクトでcloseするのでclosefd=Falseとする)
                     for line in open(recv_conn.fileno(), mode='r', closefd=False):
                         print(line, end='', file=sys.stderr)
+                        sys.stderr.flush()
                         if line.startswith('#ERROR#') and 'script RUN KGERROR runmain on kgshell' not in line:
                             mcmd_errors.append(line)
 

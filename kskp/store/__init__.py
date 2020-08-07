@@ -34,6 +34,7 @@ elif _is_unittest():
 else:
     # ローカル環境用の設定
     os.environ["SQLALCHEMY_DATABASE_URI"] = "postgresql://postgres:@db/kskp"
+    # os.environ["SQLALCHEMY_DATABASE_URI"] = "postgresql://kskp:ZQZtVgL6G32Vy6p6WJtG3C3K84yuJ4zz@db/kskp"
 
     # ローカルでpostgres専用コンテナを立ち上げる時のコマンド
     # docker run --name postgres -p 5432:5432 -e POSTGRES_USER=dev -e POSTGRES_DB=kskp -e POSTGRES_PASSWORD=secret -d postgres:11.1
@@ -66,13 +67,6 @@ if _is_unittest():
 from sqlalchemy.ext.declarative import declarative_base
 BaseModel = declarative_base()
 
-# 管理者グループと管理者ユーザを作成する
-# (とりあえず、権限管理のないsessionで作成する)
-from kskp.store.factory import UnAuthzFactory
-from kskp.store.auth import add_admin_user_and_group
-with UnAuthzFactory() as db_session:
-    add_admin_user_and_group(db_session)
-
 from kskp.core import Datum, Port, Command
 
 from .exceptions import NothingToPutbackException, NoResultsException
@@ -83,6 +77,7 @@ from .mountable import Mountable
 from .lock_manager import LockManager, LockedDatumException
 from .frame import Frame
 # from .cache import Cache
+from .flow_data import FlowData
 from .flow import Flow
 from .folder import Folder
 from .project_folder import ProjectFolder
@@ -102,10 +97,30 @@ from .store_model import Store as StoreModel
 
 from ..depo.std.commands import CommandLink, CommandsPathLink, CommandsPathFileSource, RunfuncCommand
 
+# factory.data.find_by_uuid()等で参照しているので、
+# 管理者ユーザの作成等の処理の前に記述する必要がある
+from sqlalchemy.orm.exc import NoResultFound
+
+
 # テーブルを作成する
 BaseModel.metadata.create_all(bind=engine, checkfirst=True)
 
-from sqlalchemy.orm.exc import NoResultFound
+# 管理者ロールと管理者ユーザを作成する
+from kskp.store.factory import UnAuthzFactory, Factory
+with UnAuthzFactory() as unauthz_factory:
+    admin_user = unauthz_factory.load_admin_user()
+
+    # User.load_self_role()でadmin_userオブジェクトを更新するため
+    # Factoryでamdin_userをリロードする
+    with Factory(admin_user) as factory:
+        admin_user = factory.user.find_by_id(admin_user.id)
+
+        # システムフォルダを作成する
+        with Factory(admin_user) as factory:
+            factory.data.load_cache_folder()
+            factory.data.load_trash_folder()
+
+
 from sqlalchemy import event, DDL
 
 @event.listens_for(BaseModel.metadata, 'after_create')

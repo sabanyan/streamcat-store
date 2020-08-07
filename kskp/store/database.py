@@ -10,19 +10,19 @@ class Database(Store):
         'polymorphic_identity' : 'database'
     }
 
-    def __init__(self, session, parent, label, database_conn, creator=None):
+    def __init__(self, session, parent, label, database_conn):
         """
         コンストラクタ
         """
-        super().__init__(session, parent, Datum.DATABASE_TYPE, label, creator)
+        super().__init__(session, parent, Datum.DATABASE_TYPE, label)
  
         # 接続情報はデータベースに保存する
-        self._path = ''
+        self._path = None
 
         # data列の値を作成する
         if database_conn is None:
             raise Exception('database_conn引数がNoneです')
-        self.data = {'conn' : database_conn.to_json()}
+        self._data = {'conn' : database_conn.to_json()}
 
     def save(self):
         """
@@ -30,16 +30,16 @@ class Database(Store):
         """
         # 既にルートフォルダが存在する場合は、parent_id=NULLを許可しない
         from kskp.store.factory import DatumFactory
-        if self.parent_id is None and DatumFactory(self.session).count_root() > 0:
+        if self.parent_id is None and DatumFactory(self._session).count_root() > 0:
             raise Exception('You can not add root folder. A root already exists.')
         try:
             # Dataテーブルにレコードを新規追加する
-            self.session.add(self)
+            self._session.add(self)
         except Exception as e:
-            self.session.rollback()
+            self._session.rollback()
             raise e
         finally:
-            self.session.commit()
+            self._session.commit()
 
     def update_data(self, label, database_conn, modifier=None):
         """
@@ -51,17 +51,17 @@ class Database(Store):
         try:
             # レコードを更新する
             # data = {'conn' : database_conn.to_json()}
-            data = self.data.copy()
-            data['conn'] = database_conn.to_json()
+            # data = self.data.copy()
+            # data['conn'] = database_conn.to_json()
             self._label = new_label
-            self._data = data
-            self._modifier_id = (modifier or self.session.user).id
-            self.session.update(self)
+            self._data['conn'] = database_conn.to_json()
+            self._modifier_id = (modifier or self._session.user).id
+            self._session.update(self)
         except Exception as e:
-            self.session.rollback()
+            self._session.rollback()
             raise e
         finally:
-            self.session.commit()
+            self._session.commit()
 
         return self
 
@@ -108,17 +108,17 @@ class Database(Store):
         using_flow_uuids = self.get_flow_uuids_using_me()
         if len(using_flow_uuids) > 0:
             from kskp.store.factory import DatumFactory
-            using_flow_label = DatumFactory(self.session).find_by_uuid(using_flow_uuids[0]).label
+            using_flow_label = DatumFactory(self._session).find_by_uuid(using_flow_uuids[0]).label
             raise Exception('このStoreはローダ・セーバ(%s)で使用しているため削除できません' % using_flow_label)
 
         try:
             # Databaseレコードを削除する
-            self.session.delete(self)
+            self._session.delete(self)
         except Exception as e:
-            self.session.rollback()
+            self._session.rollback()
             raise e
         finally:
-            self.session.commit()
+            self._session.commit()
 
     def remove_reference_only(self):
         """
@@ -132,25 +132,25 @@ class Database(Store):
 
     @property
     def conn(self):
-        return DatabaseConn.from_json(self.data['conn'])
+        return DatabaseConn(self._data['conn'], self._readable_or_raise)
 
     def valid_or_raise(self):
         """
         DB接続情報の形式チェックを行い、NGの場合は例外を送出する
         """
-        database_conn = DatabaseConn.from_json(self.data['conn'])
+        database_conn = DatabaseConn(self._data['conn'])
         return database_conn.valid_or_raise()
 
     def to_json(self):
         ret =  {'uuid'      : self.uuid,
                 'type'      : Datum.DATABASE_TYPE,
                 'label'     : self.label,
+                'readable'  : self.readable,
+                'prevFolderPath' : self.get_prev_folder_path(),
                 'creator'   : self.creator_str,
                 'createdAt' : self.created_at_str}
 
         if self.readable:
-            ret['prevFolderPath'] = self.get_prev_folder_path()
-            database_conn = DatabaseConn.from_json(self.data['conn'])
-            ret.update(database_conn.to_json())
+            ret.update(self.conn.to_json())
 
         return ret

@@ -81,14 +81,14 @@ class FlowDumper:
             database = self.factory.data.find_by_uuid(store_uuid, type=Datum.DATABASE_TYPE)
             database_path = parent_tmp_path / (database.uuid + '.json')
             with database_path.open('w') as f:
-                f.write(json.dumps(database.data['conn'], indent=2, ensure_ascii=False))
+                f.write(json.dumps(database.conn, indent=2, ensure_ascii=False))
             uuid_type_label.append((database.uuid, database.type, database.label))   
 
         for flow_uuid in flow_uuids:
             flow = self.factory.data.find_by_uuid(flow_uuid, type=Datum.FLOW_TYPE)
             flow_path = parent_tmp_path / (flow.uuid + '.json')
             with flow_path.open('w') as f:
-                f.write(json.dumps(flow.flow_data, indent=2, ensure_ascii=False))
+                f.write(json.dumps(flow.flow_data.to_json(), indent=2, ensure_ascii=False))
             uuid_type_label.append((flow.uuid, flow.type, flow.label))
 
         # uuidとlabelの対応表をファイルに出力する
@@ -171,7 +171,7 @@ class FlowDumper:
         frame_folder = parent.create_folder('FromOtherServer')
         frame_folder.save()
         # 保存後に参照権限を取得するためDBから取得する
-        frame_folder = self.factory.data.find_by_uuid(frame_folder.uuid)
+        frame_folder = frame_folder.reload()
 
         # フローフォルダを取得する
         flow_folder = self.factory.data.load_flow_folder()
@@ -225,15 +225,15 @@ class FlowDumper:
                     with file.open('r') as f:
                         d = f.read()
                         db = json.loads(d)
-                    db_conn = DatabaseConn(db['dbms'], db['hostname'], db['port'], db['database'], db['user_id'], db['password'])
+                    db_conn = DatabaseConn(db)
                     database = frame_folder.create_database(label, db_conn)
                     uuids[file.stem] = database.uuid
                     database.save()
                 elif datum_type == Datum.FLOW_TYPE:
                     with file.open('r') as f:
                         d = f.read()
-                        flow_data = json.loads(d)
-                    flow = flow_folder.create_flow(label, flow_data)
+                        flow_json = json.loads(d)
+                    flow = flow_folder.create_flow(label, flow_json)
                     flow_uuids[file.stem] = flow.uuid
                     uuids[file.stem] = flow.uuid
                     flow.save()
@@ -244,7 +244,7 @@ class FlowDumper:
         for new_flow_uuid in flow_uuids.values():
             flow = self.factory.data.find_by_uuid(new_flow_uuid, type=Datum.FLOW_TYPE)
             flow.replace_uuids(uuids)
-            flow.update_data(flow.label, flow.flow_data)
+            flow.update_data(flow.label, flow.flow_data.to_json())
 
         # 展開したファイルを削除する
         import shutil

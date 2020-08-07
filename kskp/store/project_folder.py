@@ -9,11 +9,11 @@ class ProjectFolder(Folder):
         'polymorphic_identity' : 'project'
     }
 
-    def __init__(self, session, parent, label, creator=None):
+    def __init__(self, session, parent, label):
         """
         コンストラクタ
         """
-        super().__init__(session, parent, label, creator)
+        super().__init__(session, parent, label)
 
         # データタイプを設定する
         self.type = Datum.PROJECT_TYPE

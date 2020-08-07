@@ -9,11 +9,11 @@ class Folder(Store):
         'polymorphic_identity' : 'folder'
     }
 
-    def __init__(self, session, parent, label, creator=None):
+    def __init__(self, session, parent, label):
         """
         コンストラクタ
         """
-        super().__init__(session, parent, Datum.FOLDER_TYPE, label, creator)
+        super().__init__(session, parent, Datum.FOLDER_TYPE, label)
 
         # data列の値を作成する
         # self.data = {}
@@ -24,29 +24,29 @@ class Folder(Store):
         """
         # 既にルートフォルダが存在する場合は、parent_id=NULLを許可しない
         from kskp.store.factory import DatumFactory
-        if self.parent_id is None and DatumFactory(self.session).count_root() > 0:
+        if self.parent_id is None and DatumFactory(self._session).count_root() > 0:
             raise Exception('You can not add root folder. A root already exists.')
 
         if file_path is None:
             # 既存のファイルと重複しないファイル名を取得する
-            self.path = Datum.make_unique_path(self.path)
+            self._path = Datum.make_unique_path(self._path)
         else:
-            self.path = file_path
+            self._path = file_path
 
-        # 新規追加前にファイルパスを退避する
-        self_path = self.path
+        # # 新規追加前にファイルパスを退避する
+        # self_path = self.path
 
         try:
             # Dataテーブルにレコードを新規追加する
-            self.session.add(self)
+            self._session.add(self)
             # ドキュメントに紐付くファイル(path列で指定されるファイル)がなければ作成する
             if file_path is None:
-                self._make_dir(self_path)
+                self._make_dir(self._path)
         except Exception as e:
-            self.session.rollback()
+            self._session.rollback()
             raise e
         finally:
-            self.session.commit()
+            self._session.commit()
 
     # def add_entry_from_path(self, file_path):
     #     """
@@ -74,7 +74,7 @@ class Folder(Store):
         new_label = Datum.escape_label(label)
 
         # ラベル名からファイルパスを作成する    
-        old_path = self.path
+        old_path = self._path
         new_path = old_path.parent / Datum.escape_filename(new_label)
         new_path = Datum.make_unique_path(new_path, except_path=old_path)
 
@@ -84,15 +84,15 @@ class Folder(Store):
             self._update_include_path(old_path, new_path, modifier)
             # レコードを更新する
             self._label = new_label
-            self._modifier_id = (modifier or self.session.user).id
-            self.session.update(self)
+            self._modifier_id = (modifier or self._session.user).id
+            self._session.update(self)
             # ファイルを移動する
             Datum.move_file(old_path, new_path)
         except Exception as e:
-            self.session.rollback()
+            self._session.rollback()
             raise e
         finally:
-            self.session.commit()
+            self._session.commit()
 
         return self
 
@@ -102,7 +102,7 @@ class Folder(Store):
         Folderを中身のファイルも一緒にゴミ箱にほかす
         """
         from kskp.store.factory import DatumFactory
-        factory = DatumFactory(self.session)
+        factory = DatumFactory(self._session)
         trash_folder = factory.load_trash_folder()
 
         if self.parent_id is None:
@@ -126,7 +126,7 @@ class Folder(Store):
             # ゴミ箱に捨てても削除前の階層構造を維持するため、削除対象フォルダの形代をゴミ箱に作成する
             trashed_folder = parent.create_folder(datum.label)
             trashed_folder.save()
-            trashed_folder = parent.find_child_by_uuid(trashed_folder.uuid)
+            trashed_folder = trashed_folder.reload()
 
             throwables = []
             thrown_count = 0
@@ -156,12 +156,15 @@ class Folder(Store):
             return thrown_count, obstacle_count
 
         elif datum.type == Datum.FRAME_TYPE or datum.type == Datum.FLOW_TYPE:
-            # 削除しようとするフレーム/サブフローが、フローで使用されていない場合に削除する
-            using_flow_uuids = datum.get_flow_uuids_using_me()
-            if len(using_flow_uuids) == 0:
-                return 0, 0
-            else:
+            # 削除しようとするフレーム/サブフローの更新権限がない場合は削除できない
+            if not self._session.writable(datum):
                 return 0, 1
+            # 削除しようとするフレーム/サブフローが、フローで使用されてる場合は削除できない
+            using_flow_uuids = datum.get_flow_uuids_using_me()
+            if len(using_flow_uuids) > 0:
+                return 0, 1
+            # 削除可能!
+            return 0, 0
 
         else:
             # データベース接続、リモートフォルダ接続
@@ -176,14 +179,14 @@ class Folder(Store):
             raise Exception('空でないフォルダは削除できません')
         try:
             # フォルダレコードを削除する
-            self.session.delete(self)
+            self._session.delete(self)
             # ディレクトリを削除する
-            self._remove_dir(self.path)
+            self._remove_dir(self._path)
         except Exception as e:
-            self.session.rollback()
+            self._session.rollback()
             raise e
         finally:
-            self.session.commit()
+            self._session.commit()
 
     def remove_reference_only(self):
         """
@@ -209,26 +212,26 @@ class Folder(Store):
 
         try:
             # フォルダレコードを削除する
-            self.session.delete(self)
-            self.session.execute(sql)
+            self._session.delete(self)
+            self._session.execute(sql)
         except Exception as e:
-            self.session.rollback()
+            self._session.rollback()
             raise e
         finally:
-            self.session.commit()
+            self._session.commit()
 
     def get_folder_path(self):
         """
         現在のフォルダ階層パスをリスト型で返す(APIのFolderPath属性の作成で用いる)
         """
         # 指定されたUUIDのfolerレコードを取得する
-        datum = self.session.query(Datum).filter(Datum.uuid==self.uuid).one_or_none()
+        datum = self._session.query(Datum).filter(Datum.uuid==self.uuid).one_or_none()
 
         parent_id = datum.parent_id
         path_to_root = [{'type':datum.type, 'uuid':datum.uuid, 'label':datum.label}]
         # 取得したレコードから外部キー’parent_id’をたどり、途中のfolderレコードをリストに順に保存する
         while parent_id != None:
-            datum = self.session.query(Datum).filter(Datum.id==parent_id).one_or_none()
+            datum = self._session.query(Datum).filter(Datum.id==parent_id).one_or_none()
             path_to_root.append({'type':datum.type, 'uuid':datum.uuid, 'label':datum.label})
             parent_id = datum.parent_id
         # 保存したリストの並びを逆にする
@@ -276,22 +279,16 @@ class Folder(Store):
             raise e
 
     def _dir_path_exists(self, dir_path, except_id):
-        rel_path = Datum._to_rel_path(dir_path).as_posix()
+        rel_path = Datum._to_rel_path(dir_path)
 
-        results = self.session.query(Datum._path)\
-                 .filter(Datum._path.like(rel_path + '%'))\
+        results = self._session.query(Datum._path)\
+                 .filter(Datum._path.like(rel_path.as_posix() + '%'))\
                  .filter(Datum.id != except_id).all()
 
         for result in results:
-            if result._path == rel_path:
+            if result._path == dir_path:
                 return True
-            if os.path.commonpath([result._path, rel_path]) == rel_path:
+            if os.path.commonpath([result._path, dir_path]) == dir_path:
                 return True
         return False
 
-    # def to_json(self):
-    #     return {'uuid'      : self.uuid,
-    #             'type'      : Datum.FOLDER_TYPE,
-    #             'label'     : self.label,
-    #             'creator'   : self.creator_str,
-    #             'createdAt' : self.created_at_str}

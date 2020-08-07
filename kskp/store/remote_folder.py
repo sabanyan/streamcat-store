@@ -11,11 +11,11 @@ class RemoteFolder(Folder, Mountable):
         'polymorphic_identity' : 'rfolder'
     }
 
-    def __init__(self, session, parent, label, remoteFolderConn, creator=None):
+    def __init__(self, session, parent, label, remoteFolderConn):
         """
         コンストラクタ
         """
-        super().__init__(session, parent, label, creator)
+        super().__init__(session, parent, label)
 
         # データタイプを設定する
         self.type = Datum.RFOLDER_TYPE
@@ -23,7 +23,7 @@ class RemoteFolder(Folder, Mountable):
         # data列の値を作成する
         if remoteFolderConn is None:
             raise Exception('remoteFolderConn引数がNoneです')
-        self.data = {'conn' : remoteFolderConn.to_json()}
+        self._data = {'conn' : remoteFolderConn.to_json()}
 
     def save(self):
         """
@@ -31,18 +31,18 @@ class RemoteFolder(Folder, Mountable):
         """
         # 既にルートフォルダが存在する場合は、parent_id=NULLを許可しない
         from kskp.store.factory import DatumFactory
-        if self.parent_id is None and DatumFactory(self.session).count_root() > 0:
+        if self.parent_id is None and DatumFactory(self._session).count_root() > 0:
             raise Exception('You can not add root remote folder. A root already exists.')
 
         # 既存のファイルと重複しないファイル名を取得する
-        self.path = Datum.make_unique_path(self.path)
+        self._path = Datum.make_unique_path(self._path)
 
         # 新規追加前にファイルパスを退避する
-        self_path = self.path
+        self_path = self._path
 
         try:
             # Dataテーブルにレコードを新規追加する
-            self.session.add(self)
+            self._session.add(self)
             # フォルダに紐付くディレクトリ(path列で指定されるディレクトリ)がなければ作成する
             self._make_dir(self_path)
             # ここでリモートフォルダをマウントする
@@ -50,10 +50,10 @@ class RemoteFolder(Folder, Mountable):
         except Exception as e:
             self.unmount(self_path)
             self._remove_dir(self_path)
-            self.session.rollback()
+            self._session.rollback()
             raise e
         finally:
-            self.session.commit()
+            self._session.commit()
 
     def update_data(self, label, remoteFolderConn, modifier=None):
         """
@@ -63,7 +63,7 @@ class RemoteFolder(Folder, Mountable):
         new_label = Datum.escape_label(label)
 
         # ラベル名からファイルパスを作成する
-        old_path = self.path
+        old_path = self._path
         new_path = old_path.parent / Datum.escape_filename(new_label)
         new_path = Datum.make_unique_path(new_path, except_path=old_path)
 
@@ -74,20 +74,20 @@ class RemoteFolder(Folder, Mountable):
 
             # レコードを更新する
             # data = {'conn' : remoteFolderConn.to_json()}
-            data = self.data.copy()
-            data['conn'] = remoteFolderConn.to_json()
+            # data = self.data.copy()
+            # data['conn'] = remoteFolderConn.to_json()
             self._label = new_label
-            self._data = data
-            self._modifier_id = (modifier or self.session.user).id
-            self.session.update(self)
+            self._data['conn'] = remoteFolderConn.to_json()
+            self._modifier_id = (modifier or self._session.user).id
+            self._session.update(self)
 
             # ファイルを移動する
             Datum.move_file(old_path, new_path)
         except Exception as e:
-            self.session.rollback()
+            self._session.rollback()
             raise e
         finally:
-            self.session.commit()
+            self._session.commit()
 
         return self
 
@@ -105,36 +105,40 @@ class RemoteFolder(Folder, Mountable):
             self._remove_reference_only_recursively()
 
             # 共有フォルダをマウント解除する
-            self.unmount(self.path)
+            self.unmount(self._path)
             # ディレクトリを削除する
-            self._remove_dir(self.path)
+            self._remove_dir(self._path)
         except Exception as e:
-            self.session.rollback()
+            self._session.rollback()
             raise e
         finally:
-            self.session.commit()
+            self._session.commit()
+
+
+    @property
+    def conn(self):
+        return RemoteFolderConn(self._data['conn'], self._readable_or_raise)
 
     def valid_or_raise(self):
         """
         接続情報の形式チェックを行い、NGの場合は例外を送出する
         """
-        database_conn = RemoteFolderConn.from_json(self.data['conn'])
+        database_conn = RemoteFolderConn(self._data['conn'])
         return database_conn.valid_or_raise()
 
     def _get_mount_cmd(self, mount_point_path):
-        remote_folder_conn = RemoteFolderConn.from_json(self.data['conn'])
-        return remote_folder_conn.get_mount_cmd(mount_point_path)
+        return self.conn.get_mount_cmd(mount_point_path)
 
     def to_json(self):
         ret =  {'uuid'      : self.uuid,
                 'type'      : Datum.RFOLDER_TYPE,
                 'label'     : self.label,
+                'readable'  : self.readable,
+                'prevFolderPath' : self.get_prev_folder_path(),
                 'creator'   : self.creator_str,
                 'createdAt' : self.created_at_str}
 
         if self.readable:
-            ret['prevFolderPath'] = self.get_prev_folder_path()
-            remote_folder_conn = RemoteFolderConn.from_json(self.data['conn'])
-            ret.update(remote_folder_conn.to_json())
+            ret.update(self.conn.to_json())
 
         return ret
