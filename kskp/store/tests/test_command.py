@@ -44,7 +44,7 @@ class CommandTest(TestCaseBase):
         TestCaseBase.tearDownClass()
 
 
-    flow_data = {
+    flow_json = {
         "projectId": None, 
         "label": "abc", 
         "ports": [
@@ -98,7 +98,7 @@ class CommandTest(TestCaseBase):
         """
         DBローダーコマンドが正しくデータを取得できること
         """
-        flow = Flow(None, self.flow_data['label'], self.flow_data)
+        flow = Flow(None, self.flow_json['label'], self.flow_json)
         flow_link = FlowJsonLink(flow, FlowLinkContext())
         lasts = execute(flow_link, {}, {})
 
@@ -112,7 +112,7 @@ class CommandTest(TestCaseBase):
         # 後片付け
         Library.delete_frame(lasts['d'].uuid)
 
-    flow_data2 = {
+    flow_json2 = {
         "projectId": None, 
         "label": "abc", 
         "ports": [
@@ -166,7 +166,7 @@ class CommandTest(TestCaseBase):
         """
         DBに接続できない場合は例外を送出すること
         """
-        flow = Flow(None, self.flow_data2['label'], self.flow_data2)
+        flow = Flow(None, self.flow_json2['label'], self.flow_json2)
         flow_link = FlowJsonLink(flow, FlowLinkContext())
 
         from sqlalchemy import exc

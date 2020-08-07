@@ -7,11 +7,11 @@ class TrashCan(Folder):
         'polymorphic_identity' : 'trash'
     }
 
-    def __init__(self, session, parent, creator=None):
+    def __init__(self, session, parent):
         """
         コンストラクタ
         """
-        super().__init__(session, parent, 'ゴミ箱', creator)
+        super().__init__(session, parent, 'ゴミ箱')
 
         # データタイプを設定する
         self.type = Datum.TRASH_TYPE
@@ -20,7 +20,7 @@ class TrashCan(Folder):
         """
         ゴミ箱が存在する場合はTrueを返す
         """
-        result = self.session.query(Datum).filter(Datum.type==Datum.TRASH_TYPE).count()
+        result = self._session.query(Datum).filter(Datum.type==Datum.TRASH_TYPE).count()
         return result > 0
 
     def save(self):
@@ -29,7 +29,7 @@ class TrashCan(Folder):
         """
         from kskp.store.factory import DatumFactory
         # 既にゴミ箱フォルダが存在する場合
-        factory = DatumFactory(self.session)
+        factory = DatumFactory(self._session)
         if factory.trashcan_exists():
             raise Exception('You can not add trash can. A trash can already exists.')
         # ゴミ箱フォルダを保存する

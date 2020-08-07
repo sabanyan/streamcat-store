@@ -7,18 +7,18 @@ class AwsS3(Folder, Mountable):
         'polymorphic_identity' : 'awss3'
     }
 
-    def __init__(self, session, parent, label, bucket_name, creator=None):
+    def __init__(self, session, parent, label, bucket_name):
         """
         コンストラクタ
         bucket_name : AWS S3のバケットネームを指定する
         """
-        super().__init__(session, parent, label, creator)
+        super().__init__(session, parent, label)
 
         # データタイプを設定する
         self.type = Datum.AWSS3_TYPE
 
         # data列の値を作成する
-        self.data = {'bucket' : bucket_name}
+        self._data = {'bucket' : bucket_name}
 
         # S3のオブジェクトを用意する
         # self._s3 = boto3.resource('s3')
@@ -29,18 +29,18 @@ class AwsS3(Folder, Mountable):
         """
         # 既にルートフォルダが存在する場合は、parent_id=NULLを許可しない
         from kskp.store.factory import DatumFactory
-        if self.parent_id is None and DatumFactory(self.session).count_root() > 0:
+        if self.parent_id is None and DatumFactory(self._session).count_root() > 0:
             raise Exception('You can not add root bucket. A root already exists.')
 
         # 既存のファイルと重複しないファイル名を取得する
-        self.path = Datum.make_unique_path(self.path)
+        self._path = Datum.make_unique_path(self._path)
 
         # 新規追加前にファイルパスを退避する
-        self_path = self.path
+        self_path = self._path
 
         try:
             # Dataテーブルにレコードを新規追加する
-            self.session.add(self)
+            self._session.add(self)
             # フォルダに紐付くディレクトリ(path列で指定されるディレクトリ)がなければ作成する
             self._make_dir(self_path)
             # ここでリモートフォルダをマウントする
@@ -48,10 +48,10 @@ class AwsS3(Folder, Mountable):
         except Exception as e:
             self.unmount(self_path)
             self._remove_dir(self_path)
-            self.session.rollback()
+            self._session.rollback()
             raise e
         finally:
-            self.session.commit()
+            self._session.commit()
 
     def update_data(self, label, bucket_name, modifier=None):
         """
@@ -61,7 +61,7 @@ class AwsS3(Folder, Mountable):
         new_label = Datum.escape_label(label)
 
         # ラベル名からファイルパスを作成する
-        old_path = self.path
+        old_path = self._path
         new_path = old_path.parent / Datum.escape_filename(new_label)
         new_path = Datum.make_unique_path(new_path, except_path=old_path)
 
@@ -72,20 +72,20 @@ class AwsS3(Folder, Mountable):
 
             # レコードを更新する
             # data = {'bucket' : bucket_name}
-            data = self.data.copy()
-            data['bucket'] = bucket_name
+            # data = self.data.copy()
+            # data['bucket'] = bucket_name
             self._label = new_label
-            self._data = data
-            self._modifier_id = (modifier or self.session.user).id
-            self.session.update(self)
+            self._data['bucket'] = bucket_name
+            self._modifier_id = (modifier or self._session.user).id
+            self._session.update(self)
 
             # ファイルを移動する
             Datum.move_file(old_path, new_path)
         except Exception as e:
-            self.session.rollback()
+            self._session.rollback()
             raise e
         finally:
-            self.session.commit()
+            self._session.commit()
 
         return self
 
@@ -106,18 +106,20 @@ class AwsS3(Folder, Mountable):
             self._remove_reference_only_recursively()
 
             # AWS S3 バケットをマウント解除する
-            self.unmount(self.path)
+            self.unmount(self._path)
             # ディレクトリを削除する
-            self._remove_dir(self.path)
+            self._remove_dir(self._path)
         except Exception as e:
-            self.session.rollback()
+            self._session.rollback()
             raise e
         finally:
-            self.session.commit()
+            self._session.commit()
 
     @property
     def bucket_name(self):
-        return self.data['bucket']
+        # 参照権限が無ければ例外を送出する
+        self._readable_or_raise()
+        return self._data['bucket']
 
     def _get_mount_cmd(self, mount_point_path):
         import shutil
@@ -201,10 +203,10 @@ class AwsS3(Folder, Mountable):
         ret =  {'uuid'      : self.uuid,
                 'type'      : Datum.AWSS3_TYPE,
                 'label'     : self.label,
-                'bucket'    : self.bucket_name,
+                'readable'  : self.readable,
+                'prevFolderPath' : self.get_prev_folder_path(),
                 'creator'   : self.creator_str,
                 'createdAt' : self.created_at_str}
         if self.readable:
-            ret['prevFolderPath'] = self.get_prev_folder_path()
             ret['bucket'] = self.bucket_name
         return ret

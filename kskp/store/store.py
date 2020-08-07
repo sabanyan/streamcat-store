@@ -5,8 +5,8 @@ class Store(Datum):
     Storeを表す
     (StoreとはLoaderの入力元となり得る、またはSaverの出力先となり得るもの)
     """
-    def __init__(self, session, parent, type, label, creator=None):
-        super().__init__(session, parent, type, label, creator)
+    def __init__(self, session, parent, type, label):
+        super().__init__(session, parent, type, label)
 
     def find_children(self):
         """
@@ -14,19 +14,25 @@ class Store(Datum):
         """
         from sqlalchemy import desc
 
-        data = self.session.query(Datum).filter(Datum.parent_id==self.id).\
+        # 参照権限が無ければ直下の子Datumは取得できない
+        self._readable_or_raise()
+
+        data = self._session.query(Datum).filter(Datum.parent_id==self.id).\
                             order_by(Datum.type, desc(Datum.created_at)).all()
 
         # 
-        # DatumについてEveryOneグループの権限設定がない場合、初期値を設定する
+        # DatumについてEveryOneロールの権限設定がない場合、初期値を設定する
         # (後方互換、一覧表示の速度を結構遅くしている)
         # 
         for datum in data:
-            from kskp.store.factory import GroupFactory, AuthFactory
-            everyone_group = GroupFactory(self.session).load_everyone_group()
-            everyone_group.join_user(self.session.user)
-            if not AuthFactory(self.session).exists(everyone_group.id, datum.id):
-                everyone_group.init_authz(datum.id, True, True, True)
+            from kskp.store.factory import RoleFactory, AuthFactory
+            everyone_role = RoleFactory(self._session).load_everyone_role()
+            everyone_role.join_user(self._session.user)
+            if not AuthFactory(self._session).exists(everyone_role.id, datum.id):
+                from kskp.store import Folder, Flow
+                # FolderまたはFlowの場合は実行権限を付与する
+                folder_or_flow = isinstance(datum, Folder) or isinstance(datum, Flow) or None
+                everyone_role.init_authz(datum.id, True, True, exec=folder_or_flow)
 
         return data
 
@@ -34,11 +40,15 @@ class Store(Datum):
         """
         指定したuuidの親と指定したラベル名のレコードを全て取得する
         """
+        from sqlalchemy import desc
         from sqlalchemy.orm import aliased
 
+        # 参照権限が無ければ直下の子Datumは取得できない
+        self._readable_or_raise()
+
         f2 = aliased(Datum)
-        sub_query = self.session.query(f2)
-        query = self.session.query(Datum)\
+        sub_query = self._session.query(f2)
+        query = self._session.query(Datum)\
                         .filter(sub_query.filter(f2.id==Datum.parent_id)
                                          .filter(f2.uuid==self.uuid).exists())\
                         .filter(Datum._label==label)
@@ -46,16 +56,23 @@ class Store(Datum):
         if type is not None:
             query = query.filter(Datum.type==type)
 
+        # フロー名フォルダが重複している場合は最も新しいフォルダに結果を格納する
+        query = query.order_by(Datum.type, desc(Datum.created_at))
+
         return query.all()
 
     def find_child_by_uuid(self, uuid):
         """
         自分の直下の子から指定されたUUIDのDatumを取得する
         """
+
+        # 参照権限が無ければ直下の子Datumは取得できない
+        self._readable_or_raise()
+
         # UUID値の形式チェックをする
         Datum.valid_uuid_or_raise(uuid)
 
-        data = self.session.query(Datum).filter(Datum.parent_id==self.id).\
+        data = self._session.query(Datum).filter(Datum.parent_id==self.id).\
                             filter(Datum.uuid==uuid).one()
 
         return data
@@ -88,47 +105,73 @@ class Store(Datum):
 
     def create_folder(self, label):
         from kskp.store import Folder
-        return Folder(self.session, self, label, self.session.user)
+        return Folder(self._session, self, label)
 
     def create_project_folder(self, label):
         from kskp.store import ProjectFolder
-        return ProjectFolder(self.session, self, label, self.session.user)
+        return ProjectFolder(self._session, self, label)
 
     def create_awss3(self, label, bucket_name):
         from kskp.store import AwsS3
-        return AwsS3(self.session, self, label, bucket_name, self.session.user)
+        return AwsS3(self._session, self, label, bucket_name)
 
     def create_database(self, label, database_conn):
         from kskp.store import Database
-        return Database(self.session, self, label, database_conn, self.session.user)
+        return Database(self._session, self, label, database_conn)
 
     def create_remote_folder(self, label, remoteFolderConn):
         from kskp.store import RemoteFolder
-        return RemoteFolder(self.session, self, label, remoteFolderConn, self.session.user)
+        return RemoteFolder(self._session, self, label, remoteFolderConn)
 
-    def create_flow(self, label, flow_data):
+    def create_flow(self, label, flow_json):
         from kskp.store import Flow
-        return Flow(self.session, self, label, flow_data, self.session.user)
+        return Flow(self._session, self, label, flow_json)
+
+    def create_simple_flow(self, parent, label, data_source):
+        from kskp.store import Flow
+        flow_json = {
+                        "label": label,
+                        "nodes": [
+                            {
+                                "id": "d",
+                                "type": "frame",
+                                "uuid": data_source.uuid,
+                                "error": {},
+                                "label": data_source.label,
+                                "invalid": {},
+                                "makeCache": False,
+                                "dataSource": "csv",
+                                "cacheCreatedAt": None
+                            }
+                        ],
+                        "ports": [[],[]],
+                        "params": [],
+                        "creator": self._session.user.name,
+                        "createdAt": data_source.created_at_str,
+                        "projectId": None,
+                        "description": ""
+                    }
+        return Flow(self._session, self, label, flow_json)
 
     def create_datasource(self, label, store, loader_step):
         from kskp.store import DataSource
-        return DataSource(self.session, self, label, store, loader_step, self.session.user)
+        return DataSource(self._session, self, label, store, loader_step)
 
     def create_frame(self, label, stream):
         from kskp.store import Frame
-        return Frame(self.session, self, label, stream, self.session.user)
+        return Frame(self._session, self, label, stream)
 
     def create_cache(self, label, stream):
         # Cacheクラスはtype='frame'なので保存時にSQLAlchemyエラーになる
         # そのためキャッシュにはFrameクラスを用いる
         from kskp.store import Frame
-        cache = Frame(self.session, self, label, stream, self.session.user)
+        cache = Frame(self._session, self, label, stream)
         cache.is_cache = True
         return cache
 
     def create_trashcan(self):
         from kskp.store import TrashCan
-        return TrashCan(self.session, self, self.session.user)
+        return TrashCan(self._session, self)
 
     def is_system_folder(self):
         from kskp.core import Datum

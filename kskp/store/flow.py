@@ -7,21 +7,36 @@ class Flow(Datum):
         'polymorphic_identity' : 'flow'
     }
 
-    def __init__(self, session, parent, label, flow_data, creator=None):
+    def __init__(self, session, parent, label, flow_json):
         """
         コンストラクタ
-        flow_data : Flowデータを指定する
+        flow_json : Flow JSONデータを指定する
         """
-        super().__init__(session, parent, Datum.FLOW_TYPE, label, creator)
+        super().__init__(session, parent, Datum.FLOW_TYPE, label)
 
         # フローデータはファイルに保存せず、データベースに保存する
-        self._path = ''
+        self._path = None
 
         # data列の値を作成する
-        self.data = {'label' : label, 'flow' : flow_data}
+        self._data = {'label' : label, 'flow' : flow_json}
 
         # フローデータの妥当性を検証する
         self.valid_uuids_in_flowdata_or_raise()
+
+    @property
+    def flow_data(self):
+        from kskp.store import FlowData
+        return FlowData(self._data['flow'], self._readable_or_raise, self._executable_or_raise)
+
+    @property
+    def executable(self) -> bool:
+        # DBに保存する前のFlowの実行権限は制限しない
+        return self.id is None or self._session.executable(self)
+
+    def _executable_or_raise(self):
+        from kskp.store.auth import NotAuthorizedException
+        if not self.executable:
+            raise NotAuthorizedException(f'{self._session.user.name} ({self.user})は{self.label}の実行権限がありません')
 
     def save(self):
         """
@@ -29,18 +44,18 @@ class Flow(Datum):
         """
         # 既にルートフォルダが存在する場合は、parent_id=NULLを許可しない
         from kskp.store.factory import DatumFactory
-        if self.parent_id is None and DatumFactory(self.session).count_root() > 0:
+        if self.parent_id is None and DatumFactory(self._session).count_root() > 0:
             raise Exception('You can not add another root flow. A root already exists.')
         try:
             # Dataテーブルにレコードを新規追加する
-            self.session.add(self)
+            self._session.add(self)
         except Exception as e:
-            self.session.rollback()
+            self._session.rollback()
             raise e
         finally:
-            self.session.commit()
+            self._session.commit()
 
-    def update_data(self, label, flow_data, modifier=None):
+    def update_data(self, label, flow_json, modifier=None):
         """
         Flowのdata列を更新する
         """
@@ -60,9 +75,9 @@ class Flow(Datum):
         # ラベルに'\0'が含まれていれば取り除く
         new_label = Datum.escape_label(label)
         # 更新データを作成する
-        # data = {'label' : new_label, 'flow' : flow_data}
-        data = self.data.copy()
-        data['flow'] = flow_data
+        # data = {'label' : new_label, 'flow' : flow_json}
+        # data = self.data.copy()
+        # data['flow'] = flow_json
         # flow.data = data
 
         # フローのインポート処理で引っかかるので以下のチェックを一旦外す
@@ -80,14 +95,14 @@ class Flow(Datum):
         try:
             # レコードを更新する
             self._label = new_label
-            self._data = data
-            self._modifier_id = (modifier or self.session.user).id
-            self.session.update(self)
+            self._data['flow'] = flow_json
+            self._modifier_id = (modifier or self._session.user).id
+            self._session.update(self)
         except Exception as e:
-            self.session.rollback()
+            self._session.rollback()
             raise e
         finally:
-            self.session.commit()
+            self._session.commit()
 
         # ここでflowを返すとtest_model.pyでテストが通らない
         return self
@@ -130,7 +145,7 @@ class Flow(Datum):
         Flowをゴミ箱にほかす
         """
         from kskp.store.factory import DatumFactory
-        factory = DatumFactory(self.session)
+        factory = DatumFactory(self._session)
         trash_folder = factory.load_trash_folder()
 
         # 削除しようとするflowが、フローで使用されている場合は例外を送出する
@@ -150,17 +165,17 @@ class Flow(Datum):
         using_flow_uuids = self.get_flow_uuids_using_me()
         if len(using_flow_uuids) > 0:
             from kskp.store.factory import DatumFactory
-            using_flow_label= DatumFactory(self.session).find_by_uuid(using_flow_uuids[0]).label
+            using_flow_label= DatumFactory(self._session).find_by_uuid(using_flow_uuids[0]).label
             raise Exception('このフローはフロー(%s)でサブフローとして使用しているため削除できません' % using_flow_label)
 
         try:
             # フレームレコードを削除する
-            self.session.delete(self)
+            self._session.delete(self)
         except Exception as e:
-            self.session.rollback()
+            self._session.rollback()
             raise e
         finally:
-            self.session.commit()
+            self._session.commit()
             
     def remove_reference_only(self):
         """
@@ -168,25 +183,21 @@ class Flow(Datum):
         """
         pass
 
-    @property
-    def flow_data(self):
-        return self.data['flow']
-
     def duplicate(self, new_label):
         """
         自身の複製を作成する
         """
         # ラベルと作成者については、指定された値を新たに設定する
-        new_flow_data = self.flow_data
-        new_flow_data['label'] = new_label
-        new_flow_data['creator'] = self.session.user.name
+        new_flow_json = self.flow_data.to_json()
+        new_flow_json['label'] = new_label
+        new_flow_json['creator'] = self._session.user.name
         # FIXIT : Dataテーブルのcreated_at列と時刻を合わせたい
         from datetime import datetime, timedelta, timezone
         JST = timezone(timedelta(hours=+9), 'JST')
-        new_flow_data['createdAt'] = datetime.now(JST).strftime('%Y-%m-%d %H:%M:%S')
+        new_flow_json['createdAt'] = datetime.now(JST).strftime('%Y-%m-%d %H:%M:%S')
         # 複製を作成する
         parent = self.find_parent()
-        new_flow = parent.create_flow(new_label, new_flow_data)
+        new_flow = parent.create_flow(new_label, new_flow_json)
 
         # フロー間でキャッシュを共有すると、キャッシュ削除操作により不整合が発生する
         # そのためフローを複製する時はキャッシュも複製する
@@ -194,7 +205,7 @@ class Flow(Datum):
         from kskp.store.factory import DatumFactory
         old_new_uuid_pairs = {}
         for cache_uuid in new_flow.get_cache_frame_uuids():
-            factory = DatumFactory(self.session)
+            factory = DatumFactory(self._session)
             if not factory.exists(cache_uuid):
                 continue
             cache = factory.find_by_uuid(cache_uuid)
@@ -248,7 +259,7 @@ class Flow(Datum):
 
     def valid_uuids_in_flowdata_or_raise(self):
         from kskp.store.factory import DatumFactory
-        factory = DatumFactory(self.session)
+        factory = DatumFactory(self._session)
         # 参照するフレームがゴミ箱に存在しないことを確認する
         for frame_uuid in self.get_src_frame_uuids():
             if factory.trashed(frame_uuid):
@@ -336,12 +347,12 @@ class Flow(Datum):
         参照する入力frameを全て取得する
         """
         ret = []
-        flow_json = self.flow_data
+        flow_data = self.flow_data
         
-        if 'nodes' not in flow_json:
+        if not flow_data.has_nodes:
             return ret
 
-        for node in flow_json['nodes']:
+        for node in flow_data.get_nodes():
             if node['type'] != 'frame':
                 continue
             if 'cacheCreatedAt' in node and\
@@ -361,12 +372,12 @@ class Flow(Datum):
         参照するキャッシュframeを全て取得する
         """
         ret = []
-        flow_json = self.flow_data
+        flow_data = self.flow_data
         
-        if 'nodes' not in flow_json:
+        if not flow_data.has_nodes:
             return ret
 
-        for node in flow_json['nodes']:
+        for node in flow_data.get_nodes():
             if node['type'] != 'frame':
                 continue
             if 'cacheCreatedAt' not in node or\
@@ -386,12 +397,12 @@ class Flow(Datum):
         参照するSub Flowを全て取得する
         """
         ret = []
-        flow_json = self.flow_data
+        flow_data = self.flow_data
 
-        if 'nodes' not in flow_json:
+        if not flow_data.has_nodes:
             return ret
 
-        for node in flow_json['nodes']:
+        for node in flow_data.get_nodes():
             if node['type'] != 'flow':
                 continue
             if 'uuid' not in node or node['uuid'] is None or node['uuid'] == '':
@@ -406,12 +417,12 @@ class Flow(Datum):
         参照するStoreを全て取得する
         """
         ret = []
-        flow_json = self.flow_data
+        flow_data = self.flow_data
 
-        if 'nodes' not in flow_json:
+        if not flow_data.has_nodes:
             return ret
 
-        for node in flow_json['nodes']:
+        for node in flow_data.get_nodes():
             if node['type'] != 'store':
                 continue
             if 'uuid' not in node or node['uuid'] is None or node['uuid'] == '':
@@ -437,10 +448,10 @@ class Flow(Datum):
         """
         flow_data = self.flow_data
 
-        if 'nodes' not in flow_data:
+        if not flow_data.has_nodes:
             return
 
-        for node in flow_data['nodes']:
+        for node in flow_data.get_nodes():
             for old_uuid, new_uuid in old_new_uuid_pairs.items():
                 if 'uuid' in node and node['uuid'] == old_uuid:
                     node['uuid'] = new_uuid
@@ -451,10 +462,10 @@ class Flow(Datum):
 
         flow_data = self.flow_data
 
-        if 'nodes' not in flow_data:
+        if not flow_data.has_nodes:
             return
 
-        for node in flow_data['nodes']:
+        for node in flow_data.get_nodes():
             if node['id'] == node_id:
                 node['uuid'] = cache_uuid
                 # 記録時間はUTC、表示時間は現地時間にすべきでは？？

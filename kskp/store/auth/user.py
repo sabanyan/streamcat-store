@@ -1,8 +1,7 @@
 import os
 import uuid
-import pprint
 from sqlalchemy import Column, String, text
-from sqlalchemy.dialects.postgresql import INTEGER, TIMESTAMP, UUID
+from sqlalchemy.dialects.postgresql import INTEGER, TIMESTAMP, UUID, ENUM
 from .. import BaseModel
 
 class User(BaseModel):
@@ -14,53 +13,62 @@ class User(BaseModel):
         # テスト環境用のスキーマ
         __table_args__ = {'schema': os.environ['KSKP_POSTGRESQL_SCHEMA_NAME']}
 
+    TMP_STATE      = 'tmp'      # 仮登録状態
+    ACTIVE_STATE   = 'active'   # 登録状態
+    INACTIVE_STATE = 'inactive' # 論理削除状態
+
     # 列名と列のデータ型等の定義
     id            = Column(INTEGER, primary_key=True, autoincrement=True)
     uuid          = Column(UUID, nullable=False, unique=True)
     email         = Column(String, nullable=False, unique=True)
     password      = Column(String)
     name          = Column(String, nullable=False)
-    # 本人グループのGroupId
-    self_group_id = Column(INTEGER, nullable=True)
+    # ユーザ状態
+    state         = Column(ENUM(TMP_STATE, ACTIVE_STATE, INACTIVE_STATE, name='user_state'), nullable=False)
+    # 本人ロールのRoleId
+    self_role_id  = Column(INTEGER, nullable=True)
     _creator_id   = Column('creator', INTEGER)
     _modifier_id  = Column('modifier', INTEGER)
     created_at    = Column(TIMESTAMP, default=text('statement_timestamp()'))
     modified_at   = Column(TIMESTAMP, default=text('statement_timestamp()'), onupdate=text('statement_timestamp()'))
 
-    def __init__(self, session, email, password, name, creator=None):
+    def __init__(self, session, email, password, name):
         """
         コンストラクタ
         """
         # SQLAlchemy Session
-        self.session = session
+        self._session = session
 
         # UUIDを採番する
         self.uuid = str(uuid.uuid4())
 
         self.email = email
-        self.password = self._get_password_hash(email, password)
+        self.password = self._get_password_hash(self.uuid, password)
         self.name = name
 
-        # creator, modifier
-        if creator is not None:
-            self._creator_id = creator.id
-            self._modifier_id = creator.id
+        # 本パスワードに変更する前は仮登録状態である
+        self.state = User.TMP_STATE
 
-    def _get_password_hash(self, email, password):
+        # creator, modifier
+        if session is not None and session.user is not None:
+            self._creator_id = session.user.id
+            self._modifier_id = session.user.id
+
+    def _get_password_hash(self, uuid, password):
         """
         パスワードのハッシュを作成する
         """ 
-        def get_salt(user_id):
+        def get_salt(uuid):
             """
-            固定ソルトとユーザID（現在はメールアドレス）
+            固定ソルトとユーザUUID
             """
             FIXED_SALT = b'd0d68c0d5bb78d78265c0d588f23bc60'
-            user_id_bytes = bytes(str(user_id), encoding='utf-8')
+            user_id_bytes = bytes(str(uuid), encoding='utf-8')
             return user_id_bytes + FIXED_SALT
 
         import hashlib
         STRETCH_COUNT = 100
-        salt = get_salt(email)
+        salt = get_salt(uuid)
         current_hash = b''
         password_bytes = bytes(password, encoding='utf-8')
         for _ in range(1, STRETCH_COUNT):
@@ -69,22 +77,37 @@ class User(BaseModel):
         return str(current_hash, encoding='utf-8')
 
     @property
+    def is_temp(self):
+        return self.state == User.TMP_STATE
+
+    @property
     def creator(self):
         from kskp.store.factory import UserFactory
         if self._creator_id is None:
             return None
-        return UserFactory(self.session).find_by_id(self._creator_id)
+        return UserFactory(self._session).find_by_id(self._creator_id, allow_no_result=True)
 
     @property
     def modifier(self):
         from kskp.store.factory import UserFactory
         if self._modifier_id is None:
             return None
-        return UserFactory(self.session).find_by_id(self._modifier_id)
+        return UserFactory(self._session).find_by_id(self._modifier_id, allow_no_result=True)
+
+    @property
+    def creator_str(self):
+        if self.creator is None:
+            return ''
+        return self.creator.name
+
+    @property
+    def created_at_str(self):
+        from kskp.core import Util
+        return Util.datetime_to_local_time_str(self.created_at)
 
     # def _require_admin_auth(func):
     #     """
-    #     操作ユーザがadminグループに所属していない場合は例外を送出する
+    #     操作ユーザがadminロールに所属していない場合は例外を送出する
     #     """
     #     @functools.wraps(func)
     #     def wrapper(self, *args, **kwargs):
@@ -99,7 +122,7 @@ class User(BaseModel):
     #         """.format(creator=str(self.creator))
     #         # SQLを発行する
     #         count = session.execute(sql).scalar()
-    #         # creatorはadminグループに所属していない場合は0件となる
+    #         # creatorはadminロールに所属していない場合は0件となる
     #         if count == 0:
     #             pprint.pprint(func)
     #             raise Exception("user id (%s) is not authorized to call function (%s.%s)." 
@@ -112,47 +135,105 @@ class User(BaseModel):
         """
         Userを保存する
         """
-        # Usersテーブルにレコードを新規追加する
-        self.session.add(self)
-        self.session.commit()
+        try:
+            # Usersテーブルにレコードを新規追加する
+            self._session.add(self)
+        except Exception as e:
+            self._session.rollback()
+            raise e
+        finally:
+            self._session.commit()
 
     def update_email(self, new_email, modifier=None):
         """
         Userのemail列を更新する
         """
-        self.email = new_email
-        self._modifier_id = (modifier or self.session.user).id
-        self.session.update(self)
-        self.session.commit()
+        try:
+            self.email = new_email
+            self._modifier_id = (modifier or self._session.user).id
+            self._session.update(self)
+        except Exception as e:
+            self._session.rollback()
+            raise e
+        finally:
+            self._session.commit()
 
     def update_password(self, new_password, modifier=None):
-        pass
+        from .exceptions import InvalidPassword
+        
+        if new_password is None or new_password == '':
+            raise InvalidPassword('空のパスワードに変更できません')
+        if self._get_password_hash(self.uuid, new_password) == self.password:
+            raise InvalidPassword('同じパスワードに変更できません')
+
+        try:
+            # 登録状態に変更する
+            self.state = User.ACTIVE_STATE
+            self.password = self._get_password_hash(self.uuid, new_password)
+            self._modifier_id = (modifier or self._session.user).id
+            self._session.update(self)
+        except Exception as e:
+            self._session.rollback()
+            raise e
+        finally:
+            self._session.commit()
+        
+        return self
 
     def update_name(self, new_name, modifier=None):
-        self.name = new_name
-        self._modifier_id = (modifier or self.session.user).id
-        self.session.update(self)
-        self.session.commit()
+        try:
+            self.name = new_name
+            self._modifier_id = (modifier or self._session.user).id
+            self._session.update(self)
+        except Exception as e:
+            self._session.rollback()
+            raise e
+        finally:
+            self._session.commit()
+        
+        return self
 
-    def update_self_group_id(self, new_group_id, modifier=None):
-        self.self_group_id = new_group_id
-        if modifier is None:
-            self._modifier_id = self.session.user and self.session.user.id
-        else:
-            self._modifier_id = modifier.id
-        self.session.update(self)
-        self.session.commit()
+    def update_self_role_id(self, new_role_id, modifier=None):
+        try:
+            self.self_role_id = new_role_id
+            if modifier or self._session.user:
+                self._modifier_id = (modifier or self._session.user).id
+            self._session.update(self)
+        except Exception as e:
+            self._session.rollback()
+            raise e
+        finally:
+            self._session.commit()
+        
+        return self
+
+    def reset_password(self, modifier=None):
+        """
+        管理者がパスワードをリセットする
+        """
+        new_password = str(uuid.uuid4)[0:8]
+        # 仮登録状態に変更する
+        self.state = User.ACTIVE_STATE
+        self.update_password(new_password, modifier=modifier)
+        return new_password
 
     def delete(self):
         """
         Userを削除する
         """
-        from .user_group import UserGroup
-        # users_groupsテーブルから全ての削除ユーザの行を削除する
-        UserGroup.delete_all_by_user_id(self.id)
-        # usersテーブルから削除ユーザの行を削除する
-        self.session.delete(self)
-        self.session.commit()
+        from kskp.store.factory import UserRoleFactory
+        user_role_factory = UserRoleFactory(self._session)
+        
+        try:
+            # users_rolesテーブルから全ての削除ユーザの行を削除する
+            user_role_factory.delete_all_by_user_id(self.id)
+            # usersテーブルから削除ユーザの行を削除する
+            self._session.delete(self)
+        except Exception as e:
+            self._session.rollback()
+            raise e
+        finally:
+            self._session.commit()
 
 
     def authenticate(self, password):
@@ -165,7 +246,7 @@ class User(BaseModel):
             return False
 
         # パスワード判定処理
-        return self._get_password_hash(self.email, password) == self.password
+        return self._get_password_hash(self.uuid, password) == self.password
 
     def has_read_authority(self, uuid):
         # select 
@@ -175,9 +256,9 @@ class User(BaseModel):
         #               where D.id = A.datum_id
         #                 and D.uuid = uuid)
         #   and exists (select * from groups G
-        #               where G.id = A.group_id
+        #               where G.id = A.role_id
         #                 and exists (select * from users_groups UG
-        #                             where UG.group_id = G.id
+        #                             where UG.role_id = G.id
         #                               and exists (select * from users U
         #                                           where U.id = UG.user_id
         #                                             and U.id = self.id) ))
@@ -186,27 +267,33 @@ class User(BaseModel):
         pass
 
 
-    def load_self_group(self):
+    def load_self_role(self):
         """
-        本人グループを取得する
+        本人ロールを取得する
         """
-        from kskp.store.factory import GroupFactory
-        group_factory = GroupFactory(self.session)
+        from kskp.store.factory import RoleFactory
+        role_factory = RoleFactory(self._session)
 
-        if self.self_group_id is None:
-            # 本人グループを作成する
-            self_group = group_factory.create(self.name)
-            self_group.save()
-            # 本人グループを設定する
-            self.update_self_group_id(self_group.id)
+        if self.self_role_id is None:
+            # 本人ロールを作成する
+            self_role = role_factory.create(self.name)
+            self_role.save()
+            # 本人ロールを設定する
+            self.update_self_role_id(self_role.id)
         else:
-            self_group = group_factory.find_by_id(self.self_group_id)
-            if self_group is None:
-                raise Exception(f'本人グループ({self.self_group_id})は存在しません')
+            self_role = role_factory.find_by_id(self.self_role_id)
 
-        self_group.join_user(self)
+        return self_role
 
-        return self_group
+    def to_json(self):
+        return {
+            'uuid'     : self.uuid,
+            'email'    : self.email,
+            'name'     : self.name,    
+            'state'    : self.state,         
+            'creator'  : self.creator_str,
+            'createdAt': self.created_at_str
+        }
 
     def __repr__(self):
         return f'User({self.id}, {self.name})'

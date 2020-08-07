@@ -16,12 +16,12 @@ class Frame(Datum):
     # 改行コード変換テーブル
     NEWLINE_CONV_TABLE = {'\n':'LF', '\r\n':'CR+LF', '\r':'CR', 'UNKNOWN':'UNKNOWN'}
 
-    def __init__(self, session, parent, label, stream, creator=None):
+    def __init__(self, session, parent, label, stream):
         """
         コンストラクタ
         stream : Frameデータのファイルストリームを指定する
         """
-        super().__init__(session, parent, Datum.FRAME_TYPE, label, creator)
+        super().__init__(session, parent, Datum.FRAME_TYPE, label)
 
         # ファイルストリームの文字コードを推測する
         if stream is not None and hasattr(stream, 'seek'):
@@ -35,7 +35,7 @@ class Frame(Datum):
         self.stream = stream
 
         # data列の値を作成する
-        self.data = {'encoding':encoding, 'newline':newline}
+        self._data = {'encoding':encoding, 'newline':newline}
 
         # フローキャッシュの場合はTrue
         # data.type列='cache'を用意するべきだろうか？
@@ -47,37 +47,37 @@ class Frame(Datum):
         """
         # 既にルートフォルダが存在する場合は、parent_id=NULLを許可しない
         from kskp.store.factory import DatumFactory
-        if self.parent_id is None and DatumFactory(self.session).count_root() > 0:
+        if self.parent_id is None and DatumFactory(self._session).count_root() > 0:
             raise Exception('You can not add another root frame. A root already exists.')
 
         if file_path is None:
             # 既存のファイルと重複しないファイル名を取得する
-            self.path = Datum.make_unique_path(self.path)
+            self._path = Datum.make_unique_path(self._path)
         elif file_path.exists():
-            self.path = file_path
+            self._path = file_path
             # ファイルの文字コードを判定する
             with open(file_path, 'rb') as f:
                 encoding = Frame._detect_encoding(f)
                 newline = Frame._detect_newline_code(f)
-            self.data = {'encoding':encoding, 'newline':newline}
+            self._data = {'encoding':encoding, 'newline':newline}
         else:
             raise Exception(f'指定したファイル({file_path})が存在しないためFrameを保存できません')
 
-        # 新規追加前にファイルパスを退避する
-        self_path = self.path
+        # # 新規追加前にファイルパスを退避する
+        # self_path = self.path
 
         try:
             # Dataテーブルにレコードを新規追加する
-            self.session.add(self)
+            self._session.add(self)
             # ドキュメントに紐付くファイル(path列で指定されるファイル)がなければ作成する
             if file_path is None:
-                self._make_file(self_path)
+                self._make_file(self._path)
         except Exception as e:
-            self.session.rollback()
+            self._session.rollback()
             raise e
         finally:
             # 親フォルダのロックを解除する
-            self.session.commit()
+            self._session.commit()
 
     # def add_entry_from_path(self, file_path):
     #     """
@@ -113,7 +113,7 @@ class Frame(Datum):
         new_label = Datum.escape_label(label)
 
         # ラベル名からファイルパスを作成する
-        old_path = self.path
+        old_path = self._path
         new_path = old_path.parent / Datum.escape_filename(new_label)
         new_path = Datum.make_unique_path(new_path, except_path=old_path)
 
@@ -125,10 +125,10 @@ class Frame(Datum):
             # ファイルを移動する
             Datum.move_file(old_path, new_path)
         except Exception as e:
-            self.session.rollback()
+            self._session.rollback()
             raise e
         finally:
-            self.session.commit()
+            self._session.commit()
 
         return self
 
@@ -163,13 +163,13 @@ class Frame(Datum):
 
         try:
             self._data = {'encoding':encoding, 'newline':newline}
-            self._modifier_id = (modifier or self.session.user).id
-            self.session.update(self)
+            self._modifier_id = (modifier or self._session.user).id
+            self._session.update(self)
         except Exception as e:
-            self.session.rollback()
+            self._session.rollback()
             raise e
         finally:
-            self.session.commit()
+            self._session.commit()
 
         return self
 
@@ -184,23 +184,23 @@ class Frame(Datum):
         try:
             self._update_label_imp(new_label, modifier)
         except Exception as e:
-            self.session.rollback()
+            self._session.rollback()
             raise e
         finally:
-            self.session.commit()
+            self._session.commit()
 
     def _update_label_imp(self, new_label, modifier):
         # label列を更新する
         self._label = new_label
-        self._modifier_id = (modifier or self.session.user).id
-        self.session.update(self)
+        self._modifier_id = (modifier or self._session.user).id
+        self._session.update(self)
 
     def throw_away(self):
         """
         Frameをゴミ箱にほかす
         """
         from kskp.store.factory import DatumFactory
-        factory = DatumFactory(self.session)
+        factory = DatumFactory(self._session)
         trash_folder = factory.load_trash_folder()
 
         # 削除しようとするframeが、フローで使用されている場合は例外を送出する
@@ -228,14 +228,14 @@ class Frame(Datum):
 
         try:
             # フレームレコードを削除する
-            self.session.delete(self)
+            self._session.delete(self)
             # ファイルを削除する
             self._remove_file()
         except Exception as e:
-            self.session.rollback()
+            self._session.rollback()
             raise e
         finally:
-            self.session.commit()
+            self._session.commit()
 
     def remove_reference_only(self):
         """
@@ -244,24 +244,24 @@ class Frame(Datum):
         """
         try:
             # フレームレコードを削除する
-            self.session.delete(self)
+            self._session.delete(self)
         except Exception as e:
-            self.session.rollback()
+            self._session.rollback()
             raise e
         finally:
-            self.session.commit()
+            self._session.commit()
 
     @property
     def file_size(self):
-        return self.path.stat().st_size
+        return self._path.stat().st_size
 
     @property
     def file_exists(self):
-        return self.path.exists()
+        return self._path.exists()
 
     @property
     def encoding(self):
-        return self.data.get('encoding') or 'UNKNOWN'
+        return self._data.get('encoding') or 'UNKNOWN'
 
     # @encoding.setter
     # def encoding(self, encoding):
@@ -274,7 +274,7 @@ class Frame(Datum):
 
     @property
     def newline(self):
-        return self.data.get('newline') or 'UNKNOWN'
+        return self._data.get('newline') or 'UNKNOWN'
 
     # @newline.setter
     # def newline(self, newline):
@@ -288,7 +288,7 @@ class Frame(Datum):
     @property
     def modified_at_str(self):
         import time
-        wk = time.localtime(self.path.stat().st_mtime)
+        wk = time.localtime(self._path.stat().st_mtime)
         return time.strftime('%Y/%m/%d %H:%M', wk)
 
     def _make_file(self, path):
@@ -311,15 +311,15 @@ class Frame(Datum):
         """
         try:
             # ファイルが存在しなければ削除処理はしない
-            if not self.path.exists():
+            if not self._path.exists():
                 return
             # 自分以外で同じファイルを使用しているFrameがあれば削除しない
-            if self._frame_path_exists(self.path, except_id=self.id):
+            if self._frame_path_exists(self._path, except_id=self.id):
                 return
-            if not self.path.is_file():
-                raise Exception('Can not delete %s, because it is not reguler file.' % self.path)
+            if not self._path.is_file():
+                raise Exception(f'Can not delete {self._path}, because it is not reguler file.')
             # ファイルを物理削除する
-            self.path.unlink()
+            self._path.unlink()
         except PermissionError as e:
             # ファイルに対する権限がない場合
             raise e
@@ -333,11 +333,9 @@ class Frame(Datum):
                     break
 
     def _frame_path_exists(self, path, except_id):
-        rel_path = Datum._to_rel_path(path).as_posix()
-
-        result = self.session.query(Datum._path).filter(Datum._path == rel_path)\
-                                           .filter(Datum.type == Datum.FRAME_TYPE)\
-                                           .filter(Datum.id != except_id).count()
+        result = self._session.query(Datum._path).filter(Datum._path == path)\
+                                                .filter(Datum.type == Datum.FRAME_TYPE)\
+                                                .filter(Datum.id != except_id).count()
         return result > 0
 
     @staticmethod
@@ -410,14 +408,12 @@ class Frame(Datum):
         ret =  {'uuid'      : self.uuid,
                 'type'      : self.type,
                 'label'     : self.label,
+                'readable'  : self.readable,
+                'prevFolderPath' : self.get_prev_folder_path(),
+                'encoding'  : self.encoding_str,
+                'newline'   : self.newline_str,
                 'creator'   : self.creator_str,
                 'createdAt' : self.created_at_str}
-
-        if self.readable:
-            ret['prevFolderPath'] = self.get_prev_folder_path()
-            ret['encoding'] = self.encoding_str
-            ret['newline'] = self.newline_str
-
         return ret
 
     def load_as_data_frame(self, offset, limit):

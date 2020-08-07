@@ -14,14 +14,14 @@ class Activity(Datum):
 
     TYPE = 'activity'
 
-    def __init__(self, session, parent, label, flow_uuid, creator=None):
+    def __init__(self, session, parent, label, flow_uuid):
         """
         コンストラクタ
         """
-        super().__init__(session, parent, Activity.TYPE, label, creator)
+        super().__init__(session, parent, Activity.TYPE, label)
 
         # Activityはファイルに保存せず、データベースに保存する
-        self._path = ''
+        self._path = None
 
         # 処理の開始時刻を取得する
         from datetime import datetime, timezone
@@ -31,7 +31,7 @@ class Activity(Datum):
         # (同じインスタンスのpointの場合もあることに注意!!)
         # [(point, datum)]
         self._results = []
-        self.data = {'start_time' : start_time, 'flow_uuid' : flow_uuid, 'result': self._results}
+        self._data = {'start_time' : start_time, 'flow_uuid' : flow_uuid, 'result': self._results}
 
     def add(self, point, result_frame):
         self._results.append((point, result_frame))
@@ -55,7 +55,7 @@ class Activity(Datum):
         # 出力フレームのラベルに終了時刻と所要時間を付加する
         for point, datum in self._results:
             new_label = datum.label + ' 終了時刻' + end_time_str
-            elapsed_time = (end_time - self.data['start_time']).total_seconds()
+            elapsed_time = (end_time - self._data['start_time']).total_seconds()
             if elapsed_time < 60.0:
                 elapsed_time_str = str(round(elapsed_time))
                 new_label = new_label + ' 全体処理時間' + elapsed_time_str + '秒'
@@ -74,7 +74,7 @@ class Activity(Datum):
                     datum.update_encoding_newline()
                     datum.update_label_only(new_label)
             elif isinstance(datum, DataSource):
-                datum.update_data(new_label, datum.flow_data)
+                datum.update_data(new_label, datum.flow_data.to_json())
 
 
 
