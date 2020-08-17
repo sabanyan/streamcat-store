@@ -95,8 +95,8 @@ class AuthzDatumQuery(Query):
 
         # 権限がない場合はUPDATEのWHEREはFalseとなる
         ta = table('auths').\
-             join(table('groups'), text('auths.group_id=groups.id')).\
-             join(table('users_groups'), text(f'groups.id=users_groups.group_id and users_groups.user_id={self._user.id}'))
+             join(table('roles'), text('auths.role_id=roles.id')).\
+             join(table('users_roles'), text(f'roles.id=users_roles.role_id and users_roles.user_id={self._user.id}'))
         
         tb = select([text('bool_and(auths.permission) AS write')]).select_from(ta).\
              where(text(f"auths.datum_id=data.id AND auths.operation='{Auth.WRITE_OP}' ")).alias('V')

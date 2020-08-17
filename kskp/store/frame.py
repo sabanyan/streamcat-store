@@ -408,14 +408,12 @@ class Frame(Datum):
         ret =  {'uuid'      : self.uuid,
                 'type'      : self.type,
                 'label'     : self.label,
+                'readable'  : self.readable,
+                'prevFolderPath' : self.get_prev_folder_path(),
+                'encoding'  : self.encoding_str,
+                'newline'   : self.newline_str,
                 'creator'   : self.creator_str,
                 'createdAt' : self.created_at_str}
-
-        if self.readable:
-            ret['prevFolderPath'] = self.get_prev_folder_path()
-            ret['encoding'] = self.encoding_str
-            ret['newline'] = self.newline_str
-
         return ret
 
     def load_as_data_frame(self, offset, limit):

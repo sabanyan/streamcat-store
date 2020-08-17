@@ -181,7 +181,7 @@ class LoaderCommand(SCommand):
             encoding = frame.encoding
 
         cmd = nm.m2tee(i=path)
-        # mreadで存在しないファイルパスを指定するとDockerごと落ちる ->　
+        # mreadで存在しないファイルパスを指定するとDockerごと落ちる -> 0.3.10で修正済
         # mreadは巨大ファイルの読み込みが遅い(全行入力してる?)
         # cmd = nm.mread({'i':path, 'n':65535})
         nysol_module = NysolModule(cmd)

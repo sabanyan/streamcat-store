@@ -21,15 +21,18 @@ class Store(Datum):
                             order_by(Datum.type, desc(Datum.created_at)).all()
 
         # 
-        # DatumについてEveryOneグループの権限設定がない場合、初期値を設定する
+        # DatumについてEveryOneロールの権限設定がない場合、初期値を設定する
         # (後方互換、一覧表示の速度を結構遅くしている)
         # 
         for datum in data:
-            from kskp.store.factory import GroupFactory, AuthFactory
-            everyone_group = GroupFactory(self._session).load_everyone_group()
-            everyone_group.join_user(self._session.user)
-            if not AuthFactory(self._session).exists(everyone_group.id, datum.id):
-                everyone_group.init_authz(datum.id, True, True)
+            from kskp.store.factory import RoleFactory, AuthFactory
+            everyone_role = RoleFactory(self._session).load_everyone_role()
+            everyone_role.join_user(self._session.user)
+            if not AuthFactory(self._session).exists(everyone_role.id, datum.id):
+                from kskp.store import Folder, Flow
+                # FolderまたはFlowの場合は実行権限を付与する
+                folder_or_flow = isinstance(datum, Folder) or isinstance(datum, Flow) or None
+                everyone_role.init_authz(datum.id, True, True, exec=folder_or_flow)
 
         return data
 

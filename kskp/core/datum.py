@@ -5,9 +5,9 @@ import os
 import sqlalchemy.types
 from pathlib import Path
 from kskp.store import BaseModel
-from sqlalchemy import Column, Integer, String, text, select
+from sqlalchemy import Column, String, text
 from sqlalchemy.sql import operators
-from sqlalchemy.orm import column_property, query_expression
+from sqlalchemy.orm import query_expression
 from sqlalchemy.dialects.postgresql import INTEGER, TIMESTAMP, JSONB, ENUM, UUID
 
 class Datum(BaseModel):
@@ -51,6 +51,7 @@ class Datum(BaseModel):
     FLOW_TYPE   = 'flow'
     FRAME_TYPE  = 'frame'
     TRASH_TYPE = 'trash'
+    COMMAND_TYPE = 'command'
     ACTIVITY_TYPE = 'activity'
 
     RESULT_FOLDER_UUID  = 'aacb4914-0695-40fc-b14b-95b7f1f81707'
@@ -78,7 +79,7 @@ class Datum(BaseModel):
     _path        = Column('path', PathType, nullable=False)
     _label       = Column('label', String)
     # PostgreSQLのENUM型の要素を変更してもSQLAlchemyから自動的に変更がかからないので手動で変更する必要がある
-    type         = Column(ENUM(FOLDER_TYPE, PROJECT_TYPE, AWSS3_TYPE, RFOLDER_TYPE, DATABASE_TYPE, FLOW_TYPE, FRAME_TYPE, TRASH_TYPE, ACTIVITY_TYPE, name='data_type'), nullable=False)
+    type         = Column(ENUM(FOLDER_TYPE, PROJECT_TYPE, AWSS3_TYPE, RFOLDER_TYPE, DATABASE_TYPE, FLOW_TYPE, FRAME_TYPE, TRASH_TYPE, COMMAND_TYPE, ACTIVITY_TYPE, name='data_type'), nullable=False)
     _data        = Column('data', JSONB)
     _creator_id  = Column('creator', INTEGER)
     _modifier_id = Column('modifier', INTEGER)
@@ -234,39 +235,27 @@ class Datum(BaseModel):
 
     @property
     def created_at_str(self):
-        import datetime
-        if self.created_at is None:
-            return ''
-        # DBに格納されている日時はUTCなので、タイムゾーンをUTCに設定する
-        created_at_utc = self.created_at.replace(tzinfo=datetime.timezone.utc)
-        # UTC日時はここで現地時間(環境変数TZの値)に設定される
-        created_at_local = created_at_utc.astimezone()
-        return created_at_local.strftime('%Y-%m-%d %H:%M:%S')
+        from kskp.core import Util
+        return Util.datetime_to_local_time_str(self.created_at)
 
     @property
     def modified_at_str(self):
-        import datetime
-        if self.modified_at is None:
-            return ''
-        # DBに格納されている日時はUTCなので、タイムゾーンをUTCに設定する
-        modified_at_utc = self.modified_at.replace(tzinfo=datetime.timezone.utc)
-        # UTC日時はここで現地時間(環境変数TZの値)に設定される
-        modified_at_utc = modified_at_utc.astimezone()
-        return modified_at_utc.strftime('%Y-%m-%d %H:%M:%S')
+        from kskp.core import Util
+        return Util.datetime_to_local_time_str(self.modified_at)
 
     @property
     def creator(self):
         from kskp.store.factory import UserFactory
         if self._creator_id is None:
             return None
-        return UserFactory(self._session).find_by_id(self._creator_id)
+        return UserFactory(self._session).find_by_id(self._creator_id, allow_no_result=True)
 
     @property
     def modifier(self):
         from kskp.store.factory import UserFactory
         if self._modifier_id is None:
             return None
-        return UserFactory(self._session).find_by_id(self._modifier_id)
+        return UserFactory(self._session).find_by_id(self._modifier_id, allow_no_result=True)
 
     @modifier.setter
     def modifier(self, modifier):
@@ -480,10 +469,10 @@ class Datum(BaseModel):
         ret =  {'uuid'      : self.uuid,
                 'type'      : self.type,
                 'label'     : self.label,
+                'readable'  : self.readable,
+                'prevFolderPath' : self.get_prev_folder_path(),
                 'creator'   : self.creator_str,
                 'createdAt' : self.created_at_str}
-        if self.readable:
-            ret['prevFolderPath'] = self.get_prev_folder_path()
         return ret
 
     def _readable_or_raise(self):

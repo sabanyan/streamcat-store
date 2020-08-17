@@ -203,10 +203,10 @@ class AwsS3(Folder, Mountable):
         ret =  {'uuid'      : self.uuid,
                 'type'      : Datum.AWSS3_TYPE,
                 'label'     : self.label,
-                'bucket'    : self.bucket_name,
+                'readable'  : self.readable,
+                'prevFolderPath' : self.get_prev_folder_path(),
                 'creator'   : self.creator_str,
                 'createdAt' : self.created_at_str}
         if self.readable:
-            ret['prevFolderPath'] = self.get_prev_folder_path()
             ret['bucket'] = self.bucket_name
         return ret
