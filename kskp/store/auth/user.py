@@ -210,10 +210,11 @@ class User(BaseModel):
     def reset_password(self, modifier=None):
         """
         管理者がパスワードをリセットする
+        FIXIT: 仮パスワードは復号化できるようにする
         """
         new_password = str(uuid.uuid4)[0:8]
         # 仮登録状態に変更する
-        self.state = User.ACTIVE_STATE
+        self.state = User.TMP_STATE
         self.update_password(new_password, modifier=modifier)
         return new_password
 

@@ -59,7 +59,7 @@ def admin_exists():
 
     sql = f"""
     select count(*) from roles G
-    where G.uuid = '{Role.ADMIN_ROLE_UUID}'
+    where G.uuid = '{Role.SYS_ADMIN_ROLE_UUID}'
       and exists (select * from users_roles UG
                   where UG.role_id = G.id
                     and exists (select * from users U
@@ -77,14 +77,14 @@ def add_admin_user_and_role(factory):
     デフォルト管理者ユーザと管理者ロールを作成する
     """
     # 管理者ロールが存在しない場合は作成する
-    admin_role = factory.load_admin_role()
+    sys_admin_role = factory.load_sys_admin_role()
 
     # 管理者ユーザが存在しない場合はデフォルト管理者ユーザを作成する
-    if not admin_role.has_joined_user():
+    if not sys_admin_role.has_joined_user():
         # 初期管理者ユーザを作成する
-        admin_user = factory.create_admin_user()
-        admin_user.save()
+        sys_admin_user = factory.create_admin_user()
+        sys_admin_user.save()
         # 初期管理者ユーザを管理者ロールに参加させる
-        admin_role.join_user(admin_user)
+        sys_admin_role.join_user(sys_admin_user)
 
 
