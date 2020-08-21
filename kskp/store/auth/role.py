@@ -24,8 +24,10 @@ class Role(BaseModel):
     created_at   = Column(TIMESTAMP, default=text('statement_timestamp()'))
     modified_at  = Column(TIMESTAMP, default=text('statement_timestamp()'), onupdate=text('statement_timestamp()'))
 
-    ADMIN_ROLE_UUID    = 'aa19bfb3-1409-4082-98e3-c497849d6235'
-    ADMIN_ROLE_LABEL   = 'ADMIN'
+    SYS_ADMIN_ROLE_UUID    = 'aa19bfb3-1409-4082-98e3-c497849d6235'
+    SYS_ADMIN_ROLE_LABEL   = 'SYS_ADMIN'
+    USR_ADMIN_ROLE_UUID    = 'aa2d8136-dcb7-4b6f-bd00-e9290c51b2a1'
+    USR_ADMIN_ROLE_LABEL   = 'USR_ADMIN'    
     EVERYONE_ROLE_UUID  = 'ee16239b-5ffd-447c-9d05-411906ad7364'
     EVERYONE_ROLE_LABEL = 'EVERYONE'
 

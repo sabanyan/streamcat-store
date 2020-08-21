@@ -199,14 +199,14 @@ class AuthzSession(Session):
             self_role.init_authz(obj.id, True, True, exec=folder_or_flow)
 
         elif isinstance(obj, User):
-            # 管理者のみユーザを新規追加できる
-            if not self.has_admin():
+            # ユーザ管理者のみユーザを新規追加できる
+            if not self.has_usr_admin():
                 raise NotAuthorizedException('ユーザを作成できませんでした')
             self._session.add(obj)
 
         elif isinstance(obj, UserRole):
-            # 管理者かロールの作成者のみ、ロールにユーザを追加できる
-            if not self.is_role_creator(obj.role_id) and not self.has_admin():
+            # ユーザ管理者かロールの作成者のみ、ロールにユーザを追加できる
+            if not self.is_role_creator(obj.role_id) and not self.has_usr_admin():
                 raise NotAuthorizedException('ロールにユーザを追加できませんでした')
             self._session.add(obj)
 
@@ -215,14 +215,14 @@ class AuthzSession(Session):
             self._session.add(obj)
 
         elif isinstance(obj, Auth):
-            # 管理者かデータの作成者のみ、その権限を追加できる
-            if not self.is_datum_creator(obj.datum_id) and not self.has_admin():
+            # ユーザ管理者かデータの作成者のみ、その権限を追加できる
+            if not self.is_datum_creator(obj.datum_id) and not self.has_usr_admin():
                 raise NotAuthorizedException('権限を追加できませんでした')
             self._session.add(obj)
 
         else:
-            if not self.has_admin():
-                # Datum以外の書き込みは管理者権限が必要
+            if not self.has_sys_admin():
+                # 上記以外の書き込みはシステム管理者権限が必要
                 raise NotAuthorizedException('no anthz!', str(obj))       
             self._session.add(obj)
 
@@ -240,25 +240,25 @@ class AuthzSession(Session):
                 flag_modified(obj, "_data")
 
         elif isinstance(obj, User):
-            # 管理者か本人のみ、ユーザを変更できる
-            if not self.is_self_user(obj.id) and not self.has_admin():
+            # ユーザ管理者か本人のみ、ユーザを変更できる
+            if not self.is_self_user(obj.id) and not self.has_usr_admin():
                 raise NotAuthorizedException('ユーザを変更できませんでした')
 
         elif isinstance(obj, UserRole):
             raise NotAuthorizedException('UserRoleは更新できません')
 
         elif isinstance(obj, Role):
-            # 管理者かロールの作成者のみ、ロールを変更できる
-            if not self.is_role_creator(obj.id) and not self.has_admin():
+            # ユーザ管理者かロールの作成者のみ、ロールを変更できる
+            if not self.is_role_creator(obj.id) and not self.has_usr_admin():
                 raise NotAuthorizedException('ロールを変更できませんでした')
 
         elif isinstance(obj, Auth):
-            # 管理者かデータの作成者のみ、その権限を変更できる
-            if not self.is_datum_creator(obj.datum_id) and not self.has_admin():
+            # ユーザ管理者かデータの作成者のみ、その権限を変更できる
+            if not self.is_datum_creator(obj.datum_id) and not self.has_usr_admin():
                 raise NotAuthorizedException('権限を変更できませんでした')
 
-        elif not self.has_admin():
-            # Datum以外の書き込みは管理者権限が必要
+        elif not self.has_sys_admin():
+            # 上記以外の書き込みはシステム管理者権限が必要
             raise NotAuthorizedException('no anthz!')
 
         # objをSessionに格納する
@@ -281,27 +281,27 @@ class AuthzSession(Session):
                 raise NotAuthorizedException((f'{self.user.name}は更新権限がないため{obj.label}を削除できません'))
 
         elif isinstance(obj, User):
-            # 管理者のみ、ユーザを削除できる
-            if not self.has_admin():
+            # ユーザ管理者のみ、ユーザを削除できる
+            if not self.has_usr_admin():
                 raise NotAuthorizedException('ユーザを削除できませんでした')
 
         elif isinstance(obj, UserRole):
-            # 管理者かロールの作成者のみ、ロールからユーザを削除できる
-            if not self.is_role_creator(obj.role_id) and not self.has_admin():
+            # ユーザ管理者かロールの作成者のみ、ロールからユーザを削除できる
+            if not self.is_role_creator(obj.role_id) and not self.has_usr_admin():
                 raise NotAuthorizedException('ロールからユーザを削除できませんでした')
 
         elif isinstance(obj, Role):
-            # 管理者かロールの作成者のみ、ロールを削除できる
-            if not self.is_role_creator(obj.id) and not self.has_admin():
+            # ユーザ管理者かロールの作成者のみ、ロールを削除できる
+            if not self.is_role_creator(obj.id) and not self.has_usr_admin():
                 raise NotAuthorizedException('ロールを削除できませんでした')
 
         elif isinstance(obj, Auth):
-            # 管理者かデータの作成者のみ、その権限を削除できる
-            if not self.is_datum_creator(obj.datum_id) and not self.has_admin():
+            # ユーザ管理者かデータの作成者のみ、その権限を削除できる
+            if not self.is_datum_creator(obj.datum_id) and not self.has_usr_admin():
                 raise NotAuthorizedException('権限を削除できませんでした')
 
-        elif not self.has_admin():
-            # Datum以外の書き込みは管理者権限が必要
+        elif not self.has_sys_admin():
+            # 上記以外の書き込みはシステム管理者権限が必要
             raise NotAuthorizedException('no anthz!')   
 
         # 削除する
@@ -366,16 +366,23 @@ class AuthzSession(Session):
 
         return result.operation == True
 
-    def has_admin(self) -> bool:
+    def has_sys_admin(self) -> bool:
         from .user_role import UserRole
         from .role import Role
-
         query = self._session.query(Role).\
                             outerjoin(UserRole, UserRole.role_id==Role.id).\
-                            filter(Role.uuid == Role.ADMIN_ROLE_UUID).\
+                            filter(Role.uuid == Role.SYS_ADMIN_ROLE_UUID).\
                             filter(UserRole.user_id==self.user.id)
-
         return query.count() > 0
+
+    def has_usr_admin(self) -> bool:
+        from .user_role import UserRole
+        from .role import Role
+        query = self._session.query(Role).\
+                            outerjoin(UserRole, UserRole.role_id==Role.id).\
+                            filter(Role.uuid == Role.USR_ADMIN_ROLE_UUID).\
+                            filter(UserRole.user_id==self.user.id)
+        return query.count() > 0       
 
     def is_role_creator(self, role_id) -> bool:
         """
