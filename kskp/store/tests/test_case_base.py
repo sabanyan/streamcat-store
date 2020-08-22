@@ -15,9 +15,9 @@ class TestCaseBase(unittest.TestCase):
         # 管理者ユーザのFactoryをOpenする
         cls.factory0 = Factory(sys_admin_user)
         cls.factory = Factory(usr_admin_user)
-        # AuthzSessionをUserオブジェクトに格納する
-        sys_admin_user._session = cls.factory0._session
-        usr_admin_user._session = cls.factory._session
+        # FactoryでUserオブジェクトを再取得する
+        sys_admin_user = cls.factory0.user.find_by_id(sys_admin_user.id)
+        usr_admin_user = cls.factory.user.find_by_id(usr_admin_user.id)
         # テストユーザ1を作成する
         test_user = cls.factory.user.create('test@kskp.io', 'testpass', 'Test')
         test_user.save()
@@ -29,10 +29,6 @@ class TestCaseBase(unittest.TestCase):
         usr_admin_user.update_password('adminpass0')
         test_user.update_password('testpass0')
         test_user2.update_password('testpass20')
-        # EveryOneロールにテストユーザを加える
-        everyone_role = cls.factory.role.load_everyone_role()
-        everyone_role.join_user(test_user)
-        everyone_role.join_user(test_user2)
         # テストユーザのFactoryをOpenする
         cls.factory2 = Factory(test_user)
         cls.factory3 = Factory(test_user2)

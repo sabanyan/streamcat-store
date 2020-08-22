@@ -143,6 +143,11 @@ class User(BaseModel):
             raise e
         finally:
             self._session.commit()
+            # everyoneロールに所属させる
+            from kskp.store.factory import RoleFactory
+            role_factory = RoleFactory(self._session)
+            everyone_role = role_factory.load_everyone_role()
+            everyone_role.join_user(self)
 
     def update_email(self, new_email, modifier=None):
         """
