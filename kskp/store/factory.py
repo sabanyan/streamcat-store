@@ -12,7 +12,7 @@ class Factory():
         from kskp.store import engine
         from kskp.store.auth.authz_session import AuthzSession
 
-        # セッションをつくる
+        # セッションを生成する
         # session.commit()によるExpireでquery_expression()で設定されているreadableがNoneになる
         # これを回避するためexpire_on_commit=Falseとする、autoflush=Falseも必要!
         session_maker = sessionmaker(bind=engine, expire_on_commit=False, autoflush=False)
@@ -26,6 +26,9 @@ class Factory():
         self._role = RoleFactory(self._session)
         self._user_role = UserRoleFactory(self._session)
         self._user = UserFactory(self._session)
+
+        # 生成したセッションからUserオブジェクトを取得し、セッションに再設定する
+        self._session.user = self._user.find_by_id(user.id)
 
     def __enter__(self):
         return self
@@ -469,6 +472,11 @@ class AuthFactory():
             raise Exception('No authz is found by designated id')
         return authz
 
+    def find_all_by_datum_id(self, datum_id):
+        from kskp.store.auth import Auth
+        query = self._session.query(Auth).filter(Auth.datum_id==datum_id)
+        return query.all()
+
     def exists(self, role_id, datum_id, operation=None) -> bool:
         from kskp.store.auth import Auth
         query = self._session.query(Auth).filter(Auth.role_id==role_id)\
@@ -560,6 +568,9 @@ class UserRoleFactory():
                        filter(UserRole.user_id==user_id).\
                        filter(UserRole.role_id==role_id).\
                        one()
+
+    def find_all_by_user_id(self, user_id):
+        return self._session.query(UserRole).filter(UserRole.user_id==user_id).all()
 
     def delete_all_by_user_id(self, user_id):
         """

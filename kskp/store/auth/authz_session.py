@@ -123,7 +123,7 @@ class AuthzSession(Session):
     
     def _make_readable_query(self):
         from sqlalchemy.orm import aliased
-        from sqlalchemy.sql.expression import select, func, literal_column, text, false, and_
+        from sqlalchemy.sql.expression import select, func, literal_column, text, false, and_, or_
         from kskp.core import Datum
         from .auth import Auth
         from .user import User
@@ -149,9 +149,10 @@ class AuthzSession(Session):
         # select_from(Auth.join(Role, ...))と記述できないので、select()が使えない、そのためquery()を使う
         subquery = self._session.query(func.coalesce(func.bool_and(Auth.permission),false()).label("read")).\
                                 outerjoin(UserRole, and_(UserRole.role_id==Auth.role_id, UserRole.user_id==self.user.id)).\
-                                outerjoin(User, User.self_role_id==Auth.role_id).\
+                                outerjoin(User, and_(User.self_role_id==Auth.role_id, User.id==self.user.id)).\
                                 filter(Auth.datum_id==R.c.id).\
-                                filter(Auth.operation==Auth.READ_OP).label('')
+                                filter(Auth.operation==Auth.READ_OP).\
+                                filter(or_(UserRole.user_id!=None, User.id!=None)).label('')
 
         subquery = select([func.bool_and(subquery).label('readable')]).select_from(R).\
                    where(R.c.leaf_id==Datum_id).as_scalar()
@@ -184,19 +185,25 @@ class AuthzSession(Session):
             self._session.flush([obj])
             self._session.expire(obj, ['readable'])
 
+            # 本人ロールが無ければ作成し、ユーザを本人ロールに所属させる
+            self_role = self.user.load_self_role()
+            # Datumを新規追加したユーザには無条件に所有権を付与する
+            from kskp.store.factory import AuthFactory
+            own_auth = AuthFactory(self).create(self_role.id, obj.id, Auth.OWN_OP, True)
+            self._session.add(own_auth)
+            self._session.flush([own_auth])
+
+            # FolderまたはFlowの場合は実行権限を付与する
+            folder_or_flow = isinstance(obj, Folder) or isinstance(obj, Flow) or None
+            # 本人ロールへ追加データの権限を付与する
+            self_role.init_authz(obj.id, True, True, exec=folder_or_flow)
+
             # everyoneロールが無ければ作成し、ユーザをeveryoneロールに所属させる
             from kskp.store.factory import RoleFactory
             everyone_role = RoleFactory(self).load_everyone_role()
             everyone_role.join_user(self.user)
-            # FolderまたはFlowの場合は実行権限を付与する
-            folder_or_flow = isinstance(obj, Folder) or isinstance(obj, Flow) or None
             # everyoneロールへ追加データの権限を付与する
             everyone_role.init_authz(obj.id, True, True, exec=folder_or_flow)
-
-            # 本人ロールが無ければ作成し、ユーザを本人ロールに所属させる
-            self_role = self.user.load_self_role()
-            # 本人ロールへ追加データの権限を付与する
-            self_role.init_authz(obj.id, True, True, exec=folder_or_flow)
 
         elif isinstance(obj, User):
             # ユーザ管理者のみユーザを新規追加できる
@@ -215,9 +222,10 @@ class AuthzSession(Session):
             self._session.add(obj)
 
         elif isinstance(obj, Auth):
-            # ユーザ管理者かデータの作成者のみ、その権限を追加できる
-            if not self.is_datum_creator(obj.datum_id) and not self.has_usr_admin():
-                raise NotAuthorizedException('権限を追加できませんでした')
+            # ユーザ管理者かデータの所有者のみ、その権限を追加できる
+            if not self.ownership(obj.datum_id) and not self.has_usr_admin():
+                datum = self._session.query(Datum).get(obj.datum_id)
+                raise NotAuthorizedException(f'{self.user}は{datum.label}に{obj.operation}権限を追加できませんでした')
             self._session.add(obj)
 
         else:
@@ -253,8 +261,8 @@ class AuthzSession(Session):
                 raise NotAuthorizedException('ロールを変更できませんでした')
 
         elif isinstance(obj, Auth):
-            # ユーザ管理者かデータの作成者のみ、その権限を変更できる
-            if not self.is_datum_creator(obj.datum_id) and not self.has_usr_admin():
+            # ユーザ管理者かデータの所有者のみ、その権限を変更できる
+            if not self.ownership(obj.datum_id) and not self.has_usr_admin():
                 raise NotAuthorizedException('権限を変更できませんでした')
 
         elif not self.has_sys_admin():
@@ -296,8 +304,8 @@ class AuthzSession(Session):
                 raise NotAuthorizedException('ロールを削除できませんでした')
 
         elif isinstance(obj, Auth):
-            # ユーザ管理者かデータの作成者のみ、その権限を削除できる
-            if not self.is_datum_creator(obj.datum_id) and not self.has_usr_admin():
+            # ユーザ管理者かデータの所有者のみ、その権限を削除できる
+            if not self.ownership(obj.datum_id) and not self.has_usr_admin():
                 raise NotAuthorizedException('権限を削除できませんでした')
 
         elif not self.has_sys_admin():
@@ -322,11 +330,32 @@ class AuthzSession(Session):
         from .auth import Auth
         return self._operatable(datum, Auth.EXEC_OP)
 
+    def ownership(self, datum_id) -> bool:
+        """
+        ユーザIDとDatumについて所有権の有無を判定する
+        """
+        from kskp.core import Datum
+        from .auth import Auth
+        # ここでfind_by_id・find_by_uuidを使うとdatum.readableがFalseに何故かなってしまう
+        datum = self._session.query(Datum).get(datum_id)
+        if datum is None:
+            raise Exception('datum is None')
+        return self._operatable(datum, Auth.OWN_OP)
+
+    def is_addition_root_by_sysadmin(self, datum_id, operation) -> bool:
+        """
+        システム管理者がルートフォルダの所有権を操作する場合、Trueを返す
+        """
+        from kskp.store.factory import DatumFactory
+        from .auth import Auth
+        datum = DatumFactory(self).find_by_id(datum_id)
+        return datum.parent_id is None and operation == Auth.OWN_OP and self.has_sys_admin()
+
     def _operatable(self, datum, operation) -> bool:
         """
         ユーザIDとDatumについてoperation権限の有無を判定する
         """
-        from sqlalchemy import func, false, and_
+        from sqlalchemy import func, false, and_, or_
         from sqlalchemy.orm import aliased
         from .auth import Auth
         from .user import User
@@ -338,8 +367,9 @@ class AuthzSession(Session):
 
         query = self._session.query(func.coalesce(func.bool_and(A.permission),false()).label('operation')).\
                               outerjoin(UR, and_(UR.role_id==A.role_id, UR.user_id==self.user.id)).\
-                              outerjoin(U, U.self_role_id==A.role_id).\
-                              filter(A.operation==operation)
+                              outerjoin(U,  and_(U.self_role_id==A.role_id, U.id==self.user.id)).\
+                              filter(A.operation==operation).\
+                              filter(or_(UR.user_id!=None, U.id!=None))
 
         if datum.parent_id is None:
             # ルートフォルダの場合は親フォルダの権限判定をしない
@@ -355,9 +385,10 @@ class AuthzSession(Session):
 
             subquery = self._session.query(func.coalesce(func.bool_and(A0.permission),false()).label('operation_of_parent')).\
                         select_from(A0).outerjoin(UR0, and_(UR0.role_id==A0.role_id, UR0.user_id==self.user.id)).\
-                        outerjoin(U0, U0.self_role_id==U.self_role_id).\
+                        outerjoin(U0, and_(U0.self_role_id==U.self_role_id, U0.id==self.user.id)).\
                         filter(A0.operation==A.operation).\
-                        filter(A0.datum_id==datum.parent_id).label('')
+                        filter(A0.datum_id==datum.parent_id).\
+                        filter(or_(UR0.user_id!=None, U0.id!=None)).label('')
 
             query = query.filter(A.datum_id==datum.id).\
                           filter(True == subquery)

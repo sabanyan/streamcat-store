@@ -77,3 +77,6 @@ class UserRole(BaseModel):
             raise e
         finally:
             self._session.commit()
+
+    def __repr__(self):
+        return f'UserRole(user:{self.user_id}, role:{self.role_id})'
