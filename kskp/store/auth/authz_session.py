@@ -337,10 +337,11 @@ class AuthzSession(Session):
         from kskp.core import Datum
         from .auth import Auth
         # ここでfind_by_id・find_by_uuidを使うとdatum.readableがFalseに何故かなってしまう
-        datum = self._session.query(Datum).get(datum_id)
-        if datum is None:
+        # query(Datum).get()を使うとdatum.readableがNoneに何故かなってしまう
+        result = self._session.query(Datum.id, Datum.parent_id).filter(Datum.id==datum_id).one_or_none()
+        if result is None:
             raise Exception('datum is None')
-        return self._operatable(datum, Auth.OWN_OP)
+        return self._operatable(result, Auth.OWN_OP)
 
     def is_addition_root_by_sysadmin(self, datum_id, operation) -> bool:
         """

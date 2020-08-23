@@ -1,7 +1,6 @@
 import os
 import unittest
 import pprint
-from kskp.store import sys_admin_user
 
 from kskp.store.factory import Factory, UnAuthzFactory
 
