@@ -250,7 +250,7 @@ class AuthzSession(Session):
         elif isinstance(obj, User):
             # ユーザ管理者か本人のみ、ユーザを変更できる
             if not self.is_self_user(obj.id) and not self.has_usr_admin():
-                raise NotAuthorizedException('ユーザを変更できませんでした')
+                raise NotAuthorizedException(f'{self.user.name}は更新権限がないためユーザ({obj})を変更できませんでした')
 
         elif isinstance(obj, UserRole):
             raise NotAuthorizedException('UserRoleは更新できません')

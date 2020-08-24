@@ -18,7 +18,7 @@ class AuthTest(TestCaseBase):
         Userの作成・取得・削除を検証する
         """
         # 新規ユーザを追加する
-        new_user = self.factory.user.create('test-man@kskp.io', 'tesepass', 'I AM TEST')
+        new_user = self.factory.user.create('test-man@kskp.io', 'I AM TEST', 'tesepass')
         new_user.save()
 
         # 新規ユーザを取得する
@@ -46,7 +46,7 @@ class AuthTest(TestCaseBase):
         一般ユーザは、ユーザの作成ができないこと
         """
         # 新規ユーザを追加する
-        new_user = self.factory2.user.create('test-man2@kskp.io', 'tesepass', 'I AM TEST')
+        new_user = self.factory2.user.create('test-man2@kskp.io', 'I AM TEST', 'tesepass')
         with self.assertRaises(NotAuthorizedException):
             new_user.save()
 
@@ -55,7 +55,7 @@ class AuthTest(TestCaseBase):
         一般ユーザは、他ユーザの変更ができないこと
         """
         # 新規ユーザを追加する
-        new_user = self.factory.user.create('test-man3@kskp.io', 'tesepass', 'I AM TEST')
+        new_user = self.factory.user.create('test-man3@kskp.io', 'I AM TEST', 'tesepass')
         new_user.save()
 
         # 他ユーザで再取得する
@@ -84,7 +84,7 @@ class AuthTest(TestCaseBase):
         一般ユーザは、他ユーザの削除ができないこと
         """
         # 新規ユーザを追加する
-        new_user = self.factory.user.create('test-man4@kskp.io', 'tesepass', 'I AM TEST')
+        new_user = self.factory.user.create('test-man4@kskp.io', 'I AM TEST', 'tesepass')
         new_user.save()
 
         # 他ユーザで再取得する

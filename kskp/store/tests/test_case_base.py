@@ -18,10 +18,10 @@ class TestCaseBase(unittest.TestCase):
         sys_admin_user = cls.factory0.user.find_by_id(sys_admin_user.id)
         usr_admin_user = cls.factory.user.find_by_id(usr_admin_user.id)
         # テストユーザ1を作成する
-        test_user = cls.factory.user.create('test@kskp.io', 'testpass', 'Test')
+        test_user = cls.factory.user.create('test@kskp.io', 'Test', 'testpass')
         test_user.save()
         # テストユーザ2を作成する
-        test_user2 = cls.factory.user.create('test2@kskp.io', 'testpass2', 'Test2')
+        test_user2 = cls.factory.user.create('test2@kskp.io', 'Test2', 'testpass2')
         test_user2.save()
         # 仮登録状態から登録状態にする
         sys_admin_user.update_password('adminpass0')

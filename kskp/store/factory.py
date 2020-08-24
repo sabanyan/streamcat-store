@@ -80,11 +80,11 @@ class UnAuthzFactory():
     def create_sys_admin_user(self):
         from kskp.store.auth import User
         # FIXIT:管理者パスワードはどうする？
-        return User(self._session, 'Admin@kskp.io', 'adminpass', 'システム管理者')
+        return User(self._session, 'Admin@kskp.io', 'システム管理者', 'adminpass')
 
     def create_usr_admin_user(self):
         from kskp.store.auth import User
-        return User(self._session, 'admin@kskp.io', 'adminpass', 'ユーザ管理者')
+        return User(self._session, 'admin@kskp.io', 'ユーザ管理者', 'adminpass')
 
     def find_user_by_email(self, email):
         user = UserFactory(self._session).find_by_email(email)
@@ -590,9 +590,9 @@ class UserFactory():
     def __init__(self, session):
         self._session = session
 
-    def create(self, email, password, name):
+    def create(self, email, name, password):
         from kskp.store.auth import User
-        return User(self._session, email, password, name)
+        return User(self._session, email, name,  password)
 
     def find_by_id(self, user_id, allow_no_result=False) -> User:
         # SQLAlchemyのidentity mapにキャッシュされていればそれを返す
