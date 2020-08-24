@@ -1,5 +1,6 @@
 import os
 import uuid
+from kskp.store.auth.exceptions import NotAuthorizedException
 from sqlalchemy import Column, String, text
 from sqlalchemy.dialects.postgresql import INTEGER, TIMESTAMP, UUID, ENUM
 from .. import BaseModel
@@ -17,12 +18,16 @@ class User(BaseModel):
     ACTIVE_STATE   = 'active'   # 登録状態
     INACTIVE_STATE = 'inactive' # 論理削除状態
 
+    # 仮パスワードの有効期間(14日間)
+    VALID_SECOND_OF_TMP_PASS = 14 * 24 * 60 * 60
+    KEY_OF_TMP_PASS = b'yImzJql25MsreO5E1mQJfNh6ci-oIgSVCSamULEUOnA='
+
     # 列名と列のデータ型等の定義
     id            = Column(INTEGER, primary_key=True, autoincrement=True)
     uuid          = Column(UUID, nullable=False, unique=True)
     email         = Column(String, nullable=False, unique=True)
-    password      = Column(String)
     name          = Column(String, nullable=False)
+    password      = Column(String)
     # ユーザ状態
     state         = Column(ENUM(TMP_STATE, ACTIVE_STATE, INACTIVE_STATE, name='user_state'), nullable=False)
     # 本人ロールのRoleId
@@ -32,7 +37,7 @@ class User(BaseModel):
     created_at    = Column(TIMESTAMP, default=text('statement_timestamp()'))
     modified_at   = Column(TIMESTAMP, default=text('statement_timestamp()'), onupdate=text('statement_timestamp()'))
 
-    def __init__(self, session, email, password, name):
+    def __init__(self, session, email, name, password=None):
         """
         コンストラクタ
         """
@@ -42,9 +47,17 @@ class User(BaseModel):
         # UUIDを採番する
         self.uuid = str(uuid.uuid4())
 
+        # E-Mailを設定する
+        self._valid_email_or_raise(email)
         self.email = email
-        self.password = self._get_password_hash(self.uuid, password)
+
+        # ユーザ名を設定する
+        self._valid_name_or_raise(name)
         self.name = name
+
+        # パスワードを設定する
+        new_password = password or self._generate_password()
+        self.password = self._get_encrypt_password(new_password)
 
         # 本パスワードに変更する前は仮登録状態である
         self.state = User.TMP_STATE
@@ -53,6 +66,25 @@ class User(BaseModel):
         if session is not None and session.user is not None:
             self._creator_id = session.user.id
             self._modifier_id = session.user.id
+
+    def _valid_email_or_raise(self, email):
+        if email is None or email=='':
+            raise Exception('E-Mailに空文字を指定できません')
+
+    def _valid_name_or_raise(self, name):
+        if name is None or name=='':
+            raise Exception('ユーザ名に空文字を指定できません')
+
+    def _valid_password_or_raise(self, password):
+        from .exceptions import InvalidPassword
+        if password is None or password == '':
+            raise InvalidPassword('空のパスワードに変更できません')
+        if self.is_temp:
+            if self._get_encrypt_password(password) == self.password:
+                raise InvalidPassword('同じパスワードに変更できません')
+        else:
+            if self._get_password_hash(self.uuid, password) == self.password:
+                raise InvalidPassword('同じパスワードに変更できません')
 
     def _get_password_hash(self, uuid, password):
         """
@@ -75,6 +107,35 @@ class User(BaseModel):
             hash_target = current_hash + password_bytes + salt
             current_hash = bytes(hashlib.sha256(hash_target).hexdigest(), 'ascii')
         return str(current_hash, encoding='utf-8')
+
+    def _get_encrypt_password(self, password):
+        from cryptography.fernet import Fernet
+        # UTF-8で符号化してByte列で出力
+        b_password = password.encode()
+        # 暗号化
+        cipher_suite = Fernet(self.KEY_OF_TMP_PASS)
+        cipher_text = cipher_suite.encrypt(b_password)
+        return cipher_text.decode()
+
+    def _get_decrypt_password(self, password):
+        from cryptography.fernet import Fernet, InvalidToken
+        # 復号化
+        cipher_suite = Fernet(self.KEY_OF_TMP_PASS)
+        try:
+            return cipher_suite.decrypt(password.encode(),ttl=self.VALID_SECOND_OF_TMP_PASS).decode()
+        except InvalidToken:
+            raise Exception('仮パスワードの有効期間が切れました、仮パスワードをリセットして下さい')
+
+    def _generate_password(self):
+        # パスワードを自動生成する
+        return str(uuid.uuid4())[0:8]
+
+    def _set_state(self, next_state):
+        if self.state == User.TMP_STATE and next_state == User.ACTIVE_STATE:
+            # 仮登録状態から登録状態へ遷移する場合
+            pass
+
+        self.state = next_state
 
     @property
     def is_temp(self):
@@ -105,32 +166,6 @@ class User(BaseModel):
         from kskp.core import Util
         return Util.datetime_to_local_time_str(self.created_at)
 
-    # def _require_admin_auth(func):
-    #     """
-    #     操作ユーザがadminロールに所属していない場合は例外を送出する
-    #     """
-    #     @functools.wraps(func)
-    #     def wrapper(self, *args, **kwargs):
-    #         sql = """
-    #         select count(is_admin) from groups G
-    #         where is_admin = 1
-    #           and exists (select * from users_groups UG
-    #                        from UG join G using (id)
-    #                        where exists (select * from users U
-    #                                       where U.id = UG.user_id
-    #                                         and U.id = {creator}) )
-    #         """.format(creator=str(self.creator))
-    #         # SQLを発行する
-    #         count = session.execute(sql).scalar()
-    #         # creatorはadminロールに所属していない場合は0件となる
-    #         if count == 0:
-    #             pprint.pprint(func)
-    #             raise Exception("user id (%s) is not authorized to call function (%s.%s)." 
-    #                             % (self.creator, func.__module__, func.__name__))
-            
-    #         return func(self, *args, **kwargs)
-    #     return wrapper
-
     def save(self):
         """
         Userを保存する
@@ -153,6 +188,9 @@ class User(BaseModel):
         """
         Userのemail列を更新する
         """
+        # 妥当なE-Mailでない場合は例外を送出する
+        self._valid_email_or_raise(new_email)
+
         try:
             self.email = new_email
             self._modifier_id = (modifier or self._session.user).id
@@ -163,17 +201,15 @@ class User(BaseModel):
         finally:
             self._session.commit()
 
+        return self
+
     def update_password(self, new_password, modifier=None):
-        from .exceptions import InvalidPassword
-        
-        if new_password is None or new_password == '':
-            raise InvalidPassword('空のパスワードに変更できません')
-        if self._get_password_hash(self.uuid, new_password) == self.password:
-            raise InvalidPassword('同じパスワードに変更できません')
+        # 妥当なパスワードでない場合は例外を送出する
+        self._valid_password_or_raise(new_password)
 
         try:
             # 登録状態に変更する
-            self.state = User.ACTIVE_STATE
+            self._set_state(User.ACTIVE_STATE)
             self.password = self._get_password_hash(self.uuid, new_password)
             self._modifier_id = (modifier or self._session.user).id
             self._session.update(self)
@@ -185,7 +221,38 @@ class User(BaseModel):
         
         return self
 
+    def reset_password(self, modifier=None):
+        """
+        管理者がパスワードをリセットする
+        FIXIT: 仮パスワードは復号化できるようにする
+        """
+        if not self._session.has_usr_admin():
+            raise NotAuthorizedException('ユーザ管理者以外のユーザはパスワードをリセットできません')
+        
+        # パスワードを自動生成する
+        new_password = self._generate_password()
+
+        # 妥当なパスワードでない場合は例外を送出する
+        self._valid_password_or_raise(new_password)
+
+        try:
+            # 仮登録状態に変更する
+            self._set_state(User.TMP_STATE)
+            self.password = self._get_encrypt_password(new_password)
+            self._modifier_id = (modifier or self._session.user).id
+            self._session.update(self)
+        except Exception as e:
+            self._session.rollback()
+            raise e
+        finally:
+            self._session.commit()
+        
+        return self
+
     def update_name(self, new_name, modifier=None):
+        # 妥当なユーザ名でない場合は例外を送出する
+        self._valid_name_or_raise(new_name)
+
         try:
             self.name = new_name
             self._modifier_id = (modifier or self._session.user).id
@@ -212,17 +279,6 @@ class User(BaseModel):
         
         return self
 
-    def reset_password(self, modifier=None):
-        """
-        管理者がパスワードをリセットする
-        FIXIT: 仮パスワードは復号化できるようにする
-        """
-        new_password = str(uuid.uuid4)[0:8]
-        # 仮登録状態に変更する
-        self.state = User.TMP_STATE
-        self.update_password(new_password, modifier=modifier)
-        return new_password
-
     def delete(self):
         """
         Userを削除する
@@ -241,7 +297,6 @@ class User(BaseModel):
         finally:
             self._session.commit()
 
-
     def authenticate(self, password):
         """
         IDとパスワードを元に認証処理を行う
@@ -250,28 +305,11 @@ class User(BaseModel):
         if self.password is None:
             # そもそもユーザが存在しない場合
             return False
-
         # パスワード判定処理
-        return self._get_password_hash(self.uuid, password) == self.password
-
-    def has_read_authority(self, uuid):
-        # select 
-        #      A.read
-        # from auths A
-        # where exists (select * from data D
-        #               where D.id = A.datum_id
-        #                 and D.uuid = uuid)
-        #   and exists (select * from groups G
-        #               where G.id = A.role_id
-        #                 and exists (select * from users_groups UG
-        #                             where UG.role_id = G.id
-        #                               and exists (select * from users U
-        #                                           where U.id = UG.user_id
-        #                                             and U.id = self.id) ))
-
-        # このメソッドはUserとDatumのどちらに持たせたほうがいい？
-        pass
-
+        elif self.is_temp:
+            return password == self._get_decrypt_password(self.password)
+        else:
+            return self._get_password_hash(self.uuid, password) == self.password
 
     def load_self_role(self):
         """
@@ -300,6 +338,22 @@ class User(BaseModel):
             'creator'  : self.creator_str,
             'createdAt': self.created_at_str
         }
+
+    def to_json(self):
+        ret = {
+            'uuid'     : self.uuid,
+            'email'    : self.email,
+            'name'     : self.name,    
+            'state'    : self.state,         
+            'creator'  : self.creator_str,
+            'createdAt': self.created_at_str
+        }
+
+        # 仮登録状態、かつ操作ユーザがユーザ管理者権限を持つ場合は仮パスワードも返す
+        if self.is_temp and self._session.has_usr_admin():
+            ret.update({'password': self._get_decrypt_password(self.password)})
+
+        return ret
 
     def __repr__(self):
         return f'User({self.id}, {self.name})'
