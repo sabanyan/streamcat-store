@@ -131,15 +131,47 @@ class User(BaseModel):
         return str(uuid.uuid4())[0:8]
 
     def _set_state(self, next_state):
+        if self.state == User.TMP_STATE and next_state == User.INACTIVE_STATE:
+            raise Exception('誤ったユーザの状態遷移が指定されました')
+        if self.state == User.INACTIVE_STATE and next_state == User.TMP_STATE:
+            raise Exception('誤ったユーザの状態遷移が指定されました')
+
         if self.state == User.TMP_STATE and next_state == User.ACTIVE_STATE:
             # 仮登録状態から登録状態へ遷移する場合
             pass
 
         self.state = next_state
 
+    def _get_admin_role_flags(self):
+        from sqlalchemy import func, case, null
+        from .role import Role
+        from .user_role import UserRole
+
+        query = self._session.query(
+                        func.count(
+                            case([(Role.uuid == Role.SYS_ADMIN_ROLE_UUID,1)],else_=null())
+                        ).label('sys_admin'),
+                        func.count(
+                            case([(Role.uuid == Role.USR_ADMIN_ROLE_UUID,1)],else_=null())
+                        ).label('usr_admin')
+                    ).\
+                    select_from(Role).\
+                    outerjoin(UserRole, UserRole.role_id==Role.id).\
+                    filter(Role.uuid.in_([Role.SYS_ADMIN_ROLE_UUID,Role.USR_ADMIN_ROLE_UUID])).\
+                    filter(UserRole.user_id==self.id)
+
+        result = query.one()
+
+        # 戻り値の作成
+        return {Role.SYS_ADMIN_ROLE_LABEL:result.sys_admin > 0, Role.USR_ADMIN_ROLE_LABEL:result.usr_admin > 0}
+
     @property
     def is_temp(self):
         return self.state == User.TMP_STATE
+
+    @property
+    def is_inactive(self):
+        return self.state == User.INACTIVE_STATE
 
     @property
     def creator(self):
@@ -224,7 +256,6 @@ class User(BaseModel):
     def reset_password(self, modifier=None):
         """
         管理者がパスワードをリセットする
-        FIXIT: 仮パスワードは復号化できるようにする
         """
         if not self._session.has_usr_admin():
             raise NotAuthorizedException('ユーザ管理者以外のユーザはパスワードをリセットできません')
@@ -297,6 +328,44 @@ class User(BaseModel):
         finally:
             self._session.commit()
 
+    def throw_away(self, modifier=None):
+        """
+        登録Userを論理削除する
+        """
+        # 仮登録Userは物理削除する
+        if self.is_temp:
+            self.delete()
+            return
+
+        try:
+            # 論理削除状態に変更する
+            self._set_state(User.INACTIVE_STATE)
+            self._modifier_id = (modifier or self._session.user).id
+            self._session.update(self)
+        except Exception as e:
+            self._session.rollback()
+            raise e
+        finally:
+            self._session.commit()
+
+    def put_back(self, modifier=None):
+        """
+        論理削除Userを復帰する
+        """
+        if self.is_temp:
+            raise Exception('仮登録ユーザを復帰させることはできません')
+
+        try:
+            # 登録状態に変更する
+            self._set_state(User.ACTIVE_STATE)
+            self._modifier_id = (modifier or self._session.user).id
+            self._session.update(self)
+        except Exception as e:
+            self._session.rollback()
+            raise e
+        finally:
+            self._session.commit()
+
     def authenticate(self, password):
         """
         IDとパスワードを元に認証処理を行う
@@ -304,6 +373,9 @@ class User(BaseModel):
         """
         if self.password is None:
             # そもそもユーザが存在しない場合
+            return False
+        elif self.is_inactive:
+            # 論理削除ユーザは認証できない
             return False
         # パスワード判定処理
         elif self.is_temp:
@@ -330,21 +402,13 @@ class User(BaseModel):
         return self_role
 
     def to_json(self):
-        return {
-            'uuid'     : self.uuid,
-            'email'    : self.email,
-            'name'     : self.name,    
-            'state'    : self.state,         
-            'creator'  : self.creator_str,
-            'createdAt': self.created_at_str
-        }
-
-    def to_json(self):
+        roles = self._get_admin_role_flags()
         ret = {
             'uuid'     : self.uuid,
             'email'    : self.email,
-            'name'     : self.name,    
-            'state'    : self.state,         
+            'name'     : self.name,
+            'state'    : self.state,
+            'systemRoles' : roles,
             'creator'  : self.creator_str,
             'createdAt': self.created_at_str
         }
