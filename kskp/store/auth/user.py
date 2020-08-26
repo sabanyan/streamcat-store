@@ -366,6 +366,8 @@ class User(BaseModel):
         finally:
             self._session.commit()
 
+        return self
+
     def authenticate(self, password):
         """
         IDとパスワードを元に認証処理を行う
