@@ -47,6 +47,12 @@ class Query():
     def filter(self, *criterion):
         return Query(self._query.filter(*criterion), self._session)
 
+    def select_from(self, *from_obj):
+        return Query(self._query.select_from(*from_obj), self._session)
+
+    def outerjoin(self, *props, **kwargs):
+        return Query(self._query.outerjoin(*props, **kwargs), self._session)
+
     def exists(self):
         return self._query.exists()
 

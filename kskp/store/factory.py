@@ -589,10 +589,19 @@ from kskp.store.auth import User
 class UserFactory():
     def __init__(self, session):
         self._session = session
+        # LIKE検索語のエスケープ変換テーブル
+        self.escape_table = str.maketrans({
+            '%': '\%',
+            '_': '\_',
+            '\\': '\\\\'
+        })
 
     def create(self, email, name, password):
         from kskp.store.auth import User
         return User(self._session, email, name,  password)
+
+    def find_all(self):
+        return self._session.query(User).order_by(User.email).all()
 
     def find_by_id(self, user_id, allow_no_result=False) -> User:
         # SQLAlchemyのidentity mapにキャッシュされていればそれを返す
@@ -605,16 +614,26 @@ class UserFactory():
         # UUID値の形式チェックをする
         from kskp.core import Datum
         Datum.valid_uuid_or_raise(uuid)
-
         user = self._session.query(User).filter(User.uuid==uuid).one()
         return user
 
     def find_by_email(self, email) -> User:
         """
-        指定されたuuidを持つFrameを取得する
+        指定されたuuidを持つUserを取得する
         """
         user = self._session.query(User).filter(User.email==email).one()
         return user
+
+    def find_by_keyword(self, keyword):
+        """
+        キーワードを含むユーザ名またはE-MailのUserを取得する
+        """
+        from sqlalchemy.sql.expression import or_
+        search_keyword = '%' + keyword.translate(self.escape_table) + '%'
+        query = self._session.query(User).\
+                filter(or_(User.name.like(search_keyword, escape='\\'),
+                           User.email.like(search_keyword, escape='\\')))
+        return query.order_by(User.email).all()
 
     def exists(self, uuid) -> bool:
         count = self._session.query(User).filter(User.uuid==uuid).count()
