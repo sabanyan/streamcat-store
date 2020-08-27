@@ -522,6 +522,17 @@ class RoleFactory():
         """
         return self._session.query(Role).all()
 
+    def find_by_user_id(self, user_id):
+        """
+        ユーザが所属するロールを取得する
+        """
+        from kskp.store.auth import UserRole
+        query = self._session.query(Role).\
+                      outerjoin(UserRole, Role.id==UserRole.role_id).\
+                      filter(UserRole.user_id==user_id).\
+                      order_by(Role.name)
+        return query.all()
+
     def load_sys_admin_role(self):
         if self.exists(Role.SYS_ADMIN_ROLE_UUID):
             sys_admin_role = self.find_by_uuid(Role.SYS_ADMIN_ROLE_UUID)
