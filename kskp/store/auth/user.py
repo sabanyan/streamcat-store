@@ -404,13 +404,11 @@ class User(BaseModel):
         return self_role
 
     def to_json(self):
-        roles = self._get_admin_role_flags()
         ret = {
             'uuid'     : self.uuid,
             'email'    : self.email,
             'name'     : self.name,
             'state'    : self.state,
-            'systemRoles' : roles,
             'creator'  : self.creator_str,
             'createdAt': self.created_at_str
         }
