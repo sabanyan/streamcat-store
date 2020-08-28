@@ -100,3 +100,6 @@ class Auth(BaseModel):
             raise e
         finally:
             self._session.commit()
+
+    def __repr__(self):
+        return f'Auth(role:{self.role_id}, datum:{self.datum_id}, {self.operation}, {self.permission})'

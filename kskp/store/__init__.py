@@ -108,15 +108,16 @@ BaseModel.metadata.create_all(bind=engine, checkfirst=True)
 # 管理者ロールと管理者ユーザを作成する
 from kskp.store.factory import UnAuthzFactory, Factory
 with UnAuthzFactory() as unauthz_factory:
-    admin_user = unauthz_factory.load_admin_user()
+    sys_admin_user = unauthz_factory.load_sys_admin_user()
+    usr_admin_user = unauthz_factory.load_usr_admin_user()
 
-    # User.load_self_role()でadmin_userオブジェクトを更新するため
-    # Factoryでamdin_userをリロードする
-    with Factory(admin_user) as factory:
-        admin_user = factory.user.find_by_id(admin_user.id)
+    # User.load_self_role()でsys_admin_userオブジェクトを更新するため
+    # Factoryでsys_amdin_userをリロードする
+    with Factory(sys_admin_user) as factory:
+        sys_admin_user = factory.user.find_by_id(sys_admin_user.id)
 
         # システムフォルダを作成する
-        with Factory(admin_user) as factory:
+        with Factory(sys_admin_user) as factory:
             factory.data.load_cache_folder()
             factory.data.load_trash_folder()
 

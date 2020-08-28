@@ -6,6 +6,7 @@ setup(
     install_requires=[
         'ordered_set',
         'chardet',
+        'cryptography',
         'psycopg2',
         'sqlalchemy',
         'alembic',

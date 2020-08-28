@@ -12,7 +12,7 @@ class Factory():
         from kskp.store import engine
         from kskp.store.auth.authz_session import AuthzSession
 
-        # セッションをつくる
+        # セッションを生成する
         # session.commit()によるExpireでquery_expression()で設定されているreadableがNoneになる
         # これを回避するためexpire_on_commit=Falseとする、autoflush=Falseも必要!
         session_maker = sessionmaker(bind=engine, expire_on_commit=False, autoflush=False)
@@ -26,6 +26,9 @@ class Factory():
         self._role = RoleFactory(self._session)
         self._user_role = UserRoleFactory(self._session)
         self._user = UserFactory(self._session)
+
+        # 生成したセッションからUserオブジェクトを取得し、セッションに再設定する
+        self._session.user = self._user.find_by_id(user.id)
 
     def __enter__(self):
         return self
@@ -74,48 +77,66 @@ class UnAuthzFactory():
         # セッションを保持する
         self._session = Session(session_maker, user=None)
 
-    def create_admin_user(self):
+    def create_sys_admin_user(self):
         from kskp.store.auth import User
         # FIXIT:管理者パスワードはどうする？
-        return User(self._session, 'admin@kskp.io', 'adminpass', 'システム管理者')
+        return User(self._session, 'Admin@kskp.io', 'システム管理者', 'adminpass')
+
+    def create_usr_admin_user(self):
+        from kskp.store.auth import User
+        return User(self._session, 'admin@kskp.io', 'ユーザ管理者', 'adminpass')
 
     def find_user_by_email(self, email):
         user = UserFactory(self._session).find_by_email(email)
-        # if user is not None:
-        #     user.session = self._session
         return user
 
     def find_user_by_id(self, user_id):
         user = UserFactory(self._session).find_by_id(user_id)
-        # if user is not None:
-        #     user.session = self._session
         return user
 
-    def load_admin_role(self):
-        role = RoleFactory(self._session).load_admin_role()
-        # if role is not None:
-        #     role.session = self._session
+    def load_sys_admin_role(self):
+        role = RoleFactory(self._session).load_sys_admin_role()
         return role
 
-    def load_admin_user(self):
+    def load_usr_admin_role(self):
+        role = RoleFactory(self._session).load_usr_admin_role()
+        return role
+
+    def load_sys_admin_user(self):
         """
         システム管理者を取得する、存在しない場合は作成する
         """
         # 管理者ロールが存在しない場合は作成する
-        admin_role = self.load_admin_role()
+        sys_admin_role = self.load_sys_admin_role()
 
-        if admin_role.has_joined_user():
+        if sys_admin_role.has_joined_user():
             # 管理者ユーザが存在する場合は、idが最も小さいユーザを返す
-            admin_user = admin_role.get_joined_users()[0]
+            sys_admin_user = sys_admin_role.get_joined_users()[0]
         else:
             # 管理者ユーザが存在しない場合はデフォルト管理者ユーザを作成する
             # 初期管理者ユーザを作成する
-            admin_user = self.create_admin_user()
-            admin_user.save()
+            sys_admin_user = self.create_sys_admin_user()
+            sys_admin_user.save()
             # 初期管理者ユーザを管理者ロールに参加させる
-            admin_role.join_user(admin_user)
+            sys_admin_role.join_user(sys_admin_user)
 
-        return admin_user
+        return sys_admin_user
+
+    def load_usr_admin_user(self):
+        """
+        ユーザ管理者を取得する、存在しない場合は作成する
+        """
+        # 管理者ロールが存在しない場合は作成する
+        usr_admin_role = self.load_usr_admin_role()
+
+        if usr_admin_role.has_joined_user():
+            usr_admin_user = usr_admin_role.get_joined_users()[0]
+        else:
+            usr_admin_user = self.create_usr_admin_user()
+            usr_admin_user.save()
+            usr_admin_role.join_user(usr_admin_user)
+
+        return usr_admin_user
 
     def __enter__(self):
         return self
@@ -264,7 +285,7 @@ class DatumFactory():
             role_factory = RoleFactory(self._session)
             auth_factory = AuthFactory(self._session)
 
-            admin_role = role_factory.load_admin_role()
+            admin_role = role_factory.load_sys_admin_role()
             admin_role.join_user(self._session.user)
             if not auth_factory.exists(admin_role.id, new_root.id):
                 admin_role.init_authz(new_root.id, True, True, exec=True)
@@ -451,6 +472,11 @@ class AuthFactory():
             raise Exception('No authz is found by designated id')
         return authz
 
+    def find_all_by_datum_id(self, datum_id):
+        from kskp.store.auth import Auth
+        query = self._session.query(Auth).filter(Auth.datum_id==datum_id)
+        return query.all()
+
     def exists(self, role_id, datum_id, operation=None) -> bool:
         from kskp.store.auth import Auth
         query = self._session.query(Auth).filter(Auth.role_id==role_id)\
@@ -496,15 +522,36 @@ class RoleFactory():
         """
         return self._session.query(Role).all()
 
-    def load_admin_role(self):
-        if self.exists(Role.ADMIN_ROLE_UUID):
-            admin_role = self.find_by_uuid(Role.ADMIN_ROLE_UUID)
+    def find_by_user_id(self, user_id):
+        """
+        ユーザが所属するロールを取得する
+        """
+        from kskp.store.auth import UserRole
+        query = self._session.query(Role).\
+                      outerjoin(UserRole, Role.id==UserRole.role_id).\
+                      filter(UserRole.user_id==user_id).\
+                      order_by(Role.name)
+        return query.all()
+
+    def load_sys_admin_role(self):
+        if self.exists(Role.SYS_ADMIN_ROLE_UUID):
+            sys_admin_role = self.find_by_uuid(Role.SYS_ADMIN_ROLE_UUID)
         else:
-            admin_role = Role(self._session, Role.ADMIN_ROLE_LABEL)
+            sys_admin_role = Role(self._session, Role.SYS_ADMIN_ROLE_LABEL)
             # コンストラクタで付番したUUIDを捨てて、特定用途のUUIDを格納する
-            admin_role.uuid = Role.ADMIN_ROLE_UUID
-            admin_role.save()
-        return admin_role
+            sys_admin_role.uuid = Role.SYS_ADMIN_ROLE_UUID
+            sys_admin_role.save()
+        return sys_admin_role
+
+    def load_usr_admin_role(self):
+        if self.exists(Role.USR_ADMIN_ROLE_UUID):
+            sys_admin_role = self.find_by_uuid(Role.USR_ADMIN_ROLE_UUID)
+        else:
+            sys_admin_role = Role(self._session, Role.USR_ADMIN_ROLE_LABEL)
+            # コンストラクタで付番したUUIDを捨てて、特定用途のUUIDを格納する
+            sys_admin_role.uuid = Role.USR_ADMIN_ROLE_UUID
+            sys_admin_role.save()
+        return sys_admin_role
 
     def load_everyone_role(self):
         if self.exists(Role.EVERYONE_ROLE_UUID):
@@ -533,6 +580,9 @@ class UserRoleFactory():
                        filter(UserRole.role_id==role_id).\
                        one()
 
+    def find_all_by_user_id(self, user_id):
+        return self._session.query(UserRole).filter(UserRole.user_id==user_id).all()
+
     def delete_all_by_user_id(self, user_id):
         """
         UsersRolesテーブルから指定したユーザの所属情報を全て削除する
@@ -550,10 +600,19 @@ from kskp.store.auth import User
 class UserFactory():
     def __init__(self, session):
         self._session = session
+        # LIKE検索語のエスケープ変換テーブル
+        self.escape_table = str.maketrans({
+            '%': '\%',
+            '_': '\_',
+            '\\': '\\\\'
+        })
 
-    def create(self, email, password, name):
+    def create(self, email, name, password):
         from kskp.store.auth import User
-        return User(self._session, email, password, name)
+        return User(self._session, email, name,  password)
+
+    def find_all(self):
+        return self._session.query(User).order_by(User.email).all()
 
     def find_by_id(self, user_id, allow_no_result=False) -> User:
         # SQLAlchemyのidentity mapにキャッシュされていればそれを返す
@@ -566,16 +625,26 @@ class UserFactory():
         # UUID値の形式チェックをする
         from kskp.core import Datum
         Datum.valid_uuid_or_raise(uuid)
-
         user = self._session.query(User).filter(User.uuid==uuid).one()
         return user
 
     def find_by_email(self, email) -> User:
         """
-        指定されたuuidを持つFrameを取得する
+        指定されたuuidを持つUserを取得する
         """
         user = self._session.query(User).filter(User.email==email).one()
         return user
+
+    def find_by_keyword(self, keyword):
+        """
+        キーワードを含むユーザ名またはE-MailのUserを取得する
+        """
+        from sqlalchemy.sql.expression import or_
+        search_keyword = '%' + keyword.translate(self.escape_table) + '%'
+        query = self._session.query(User).\
+                filter(or_(User.name.like(search_keyword, escape='\\'),
+                           User.email.like(search_keyword, escape='\\')))
+        return query.order_by(User.email).all()
 
     def exists(self, uuid) -> bool:
         count = self._session.query(User).filter(User.uuid==uuid).count()

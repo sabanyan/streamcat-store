@@ -18,7 +18,7 @@ class AuthTest(TestCaseBase):
         Userの作成・取得・削除を検証する
         """
         # 新規ユーザを追加する
-        new_user = self.factory.user.create('test-man@kskp.io', 'tesepass', 'I AM TEST')
+        new_user = self.factory.user.create('test-man@kskp.io', 'I AM TEST', 'tesepass')
         new_user.save()
 
         # 新規ユーザを取得する
@@ -46,7 +46,7 @@ class AuthTest(TestCaseBase):
         一般ユーザは、ユーザの作成ができないこと
         """
         # 新規ユーザを追加する
-        new_user = self.factory2.user.create('test-man2@kskp.io', 'tesepass', 'I AM TEST')
+        new_user = self.factory2.user.create('test-man2@kskp.io', 'I AM TEST', 'tesepass')
         with self.assertRaises(NotAuthorizedException):
             new_user.save()
 
@@ -55,7 +55,7 @@ class AuthTest(TestCaseBase):
         一般ユーザは、他ユーザの変更ができないこと
         """
         # 新規ユーザを追加する
-        new_user = self.factory.user.create('test-man3@kskp.io', 'tesepass', 'I AM TEST')
+        new_user = self.factory.user.create('test-man3@kskp.io', 'I AM TEST', 'tesepass')
         new_user.save()
 
         # 他ユーザで再取得する
@@ -84,7 +84,7 @@ class AuthTest(TestCaseBase):
         一般ユーザは、他ユーザの削除ができないこと
         """
         # 新規ユーザを追加する
-        new_user = self.factory.user.create('test-man4@kskp.io', 'tesepass', 'I AM TEST')
+        new_user = self.factory.user.create('test-man4@kskp.io', 'I AM TEST', 'tesepass')
         new_user.save()
 
         # 他ユーザで再取得する
@@ -586,6 +586,28 @@ class AuthTest(TestCaseBase):
         # フローは参照可能
         self.assertTrue(flow.readable)
 
+    def test_read_flow_by_other_role(self):
+        """
+        本人グループにのみ参照可能なFlowを他ユーザは参照できないこと
+        """
+        # ルートフォルダを取得する
+        root = self.factory.data.load_root()
+        # ルートフォルダの下にフローを作成する
+        flow = root.create_flow('所有者のみ参照できるフロー', {})
+        flow.save()
+
+        # フローの参照権限を全て削除する
+        self.factory.auth.delete_all_by_datum_id(flow.id)
+
+        # USER1の本人グループに参照権限を付与する
+        self.USER1.load_self_role().init_authz(flow.id, True, False)
+
+        # 他ユーザによりフローを取得する
+        flow = self.factory2.data.find_by_id(flow.id)
+
+        # フローは参照不可能
+        self.assertFalse(flow.readable)
+
     def test_write_flow_by_self_role(self):
         """
         本人グループにのみ更新可能なFlowを更新できること
@@ -642,6 +664,31 @@ class AuthTest(TestCaseBase):
         # フローは更新されていること
         self.assertEqual(flow.label, '変更したフロー名2')        
 
+    def test_write_flow_by_other_role(self):
+        """
+        本人グループにのみ参照可能なFlowを他ユーザは更新できないこと
+        """
+        # ルートフォルダを取得する
+        root = self.factory.data.load_root()
+        # ルートフォルダの下にフローを作成する
+        flow = root.create_flow('所有者のみ更新できるフロー2', {})
+        flow.save()
+        
+        # フローの権限を全て削除する
+        self.factory.auth.delete_all_by_datum_id(flow.id)
+
+        # USER1の本人グループに更新権限を付与する
+        self.USER1.load_self_role().init_authz(flow.id, False, True)
+
+        # 他ユーザによりフローを取得する
+        flow = self.factory2.data.find_by_id(flow.id)
+
+        # フローは更新不可能
+        with self.assertRaises(NotAuthorizedException):
+            flow.update_data('変更したフロー名2', {})
+
+        # フローは更新されていないこと
+        self.assertEqual(flow.label, '所有者のみ更新できるフロー2')
 
     def test_move(self):
         """
