@@ -1,5 +1,3 @@
-import os
-
 from kskp.core import Datum
 from kskp.store import Folder
 
@@ -18,5 +16,8 @@ class ProjectFolder(Folder):
         # データタイプを設定する
         self.type = Datum.PROJECT_TYPE
 
-        # data列の値を作成する
-        # self.data = {}
+    def get_joined_users(self):
+        """
+        所属する全てのユーザを返す
+        """
+        pass

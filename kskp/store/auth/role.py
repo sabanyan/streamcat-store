@@ -41,7 +41,6 @@ class Role(BaseModel):
         self.uuid = str(uuid.uuid4())
 
         self.name = name
-        # self.is_admin = is_admin
 
         # creator, modifier
         if session is not None and session.user is not None:
@@ -125,8 +124,7 @@ class Role(BaseModel):
         from .auth import Auth
 
         # ロールに一人以上のユーザが所属している場合は例外を送出する
-        count = self._session.query(UserRole).filter(UserRole.role_id == self.id).count()
-        if count > 0:
+        if self.has_joined_user() > 0:
             raise Exception('Can not delete the role that has user(s).')
 
         # 
@@ -148,30 +146,49 @@ class Role(BaseModel):
         finally:
             self._session.commit()
 
-    def is_joined_user(self, user):
-        count = self._session.query(UserRole).filter(UserRole.role_id==self.id).filter(UserRole.user_id==user.id).count()
+    def is_self_role(self):
+        """
+        本人ロールの場合はTrueを返す
+        """
+        from .user import User
+        count = self._session.query(User).filter(User.self_role_id==self.id).count()
         return count > 0
 
+    def is_joined_user(self, user):
+        from .user import User
+        count1 = self._session.query(User).filter(User.self_role_id==self.id).filter(User.id==user.id).count()
+        count2 = self._session.query(UserRole).filter(UserRole.role_id==self.id).filter(UserRole.user_id==user.id).count()
+        return count1 + count2 > 0
+
     def has_joined_user(self):
-        count = self._session.query(UserRole).filter(UserRole.role_id==self.id).count()
-        return count > 0
+        from .user import User
+        count1 = self._session.query(User).filter(User.self_role_id==self.id).count()
+        count2 = self._session.query(UserRole).filter(UserRole.role_id==self.id).count()
+        return count1 + count2 > 0
 
     def get_joined_users(self):
         """
         ロールに所属する全てのユーザを返す
         (ユーザID順で返す)
         """
+        from sqlalchemy import exists, and_, or_
         from .user import User
+
+        exists_user_role = exists().where(and_(UserRole.role_id==self.id, UserRole.user_id==User.id))
+        exists_user = exists().where(and_(User.self_role_id==self.id, User.id==User.id))
+
         query = self._session.query(User).\
-                              filter(User.id==UserRole.user_id).\
-                              filter(UserRole.role_id==self.id).\
-                              order_by(User.id)
-        return query.all()
+                              filter(or_(exists_user_role, exists_user))
+                              
+        return query.order_by(User.id).all()
 
     def join_user(self, user):
         """
         ロールにユーザを所属させる
         """
+        if self.is_self_role():
+            raise Exception('本人ロールに本人以外のユーザを所属させることはできません')
+
         if not self.is_joined_user(user):
             user_role = UserRole(self._session, user.id, self.id)
             user_role.save()
@@ -180,17 +197,28 @@ class Role(BaseModel):
         """
         ロールからユーザを脱退させる
         """
+        if self.is_self_role():
+            raise Exception('本人ロールからユーザを脱退させることはできません')
+
         if self.is_joined_user(user):
             from kskp.store.factory import UserRoleFactory
             user_role = UserRoleFactory(self._session).find_by_id(user.id, self.id)
             user_role.delete()
 
-    def init_authz(self, datum_id, read, write, exec=None):
+    def init_authz(self, datum_id, read, write, exec=None, own=None):
         from .auth import Auth
+        # own=Trueの場合は他の権限が設定できるよう先に設定する
+        if own:
+            self._init_authz_inner(datum_id, Auth.OWN_OP, permission=own)
         self._init_authz_inner(datum_id, Auth.READ_OP, permission=read)
         self._init_authz_inner(datum_id, Auth.WRITE_OP, permission=write)
-        if exec is not None:
-            self._init_authz_inner(datum_id, Auth.EXEC_OP, permission=exec)
+        self._init_authz_inner(datum_id, Auth.EXEC_OP, permission=exec)
+        # own=False, Noneの場合は他の権限の設定を終えた後に設定する
+        if not own:
+            self._init_authz_inner(datum_id, Auth.OWN_OP, permission=own)
+
+    def clear_authz(self, datum_id):
+        self.init_authz(datum_id, None, None, None, None)
 
     def _init_authz_inner(self, datum_id, operation, permission):
         from kskp.store.factory import AuthFactory
@@ -198,7 +226,14 @@ class Role(BaseModel):
 
         if auth_factory.exists(self.id, datum_id, operation):
             auth = auth_factory.find_by_id(self.id, datum_id, operation)
-            auth.update(permission)
+            if permission is None:
+                # permission=Noneが指定された場合はAuthレコードを削除する
+                auth.delete()
+            elif auth.permission != permission:
+                auth.update(permission)
+        elif permission is None:
+            # permission=Noneが指定された場合は何もしない
+            pass
         else:
             authz = auth_factory.create(self.id, datum_id, operation, permission=permission)
             authz.save()
