@@ -403,6 +403,45 @@ class User(BaseModel):
 
         return self_role
 
+    def get_joined_roles(self):
+        """
+        所属する全てのロールを返す
+        """
+        from sqlalchemy import exists, and_, or_
+        from .role import Role
+        from .user_role import UserRole
+
+        exists_user_role = exists().where(and_(UserRole.role_id==Role.id, UserRole.user_id==self.id))
+        exists_user = exists().where(and_(User.self_role_id==Role.id, User.id==self.id))
+
+        query = self._session.query(Role).\
+                      filter(or_(exists_user_role, exists_user))
+        return query.order_by(Role.name).all()
+
+    def get_joined_projects(self):
+        """
+        所属する全てのプロジェクトを返す
+        """
+        from sqlalchemy import exists, and_, or_
+        from kskp.store import Datum, ProjectFolder
+        from .user_role import UserRole
+        from .auth import Auth
+
+        exists_user_role = exists().where(and_(UserRole.role_id==Auth.role_id, UserRole.user_id==self.id))
+        exists_user = exists().where(and_(User.self_role_id==Auth.role_id, User.id==self.id))
+
+        exists_stmt = exists().where(
+                                        and_(Auth.datum_id==ProjectFolder.id,
+                                             Auth.permission==True,
+                                             or_(exists_user, exists_user_role)
+                                        )
+                                    )
+
+        query = self._session.query(ProjectFolder).\
+                              filter(ProjectFolder.type==Datum.PROJECT_TYPE).\
+                              filter(exists_stmt)
+        return query.order_by(ProjectFolder._label).all()
+
     def to_json(self):
         ret = {
             'uuid'     : self.uuid,

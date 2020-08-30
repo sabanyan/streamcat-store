@@ -196,7 +196,7 @@ class AuthzSession(Session):
             # FolderまたはFlowの場合は実行権限を付与する
             folder_or_flow = isinstance(obj, Folder) or isinstance(obj, Flow) or None
             # 本人ロールへ追加データの権限を付与する
-            self_role.init_authz(obj.id, True, True, exec=folder_or_flow)
+            self_role.init_authz(obj.id, True, True, exec=folder_or_flow, own=True)
 
             # everyoneロールが無ければ作成し、ユーザをeveryoneロールに所属させる
             from kskp.store.factory import RoleFactory
