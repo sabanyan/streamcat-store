@@ -205,6 +205,27 @@ class Role(BaseModel):
             user_role = UserRoleFactory(self._session).find_by_id(user.id, self.id)
             user_role.delete()
 
+    def leave_all_users(self):
+        """
+        ロールから全てのユーザを脱退させる
+        """
+        if self.is_self_role():
+            raise Exception('本人ロールからユーザを脱退させることはできません')
+
+        from kskp.store.factory import UserRoleFactory
+        UserRoleFactory(self._session).delete_all_by_role_id(self.id)
+
+    def init_users(self, users):
+        """
+        ロールの所属ユーザを初期化する
+        """
+        # 一旦、全てのユーザを削除する
+        self.leave_all_users()
+
+        # ユーザを追加する
+        for user in users:
+            self.join_user(user)
+
     def init_authz(self, datum_id, read, write, exec=None, own=None):
         from .auth import Auth
         # own=Trueの場合は他の権限が設定できるよう先に設定する

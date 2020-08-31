@@ -2,6 +2,7 @@ import unittest
 import pprint
 from sqlalchemy.orm.exc import NoResultFound
 from kskp.core import Datum
+from kskp.store import ProjectFolder
 from kskp.store.auth import Auth, NotAuthorizedException
 from ...tests.test_case_base import TestCaseBase
 
@@ -881,3 +882,117 @@ class AuthTest(TestCaseBase):
 
         # フローJSONのnodesを取得する
         flow.flow_data.get_nodes(use_exec_auth=True)
+
+    def test_join_project(self):
+        """
+        プロジェクト管理者を交代する
+        (元のプロジェクト管理者は削除する)
+        """
+        # ルートフォルダを取得する
+        root = self.factory.data.load_root()
+        # ルートフォルダの下にプロジェクトを作成する
+        project = root.create_project_folder('プロジェクト1')
+        project.save()
+
+        # メンバを設定する
+        member1 = ProjectFolder.Member(self.USER2, ProjectFolder.OWNER_MEMBER_TYPE)
+        member2 = ProjectFolder.Member(self.USER3, ProjectFolder.READER_MEMBER_TYPE)
+        project.init_members([member1, member2])
+
+        # メンバを取得する
+        members = project.get_joined_members()
+
+        # 期待する結果が返ることを確認する
+        self.assertEqual(len(members), 2)
+        self.assertEqual(members, [member1, member2])
+        
+        # プロジェクトは削除できない
+        with self.assertRaises(NotAuthorizedException):
+            project = project.reload()
+            project.delete()
+
+    def test_join_project2(self):
+        """
+        プロジェクト管理者を交代する
+        (元のプロジェクト管理者は閲覧者にする)
+        """
+        # ルートフォルダを取得する
+        root = self.factory.data.load_root()
+        # ルートフォルダの下にプロジェクトを作成する
+        project = root.create_project_folder('プロジェクト2')
+        project.save()
+
+        # メンバを設定する
+        member1 = ProjectFolder.Member(self.USER1, ProjectFolder.READER_MEMBER_TYPE)
+        member2 = ProjectFolder.Member(self.USER3, ProjectFolder.OWNER_MEMBER_TYPE)
+        project.init_members([member1, member2])
+
+        # メンバを取得する
+        members = project.get_joined_members()
+
+        # 期待する結果が返ることを確認する
+        self.assertEqual(len(members), 2)
+        self.assertEqual(members, [member2, member1])
+
+        # プロジェクトは削除できない
+        with self.assertRaises(NotAuthorizedException):
+            project = project.reload()
+            project.delete()
+
+    def test_join_project_without_owner(self):
+        """
+        プロジェクト管理者は必ず指定すること
+        """
+        # ルートフォルダを取得する
+        root = self.factory.data.load_root()
+        # ルートフォルダの下にプロジェクトを作成する
+        project = root.create_project_folder('プロジェクト3')
+        project.save()
+
+        # メンバを設定する
+        member1 = ProjectFolder.Member(self.USER2, ProjectFolder.READER_MEMBER_TYPE)
+        member2 = ProjectFolder.Member(self.USER3, ProjectFolder.WRITER_MEMBER_TYPE)
+        with self.assertRaises(Exception):
+            project.init_members([member1, member2])
+
+        # プロジェクトは削除する
+        project = project.reload()
+        project.delete()
+
+    def test_join_project_with_other_type(self):
+        """
+        プロジェクトに規定のユーザタイプ以外を指定できないこと
+        """
+        # ルートフォルダを取得する
+        root = self.factory.data.load_root()
+        # ルートフォルダの下にプロジェクトを作成する
+        project = root.create_project_folder('プロジェクト4')
+        project.save()
+
+        # メンバを設定する
+        member1 = ProjectFolder.Member(self.USER2, ProjectFolder.READER_MEMBER_TYPE)
+        member2 = ProjectFolder.Member(self.USER3, ProjectFolder.OTHER_MEMBER_TYPE)
+        with self.assertRaises(Exception):
+            project.init_members([member1, member2])
+
+        # プロジェクトは削除する
+        project = project.reload()
+        project.delete()
+
+    def test_join_project_without_member(self):
+        """
+        プロジェクトメンバは必ず指定すること
+        """
+        # ルートフォルダを取得する
+        root = self.factory.data.load_root()
+        # ルートフォルダの下にプロジェクトを作成する
+        project = root.create_project_folder('プロジェクト5')
+        project.save()
+
+        # メンバを設定する
+        with self.assertRaises(Exception):
+            project.init_members([])
+
+        # プロジェクトは削除する
+        project = project.reload()
+        project.delete()
