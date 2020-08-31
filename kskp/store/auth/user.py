@@ -67,6 +67,13 @@ class User(BaseModel):
             self._creator_id = session.user.id
             self._modifier_id = session.user.id
 
+    def _init_on_activation(self):
+        """
+        登録状態に遷移した時の初期処理
+        """
+        # 本人ロールを作成する
+        self.load_self_role()
+
     def _valid_email_or_raise(self, email):
         if email is None or email=='':
             raise Exception('E-Mailに空文字を指定できません')
@@ -138,7 +145,7 @@ class User(BaseModel):
 
         if self.state == User.TMP_STATE and next_state == User.ACTIVE_STATE:
             # 仮登録状態から登録状態へ遷移する場合
-            pass
+            self._init_on_activation()
 
         self.state = next_state
 

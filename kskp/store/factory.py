@@ -584,6 +584,18 @@ class UserRoleFactory():
         finally:
             self._session.commit()
 
+    def delete_all_by_role_id(self, role_id):
+        """
+        UsersRolesテーブルから指定したロールの所属情報を全て削除する
+        """
+        try:
+            self._session.query(UserRole).filter(UserRole.role_id==role_id).delete()
+        except Exception as e:
+            self._session.rollback()
+            raise e
+        finally:
+            self._session.commit() 
+
 from kskp.store.auth import User
 
 class UserFactory():
