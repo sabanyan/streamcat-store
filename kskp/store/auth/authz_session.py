@@ -123,7 +123,7 @@ class AuthzSession(Session):
     
     def _make_readable_query(self):
         from sqlalchemy.orm import aliased
-        from sqlalchemy.sql.expression import select, func, literal_column, text, false, and_, or_
+        from sqlalchemy.sql.expression import select, func, exists, literal_column, text, false, and_, or_
         from kskp.core import Datum
         from .auth import Auth
         from .user import User
@@ -146,17 +146,37 @@ class AuthzSession(Session):
                 select_from(R.join(D, D.id==R.c.parent_id))
             )
 
-        # select_from(Auth.join(Role, ...))と記述できないので、select()が使えない、そのためquery()を使う
-        subquery = self._session.query(func.coalesce(func.bool_and(Auth.permission),false()).label("read")).\
-                                outerjoin(UserRole, and_(UserRole.role_id==Auth.role_id, UserRole.user_id==self.user.id)).\
-                                outerjoin(User, and_(User.self_role_id==Auth.role_id, User.id==self.user.id)).\
-                                filter(Auth.datum_id==R.c.id).\
-                                filter(Auth.operation==Auth.READ_OP).\
-                                filter(or_(UserRole.user_id!=None, User.id!=None)).label('')
+        # # select_from(Auth.join(Role, ...))と記述できないので、select()が使えない、そのためquery()を使う
+        # subquery = self._session.query(func.coalesce(func.bool_and(Auth.permission),false()).label("read")).\
+        #                         outerjoin(UserRole, and_(UserRole.role_id==Auth.role_id, UserRole.user_id==self.user.id)).\
+        #                         outerjoin(User, and_(User.self_role_id==Auth.role_id, User.id==self.user.id)).\
+        #                         filter(Auth.datum_id==R.c.id).\
+        #                         filter(Auth.operation==Auth.READ_OP).\
+        #                         filter(or_(UserRole.user_id!=None, User.id!=None)).label('')
 
+        # AuthのTableオブジェクト
+        A = Auth.metadata.sorted_tables[0]
+
+        # 操作ユーザが所属するロールであることを指定する条件
+        exists_user_role = exists().where(and_(UserRole.role_id==A.c.role_id, UserRole.user_id==self.user.id))
+        exists_user = exists().where(and_(User.self_role_id==A.c.role_id, User.id==self.user.id))
+
+        # 操作ユーザが複数のロールに所属する場合、対象のDatumの操作権限を判定する
+        subquery = select([
+                        func.coalesce(func.bool_and(A.c.permission),false()).label("read")
+                    ]).\
+                    select_from(A).\
+                    where(
+                        and_(
+                            A.c.datum_id==R.c.id,
+                            A.c.operation==Auth.READ_OP,
+                            or_(exists_user_role, exists_user)
+                        )
+                    ).as_scalar()
+
+        # フォルダ権限のオーバライドを判定する
         subquery = select([func.bool_and(subquery).label('readable')]).select_from(R).\
                    where(R.c.leaf_id==Datum_id).as_scalar()
-
 
         # SELECT句内にWITH句を記述する必要があるが、SQLAlchemyではそれができないようだ
         # そのため、ここでWITH句を含むSELECT文をtextで記述してこれをメインのSELECT文に含める
