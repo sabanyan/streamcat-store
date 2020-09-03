@@ -24,8 +24,9 @@ class Auth(BaseModel):
         __table_args__ = __table_args__ + ({'schema': os.environ['KSKP_POSTGRESQL_SCHEMA_NAME']} ,)
 
     # 列名と列のデータ型等の定義
-    role_id     = Column(INTEGER, primary_key=True)
+    # ProjectFolder.get_joined_members()で発行するSQLでdatum_idへのインデックスを利用するため、datum_idを1列目に配置する
     datum_id     = Column(INTEGER, primary_key=True)
+    role_id      = Column(INTEGER, primary_key=True)
     operation    = Column(ENUM(READ_OP, WRITE_OP, DELETE_OP, EXEC_OP, OWN_OP, name='op_type'), primary_key=True)
     permission   = Column(BOOLEAN, nullable=False)
     _creator_id  = Column('creator', INTEGER)
