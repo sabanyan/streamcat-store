@@ -815,33 +815,22 @@ class RunsCommand(SCommand):
                 recv_conn.close()
                 send_conn.close()
 
-            # 例外
+            # 例外リスト
             exs_list = []
 
+            # NYSOL-Pythonから"#ERROR#"形式のエラーが出力された場合
             from .mcmd_error_info import MCMDErrorInfo, MCMDError
             for mcmd_error in mcmd_errors:
                 mcmd_error_info = MCMDErrorInfo.parse_stderr(mcmd_error)
                 exs_list.append(MCMDError(mcmd_error_info))
 
-            # NYSOL Pythonの例外
-            exs_list.extend(exs)
+            # "#ERROR#"形式のエラーは無く、例外が送出された場合
+            if len(exs_list) == 0:
+                exs_list.extend(exs)
 
-            # # NYSOL Pythonのエラー処理
-            # if len(mcmd_errors) > 0:
-            #     from .mcmd_error_info import MCMDErrorInfo, MCMDError
-            #     mcmd_error_info = MCMDErrorInfo.parse_stderr(mcmd_errors[0])
-            #     raise MCMDError(mcmd_error_info)
-
-            # if len(exs) > 0:
-            #     # writelistコマンドにCSV形式以外のデータが入力されると例外が送出されるようである
-            #     raise Exception('データを表示できませんでした。次の原因が考えられます ' + \
-            #                     '(データが空です / ' + \
-            #                     'データがCSV形式ではありません / ' + \
-            #                     '最終行が改行コードのみ)')
-
-            if len(results) != len(inputs):
-                # raise Exception('RunsCommandの入力ポートと出力ポートの数が異なります')
-                exs_list.append(Exception('RunsCommandの入力ポートと出力ポートの数が異なります'))
+            # NYSOL-Pythonからエラーは無く、期待する結果数が返らなかった場合
+            if len(exs_list) == 0 and len(results) != len(inputs):
+                exs_list.append(Exception(f'RunsCommandの入力ポート数({len(inputs)})と出力ポート数({len(results)})が異なります'))
 
             # resultsの要素はnm_listへのappend順に対応している?ため
             # 入力ポートと出力ポートは同じキーで対応付ける
