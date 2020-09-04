@@ -219,6 +219,16 @@ class Datum(BaseModel):
     def prev_parent_id(self, id):
         self._data['prev_parent_id'] = id
 
+    @property
+    def current_parent_id(self):
+        if self._data is None:
+            return None
+        return self._data.get('current_parent_id')
+
+    @current_parent_id.setter
+    def current_parent_id(self, id):
+        self._data['current_parent_id'] = id
+
     # @property
     # def data(self):
     #     # 参照権限が無ければ例外を送出する
@@ -358,6 +368,7 @@ class Datum(BaseModel):
             if self._data is None:
                 self._data = {}
             self._data['prev_parent_id'] = self.parent_id
+            self._data['current_parent_id'] = self.parent_id
             self.parent_id = to_folder.id
             if self._path is not None:
                 self._path = new_path
@@ -461,6 +472,30 @@ class Datum(BaseModel):
         else:
             prev_parent = factory.find_by_id(self.prev_parent_id)
             return '/' + '/'.join([folder.get('label') for folder in prev_parent.get_folder_path()])
+
+    def get_current_folder_path(self, uuid):
+        from kskp.store.factory import DatumFactory
+        factory = DatumFactory(self._session)
+        # return factory.load_flow_folder()
+        s = factory.find_by_uuid(uuid)
+        return '/' + '/'.join([folder.get('label') for folder in s.get_folder_path()])
+        # return "kari222"
+
+
+
+        # if self.current_parent_id is None or not factory.exists_by_id(self.current_parent_id):
+        #     return None
+        # else:
+        #     current_parent = factory.find_by_id(self.current_parent_id)
+        #     return '/' + '/'.join([folder.get('label') for folder in current_parent.get_folder_path()])
+        # current_parent = factory.find_by_id(self.current_parent_id)
+        # self._path = '/' + '/'.join([folder.get('label') for folder in current_parent.get_folder_path()])
+
+
+        # print(label)
+        # dir_name = Datum.escape_filename(label)
+        # self._path = parent._path / dir_name
+        # return self._path
 
     def __repr__(self):
         return f'Datum({self.id}, {self._label}, {self.type})'

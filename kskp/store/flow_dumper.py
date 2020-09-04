@@ -23,7 +23,7 @@ class FlowDumper:
 
         if self.factory.data.exists(uuid, type=Datum.FLOW_TYPE):
             archive_name = self.factory.data.find_by_uuid(uuid, type=Datum.FLOW_TYPE).label
-            self._get_flow(self.gathering_path, gathered_uuids, uuid)
+            self.get_flow(self.gathering_path, gathered_uuids, uuid)
         elif self.factory.data.exists(uuid):
             archive_name = self.factory.data.find_by_uuid(uuid).label
             self._get_folder(self.gathering_path, gathered_uuids, uuid)
@@ -54,14 +54,14 @@ class FlowDumper:
             if isinstance(child, Folder):
                 gathered_uuids.union(self._get_folder(tmp_path, gathered_uuids, child.uuid))
             elif child.type == Datum.FLOW_TYPE:
-                gathered_uuids.union(self._get_flow(tmp_path, gathered_uuids, child.uuid))
+                gathered_uuids.union(self.get_flow(tmp_path, gathered_uuids, child.uuid))
 
         return gathered_uuids
 
-    def _get_flow(self, parent_tmp_path, gathered_uuids, flow_uuid):
+    def get_flow(self, parent_tmp_path, gathered_uuids, flow_uuid):
         import os
 
-        (frame_uuids, store_uuids, flow_uuids) = self._get_flows_and_frames(flow_uuid, exclude_uuids=gathered_uuids)
+        (frame_uuids, store_uuids, flow_uuids) = self.get_flows_and_frames(flow_uuid, exclude_uuids=gathered_uuids)
 
         uuid_type_label = []
 
@@ -103,7 +103,7 @@ class FlowDumper:
 
         return gathered_uuids
 
-    def _get_flows_and_frames(self, flow_uuid, exclude_uuids):
+    def get_flows_and_frames(self, flow_uuid, exclude_uuids):
         flow = self.factory.data.find_by_uuid(flow_uuid, type=Datum.FLOW_TYPE)
 
         src_frame_uuids = flow.get_src_frame_uuids()
@@ -136,7 +136,7 @@ class FlowDumper:
 
         for sub_flow_uuid in sub_flow_uuids:
             if sub_flow_uuid not in exclude_uuids:
-                (frame_uuids, store_uuids, flow_uuids) = self._get_flows_and_frames(sub_flow_uuid, exclude_uuids)
+                (frame_uuids, store_uuids, flow_uuids) = self.get_flows_and_frames(sub_flow_uuid, exclude_uuids)
                 reference_frames.extend(frame_uuids)
                 reference_stores.extend(store_uuids)
                 reference_flows.extend(flow_uuids)

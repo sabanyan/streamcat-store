@@ -3,8 +3,9 @@ import os
 import sys
 import nysol.mcmd as nm
 
-from kskp.store import NysolModule, Datum, Store, Frame, List
+from kskp.store import NysolModule, Datum, Store, Frame, Flow, Folder
 from kskp.core import Command, Port
+from flask import g
 
 class SCommand(Command):
     pass
@@ -117,7 +118,6 @@ class CacheSaverCommand(SaverCommand):
 
         # FlowのキャッシュUUIDを変更する
         # テスト実行の場合は実行するFlowをDBに保存していない
-        from kskp.store import Flow
         if args['flow'] is not None:
             flow = args['flow']
             node_id = args['datum_id']
@@ -881,8 +881,9 @@ class ActivityCommand(SCommand):
 
 
     def run(self, args, inputs):
-        print("------") 
+        print("-act-inputs----") 
         print(inputs)
+        print("-act-args----") 
         print(args)
         print("------")
         activity = args['activity']
@@ -929,6 +930,7 @@ class AssertCommand(SCommand):
         super().__init__()
         self.i_ports = [Port('i', 'frame'), Port('m', 'frame')]
         self.o_ports = [Port('o', 'mcmd')]
+        # print("\n\n---test\n\ntest\n\ntest\n----") 
         
     def run(self, args, inputs):
         import uuid
@@ -966,8 +968,12 @@ class AssertCommand(SCommand):
 
                 # CSVを構築して、標準出力へ渡す
                 sys.stdout.flush()
+
+                # print(ret_diff)
+                # print(len(ret_diff))
                 diff_csv_maker(ret_diff)
                 # test_py(comp_path[0])
+                # print('["顧客", "数量", "金額"]')
                 sys.stdout.flush()
 
             except Exception as e:
@@ -1023,12 +1029,24 @@ class AssertCommand(SCommand):
                 with open(comp_path2)as com_r:
                     row_number = 0
                     for s,t in zip_longest(com_l, com_r, fillvalue='null'):
-                        # continue
-                        s, t = str(s), str(t)
+                        
                         if s != t:
+                            diff_one_row = []
                             # check.append("".join(d.compare(s, t)))
-                            diff_row = "l" + str(row_number) + ": ! " + s.rstrip('\n') + "    ! " + t.rstrip('\n')
-                            check.append(diff_row.replace(',', '、'))
+                            diff_one_row.append(row_number)
+
+                            diff_l = s.strip().replace("\"", "\"\"")
+                            diff_l = "\"" + diff_l + "\""
+                            # print(diff_l)
+                            # diff_one_row.append('\"' + diff_l + '\"')
+                            diff_one_row.append(diff_l)
+                            diff_r = t.strip().replace("\"", "\"\"")
+                            diff_r = "\"" + diff_r + "\""
+                            # diff_one_row.append('\"' + diff_r + '\"')
+                            diff_one_row.append(diff_r)
+                            
+                            check.append(diff_one_row)
+
                             # 差分検出上限数チェック
                             if len(check) > int(dlimit):
                                 # break
@@ -1043,8 +1061,24 @@ class AssertCommand(SCommand):
             """
             # 出力データの列
             # output_columns = ["flow_UUID","parent_project_UUID", "date", "T/F", "diff"]
-            output_columns = ["flow_uuid", "date", "T/F", "diff"]
+            output_columns = [  "flow_label",
+                                "flow_uuid",
+                                "flow_path",
+                                "parent_uuid",
+                                "parent_label",
+                                "date",
+                                ## "serial_number",
+                                "point_id",
+                                "test_result",
+                                "raise_error",
+                                "row_number",
+                                "row_result",
+                                "row_answer"
+            ]
+            output_columns = ["flow_uuid","flow_path", "parent_uuid","parent_label","date","point_id", "isTrue","diff_row_number", "diff-result", "diff-answer"]
+
             print(",".join(output_columns))
+            # print(",".join(output_columns))
 
             # データ列を初期化
             flow_uuid = args["flow_uuid"]
@@ -1052,61 +1086,170 @@ class AssertCommand(SCommand):
             date = "None"
             TorF = "None"
             diff = "undifined"
+
+
+
+            import inspect
+            # print(flow_data)
+            # for m in inspect.getmembers(flow_data):
+            #     print(m)
+
+            # 各カラムパラメータ設定
+            flow_label = args["flow_label"] # ok
+            flow_uuid = args["flow_uuid"] # ok
+            flow_path = None # g.factory,data.find_by_uuid (datum) -> get_current_folder_path これができない
+            parent_uuid = None # flow_pathからの連携を考えている
+            parent_label = None # flow_pathからの連携を考えている
+            date = None # ok
+            ## serial number
+            point_id = None # Activity.pyから情報を取得できない、何か方法はないだろうか
+            test_result = None # ok
+            raise_error = None # ok
+            row_number = None # ok
+            row_result = None # ok
+            row_answer = None # ok
+
+
+            # flow_D = g.factory.data.find_by_uuid(flow_uuid)
+            
+            # print(type(flow_data))
+            # if not isinstance(flow_data, Flow):
+            #     raise Exception(f'これフローのDatumではありません')
             
             # timeの設定
-            from datetime import datetime, timezone, timedelta
-            JST = timezone(timedelta(hours=+9), 'JST')
-            date = datetime.now(JST)
+            # from datetime import datetime, timezone, timedelta
+            # JST = timezone(timedelta(hours=+9), 'JST')
+            # date = datetime.now(JST)
+            date = args['start_time']
 
-            # TorFの判定 & diffの出力
+
+            
+            # def get_parent_path(datum_data, label_list=[]):
+            #     # print(datum_data)
+            #     # return datum_data.label
+            #     if datum.parent_id == None:
+            #         file_path = '/' + '/'.join(label_list.reverse())
+            #         return file_path
+            #     else:
+            #         label_list.append(datum_data.label)
+            #     #     parent_datum = datum_data.find_parent()
+            #         get_parent_path(parent_datum.find_parent(), label_list)
+
+            # 特急で作成した、フローのパス情報（まさかprev_parent_pathを生かせず、自分で１から作ることになるとは...）
+            flow_path = "kari_path"
+            datum_list = []
+            datum_data = args['flow']
+            while True:
+                datum_list.append(datum_data)
+                if datum_data.parent_id is None:
+                    break
+                datum_data = datum_data.find_parent()
+            datum_list.reverse()
+            # flow_path = '/' + '/'.join(datum_list)
+            datum_path_labels = [x.label for x in datum_list]
+            flow_path = '/' + '/'.join(datum_path_labels)
+
+            # # parent_label
+            parent_label = datum_list[1].label
+            parent_uuid = datum_list[1].uuid
+
+            from kskp.store import Activity
+            # sq = Activity(None,None,flow_label,flow_uuid)
+            # print(sq.resultsTest())
+            
+            point_id = args['asserted_point']
+
+
+            # print(type(self.o_ports[0]))
+
+            # flow_path = get_parent_path(args['flow'], [])
+            # print(args['flow'].find_parent().find_parent().parent_id)
+            
+            # flow_path = str(args['flow'].get_folder_path())
+            # flow_path = '/' + '/'.join([folder.get('label') for folder in args['flow'].get_folder_path()])
+            # flow_path = args['flow'].get_current_folder_path(flow_uuid)
+
+            # from kskp.store.factory import DatumFactory
+            # dat = g.factory.data.find_by_uuid(flow_uuid)
+
+            # isTrueの判定 & diffの出力
             if diff_result == [] or diff_result == None:
-                TorF = "True"
-                diff = 'nothing'
+                isTrue = "True"
+                # print("true,1,2,3,4,5")
+                diff = ["nothing","nothing","nothing"]
             else:
-                TorF = "False"
+                isTrue = "False"
                 diff = diff_result
 
-            output_datas = [flow_uuid, str(date), TorF]
-            # with open("./out888.txt", "wt")as f:
-            #     for s in diff:
-            #         f.writelines(s + '\n')
-            # print("")
-            # print(diff_result)
-            # print(",".join(output_datas))
-            # print(",".join(output_columns)+ "\n" + ",".join(output_datas) + str(diff))
-            isFirst = True
-            if isinstance(diff, list):
-                if len(diff) > 1:
-                    for output_diff in diff:
-                        if isFirst:
-                            print(",".join(output_datas) + "," + str(output_diff))
-                            isFirst = False
-                        else:
-                            print(",,," + output_diff)
-                else:
-                    print(",".join(output_datas)+ "," + str(diff[0]))
-            else:
-                print(",".join(output_datas)+ "," + str(diff))
+            output_datas = [flow_uuid, flow_path, parent_uuid, parent_label, str(date),point_id, isTrue]
+            # with open("../../out8899998.txt", "w+")as f:
+            #     for s in diff_result:
+            #         f.write(",".join(output_datas).replace('\n','') + "," + ",".join(s))
 
+            # isFirst = True
+
+            if isinstance(diff, list):
+                if isinstance(diff[0], list):
+                # print(diff)
+                    for output_diff in diff:
+                        # if isFirst:
+                        row_data = output_datas + output_diff
+                        # row_data = list(','.join(row_data))
+                        # print(chr(39))
+                        # print(output_diff.split(chr(39)))
+                        # print(",".join(row_data))
+                        data_str = ",".join(map(str, row_data))
+                        print(data_str)
+
+                        # print(list(",".join(row_data).strip()))
+
+                        # row_str = ""
+                        # for s in row_data:
+                        #     row_str += s
+                        # print(row_str)
+                        # print(''.join(row_data))
+
+                        # print(",".join(output_datas) + "," + ",".join(output_diff))
+                        #     isFirst = False
+                        # else:
+                        #     print(",,," + output_diff)
+                else:
+                    # print("str,4,3,2,1,5")
+                    e = 0
+                    print(",".join(map(str, output_datas)) + "," + ",".join(map(str, diff)))
+            else:
+                # error messsage
+                output_datas.append(diff)
+                print(output_datas)
+                # print(",".join(map(str, row_data)))
+
+
+        # print("assert開始-----\nassert\n")
 
         if 'i' not in inputs:
             raise Exception('AssertCommandの入力ポートiに値が入力されていません')
         if 'm' not in inputs:
             raise Exception('AssertCommandの入力ポートmに値が入力されていません')
 
-        if not (isinstance(inputs['i'], NysolModule) or isinstance(inputs['i'], List)):
-            raise Exception('入力ポートiのAssertCommandの入力データ型が異なります')
-        if not (isinstance(inputs['m'], NysolModule) or isinstance(inputs['m'], List)):
-            raise Exception('入力ポートmのAssertCommandの入力データ型が異なります')
+        # if not (isinstance(inputs['i'], NysolModule) or isinstance(inputs['i'], List)):
+        #     raise Exception('入力ポートiのAssertCommandの入力データ型が異なります')
+        # if not (isinstance(inputs['m'], NysolModule) or isinstance(inputs['m'], List)):
+        #     raise Exception('入力ポートmのAssertCommandの入力データ型が異なります')
 
 
         #inputs から一時変数に格納する
         nysol_cmd_i = inputs['i'].content
         nysol_cmd_m = inputs['m'].content
-        print("thanks")
-        print(inputs['i'].content)
-        print(inputs['m'].content)
-        print("thanks")
+        # print("inputチェック")
+        # # print(inputs['i'].content)   #<Nysol_Mfifo at 0x7f1c6df3d3c8>        
+        # print(inputs['i'])# -> Datum(None, None, nm)
+        # print(inputs['m'].content)   #<Nysol_Mcal at 0x7f1c6df3dd68>         
+        # print(inputs['m'])# -> Datum(None, None, nm)
+        # print("inputチェック")
+        # print("thanks")
+        # print(inputs['i'].content)
+        # print(inputs['m'].content)
+        # print("thanks")
         # print(args['flow_uuid'])#getできた
 
         # 一時ファイル作成用path
@@ -1121,20 +1264,48 @@ class AssertCommand(SCommand):
         
         # 一時ファイル生成までを実行する
         runs_cmd_i = RunsCommand()
-        q = runs_cmd_i.run({}, {'i':NysolModule(nysol_cmd_i)})
+        i_port_runs = runs_cmd_i.run({}, {'i':NysolModule(nysol_cmd_i)})
         # activity_cmd = ActivityCommand()
-        runs_cmd_i_append = ActivityCommand()
+        # runs_cmd_i_append = ActivityCommand()
         # args, points = 出力ポイントのこと　これを渡す
-        # s = ActivityCommand().run({}, {'i': q})
+        # s = ActivityCommand().run({}, {'i': i_port_runs})
         runs_cmd_m = RunsCommand()
-        runs_cmd_m.run({}, {'m':NysolModule(nysol_cmd_m)})
+        m_port_runs = runs_cmd_m.run({}, {'m':NysolModule(nysol_cmd_m)})
 
+        print("script.py l.1275")
+        print(i_port_runs)
+        print(m_port_runs)
+        print()
+
+
+        # 比較コマンド以前のフロー実行が失敗していたら、ファイル出力がなされない
         if not (tmp_path_i.exists() and tmp_path_m.exists()):
             raise Exception('入力ファイルを一時ファイルに書き出せませんでした')
         # else:
         #     print("create temp file complete")
         #     with open(tmp_path_i.as_posix())as f:
         #         print(f.read())
+
+        # print(args.keys())
+
+        # print(i_port_runs['i'])
+        # print(type(m_port_runs['m']))
+        # print(s)
+        # 比較コマンド以前のフロー実行が失敗していたら、ファイル出力がなされない
+        if not tmp_path_i.exists():
+            print("入力iのデータが出力されませんでした。今一度フローの構成が正しいかを確認してみてください")
+            print("出力がなされなかったというデータを代わりに使用します")
+            with nysol_cmd_i.open(mode="w")as f:
+                f.write("flow before i_port is not working properly")
+
+
+        if not tmp_path_m.exists():
+            print("入力mのデータが出力されませんでした。今一度フローの構成が正しいかを確認してみてください")
+            print("出力がなされなかったというデータを代わりに使用します")
+            with nysol_cmd_m.open(mode="w")as f:
+                f.write("flow before m_port is not working properly")
+
+
 
         # 作成した２ファイルから差分を算出する
         
@@ -1148,6 +1319,23 @@ class AssertCommand(SCommand):
             "dlimit" : args["dlimit"],
             "comp_path" : [tmp_path_i.as_posix(),tmp_path_m.as_posix()]
         }
+
+        datum_list = []
+        datum_data = args['flow']
+        # while datum_data.parent_id is not None:
+        #     datum_list.append(datum_data.label)
+        #     datum_data = datum_data.find_parent()
+        # file_path = '/' + '/'.join(datum_list)
+        # print(file_path)
+
+        # while True:
+        #     datum_list.append(datum_data.label)
+        #     if datum_data.parent_id is None:
+        #         break
+        #     datum_data = datum_data.find_parent()
+        # file_path = '/' + '/'.join(datum_list)
+        # print(file_path)
+
 
         print("check開始........！")
         new_cmd_list <<= nm.runfunc(report_diff, diff_args=diff_args)

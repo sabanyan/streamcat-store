@@ -271,7 +271,7 @@ class Flow(Datum):
             if factory.trashed(flow_uuid):
                 flow = factory.find_by_uuid(flow_uuid)
                 raise Exception(f'ゴミ箱にあるフロー({flow.label})は使用できません')
-
+            
     # def get_src_frame_uuids(self):
     #     """
     #     参照する入力frameを全て取得する
