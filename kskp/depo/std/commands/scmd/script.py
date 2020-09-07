@@ -918,19 +918,9 @@ class AssertCommand(SCommand):
     def run(self, args, inputs):
         import uuid
         import difflib
-        import subprocess
         from pathlib import Path
-        from subprocess import PIPE
-        import sys, csv
+        from itertools import zip_longest
 
-
-        def test_py(tmp_path):
-            import sys, csv
-            f = None
-            sys.stdout.flush()
-            with open (tmp_path) as data:
-                print(data.read()) 
-            sys.stdout.flush()
 
         def report_diff(diff_args):
             """
@@ -938,22 +928,23 @@ class AssertCommand(SCommand):
             """
             try:
                 dlimit = diff_args["dlimit"]
-                comp_path = diff_args["comp_path"]
-                i_port_error = diff_args["i_port_error"]
-                m_port_error = diff_args["m_port_error"]
-                ret_diff = None
+                i_tmp_path = diff_args["i_tmp_path"]
+                m_tmp_path = diff_args["m_tmp_path"]
+                i_port_exs = diff_args["i_port_exs"]
+                m_port_exs = diff_args["m_port_exs"]
+                res_diff = None
 
                 # 差分の取得を行う
-                if i_port_error and m_port_error:
-                    ret_diff = error_diff(comp_path[0],comp_path[1],dlimit)
+                if i_port_exs and m_port_exs:
+                    res_diff = create_exs_diff_list(i_tmp_path, m_tmp_path, dlimit)
                 else:
-                    ret_diff = diff_getter(comp_path[0],comp_path[1],dlimit)
+                    res_diff = create_diff_list(i_tmp_path, m_tmp_path, dlimit)
 
                 # CSVを構築して、標準出力へ渡す
                 sys.stdout.flush()
 
-                raise_error = i_port_error or m_port_error
-                diff_csv_maker(ret_diff, raise_error)
+                raise_exs = i_port_exs or m_port_exs
+                diff_csv_maker(res_diff, raise_exs)
                 
                 sys.stdout.flush()
 
@@ -962,181 +953,116 @@ class AssertCommand(SCommand):
                 with open('dev/stderr', 'w')as fpe:
                     traceback.print_exc(file=fpe)
 
-        # def diff_perfect_match(comp_path1, comp_path2):
-        #     """
-        #     ファイル完全一致であるかの判定を行う
-        #     ２ファイルのハッシュ値での比較
-        #     """
-        #     import hashlib
-        #     import filecmp
-
-        #     # return filecmp.cmpfiles(C)
-        #     # compare = filecmp()
-        #     if filecmp.cmp(comp_path1, comp_path2):
-        #         return True
-        #     else:
-        #         return ["A difference was found between the output data to be compared."]
-
-        #     # with open(comp_path1)as com_l:
-        #     #     with open (comp_path2)as com_r:
-        #     #         hash_l = hashlib.sha1()
-        #     #         hash_r = hashlib.sha1()
-        #     #         while len(chunk_l) == 0 or len(chunk_r) == 0:
-        #     #             chunk_l = com_l.read(2048 * hash_l.block_size)
-        #     #             chunk_r = com_r.read(2048 * hash_r.block_size)
-
-        #     #             if len(chunk_l) == 0 or len(chunk_r) == 0:
-        #     #                 break
-                        
-        #     #             hash_l.update(chunk_l)
-        #     #             hash_r.update(chunk_r)
-                    
-        #             # if str(hash_l) == str(hash_r):
-        #             #     return None
-        #             # else:
-        #             #     return ["A difference was found between the output data to be compared."]
-        #     # test_py(tmp_path_i.as_posix())
-        def error_diff(comp_path1, comp_path2, dlimit):
-            import difflib
-            from itertools import zip_longest
+        def create_exs_diff_list(i_tmp_path, m_tmp_path, dlimit):
+            """
+            2ファイル間での差分取得を行う
+            2入力どちらもエラーの場合のみ
+            各入力で違うエラーが発生した場合に差分として出力する
+            """
             check = []
-            with open(comp_path1)as com_l:
-                with open(comp_path2)as com_r:
-                    l_list = com_l.read().splitlines()
-                    r_list = com_r.read().splitlines()
+            with open(i_tmp_path)as i_tmp:
+                with open(m_tmp_path)as m_tmp:
+                    i_list = i_tmp.read().splitlines()
+                    m_list = m_tmp.read().splitlines()
 
-                    get_diff = list(set(l_list) & set(r_list))
-                    l_diff_elem = list(set(l_list) - set(get_diff))
-                    r_diff_elem = list(set(r_list) - set(get_diff))
+                    get_diff = list(set(i_list) & set(m_list))
+                    i_diff_elem = list(set(i_list) - set(get_diff))
+                    m_diff_elem = list(set(m_list) - set(get_diff))
 
                     row_number = None
-                    if (l_diff_elem == [] and r_diff_elem == []):
+                    if (i_diff_elem == [] and m_diff_elem == []):
                         return []
                     else:
-                        for s,t in zip_longest(l_diff_elem, r_diff_elem, fillvalue='null'):
-                            diff_one_row = []
-                            diff_one_row.append(row_number)
+                        for s, t in zip_longest(i_diff_elem, m_diff_elem, fillvalue='null'):
+                            diff_rows = []
+                            diff_rows.append(row_number)
 
-                            
-                            diff_l = s.strip().replace("\"", "\"\"")
-                            diff_l = "\"" + diff_l + "\""
-                            diff_one_row.append(diff_l)
+                            # エスケープ処理
+                            i_diff = s.strip().replace("\"", "\"\"")
+                            i_diff = "\"" + i_diff + "\""
+                            diff_rows.append(i_diff)
 
-                            diff_r = t.strip().replace("\"", "\"\"")
-                            diff_r = "\"" + diff_r + "\""
-                            diff_one_row.append(diff_r)
+                            m_diff = t.strip().replace("\"", "\"\"")
+                            m_diff = "\"" + m_diff + "\""
+                            diff_rows.append(m_diff)
 
-                            check.append(diff_one_row)
+                            # 差分検出上限数チェック
+                            check.append(diff_rows)
                             if len(check) > int(dlimit):
-                                # break
-                                return ["Due to a number of differences、 the output could not be completed."]
+                                return ["The output limit has been exceeded"]
             return check
 
 
-
-        def diff_getter(comp_path1, comp_path2, dlimit):
+        def create_diff_list(i_tmp_path, m_tmp_path, dlimit):
             """
             2ファイル間での差分取得を行う
             省メモリ化のため一行ずつ比較
             dlimitは差分検出上限数、これを超えたら全体が間違っていると判断する
             """
-            import difflib
-            from itertools import zip_longest
             check = []
-            with open(comp_path1)as com_l:
-                with open(comp_path2)as com_r:
+            with open(i_tmp_path)as i_tmp:
+                with open(m_tmp_path)as m_tmp:
                     row_number = 0
-                    for s,t in zip_longest(com_l, com_r, fillvalue='null'):
+                    for s, t in zip_longest(i_tmp, m_tmp, fillvalue='null'):
                         
                         if s != t:
-                            diff_one_row = []
-                            # check.append("".join(d.compare(s, t)))
-                            diff_one_row.append(row_number)
+                            diff_rows = []
+                            diff_rows.append(row_number)
 
-                            diff_l = s.strip().replace("\"", "\"\"")
-                            diff_l = "\"" + diff_l + "\""
-                            # print(diff_l)
-                            # diff_one_row.append('\"' + diff_l + '\"')
-                            diff_one_row.append(diff_l)
-                            diff_r = t.strip().replace("\"", "\"\"")
-                            diff_r = "\"" + diff_r + "\""
-                            # diff_one_row.append('\"' + diff_r + '\"')
-                            diff_one_row.append(diff_r)
+                            i_diff = s.strip().replace("\"", "\"\"")
+                            i_diff = "\"" + i_diff + "\""
+                            diff_rows.append(i_diff)
+
+                            m_diff = t.strip().replace("\"", "\"\"")
+                            m_diff = "\"" + m_diff + "\""
+                            diff_rows.append(m_diff)
                             
-                            check.append(diff_one_row)
+                            check.append(diff_rows)
 
                             # 差分検出上限数チェック
                             if len(check) > int(dlimit):
-                                # break
-                                return ["Due to a number of differences、 the output could not be completed."]
+                                return ["The output limit has been exceeded"]
                         row_number += 1
             return check
 
-        def diff_csv_maker(diff_result, raise_error):
+        def diff_csv_maker(diff_result, raise_exs):
             """
             差分取得の処理結果をもとに、コマンドとしての返却データを作成
             runfuncを使用した場合、対象のコマンドでは標準出力にcsv形式のデータを渡す必要がある。（逆に、runfuncに対して、return を通してデータを返さない）
             """
             # 出力データの列
-            # output_columns = ["flow_UUID","parent_project_UUID", "date", "T/F", "diff"]
-            output_columns = [  "flow_label",
-                                "flow_uuid",
-                                "flow_path",
-                                "parent_uuid",
-                                "parent_label",
-                                "date",
-                                ## "serial_number",
-                                "point_id",
-                                "isTrue",
-                                "raise_error",
-                                "diff_row_number",
-                                "diff_result",
-                                "diff_answer"
+            output_columns = [  
+                "flow_label",
+                "flow_uuid",
+                "flow_path",
+                "parent_uuid",
+                "parent_label",
+                "date",
+                # "serial_number",
+                "point_id",
+                "is_true",
+                "raise_exs",
+                "diff_row_number",
+                "diff_result",
+                "diff_answer"
             ]
 
             print(",".join(output_columns))
 
-            import inspect
-
-            # 各カラムパラメータ設定
-            flow_label = args["flow_label"] # ok
-            flow_uuid = args["flow_uuid"] # ok
-            flow_path = None # g.factory,data.find_by_uuid (datum) -> get_current_folder_path これができない
-            parent_uuid = None # flow_pathからの連携を考えている
-            parent_label = None # flow_pathからの連携を考えている
-            date = None # ok
-            ## serial number
-            point_id = None # Activity.pyから情報を取得できない、何か方法はないだろうか
-            isTrue = None # ok
-            raise_error = raise_error # ok、引数
-
-
-            # flow_D = g.factory.data.find_by_uuid(flow_uuid)
-            
-            # print(type(flow_data))
-            # if not isinstance(flow_data, Flow):
-            #     raise Exception(f'これフローのDatumではありません')
-            
-            # timeの設定
-            # from datetime import datetime, timezone, timedelta
-            # JST = timezone(timedelta(hours=+9), 'JST')
-            # date = datetime.now(JST)
+            # 各カラムパラメータ定義
+            flow_label = args["flow_label"]
+            flow_uuid = args["flow_uuid"]
+            flow_path = None
+            parent_uuid = None
+            parent_label = None
             date = args['start_time']
+            # serial number
+            point_id = args['asserted_point']
+            is_true = None
+            raise_exs = raise_exs 
 
 
-            
-            # def get_parent_path(datum_data, label_list=[]):
-            #     # print(datum_data)
-            #     # return datum_data.label
-            #     if datum.parent_id == None:
-            #         file_path = '/' + '/'.join(label_list.reverse())
-            #         return file_path
-            #     else:
-            #         label_list.append(datum_data.label)
-            #     #     parent_datum = datum_data.find_parent()
-            #         get_parent_path(parent_datum.find_parent(), label_list)
-
-            # 特急で作成した、フローのパス情報（まさかprev_parent_pathを生かせず、自分で１から作ることになるとは...）
+            # parentの情報を取得
             datum_list = []
             datum_data = args['flow']
             while True:
@@ -1145,86 +1071,49 @@ class AssertCommand(SCommand):
                     break
                 datum_data = datum_data.find_parent()
             datum_list.reverse()
-            # flow_path = '/' + '/'.join(datum_list)
             datum_path_labels = [x.label for x in datum_list]
             flow_path = '/' + '/'.join(datum_path_labels)
 
-            # # parent_label
             parent_label = datum_list[1].label
             parent_uuid = datum_list[1].uuid
 
-            from kskp.store import Activity
-            # sq = Activity(None,None,flow_label,flow_uuid)
-            # print(sq.resultsTest())
-            
-            point_id = args['asserted_point']
 
-
-            # print(type(self.o_ports[0]))
-
-            # flow_path = get_parent_path(args['flow'], [])
-            # print(args['flow'].find_parent().find_parent().parent_id)
-            
-            # flow_path = str(args['flow'].get_folder_path())
-            # flow_path = '/' + '/'.join([folder.get('label') for folder in args['flow'].get_folder_path()])
-            # flow_path = args['flow'].get_current_folder_path(flow_uuid)
-
-            # from kskp.store.factory import DatumFactory
-            # dat = g.factory.data.find_by_uuid(flow_uuid)
-
-            # isTrueの判定 & diffの出力
+            # is_trueの判定 と diffの出力
             if diff_result == [] or diff_result == None:
-                isTrue = "True"
-                # print("true,1,2,3,4,5")
+                is_true = "True"
                 diff = ["nothing","nothing","nothing"]
             else:
-                isTrue = "False"
+                is_true = "False"
                 diff = diff_result
 
-            output_datas = [flow_label, flow_uuid, flow_path, parent_uuid, parent_label, str(date),point_id, isTrue, raise_error]
-            # with open("../../out8899998.txt", "w+")as f:
-            #     for s in diff_result:
-            #         f.write(",".join(output_datas).replace('\n','') + "," + ",".join(s))
+            output_datas = [
+                flow_label,
+                flow_uuid,
+                flow_path,
+                parent_uuid,
+                parent_label,
+                date,
+                point_id,
+                is_true,
+                raise_exs
+            ]
 
-            # isFirst = True
 
+            # csv出力処理
             if isinstance(diff, list):
                 if isinstance(diff[0], list):
-                # print(diff)
                     for output_diff in diff:
-                        # if isFirst:
                         row_data = output_datas + output_diff
-                        # row_data = list(','.join(row_data))
-                        # print(chr(39))
-                        # print(output_diff.split(chr(39)))
-                        # print(",".join(row_data))
                         data_str = ",".join(map(str, row_data))
                         print(data_str)
-
-                        # print(list(",".join(row_data).strip()))
-
-                        # row_str = ""
-                        # for s in row_data:
-                        #     row_str += s
-                        # print(row_str)
-                        # print(''.join(row_data))
-
-                        # print(",".join(output_datas) + "," + ",".join(output_diff))
-                        #     isFirst = False
-                        # else:
-                        #     print(",,," + output_diff)
                 else:
-                    # print("str,4,3,2,1,5")
                     e = 0
                     print(",".join(map(str, output_datas)) + "," + ",".join(map(str, diff)))
             else:
-                # error messsage
                 output_datas.append(diff)
                 print(output_datas)
-                # print(",".join(map(str, row_data)))
 
 
-        # print("assert開始-----\nassert\n")
 
         if 'i' not in inputs:
             raise Exception('AssertCommandの入力ポートiに値が入力されていません')
@@ -1237,33 +1126,11 @@ class AssertCommand(SCommand):
         #     raise Exception('入力ポートmのAssertCommandの入力データ型が異なります')
 
 
-        #inputs から一時変数に格納する
-        # print("12345413432789473812")
-        # print(inputs)
-        # print(inputs['i'])
-        # print(inputs['m'])
-        # print("12345413432789473812")
-        # print("inputチェック")
-        # # print(inputs['i'].content)   #<Nysol_Mfifo at 0x7f1c6df3d3c8>        
-        # print(inputs['i'])# -> Datum(None, None, nm)
-        # print(inputs['m'].content)   #<Nysol_Mcal at 0x7f1c6df3dd68>         
-        # print(inputs['m'])# -> Datum(None, None, nm)
-        # print("inputチェック")
-        # print("thanks")
-        # print(inputs['i'].content)
-        # print(inputs['m'].content)
-        # print("thanks")
-        # print(args['flow_uuid'])#getできた
-
         # 一時ファイル作成用path
-        tmp_path_i = Path("/tmp/" + str(uuid.uuid4()) + "_i.csv")
-        tmp_path_m = Path("/tmp/" + str(uuid.uuid4()) + "_m.csv")
-        
+        i_tmp_path = Path("/tmp/" + str(uuid.uuid4()) + "_i.csv")
+        m_tmp_path = Path("/tmp/" + str(uuid.uuid4()) + "_m.csv")
 
-        # 一時ファイルを作成する
-        # nysol_cmd_i <<= nm.m2tee(o=tmp_path_i.as_posix())
-        # nysol_cmd_m <<= nm.m2tee(o=tmp_path_m.as_posix())
-        
+
         # assertCommand以前のフローを実行する
         i_port_runs = {}
         m_port_runs = {}
@@ -1280,320 +1147,49 @@ class AssertCommand(SCommand):
             m_port_runs['m'] = [inputs['m']]
 
 
-        # print("script.py l.1275")
-        # print(i_port_runs['i'])
-        # print(m_port_runs['m'])
-        # print(i_port_runs['i'].content)
-        # # print(m_port_runs['m'].content)
-        # print(type(i_port_runs['i']))
-        # print(type(m_port_runs['m']))
-        # print(type(i_port_runs['i'].content))
-        # # print(type(m_port_runs['m'].content))
-        # print()
-
-
         # 一時ファイルを作成する
-        i_port_error = isinstance(i_port_runs['i'], list)
-        m_port_error = isinstance(m_port_runs['m'], list)
-        if i_port_error:
-            with tmp_path_i.open(mode="w")as f:
+        i_port_exs = isinstance(i_port_runs['i'], list)
+        m_port_exs = isinstance(m_port_runs['m'], list)
+        if i_port_exs:
+            with i_tmp_path.open(mode="w")as f:
                 s = [str(x) for x in i_port_runs['i']]
                 f.write('\n'.join(s))
-
         else:
-            nysol_i_output_tmp = None
-            nysol_i_output_tmp <<= i_port_runs['i'].content
-            nysol_i_output_tmp <<= nm.m2tee(o=tmp_path_i.as_posix())
-            RunsCommand().run({}, {'i':NysolModule(nysol_i_output_tmp)})
+            i_make_tmp = None
+            i_make_tmp <<= i_port_runs['i'].content
+            i_make_tmp <<= nm.m2tee(o=i_tmp_path.as_posix())
+            RunsCommand().run({}, {'i':NysolModule(i_make_tmp)})
 
-        if m_port_error:
-            with tmp_path_m.open(mode="w")as f:
+        if m_port_exs:
+            with m_tmp_path.open(mode="w")as f:
                 s = [str(x) for x in m_port_runs['m']]
                 f.write('\n'.join(s))
         else:
-            nysol_m_output_tmp = None
-            nysol_m_output_tmp <<= m_port_runs['m'].content
-            nysol_m_output_tmp <<= nm.m2tee(o=tmp_path_m.as_posix())
-            RunsCommand().run({}, {'m':NysolModule(nysol_m_output_tmp)})
+            m_make_tmp = None
+            m_make_tmp <<= m_port_runs['m'].content
+            m_make_tmp <<= nm.m2tee(o=m_tmp_path.as_posix())
+            RunsCommand().run({}, {'m':NysolModule(m_make_tmp)})
 
 
-        # 比較コマンド以前のフロー実行が失敗していたら、ファイル出力がなされない
-        if not tmp_path_i.exists():
-            print("入力iのデータが出力されませんでした。今一度フローの構成が正しいかを確認してみてください")
-            print("出力がなされなかったというデータを代わりに使用します")
+        # 比較コマンド以前のフロー実行が失敗していたら、代わりのメッセージを出力
+        if not i_tmp_path.exists():
             with nysol_cmd_i.open(mode="w")as f:
                 f.write("flow before i_port is not working properly")
 
-
-        if not tmp_path_m.exists():
-            print("入力mのデータが出力されませんでした。今一度フローの構成が正しいかを確認してみてください")
-            print("出力がなされなかったというデータを代わりに使用します")
+        if not m_tmp_path.exists():
             with nysol_cmd_m.open(mode="w")as f:
                 f.write("flow before m_port is not working properly")
 
 
-
-        # 作成した２ファイルから差分を算出する
-        
-
-
-        # diff_list = diff_check(tmp_path_i, tmp_path_m, args['dlimit'])
+        # 作成した一時ファイルから差分を算出する
         new_cmd_list = None
-        # new_cmd_list <<= nm.runfunc(report_diff(tmp_path_i.as_posix(), tmp_path_m.as_posix(), args['dlimit']))
-            
         diff_args = {
             "dlimit" : args["dlimit"],
-            "comp_path" : [tmp_path_i.as_posix(),tmp_path_m.as_posix()],
-            "i_port_error" : i_port_error,
-            "m_port_error" : m_port_error
+            "i_tmp_path" : i_tmp_path.as_posix(),
+            "m_tmp_path" : m_tmp_path.as_posix(),
+            "i_port_exs" : i_port_exs,
+            "m_port_exs" : m_port_exs
         }
-
-        datum_list = []
-        datum_data = args['flow']
-        # while datum_data.parent_id is not None:
-        #     datum_list.append(datum_data.label)
-        #     datum_data = datum_data.find_parent()
-        # file_path = '/' + '/'.join(datum_list)
-        # print(file_path)
-
-        # while True:
-        #     datum_list.append(datum_data.label)
-        #     if datum_data.parent_id is None:
-        #         break
-        #     datum_data = datum_data.find_parent()
-        # file_path = '/' + '/'.join(datum_list)
-        # print(file_path)
 
         new_cmd_list <<= nm.runfunc(report_diff, diff_args=diff_args)
         return {'o': NysolModule(new_cmd_list)}# PCommandの方法を参照
-
-
-
-
-    
-    # # def run_old(self, args, inputs):
-    #     import difflib
-    #     import subprocess
-    #     from subprocess import PIPE
-    #     def diff_check(f1, f2, dlimit=10):
-    #         if dlimit == 0:
-    #             path = " " + f1 + " " + f2
-    #             return subprocess.Popen("diff -q" + str(path), shell=True, stdout=PIPE, stderr=PIPE)
-    #         else:
-    #             com_l = open(f1, "r")
-    #             com_r = open(f2, "r")
-                
-    #             d = difflib.Differ()
-    #             check = []
-    #             count = 0
-    #             for s,t in zip(com_l, com_r):
-    #                 if s != t and count < dlimit:
-    #                     check.append("\n".join(d.compare(s, t)))
-    #                     count += 1
-    #             com_l.close()
-    #             com_r.close()
-    #             return check
-
-
-    #     def diff_all(f1, f2):
-    #         start = time.time()
-
-    #         path = " " + f1 + " " + f2
-    #         subprocess.Popen("diff -q" + str(path), shell=True, stdout=PIPE, stderr=PIPE)
-    #         # このコマンドに与えられたデータは一度ファイルに保存されて、それを読み出す形でテストを行う
-    #         # saverCmd -> RunsCmd -> flow_testの入力 の流れ
-    #         # dlimit = kwargs.get('dlimit')# diff-limit
-    #         # dlimit = args['dlimit']
-            
-
-    #     import time
-    #     tmp_path_i = "/tmp/" + str(time.time) + "_i.csv"
-    #     tmp_path_m = "/tmp/" + str(time.time) + "_m.csv"
-        
-    #     nysol_module_i = NysolModule()
-    #     runs_cmd_i = RunsCommand()
-
-    #     #inputs から一時変数に格納する
-    #     test_i = inputs['i'].content
-    #     test_flow_cmds_i = None
-    #     test_flow_cmds_i <<= nm.m2tee(i=test_i, o=tmp_path_i)
-
-    #     nysol_module_i.set_content(test_flow_cmds_i)
-    #     results_i = runs_cmd_i.run(args={}, inputs={'o': nysol_module_i})
-
-
-    #     # print("test-12394")
-
-    #     # print(results_i)
-    #     # print(type(results_i))
-    #     # print(results_i['o'])# この時点でactivityが返ってくるかは調査
-    #     # print(type(results_i['o']))
-
-    #     # print("test-12394")
-    #     # print(args)
-    #     # print("test-12394")
-
-    #     #inputs から一時変数に格納する
-    #     test_m = inputs['m'].content
-    #     test_flow_cmds_m = None
-    #     test_flow_cmds_m <<= nm.m2tee(i=test_m, o=tmp_path_m)
-
-    #     nysol_module_m = NysolModule()
-    #     runs_cmd_m = RunsCommand()
-    #     nysol_module_m.set_content(test_flow_cmds_m)
-
-    #     results_m = runs_cmd_m.run(args={}, inputs={'': nysol_module_m})
-    #     return results_m
-    #     # results = saver_cmd.run(args={}, inputs={'i':test_flow_cmds, 'store'})#inputs['i']=nysol_module()?
-    #     # results_m
-    #     # nysol_module_diff = NysolModule()
-    #     new_cmd_list = None
-    #     # diff_list = diff_check(tmp_path_i, tmp_path_m, args['dlimit'])
-    #     new_cmd_list <<= nm.runfunc(diff_check(tmp_path_i, tmp_path_m, args['dlimit']))
-
-    #     nysol_mod = NysolModule()
-    #     return {'o': nysol_mod.set_content(new_cmd_list)}# PCommandの方法を参照
-    
-    # def run(self, args, inputs):
-        
-    #     import time
-        
-    #     nysol_module_i = NysolModule()
-    #     runs_cmd = RunsCommand()
-
-    #     #inputs から一時変数に格納する
-    #     test_flow_cmds = args.copy()
-    #     test_flow_cmds['i']  = inputs['i'].content
-    #     tmp_path_i = "/tmp/" + str(time.time) + "_i.csv"
-    #     test_flow_cmds <<= nm.m2tee(o=tmp_path_i)
-
-    #     # nysol_module_i.set_content(test_flow_cmds_i)
-    #     # results_i = runs_cmd.run(args={}, inputs={'i': nysol_module_i})
-
-    #     #inputs から一時変数に格納する
-    #     test_flow_cmds['m'] = inputs['m'].content
-    #     tmp_path_m = "/tmp/" + str(time.time) + "_m.csv"
-    #     test_flow_cmds <<= nm.m2tee(o=tmp_path_m)
-
-    #     # nysol_module_m = NysolModule()
-    #     # nysol_module_m.set_content(test_flow_cmds_m)
-
-    #     # results_m = runs_cmd.run(args={}, inputs={'m': nysol_module_m})
-    #     test_flow_cmds <<= nm.runfunc(self.diff_check(tmp_path_i, tmp_path_m, args['dlimit']))
-    #     nysol_mod = NysolModule()
-    #     return {'o': nysol_mod.set_content(test_flow_cmds)}# PCommandの方法を参照
-    
-
-    
-
-    
-    # def run(self, args, inputs):
-    #     import difflib
-    #     import subprocess
-    #     from subprocess import PIPE
-    #     def diff_check(f1, f2, dlimit=10):
-    #         if dlimit == 0:
-    #             path = " " + f1 + " " + f2
-    #             return subprocess.Popen("diff -q" + str(path), shell=True, stdout=PIPE, stderr=PIPE)
-    #         else:
-    #             com_l = open(f1, "r")
-    #             com_r = open(f2, "r")
-                
-    #             d = difflib.Differ()
-    #             check = []
-    #             count = 0
-    #             for s,t in zip(com_l, com_r):
-    #                 if s != t and count < dlimit:
-    #                     check.append("\n".join(d.compare(s, t)))
-    #                     count += 1
-    #             com_l.close()
-    #             com_r.close()
-    #             return check
-
-
-    #     def diff_all(f1, f2):
-    #         start = time.time()
-
-    #         path = " " + f1 + " " + f2
-    #         subprocess.Popen("diff -q" + str(path), shell=True, stdout=PIPE, stderr=PIPE)
-    #         # このコマンドに与えられたデータは一度ファイルに保存されて、それを読み出す形でテストを行う
-    #         # saverCmd -> RunsCmd -> flow_testの入力 の流れ
-    #         # dlimit = kwargs.get('dlimit')# diff-limit
-    #         # dlimit = args['dlimit']
-            
-
-    #     import time
-    #     tmp_path_i = "/tmp/" + str(time.time) + "_i.csv"
-    #     tmp_path_m = "/tmp/" + str(time.time) + "_m.csv"
-        
-    #     nysol_module_i = NysolModule()
-    #     runs_cmd_i = RunsCommand()
-
-    #     #inputs から一時変数に格納する
-    #     test_i = inputs['i'].content
-    #     test_flow_cmds_i = None
-    #     test_flow_cmds_i <<= nm.m2tee(i=test_i, o=tmp_path_i)
-
-    #     nysol_module_i.set_content(test_flow_cmds_i)
-    #     results_i = runs_cmd_i.run(args={}, inputs={'o': nysol_module_i})
-
-
-    #     # print("test-12394")
-
-    #     # print(results_i)
-    #     # print(type(results_i))
-    #     # print(results_i['o'])# この時点でactivityが返ってくるかは調査
-    #     # print(type(results_i['o']))
-
-    #     # print("test-12394")
-    #     # print(args)
-    #     # print("test-12394")
-
-    #     #inputs から一時変数に格納する
-    #     test_m = inputs['m'].content
-    #     test_flow_cmds_m = None
-    #     test_flow_cmds_m <<= nm.m2tee(i=test_m, o=tmp_path_m)
-
-    #     nysol_module_m = NysolModule()
-    #     runs_cmd_m = RunsCommand()
-    #     nysol_module_m.set_content(test_flow_cmds_m)
-
-    #     results_m = runs_cmd_m.run(args={}, inputs={'': nysol_module_m})
-    #     # results = saver_cmd.run(args={}, inputs={'i':test_flow_cmds, 'store'})#inputs['i']=nysol_module()?
-    #     # results_m
-    #     # nysol_module_diff = NysolModule()
-    #     new_cmd_list = None
-    #     # diff_list = diff_check(tmp_path_i, tmp_path_m, args['dlimit'])
-    #     new_cmd_list <<= nm.runfunc(diff_check(tmp_path_i, tmp_path_m, args['dlimit']))
-
-    #     # sss = '"diff ' + str(tmp_path_i) + " " + str(tmp_path_m)
-    #     # new_cmd_list <<= nm.cmd(sss)
-
-    #     # for input_data in ['i', 'm']:
-    #     #     # ファイルのsaveを行う
-    #     #     save_cmd = SaverCommand()#instance
-    #     #     run_cmd = RunsCommand()
-    #     #     #save, return{'o': nysol_module}
-    #     #     nysol_module = nysolModule()
-    #     #     nysol_module <<= saverCommand()
-
-
-    #     #     cmd_o[input_data] <<= save_cmd.run(args, inputs)
-    #     #     cmd_o[input_data] <<= run_cmd.run(args, inputs)
-
-    #     #     # save_cmd.run(args, inputs[input_data].content)
-    #     #     # run_cmd.run(args, inputs[input_data].content)
-
-
-    #     #     # 将来的に、入力にはactivityの情報が渡される
-    #     #     my_args = args.copy()
-    #     #     my_args['i'] = inputs['i'].activity.path # 仮の記述、未実装
-        
-
-    #     # ここから比較の動作定義
-
-    #     # 結果が出たら、一時書き出したファイルの削除を行う
-    #     # del(i_path)
-    #     nysol_mod = NysolModule()
-    #     return {'o': nysol_mod.set_content(new_cmd_list)}# PCommandの方法を参照
-    
