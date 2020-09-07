@@ -119,67 +119,68 @@ class GroupByRemakeCommand(PCommand):
                 'ukurt'
             ]
         elif s == 'nysol_calcs':
-            return {
-                # 0 fields (input k, a, fld)
-                'rows' : self.rows,
-                # 1 field (input k, a, f)
-                'miss' : self.missingdata,
-                'rms' : self.rootmeansquare,
-                'hmean' : self.harmonicmean,
-                'gmean' : self.geometricmean,
-                'var_gt_sd' : self.variance_larger_than_sd,
-                'strmax' : self.strmax,
-                'strmin' : self.strmin,
-                'strucount' : self.strucount,
-                'abs_energy' : self.abs_energy, 
-                'has_dup' : self.hasduplicate,    
-                'has_dup_max' : self.hasduplicatemin,
-                'has_dup_min' : self.hasduplicatemax,
-                'mean_ad' : self.meanabsolutedeviation,
-                'median_ad' : self.medianabsolutedeviation,
-                'repeatdata' : self.reoccurringdatapoints,
-                'repeatvalues' : self.reoccurringvalues,
-                'sum_repeatdata' : self.sumofreoccurringdatapoints,
-                'sum_repeatvalues' : self.sumofreoccurringvalues,
-                'ratio_unique' : self.ratio_value_number_to_series_length,
-                'count_above_mean' : self.countabovemean,
-                'count_below_mean' : self.countbelowmean,
-                'sym_looking' : self.symmetry_looking,
-                'large_sd' : self.large_standard_dev,
-                'value_count' : self.value_count,
-                'range_count' : self.range_count,
-                'ratio_beyond_rsigma' : self.ratio_beyond_rsigma,
-                'quantile' : self.quantile,
-                'binned_entropy' : self.binned_entropy,
-                # 1 field + time (input k, a, f, x)
-                'integral' : self.integral,
-                'meanf' : self.meanfrequency,
-                'varf' : self.frequencyvar,
-                'fft_agg' : self.fft_agg,
-                'slope' : self.slope,
-                'slope_pearson' : self.pearson,
-                'firstmin' : self.firstmin,
-                'firstmax' : self.firstmax,
-                'lastmin' : self.lastmin,
-                'lastmax' : self.lastmax,
-                'mean_change' : self.meanchange,
-                'mean_abs_change' : self.meanabschange,
-                'abs_sum_changes' : self.abs_sum_of_changes, 
-                'autocorr_agg' : self.autocorrelation_agg,
-                'longest_strike_above_mean' : self.longeststrikeabovemean,
-                'longest_strike_below_mean' : self.longeststrikebelowmean,
-                'mean_second_derivative_central' : self.mean2ndderivative_central,
-                'energy_ratio_by_chunks' : self.energy_ratio_by_chunks,
-                # 2+1 fields
-                'imq' : self.index_mass_quantile,
-                'crossing_m' : self.numbercrossing,
-                'peaks' : self.countpeaks,
-                'autocorr' : self.autocorrelation,
-                'c3' : self.c3,
-                'time_reversal_asymmetry' : self.time_reversal_asymmetry,
-                # aggregate functions
-                'linregress' : self.linear_trend
-            }
+            return {'median_ad' : None}
+            # return {
+            #     # 0 fields (input k, a, fld)
+            #     'rows' : self.rows,
+            #     # 1 field (input k, a, f)
+            #     'miss' : self.missingdata,
+            #     'rms' : self.rootmeansquare,
+            #     'hmean' : self.harmonicmean,
+            #     'gmean' : self.geometricmean,
+            #     'var_gt_sd' : self.variance_larger_than_sd,
+            #     'strmax' : self.strmax,
+            #     'strmin' : self.strmin,
+            #     'strucount' : self.strucount,
+            #     'abs_energy' : self.abs_energy, 
+            #     'has_dup' : self.hasduplicate,    
+            #     'has_dup_max' : self.hasduplicatemin,
+            #     'has_dup_min' : self.hasduplicatemax,
+            #     'mean_ad' : self.meanabsolutedeviation,
+            #     'median_ad' : self.medianabsolutedeviation,
+            #     'repeatdata' : self.reoccurringdatapoints,
+            #     'repeatvalues' : self.reoccurringvalues,
+            #     'sum_repeatdata' : self.sumofreoccurringdatapoints,
+            #     'sum_repeatvalues' : self.sumofreoccurringvalues,
+            #     'ratio_unique' : self.ratio_value_number_to_series_length,
+            #     'count_above_mean' : self.countabovemean,
+            #     'count_below_mean' : self.countbelowmean,
+            #     'sym_looking' : self.symmetry_looking,
+            #     'large_sd' : self.large_standard_dev,
+            #     'value_count' : self.value_count,
+            #     'range_count' : self.range_count,
+            #     'ratio_beyond_rsigma' : self.ratio_beyond_rsigma,
+            #     'quantile' : self.quantile,
+            #     'binned_entropy' : self.binned_entropy,
+            #     # 1 field + time (input k, a, f, x)
+            #     'integral' : self.integral,
+            #     'meanf' : self.meanfrequency,
+            #     'varf' : self.frequencyvar,
+            #     'fft_agg' : self.fft_agg,
+            #     'slope' : self.slope,
+            #     'slope_pearson' : self.pearson,
+            #     'firstmin' : self.firstmin,
+            #     'firstmax' : self.firstmax,
+            #     'lastmin' : self.lastmin,
+            #     'lastmax' : self.lastmax,
+            #     'mean_change' : self.meanchange,
+            #     'mean_abs_change' : self.meanabschange,
+            #     'abs_sum_changes' : self.abs_sum_of_changes, 
+            #     'autocorr_agg' : self.autocorrelation_agg,
+            #     'longest_strike_above_mean' : self.longeststrikeabovemean,
+            #     'longest_strike_below_mean' : self.longeststrikebelowmean,
+            #     'mean_second_derivative_central' : self.mean2ndderivative_central,
+            #     'energy_ratio_by_chunks' : self.energy_ratio_by_chunks,
+            #     # 2+1 fields
+            #     'imq' : self.index_mass_quantile,
+            #     'crossing_m' : self.numbercrossing,
+            #     'peaks' : self.countpeaks,
+            #     'autocorr' : self.autocorrelation,
+            #     'c3' : self.c3,
+            #     'time_reversal_asymmetry' : self.time_reversal_asymmetry,
+            #     # aggregate functions
+            #     'linregress' : self.linear_trend
+            # }
         elif s == 'python_calcs':
             return [
                 'meanf',
@@ -481,7 +482,7 @@ class GroupByRemakeCommand(PCommand):
                         # append thiscalc to the appropriate list
                         if c in self.const('msum_calcs'):
                             msummary_calcs.append(thiscalc)
-                        elif c in self.const('nysol_calcs').values():
+                        elif c in self.const('nysol_calcs').keys():
                             nysol_calcs.append(thiscalc)
                         elif c in self.const('python_calcs'):
                             python_calcs.append(thiscalc)
@@ -493,12 +494,22 @@ class GroupByRemakeCommand(PCommand):
         # reduce/simplify msummary 
         msummary_calcs = self.simplifyMsummary(msummary_calcs)
 
-        print(msummary_calcs)
-            
-
-        # next is condensing the three lists into one 
-        
+        # finally, combine the three lists into one 
         parsed = []
+
+        for op in msummary_calcs:
+            op['type'] = 'msummary'
+            parsed.append(op)
+
+        for op in nysol_calcs:
+            op['type'] = 'nysol'
+            parsed.append(op)
+        
+        for op in python_calcs:
+            op['type'] = 'python'
+            parsed.append(op)
+
+        print(parsed)
         return parsed
 
 
