@@ -978,12 +978,10 @@ class AssertCommand(SCommand):
                             diff_rows.append(row_number)
 
                             # エスケープ処理
-                            i_diff = s.strip().replace("\"", "\"\"")
-                            i_diff = "\"" + i_diff + "\""
+                            i_diff = comma_escape(s)
                             diff_rows.append(i_diff)
 
-                            m_diff = t.strip().replace("\"", "\"\"")
-                            m_diff = "\"" + m_diff + "\""
+                            m_diff = comma_escape(t)
                             diff_rows.append(m_diff)
 
                             # 差分検出上限数チェック
@@ -1009,12 +1007,10 @@ class AssertCommand(SCommand):
                             diff_rows = []
                             diff_rows.append(row_number)
 
-                            i_diff = s.strip().replace("\"", "\"\"")
-                            i_diff = "\"" + i_diff + "\""
+                            i_diff = comma_escape(s)
                             diff_rows.append(i_diff)
 
-                            m_diff = t.strip().replace("\"", "\"\"")
-                            m_diff = "\"" + m_diff + "\""
+                            m_diff = comma_escape(t)
                             diff_rows.append(m_diff)
                             
                             check.append(diff_rows)
@@ -1111,7 +1107,16 @@ class AssertCommand(SCommand):
                     print(",".join(map(str, output_datas)) + "," + ",".join(map(str, diff)))
             else:
                 output_datas.append(diff)
-                print(output_datas)
+                print(output_datas)    
+
+        def comma_escape(val):
+            """
+            文章中のコンマによって、間違ったcsvの区切り位置になることを
+            ダブルクォーテーションを設定するエスケープ 処理によって防ぐ
+            """
+            ret = val.strip().replace("\"", "\"\"")
+            ret = "\"" + ret + "\""
+            return ret
 
 
 
