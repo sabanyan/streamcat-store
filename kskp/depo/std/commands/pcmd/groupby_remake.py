@@ -70,28 +70,44 @@ class GroupByRemakeCommand(PCommand):
         elif s == 'paraminfo':
             return {
             'value_count' : {'correct_type' : '全ての文字列',
-                                'correct_value' : '数値か文字列'},
+                             'correct_value' : '数値か文字列',
+                             'checks': []},
             'sym_looking' : {'correct_type' : '数値', 
-                                'correct_value' : '正の数値'},
+                             'correct_value' : '正の数値',
+                             'checks': [[self.checkParamOOB, {'low' : 0}]]},
             'large_sd' : {'correct_type' : '数値', 
-                            'correct_value' : '正の数値'},
+                          'correct_value' : '正の数値',
+                          'checks' : [[self.checkParamOOB, {'low' : 0}]]},
             'ratio_beyond_rsigma' : {'correct_type' : '数値', 
-                                        'correct_value' : '正の数値'},
+                                     'correct_value' : '正の数値',
+                                     'checks' : [[self.checkParamOOB, {'low' : 0}]]},
             'binned_entropy' : {'correct_type' : '数値', 
-                                'correct_value' : '２以上の整数'},
+                                'correct_value' : '２以上の整数',
+                                'checks' : [[self.checkParamIsInteger, {}],
+                                            [self.checkParamOOB,{'low' : 2}]]},
             'quantile' : {'correct_type' : '数値', 
-                            'correct_value' : '０−１の数値'},
+                          'correct_value' : '０−１の数値',
+                          'checks' : [[self.checkParamOOB, {'low' : 0,
+                                                            'high': 1}]]},
             'range_count' : {'correct_type' : '数値;数値', 
-                                'correct_value' : '全ての数値', 
-                                'correct_format' : '開始＜終了の;区切り'},
+                             'correct_value' : '全ての数値', 
+                             'correct_format' : '開始＜終了の;区切り',
+                             'checks': [[self.checkParamFormat, {'pat': '[0-9]+;[0-9]+'}]]},
             'autocorr' : {'correct_type' : '数値', 
-                            'correct_value' : '１以上の整数' },
+                          'correct_value' : '１以上の整数',
+                          'checks' : [[self.checkParamIsInteger, {}],
+                                      [self.checkParamOOB,{'low' : 1}]]},
             'crossing_m' : {'correct_type' : '数値', 
-                            'correct_value' : '全ての数値'},
+                            'correct_value' : '全ての数値',
+                            'checks' : [[self.checkParamIsNumber, {}]]},
             'peaks' : {'correct_type' : '数値', 
-                        'correct_value' : '１以上の整数'},
+                       'correct_value' : '１以上の整数',
+                       'checks' : [[self.checkParamOOB, {'low' : 0,
+                                                         'high': 1}]]},
             'imq' : {'correct_type' : '数値', 
-                        'correct_value' : '０−１の数値'}
+                     'correct_value' : '０−１の数値',
+                     'checks' : [[self.checkParamOOB, {'low' : 0,
+                                                       'high': 1}]]},
             }
         elif s == 'msum_calcs':
             return [
@@ -119,7 +135,9 @@ class GroupByRemakeCommand(PCommand):
                 'ukurt'
             ]
         elif s == 'nysol_calcs':
-            return {'median_ad' : None}
+            return {'median_ad' : None,
+                    'quantile' : None,
+                    'autocorr' : None}
             # return {
             #     # 0 fields (input k, a, fld)
             #     'rows' : self.rows,
@@ -238,6 +256,103 @@ class GroupByRemakeCommand(PCommand):
         
         return 0, expanded
     
+    def checkParamIsNumber(self,param):
+        '''
+        checks if param is a number
+        
+        if passes, returns None, otherwise, returns 'ParameterTypeError'
+        '''
+        try:
+            param = float(param)
+            return None
+        except ValueError:
+            return 'ParameterTypeError'
+
+    def checkParamIsInteger(self, param):
+        '''
+        checks if a given param is an integer
+
+        if an integer, returns None, otherwise, returns 'ParameterOutOfBoundsError'
+        contains the isnumber check, so if not a number, returns 'ParameterTypeError'
+        '''
+        not_a_number = self.checkParamIsNumber(param)
+        
+        if not_a_number is not None: # do the isnumber check
+            return not_a_number
+            
+        param = float(param)
+        
+        # check if not integer
+        if not param.is_integer():
+            return 'ParameterOutOfBoundsError'
+
+        return None
+    
+    def checkParamOOB(self, param, low = None, high = None):
+        '''
+        checks if a param is outside the given bounds
+        
+        returns None if in bounds, otherwise 'ParameterOutOfBoundsError'
+        contains the isnumber check, so if not a number, returns 'ParameterTypeError'
+        '''
+        not_a_number = self.checkParamIsNumber(param)
+        
+        if not_a_number is not None: # do the isnumber check
+            return not_a_number
+
+        param = float(param)
+
+        if low:
+            if high:
+                if not(low < param < high):
+                    return 'ParameterOutOfBoundsError'
+            
+            else:
+                if param < low:
+                    return 'ParameterOutOfBoundsError'
+        else:
+            if high:
+                if high < param:
+                    return 'ParameterOutOfBoundsError'
+            else:
+                return 'BadBoundDefinition' # internal error for debugging
+        
+        return None
+            
+    def checkParamFormat(self, param, pat):
+        '''
+        checks if a param matces a regexp format
+        
+        returns None if ok, ParameterFormatError if not
+        '''
+        import re
+        
+        if re.match(pat, param):
+            return None
+
+        return 'ParameterFormatError'
+
+    def checkParams(self, calc, param):
+        '''
+        Takes a calc and a parameter value and runs checks to see if the param
+        is within limits. 
+        Returns None if no error, returns errorcode if there is
+        '''
+
+        # get list of checks to perform
+        checks = self.const('paraminfo')[calc]['checks']
+        # checks is a list of check functions and their parameters
+
+        for check, bounds in checks:
+            # each check function returns None if no error, and the error code
+            # if there is.
+            res = check(param, **bounds)
+            
+            if res:
+                return res
+        
+        return None
+    
     def containsAny(self, exp, str):
         '''
         returns True if exp contains any characters in str
@@ -278,6 +393,7 @@ class GroupByRemakeCommand(PCommand):
 
         if calc in all_param_info.keys():
             param_info = all_param_info[calc]
+            param_info.pop('checks')
         else:
             param_info = {} 
         
@@ -510,13 +626,34 @@ class GroupByRemakeCommand(PCommand):
                     raise Exception(errmsg)
 
 
-                # check if any element in c requires params AND cs_list > 1
-                # Multiple ParamCalc error
+                # check if any element in c requires params
                 for c in cs_list:
-                    if (c in self.const('paraminfo')) and (len(cs_list) > 1):
-                        errmsg = self.generateCommandErrorMessage('MultipleParamCalcError', 'c', cs)
-                        raise Exception(errmsg)
+                    if c in self.const('paraminfo'):
+                        # Multiple ParamCalc error
+                        if len(cs_list) > 1:
+                            errmsg = self.generateCommandErrorMessage('MultipleParamCalcError', 'c', cs)
+                            raise Exception(errmsg)
+
+                        # check param values
+                        params = row.get('n')
+                        # empty param error
+                        if not params:
+                            errmsg = self.generateCommandErrorMessage('EmptyParamError', 'n', params)
+                            raise Exception(errmsg)
+
+                        params_list = params.split(',')
+                        if '' in params_list:
+                            errmsg = self.generateCommandErrorMessage('EmptyParamError', 'n', params)
+                            raise Exception(errmsg)
                         
+                        # check param values here
+                        for n in params_list:
+                            errcode = self.checkParams(c, n)
+                            if errcode:
+                                print(errcode)
+                                sys.__stdout__.flush()
+                                errmsg = self.generateCommandErrorMessage(errcode, 'n', n, c)
+                                raise Exception(errmsg)
                         
                 # check for empty strings in c
                 if '' in cs_list:
