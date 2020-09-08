@@ -377,10 +377,49 @@ class GroupByRemakeCommand(PCommand):
         # compile common parameters
         common_args = {}
        
-        common_args['k'] = raw_args.get('k') 
         common_args['dateformat'] = raw_args.get('dateformat')
-        common_args['format'] = raw_args.get('format')
         common_args['precision'] = raw_args.get('precision')
+
+        # error handling for common args
+        # k errors
+
+        ks = raw_args.get('k') 
+        if ks:
+            ks_list = ks.split(',')
+            
+            if self.containsAny(ks, '%&'):
+                errmsg = self.generateCommandErrorMessage('KeyFieldForbiddenCharacterError', 'k', ks)
+                raise Exception(errmsg)
+
+            if len(ks_list) != len(set(ks_list)):
+                errmsg = self.generateCommandErrorMessage('KeyFieldConflictError', 'k', ks)
+                raise Exception(errmsg)
+
+            if '' in ks_list:
+                errmsg = self.generateCommandErrorMessage('EmptyKeyFieldError', 'k', ks)
+                raise Exception(errmsg)
+
+            # set manual k input flag
+            self.manual_k = True
+            common_args['k'] = ks
+        
+        else: # if k is empty
+            ks_list = []
+
+            # set manual k input flag
+            self.manual_k = False
+
+        # format errors
+        formatstr = raw_args.get('format')
+
+        if self.containsAny(formatstr, '*?[]'):
+            errmsg = self.generateCommandErrorMessage('ResultsColForbiddenCharacterError', 'format', formatstr)
+            raise Exception(errmsg)
+
+        common_args['format'] = formatstr
+
+        
+        # start parsing through the separate args
 
         all_args = (raw_args.get('clist') + 
                     raw_args.get('fclist') +
@@ -388,24 +427,47 @@ class GroupByRemakeCommand(PCommand):
                     raw_args.get('xfclist') + 
                     raw_args.get('xfcnlist'))
 
+        all_fs = set()
+        final_columns = []
                        
         for row in all_args:
             
             # ignore rows where all values are empty
             if all([val == '' for val in row.values()]):
                 continue
+
+            cs = row.pop('c')
+            
+            if cs == '':
+                errmsg = self.generateCommandErrorMessage('EmptyCalcError', 'c', cs)
+                raise Exception(errmsg)
+            
+            cs_list = cs.split(',')
+                
             
             # データセットに対する特徴量
             if 'fld' in row:
                 # if a dict contains 'fld', it is an operation on the whole
-                # data set. No other processing needed
-
+                # data set. 
+               
+                fld = row.pop('fld') 
                 # check if multiple flds specified
-                if ',' in row['fld']:
+                if ',' in fld:
                     errmsg = self.generateCommandErrorMessage('MultipleRowsTargetError', 'fld', row['fld'])
                     raise Exception(errmsg)
                 
-                nysol_calcs.append(row)
+                # check for newname setting
+                for c in cs_list:
+                    if ':' in c:
+                        c, a = c.split(':')
+                    else:
+                        a = c 
+                    
+                    all_fs.add(fld)
+                    
+                    final_columns.append(formatstr.replace('%', a).replace('&', fld))
+                    
+                    nysol_calcs.append({'fld' : fld, 'c' : c, 'a' : a})
                 continue
 
             else: # any other case will have both 'f' and 'c' options
@@ -437,6 +499,8 @@ class GroupByRemakeCommand(PCommand):
                         raise Exception(errmsg)
                 
                 # f wildcards for this row are now expanded into list form
+                # add expanded wildcard expression to the set of all fs
+                all_fs.update(expanded_f)
 
                 # check for duplicates in f
                 dupes_list = self.findDuplicates(expanded_f)
@@ -445,11 +509,19 @@ class GroupByRemakeCommand(PCommand):
                     errmsg = self.generateCommandErrorMessage('TargetFieldConflictError', 'f', dupes_str)
                     raise Exception(errmsg)
 
-                cs = row.pop('c')
-                cs_list = cs.split(',')
 
-                # TODO check if any element in c requires params AND cs_list > 1
+                # check if any element in c requires params AND cs_list > 1
                 # Multiple ParamCalc error
+                for c in cs_list:
+                    if (c in self.const('paraminfo')) and (len(cs_list) > 1):
+                        errmsg = self.generateCommandErrorMessage('MultipleParamCalcError', 'c', cs)
+                        raise Exception(errmsg)
+                        
+                        
+                # check for empty strings in c
+                if '' in cs_list:
+                    errmsg = self.generateCommandErrorMessage('EmptyCalcError', 'c', c)
+                    raise Exception(errmsg)
                 
                 # check for duplicates in c
                 dupes_list = self.findDuplicates(cs_list)
@@ -457,6 +529,21 @@ class GroupByRemakeCommand(PCommand):
                     dupes_str = ','.join(dupes_list)
                     errmsg = self.generateCommandErrorMessage('CalcConflictError', 'c', dupes_str)
                     raise Exception(errmsg)
+
+                # if x exists, catch errors
+                if 'x' in row:
+                    x = row.get('x')
+                    xs_list = x.split(',')
+
+                    if self.containsAny(x, '*?[],:\\&%'):
+                        errmsg = self.generateCommandErrorMessage('TimeColForbiddenCharacterError', 'x', x)
+                        raise Exception(errmsg)
+
+                    if '' in xs_list:
+                        errmsg = self.generateCommandErrorMessage('EmptyTimeColError', 'x', x)
+                        raise Exception(errmsg)
+                        
+
 
                 # then iterate over all specfied c arguments
                 for c in cs_list:
@@ -470,11 +557,8 @@ class GroupByRemakeCommand(PCommand):
                                 raise Exception(errmsg)
                         else:
                             a = c
+                            
                         row['a'] = a
-                        
-                        if c == '':
-                            errmsg = self.generateCommandErrorMessage('EmptyCalcError', 'c', c)
-                            raise errmsg
 
                         # prepare one calculation dictionary
                         thiscalc = {'c' : c, 'f' : f, **row}
@@ -490,31 +574,46 @@ class GroupByRemakeCommand(PCommand):
                             errmsg = self.generateCommandErrorMessage('CalcNotFoundError', 'c', c)
                             raise Exception(errmsg) 
                         
+                        final_columns.append(formatstr.replace('%', a).replace('&', f))
+                        
+        # check if k and fs are overlapping
+        kf_overlap = []
+        for key in ks_list:
+            if key in all_fs:
+                kf_overlap.append(key)
+
+        if len(kf_overlap) > 0:
+            ks_overlapstr = ','.join(kf_overlap)
+            errmsg = self.generateCommandErrorMessage('KeyTargetConflictError', 'k', ks_overlapstr)
+            raise Exception(errmsg)
+            
+        # check if there is an overlap of final columns
+        dupes_list = self.findDuplicates(final_columns)
+        if len(dupes_list) > 0:
+            dupes_str = ','.join(dupes_list)
+            errmsg = self.generateCommandErrorMessage('ResultsColConflictError', 'format, c, f, n', dupes_str)
+            raise Exception(errmsg)
             
         # reduce/simplify msummary 
         msummary_calcs = self.simplifyMsummary(msummary_calcs)
 
         # finally, combine the three lists into one 
-        parsed = []
+        parsed_args = []
 
         for op in msummary_calcs:
             op['type'] = 'msummary'
-            parsed.append(op)
+            parsed_args.append(op)
 
         for op in nysol_calcs:
             op['type'] = 'nysol'
-            parsed.append(op)
+            parsed_args.append(op)
         
         for op in python_calcs:
             op['type'] = 'python'
-            parsed.append(op)
+            parsed_args.append(op)
 
-        print(parsed)
-        return parsed
+        return parsed_args, common_args
 
-
-        
-        
         
     def run(self, args, inputs):
         # set up tmp file
@@ -527,7 +626,7 @@ class GroupByRemakeCommand(PCommand):
         # minimize the number of runs etc.
 
         # parse the inputs
-        all_calcs = self.parseArgs(args)
+        all_calcs, common_args = self.parseArgs(args)
         
         # is it possible to separate the parsing from the error handling?
         # maybe only some of it
