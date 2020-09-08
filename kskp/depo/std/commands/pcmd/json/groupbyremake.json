@@ -56,7 +56,8 @@
       "label": "その他（省略可）",
       "params": [
         "nfno",
-        "precision"
+        "precision",
+        "batch_size"
       ]
     }
   ],
@@ -240,6 +241,13 @@
       "type": "boolean",
       "label": "項目名行を出力しない",
       "optional": true
+    },
+    {
+      "name": "batch_size",
+      "type": "string",
+      "label": "batch size",
+      "optional": true,
+      "default": "5"
     },
     {
       "name": "precision",
