@@ -1,6 +1,7 @@
 import sys
 import copy
 import uuid
+import os
 import nysol.mcmd as nm
 import numpy as np
 import fnmatch as fn 
@@ -61,6 +62,7 @@ class GroupByRemakeCommand(PCommand):
             'UnknownCalcError' : '統計量の指定が正しくありません。${fieldinput}',
 
             # パラメータ指定に関わるエラー
+            'EmptyParamError' : '空文字列でパラメータが指定されています。${fieldinput}',
             'ParameterConflictError' : 'パラメータが重複しています。${fieldinput}',
             'ParameterTypeError'  : '${calc} のパラメータへの ${fieldinput} 指定が正しくありません。${correct_type} を指定してください',
             'ParameterOutOfBoundsError' : '${calc} のパラメータへの ${fieldinput} 指定が正しくありません。 ${correct_value} で指定してください',
@@ -92,7 +94,7 @@ class GroupByRemakeCommand(PCommand):
             'range_count' : {'correct_type' : '数値;数値', 
                              'correct_value' : '全ての数値', 
                              'correct_format' : '開始＜終了の;区切り',
-                             'checks': [[self.checkParamFormat, {'pat': '[0-9]+;[0-9]+'}]]},
+                             'checks': [[self.checkParamGTLT, {}]]},
             'autocorr' : {'correct_type' : '数値', 
                           'correct_value' : '１以上の整数',
                           'checks' : [[self.checkParamIsInteger, {}],
@@ -137,7 +139,9 @@ class GroupByRemakeCommand(PCommand):
         elif s == 'nysol_calcs':
             return {'median_ad' : None,
                     'quantile' : None,
-                    'autocorr' : None}
+                    'autocorr' : None,
+                    'value_count' : None,
+                    'range_count': None}
             # return {
             #     # 0 fields (input k, a, fld)
             #     'rows' : self.rows,
@@ -287,7 +291,7 @@ class GroupByRemakeCommand(PCommand):
             return 'ParameterOutOfBoundsError'
 
         return None
-    
+
     def checkParamOOB(self, param, low = None, high = None):
         '''
         checks if a param is outside the given bounds
@@ -331,6 +335,25 @@ class GroupByRemakeCommand(PCommand):
             return None
 
         return 'ParameterFormatError'
+
+    def checkParamGTLT(self, param):
+        '''
+        takes param of the format a;b and checks if b > a
+        
+        if ok, returns None, otherwise ParameterFormatError
+        contains paramformat check, and raises ParameterFormatError on fail
+        '''
+
+        bad_format = self.checkParamFormat(param, '-?[0-9]+;-?[0-9]+')
+        if bad_format is not None:
+            return bad_format
+
+        a, b = param.split(';')
+        
+        if float(b) < float(a):
+            return 'ParameterFormatError'
+        
+        return None
 
     def checkParams(self, calc, param):
         '''
@@ -489,12 +512,14 @@ class GroupByRemakeCommand(PCommand):
         # format -> output columnnames
         # precision
         # nfno -> is this still necessary?
+        # batch_size
         
         # compile common parameters
         common_args = {}
        
         common_args['dateformat'] = raw_args.get('dateformat')
         common_args['precision'] = raw_args.get('precision')
+        common_args['batch_size'] = raw_args.get('batch_size')
 
         # error handling for common args
         # k errors
@@ -516,14 +541,15 @@ class GroupByRemakeCommand(PCommand):
                 raise Exception(errmsg)
 
             # set manual k input flag
-            self.manual_k = True
+            common_args['manual_k'] = True
             common_args['k'] = ks
         
         else: # if k is empty
             ks_list = []
 
             # set manual k input flag
-            self.manual_k = False
+            common_args['manual_k'] = False
+            common_args['k'] = '__key__'
 
         # format errors
         formatstr = raw_args.get('format')
@@ -646,12 +672,17 @@ class GroupByRemakeCommand(PCommand):
                             errmsg = self.generateCommandErrorMessage('EmptyParamError', 'n', params)
                             raise Exception(errmsg)
                         
+                        # check for duplicates here
+                        dupes_list = self.findDuplicates(params_list)
+                        if len(dupes_list) > 0: # if duplicates are found
+                            dupes_str = ','.join(dupes_list)
+                            errmsg = self.generateCommandErrorMessage('ParamConflictError', 'n', dupes_str)
+                            raise Exception(errmsg)
+                        
                         # check param values here
                         for n in params_list:
                             errcode = self.checkParams(c, n)
                             if errcode:
-                                print(errcode)
-                                sys.__stdout__.flush()
                                 errmsg = self.generateCommandErrorMessage(errcode, 'n', n, c)
                                 raise Exception(errmsg)
                         
@@ -752,25 +783,88 @@ class GroupByRemakeCommand(PCommand):
         return parsed_args, common_args
 
         
+    def run_batches(self, flow_obj, all_calcs, common_args):
+        file_list = []
+        
+        batch_size = common_args.pop('batch_size')
+        # run each batch
+        
+        # per batch, generate tmpfile name
+        # add tmpfile name to 
+        
+        return file_list
+    
     def run(self, args, inputs):
         # set up tmp file
         # generate tmp file name
+        # TODO fix tmpfile handling
+        initialfile = '/tmp/initfile_groupby.csv'
         # run everything up til now, and then save into the file
+        self.dumpToFile(inputs['i'].content, initialfile)
+
+        cmd = nm.m2tee(i = initialfile)
 
         # ヘッダ行を取得する
-        self.header = self.get_field_names(inputs['i'])
-        # fix the ordering here. need to figure out the best ordering to 
-        # minimize the number of runs etc.
+        self.header = self.get_field_names(cmd)
 
         # parse the inputs
         all_calcs, common_args = self.parseArgs(args)
+
+        # if manual_key is False, make new key column 
+        make_keycol = common_args.pop('manual_key')
+        if make_keycol:
+            cmd <<= nm.mcal(a = common_args['k'], c = '"all"')
         
-        # is it possible to separate the parsing from the error handling?
-        # maybe only some of it
+        # convert null values in key to UUID 
+        tmp_key = '!!' + str(uuid.uuid4())
+        cmd <<= nm.mnullto(f = common_args['k'], v = tmp_key)
         
+        # take only required columns
+        relevant_cols = set(common_args['k'].split(','))
+        for calc in all_calcs:
+            relevant_cols.add(calc['f'].split(','))
+
+            if 'x' in calc:
+                relevant_cols.add(calc['x'].split(',')) 
+
+        cmd <<= nm.mcut(f = list(relevant_cols))
+        
+        
+        # TODO fix tmpfile handling
+        tmpfile = '/tmp/groupby_tmp.csv'
+        self.dumpToFile(cmd, tmpfile)
+        
+        # delete first file
+        os.system(f'rm {initialfile}')
         
         # schedule the batches and calculations
+        cmd = nm.m2tee(i = tmpfile)
         
-        cmd_out = self.wrapFlow(inputs['i'].content)
+        #get list of tmpfiles made per batch
+        batches = self.run_batches(cmd, all_calcs, common_args)
+
+        # combine all batches
+        cmd = nm.m2tee(batches)
+
+        # cross
+        cmd <<= nm.mcross(f = '__val__', s = 'final_cols', k = common_args['k'])
+        cmd <<= nm.mcut(r = True, f = 'fld')
+
+        # cross reference with original key columns (join)
+        # get original key columns
+        keys = None
+        keys <<= nm.m2tee(i = tmpfile)
+        keys <<= nm.mcut(f = common_args['k'])
+        keys <<= nm.muniq(k = common_args['k'])
+
+        # join original keys with current
+        cmd_out = None
+        cmd_out <<= nm.mnjoin(i = keys, k = common_args['k'], m = cmd, N = True)
+        
+        # TODO revert tmp_key back to null
+        cmd_out <<= nm.mchgstr(f = common_args['k'], c = f'{tmp_key}:', F = True)
+        
+
+        cmd_out = self.wrapFlow(cmd_out)
         
         return {'o' : cmd_out}
