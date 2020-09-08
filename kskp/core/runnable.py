@@ -24,7 +24,7 @@ class Command(Datum):
         self.lasts = result
         return result
 
-    def dtor(self):
+    def dtor(self, args=None):
         pass
 
 

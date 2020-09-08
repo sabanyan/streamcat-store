@@ -194,7 +194,7 @@ class VCmdTestCase(TestCaseBase):
         # Activityを取得して返り値とする
         for point_id, datum in lasts.items():
             if isinstance(datum, Activity):
-                return {point.id : vis.result for point, vis in datum.results}
+                return {point.id : vis.result for point, vis in datum.lasts}
 
     def exec_flow(self, vis_args):
         root = self.factory.data.load_root()
