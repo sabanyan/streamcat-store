@@ -283,7 +283,6 @@ class GroupByRemakeCommand(PCommand):
         dump into a file specified by filepath
         '''
         if isinstance(flow_obj, list):
-            pass
             flow_obj = nm.m2tee(i = flow_obj, o = filepath)
         else:
             flow_obj <<= nm.m2tee(o = filepath)
@@ -879,16 +878,15 @@ class GroupByRemakeCommand(PCommand):
             # iterate per calc in batch
             for i in range(batch_size):
                 calcnum = batchnum + i
-                
-                cmd[i] <<= nm.m2tee(i = file_to_read)
-                
                 try:
                     # get corresponding calculation function
                     thiscalc = all_calcs[calcnum]
                     if thiscalc['type'] == 'nysol':
                         func = self.const('funcs')[thiscalc['c']]
 
+                    cmd[i] <<= nm.m2tee(i = file_to_read)
                     cmd[i] = func(cmd[i], thiscalc, common_args)
+
                 except IndexError:
                     break
                 
