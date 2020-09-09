@@ -881,7 +881,10 @@ class GroupByRemakeCommand(PCommand):
                 try:
                     # get corresponding calculation function
                     thiscalc = all_calcs[calcnum]
-                    if thiscalc['type'] == 'nysol':
+                    calctype = thiscalc.pop('type')
+                    if calctype == 'msummary':
+                        func = self.feature_msummary
+                    else:
                         func = self.const('funcs')[thiscalc['c']]
 
                     cmd[i] <<= nm.m2tee(i = file_to_read)
@@ -905,7 +908,6 @@ class GroupByRemakeCommand(PCommand):
         '''
         calculate the rows feature
         '''
-        a = args.get('a')
         k = common_args.get('k')
         formatstr = common_args['format']
         
@@ -916,7 +918,44 @@ class GroupByRemakeCommand(PCommand):
         subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
 
         return subcmd
+
+    def feature_msummary(self, subcmd, args, common_args):
+        '''
+        calculate msummary features
+        '''
+        opts = {**args}
+        opts['k'] = common_args['k']
+        k = opts['k']
+        opts['precision'] = common_args['precision']
+
+        # prepare list of output cols of msummary
+        final_cs = [c.split(':')[-1] for c in args['c'].split(',')]
         
+        # prepare mcal-type string for final format
+        colformat = ['']
+
+        for char in common_args['format']:
+            if char == '&':
+                colformat.append('$s{fld}')
+                colformat.append('')
+            elif char == '%':
+                colformat.append('$s{__type__}')
+                colformat.append('')
+            else:
+                colformat[-1] += char
+
+        for i, sub in enumerate(colformat):
+            if not sub.startswith('$'):
+                colformat[i] = f'"{sub}"' 
+
+        # calculate
+        subcmd <<= nm.msummary(o = 'msummary.csv', **opts)
+        subcmd <<= nm.m2cross(k = f'{k},fld', f= final_cs, 
+                a = '__type__,__val__')
+        subcmd <<= nm.mcal(a = 'final_cols', c = '+'.join(colformat))
+        subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
+        
+        return subcmd 
     
     def run(self, args, inputs):
         # set up tmp file
