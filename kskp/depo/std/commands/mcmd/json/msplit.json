@@ -39,9 +39,7 @@
       "params": [
         "precision",
         "tmpPath",
-        "assert_diffSize",
-        "assert_nullout",
-        "assert_nullkey"
+        "q"
       ]
     }
   ],

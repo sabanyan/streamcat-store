@@ -89,8 +89,7 @@
         "bufcount",
         "assert_diffSize",
         "assert_nullout",
-        "assert_nullkey",
-        "assert_nullin"
+        "assert_nullkey"
       ]
     }
   ],
