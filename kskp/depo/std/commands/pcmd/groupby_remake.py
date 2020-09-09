@@ -7,6 +7,7 @@ import numpy as np
 import fnmatch as fn 
 import nysol.util.mtemp as mtemp
 
+from math import ceil
 from kskp.store import NysolModule
 from kskp.core import Command, Port
 
@@ -21,8 +22,9 @@ class GroupByRemakeCommand(PCommand):
         errmsgs     : dictonary containing the error codes and messages
         paraminfo   : dictionary of each param's validity limits/format etc
         msum_calcs  : list of msummary calculations
-        nysol_calcs : dict of nysol calculations paired to their functions
+        nysol_calcs : list of nysol calculations
         python_calcs: list of python calculations
+        funcs       : dict of calcnames paired with their functions
         '''
         if s == 'commandname':
             return '特徴量の計算' # 将来、コマンド名はCmdJSONから取得（？）
@@ -137,14 +139,69 @@ class GroupByRemakeCommand(PCommand):
                 'ukurt'
             ]
         elif s == 'nysol_calcs':
-            return {'median_ad' : None,
-                    'quantile' : None,
-                    'autocorr' : None,
-                    'value_count' : None,
-                    'range_count': None}
+            return ['rows',
+                    'miss',
+                    'strmin',
+                    'strmax',
+                    'strucount',
+                    'hmean',
+                    'gmean',
+                    'mean_ad',
+                    'median_ad',
+                    'rms',
+                    'repeatdata',
+                    'repeatvalues',
+                    'ratio_unique',
+                    'count_above_mean',
+                    'count_below_mean',
+                    'has_dup',
+                    'has_dup_max',
+                    'has_dup_min',
+                    'sum_repeatdata',
+                    'sum_repeatvalues',
+                    'abs_energy',
+                    'var_gt_sd',
+                    'sym_looking',
+                    'large_sd',
+                    'value_count',
+                    'ratio_beyond_rsigma',
+                    'binned_entropy',
+                    'quantile',
+                    'range_count',
+                    'slope',
+                    'slope_pearson',
+                    'mean_second_derivative_central',
+                    'mean_change',
+                    'mean_abs_change',
+                    'abs_sum_changes',
+                    'integral',
+                    'firstmin',
+                    'firstmax',
+                    'lastmin',
+                    'lastmax',
+                    'longest_strike_above_mean',
+                    'longest_strike_below_mean',
+                    'autocorr',
+                    'crossing_m',
+                    'peaks',
+                    'imq']
+        elif s == 'python_calcs':
+            return [
+                'meanf',
+                'varf',
+                'fft_agg'
+            ] 
+        elif s == 'funcs':
+            return {
+                # 0 fields (input k, a, fld)
+                'rows' : self.feature_rows,
+                'median_ad' : None, 
+                'quantile' : None,
+                'autocorr' : None,
+                'value_count' : None,
+                'range_count': None
+                }
             # return {
-            #     # 0 fields (input k, a, fld)
-            #     'rows' : self.rows,
             #     # 1 field (input k, a, f)
             #     'miss' : self.missingdata,
             #     'rms' : self.rootmeansquare,
@@ -203,14 +260,8 @@ class GroupByRemakeCommand(PCommand):
             #     # aggregate functions
             #     'linregress' : self.linear_trend
             # }
-        elif s == 'python_calcs':
-            return [
-                'meanf',
-                'varf',
-                'fft_agg'
-            ]
-    
 
+    
     def __init__(self):
         super().__init__()
         self.i_ports = [Port('i', 'frame')]
@@ -228,10 +279,14 @@ class GroupByRemakeCommand(PCommand):
         
     def dumpToFile(self, flow_obj, filepath):
         '''
-        Takes a nysol flow object and uses m2tee to dump into a file specified
-        by filepath
+        Takes a nysol flow object (or list of flow objects) and uses m2tee to 
+        dump into a file specified by filepath
         '''
-        flow_obj <<= nm.m2tee(o = filepath)
+        if isinstance(flow_obj, list):
+            pass
+            flow_obj = nm.m2tee(i = flow_obj, o = filepath)
+        else:
+            flow_obj <<= nm.m2tee(o = filepath)
 
         nysol_module = self.wrapFlow(flow_obj)
         self.do_runs(nysol_module)
@@ -407,6 +462,8 @@ class GroupByRemakeCommand(PCommand):
         self.const and then uses input to fill in templates
 
         generateCommanErrorMessage(errcode, errfield, errinput, calcname)
+        TODO figure out how to make this generic, so I can move it up to
+             the parent class
         '''
         from string import Template
 
@@ -428,6 +485,26 @@ class GroupByRemakeCommand(PCommand):
 
         return f'【コマンド：{commandname}】【オプション欄：{errfield}】{message}'
 
+    def generateFinalColName(self, formatstr, args):
+        '''
+        given the formatstring and the set of args for the calculation,
+        returns the final output column name
+        '''
+        if 'fld' in args:
+            fldname = args['fld']
+        else:
+            fldname = args['f']
+
+        if 'x' in args:
+            fldname += '_' + args['x']
+            
+        calcname = args['a']
+        if 'n' in args:
+            calcname += '_' + args['n']
+
+        finalname = formatstr.replace('%', calcname).replace('&', fldname)
+        
+        return finalname
 
     def simplifyMsummary(self, msum_list):
         '''
@@ -734,7 +811,7 @@ class GroupByRemakeCommand(PCommand):
                         # append thiscalc to the appropriate list
                         if c in self.const('msum_calcs'):
                             msummary_calcs.append(thiscalc)
-                        elif c in self.const('nysol_calcs').keys():
+                        elif c in self.const('nysol_calcs'):
                             nysol_calcs.append(thiscalc)
                         elif c in self.const('python_calcs'):
                             python_calcs.append(thiscalc)
@@ -783,37 +860,90 @@ class GroupByRemakeCommand(PCommand):
         return parsed_args, common_args
 
         
-    def run_batches(self, flow_obj, all_calcs, common_args):
+    def run_batches(self, file_to_read, all_calcs, common_args):
+        '''
+        given the batch size, distributes the operations into batches, and 
+        runs each batch, taking note of all the batches filenames
+        '''
         file_list = []
-        
-        batch_size = common_args.pop('batch_size')
+
+        batch_size = int(common_args.pop('batch_size'))
+        batches = ceil(len(all_calcs) / batch_size)
         # run each batch
         
-        # per batch, generate tmpfile name
-        # add tmpfile name to 
-        
+        # calculate each from a formatted command list
+        for batchnum in range(batches):
+            # refresh calulation array
+            cmd = [None] * batch_size
+            
+            # iterate per calc in batch
+            for i in range(batch_size):
+                calcnum = batchnum + i
+                
+                cmd[i] <<= nm.m2tee(i = file_to_read)
+                
+                try:
+                    # get corresponding calculation function
+                    thiscalc = all_calcs[calcnum]
+                    if thiscalc['type'] == 'nysol':
+                        func = self.const('funcs')[thiscalc['c']]
+
+                    cmd[i] = func(cmd[i], thiscalc, common_args)
+                except IndexError:
+                    break
+                
+            # TODO generate filenum for tmp file for this batch
+            batchuuid = str(uuid.uuid4())
+            CALC_RES_TMP = f'/tmp/groupby_batchres_{batchuuid}.csv'
+            
+            self.dumpToFile(cmd, CALC_RES_TMP)
+            
+            file_list.append(CALC_RES_TMP)
+            
         return file_list
+
+        
+    def feature_rows(self, subcmd, args, common_args):
+        '''
+        calculate the rows feature
+        '''
+        a = args.get('a')
+        k = common_args.get('k')
+        formatstr = common_args['format']
+        
+        finalcol = self.generateFinalColName(formatstr, args)
+        
+        subcmd <<= nm.mcount(k = k, a = '__val__')
+        subcmd <<= nm.mcal(a = 'final_cols', c = f'"{finalcol}"')
+        subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
+
+        return subcmd
+        
     
     def run(self, args, inputs):
         # set up tmp file
         # generate tmp file name
+        
         # TODO fix tmpfile handling
-        initialfile = '/tmp/initfile_groupby.csv'
+        file_uuid = str(uuid.uuid4())
+        initialfile = f'/tmp/initfile_groupby_{file_uuid}.csv'
         # run everything up til now, and then save into the file
         self.dumpToFile(inputs['i'].content, initialfile)
 
-        cmd = nm.m2tee(i = initialfile)
-
         # ヘッダ行を取得する
+        cmd = nm.m2tee(i = initialfile)
+        cmd = self.wrapFlow(cmd)
         self.header = self.get_field_names(cmd)
+
+        cmd = nm.m2tee(i = initialfile)
 
         # parse the inputs
         all_calcs, common_args = self.parseArgs(args)
 
         # if manual_key is False, make new key column 
-        make_keycol = common_args.pop('manual_key')
-        if make_keycol:
-            cmd <<= nm.mcal(a = common_args['k'], c = '"all"')
+        manual_key = common_args.get('manual_key')
+        if not manual_key:
+            cmd <<= nm.mcal(a = common_args['k'], c = '"all"', o = 'test.csv')
         
         # convert null values in key to UUID 
         tmp_key = '!!' + str(uuid.uuid4())
@@ -822,29 +952,30 @@ class GroupByRemakeCommand(PCommand):
         # take only required columns
         relevant_cols = set(common_args['k'].split(','))
         for calc in all_calcs:
-            relevant_cols.add(calc['f'].split(','))
+            if 'fld' in calc:
+                relevant_cols.add(calc['fld'])
+            else:
+                for fld in calc['f'].split(','):
+                    relevant_cols.add(fld)
 
             if 'x' in calc:
                 relevant_cols.add(calc['x'].split(',')) 
 
         cmd <<= nm.mcut(f = list(relevant_cols))
         
-        
         # TODO fix tmpfile handling
-        tmpfile = '/tmp/groupby_tmp.csv'
+        tmpfile = f'/tmp/groupby_tmp_{file_uuid}.csv'
         self.dumpToFile(cmd, tmpfile)
         
         # delete first file
         os.system(f'rm {initialfile}')
         
         # schedule the batches and calculations
-        cmd = nm.m2tee(i = tmpfile)
-        
-        #get list of tmpfiles made per batch
-        batches = self.run_batches(cmd, all_calcs, common_args)
+        # get list of tmpfiles made per batch
+        batches = self.run_batches(tmpfile, all_calcs, common_args)
 
         # combine all batches
-        cmd = nm.m2tee(batches)
+        cmd = nm.m2tee(i = batches)
 
         # cross
         cmd <<= nm.mcross(f = '__val__', s = 'final_cols', k = common_args['k'])
