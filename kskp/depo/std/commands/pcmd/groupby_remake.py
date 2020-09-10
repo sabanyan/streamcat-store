@@ -505,6 +505,27 @@ class GroupByRemakeCommand(PCommand):
         
         return finalname
 
+    def generateFinalColMcatExp(self, formatstr):
+        # construct mcal expression to make the finalcol name
+        colformat = ['']
+
+        for char in formatstr:
+            if char == '&':
+                colformat.append('$s{fld}')
+                colformat.append('')
+            elif char == '%':
+                colformat.append('$s{__calcname__}')
+                colformat.append('')
+            else:
+                colformat[-1] += char
+
+        for i, sub in enumerate(colformat):
+            if not sub.startswith('$'):
+                colformat[i] = f'"{sub}"' 
+
+        mcal_exp = '+'.join(colformat)
+        return mcal_exp
+
     def simplifyMsummary(self, msum_list):
         '''
         takes the parsed list of msummary calculations from raw arguments, and 
@@ -858,7 +879,40 @@ class GroupByRemakeCommand(PCommand):
 
         return parsed_args, common_args
 
+    def transformToVertical(self, subcmd, formatstr, k, cols):
+        '''
+        takes data of the form:
+        keys, fld, cols[0], cols[1], ...
+
+        and transforms it to
+        keys, final_cols, __val__ 
+        '''
+        colformat = self.generateFinalColMcatExp(formatstr)
+    
+        subcmd <<= nm.m2cross(k = f'{k},fld', f= cols, 
+                a = '__calcname__,__val__')
+        subcmd <<= nm.mcal(a = 'final_cols', c = colformat)
+        subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
+
+        return subcmd
         
+    def cutToRelevantCols(self, subcmd, args, common_args):
+        '''
+        gets the relevant columns
+        '''
+        relevant_cols = common_args['k'].split(',')
+        if 'fld' in args:
+            relevant_cols.append(args['fld'])
+        else:
+            relevant_cols.extend(args['f'].split(','))
+
+        if 'x' in args:
+            relevant_cols.append(args['x'])
+
+        subcmd <<= nm.mcut(f = relevant_cols)
+        
+        return subcmd
+    
     def run_batches(self, file_to_read, all_calcs, common_args):
         '''
         given the batch size, distributes the operations into batches, and 
@@ -879,19 +933,32 @@ class GroupByRemakeCommand(PCommand):
             for i in range(batch_size):
                 calcnum = batchnum + i
                 try:
-                    # get corresponding calculation function
+                    # try to get next calculation
                     thiscalc = all_calcs[calcnum]
-                    calctype = thiscalc.pop('type')
-                    if calctype == 'msummary':
-                        func = self.feature_msummary
-                    else:
-                        func = self.const('funcs')[thiscalc['c']]
-
-                    cmd[i] <<= nm.m2tee(i = file_to_read)
-                    cmd[i] = func(cmd[i], thiscalc, common_args)
-
                 except IndexError:
+                    # if no more calcs, break out of loop
                     break
+
+                cmd[i] <<= nm.m2tee(i = file_to_read)
+
+                # cut out only relevant columns
+                cmd[i] = self.cutToRelevantCols(cmd[i], thiscalc, common_args)
+
+                calctype = thiscalc.pop('type')
+                if calctype == 'msummary':
+                    func = self.feature_msummary
+                else:
+                    func = self.const('funcs')[thiscalc['c']]
+                    # TODO perform checks
+
+                
+
+                # run the desired function
+                cmd[i] = func(cmd[i], thiscalc, common_args)
+                # output of func is of the form:
+                # keys, final_cols, __val__
+
+                
                 
             # TODO generate filenum for tmp file for this batch
             batchuuid = str(uuid.uuid4())
@@ -927,33 +994,18 @@ class GroupByRemakeCommand(PCommand):
         opts['k'] = common_args['k']
         k = opts['k']
         opts['precision'] = common_args['precision']
+        formatstr = common_args['format']
 
         # prepare list of output cols of msummary
         final_cs = [c.split(':')[-1] for c in args['c'].split(',')]
         
         # prepare mcal-type string for final format
-        colformat = ['']
-
-        for char in common_args['format']:
-            if char == '&':
-                colformat.append('$s{fld}')
-                colformat.append('')
-            elif char == '%':
-                colformat.append('$s{__type__}')
-                colformat.append('')
-            else:
-                colformat[-1] += char
-
-        for i, sub in enumerate(colformat):
-            if not sub.startswith('$'):
-                colformat[i] = f'"{sub}"' 
 
         # calculate
-        subcmd <<= nm.msummary(o = 'msummary.csv', **opts)
-        subcmd <<= nm.m2cross(k = f'{k},fld', f= final_cs, 
-                a = '__type__,__val__')
-        subcmd <<= nm.mcal(a = 'final_cols', c = '+'.join(colformat))
-        subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
+        subcmd <<= nm.msummary(**opts)
+        
+        subcmd = self.transformToVertical(subcmd, formatstr, k, final_cs)
+
         
         return subcmd 
     
@@ -980,7 +1032,7 @@ class GroupByRemakeCommand(PCommand):
         # if manual_key is False, make new key column 
         manual_key = common_args.get('manual_key')
         if not manual_key:
-            cmd <<= nm.mcal(a = common_args['k'], c = '"all"', o = 'test.csv')
+            cmd <<= nm.mcal(a = common_args['k'], c = '"all"')
         
         # convert null values in key to UUID 
         tmp_key = '!!' + str(uuid.uuid4())
