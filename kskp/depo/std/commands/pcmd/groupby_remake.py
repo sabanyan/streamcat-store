@@ -211,6 +211,8 @@ class GroupByRemakeCommand(PCommand):
                 'strmax' : self.feature_strmax,
                 'strmin' : self.feature_strmin,
                 'has_dup' : self.feature_hasdup,
+                'repeatdata' : self.feature_repeatdata,
+                'repeatvalues' : self.feature_repeatdata,
                 'median_ad' : None, 
                 'quantile' : None,
                 'autocorr' : None,
@@ -227,8 +229,6 @@ class GroupByRemakeCommand(PCommand):
             #     'has_dup_min' : self.hasduplicatemax,
             #     'mean_ad' : self.meanabsolutedeviation,
             #     'median_ad' : self.medianabsolutedeviation,
-            #     'repeatdata' : self.reoccurringdatapoints,
-            #     'repeatvalues' : self.reoccurringvalues,
             #     'sum_repeatdata' : self.sumofreoccurringdatapoints,
             #     'sum_repeatvalues' : self.sumofreoccurringvalues,
             #     'ratio_unique' : self.ratio_value_number_to_series_length,
@@ -1244,6 +1244,57 @@ class GroupByRemakeCommand(PCommand):
 
         return subcmd_o
 
+    def feature_repeatdata(self, subcmd, args, common_args):
+        '''
+        calculates feature repeatdata
+        '''
+        
+        fld = args.get('f')
+        k = common_args.get('k')
+        precision = common_args.get('precision')
+
+        resultcolname = self.generateFinalColName(args, common_args)
+
+        subcmd <<= nm.mcount(k = f'{k},{fld}', a = '__count__')
+        subcmd <<= nm.mfldname(f = f'{fld}:___')
+        subcmd <<= nm.mcal(a = fld, c = '${__count__}>1')
+        subcmd <<= nm.msummary(k = k, f = f'{fld}', 
+                            c = 'sum:__sum__,count:__count__')
+        subcmd <<= nm.mcal(c = '${__sum__}/${__count__}', a = '__val__',
+                                precision = precision)
+        subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
+
+        subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
+
+        return subcmd
+
+    def feature_repeatvalues(self,subcmd, args, common_args):
+        '''
+        calculate feature repeatvalues
+        '''
+        fld = args.get('f')
+        k = common_args.get('k')
+        precision = common_args.get('precision')
+
+        resultcolname = self.generateFinalColName(args, common_args)
+
+        mcount = None 
+
+        mcount <<= nm.mcount(k = f'{k}', a ='__total__', 
+                                i = subcmd)
+
+        subcmd <<= nm.mcount(k = f'{k},{fld}', a = '__count__')
+        subcmd <<= nm.mcal(a = '__repeat__', c = 'if(${__count__}>1,${__count__},0)')
+        subcmd <<= nm.msum(k = k, f = '__repeat__')
+
+        subcmd <<= nm.mjoin(m = mcount, f = '__total__', k = k)
+        subcmd <<= nm.mcal(a = '__val__', c = '${__repeat__}/${__total__}', 
+                                precision = precision)
+        subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
+
+        subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
+
+        return subcmd
 
     def run(self, args, inputs):
         # first off, make copies of the inputs
