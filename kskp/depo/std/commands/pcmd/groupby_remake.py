@@ -213,6 +213,15 @@ class GroupByRemakeCommand(PCommand):
                 'has_dup' : self.feature_hasdup,
                 'repeatdata' : self.feature_repeatdata,
                 'repeatvalues' : self.feature_repeatdata,
+                'sum_repeatdata' : self.feature_sumrepeatdata,
+                'sum_repeatvalues' : self.feature_sumrepeatvalues,
+                'ratio_unique' : self.feature_ratiounique,
+                'count_above_mean' : self.feature_countabovemean,
+                'count_below_mean' : self.feature_countbelowmean,
+                'has_dup_max' : self.feature_hasdupmin,
+                'has_dup_min' : self.feature_hasdupmax,
+                'hmean' : self.feature_hmean,
+                'gmean' : self.feature_gmean,
                 'median_ad' : None, 
                 'quantile' : None,
                 'autocorr' : None,
@@ -221,17 +230,10 @@ class GroupByRemakeCommand(PCommand):
                 }
             # return {
             #     'rms' : self.rootmeansquare,
-            #     'hmean' : self.harmonicmean,
-            #     'gmean' : self.geometricmean,
             #     'var_gt_sd' : self.variance_larger_than_sd,
             #     'abs_energy' : self.abs_energy, 
-            #     'has_dup_max' : self.hasduplicatemin,
-            #     'has_dup_min' : self.hasduplicatemax,
             #     'mean_ad' : self.meanabsolutedeviation,
             #     'median_ad' : self.medianabsolutedeviation,
-            #     'sum_repeatdata' : self.sumofreoccurringdatapoints,
-            #     'sum_repeatvalues' : self.sumofreoccurringvalues,
-            #     'ratio_unique' : self.ratio_value_number_to_series_length,
             #     'count_above_mean' : self.countabovemean,
             #     'count_below_mean' : self.countbelowmean,
             #     'sym_looking' : self.symmetry_looking,
@@ -1268,7 +1270,7 @@ class GroupByRemakeCommand(PCommand):
 
         return subcmd
 
-    def feature_repeatvalues(self,subcmd, args, common_args):
+    def feature_repeatvalues(self, subcmd, args, common_args):
         '''
         calculate feature repeatvalues
         '''
@@ -1290,6 +1292,219 @@ class GroupByRemakeCommand(PCommand):
         subcmd <<= nm.mjoin(m = mcount, f = '__total__', k = k)
         subcmd <<= nm.mcal(a = '__val__', c = '${__repeat__}/${__total__}', 
                                 precision = precision)
+        subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
+
+        subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
+
+        return subcmd
+
+    def feature_sumrepeatdata(self, subcmd, args, common_args):
+        '''
+        calculate feature sum_repeatdata
+        '''
+        fld = args.get('f')
+        k = common_args.get('k')
+        precision = common_args.get('precision')
+
+        resultcolname = self.generateFinalColName(args, common_args)
+
+        subcmd <<= nm.mcount(k = f'{k},{fld}', a = '__count__')
+        subcmd <<= nm.mcal(c = f'if(${{__count__}}==1,0,${{__count__}}*${{{fld}}})', 
+                           a = '__val__')
+        subcmd <<= nm.msum(k = k, f = f'__val__', precision = precision)
+
+        subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
+
+        subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
+
+        return subcmd
+
+    def feature_sumrepeatvalues(self, subcmd, args, common_args):
+        '''
+        calculate feature sum_repeatvalues
+        '''
+        fld = args.get('f')
+        k = common_args.get('k')
+        precision = common_args.get('precision')
+
+        resultcolname = self.generateFinalColName(args, common_args)
+
+        subcmd <<= nm.mcount(k = f'{k},{fld}', a = '__count__')
+        subcmd <<= nm.mcal(c = f'if(${{__count__}}==1,0,${{{fld}}})', a = '__val__')
+        subcmd <<= nm.msum(k = k, f = f'__val__', precision = precision)
+
+        subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
+
+        subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
+
+        return subcmd
+    
+    def feature_ratiounique(self, subcmd, args, common_args):
+        '''
+        calculate feature ratio_unique
+        '''
+        fld = args.get('f')
+        k = common_args.get('k')
+        precision = common_args.get('precision')
+
+        resultcolname = self.generateFinalColName(args, common_args)
+
+        msums = None
+        
+        msums = nm.msummary(i = subcmd, k = k, f = fld, c = 'count,ucount')
+
+        subcmd <<= nm.mnjoin(m = msums, f = 'count,ucount', k = k)
+        subcmd <<= nm.mcal(c = '${ucount}/${count}', a = '__val__',
+                           precision = precision)
+        subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
+
+        subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
+
+        return subcmd
+    
+    def feature_countabovemean(self, subcmd, args, common_args):
+        '''
+        calculate feature count_above_mean
+        '''
+        fld = args.get('f')
+        k = common_args.get('k')
+
+        resultcolname = self.generateFinalColName(args, common_args)
+
+        msums = None
+        
+        msums = nm.msummary(i = subcmd, k = k, f = fld, c = 'mean')
+
+        subcmd <<= nm.mnjoin(m = msums, f = 'mean', k = k)
+
+        subcmd <<= nm.mcal(c = f'${{{fld}}}>${{mean}}', a = '__val__')
+        subcmd <<= nm.msum(k = f'{k}', f = '__val__')
+            
+        subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
+
+        subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
+
+        return subcmd
+
+    def feature_countbelowmean(self, subcmd, args, common_args):
+        '''
+        calculate feature count_below_mean
+        '''
+        fld = args.get('f')
+        k = common_args.get('k')
+
+        resultcolname = self.generateFinalColName(args, common_args)
+
+        msums = None
+        
+        msums = nm.msummary(i = subcmd, k = k, f = fld, c = 'mean')
+
+        subcmd <<= nm.mnjoin(m = msums, f = 'mean', k = k)
+
+        subcmd <<= nm.mcal(c = f'${{{fld}}}<${{mean}}', a = '__val__')
+        subcmd <<= nm.msum(k = f'{k}', f = '__val__')
+            
+        subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
+
+        subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
+
+        return subcmd
+
+    def feature_hasdupmin(self, subcmd, args, common_args):
+        '''
+        calculates feature has_dup_min
+        '''
+        fld = args.get('f')
+        k = common_args.get('k')
+
+        resultcolname = self.generateFinalColName(args, common_args)
+
+        subcmd <<= nm.mcount(k = f'{k},{fld}', a = '__dcnt')
+
+        subcmd <<= nm.mbest(k = k, s = f'{fld}%n', size = 1)    
+        subcmd <<= nm.mcal(c = '${__dcnt}>1', a = '__val__')
+
+        subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
+
+        subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
+
+        return subcmd
+
+    def feature_hasdupmax(self, subcmd, args, common_args):
+        '''
+        calculates feature has_dup_max
+        '''
+        fld = args.get('f')
+        k = common_args.get('k')
+
+        resultcolname = self.generateFinalColName(args, common_args)
+
+        subcmd <<= nm.mcount(k = f'{k},{fld}', a = '__dcnt')
+
+        subcmd <<= nm.mbest(k = k, s = f'{fld}%nr', size = 1)    
+        subcmd <<= nm.mcal(c = '${__dcnt}>1', a = '__val__')
+
+        subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
+
+        subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
+
+        return subcmd
+    
+    def feature_hmean(self, subcmd, args, common_args):
+        '''
+        calculates feature hmean
+        '''
+        fld = args.get('f')
+        k = common_args.get('k')
+        precision = common_args.get('precision')
+
+        resultcolname = self.generateFinalColName(args, common_args)
+            
+        flags = None 
+
+        flags <<= nm.msummary(i = subcmd, c = 'min', k = k, f = fld)
+        flags <<= nm.mcal(a = '__hasnegative', c = '${min}<0')
+        flags <<= nm.mcal(a = '__haszero', c = '${min}==0') 
+
+        subcmd <<= nm.mcal(a = f'{fld}_inv', c = f'1/${{{fld}}}')
+
+        subcmd <<= nm.msummary(c = 'sum,count', f = f'{fld}_inv', k = k)
+
+        subcmd <<= nm.mjoin(k = k, m = flags, f = '__hasnegative,__haszero')
+            
+        subcmd <<= nm.mcal(a = '__val__', c = 'if(${__hasnegative}==1,nulln(),if(${__haszero}==1,0,${count}/${sum}))',
+                            precision = precision)
+
+        subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
+
+        subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
+
+        return subcmd
+            
+    def feature_gmean(self, subcmd, args, common_args):
+        '''
+        calculates feature gmean
+        '''
+        fld = args.get('f')
+        k = common_args.get('k')
+        precision = common_args.get('precision')
+
+        resultcolname = self.generateFinalColName(args, common_args)
+
+        flags = None
+        flags <<= nm.msummary(i = subcmd, c = 'min', k = k, f = fld)
+        flags <<= nm.mcal(a = '__hasnegative', c = '${min}<0')
+        flags <<= nm.mcal(a = '__haszero', c = '${min}==0') 
+            
+        subcmd <<= nm.mcal(a = f'{fld}_ln', c = f'ln(${{{fld}}})')
+
+        subcmd <<= nm.msummary(c = 'mean', f = f'{fld}_ln', k = k)
+            
+        subcmd <<= nm.mjoin(k = k, m = flags, f = '__hasnegative,__haszero')
+
+        subcmd <<= nm.mcal(a = '__val__', c = 'if($b{__hasnegative},nulln(),if($b{__haszero},0,exp(${mean})))', 
+                        precision = precision)
+
         subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
 
         subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
