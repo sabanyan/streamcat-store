@@ -774,7 +774,7 @@ class RunsCommand(SCommand):
                 raise Exception('RunsCommandにNysolModuleまたはCommandException以外のデータ型が入力されました')
 
         if exception_exists:
-            # 処理を中断する
+            # ActivityCommandにSaverが生成したFrameと例外を渡す
             return rets
 
         # ディスクの空き容量を確認する
