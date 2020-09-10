@@ -113,6 +113,16 @@ class GroupByRemakeCommand(PCommand):
                      'checks' : [[self.checkParamOOB, {'low' : 0,
                                                        'high': 1}]]},
             }
+        elif s == 'supposts_str':
+            return [
+                    'rows',
+                    'miss',
+                    'strmin',
+                    'strmax',
+                    'strucount',
+                    'has_dup',
+                    'value_count'
+                    ]
         elif s == 'msum_calcs':
             return [
                 'sum',
@@ -529,30 +539,43 @@ class GroupByRemakeCommand(PCommand):
     def simplifyMsummary(self, msum_list):
         '''
         takes the parsed list of msummary calculations from raw arguments, and 
-        reduces it to the minimum length list
+        reduces it to the minimum length list,
+        with an exception for 'count', which is put into separate lists
         '''
         # input: [{f: valx, c: sum, a: sum},
         #         {f: valx, c: min, a: min}, ...
         
         # initialize a dict with {colname : [operations]}
         operations = {}
-         
+
+        # initialize count operations with {c_option : targets}
+        count_operations = {}
+                 
         # first, put all the operations to the same column in one dict
         # {f : val1, c: sum:sum,min:min,max:highest} etc.
         for row in msum_list:
             c_option = f'{row["c"]}:{row["a"]}'
             targetcol = row['f']
-            if targetcol in operations.keys():
-                if c_option not in operations[targetcol]:
-                    operations[targetcol].append(c_option)
+
+            if row['c'] == 'count':
+                if c_option in count_operations.keys():
+                    if targetcol not in count_operations[c_option]:
+                        count_operations[c_option].append(targetcol)
                 else:
-                    # raise error
-                    errmsg = self.generateCommandErrorMessage('CalcConflictError', 'c', c_option)
-                    raise Exception(errmsg)
-                continue
+                    count_operations[c_option] = [targetcol]
+            
             else:
-                # initialize list
-                operations[targetcol] = [c_option]
+                if targetcol in operations.keys():
+                    if c_option not in operations[targetcol]:
+                        operations[targetcol].append(c_option)
+                    else:
+                        # raise error
+                        errmsg = self.generateCommandErrorMessage('CalcConflictError', 'c', c_option)
+                        raise Exception(errmsg)
+                    continue
+                else:
+                    # initialize list
+                    operations[targetcol] = [c_option]
         
         # sort operations lists to make sure sum,min == min,sum
         for col, op in operations.items():
@@ -571,11 +594,11 @@ class GroupByRemakeCommand(PCommand):
             else:
                 reverse_dict[op_str].append(col)
             
-            
-
         # finally construct final_list
         # [{'f': 'val1,val2', c: 'sum,min,max'}...]
         final_list = []
+        reverse_dict.update(count_operations)
+
         for op, target_list in reverse_dict.items():
             operation = {}
             
@@ -586,6 +609,99 @@ class GroupByRemakeCommand(PCommand):
             final_list.append(operation)
         
         return final_list
+
+    def nullifyNonNumber(self, flow, cols):
+        """
+        ●NYSOLの数値の表記の仕様
+        KSKP全体でみたときに不整合な状態にならないように
+        NYSOLが数値と判断するものだけを数値とみなすために、仕様の確認を行った。
+
+        当初はマニュアルの例を参考にしたが、
+        マニュアルの例から想像できないパターンも数値と判断されることがわかったため
+        実際にデータを作って確認し、推測した仕様をもとに実装した。
+
+        ●数値と判断される文字列の例
+        12, -12, +12, 12., 12.00, 0.12, .12, +.12, 0.12e, 0.12E, -.12E2, .12e+01
+
+        ●推測された仕様
+        条件(1)~(4)のいずれかを満たした文字列は、数値とみなす
+        (1)下記条件①と②の両方を満たす文字列
+        ①先頭に1個以下の符号(+または-)
+        ②1個以下の小数点(.)と、1個以上の数字(0-9)を持つ文字列
+        (2)(1)の末尾に、1個の指数記号(Eまたはe)を持つ文字列
+        (3)(2)の末尾に、1個以下の符号(+または-)を持つ文字列
+        (4)(3)の末尾に、０個以上の数字（0-9)を持つ文字列
+
+        ●数値判定のための正規表現(mcalのcオプションの引数として使う)
+        regexm($s{値},"^[+,-]?([0-9]+|(([0-9]+[.][0-9]*)|([0-9]*[.][0-9]+))([E,e][+,-]?[0-9]*)?)$")
+
+        【補足】条件との対応関係
+        条件      正規表現
+        (1)①      ^[+,-]?
+        (1)②      [0-9]+|(([0-9]+[.][0-9]*)|([0-9]*[.][0-9]+))
+        (2-4)    ([E,e][+,-]?[0-9]*)?
+        """
+        if isinstance(cols, str):
+            cols = cols.split(',')
+        
+        for col in cols:
+            # mark non-number rows
+            flow <<= nm.mcal(a = f'__numflag{col}__',
+              c = f'regexm($s{{{col}}},"^[+,-]?([0-9]+|(([0-9]+[.][0-9]*)|([0-9]*[.][0-9]+))([E,e][+,-]?[0-9]*)?)$")')
+            flow <<= nm.mcal(a = f'__notnullflag{col}__',
+              c = f'not(isnull(${{{col}}}))')
+            
+            # make new col with only number values and NULL
+            flow <<= nm.mcal(a = f'__new{col}__',
+                             c = f'if(${{__numflag{col}__}}==1,$s{{{col}}},nulls())')
+        
+        # delete old cols
+        flow <<= nm.mcut(f = cols, r = True)
+        flow <<= nm.mcut(f = '__numflag*__,__notnullflag*__', r = True)
+        
+        # rename new cols
+        flow <<= nm.mfldname(f = [f'__new{col}__:{col}' for col in cols])
+
+        return flow
+
+    def nullifyBadTime(self, flow, col, dateformat = 'date'):
+        '''
+        takes a data with time column, and deletes all rows with a time value
+        that does not pass the date format 
+        
+        details for this regex in https://kskds.docbase.io/posts/1317416
+        '''
+        if dateformat == 'date':
+            # checks if valid date
+            flow <<= nm.mcal(a = "__isvalidformat",
+                             c= f'regexm($s{{{col}}},"^(((([0-9]{{2}}(([2468][048])|([13579][26])|(0[48])))|((([02468][048])|([13579][26])|(0[048]))(00)))((((0[13578])|(1[02]))((0[1-9])|([1-2][0-9])|(3[01])))|(((0[469])|(11))((0[1-9])|([1-2][0-9])|(30)))|((02)((0[1-9])|([1-2][0-9])))))|([0-9]{{4}}((((0[13578])|(1[02]))((0[1-9])|([0-2][0-9])|(3[01])))|(((0[469])|(11))((0[1-9])|([0-2][0-9])|(30)))|((02)((0[1-9])|(1[0-9])|(2[0-8]))))))((([0-1][0-9])|(2[0-3]))([0-5][0-9]){{2}})([.][0-9]{{1,6}})?$")')
+
+            flow <<= nm.mcal(a = '__int__',
+                             c = f'if($s{{__isvalidformat}}=="1",regexstr($s{{{col}}},"^.{{14,14}}"),nulls())')
+        
+            flow <<= nm.mcal(a = f'__UXT__', 
+                    c = 'uxt( s2t($s{__int__}))')
+            
+            flow <<= nm.mcal(a = '__FLAC__', 
+                    c = f'if($s{{__isvalidformat}}=="1",regexstr($s{{{col}}},"[.][0-9]{{1,6}}$"),nulls())')
+            
+            flow <<= nm.mcal(a = 'finaltime',
+                    c = 'if( isnull($s{__FLAC__}), $s{__UXT__}, $s{__UXT__}+$s{__FLAC__} )')
+            
+            flow <<= nm.mcut(f = '__UXT__,__FLAC__,__isvalidformat', r = True)
+        else:
+            # checks if valid number
+            flow <<= nm.mcal(a = "__isvalidformat",
+                             c = f'regexm($s{{{col}}},"^[+,-]?([0-9]+|(([0-9]+[.][0-9]*)|([0-9]*[.][0-9]+))([E,e][+,-]?[0-9]*)?)$")')
+            flow <<= nm.mcal(a = 'finaltime',
+                             c = f'if($s{{__isvalidformat}}=="1",${{{col}}},nulln())')
+            flow <<= nm.mcut(f = '__isvalidformat', r = True)
+            
+        flow <<= nm.mdelnull(f = 'finaltime')
+        flow <<= nm.mcut(f = col, r = True)
+        flow <<= nm.mfldname(f = f'finaltime:{col}')
+        
+        return flow
 
     def parseArgs(self, raw_args):
         """
@@ -605,7 +721,7 @@ class GroupByRemakeCommand(PCommand):
         # nfclist
         # xfclist
         # xfcnlist
-        # dateformat -> 'date'
+        # dateformat -> 'date' or 'num'
         # format -> output columnnames
         # precision
         # nfno -> is this still necessary?
@@ -947,11 +1063,23 @@ class GroupByRemakeCommand(PCommand):
                 calctype = thiscalc.pop('type')
                 if calctype == 'msummary':
                     func = self.feature_msummary
+                    # if thiscalc is a count calc, remove nonnumbers
+                    if thiscalc['c'].startswith('count'):
+                        cmd[i] = self.nullifyNonNumber(cmd[i], thiscalc['f'])
+                    
                 else:
                     func = self.const('funcs')[thiscalc['c']]
                     # TODO perform checks
+                    # if the calc does not support strings (numbers only),
+                    # nullify all the nonnumber rows
+                    if thiscalc['c'] not in self.const('supports_str'):
+                        cmd[i] = self.nullifyNonNumber(cmd[i], thiscalc['f'])
 
-                
+                    # if the calc has a time column, clean up the rows with
+                    # invalid time
+                    if 'x' in thiscalc:
+                        cmd[i] = self.nullifyBadTime(cmd[i], thiscalc['f'],
+                                                     common_args['dateformat'])
 
                 # run the desired function
                 cmd[i] = func(cmd[i], thiscalc, common_args)
