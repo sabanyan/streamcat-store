@@ -113,7 +113,7 @@ class GroupByRemakeCommand(PCommand):
                      'checks' : [[self.checkParamOOB, {'low' : 0,
                                                        'high': 1}]]},
             }
-        elif s == 'supposts_str':
+        elif s == 'supports_str':
             return [
                     'rows',
                     'miss',
@@ -205,6 +205,12 @@ class GroupByRemakeCommand(PCommand):
             return {
                 # 0 fields (input k, a, fld)
                 'rows' : self.feature_rows,
+                # 1 field (input k, a, f)
+                'miss' : self.feature_miss,
+                'strucount' : self.feature_strucount,
+                'strmax' : self.feature_strmax,
+                'strmin' : self.feature_strmin,
+                'has_dup' : self.feature_hasdup,
                 'median_ad' : None, 
                 'quantile' : None,
                 'autocorr' : None,
@@ -212,17 +218,11 @@ class GroupByRemakeCommand(PCommand):
                 'range_count': None
                 }
             # return {
-            #     # 1 field (input k, a, f)
-            #     'miss' : self.missingdata,
             #     'rms' : self.rootmeansquare,
             #     'hmean' : self.harmonicmean,
             #     'gmean' : self.geometricmean,
             #     'var_gt_sd' : self.variance_larger_than_sd,
-            #     'strmax' : self.strmax,
-            #     'strmin' : self.strmin,
-            #     'strucount' : self.strucount,
             #     'abs_energy' : self.abs_energy, 
-            #     'has_dup' : self.hasduplicate,    
             #     'has_dup_max' : self.hasduplicatemin,
             #     'has_dup_min' : self.hasduplicatemax,
             #     'mean_ad' : self.meanabsolutedeviation,
@@ -494,11 +494,13 @@ class GroupByRemakeCommand(PCommand):
 
         return f'【コマンド：{commandname}】【オプション欄：{errfield}】{message}'
 
-    def generateFinalColName(self, formatstr, args):
+    def generateFinalColName(self, args, common_args):
         '''
         given the formatstring and the set of args for the calculation,
         returns the final output column name
         '''
+        formatstr = common_args.get('format')
+        
         if 'fld' in args:
             fldname = args['fld']
         else:
@@ -1104,12 +1106,11 @@ class GroupByRemakeCommand(PCommand):
         calculate the rows feature
         '''
         k = common_args.get('k')
-        formatstr = common_args['format']
         
-        finalcol = self.generateFinalColName(formatstr, args)
+        resultcolname = self.generateFinalColName(args, common_args)
         
         subcmd <<= nm.mcount(k = k, a = '__val__')
-        subcmd <<= nm.mcal(a = 'final_cols', c = f'"{finalcol}"')
+        subcmd <<= nm.msetstr(a = 'final_cols', v = resultcolname)
         subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
 
         return subcmd
@@ -1137,13 +1138,121 @@ class GroupByRemakeCommand(PCommand):
         
         return subcmd 
     
+    def feature_miss(self, subcmd, args, common_args):
+        '''
+        calculate missing value count feature
+        '''
+        f = args.get('f')
+        k = common_args.get('k')
+
+        resultcolname = self.generateFinalColName(args, common_args)
+
+        allrows = None
+        
+        allrows <<= nm.mcount(i = subcmd, k = k, a = '__allrows')
+
+        subcmd <<= nm.msummary(k = k, f = f, c = 'count:__count')
+        subcmd <<= nm.mnjoin(k = k, m = allrows, f = '__allrows')
+
+        subcmd <<= nm.mcal(a = '__missingcount', c = '${__allrows}-${__count}')
+        subcmd <<= nm.mcal(a = '__val__', c = '$s{__missingcount}')
+        subcmd <<= nm.msetstr(a = 'final_cols', v = resultcolname)
+
+        subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
+
+        return subcmd
+
+    def feature_strucount(self, subcmd, args, common_args):
+        '''
+        calculates feature strucount
+        '''
+        fld = args.get('f')
+        k = common_args.get('k')
+
+        resultcolname = self.generateFinalColName(args, common_args)
+
+        subcmd <<= nm.muniq(k = f'{k},{fld}') 
+        subcmd <<= nm.mcount(k = k, a = '__val__')
+        subcmd <<= nm.msetstr(a = 'final_cols', v = resultcolname)
+        subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
+
+        return subcmd
+
+    def feature_strmin(self, subcmd, args, common_args):
+        '''
+        calculate feature strmin
+        '''
+        fld = args.get('f')
+        k = common_args.get('k')
+
+        resultcolname = self.generateFinalColName(args, common_args)
+
+        subcmd <<= nm.mkeybreak(k = k, s = fld)
+        subcmd <<= nm.mcal(a = 'fld', c = f'if($s{{top}}=="1","{fld}",nulls())')
+        subcmd <<= nm.mcal(a = '__val__', c = f'if($s{{top}}=="1",$s{{{fld}}},nulls())')
+        subcmd <<= nm.msel(c = f'$s{{top}}=="1"')
+
+        subcmd <<= nm.msetstr(a = 'final_cols', v = resultcolname)
+
+        subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
+
+        return subcmd
+
+    def feature_strmax(self, subcmd, args, common_args):
+        '''
+        calculate feature strmax
+        '''
+        fld = args.get('f')
+        k = common_args.get('k')
+
+        resultcolname = self.generateFinalColName(args, common_args)
+
+        subcmd <<= nm.mkeybreak(k = k, s = fld)
+        subcmd <<= nm.mcal(a = 'fld', c = f'if($s{{bot}}=="1","{fld}",nulls())')
+        subcmd <<= nm.mcal(a = '__val__', c = f'if($s{{bot}}=="1",$s{{{fld}}},nulls())')
+        subcmd <<= nm.msel(c = f'$s{{bot}}=="1"')
+
+        subcmd <<= nm.msetstr(a = 'final_cols', v = resultcolname)
+
+        subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
+
+        return subcmd
+    
+    def feature_hasdup(self, subcmd, args, common_args):
+        '''
+        calculates the flag feature has duplicate 
+        '''
+        fld = args.get('f')
+        k = common_args.get('k')
+
+        resultcolname = self.generateFinalColName(args, common_args)
+        subcmd_o = None
+
+        total = nm.mcount(k = f'{k},{fld}', a = '__dcnt', i = subcmd)
+
+        msummary = nm.msummary(k = k, f = fld, c = 'count:__count',
+                                    i = subcmd)
+
+        subcmd_o <<= nm.mcount(k = k, a = '__ddcnt', i = total)
+        subcmd_o <<= nm.msetstr(a = 'fld', v = fld)
+        subcmd_o <<= nm.mnjoin(k = f'{k},fld', f = '__count', m = msummary)
+        subcmd_o <<= nm.mcal(c = '${__ddcnt}!=${__count}', a = '__val__')
+
+        subcmd_o <<= nm.msetstr(v = resultcolname, a = 'final_cols')
+
+        subcmd_o <<= nm.mcut(f = f'{k},final_cols,__val__')
+
+        return subcmd_o
+
+
     def run(self, args, inputs):
-        # set up tmp file
-        # generate tmp file name
+        # first off, make copies of the inputs
+        args = copy.deepcopy(args)
+        inputs = copy.deepcopy(inputs)
         
         # TODO fix tmpfile handling
         file_uuid = str(uuid.uuid4())
-        initialfile = f'/tmp/initfile_groupby_{file_uuid}.csv'
+        initialfile = f'/tmp/groupby_initfile_{file_uuid}.csv'
         # run everything up til now, and then save into the file
         self.dumpToFile(inputs['i'].content, initialfile)
 
