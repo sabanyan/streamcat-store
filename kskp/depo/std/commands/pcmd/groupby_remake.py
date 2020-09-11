@@ -201,6 +201,11 @@ class GroupByRemakeCommand(PCommand):
                 'varf',
                 'fft_agg'
             ] 
+        elif s == 'runfunc_calcs':
+            return {
+                'varf' : self.feature_frequencyvar,
+                'meanf': self.feature_meanfrequency
+            }
         elif s == 'funcs':
             return {
                 # 0 fields (input k, a, fld)
@@ -233,32 +238,32 @@ class GroupByRemakeCommand(PCommand):
                 'large_sd' : self.feature_largesd,
                 'ratio_beyond_rsigma' : self.feature_ratiogtrsigma,
                 'binned_entropy' : self.feature_binnedentropy,
-                'quantile' : None,
-                'autocorr' : None,
-                'range_count': None
+                'quantile' : self.feature_quantile,
+                'range_count': self.feature_rangecount,
+                # 1 field + time (input k, a, f, x)
+                'slope' : self.feature_slope,
+                'slope_pearson' : self.feature_pearson,
+                'mean_second_derivative_central' : self.feature_M2DC,
+                'mean_change' : self.feature_meanchange,
+                'mean_abs_change' : self.feature_meanabschange,
+                'abs_sum_changes' : self.feature_abssumchanges,
+                'integral' : self.feature_integral,
+                'meanf' : self.feature_runfuncwrapper,
+                'varf' : self.feature_runfuncwrapper,
+                'end' : None
                 }
             # return {
-            #     'value_count' : self.value_count,
-            #     'range_count' : self.range_count,
-            #     'quantile' : self.quantile,
-            #     # 1 field + time (input k, a, f, x)
-            #     'integral' : self.integral,
             #     'meanf' : self.meanfrequency,
             #     'varf' : self.frequencyvar,
             #     'fft_agg' : self.fft_agg,
             #     'slope' : self.slope,
-            #     'slope_pearson' : self.pearson,
             #     'firstmin' : self.firstmin,
             #     'firstmax' : self.firstmax,
             #     'lastmin' : self.lastmin,
             #     'lastmax' : self.lastmax,
-            #     'mean_change' : self.meanchange,
-            #     'mean_abs_change' : self.meanabschange,
-            #     'abs_sum_changes' : self.abs_sum_of_changes, 
             #     'autocorr_agg' : self.autocorrelation_agg,
             #     'longest_strike_above_mean' : self.longeststrikeabovemean,
             #     'longest_strike_below_mean' : self.longeststrikebelowmean,
-            #     'mean_second_derivative_central' : self.mean2ndderivative_central,
             #     'energy_ratio_by_chunks' : self.energy_ratio_by_chunks,
             #     # 2+1 fields
             #     'imq' : self.index_mass_quantile,
@@ -1050,7 +1055,7 @@ class GroupByRemakeCommand(PCommand):
 
         batch_size = int(common_args.pop('batch_size'))
         batches = ceil(len(all_calcs) / batch_size)
-
+        
         # run each batch
         # calculate each from a formatted command list
         for batchnum in range(batches):
@@ -1098,7 +1103,6 @@ class GroupByRemakeCommand(PCommand):
                 cmd[i] = func(cmd[i], thiscalc, common_args)
                 # output of func is of the form:
                 # keys, final_cols, __val__
-
                 
             CALC_RES_TMP = Tmp.create_file()
             
@@ -1109,6 +1113,16 @@ class GroupByRemakeCommand(PCommand):
             
         return file_list
 
+        
+    def feature_runfuncwrapper(self, subcmd, args, common_args):
+        '''
+        wrapper function for runfunc features
+        '''
+        func = self.const('runfunc_calcs')[args['c']]
+        
+        subcmd <<= nm.runfunc(func, subcmd=subcmd, args=args, common_args=common_args)
+        
+        return subcmd
         
     # データセットに対する特徴量
     def feature_rows(self, subcmd, args, common_args):
@@ -1753,7 +1767,7 @@ class GroupByRemakeCommand(PCommand):
 
     def feature_binnedentropy(self, subcmd, args, common_args):
         '''
-        template for feature funcs
+        calculate feature binned_entropy
         '''
         fld = args.get('f')
         n = args.get('n')
@@ -1777,7 +1791,8 @@ class GroupByRemakeCommand(PCommand):
         subcmd <<= nm.mcut(f = f'{k},fld,__probs')
 
         subcmd <<= nm.msum(k = f'{k},fld', f = '__probs')
-        subcmd <<= nm.mcal(c = '${__probs}*-1', a = '__val__')
+        subcmd <<= nm.mcal(c = '${__probs}*-1', a = '__val__', 
+                           precision = precision)
 
         subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
 
@@ -1785,12 +1800,382 @@ class GroupByRemakeCommand(PCommand):
 
         return subcmd
     
+    def feature_quantile(self, subcmd, args, common_args):
+        '''
+        calculate feature quantile
+        '''
+        fld = args.get('f')
+        n = args.get('n')
+        k = common_args.get('k')
+        precision = common_args.get('precision')
+
+        resultcolname = self.generateFinalColName(args, common_args)
+
+        precalcs = None
+        subcmd_o = None
+
+        precalcs <<= nm.mnumber(i = subcmd, s = f'{fld}%n', k = k, 
+                                    a = '__qtNo', S = 1)
+        precalcs <<= nm.msortf(f = f'{k},__qtNo')
+
+        subcmd_o <<= nm.msummary(f = fld, c = 'count:__count', k = k, i = subcmd)
+        subcmd_o <<= nm.mcal(a = '__qtRate', c = f'if(${{__count}}==0,nulln(),{n})')
+        subcmd_o <<= nm.mcal(a = '__T', c = '1-${__qtRate}+${__count}*${__qtRate}')
+        subcmd_o <<= nm.mcal(a = '__T1', c = 'int(${__T})')
+        subcmd_o <<= nm.mcal(a = '__T2', c = 'if(fract(${__T})==0,${__T1},${__T1}+1)')
+
+        subcmd_o <<= nm.mnjoin(k = f'{k},__T1', K = f'{k},__qtNo',
+                                f = f'{fld}:__{fld}X1', m = precalcs, n = True)
+        subcmd_o <<= nm.mnjoin(k = f'{k},__T2', K = f'{k},__qtNo',
+                                f = f'{fld}:__{fld}X2', m = precalcs, n = True)
+        subcmd_o <<= nm.mcal(a = '__val__', precision = precision,
+                             c = f'if(${{__T1}}==${{__T2}},${{__{fld}X1}},(${{__T2}}-${{__T}})*${{__{fld}X1}}+(${{__T}}-${{__T1}})*${{__{fld}X2}})')
+
+        subcmd_o <<= nm.msetstr(v = resultcolname, a = 'final_cols')
+
+        subcmd_o <<= nm.mcut(f = f'{k},final_cols,__val__')
+
+        return subcmd_o
+
+    def feature_rangecount(self, subcmd, args, common_args):
+        '''
+        calculate feature range_count
+        '''
+        fld = args.get('f')
+        nmin, nmax = args.get('n').split(';')
+        k = common_args.get('k')
+
+        resultcolname = self.generateFinalColName(args, common_args)
+
+        subcmd <<= nm.mcal(a = '__inrange',
+            c = f'${{{fld}}}>={float(nmin)} && ${{{fld}}} < {float(nmax)}')
+        subcmd <<= nm.msum(k = k, f = f'__inrange:__val__')
+
+        subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
+
+        subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
+
+        return subcmd
+       
+    # ２つの変数に対する特徴量
+    def feature_slope(self, subcmd, args, common_args):
+        '''
+        calculate feature slope
+        '''
+        fld = args.get('f')
+        x = args.get('x')
+        k = common_args.get('k')
+        precision = common_args.get('precision')
+
+        resultcolname = self.generateFinalColName(args, common_args)
+
+        xy_covar = nm.msim(k = k, i = subcmd, f = f'{x},{fld}', 
+                           c = 'covar:__covar')
+
+        subcmd <<= nm.mstats(k = k, c = 'var', f = f'{x}:__Sxx')
+
+        subcmd <<= nm.mjoin(k = k, m = xy_covar, f = '__covar')
+
+        subcmd <<= nm.mcal(c = '${__covar}/${__Sxx}', a = '__val__',
+                           precision = precision)
+
+        subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
+
+        subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
+
+        return subcmd
+        
+    def feature_pearson(self, subcmd, args, common_args):
+        '''
+        calculate feature slope_pearson
+        '''
+        fld = args.get('f')
+        x = args.get('x')
+        k = common_args.get('k')
+        precision = common_args.get('precision')
+
+        resultcolname = self.generateFinalColName(args, common_args)
+
+        subcmd <<= nm.msim(k = k, c = 'pearson:__val__', 
+                           f = f'{x},{fld}', a = 'fld2,fld',
+                           precision = precision)
+
+        subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
+
+        subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
+
+        return subcmd
+        
+    def feature_M2DC(self, subcmd, args, common_args):
+        '''
+        calculate fature mean second derivative (central approx)
+        '''
+        fld = args.get('f')
+        x = args.get('x')
+        k = common_args.get('k')
+        precision = common_args.get('precision')
+
+        resultcolname = self.generateFinalColName(args, common_args)
+
+        subcmd <<= nm.mslide(k = k, s = f'{x}%n', f = f'{fld}:__shifted{fld}',
+                             t = 2)
+        subcmd <<= nm.mcal(c = f'(${{__shifted{fld}2}}-2*${{__shifted{fld}1}}+${{{fld}}})', 
+                           a = '__val__')
+        subcmd <<= nm.mavg(k = k, f = '__val__', precision = precision)
+
+        subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
+
+        subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
+
+        return subcmd
+        
+    def feature_meanchange(self, subcmd, args, common_args):
+        '''
+        calculate feature mean_change
+        '''
+        fld = args.get('f')
+        x = args.get('x')
+        k = common_args.get('k')
+        precision = common_args.get('precision')
+
+        resultcolname = self.generateFinalColName(args, common_args)
+
+        subcmd <<= nm.mslide(k = k, s = f'{x}%n', f = f'{fld}:__shifted{fld}')
+        subcmd <<= nm.mcal(c = f'${{__shifted{fld}}}-${{{fld}}}', a = '__val__')
+        subcmd <<= nm.mavg(k = k, f = '__val__', precision = precision)
+
+        subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
+
+        subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
+
+        return subcmd
+
+    def feature_meanabschange(self, subcmd, args, common_args):
+        '''
+        calculate feature mean_abs_change
+        '''
+        fld = args.get('f')
+        x = args.get('x')
+        k = common_args.get('k')
+        precision = common_args.get('precision')
+
+        resultcolname = self.generateFinalColName(args, common_args)
+
+        subcmd <<= nm.mslide(k = k, s = f'{x}%n', f = f'{fld}:__shifted{fld}')
+        subcmd <<= nm.mcal(c = f'abs(${{__shifted{fld}}}-${{{fld}}})', a = '__val__')
+        subcmd <<= nm.mavg(k = k, f = '__val__', precision = precision)
+
+        subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
+
+        subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
+
+        return subcmd
+
+    def feature_abssumchanges(self, subcmd, args, common_args):
+        '''
+        calculate feature abs_sum_changes
+        '''
+        fld = args.get('f')
+        x = args.get('x')
+        k = common_args.get('k')
+        precision = common_args.get('precision')
+
+        resultcolname = self.generateFinalColName(args, common_args)
+
+        subcmd <<= nm.msortf(f = f'{k},{x}%n')
+        subcmd <<= nm.mcal(c = f'abs(${{{fld}}}-#{{{fld}}})', a = f'__absdiff')
+            
+        subcmd <<= nm.msum(k = k, f = '__absdiff:__val__', 
+                           precision = precision) 
+
+        subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
+
+        subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
+
+        return subcmd
+
+    def feature_integral(self, subcmd, args, common_args):
+        '''
+        calculates integral via trapezoid rule
+        '''
+        fld = args.get('f')
+        x = args.get('x')
+        k = common_args.get('k')
+        precision = common_args.get('precision')
+
+        resultcolname = self.generateFinalColName(args, common_args)
+
+        # get keybreak points
+        subcmd <<= nm.msortf(f = k)
+        subcmd <<= nm.mkeybreak(k = k, s = f'{x}%n')
+
+        # if not top of section, get time step length, else null
+        subcmd <<= nm.mcal(a = 'time_step', 
+                        c = f'if(isnull(${{top}}),${{{x}}}-#{{{x}}},nulln())')
+
+        # if not top of section, add current and previous value, else null
+        subcmd <<= nm.mcal(a = f'{fld}_partial_sum', 
+                c = f'if(isnull(${{top}}),${{{fld}}}+#{{{fld}}},nulln())')
+
+        # trapezoid rule: (((partialsum)/2)*step size)
+        subcmd <<= nm.mcal(a = f'{fld}_trap', 
+                c = f'(${{{fld}_partial_sum}}/2)*${{time_step}}')
+
+        # sum over each key
+        subcmd <<= nm.msum(k = k, f = f'{fld}_trap:__val__', 
+                           precision = precision)
+
+        subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
+
+        subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
+
+        return subcmd
+
+    # TODO figure out how to decorate these instead? 
+    def feature_meanfrequency(self, subcmd, args, common_args):
+        '''
+        calculate meanfrequency
+        '''
+        # body of this method adapted from:
+        # github.com/nysol/nysol_python/blob/master/scripts/sample/mkfeature.py
+        try:
+            import math
+            import numpy as np
+            
+            f = args.get('f')
+            x = args.get('x')
+            k = common_args.get('k')
+            precision = common_args.get('precision')
+            
+            resultcolname = self.generateFinalColName(args, common_args)
+
+            headerline = True
+
+            for dlist in nm.mstdin().keyblock(f'{k}', f'{x}%n', header = True):
+                id = ','.join(dlist[0][:len(k.split(','))])
+
+                if headerline:
+                    header = dlist[0]
+                    print(f'{k},final_cols,__val__')
+                    headerline = False
+
+                else:
+                    for fld in f.split(','):
+                        f_loc = header.index(fld)
+
+                        # valuetype check goes here
+                        targetcol = []
+                        for line in dlist:
+                            # input cleanup goes here
+                            try:
+                                # if the value can be converted to float, included
+                                targetcol.append(float(line[f_loc]))
+                            except ValueError:
+                                # otherwise, place nan
+                                targetcol.append(float('nan'))
+
+                        if targetcol == []:
+                            print(f'{id},{resultcolname},')
+                        else:
+                            y = np.abs(np.fft.rfft(targetcol))
+
+                            mean = y.dot(np.arange(len(y)))/y.sum()
+
+                            # output cleanup goes here
+                            if (mean is None) or (mean == '') or (mean ==  'None'):
+                                # print empty string
+                                print(f'{id},{resultcolname},')
+                            else:
+                                if np.isfinite(float(mean)):
+                                    print(f'{id},{resultcolname},{mean:.{precision}g}')
+                                else:
+                                    print(f'{id},{resultcolname},')
+
+            sys.__stdout__.flush()#not needed for bigger data
+
+        except Exception as e:
+            import traceback
+            with open('/dev/stderr', 'w') as fpe:
+                traceback.print_exc(file=fpe)
+                
+    def feature_frequencyvar(self, subcmd, args, common_args):
+        '''
+        calculate frequencyvariance
+        '''
+        # body of this method adapted from:
+        # github.com/nysol/nysol_python/blob/master/scripts/sample/mkfeature.py
+        try:
+            import math
+            import numpy as np
+
+            print(args, file = sys.stderr)
+
+            f = args.get('f')
+            x = args.get('x')
+            k = common_args.get('k')
+            precision = common_args.get('precision')
+            
+            resultcolname = self.generateFinalColName(args, common_args)
+
+            headerline = True
+
+            for dlist in nm.mstdin().keyblock(f'{k}', f'{x}%n', header = True):
+                id = ','.join(dlist[0][:len(k.split(','))])
+
+                if headerline:
+                    header = dlist[0]
+                    print(f'{k},final_cols,__val__')
+                    headerline = False
+
+                else:
+                    for fld in f.split(','):
+                        f_loc = header.index(fld)
+
+                        # valuetype check goes here
+                        targetcol = []
+                        for line in dlist:
+                            # input cleanup goes here
+                            try:
+                                # if the value can be converted to float, included
+                                targetcol.append(float(line[f_loc]))
+                            except ValueError:
+                                # otherwise, place nan
+                                targetcol.append(float('nan'))
+
+                        if targetcol == []:
+                            print(f'{id},{resultcolname},')
+                        else:
+                            y = np.abs(np.fft.rfft(targetcol))
+
+                            mean = y.dot(np.arange(len(y)))/y.sum()
+
+                            moment2 = y.dot(np.arange(len(y))**2)/y.sum()
+                            variance = moment2 - mean ** 2
+
+                            # output cleanup goes here
+                            if (variance is None) or (variance == '') or (variance ==  'None'):
+                                # print empty string
+                                print(f'{id},{resultcolname},')
+                            else:
+                                if np.isfinite(float(variance)):
+                                    print(f'{id},{resultcolname},{variance:.{precision}g}')
+                                else:
+                                    print(f'{id},{resultcolname},')
+
+            sys.__stdout__.flush()#not needed for bigger data
+
+        except Exception as e:
+            import traceback
+            with open('/dev/stderr', 'w') as fpe:
+                traceback.print_exc(file=fpe)
+
     def feature_(self, subcmd, args, common_args):
         '''
         template for feature funcs
         '''
         fld = args.get('f')
         n = args.get('n')
+        x = args.get('x')
         k = common_args.get('k')
         precision = common_args.get('precision')
 
@@ -1845,7 +2230,8 @@ class GroupByRemakeCommand(PCommand):
                     relevant_cols.add(fld)
 
             if 'x' in calc:
-                relevant_cols.add(calc['x'].split(',')) 
+                for x in calc['x'].split(','):
+                    relevant_cols.add(x)
 
         cmd <<= nm.mcut(f = list(relevant_cols))
         
