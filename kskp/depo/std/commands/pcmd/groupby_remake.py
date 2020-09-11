@@ -1059,7 +1059,8 @@ class GroupByRemakeCommand(PCommand):
             
             # iterate per calc in batch
             for i in range(batch_size):
-                calcnum = batchnum + i
+                calcnum = (batchnum * batch_size) + i
+                
                 try:
                     # try to get next calculation
                     thiscalc = all_calcs[calcnum]
