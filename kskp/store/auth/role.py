@@ -272,3 +272,12 @@ class Role(BaseModel):
             'creator'  : self.creator_str,
             'createdAt': self.created_at_str
         }
+
+    def __repr__(self):
+        return f'Role({self.id}, {self.name})'
+
+    def __eq__(self, other):
+        return self.uuid == other.uuid
+
+    def __ne__(self, other):
+        return self.uuid != other.uuid

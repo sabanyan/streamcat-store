@@ -111,13 +111,13 @@ with UnAuthzFactory() as unauthz_factory:
     sys_admin_user = unauthz_factory.load_sys_admin_user()
     usr_admin_user = unauthz_factory.load_usr_admin_user()
 
-    # User.load_self_role()でsys_admin_userオブジェクトを更新するため
-    # Factoryでsys_amdin_userをリロードする
-    with Factory(sys_admin_user) as factory:
-        sys_admin_user = factory.user.find_by_id(sys_admin_user.id)
+    # User.load_self_role()でusr_admin_userオブジェクトを更新するため
+    # Factoryでusr_admin_userをリロードする
+    with Factory(usr_admin_user) as factory:
+        usr_admin_user = factory.user.find_by_id(usr_admin_user.id)
 
         # システムフォルダを作成する
-        with Factory(sys_admin_user) as factory:
+        with Factory(usr_admin_user) as factory:
             factory.data.load_cache_folder()
             factory.data.load_trash_folder()
 

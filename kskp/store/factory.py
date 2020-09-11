@@ -1,3 +1,5 @@
+from os import read, write
+from re import T
 from typing import Union
 from kskp.core import Datum
 from kskp.store.folder import Folder
@@ -166,7 +168,6 @@ class DatumFactory():
         指定されたidを持つDatumを取得する
         """
         from kskp.store import NoResultFound
-        from kskp.core import Datum
         query = self._session.query(Datum).filter(Datum.id==id)
 
         if type is not None:
@@ -186,7 +187,6 @@ class DatumFactory():
         指定されたuuidを持つDatumを取得する
         """
         # UUID値の形式チェックをする
-        from kskp.core import Datum
         from kskp.store import NoResultFound
         Datum.valid_uuid_or_raise(uuid)
 
@@ -204,15 +204,23 @@ class DatumFactory():
 
         return datum
 
+    def find_all(self, type=None) -> Datum:
+        """
+        全てのDatumを取得する
+        """
+        from sqlalchemy import desc
+        query = self._session.query(Datum)
+        if type is not None:
+            query = query.filter(Datum.type==type)
+        return query.order_by(Datum.type, desc(Datum.created_at)).all()
+
     def count_root(self) -> int:
-        from kskp.core import Datum
         return self._session.query(Datum).filter(Datum.parent_id == None).count()
 
     def find_root(self) -> Union[Folder, None]:
         """
         親を持たないfolderレコードを全て取得する
         """
-        from kskp.core import Datum
         roots = self._session.query(Datum).filter(Datum.parent_id == None).all()
 
         if len(roots) == 0 :
@@ -229,7 +237,6 @@ class DatumFactory():
         """
         ゴミ箱を取得する
         """
-        from kskp.core import Datum
         trashcan = self._session.query(Datum).filter(Datum.type==Datum.TRASH_TYPE).one_or_none()
         if trashcan is None:
             raise Exception('no trush can is found by designated id.')
@@ -241,7 +248,6 @@ class DatumFactory():
         no_inputs  =False : 入力ポートのないサブフローは取得しない
         no_outputs =False : 出力ポートのないサブフローは取得しない
         """
-        from kskp.core import Datum
         # FIXIT : PostgreSQLのJSONB演算子を用いればSQLのみでサブフローを抽出できるはず
         flows = self._session.query(Datum).filter(Datum.type==Datum.FLOW_TYPE).all()
 
@@ -276,53 +282,49 @@ class DatumFactory():
             new_root = self.create_root(label='ライブラリ')
             # folderレコードをDBに格納する
             new_root.save()
-
-            # 
-            # ルートフォルダにAdminロールの権限設定がない場合、初期値を設定する
-            # (後方互換)
-            # 
-            from kskp.store.factory import RoleFactory, AuthFactory
-            role_factory = RoleFactory(self._session)
-            auth_factory = AuthFactory(self._session)
-
-            admin_role = role_factory.load_sys_admin_role()
-            admin_role.join_user(self._session.user)
-            if not auth_factory.exists(admin_role.id, new_root.id):
-                admin_role.init_authz(new_root.id, True, True, exec=True)
-
-            # 
-            # ルートフォルダにEveryOneロールの権限設定がない場合、初期値を設定する
-            # (後方互換)
-            # 
-            everyone_role = role_factory.load_everyone_role()
-            everyone_role.join_user(self._session.user)
-            if not auth_factory.exists(everyone_role.id, new_root.id):
-                everyone_role.init_authz(new_root.id, True, True, exec=True)
-
+            # Rootフォルダは、everyoneにRWX権限、usr_adminにO権限を設定する
+            self._permit_to_everyone(new_root.id, read=True, write=True, exec=True)
+            self._permit_to_usradmin(new_root.id, own=True)
+            # 作成ユーザの権限を全て削除する
+            self._delete_self_auth(new_root)
             # 参照権限設定後にもう一度取得し直す
-            root = self.find_by_uuid(new_root.uuid)
+            root = new_root.reload()
         return root
-
-    def load_result_folder(self):
-        """
-        実行結果フォルダを取得する、存在しない場合は作成する
-        """
-        from kskp.core import Datum
-        return self._get_or_make_dir_path(Datum.RESULT_FOLDER_UUID, Datum.RESULT_FOLDER_LABEL)
 
     def load_cache_folder(self):
         """
         キャッシュフォルダを取得する、存在しない場合は作成する
         """
-        from kskp.core import Datum
-        return self._get_or_make_dir_path(Datum.CACHE_FOLDER_UUID, Datum.CACHE_FOLDER_LABEL)
+        # 特定用途のフォルダのUUIDは決め打ちである
+        uuid = Datum.CACHE_FOLDER_UUID
+        label = Datum.CACHE_FOLDER_LABEL
+
+        if self.exists(uuid):
+            return self.find_by_uuid(uuid)
+        else:
+            folder = self._make_system_folder(uuid, label)
+            # キャッシュフォルダは、everyoneにRW権限、user_admin権限にOを設定する
+            self._permit_to_everyone(folder.id, read=True, write=True)
+            self._permit_to_usradmin(folder.id, own=True)
+            # 作成ユーザの権限を全て削除する
+            self._delete_self_auth(folder)
+            # 参照権限設定後にもう一度取得し直す
+            return folder.reload()
 
     def load_flow_folder(self):
         """
         フローフォルダを取得する、存在しない場合は作成する
+        TODO: フローフォルダは使わなくなりました(廃止予定)
         """
-        from kskp.core import Datum
-        return self._get_or_make_dir_path(Datum.FLOW_FOLDER_UUID, Datum.FLOW_FOLDER_LABEL)
+        # 特定用途のフォルダのUUIDは決め打ちである
+        uuid = Datum.FLOW_FOLDER_UUID
+        label = Datum.FLOW_FOLDER_LABEL
+
+        if self.exists(uuid):
+            return self.find_by_uuid(uuid)
+        else:
+            folder = self._make_system_folder(uuid, label)
+            return folder.reload()
 
     def load_trash_folder(self):
         """
@@ -336,24 +338,41 @@ class DatumFactory():
             root = self.load_root()
             trash = root.create_trashcan()
             trash.save()
+            # ゴミ箱は、everyoneにRW権限、user_admin権限にOを設定する
+            self._permit_to_everyone(trash.id, read=True, write=True)
+            self._permit_to_usradmin(trash.id, own=True)
+            # 作成ユーザの権限を全て削除する
+            self._delete_self_auth(trash)
+            # 参照権限設定後にもう一度取得し直す
             return trash.reload()
 
-    def _get_or_make_dir_path(self, uuid, label) -> Folder:
-        # 特定用途のフォルダのUUIDは決め打ちである
-        if self.exists(uuid):
-            return self.find_by_uuid(uuid)
-        else:
-            # UUID値の形式チェックをする
-            from kskp.core import Datum
-            Datum.valid_uuid_or_raise(uuid)
+    def _make_system_folder(self, uuid, label):
+        # UUID値の形式チェックをする
+        Datum.valid_uuid_or_raise(uuid)
+        # フォルダを作成する
+        root = self.load_root()
+        folder = root.create_folder(label)
+        # Folderのコンストラクタで付番したUUIDを捨てて、特定用途のフォルダのUUIDを格納する
+        folder.uuid = uuid
+        folder.save()
+        return folder
 
-            # フォルダが無い場合は作成する
-            root = self.load_root()
-            folder = root.create_folder(label)
-            # Folderのコンストラクタで付番したUUIDを捨てて、特定用途のフォルダのUUIDを格納する
-            folder.uuid = uuid
-            folder.save()
-            return folder.reload()
+    def _permit_to_usradmin(self, datum_id, read=None, write=None, exec=None, own=None):
+        # usr_adminロールを取得する
+        usr_admin_role = RoleFactory(self._session).load_usr_admin_role()
+        # usr_adminロールへDatumの権限を付与する
+        usr_admin_role.init_authz(datum_id, read=read, write=write, exec=exec, own=own)
+
+    def _permit_to_everyone(self, datum_id, read=None, write=None, exec=None):
+        # everyoneロールを取得する
+        everyone_role = RoleFactory(self._session).load_everyone_role()
+        # everyoneロールへDatumの権限を付与する
+        everyone_role.init_authz(datum_id, read=read, write=write, exec=exec)
+
+    def _delete_self_auth(self, datum):
+        # 作成者(creator)の本人ロールからDatumの権限を削除する
+        self_role = datum.creator.load_self_role()
+        self_role.clear_authz(datum.id)
 
     def get_flows_referencing_frame(self, frame_uuid):
         """
@@ -373,7 +392,6 @@ class DatumFactory():
         """
         指定されたuuidを持つDatumが存在する場合はTrueを返す
         """
-        from kskp.core import Datum
         # UUID値の形式チェックをする
         if not Datum.is_valid_uuid(uuid):
             return False
@@ -389,7 +407,6 @@ class DatumFactory():
         """
         指定されたidを持つDatumが存在する場合はTrueを返す
         """
-        from kskp.core import Datum
         query = self._session.query(Datum).filter(Datum.id==id)
 
         if type is not None:
@@ -401,7 +418,6 @@ class DatumFactory():
         """
         ゴミ箱が存在する場合はTrueを返す
         """
-        from kskp.core import Datum
         result = self._session.query(Datum).filter(Datum.type==Datum.TRASH_TYPE).count()
         return result > 0
 
@@ -409,7 +425,6 @@ class DatumFactory():
         """
         ゴミ箱の中にある場合はTrueを返す
         """
-        from kskp.core import Datum
         sql = f"""
         WITH RECURSIVE R AS (
             SELECT id, parent_id, uuid, type, path FROM data WHERE uuid = '{uuid}'
@@ -475,7 +490,7 @@ class AuthFactory():
     def find_all_by_datum_id(self, datum_id):
         from kskp.store.auth import Auth
         query = self._session.query(Auth).filter(Auth.datum_id==datum_id)
-        return query.all()
+        return query.order_by(Auth.role_id, Auth.operation).all()
 
     def exists(self, role_id, datum_id, operation=None) -> bool:
         from kskp.store.auth import Auth
@@ -624,7 +639,6 @@ class UserFactory():
 
     def find_by_uuid(self, uuid) -> User:
         # UUID値の形式チェックをする
-        from kskp.core import Datum
         Datum.valid_uuid_or_raise(uuid)
         user = self._session.query(User).filter(User.uuid==uuid).one()
         return user

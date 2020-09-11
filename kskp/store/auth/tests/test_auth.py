@@ -707,7 +707,6 @@ class AuthTest(TestCaseBase):
         flow = from_folder.create_flow('フローA', {})
         flow.save()
 
-        
         # 移動元フォルダを参照不可にする
         everyone_role = self.factory.role.load_everyone_role()
         everyone_role.init_authz(from_folder.id, False, True)
@@ -996,3 +995,126 @@ class AuthTest(TestCaseBase):
         # プロジェクトは削除する
         project = project.reload()
         project.delete()
+
+    def test_root_folder_auths(self):
+        """
+        ルートフォルダの権限設定を検証する
+        """
+        # ルートフォルダを取得する
+        root = self.factory.data.load_root()
+
+        # ルートフォルダの権限を取得する
+        root_auths = self.factory.auth.find_all_by_datum_id(root.id)
+
+        # システムロールを取得する
+        everyone_role = self.factory.role.load_everyone_role()
+        usr_admin_role = self.factory.role.load_usr_admin_role()
+
+        # ルートフォルダには、everyoneにRWX権限が設定されること
+        # システムフォルダには、usr_adminにO権限が設定されること
+        # システムフォルダには、作成者の本人ロールの権限が設定されていないこと
+
+        # 権限設定の数は正しいこと
+        self.assertEqual(len(root_auths), 4)
+
+        # everyone read
+        role = self.factory.role.find_by_id(root_auths[0].role_id)
+        self.assertEqual(role, everyone_role)
+        self.assertEqual(root_auths[0].operation, 'read')
+        self.assertEqual(root_auths[0].permission, True)
+
+        # everyone write
+        role = self.factory.role.find_by_id(root_auths[1].role_id)
+        self.assertEqual(role, everyone_role)
+        self.assertEqual(root_auths[1].operation, 'write')
+        self.assertEqual(root_auths[1].permission, True)
+
+        # everyone exec
+        role = self.factory.role.find_by_id(root_auths[2].role_id)
+        self.assertEqual(role, everyone_role)
+        self.assertEqual(root_auths[2].operation, 'exec')
+        self.assertEqual(root_auths[2].permission, True)
+
+        # usr_admin own
+        role = self.factory.role.find_by_id(root_auths[3].role_id)
+        self.assertEqual(role, usr_admin_role)
+        self.assertEqual(root_auths[3].operation, 'own')
+        self.assertEqual(root_auths[3].permission, True)
+
+    def test_cache_folder_auths(self):
+        """
+        キャッシュフォルダの権限設定を検証する
+        """
+        # キャッシュフォルダを取得する
+        cache = self.factory.data.load_cache_folder()
+
+        # キャッシュフォルダの権限を取得する
+        cache_auths = self.factory.auth.find_all_by_datum_id(cache.id)
+
+        # システムロールを取得する
+        everyone_role = self.factory.role.load_everyone_role()
+        usr_admin_role = self.factory.role.load_usr_admin_role()
+        
+        # キャッシュフォルダには、everyoneにRW権限が設定されること
+        # システムフォルダには、usr_adminにO権限が設定されること
+        # システムフォルダには、作成者の本人ロールの権限が設定されていないこと
+
+        # 権限設定の数は正しいこと
+        self.assertEqual(len(cache_auths), 3)
+
+        # everyone read
+        role = self.factory.role.find_by_id(cache_auths[0].role_id)
+        self.assertEqual(role, everyone_role)
+        self.assertEqual(cache_auths[0].operation, 'read')
+        self.assertEqual(cache_auths[0].permission, True)
+
+        # everyone write
+        role = self.factory.role.find_by_id(cache_auths[1].role_id)
+        self.assertEqual(role, everyone_role)
+        self.assertEqual(cache_auths[1].operation, 'write')
+        self.assertEqual(cache_auths[1].permission, True)
+
+        # usr_admin own
+        role = self.factory.role.find_by_id(cache_auths[2].role_id)
+        self.assertEqual(role, usr_admin_role)
+        self.assertEqual(cache_auths[2].operation, 'own')
+        self.assertEqual(cache_auths[2].permission, True)
+
+    def test_trash_folder_auths(self):
+        """
+        ゴミ箱フォルダの権限設定を検証する
+        """
+        # ゴミ箱フォルダを取得する
+        trash = self.factory.data.load_trash_folder()
+
+        # ゴミ箱フォルダの権限を取得する
+        trash_auths = self.factory.auth.find_all_by_datum_id(trash.id)
+
+        # システムロールを取得する
+        everyone_role = self.factory.role.load_everyone_role()
+        usr_admin_role = self.factory.role.load_usr_admin_role()
+        
+        # ゴミ箱フォルダには、everyoneにRW権限が設定されること
+        # システムフォルダには、usr_adminにO権限が設定されること
+        # システムフォルダには、作成者の本人ロールの権限が設定されていないこと
+
+        # 権限設定の数は正しいこと
+        self.assertEqual(len(trash_auths), 3)
+
+        # everyone read
+        role = self.factory.role.find_by_id(trash_auths[0].role_id)
+        self.assertEqual(role, everyone_role)
+        self.assertEqual(trash_auths[0].operation, 'read')
+        self.assertEqual(trash_auths[0].permission, True)
+
+        # everyone write
+        role = self.factory.role.find_by_id(trash_auths[1].role_id)
+        self.assertEqual(role, everyone_role)
+        self.assertEqual(trash_auths[1].operation, 'write')
+        self.assertEqual(trash_auths[1].permission, True)
+
+        # usr_admin own
+        role = self.factory.role.find_by_id(trash_auths[2].role_id)
+        self.assertEqual(role, usr_admin_role)
+        self.assertEqual(trash_auths[2].operation, 'own')
+        self.assertEqual(trash_auths[2].permission, True)
