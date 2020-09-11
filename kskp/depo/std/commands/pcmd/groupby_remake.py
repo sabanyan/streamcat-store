@@ -9,7 +9,7 @@ import nysol.util.mtemp as mtemp
 
 from math import ceil
 from kskp.store import NysolModule
-from kskp.core import Command, Port
+from kskp.core import Command, Port, Tmp
 
 from .script import PCommand
 
@@ -226,16 +226,15 @@ class GroupByRemakeCommand(PCommand):
                 'rms' : self.feature_rms,
                 'median_ad' : self.feature_medianad,
                 'mean_ad' : self.feature_meanad,
+                'var_gt_sd' : self.feature_vargtsd,
+                # 1 field + parameter (k, n, a ,f)
+                'value_count' : self.feature_valuecount,
+                'sym_looking' : self.feature_symlooking,
                 'quantile' : None,
                 'autocorr' : None,
-                'value_count' : None,
                 'range_count': None
                 }
             # return {
-            #     'var_gt_sd' : self.variance_larger_than_sd,
-            #     'count_above_mean' : self.countabovemean,
-            #     'count_below_mean' : self.countbelowmean,
-            #     'sym_looking' : self.symmetry_looking,
             #     'large_sd' : self.large_standard_dev,
             #     'value_count' : self.value_count,
             #     'range_count' : self.range_count,
@@ -294,9 +293,9 @@ class GroupByRemakeCommand(PCommand):
         dump into a file specified by filepath
         '''
         if isinstance(flow_obj, list):
-            flow_obj = nm.m2tee(i = flow_obj, o = filepath)
+            flow_obj = nm.m2tee(i = flow_obj, o = filepath.as_posix())
         else:
-            flow_obj <<= nm.m2tee(o = filepath)
+            flow_obj <<= nm.m2tee(o = filepath.as_posix())
 
         nysol_module = self.wrapFlow(flow_obj)
         self.do_runs(nysol_module)
@@ -371,8 +370,8 @@ class GroupByRemakeCommand(PCommand):
 
         param = float(param)
 
-        if low:
-            if high:
+        if isinstance(low, int):
+            if isinstance(high, int):
                 if not(low < param < high):
                     return 'ParameterOutOfBoundsError'
             
@@ -380,7 +379,7 @@ class GroupByRemakeCommand(PCommand):
                 if param < low:
                     return 'ParameterOutOfBoundsError'
         else:
-            if high:
+            if isinstance(high, int):
                 if high < param:
                     return 'ParameterOutOfBoundsError'
             else:
@@ -823,7 +822,7 @@ class GroupByRemakeCommand(PCommand):
                     
                     all_fs.add(fld)
                     
-                    final_columns.append(formatstr.replace('%', a).replace('&', fld))
+                    final_columns.append(self.generateFinalColName())
                     
                     nysol_calcs.append({'fld' : fld, 'c' : c, 'a' : a})
                 continue
@@ -944,21 +943,30 @@ class GroupByRemakeCommand(PCommand):
                             
                         row['a'] = a
 
-                        # prepare one calculation dictionary
-                        thiscalc = {'c' : c, 'f' : f, **row}
-
-                        # append thiscalc to the appropriate list
-                        if c in self.const('msum_calcs'):
-                            msummary_calcs.append(thiscalc)
-                        elif c in self.const('nysol_calcs'):
-                            nysol_calcs.append(thiscalc)
-                        elif c in self.const('python_calcs'):
-                            python_calcs.append(thiscalc)
-                        else: # c is not in any list, therefore does not exist
-                            errmsg = self.generateCommandErrorMessage('CalcNotFoundError', 'c', c)
-                            raise Exception(errmsg) 
-                        
-                        final_columns.append(formatstr.replace('%', a).replace('&', f))
+                        n_str = row.get('n') # if n is specified, distribute 
+                        if n_str:
+                            row.pop('n')
+                            ns_list = n_str.split(',')
+                            calcs = []
+                            for n in ns_list:
+                                calcs.append({'c' : c, 'f' : f, 'n' : n, **row})
+                        else:
+                            # prepare one calculation dictionary
+                            calcs = [{'c' : c, 'f' : f, **row}]
+                            
+                        for thiscalc in calcs:
+                            # append thiscalc to the appropriate list
+                            if c in self.const('msum_calcs'):
+                                msummary_calcs.append(thiscalc)
+                            elif c in self.const('nysol_calcs'):
+                                nysol_calcs.append(thiscalc)
+                            elif c in self.const('python_calcs'):
+                                python_calcs.append(thiscalc)
+                            else: # c is not in any list, therefore does not exist
+                                errmsg = self.generateCommandErrorMessage('CalcNotFoundError', 'c', c)
+                                raise Exception(errmsg) 
+                            
+                            final_columns.append(self.generateFinalColName(thiscalc, common_args))
                         
         # check if k and fs are overlapping
         kf_overlap = []
@@ -1041,8 +1049,8 @@ class GroupByRemakeCommand(PCommand):
 
         batch_size = int(common_args.pop('batch_size'))
         batches = ceil(len(all_calcs) / batch_size)
+
         # run each batch
-        
         # calculate each from a formatted command list
         for batchnum in range(batches):
             # refresh calulation array
@@ -1058,7 +1066,7 @@ class GroupByRemakeCommand(PCommand):
                     # if no more calcs, break out of loop
                     break
 
-                cmd[i] <<= nm.m2tee(i = file_to_read)
+                cmd[i] <<= nm.m2tee(i = file_to_read.as_posix())
 
                 # cut out only relevant columns
                 cmd[i] = self.cutToRelevantCols(cmd[i], thiscalc, common_args)
@@ -1090,18 +1098,17 @@ class GroupByRemakeCommand(PCommand):
                 # keys, final_cols, __val__
 
                 
-                
-            # TODO generate filenum for tmp file for this batch
-            batchuuid = str(uuid.uuid4())
-            CALC_RES_TMP = f'/tmp/groupby_batchres_{batchuuid}.csv'
+            CALC_RES_TMP = Tmp.create_file()
             
             self.dumpToFile(cmd, CALC_RES_TMP)
             
-            file_list.append(CALC_RES_TMP)
+            file_list.append(CALC_RES_TMP.as_posix())
+
             
         return file_list
 
         
+    # データセットに対する特徴量
     def feature_rows(self, subcmd, args, common_args):
         '''
         calculate the rows feature
@@ -1116,6 +1123,7 @@ class GroupByRemakeCommand(PCommand):
 
         return subcmd
 
+    # １つの変数に対する特徴量
     def feature_msummary(self, subcmd, args, common_args):
         '''
         calculate msummary features
@@ -1613,6 +1621,101 @@ class GroupByRemakeCommand(PCommand):
 
         return subcmd
     
+    def feature_vargtsd(self, subcmd, args, common_args):
+        '''
+        calculate feature var_gt_sd
+        '''
+        fld = args.get('f')
+        k = common_args.get('k')
+
+        resultcolname = self.generateFinalColName(args, common_args)
+        
+        subcmd <<= nm.msummary(k = k, f = fld, c = 'var:__var,sd:__sd')
+            
+        subcmd <<= nm.mcal(c = 'if(isnull(${__var}),nullb(),${__var}>${__sd})', 
+                           a = '__val__')
+        subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
+
+        subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
+
+        return subcmd
+
+    # １つの変数に対する特徴量（パラメータあり）
+    def feature_valuecount(self, subcmd, args, common_args):
+        '''
+        template for feature funcs
+        '''
+        fld = args.get('f')
+        n = args.get('n')
+        k = common_args.get('k')
+        precision = common_args.get('precision')
+
+        resultcolname = self.generateFinalColName(args, common_args)
+
+        subcmd <<= nm.mcal(a = '__eq', c = f'$s{{{fld}}}=="{n}"')
+
+        subcmd <<= nm.msum(k = k, f = f'__eq:__val__')
+
+
+        subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
+
+        subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
+
+        return subcmd
+
+    def feature_symlooking(self, subcmd, args, common_args):
+        '''
+        template for feature funcs
+        '''
+        fld = args.get('f')
+        n = args.get('n')
+        k = common_args.get('k')
+        precision = common_args.get('precision')
+
+        resultcolname = self.generateFinalColName(args, common_args)
+
+
+        msumres = None
+        msumres <<= nm.msummary(i = subcmd, k = k, f = fld,
+                                c = 'mean:__mean,median:__median,max:__max,min:__min')
+
+        subcmd <<= nm.mnjoin(k = k, f = '__mean,__median,__max,__min',
+                                m = msumres)
+        # subcmd <<= nm.msummary(f = f, k = k, 
+        #             c = 'mean:__mean,median:__median,max:__max,min:__min')
+        subcmd <<= nm.mcal(c = '${__max}-${__min}',
+                            a = 'max_min')
+        subcmd <<= nm.mcal(c = 'abs(${__mean}-${__median})',
+                            a = 'mean_median')
+        subcmd <<= nm.mcal(c = f'${{mean_median}}<${{max_min}}*{n}', 
+                           a = f'__val__', precision = precision)
+
+        subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
+
+        subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
+
+        return subcmd
+
+
+    def feature_(self, subcmd, args, common_args):
+        '''
+        template for feature funcs
+        '''
+        fld = args.get('f')
+        k = common_args.get('k')
+        precision = common_args.get('precision')
+
+        resultcolname = self.generateFinalColName(args, common_args)
+
+        
+
+
+        subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
+
+        subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
+
+        return subcmd
+        
 
     def run(self, args, inputs):
         # first off, make copies of the inputs
@@ -1620,17 +1723,16 @@ class GroupByRemakeCommand(PCommand):
         inputs = copy.deepcopy(inputs)
         
         # TODO fix tmpfile handling
-        file_uuid = str(uuid.uuid4())
-        initialfile = f'/tmp/groupby_initfile_{file_uuid}.csv'
+        initialfile = Tmp.create_file()
         # run everything up til now, and then save into the file
         self.dumpToFile(inputs['i'].content, initialfile)
 
         # ヘッダ行を取得する
-        cmd = nm.m2tee(i = initialfile)
+        cmd = nm.m2tee(i = initialfile.as_posix())
         cmd = self.wrapFlow(cmd)
         self.header = self.get_field_names(cmd)
 
-        cmd = nm.m2tee(i = initialfile)
+        cmd = nm.m2tee(i = initialfile.as_posix())
 
         # parse the inputs
         all_calcs, common_args = self.parseArgs(args)
@@ -1659,11 +1761,9 @@ class GroupByRemakeCommand(PCommand):
         cmd <<= nm.mcut(f = list(relevant_cols))
         
         # TODO fix tmpfile handling
-        tmpfile = f'/tmp/groupby_tmp_{file_uuid}.csv'
+        tmpfile = Tmp.create_file()
         self.dumpToFile(cmd, tmpfile)
         
-        # delete first file
-        os.system(f'rm {initialfile}')
         
         # schedule the batches and calculations
         # get list of tmpfiles made per batch
@@ -1679,7 +1779,7 @@ class GroupByRemakeCommand(PCommand):
         # cross reference with original key columns (join)
         # get original key columns
         keys = None
-        keys <<= nm.m2tee(i = tmpfile)
+        keys <<= nm.m2tee(i = tmpfile.as_posix())
         keys <<= nm.mcut(f = common_args['k'])
         keys <<= nm.muniq(k = common_args['k'])
 
