@@ -222,18 +222,17 @@ class GroupByRemakeCommand(PCommand):
                 'has_dup_min' : self.feature_hasdupmax,
                 'hmean' : self.feature_hmean,
                 'gmean' : self.feature_gmean,
-                'median_ad' : None, 
+                'abs_energy' : self.feature_absenergy, 
+                'rms' : self.feature_rms,
+                'median_ad' : self.feature_medianad,
+                'mean_ad' : self.feature_meanad,
                 'quantile' : None,
                 'autocorr' : None,
                 'value_count' : None,
                 'range_count': None
                 }
             # return {
-            #     'rms' : self.rootmeansquare,
             #     'var_gt_sd' : self.variance_larger_than_sd,
-            #     'abs_energy' : self.abs_energy, 
-            #     'mean_ad' : self.meanabsolutedeviation,
-            #     'median_ad' : self.medianabsolutedeviation,
             #     'count_above_mean' : self.countabovemean,
             #     'count_below_mean' : self.countbelowmean,
             #     'sym_looking' : self.symmetry_looking,
@@ -1510,6 +1509,110 @@ class GroupByRemakeCommand(PCommand):
         subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
 
         return subcmd
+
+    def feature_absenergy(self, subcmd, args, common_args):
+        '''
+        calculates feature abs_energy
+        '''
+        fld = args.get('f')
+        k = common_args.get('k')
+        precision = common_args.get('precision')
+
+        resultcolname = self.generateFinalColName(args, common_args)
+
+        subcmd <<= nm.mcal(c = f'${{{fld}}}*${{{fld}}}', a = f'__tmp{fld}')
+        subcmd <<= nm.mcut(f = fld, r = True)
+        
+        subcmd <<= nm.msum(k = k, f = f'__tmp{fld}:__val__',  
+                           precision = precision)
+
+        subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
+
+        subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
+
+        return subcmd
+
+    def feature_rms(self, subcmd, args, common_args):
+        '''
+        calculate feature rms
+        ''' 
+        fld = args.get('f')
+        k = common_args.get('k')
+        precision = common_args.get('precision')
+
+        resultcolname = self.generateFinalColName(args, common_args)
+
+        subcmd <<= nm.mcal(a = f'{fld}_sq', c = f'${{{fld}}}^2')
+        
+        # msummary to mean
+        subcmd <<= nm.msummary(c = 'mean', f = f'{fld}_sq', k = k)
+
+        # mcal to sqrt
+        subcmd <<= nm.mcal(a = '__val__', c = 'sqrt(${mean})',
+                        precision = precision)
+
+        subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
+
+        subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
+
+        return subcmd
+
+    def feature_medianad(self, subcmd, args, common_args):
+        '''
+        calculate feature median_ad
+        '''
+        fld = args.get('f')
+        k = common_args.get('k')
+        precision = common_args.get('precision')
+
+        resultcolname = self.generateFinalColName(args, common_args)
+                            
+        mediancalc = None
+
+        mediancalc <<= nm.msummary(c = 'median:__median', f = fld, k = k)
+
+        subcmd <<= nm.mnjoin(k = k, f = '__median', m = mediancalc)
+
+        subcmd <<= nm.mcal(a = f'{fld}_diff', 
+                        c = f'abs(${{{fld}}}-${{__median}})')
+
+        subcmd <<= nm.msummary(k = k, c = f'mean:__val__', f = f'{fld}_diff', 
+                            precision = precision)
+
+        subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
+
+        subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
+
+        return subcmd
+
+    def feature_meanad(self, subcmd, args, common_args):
+        '''
+        calculate feature mean_ad
+        '''
+        fld = args.get('f')
+        k = common_args.get('k')
+        precision = common_args.get('precision')
+
+        resultcolname = self.generateFinalColName(args, common_args)
+                            
+        meancalc = None
+
+        meancalc <<= nm.msummary(c = 'mean:__mean', f = fld, k = k)
+
+        subcmd <<= nm.mnjoin(k = k, f = '__mean', m = meancalc)
+
+        subcmd <<= nm.mcal(a = f'{fld}_diff', 
+                        c = f'abs(${{{fld}}}-${{__mean}})')
+
+        subcmd <<= nm.msummary(k = k, c = f'mean:__val__', f = f'{fld}_diff', 
+                               precision = precision)
+
+        subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
+
+        subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
+
+        return subcmd
+    
 
     def run(self, args, inputs):
         # first off, make copies of the inputs
