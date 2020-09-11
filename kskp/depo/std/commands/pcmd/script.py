@@ -134,16 +134,16 @@ class PCommand(Command):
         # FieldNamesCommandを用いる
         from kskp.depo.std.commands import FieldNamesCommand
         fldNamesCmd = FieldNamesCommand()
-        results = fldNamesCmd.run(args={}, inputs={'i': nysol_module})
-        # 'i'キーへの入力結果は'i'キーを指定して取得する
-        return results['i']
-    
+        results = fldNamesCmd.run(args={}, inputs={'fld': nysol_module})
+        # 'fld'キーへの入力結果は'fld'キーを指定して取得する
+        return results['fld'].datum
+
     def do_runs(self, nysol_module):
         from kskp.depo.std.commands import RunsCommand
         runs_cmd = RunsCommand()
-        results = runs_cmd.run(args={}, inputs={'i': nysol_module})
-        # 'i'キーへの入力結果は'i'キーを指定して取得する
-        return results['i'] 
+        results = runs_cmd.run(args={}, inputs={'pcmd': nysol_module})
+        # 'pcmd'キーへの入力結果は'pcmd'キーを指定して取得する
+        return results['pcmd'] 
 
     def run(self, args, inputs):
         """
