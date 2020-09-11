@@ -230,17 +230,17 @@ class GroupByRemakeCommand(PCommand):
                 # 1 field + parameter (k, n, a ,f)
                 'value_count' : self.feature_valuecount,
                 'sym_looking' : self.feature_symlooking,
+                'large_sd' : self.feature_largesd,
+                'ratio_beyond_rsigma' : self.feature_ratiogtrsigma,
+                'binned_entropy' : self.feature_binnedentropy,
                 'quantile' : None,
                 'autocorr' : None,
                 'range_count': None
                 }
             # return {
-            #     'large_sd' : self.large_standard_dev,
             #     'value_count' : self.value_count,
             #     'range_count' : self.range_count,
-            #     'ratio_beyond_rsigma' : self.ratio_beyond_rsigma,
             #     'quantile' : self.quantile,
-            #     'binned_entropy' : self.binned_entropy,
             #     # 1 field + time (input k, a, f, x)
             #     'integral' : self.integral,
             #     'meanf' : self.meanfrequency,
@@ -822,7 +822,7 @@ class GroupByRemakeCommand(PCommand):
                     
                     all_fs.add(fld)
                     
-                    final_columns.append(self.generateFinalColName())
+                    final_columns.append(self.generateFinalColName(row, common_args))
                     
                     nysol_calcs.append({'fld' : fld, 'c' : c, 'a' : a})
                 continue
@@ -949,7 +949,8 @@ class GroupByRemakeCommand(PCommand):
                             ns_list = n_str.split(',')
                             calcs = []
                             for n in ns_list:
-                                calcs.append({'c' : c, 'f' : f, 'n' : n, **row})
+                                calcs.append({'c' : c, 'f' : f, 'n' : n, **copy.deepcopy(row)})
+                            row['n'] = n_str
                         else:
                             # prepare one calculation dictionary
                             calcs = [{'c' : c, 'f' : f, **row}]
@@ -1071,7 +1072,7 @@ class GroupByRemakeCommand(PCommand):
                 # cut out only relevant columns
                 cmd[i] = self.cutToRelevantCols(cmd[i], thiscalc, common_args)
 
-                calctype = thiscalc.pop('type')
+                calctype = thiscalc.get('type')
                 if calctype == 'msummary':
                     func = self.feature_msummary
                     # if thiscalc is a count calc, remove nonnumbers
@@ -1643,7 +1644,7 @@ class GroupByRemakeCommand(PCommand):
     # １つの変数に対する特徴量（パラメータあり）
     def feature_valuecount(self, subcmd, args, common_args):
         '''
-        template for feature funcs
+        calculate feature value_count
         '''
         fld = args.get('f')
         n = args.get('n')
@@ -1665,7 +1666,7 @@ class GroupByRemakeCommand(PCommand):
 
     def feature_symlooking(self, subcmd, args, common_args):
         '''
-        template for feature funcs
+        calculate feature summetry_looking
         '''
         fld = args.get('f')
         n = args.get('n')
@@ -1696,12 +1697,99 @@ class GroupByRemakeCommand(PCommand):
 
         return subcmd
 
+    def feature_largesd(self, subcmd, args, common_args):
+        '''
+        calculate feature large_sd
+        '''
+        fld = args.get('f')
+        n = args.get('n')
+        k = common_args.get('k')
 
+        resultcolname = self.generateFinalColName(args, common_args)
+
+        subcmd <<= nm.msummary(f = fld, k = k, 
+                    c = 'sd:__sd,max:__max,min:__min')
+        subcmd <<= nm.mcal(c = '${__max}-${__min}', a = '__diff')
+        subcmd <<= nm.mcal(c = f'${{__sd}}>${{__diff}}*{n}', 
+                            a = '__val__')
+
+        subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
+
+        subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
+
+        return subcmd
+
+    def feature_ratiogtrsigma(self, subcmd, args, common_args):
+        '''
+        calculate feature ratio_beyond_rsigma
+        '''
+        fld = args.get('f')
+        n = args.get('n')
+        k = common_args.get('k')
+        precision = common_args.get('precision')
+
+        resultcolname = self.generateFinalColName(args, common_args)
+
+        msums = None
+        msums <<= nm.msummary(k = k, f = fld, i = subcmd,
+                              c = 'mean:__mean,sd:__sd,count:__count')
+
+        subcmd <<= nm.mnjoin(k = k, m = msums, f = '__mean,__sd,__count')
+
+
+        subcmd <<= nm.mcal(c = f'(abs(${{{fld}}}-${{__mean}}))>=({n}*${{__sd}})', 
+                                a = f'__ratio')
+
+        subcmd <<= nm.msum(k = k, f = f'__ratio')
+        subcmd <<= nm.mcal(c = '${__ratio}/${__count}', a = f'__val__', 
+                           precision = precision)
+
+        subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
+
+        subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
+
+        return subcmd
+
+    def feature_binnedentropy(self, subcmd, args, common_args):
+        '''
+        template for feature funcs
+        '''
+        fld = args.get('f')
+        n = args.get('n')
+        k = common_args.get('k')
+        precision = common_args.get('precision')
+
+        resultcolname = self.generateFinalColName(args, common_args)
+
+        msums = nm.msummary(i = subcmd, f = fld, k = k, 
+                            c = 'count:__count')
+
+        subcmd <<= nm.mbucket(k = k, f = f'{fld}:__{fld}_no',
+                                n = n, rng = True)
+
+        subcmd <<= nm.mcount(k = f'{k},__{fld}_no', a = f'__{fld}hcount')
+
+
+        subcmd <<= nm.mnjoin(k = k, m = msums, f = 'fld,__count')
+        subcmd <<= nm.mcal(c = f'(${{__{fld}hcount}}/${{__count}})*ln(${{__{fld}hcount}}/${{__count}})',
+                                a = '__probs')
+        subcmd <<= nm.mcut(f = f'{k},fld,__probs')
+
+        subcmd <<= nm.msum(k = f'{k},fld', f = '__probs')
+        subcmd <<= nm.mcal(c = '${__probs}*-1', a = '__val__')
+
+        subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
+
+        subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
+
+        return subcmd
+    
     def feature_(self, subcmd, args, common_args):
         '''
         template for feature funcs
         '''
         fld = args.get('f')
+        n = args.get('n')
         k = common_args.get('k')
         precision = common_args.get('precision')
 
