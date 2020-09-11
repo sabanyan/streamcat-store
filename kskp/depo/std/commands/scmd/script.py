@@ -844,7 +844,7 @@ class RunsCommand(SCommand):
                 else:
                     ret[i_port_name] = exs_list
                 i += 1
-
+            # print(ret)
             return ret
 
 
@@ -939,12 +939,15 @@ class AssertCommand(SCommand):
                     res_diff = create_exs_diff_list(i_tmp_path, m_tmp_path, dlimit)
                 else:
                     res_diff = create_diff_list(i_tmp_path, m_tmp_path, dlimit)
+                
+                # print(res_diff)
 
                 # CSVを構築して、標準出力へ渡す
                 sys.stdout.flush()
 
                 raise_exs = i_port_exs or m_port_exs
-                diff_csv_maker(res_diff, raise_exs)
+                diff_csv_maker(res_diff, diff_args)
+                # print("1,2,3")
                 
                 sys.stdout.flush()
 
@@ -1002,6 +1005,7 @@ class AssertCommand(SCommand):
                 with open(m_tmp_path)as m_tmp:
                     row_number = 0
                     for s, t in zip_longest(i_tmp, m_tmp, fillvalue='null'):
+                        # print(str(row_number) + " " + str(s) + " " + str(t))
                         
                         if s != t:
                             diff_rows = []
@@ -1021,7 +1025,7 @@ class AssertCommand(SCommand):
                         row_number += 1
             return check
 
-        def diff_csv_maker(diff_result, raise_exs):
+        def diff_csv_maker(diff_result, diff_args):
             """
             差分取得の処理結果をもとに、コマンドとしての返却データを作成
             runfuncを使用した場合、対象のコマンドでは標準出力にcsv形式のデータを渡す必要がある。（逆に、runfuncに対して、return を通してデータを返さない）
@@ -1055,23 +1059,10 @@ class AssertCommand(SCommand):
             # serial number
             point_id = args['asserted_point']
             is_true = None
-            raise_exs = raise_exs 
-
-
-            # parentの情報を取得
-            datum_list = []
-            datum_data = args['flow']
-            while True:
-                datum_list.append(datum_data)
-                if datum_data.parent_id is None:
-                    break
-                datum_data = datum_data.find_parent()
-            datum_list.reverse()
-            datum_path_labels = [x.label for x in datum_list]
-            flow_path = '/' + '/'.join(datum_path_labels)
-
-            parent_label = datum_list[1].label
-            parent_uuid = datum_list[1].uuid
+            raise_exs = diff_args['i_port_exs'] or diff_args['m_port_exs']
+            flow_path = diff_args['flow_path']
+            parent_label = diff_args['parent_label']
+            parent_uuid = diff_args['parent_label']
 
 
             # is_trueの判定 と diffの出力
@@ -1109,6 +1100,7 @@ class AssertCommand(SCommand):
                 output_datas.append(diff)
                 print(output_datas)    
 
+
         def comma_escape(val):
             """
             文章中のコンマによって、間違ったcsvの区切り位置になることを
@@ -1118,6 +1110,7 @@ class AssertCommand(SCommand):
             ret = "\"" + ret + "\""
             return ret
 
+        # print("check point 0")
 
 
         if 'i' not in inputs:
@@ -1134,6 +1127,7 @@ class AssertCommand(SCommand):
         # 一時ファイル作成用path
         i_tmp_path = Path("/tmp/" + str(uuid.uuid4()) + "_i.csv")
         m_tmp_path = Path("/tmp/" + str(uuid.uuid4()) + "_m.csv")
+        # print("check point 1")
 
 
         # assertCommand以前のフローを実行する
@@ -1150,8 +1144,12 @@ class AssertCommand(SCommand):
             m_port_runs = RunsCommand().run({}, {'m':NysolModule(nysol_cmd_m)})
         else:
             m_port_runs['m'] = [inputs['m']]
+        # print("check point 2")
 
-
+        # print("type input[i]")
+        # print(type(inputs['i']))
+        # print("type input[m]")
+        # print(type(inputs['m']))
         # 一時ファイルを作成する
         i_port_exs = isinstance(i_port_runs['i'], list)
         m_port_exs = isinstance(m_port_runs['m'], list)
@@ -1174,18 +1172,42 @@ class AssertCommand(SCommand):
             m_make_tmp <<= m_port_runs['m'].content
             m_make_tmp <<= nm.m2tee(o=m_tmp_path.as_posix())
             RunsCommand().run({}, {'m':NysolModule(m_make_tmp)})
+        # print("check point 3")
 
+        # print("\nyear")
+        # # print(inputs['m'])
+        # with open(m_tmp_path.as_posix())as f:
+        #     s = f.read()
+        #     print(s)
+        # print("\nyear")
 
         # 比較コマンド以前のフロー実行が失敗していたら、代わりのメッセージを出力
         if not i_tmp_path.exists():
-            with nysol_cmd_i.open(mode="w")as f:
+            with i_tmp_path.open(mode="w")as f:
                 f.write("flow before i_port is not working properly")
 
         if not m_tmp_path.exists():
-            with nysol_cmd_m.open(mode="w")as f:
+            with m_tmp_path.open(mode="w")as f:
                 f.write("flow before m_port is not working properly")
+# -----------------
+
+        
+        datum_list = []
+        datum_data = args['flow']
+        while True:
+            datum_list.append(datum_data)
+            if datum_data.parent_id is None:
+                break
+            datum_data = datum_data.find_parent()
+        datum_list.reverse()
+        datum_path_labels = [x.label for x in datum_list]
+        flow_path = '/' + '/'.join(datum_path_labels)
+
+        parent_label = datum_list[1].label
+        parent_uuid = datum_list[1].uuid
 
 
+# ------------------
         # 作成した一時ファイルから差分を算出する
         new_cmd_list = None
         diff_args = {
@@ -1193,8 +1215,12 @@ class AssertCommand(SCommand):
             "i_tmp_path" : i_tmp_path.as_posix(),
             "m_tmp_path" : m_tmp_path.as_posix(),
             "i_port_exs" : i_port_exs,
-            "m_port_exs" : m_port_exs
+            "m_port_exs" : m_port_exs,
+            "flow_path" : flow_path,
+            "parent_label" : parent_label,
+            "parent_uuid" : parent_uuid
         }
 
         new_cmd_list <<= nm.runfunc(report_diff, diff_args=diff_args)
+        # new_cmd_list <<= nm.mnewnumber(a='col',I='1',S='1',l='10')
         return {'o': NysolModule(new_cmd_list)}# PCommandの方法を参照
