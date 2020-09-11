@@ -218,12 +218,10 @@ class AuthzSession(Session):
             # 本人ロールへ追加データの権限を付与する
             self_role.init_authz(obj.id, True, True, exec=folder_or_flow, own=True)
 
-            # everyoneロールが無ければ作成し、ユーザをeveryoneロールに所属させる
+            # usr_adminロールへ追加データの権限を付与する
             from kskp.store.factory import RoleFactory
-            everyone_role = RoleFactory(self).load_everyone_role()
-            everyone_role.join_user(self.user)
-            # everyoneロールへ追加データの権限を付与する
-            everyone_role.init_authz(obj.id, True, True, exec=folder_or_flow)
+            usr_admin_role = RoleFactory(self).load_usr_admin_role()
+            usr_admin_role.init_authz(obj.id, True, True, exec=folder_or_flow)
 
         elif isinstance(obj, User):
             # ユーザ管理者のみユーザを新規追加できる
