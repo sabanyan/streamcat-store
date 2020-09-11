@@ -1,7 +1,7 @@
-from kskp.store import Datum, Flow
+from kskp.store import Flow
 
 class DataSource(Flow):
-    def __init__(self, parent_uuid, label, store, loader_step, creator=None):
+    def __init__(self, session, parent, label, store, loader_step):
         """
         コンストラクタ
         """
@@ -9,7 +9,7 @@ class DataSource(Flow):
         #     raise Exception('指定されたStoreがライブラリに存在しません')
 
         # PointとStepの繫がりを探索するFlowVisitorを使えばスマートに、Jsonデータを取得できるだろう
-        flow_data = {
+        flow_json = {
             "label": label,
             "nodes": [
                 {
@@ -63,10 +63,10 @@ class DataSource(Flow):
                 ]
             ],
             "params": [],
-            "creator": Datum.get_user_name_by_user_id(self.creator),
+            "creator": self.creator_str,
             "createdAt": self.created_at_str,
             "projectId": None,
             "description": ""
         }
         
-        super().__init__(parent_uuid, label, flow_data, creator)
+        super().__init__(session, parent, label, flow_json)
