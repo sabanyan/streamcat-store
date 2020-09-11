@@ -106,8 +106,7 @@ class GroupByRemakeCommand(PCommand):
                             'checks' : [[self.checkParamIsNumber, {}]]},
             'peaks' : {'correct_type' : '数値', 
                        'correct_value' : '１以上の整数',
-                       'checks' : [[self.checkParamOOB, {'low' : 0,
-                                                         'high': 1}]]},
+                       'checks' : [[self.checkParamOOB, {'low' : 1}]]},
             'imq' : {'correct_type' : '数値', 
                      'correct_value' : '０−１の数値',
                      'checks' : [[self.checkParamOOB, {'low' : 0,
@@ -250,30 +249,22 @@ class GroupByRemakeCommand(PCommand):
                 'integral' : self.feature_integral,
                 'meanf' : self.feature_runfuncwrapper,
                 'varf' : self.feature_runfuncwrapper,
+                'firstmin' : self.feature_firstmin,
+                'firstmax' : self.feature_firstmax,
+                'lastmin' : self.feature_lastmin,
+                'lastmax' : self.feature_lastmax,
+                'longest_strike_above_mean' : self.feature_longeststrikeabovemean,
+                'longest_strike_below_mean' : self.feature_longeststrikebelowmean,
+                # 2+1 fields
+                'autocorr' : self.feature_autocorrelation,
+                'crossing_m' : self.feature_crossingm,
+                'peaks' : self.feature_peaks,
+                'imq' : self.feature_imq,
                 'end' : None
                 }
             # return {
-            #     'meanf' : self.meanfrequency,
-            #     'varf' : self.frequencyvar,
-            #     'fft_agg' : self.fft_agg,
-            #     'slope' : self.slope,
-            #     'firstmin' : self.firstmin,
-            #     'firstmax' : self.firstmax,
-            #     'lastmin' : self.lastmin,
-            #     'lastmax' : self.lastmax,
-            #     'autocorr_agg' : self.autocorrelation_agg,
-            #     'longest_strike_above_mean' : self.longeststrikeabovemean,
-            #     'longest_strike_below_mean' : self.longeststrikebelowmean,
+            #     defunct
             #     'energy_ratio_by_chunks' : self.energy_ratio_by_chunks,
-            #     # 2+1 fields
-            #     'imq' : self.index_mass_quantile,
-            #     'crossing_m' : self.numbercrossing,
-            #     'peaks' : self.countpeaks,
-            #     'autocorr' : self.autocorrelation,
-            #     'c3' : self.c3,
-            #     'time_reversal_asymmetry' : self.time_reversal_asymmetry,
-            #     # aggregate functions
-            #     'linregress' : self.linear_trend
             # }
 
     
@@ -2169,6 +2160,288 @@ class GroupByRemakeCommand(PCommand):
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
 
+    def feature_firstmin(self, subcmd, args, common_args):
+        '''
+        calculate feature firstmin
+        '''
+        fld = args.get('f')
+        x = args.get('x')
+        k = common_args.get('k')
+        precision = common_args.get('precision')
+
+        resultcolname = self.generateFinalColName(args, common_args)
+
+        msum = nm.msummary(c = 'min:_mintime,range:_timerange', k = k, f = x, 
+                             i = subcmd)
+
+        subcmd <<= nm.mbest(k = k, s = f'{fld}%n,{x}%n')
+
+        subcmd <<= nm.mjoin(k = k, m = msum, f = f'_mintime,_timerange')
+        subcmd <<= nm.mcal(c = f'(${{{x}}}-${{_mintime}})/${{_timerange}}', 
+                           a = '__val__', precision = precision)
+
+        subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
+
+        subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
+
+        return subcmd
+
+    def feature_firstmax(self, subcmd, args, common_args):
+        '''
+        calculate feature firstmax
+        '''
+        fld = args.get('f')
+        x = args.get('x')
+        k = common_args.get('k')
+        precision = common_args.get('precision')
+
+        resultcolname = self.generateFinalColName(args, common_args)
+
+        msum = nm.msummary(c = 'min:_mintime,range:_timerange', k = k, f = x, 
+                             i = subcmd)
+
+        subcmd <<= nm.mbest(k = k, s = f'{fld}%nr,{x}%n')
+
+        subcmd <<= nm.mjoin(k = k, m = msum, f = f'_mintime,_timerange')
+        subcmd <<= nm.mcal(c = f'(${{{x}}}-${{_mintime}})/${{_timerange}}', 
+                           a = '__val__', precision = precision)
+
+        subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
+
+        subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
+
+        return subcmd
+
+    def feature_lastmin(self, subcmd, args, common_args):
+        '''
+        calculate feature lastmin
+        '''
+        fld = args.get('f')
+        x = args.get('x')
+        k = common_args.get('k')
+        precision = common_args.get('precision')
+
+        resultcolname = self.generateFinalColName(args, common_args)
+
+        msum = nm.msummary(c = 'min:_mintime,range:_timerange', k = k, f = x, 
+                             i = subcmd)
+
+        subcmd <<= nm.mbest(k = k, s = f'{fld}%n,{x}%nr')
+
+        subcmd <<= nm.mjoin(k = k, m = msum, f = f'_mintime,_timerange')
+        subcmd <<= nm.mcal(c = f'(${{{x}}}-${{_mintime}})/${{_timerange}}', 
+                           a = '__val__', precision = precision)
+
+        subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
+
+        subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
+
+        return subcmd
+
+    def feature_lastmax(self, subcmd, args, common_args):
+        '''
+        calculate feature lastmin
+        '''
+        fld = args.get('f')
+        x = args.get('x')
+        k = common_args.get('k')
+        precision = common_args.get('precision')
+
+        resultcolname = self.generateFinalColName(args, common_args)
+
+        msum = nm.msummary(c = 'min:_mintime,range:_timerange', k = k, f = x, 
+                             i = subcmd)
+
+        subcmd <<= nm.mbest(k = k, s = f'{fld}%nr,{x}%nr')
+
+        subcmd <<= nm.mjoin(k = k, m = msum, f = f'_mintime,_timerange')
+        subcmd <<= nm.mcal(c = f'(${{{x}}}-${{_mintime}})/${{_timerange}}', 
+                           a = '__val__', precision = precision)
+
+        subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
+
+        subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
+
+        return subcmd
+
+    def feature_longeststrikeabovemean(self, subcmd, args, common_args):
+        '''
+        calculate feature longest strike above mean
+        '''
+        fld = args.get('f')
+        x = args.get('x')
+        k = common_args.get('k')
+
+        resultcolname = self.generateFinalColName(args, common_args)
+
+        msum = nm.msummary(k = k, f = fld, c = 'mean:__mean', i = subcmd)
+
+        subcmd <<= nm.mnjoin(m = msum, k = k, f = '__mean')
+
+        subcmd <<= nm.msortf(f = f'{k},{x}%n')
+        subcmd <<= nm.mcal(c = f'${{__mean}}<=${{{fld}}}', a = '__above')
+        subcmd <<= nm.mcount(q = True, k = f'{k},__above', a = '__a_count')
+        subcmd <<= nm.mbest(k = k, s = '__above%nr,__a_count%nr', size = 1)
+        subcmd <<= nm.mcal(c = 'if(${__above}==0,0,${__a_count})', a = '__val__')
+
+        subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
+
+        subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
+
+        return subcmd
+
+    def feature_longeststrikebelowmean(self, subcmd, args, common_args):
+        '''
+        calculate feature longest strike below mean
+        '''
+        fld = args.get('f')
+        x = args.get('x')
+        k = common_args.get('k')
+
+        resultcolname = self.generateFinalColName(args, common_args)
+
+        msum = nm.msummary(k = k, f = fld, c = 'mean:__mean', i = subcmd)
+
+        subcmd <<= nm.mnjoin(m = msum, k = k, f = '__mean')
+
+        subcmd <<= nm.msortf(f = f'{k},{x}%n')
+        subcmd <<= nm.mcal(c = f'${{__mean}}>=${{{fld}}}', a = '__below')
+        subcmd <<= nm.mcount(q = True, k = f'{k},__below', a = '__b_count')
+        subcmd <<= nm.mbest(k = k, s = '__below%nr,__b_count%nr', size = 1)
+        subcmd <<= nm.mcal(c = 'if(${__below}==0,0,${__b_count})', a = '__val__')
+
+        subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
+
+        subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
+
+        return subcmd
+    
+    # ２つの変数に対する特徴量（パラメータあり）
+    def feature_autocorrelation(self, subcmd, args, common_args):
+        '''
+        calculate feature autocorr
+        '''
+        fld = args.get('f')
+        n = args.get('n')
+        x = args.get('x')
+        k = common_args.get('k')
+        precision = common_args.get('precision')
+
+        resultcolname = self.generateFinalColName(args, common_args)
+
+        msum = nm.msummary(i = subcmd, k = k, f = fld,
+                            c = f'mean:__mean,var:__var,count:__count')
+
+        subcmd <<= nm.mjoin(m = msum, k = k,
+                f = 'fld,__mean,__var,__count')
+
+        subcmd <<= nm.mslide(k = k, s = f'{x}%n', t = n, l = True, 
+                                f = f'{fld}:__{fld}_L')
+        subcmd <<= nm.mcal(c = f'(${{{fld}}}-${{__mean}})*(${{__{fld}_L}}-${{__mean}})', a = f'__{fld}_m')
+        subcmd <<= nm.msum(k = k, f = f'__{fld}_m')
+        subcmd <<= nm.msetstr(a = '__lag', v = n)
+        subcmd <<= nm.mcal(a = '__val__', precision = precision,
+            c = f'${{__{fld}_m}}/(${{__count}}-${{__lag}})/${{__var}}')
+
+        subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
+
+        subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
+
+        return subcmd
+
+    def feature_crossingm(self, subcmd, args, common_args):
+        '''
+        calculate feature crossing_m
+        '''
+        fld = args.get('f')
+        n = args.get('n')
+        x = args.get('x')
+        k = common_args.get('k')
+
+        resultcolname = self.generateFinalColName(args, common_args)
+
+        subcmd <<= nm.mcal(c = f'${{{fld}}}>{n}', a = '__pos')
+        subcmd <<= nm.mslide(k = k, s = f'{x}%n', f = '__pos:__posN')
+        subcmd <<= nm.mcal(c = '${__pos}!=${__posN}', a = '__diffT')
+        subcmd <<= nm.mcount(k = k + ',__diffT', a = '__cnt')
+        subcmd <<= nm.mbest(k = k, s = '__diffT%nr', size = 1)
+        subcmd <<= nm.mcal(c = 'if(${__diffT}==0,0,${__cnt})', a = '__val__')
+
+        subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
+
+        subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
+
+        return subcmd
+    
+    def feature_peaks(self, subcmd, args, common_args):
+        '''
+        calculate feature peaks
+        '''
+        fld = args.get('f')
+        n = args.get('n')
+        x = args.get('x')
+        k = common_args.get('k')
+
+        resultcolname = self.generateFinalColName(args, common_args)
+
+        
+        mslide = nm.mslide(k = k, s = f'{x}%n', t = n, r = True, 
+                                f = f'{fld}:{fld}_up_', i = subcmd)
+
+        subcmd <<= nm.mslide(k = k, s = f'{x}%n', t = n,
+                                    f = f'{fld}:{fld}_down_')
+        
+        subcmd <<= nm.mjoin(k = f'{k},{x}', f = f'{fld}_up_*',
+                                m = mslide, n = True)
+        subcmd <<= nm.mcal(c = f'max(${{{fld}_up*}},${{{fld}_down_*}})',
+                                a = '__rollmax__')
+        subcmd <<= nm.mcal(c = f'${{{fld}}}>${{__rollmax__}}',
+                                a = '__val__')
+
+        subcmd <<= nm.msum(k = k, f = '__val__')
+
+        subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
+
+        subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
+
+        return subcmd
+    
+    def feature_imq(self, subcmd, args, common_args):
+        '''
+        calculate feature imq
+        '''
+        fld = args.get('f')
+        n = args.get('n')
+        x = args.get('x')
+        k = common_args.get('k')
+        precision = common_args.get('precision')
+
+        resultcolname = self.generateFinalColName(args, common_args)
+
+        mcal = None 
+        sumabs = None
+        
+        mcal <<= nm.mcal(c = f'abs(${{{fld}}})', a = f'__abs{fld}', i = subcmd)
+        sumabs <<= mcal.msum(k = k, f = f'__abs{fld}')
+
+        msum = nm.msummary(i = subcmd, k = k, f = fld, c = 'count:__count')
+
+        subcmd_o = nm.maccum(k = k, s = f'{x}%n', f = f'__abs{fld}:__abs{fld}_a', 
+                               i = mcal)
+        subcmd_o <<= nm.mjoin(k = k, f = f'__abs{fld}:__abs{fld}_ttl', m = sumabs)
+        subcmd_o <<= nm.mjoin(k = k, f = f'__count', m = msum)
+        subcmd_o <<= nm.mcal(c = f'(${{__abs{fld}_a}}/${{__abs{fld}_ttl}})>={n}',
+                              a = '__mc')
+        subcmd_o <<= nm.mbest(k = k, s = f'__mc%nr,{x}%n', size = 1)
+        subcmd_o <<= nm.mcal(c = f'(${{{x}}})/${{__count}}', a = '__val__', 
+                             precision = precision)
+
+        subcmd_o <<= nm.msetstr(v = resultcolname, a = 'final_cols')
+
+        subcmd_o <<= nm.mcut(f = f'{k},final_cols,__val__')
+
+        return subcmd_o
+
     def feature_(self, subcmd, args, common_args):
         '''
         template for feature funcs
@@ -2180,9 +2453,6 @@ class GroupByRemakeCommand(PCommand):
         precision = common_args.get('precision')
 
         resultcolname = self.generateFinalColName(args, common_args)
-
-        
-
 
         subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
 
