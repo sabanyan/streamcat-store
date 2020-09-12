@@ -844,7 +844,6 @@ class RunsCommand(SCommand):
                 else:
                     ret[i_port_name] = exs_list
                 i += 1
-            # print(ret)
             return ret
 
 
@@ -930,25 +929,19 @@ class AssertCommand(SCommand):
                 dlimit = diff_args["dlimit"]
                 i_tmp_path = diff_args["i_tmp_path"]
                 m_tmp_path = diff_args["m_tmp_path"]
-                i_port_exs = diff_args["i_port_exs"]
-                m_port_exs = diff_args["m_port_exs"]
+                i_is_exs = diff_args["i_is_exs"]
+                m_is_exs = diff_args["m_is_exs"]
                 res_diff = None
 
                 # 差分の取得を行う
-                if i_port_exs and m_port_exs:
+                if i_is_exs and m_is_exs:
                     res_diff = create_exs_diff_list(i_tmp_path, m_tmp_path, dlimit)
                 else:
                     res_diff = create_diff_list(i_tmp_path, m_tmp_path, dlimit)
                 
-                # print(res_diff)
-
                 # CSVを構築して、標準出力へ渡す
                 sys.stdout.flush()
-
-                raise_exs = i_port_exs or m_port_exs
                 diff_csv_maker(res_diff, diff_args)
-                # print("1,2,3")
-                
                 sys.stdout.flush()
 
             except Exception as e:
@@ -968,6 +961,7 @@ class AssertCommand(SCommand):
                     i_list = i_tmp.read().splitlines()
                     m_list = m_tmp.read().splitlines()
 
+                    # ２つの入力で違うエラーを産出する
                     get_diff = list(set(i_list) & set(m_list))
                     i_diff_elem = list(set(i_list) - set(get_diff))
                     m_diff_elem = list(set(m_list) - set(get_diff))
@@ -1005,8 +999,6 @@ class AssertCommand(SCommand):
                 with open(m_tmp_path)as m_tmp:
                     row_number = 0
                     for s, t in zip_longest(i_tmp, m_tmp, fillvalue='null'):
-                        # print(str(row_number) + " " + str(s) + " " + str(t))
-                        
                         if s != t:
                             diff_rows = []
                             diff_rows.append(row_number)
@@ -1059,7 +1051,7 @@ class AssertCommand(SCommand):
             # serial number
             point_id = args['asserted_point']
             is_true = None
-            raise_exs = diff_args['i_port_exs'] or diff_args['m_port_exs']
+            raise_exs = diff_args['i_is_exs'] or diff_args['m_is_exs']
             flow_path = diff_args['flow_path']
             parent_label = diff_args['parent_label']
             parent_uuid = diff_args['parent_label']
@@ -1110,88 +1102,56 @@ class AssertCommand(SCommand):
             ret = "\"" + ret + "\""
             return ret
 
-        # print("check point 0")
-
 
         if 'i' not in inputs:
             raise Exception('AssertCommandの入力ポートiに値が入力されていません')
         if 'm' not in inputs:
             raise Exception('AssertCommandの入力ポートmに値が入力されていません')
 
-        # if not (isinstance(inputs['i'], NysolModule) or isinstance(inputs['i'], List)):
-        #     raise Exception('入力ポートiのAssertCommandの入力データ型が異なります')
-        # if not (isinstance(inputs['m'], NysolModule) or isinstance(inputs['m'], List)):
-        #     raise Exception('入力ポートmのAssertCommandの入力データ型が異なります')
-
 
         # 一時ファイル作成用path
         i_tmp_path = Path("/tmp/" + str(uuid.uuid4()) + "_i.csv")
         m_tmp_path = Path("/tmp/" + str(uuid.uuid4()) + "_m.csv")
-        # print("check point 1")
 
+        port_exs = {}
+        i_is_exs = False
+        m_is_exs = False
 
-        # assertCommand以前のフローを実行する
-        i_port_runs = {}
-        m_port_runs = {}
-        if not isinstance(inputs['i'], Exception):
+        # 一時ファイルへフローの結果を書き出し
+        # エラー発生もここで確認する
+        if isinstance(inputs['i'], Exception):
+            port_exs['i'] = [inputs['i']]
+            i_is_exs = True
+        else:
             nysol_cmd_i = inputs['i'].content
-            i_port_runs = RunsCommand().run({}, {'i':NysolModule(nysol_cmd_i)})
-        else:
-            i_port_runs['i'] = [inputs['i']]
+            nysol_cmd_i <<= nm.m2tee(o=i_tmp_path.as_posix())
+            port_exs['i'] = RunsCommand().run({}, {'i':NysolModule(nysol_cmd_i)})['i']
 
-        if not isinstance(inputs['m'], Exception):
-            nysol_cmd_m = inputs['m'].content
-            m_port_runs = RunsCommand().run({}, {'m':NysolModule(nysol_cmd_m)})
-        else:
-            m_port_runs['m'] = [inputs['m']]
-        # print("check point 2")
-
-        # print("type input[i]")
-        # print(type(inputs['i']))
-        # print("type input[m]")
-        # print(type(inputs['m']))
-        # 一時ファイルを作成する
-        i_port_exs = isinstance(i_port_runs['i'], list)
-        m_port_exs = isinstance(m_port_runs['m'], list)
-        if i_port_exs:
+        # もしエラーが発生していたら、それまでの出力に関わらずエラー文章を比較対象とする。
+        if isinstance(inputs['i'], list) or isinstance(port_exs['i'], list):
             with i_tmp_path.open(mode="w")as f:
-                s = [str(x) for x in i_port_runs['i']]
-                f.write('\n'.join(s))
-        else:
-            i_make_tmp = None
-            i_make_tmp <<= i_port_runs['i'].content
-            i_make_tmp <<= nm.m2tee(o=i_tmp_path.as_posix())
-            RunsCommand().run({}, {'i':NysolModule(i_make_tmp)})
-
-        if m_port_exs:
-            with m_tmp_path.open(mode="w")as f:
-                s = [str(x) for x in m_port_runs['m']]
-                f.write('\n'.join(s))
-        else:
-            m_make_tmp = None
-            m_make_tmp <<= m_port_runs['m'].content
-            m_make_tmp <<= nm.m2tee(o=m_tmp_path.as_posix())
-            RunsCommand().run({}, {'m':NysolModule(m_make_tmp)})
-        # print("check point 3")
-
-        # print("\nyear")
-        # # print(inputs['m'])
-        # with open(m_tmp_path.as_posix())as f:
-        #     s = f.read()
-        #     print(s)
-        # print("\nyear")
-
-        # 比較コマンド以前のフロー実行が失敗していたら、代わりのメッセージを出力
-        if not i_tmp_path.exists():
-            with i_tmp_path.open(mode="w")as f:
-                f.write("flow before i_port is not working properly")
-
-        if not m_tmp_path.exists():
-            with m_tmp_path.open(mode="w")as f:
-                f.write("flow before m_port is not working properly")
-# -----------------
-
+                i_exs_list = [str(x).strip().replace("\n", "") for x in [port_exs['i']]]
+                f.write('\n'.join(i_exs_list))
+            i_is_exs = True
         
+        
+        if isinstance(inputs['m'], Exception):
+            port_exs['m'] = [inputs['m']]
+            m_is_exs = True
+        else:
+            nysol_cmd_m = inputs['m'].content
+            nysol_cmd_m <<= nm.m2tee(o=m_tmp_path.as_posix())
+            port_exs['m'] = RunsCommand().run({}, {'m':NysolModule(nysol_cmd_m)})['m']
+
+        # もしエラーが発生していたら、それまでの出力に関わらずエラー文章を比較対象とする。
+        if isinstance(inputs['m'], list) or isinstance(port_exs['m'], list):
+            with m_tmp_path.open(mode="w")as f:
+                m_exs_list = [str(x).strip().replace("\n", "") for x in [port_exs['m']]]
+                f.write('\n'.join(m_exs_list))
+            m_is_exs = True
+
+
+        # 親フォルダの情報を取得
         datum_list = []
         datum_data = args['flow']
         while True:
@@ -1207,20 +1167,17 @@ class AssertCommand(SCommand):
         parent_uuid = datum_list[1].uuid
 
 
-# ------------------
         # 作成した一時ファイルから差分を算出する
         new_cmd_list = None
         diff_args = {
             "dlimit" : args["dlimit"],
             "i_tmp_path" : i_tmp_path.as_posix(),
             "m_tmp_path" : m_tmp_path.as_posix(),
-            "i_port_exs" : i_port_exs,
-            "m_port_exs" : m_port_exs,
+            "i_is_exs" : i_is_exs,
+            "m_is_exs" : m_is_exs,
             "flow_path" : flow_path,
             "parent_label" : parent_label,
             "parent_uuid" : parent_uuid
         }
-
         new_cmd_list <<= nm.runfunc(report_diff, diff_args=diff_args)
-        # new_cmd_list <<= nm.mnewnumber(a='col',I='1',S='1',l='10')
         return {'o': NysolModule(new_cmd_list)}# PCommandの方法を参照
