@@ -43,6 +43,18 @@ class ProjectFolder(Folder):
         # データタイプを設定する
         self.type = Datum.PROJECT_TYPE
 
+    def save(self, file_path=None):
+        """
+        Projectを保存する
+        """
+        if self.is_root:
+            raise Exception('プロジェクトはルートとして保存できません')
+        if not self.find_parent().is_root:
+            raise Exception('プロジェクトはライブラリ直下以外の場所に保存できません')
+
+        # 保存処理はFolderクラスと同じ
+        super().save()
+
     def is_joined_member(self, user):
         from sqlalchemy import exists, and_, or_
         from kskp.store.auth import User, Auth, UserRole

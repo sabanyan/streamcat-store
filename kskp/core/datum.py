@@ -210,6 +210,10 @@ class Datum(BaseModel):
             return self._label
 
     @property
+    def is_root(self):
+        return self.parent_id is None
+
+    @property
     def prev_parent_id(self):
         if self._data is None:
             return None

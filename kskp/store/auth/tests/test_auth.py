@@ -882,6 +882,29 @@ class AuthTest(TestCaseBase):
         # フローJSONのnodesを取得する
         flow.flow_data.get_nodes(use_exec_auth=True)
 
+    def test_cannot_save_project_outside_root(self):
+        """
+        プロジェクトはルートフォルダ直下にしか保存できないこと
+        """
+        # ルートフォルダを取得する
+        root = self.factory.data.load_root()
+
+        # ルートフォルダの下にプロジェクトを作成する
+        project0 = root.create_project_folder('プロジェクト0')
+        project0.save()
+        # プロジェクトの下にプロジェクトを作成する
+        with self.assertRaises(Exception):
+            sub_project0 = project0.create_project_folder('Subプロジェクト0')
+            sub_project0.save()
+
+        # ルートフォルダの下にフォルダを作成する
+        project1 = root.create_folder('フォルダ0')
+        project1.save()
+        # フォルダの下にプロジェクトを作成する
+        with self.assertRaises(Exception):
+            sub_project0 = project1.create_project_folder('Subプロジェクト0')
+            sub_project0.save()
+
     def test_join_project(self):
         """
         プロジェクト管理者を交代する

@@ -190,7 +190,7 @@ class AuthzSession(Session):
         from kskp.core import Datum
         from kskp.store import Folder, Flow
         from kskp.store.auth import User, Role, UserRole, Auth
-                
+
         if isinstance(obj, Datum):
             # Datumの新規追加時はその親フォルダの変更権限を判定する
             # (ROOTフォルダの新規追加の場合は変更を許可する)
