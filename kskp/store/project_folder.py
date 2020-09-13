@@ -73,6 +73,28 @@ class ProjectFolder(Folder):
         # 保存処理はFolderクラスと同じ
         super().save()
 
+    def throw_away(self):
+        """
+        プロジェクトをほかす
+        """
+        from kskp.store.auth import NotAuthorizedException
+        if not self._session.ownership(self.id):
+            raise NotAuthorizedException('プロジェクト管理者以外のメンバはプロジェクトを削除できません')
+
+        # ほかす処理はFolderクラスと同じ
+        super().throw_away()
+
+    def delete(self):
+        """
+        プロジェクトを削除する
+        """
+        from kskp.store.auth import NotAuthorizedException
+        if not self._session.ownership(self.id):
+            raise NotAuthorizedException('プロジェクト管理者以外のメンバはプロジェクトを削除できません')
+
+        # 削除処理はFolderクラスと同じ
+        super().delete()
+
     def is_joined_member(self, user):
         from sqlalchemy import exists, and_, or_
         from kskp.store.auth import User, Auth, UserRole
