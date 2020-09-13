@@ -965,6 +965,72 @@ class AuthTest(TestCaseBase):
         self.assertFalse(self.factory.data.exists(flow.uuid))
         self.assertFalse(self.factory.data.exists(frame.uuid))
 
+    def test_cannot_move_datum(self):
+        """
+        プロジェクト以外のDatumはルートフォルダへ移動できない
+        """
+        pass
+
+    def test_cannot_delete_project(self):
+        """
+        プロジェクト管理者はプロジェクトを削除できる
+        """
+        # ルートフォルダを取得する
+        root = self.factory2.data.load_root()
+
+        # ルートフォルダの下にプロジェクトを作成する
+        # 作成者(=プロジェクト管理者)はUSER2
+        project = root.create_project_folder('捨てるよプロジェクト🗑')
+        project.save()
+        project = project.reload()
+
+        # プロジェクト管理者(USER2)がプロジェクトをほかす
+        project.throw_away()
+
+        # プロジェクトがゴミ箱に存在すること
+        self.assertTrue(self.factory.data.trashed(project.uuid))
+
+        # プロジェクト管理者(USER2)がプロジェクトを削除する
+        project.delete()
+
+        # プロジェクトは削除されていること
+        self.assertFalse(self.factory.data.exists(project.uuid))
+
+    def test_cannot_delete_project(self):
+        """
+        プロジェクト管理者以外はプロジェクトを削除できない
+        """
+        # ルートフォルダを取得する
+        root = self.factory2.data.load_root()
+
+        # ルートフォルダの下にプロジェクトを作成する
+        # 作成者(=プロジェクト管理者)はUSER2
+        project = root.create_project_folder('捨てるなプロジェクト🚯')
+        project.save()
+        project = project.reload()
+
+        # プロジェクトメンバ以外のユーザ(USER3)が削除を試みる
+        project = self.factory3.data.find_by_uuid(project.uuid)
+        with self.assertRaises(NotAuthorizedException):
+            project.throw_away()
+        with self.assertRaises(NotAuthorizedException):
+            project.delete()
+
+        # USER3をプロジェクトの編集者メンバとして追加する
+        project = self.factory2.data.find_by_id(project.id)
+        user3_member = ProjectFolder.Member(self.USER3, ProjectFolder.WRITER_MEMBER_TYPE)
+        project.join_member(user3_member)
+
+        # 編集者メンバ(USER3)がプロジェクトの削除を試みる
+        project = self.factory3.data.find_by_uuid(project.uuid)
+        with self.assertRaises(NotAuthorizedException):
+            project.throw_away()
+        with self.assertRaises(NotAuthorizedException):
+            project.delete()
+
+        # プロジェクトは削除されていないこと
+        self.assertTrue(self.factory.data.exists_by_id(project.id))
+
     def test_join_project(self):
         """
         プロジェクト管理者を交代する
@@ -987,11 +1053,11 @@ class AuthTest(TestCaseBase):
         # 期待する結果が返ることを確認する
         self.assertEqual(len(members), 2)
         self.assertEqual(members, [member1, member2])
-        
-        # プロジェクトは削除できない
+
+        # プロジェクトは更新できない
         with self.assertRaises(NotAuthorizedException):
             project = project.reload()
-            project.delete()
+            project.update_data('ぷろじぇくと1')
 
     def test_join_project2(self):
         """
@@ -1016,10 +1082,10 @@ class AuthTest(TestCaseBase):
         self.assertEqual(len(members), 2)
         self.assertEqual(members, [member2, member1])
 
-        # プロジェクトは削除できない
+        # プロジェクトは更新できない
         with self.assertRaises(NotAuthorizedException):
             project = project.reload()
-            project.delete()
+            project.update_data('ぷろじぇくと2')
 
     def test_join_project_without_owner(self):
         """
