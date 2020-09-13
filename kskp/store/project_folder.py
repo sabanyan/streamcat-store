@@ -112,7 +112,14 @@ class ProjectFolder(Folder):
         """
         プロジェクトにユーザを所属させる
         """
-        self_role = member.user.load_self_role()
+        from kskp.store.factory import RoleFactory
+        
+        # ユーザの本人ロールが無ければ作成する
+        member.user.load_self_role()
+        # ユーザの本人ロールを取得する
+        # (member.user.load_self_role()で取得できるRoleはユーザのsession持つので、操作者のsessionでRoleを再取得する)
+        factory = RoleFactory(self._session)
+        self_role = factory.find_by_id(member.user.self_role_id)
 
         if member.type == ProjectFolder.READER_MEMBER_TYPE:
             self_role.init_authz(self.id, read=True, write=None)

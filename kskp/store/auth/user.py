@@ -73,6 +73,11 @@ class User(BaseModel):
         """
         # 本人ロールを作成する
         self.load_self_role()
+        # MyProjectを作成する
+        from kskp.store.factory import DatumFactory
+        root = DatumFactory(self._session).load_root()
+        project =root.create_project_folder('MyProject')
+        project.save()
 
     def _valid_email_or_raise(self, email):
         if email is None or email=='':
