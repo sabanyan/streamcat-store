@@ -3,7 +3,7 @@ import os
 import sys
 import nysol.mcmd as nm
 
-from kskp.store import NysolModule, Datum, Store, Frame, Flow, Folder
+from kskp.store import NysolModule, Datum, Store, Frame, Flow, Folder, List
 from kskp.core import Command, Port
 from flask import g
 
@@ -844,7 +844,6 @@ class RunsCommand(SCommand):
                 else:
                     ret[i_port_name] = exs_list
                 i += 1
-            print(ret)
             return ret
 
 
@@ -918,10 +917,10 @@ class AssertCommand(SCommand):
     def run(self, args, inputs):
         import uuid
         from pathlib import Path
-        from itertools import zip_longest
         from kskp.core import Util
+        from itertools import zip_longest
 
-        # flow = args['flow']
+        flow = args['flow']
 
         def report_diff():
             """
@@ -932,17 +931,11 @@ class AssertCommand(SCommand):
                 res_diff = None
 
                 # 差分の取得を行う
-                # create_diff_list
-                # if i_is_exs and m_is_exs:
-                #     res_diff = create_exs_diff_list(dlimit)
-                # else:
-                #     res_diff = create_diff_list(dlimit)
                 res_diff = create_diff_list(dlimit)
                 
                 # CSVを構築して、標準出力へ渡す
                 sys.stdout.flush()
                 diff_csv_maker(res_diff)
-                # print("hhhhh")
                 sys.stdout.flush()
 
             except Exception as e:
@@ -959,28 +952,27 @@ class AssertCommand(SCommand):
             with i_output_path.open()as i_tmp:
                 with m_output_path.open()as m_tmp:
                     row_number = None
-                    i_data = i_tmp
-                    m_data = m_tmp
+                    i_port_output = i_tmp
+                    m_port_output = m_tmp
                     
                     # 比較対象ともにエラー出力か、そうでないかで処理分け
                     if i_is_exs and m_is_exs:
-                        i_list = i_data.read().splitlines()
-                        m_list = m_data.read().splitlines()
+                        i_list = i_port_output.read().splitlines()
+                        m_list = m_port_output.read().splitlines()
 
                         # ２つの入力で違うエラーを算出する
                         get_diff = list(set(i_list) & set(m_list))
-                        i_data = list(set(i_list) - set(get_diff))
-                        m_data = list(set(m_list) - set(get_diff))
+                        i_port_output = list(set(i_list) - set(get_diff))
+                        m_port_output = list(set(m_list) - set(get_diff))
                     else:
                         row_number = 1
 
                     # 差分情報をリスト形式で取得
-                    for s, t in zip_longest(i_data, m_data, fillvalue=''):
+                    for s, t in zip_longest(i_port_output, m_port_output, fillvalue=''):
                         if s != t:
                             diff_list.append(diff_elem_to_list(row_number, s, t))
                         if isinstance(row_number, int):
                             row_number += 1
-            # print(diff_list)
             return diff_list
 
 
@@ -999,76 +991,14 @@ class AssertCommand(SCommand):
 
             return diff_rows
 
-
-        # def create_exs_diff_list(dlimit):
-        #     """
-        #     2ファイル間での差分取得を行う
-        #     2入力どちらもエラーの場合のみ
-        #     各入力で違うエラーが発生した場合に差分として出力する
-        #     """
-        #     check = []
-        #     with i_output_path.open()as i_tmp:
-        #         with m_output_path.open()as m_tmp:
-        #             i_list = i_tmp.read().splitlines()
-        #             m_list = m_tmp.read().splitlines()
-
-        #             # ２つの入力で違うエラーを算出する
-        #             get_diff = list(set(i_list) & set(m_list))
-        #             i_diff_elem = list(set(i_list) - set(get_diff))
-        #             m_diff_elem = list(set(m_list) - set(get_diff))
-
-        #             row_number = None
-        #             if (i_diff_elem == [] and m_diff_elem == []):
-        #                 return []
-        #             else:
-        #                 for s, t in zip_longest(i_diff_elem, m_diff_elem, fillvalue=''):
-        #                     diff_rows = []
-        #                     diff_rows.append(row_number)
-
-        #                     # エスケープ処理
-        #                     i_diff = escape_csv(s)
-        #                     diff_rows.append(i_diff)
-
-        #                     m_diff = escape_csv(t)
-        #                     diff_rows.append(m_diff)
-
-        #                     # 差分検出上限数チェック
-        #                     check.append(diff_rows)
-        #                     if len(check) > int(dlimit):
-        #                         return ["The output limit has been exceeded"]
-        #     return check
-
-
-        # def create_diff_list_old(dlimit):
-        #     """
-        #     2ファイル間での差分取得を行う
-        #     省メモリ化のため一行ずつ比較
-        #     dlimitは差分検出上限数、これを超えたら全体が間違っていると判断する
-        #     """
-        #     check = []
-        #     # with open(i_output_path)as i_tmp:
-        #     with i_output_path.open()as i_tmp:
-        #         # with open(m_output_path)as m_tmp:
-        #         with m_output_path.open()as m_tmp:
-        #             row_number = 0
-        #             for s, t in zip_longest(i_tmp, m_tmp, fillvalue=''):
-        #                 if s != t:
-        #                     diff_rows = []
-        #                     diff_rows.append(row_number)
-
-        #                     i_diff = escape_csv(s)
-        #                     diff_rows.append(i_diff)
-
-        #                     m_diff = escape_csv(t)
-        #                     diff_rows.append(m_diff)
-                            
-        #                     check.append(diff_rows)
-
-        #                     # 差分検出上限数チェック
-        #                     if len(check) > int(dlimit):
-        #                         return ["The output limit has been exceeded"]
-        #                 row_number += 1
-        #     return check
+        def escape_csv(val):
+            """
+            文章中のコンマや改行によって間違ったcsvの区切り位置になることを
+            ダブルクォーテーションを設定するエスケープ 処理によって防ぐ
+            """
+            ret = val.strip().replace("\"", "\"\"")
+            ret = "\"" + ret + "\""
+            return ret
 
         def diff_csv_maker(diff_result):
             """
@@ -1127,21 +1057,10 @@ class AssertCommand(SCommand):
                         data_str = ",".join(map(str, row_data))
                         print(data_str)
                 else:
-                    e = 0
                     print(",".join(map(str, output_datas)) + "," + ",".join(map(str, diff)))
             else:
                 output_datas.append(diff)
-                print(output_datas)    
-
-
-        def escape_csv(val):
-            """
-            文章中のコンマや改行によって間違ったcsvの区切り位置になることを
-            ダブルクォーテーションを設定するエスケープ 処理によって防ぐ
-            """
-            ret = val.strip().replace("\"", "\"\"")
-            ret = "\"" + ret + "\""
-            return ret
+                print(output_datas)
 
 
         if 'i' not in inputs:
@@ -1166,12 +1085,12 @@ class AssertCommand(SCommand):
         if isinstance(inputs['i'], Exception):
             port_exs['i'] = [inputs['i']]
             i_is_exs = True
-        elif isinstance(inputs['i'], NysolModule):
+        elif isinstance(inputs['i'], (NysolModule, List)):
             nysol_cmd_i = inputs['i'].content
             nysol_cmd_i <<= nm.m2tee(o=i_output_path.as_posix())
             port_exs['i'] = RunsCommand().run({}, {'i':NysolModule(nysol_cmd_i)})['i']
         else:
-            raise Exception("入力ポートiに <type: " + str(type(inputs['i'] + " >は対応していません")))
+            raise Exception("入力ポートiに <type: " + str(type(inputs['i'])) + " >は対応していません")
 
         # もしエラーが発生していたら、それまでの出力に関わらずエラー文章を比較対象とする。
         if isinstance(inputs['i'], list) or isinstance(port_exs['i'], list):
@@ -1181,16 +1100,16 @@ class AssertCommand(SCommand):
                 f.write('\n'.join(i_exs_list))
             i_is_exs = True
         
-        
         if isinstance(inputs['m'], Exception):
             port_exs['m'] = [inputs['m']]
             m_is_exs = True
-        elif isinstance(inputs['m'], NysolModule):
+        elif isinstance(inputs['m'], (NysolModule, List)):
             nysol_cmd_m = inputs['m'].content
             nysol_cmd_m <<= nm.m2tee(o=m_output_path.as_posix())
             port_exs['m'] = RunsCommand().run({}, {'m':NysolModule(nysol_cmd_m)})['m']
         else:
-            raise Exception("入力ポートmに <type: " + str(type(inputs['i'] + " >は対応していません")))
+            raise Exception("入力ポートmに <type: " + str(type(inputs['m'])) + " >は対応していません")
+
 
         # もしエラーが発生していたら、それまでの出力に関わらずエラー文章を比較対象とする。
         if isinstance(inputs['m'], list) or isinstance(port_exs['m'], list):
@@ -1201,17 +1120,10 @@ class AssertCommand(SCommand):
 
 
         # 親フォルダの情報を取得
-        # TODO: datumにまとめる
-        # flow_path = args['flow'].get_current_folder_path()
-        # parent_label = args['flow'].get_parent_datum().label
-        # parent_uuid = args['flow'].get_parent_datum().uuid
-
-        flow_path = args['flow'].find_parent().get_folder_path()
-
-        # 
-        # meimie
-        flow_path_str = '/' + '/'.join([flow.get('label') for flow in flow_path]) + '/' + args['flow'].label
-
+        # 元々datumクラスのget_prev_parent_pathを参考に現在のパスを取得しようと考えていたが、flowクラスに現在いるフォルダを取得する方法があったのでそちらを利用。
+        # TODO:ほとんど同じ役割のメソッド が離れているのはおかしいので、将来回収する
+        flow_path = flow.find_parent().get_folder_path()
+        flow_path_str = '/' + '/'.join([flow.get('label') for flow in flow_path]) + '/' + flow.label
 
 
         # 作成した一時ファイルから差分を算出する
