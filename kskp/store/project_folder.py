@@ -43,6 +43,24 @@ class ProjectFolder(Folder):
         # データタイプを設定する
         self.type = Datum.PROJECT_TYPE
 
+    def move(self, parent_uuid, modifier=None):
+        """
+        ゴミ箱へにほかされるか、ゴミ箱から元の場所に戻す場合を除いて
+        プロジェクトは移動できない
+        """
+        from kskp.store.factory import DatumFactory
+        factory = DatumFactory(self._session)
+        trash_folder = factory.load_trash_folder()
+
+        if parent_uuid == trash_folder.uuid:
+            # ゴミ箱にほかされる場合
+            super().move(parent_uuid, modifier=modifier)
+        elif self.prev_parent_id is not None and parent_uuid == factory.find_by_id(self.prev_parent_id).uuid:
+            # 元の場所に戻す場合
+            super().move(parent_uuid, modifier=modifier)
+        else:
+            raise Exception('プロジェクトは移動できません')
+
     def save(self, file_path=None):
         """
         Projectを保存する

@@ -1,5 +1,7 @@
+import io
 import unittest
 import pprint
+from kskp.store import trashcan
 from sqlalchemy.orm.exc import NoResultFound
 from kskp.core import Datum
 from kskp.store import ProjectFolder
@@ -311,9 +313,7 @@ class AuthTest(TestCaseBase):
         # ルートフォルダを取得する
         root = self.factory.data.load_root()
         # ルートフォルダの下にフレームを作成する
-        import io
-        f = io.BytesIO(b'')
-        frame = root.create_frame('CSV', f)
+        frame = root.create_frame('CSV', io.BytesIO(b''))
         frame.save()
 
         # フレームの参照権限を全て削除する
@@ -337,9 +337,7 @@ class AuthTest(TestCaseBase):
         # ルートフォルダを取得する
         root = self.factory.data.load_root()
         # ルートフォルダの下にフレームを作成する
-        import io
-        f = io.BytesIO(b'')
-        frame = root.create_frame('CSV', f)
+        frame = root.create_frame('CSV', io.BytesIO(b''))
         frame.save()
         frame = frame.reload()
 
@@ -374,9 +372,7 @@ class AuthTest(TestCaseBase):
         # ルートフォルダを取得する
         root = self.factory.data.load_root()
         # ルートフォルダの下にフレームを作成する
-        import io
-        f = io.BytesIO(b'')
-        frame = root.create_frame('CSV', f)
+        frame = root.create_frame('CSV', io.BytesIO(b''))
         frame.save()
         frame = frame.reload()
 
@@ -516,9 +512,7 @@ class AuthTest(TestCaseBase):
         # ルートフォルダを取得する
         root = self.factory.data.load_root()
         # ルートフォルダの下にフレームを作成する
-        import io
-        f = io.BytesIO(b'')
-        frame = root.create_frame('CSV2', f)
+        frame = root.create_frame('CSV2', io.BytesIO(b''))
         frame.save()
 
         # フレームの参照権限を全て削除する
@@ -541,9 +535,7 @@ class AuthTest(TestCaseBase):
         # ルートフォルダを取得する
         root = self.factory.data.load_root()
         # ルートフォルダの下にフレームを作成する
-        import io
-        f = io.BytesIO(b'')
-        frame = root.create_frame('CSV2', f)
+        frame = root.create_frame('CSV2', io.BytesIO(b''))
         frame.save()
         # ルートフォルダの下にフローを作成する
         flow = root.create_simple_flow(root, 'フロー', frame)
@@ -892,18 +884,86 @@ class AuthTest(TestCaseBase):
         # ルートフォルダの下にプロジェクトを作成する
         project0 = root.create_project_folder('プロジェクト0')
         project0.save()
+        project0 = project0.reload()
         # プロジェクトの下にプロジェクトを作成する
         with self.assertRaises(Exception):
             sub_project0 = project0.create_project_folder('Subプロジェクト0')
             sub_project0.save()
 
         # ルートフォルダの下にフォルダを作成する
-        project1 = root.create_folder('フォルダ0')
-        project1.save()
+        folder = root.create_folder('フォルダ0')
+        folder.save()
+        folder = folder.reload()
         # フォルダの下にプロジェクトを作成する
         with self.assertRaises(Exception):
-            sub_project0 = project1.create_project_folder('Subプロジェクト0')
+            sub_project0 = folder.create_project_folder('Subプロジェクト0')
             sub_project0.save()
+
+    def test_cannot_move_project(self):
+        """
+        ゴミ箱へにほかされるか、ゴミ箱から元の場所に戻す場合を除いて、プロジェクトは移動できない
+        """
+        # ルートフォルダを取得する
+        root = self.factory.data.load_root()
+
+        # ルートフォルダの下にプロジェクトを作成する
+        project = root.create_project_folder('移動できないぜProject')
+        project.save()
+        project = project.reload()
+
+        # ルートフォルダの下にフォルダを作成する
+        folder = root.create_folder('フォルダだぜ')
+        folder.save()
+        folder = folder.reload()
+
+        # プロジェクトをフォルダの下に移動する
+        with self.assertRaises(Exception):
+            project.move(folder.uuid)
+
+    def test_throw_away_project(self):
+        """
+        プロジェクトはゴミ箱にほかせること
+        """
+        # ルートフォルダを取得する
+        root = self.factory.data.load_root()
+
+        # ルートフォルダの下にプロジェクトを作成する
+        project = root.create_project_folder('ゴミプロジェクト')
+        project.save()
+        project = project.reload()
+
+        # プロジェクトの下にフローを作成する
+        flow = project.create_flow('フロー', {})
+        flow.save()
+        flow = flow.reload()
+
+        # プロジェクトの下にフレームを作成する
+        frame = project.create_frame('フレーム', io.BytesIO(b''))
+        frame.save()
+        frame = frame.reload()
+
+        # プロジェクトをほかす
+        project.throw_away()
+
+        # プロジェクトがゴミ箱に存在すること
+        self.assertTrue(self.factory.data.trashed(project.uuid))
+        self.assertTrue(self.factory.data.trashed(flow.uuid))
+        self.assertTrue(self.factory.data.trashed(frame.uuid))
+
+        # プロジェクトを元の場所に戻す
+        project.put_back()
+
+        # プロジェクトが元の場所に存在すること
+        self.assertEqual(project.find_parent().id, root.id)
+
+        # プロジェクトを再度ほかして、ゴミ箱を空にする
+        project.throw_away()
+        self.factory.data.find_trashcan().trash_all()
+
+        # プロジェクトは削除されていること
+        self.assertFalse(self.factory.data.exists(project.uuid))
+        self.assertFalse(self.factory.data.exists(flow.uuid))
+        self.assertFalse(self.factory.data.exists(frame.uuid))
 
     def test_join_project(self):
         """
