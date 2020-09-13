@@ -1,9 +1,9 @@
 {
   "version": "0.7.0",
   "id": "assert",
-  "label": "参照データとの比較による差分出力",
+  "label": "参照データとの比較による出力評価",
   "classification": "validation",
-  "description": "入力データと参照データを照らし合わせて、差分情報を出力する",
+  "description": "入力データと参照データを比較して、差分情報を出力する",
   "ports": [
     [
       {
@@ -26,7 +26,8 @@
     {
       "name": "dlimit",
       "type": "string",
-      "label": "差分取得限界数(必須)"
+      "label": "差分取得限界数(必須)",
+      "default": 100
     }
   ],
   "url": ""

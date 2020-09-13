@@ -844,6 +844,7 @@ class RunsCommand(SCommand):
                 else:
                     ret[i_port_name] = exs_list
                 i += 1
+            print(ret)
             return ret
 
 
@@ -916,32 +917,32 @@ class AssertCommand(SCommand):
         
     def run(self, args, inputs):
         import uuid
-        import difflib
         from pathlib import Path
         from itertools import zip_longest
+        from kskp.core import Util
 
+        # flow = args['flow']
 
-        def report_diff(diff_args):
+        def report_diff():
             """
             差分の取得および出力データのインタフェース
             """
             try:
-                dlimit = diff_args["dlimit"]
-                i_tmp_path = diff_args["i_tmp_path"]
-                m_tmp_path = diff_args["m_tmp_path"]
-                i_is_exs = diff_args["i_is_exs"]
-                m_is_exs = diff_args["m_is_exs"]
+                dlimit = args["dlimit"]
                 res_diff = None
 
                 # 差分の取得を行う
-                if i_is_exs and m_is_exs:
-                    res_diff = create_exs_diff_list(i_tmp_path, m_tmp_path, dlimit)
-                else:
-                    res_diff = create_diff_list(i_tmp_path, m_tmp_path, dlimit)
+                # create_diff_list
+                # if i_is_exs and m_is_exs:
+                #     res_diff = create_exs_diff_list(dlimit)
+                # else:
+                #     res_diff = create_diff_list(dlimit)
+                res_diff = create_diff_list(dlimit)
                 
                 # CSVを構築して、標準出力へ渡す
                 sys.stdout.flush()
-                diff_csv_maker(res_diff, diff_args)
+                diff_csv_maker(res_diff)
+                # print("hhhhh")
                 sys.stdout.flush()
 
             except Exception as e:
@@ -949,94 +950,143 @@ class AssertCommand(SCommand):
                 with open('dev/stderr', 'w')as fpe:
                     traceback.print_exc(file=fpe)
 
-        def create_exs_diff_list(i_tmp_path, m_tmp_path, dlimit):
+        def create_diff_list(dlimit):
             """
             2ファイル間での差分取得を行う
-            2入力どちらもエラーの場合のみ
-            各入力で違うエラーが発生した場合に差分として出力する
-            """
-            check = []
-            with open(i_tmp_path)as i_tmp:
-                with open(m_tmp_path)as m_tmp:
-                    i_list = i_tmp.read().splitlines()
-                    m_list = m_tmp.read().splitlines()
-
-                    # ２つの入力で違うエラーを産出する
-                    get_diff = list(set(i_list) & set(m_list))
-                    i_diff_elem = list(set(i_list) - set(get_diff))
-                    m_diff_elem = list(set(m_list) - set(get_diff))
-
-                    row_number = None
-                    if (i_diff_elem == [] and m_diff_elem == []):
-                        return []
-                    else:
-                        for s, t in zip_longest(i_diff_elem, m_diff_elem, fillvalue='null'):
-                            diff_rows = []
-                            diff_rows.append(row_number)
-
-                            # エスケープ処理
-                            i_diff = comma_escape(s)
-                            diff_rows.append(i_diff)
-
-                            m_diff = comma_escape(t)
-                            diff_rows.append(m_diff)
-
-                            # 差分検出上限数チェック
-                            check.append(diff_rows)
-                            if len(check) > int(dlimit):
-                                return ["The output limit has been exceeded"]
-            return check
-
-
-        def create_diff_list(i_tmp_path, m_tmp_path, dlimit):
-            """
-            2ファイル間での差分取得を行う
-            省メモリ化のため一行ずつ比較
             dlimitは差分検出上限数、これを超えたら全体が間違っていると判断する
             """
-            check = []
-            with open(i_tmp_path)as i_tmp:
-                with open(m_tmp_path)as m_tmp:
-                    row_number = 0
-                    for s, t in zip_longest(i_tmp, m_tmp, fillvalue='null'):
+            diff_list = []
+            with i_output_path.open()as i_tmp:
+                with m_output_path.open()as m_tmp:
+                    row_number = None
+                    i_data = i_tmp
+                    m_data = m_tmp
+                    
+                    # 比較対象ともにエラー出力か、そうでないかで処理分け
+                    if i_is_exs and m_is_exs:
+                        i_list = i_data.read().splitlines()
+                        m_list = m_data.read().splitlines()
+
+                        # ２つの入力で違うエラーを算出する
+                        get_diff = list(set(i_list) & set(m_list))
+                        i_data = list(set(i_list) - set(get_diff))
+                        m_data = list(set(m_list) - set(get_diff))
+                    else:
+                        row_number = 1
+
+                    # 差分情報をリスト形式で取得
+                    for s, t in zip_longest(i_data, m_data, fillvalue=''):
                         if s != t:
-                            diff_rows = []
-                            diff_rows.append(row_number)
+                            diff_list.append(diff_elem_to_list(row_number, s, t))
+                        if isinstance(row_number, int):
+                            row_number += 1
+            # print(diff_list)
+            return diff_list
 
-                            i_diff = comma_escape(s)
-                            diff_rows.append(i_diff)
 
-                            m_diff = comma_escape(t)
-                            diff_rows.append(m_diff)
+        def diff_elem_to_list(row_number, s, t):
+            """
+            差分の要素を、エスケープ処理を行った後にリストにして返す
+            """
+            diff_rows = []
+            diff_rows.append(row_number)
+
+            i_diff = escape_csv(s)
+            diff_rows.append(i_diff)
+
+            m_diff = escape_csv(t)
+            diff_rows.append(m_diff)
+
+            return diff_rows
+
+
+        # def create_exs_diff_list(dlimit):
+        #     """
+        #     2ファイル間での差分取得を行う
+        #     2入力どちらもエラーの場合のみ
+        #     各入力で違うエラーが発生した場合に差分として出力する
+        #     """
+        #     check = []
+        #     with i_output_path.open()as i_tmp:
+        #         with m_output_path.open()as m_tmp:
+        #             i_list = i_tmp.read().splitlines()
+        #             m_list = m_tmp.read().splitlines()
+
+        #             # ２つの入力で違うエラーを算出する
+        #             get_diff = list(set(i_list) & set(m_list))
+        #             i_diff_elem = list(set(i_list) - set(get_diff))
+        #             m_diff_elem = list(set(m_list) - set(get_diff))
+
+        #             row_number = None
+        #             if (i_diff_elem == [] and m_diff_elem == []):
+        #                 return []
+        #             else:
+        #                 for s, t in zip_longest(i_diff_elem, m_diff_elem, fillvalue=''):
+        #                     diff_rows = []
+        #                     diff_rows.append(row_number)
+
+        #                     # エスケープ処理
+        #                     i_diff = escape_csv(s)
+        #                     diff_rows.append(i_diff)
+
+        #                     m_diff = escape_csv(t)
+        #                     diff_rows.append(m_diff)
+
+        #                     # 差分検出上限数チェック
+        #                     check.append(diff_rows)
+        #                     if len(check) > int(dlimit):
+        #                         return ["The output limit has been exceeded"]
+        #     return check
+
+
+        # def create_diff_list_old(dlimit):
+        #     """
+        #     2ファイル間での差分取得を行う
+        #     省メモリ化のため一行ずつ比較
+        #     dlimitは差分検出上限数、これを超えたら全体が間違っていると判断する
+        #     """
+        #     check = []
+        #     # with open(i_output_path)as i_tmp:
+        #     with i_output_path.open()as i_tmp:
+        #         # with open(m_output_path)as m_tmp:
+        #         with m_output_path.open()as m_tmp:
+        #             row_number = 0
+        #             for s, t in zip_longest(i_tmp, m_tmp, fillvalue=''):
+        #                 if s != t:
+        #                     diff_rows = []
+        #                     diff_rows.append(row_number)
+
+        #                     i_diff = escape_csv(s)
+        #                     diff_rows.append(i_diff)
+
+        #                     m_diff = escape_csv(t)
+        #                     diff_rows.append(m_diff)
                             
-                            check.append(diff_rows)
+        #                     check.append(diff_rows)
 
-                            # 差分検出上限数チェック
-                            if len(check) > int(dlimit):
-                                return ["The output limit has been exceeded"]
-                        row_number += 1
-            return check
+        #                     # 差分検出上限数チェック
+        #                     if len(check) > int(dlimit):
+        #                         return ["The output limit has been exceeded"]
+        #                 row_number += 1
+        #     return check
 
-        def diff_csv_maker(diff_result, diff_args):
+        def diff_csv_maker(diff_result):
             """
             差分取得の処理結果をもとに、コマンドとしての返却データを作成
             runfuncを使用した場合、対象のコマンドでは標準出力にcsv形式のデータを渡す必要がある。（逆に、runfuncに対して、return を通してデータを返さない）
             """
             # 出力データの列
-            output_columns = [  
-                "flow_label",
-                "flow_uuid",
-                "flow_path",
-                "parent_uuid",
-                "parent_label",
-                "date",
-                # "serial_number",
-                "point_id",
-                "is_true",
-                "raise_exs",
-                "diff_row_number",
-                "diff_result",
-                "diff_answer"
+            output_columns = [
+                "flow_label", # テスト対象フローのラベル名
+                "flow_uuid", # テスト対象フローのuuid
+                "flow_path", # KSKP上での、テスト対象フローまでのパス
+                "date", # 実行日時
+                "point_id", # assert commandの出力先ポイント
+                "is_true", # ２つの入力が正しい値であるか
+                "raise_exs", # テスト対象のデータにエラーメッセージが含まれているか
+                "diff_row_number", # 各入力における、csv情報が違う行番号
+                "i_port_diff", # i_portのdiff_row_number 行目を抜き出す
+                "m_port_diff" # m_portのdiff_row_number 行目を抜き出す
             ]
 
             print(",".join(output_columns))
@@ -1044,17 +1094,10 @@ class AssertCommand(SCommand):
             # 各カラムパラメータ定義
             flow_label = args["flow_label"]
             flow_uuid = args["flow_uuid"]
-            flow_path = None
-            parent_uuid = None
-            parent_label = None
-            date = args['start_time']
-            # serial number
+            date = Util.datetime_to_local_time_str(args['start_time'])
             point_id = args['asserted_point']
-            is_true = None
-            raise_exs = diff_args['i_is_exs'] or diff_args['m_is_exs']
-            flow_path = diff_args['flow_path']
-            parent_label = diff_args['parent_label']
-            parent_uuid = diff_args['parent_label']
+            is_true = False
+            raise_exs = i_is_exs or m_is_exs
 
 
             # is_trueの判定 と diffの出力
@@ -1068,9 +1111,7 @@ class AssertCommand(SCommand):
             output_datas = [
                 flow_label,
                 flow_uuid,
-                flow_path,
-                parent_uuid,
-                parent_label,
+                flow_path_str,
                 date,
                 point_id,
                 is_true,
@@ -1093,9 +1134,9 @@ class AssertCommand(SCommand):
                 print(output_datas)    
 
 
-        def comma_escape(val):
+        def escape_csv(val):
             """
-            文章中のコンマによって、間違ったcsvの区切り位置になることを
+            文章中のコンマや改行によって間違ったcsvの区切り位置になることを
             ダブルクォーテーションを設定するエスケープ 処理によって防ぐ
             """
             ret = val.strip().replace("\"", "\"\"")
@@ -1109,11 +1150,14 @@ class AssertCommand(SCommand):
             raise Exception('AssertCommandの入力ポートmに値が入力されていません')
 
 
-        # 一時ファイル作成用path
-        i_tmp_path = Path("/tmp/" + str(uuid.uuid4()) + "_i.csv")
-        m_tmp_path = Path("/tmp/" + str(uuid.uuid4()) + "_m.csv")
+        # それぞれの入力portで与えられたデータの一時書き出し先
+        i_output_path = Path("/tmp/" + str(uuid.uuid4()) + "_i.csv")
+        m_output_path = Path("/tmp/" + str(uuid.uuid4()) + "_m.csv")
 
+        # 入力portが送出するエラーメッセージを格納
         port_exs = {}
+
+        # それぞれの入力portがエラーを持つかどうかのフラグ
         i_is_exs = False
         m_is_exs = False
 
@@ -1122,14 +1166,17 @@ class AssertCommand(SCommand):
         if isinstance(inputs['i'], Exception):
             port_exs['i'] = [inputs['i']]
             i_is_exs = True
-        else:
+        elif isinstance(inputs['i'], NysolModule):
             nysol_cmd_i = inputs['i'].content
-            nysol_cmd_i <<= nm.m2tee(o=i_tmp_path.as_posix())
+            nysol_cmd_i <<= nm.m2tee(o=i_output_path.as_posix())
             port_exs['i'] = RunsCommand().run({}, {'i':NysolModule(nysol_cmd_i)})['i']
+        else:
+            raise Exception("入力ポートiに <type: " + str(type(inputs['i'] + " >は対応していません")))
 
         # もしエラーが発生していたら、それまでの出力に関わらずエラー文章を比較対象とする。
         if isinstance(inputs['i'], list) or isinstance(port_exs['i'], list):
-            with i_tmp_path.open(mode="w")as f:
+            # エラーメッセージを一時ファイルへ書き出す
+            with i_output_path.open(mode="w")as f:
                 i_exs_list = [str(x).strip().replace("\n", "") for x in [port_exs['i']]]
                 f.write('\n'.join(i_exs_list))
             i_is_exs = True
@@ -1138,46 +1185,36 @@ class AssertCommand(SCommand):
         if isinstance(inputs['m'], Exception):
             port_exs['m'] = [inputs['m']]
             m_is_exs = True
-        else:
+        elif isinstance(inputs['m'], NysolModule):
             nysol_cmd_m = inputs['m'].content
-            nysol_cmd_m <<= nm.m2tee(o=m_tmp_path.as_posix())
+            nysol_cmd_m <<= nm.m2tee(o=m_output_path.as_posix())
             port_exs['m'] = RunsCommand().run({}, {'m':NysolModule(nysol_cmd_m)})['m']
+        else:
+            raise Exception("入力ポートmに <type: " + str(type(inputs['i'] + " >は対応していません")))
 
         # もしエラーが発生していたら、それまでの出力に関わらずエラー文章を比較対象とする。
         if isinstance(inputs['m'], list) or isinstance(port_exs['m'], list):
-            with m_tmp_path.open(mode="w")as f:
+            with m_output_path.open(mode="w")as f:
                 m_exs_list = [str(x).strip().replace("\n", "") for x in [port_exs['m']]]
                 f.write('\n'.join(m_exs_list))
             m_is_exs = True
 
 
         # 親フォルダの情報を取得
-        datum_list = []
-        datum_data = args['flow']
-        while True:
-            datum_list.append(datum_data)
-            if datum_data.parent_id is None:
-                break
-            datum_data = datum_data.find_parent()
-        datum_list.reverse()
-        datum_path_labels = [x.label for x in datum_list]
-        flow_path = '/' + '/'.join(datum_path_labels)
+        # TODO: datumにまとめる
+        # flow_path = args['flow'].get_current_folder_path()
+        # parent_label = args['flow'].get_parent_datum().label
+        # parent_uuid = args['flow'].get_parent_datum().uuid
 
-        parent_label = datum_list[1].label
-        parent_uuid = datum_list[1].uuid
+        flow_path = args['flow'].find_parent().get_folder_path()
+
+        # 
+        # meimie
+        flow_path_str = '/' + '/'.join([flow.get('label') for flow in flow_path]) + '/' + args['flow'].label
+
 
 
         # 作成した一時ファイルから差分を算出する
         new_cmd_list = None
-        diff_args = {
-            "dlimit" : args["dlimit"],
-            "i_tmp_path" : i_tmp_path.as_posix(),
-            "m_tmp_path" : m_tmp_path.as_posix(),
-            "i_is_exs" : i_is_exs,
-            "m_is_exs" : m_is_exs,
-            "flow_path" : flow_path,
-            "parent_label" : parent_label,
-            "parent_uuid" : parent_uuid
-        }
-        new_cmd_list <<= nm.runfunc(report_diff, diff_args=diff_args)
+        new_cmd_list <<= nm.runfunc(report_diff)
         return {'o': NysolModule(new_cmd_list)}# PCommandの方法を参照
