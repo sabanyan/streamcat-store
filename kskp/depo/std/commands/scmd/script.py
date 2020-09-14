@@ -997,16 +997,16 @@ class AssertCommand(SCommand):
             """
             # 出力データの列
             output_columns = [
-                "flow_label", # テスト対象フローのラベル名
-                "flow_uuid", # テスト対象フローのuuid
-                "flow_path", # KSKP上での、テスト対象フローまでのパス
-                "date", # 実行日時
-                "point_id", # assert commandの出力先ポイント
-                "is_true", # ２つの入力が正しい値であるか
-                "raise_exs", # テスト対象のデータにエラーメッセージが含まれているか
-                "diff_row_number", # 各入力における、csv情報が違う行番号
-                "i_port_diff", # i_portのdiff_row_number 行目を抜き出す
-                "m_port_diff" # m_portのdiff_row_number 行目を抜き出す
+                "フロー名", # テスト対象フローのラベル名
+                "フローUUID", # テスト対象フローのuuid
+                "フローのパス", # KSKP上での、テスト対象フローまでのパス
+                "実行日時", # 実行日時
+                "テストポイントID", # assert commandの出力先ポイント
+                "テスト成功", # ２つの入力が正しい値であるか
+                "エラー発生", # テスト対象のデータにエラーメッセージが含まれているか
+                "行番号", # 各入力における、csv情報が違う行番号
+                "入力iのデータ", # i_portのdiff_row_number 行目を抜き出す
+                "入力mのデータ" # m_portのdiff_row_number 行目を抜き出す
             ]
 
             print(",".join(output_columns))
