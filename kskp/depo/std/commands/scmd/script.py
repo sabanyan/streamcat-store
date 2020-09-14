@@ -968,37 +968,27 @@ class AssertCommand(SCommand):
                         row_number = 1
 
                     # 差分情報をリスト形式で取得
-                    for s, t in zip_longest(i_port_output, m_port_output, fillvalue=''):
-                        if s != t:
-                            diff_list.append(diff_elem_to_list(row_number, s, t))
+                    for i_row, m_row in zip_longest(i_port_output, m_port_output, fillvalue=''):
+                        if i_row != m_row:
+                            diff_row = [row_number]
+                            escaped_list = escape_csv([i_row, m_row])
+                            diff_row.extend(escaped_list)
+                            diff_list.append(diff_row)
                         if isinstance(row_number, int):
                             row_number += 1
             return diff_list
 
-
-        def diff_elem_to_list(row_number, s, t):
-            """
-            差分の要素を、エスケープ処理を行った後にリストにして返す
-            """
-            diff_rows = []
-            diff_rows.append(row_number)
-
-            i_diff = escape_csv(s)
-            diff_rows.append(i_diff)
-
-            m_diff = escape_csv(t)
-            diff_rows.append(m_diff)
-
-            return diff_rows
-
-        def escape_csv(val):
+        def escape_csv(val_list):
             """
             文章中のコンマや改行によって間違ったcsvの区切り位置になることを
             ダブルクォーテーションを設定するエスケープ 処理によって防ぐ
             """
-            ret = val.strip().replace("\"", "\"\"")
-            ret = "\"" + ret + "\""
-            return ret
+            escaped_list = []
+            for val in val_list:
+                ret = val.strip().replace("\"", "\"\"")
+                ret = "\"" + ret + "\""
+                escaped_list.append(ret)
+            return escaped_list
 
         def diff_csv_maker(diff_result):
             """
@@ -1074,47 +1064,52 @@ class AssertCommand(SCommand):
         m_output_path = Path("/tmp/" + str(uuid.uuid4()) + "_m.csv")
 
         # 入力portが送出するエラーメッセージを格納
-        port_exs = {}
+        i_port_exs = {}
+        m_port_exs = {}
 
         # それぞれの入力portがエラーを持つかどうかのフラグ
         i_is_exs = False
         m_is_exs = False
+        nysol_cmd_i = None
+        nysol_cmd_m = None
 
         # 一時ファイルへフローの結果を書き出し
         # エラー発生もここで確認する
         if isinstance(inputs['i'], Exception):
-            port_exs['i'] = [inputs['i']]
+            i_port_exs['i'] = [inputs['i']]
             i_is_exs = True
         elif isinstance(inputs['i'], (NysolModule, List)):
+            # RunsCommand を確認したら、実行結果にエラーがない場合にはframeが返却され、エラーが発生した場合はlistが返却される
+            # この後の型による分岐で、エラーのもののみの対応を行っているの問題はないのでは
             nysol_cmd_i = inputs['i'].content
             nysol_cmd_i <<= nm.m2tee(o=i_output_path.as_posix())
-            port_exs['i'] = RunsCommand().run({}, {'i':NysolModule(nysol_cmd_i)})['i']
+            i_port_exs = RunsCommand().run({}, {'i':NysolModule(nysol_cmd_i)})['i']
         else:
             raise Exception("入力ポートiに <type: " + str(type(inputs['i'])) + " >は対応していません")
 
         # もしエラーが発生していたら、それまでの出力に関わらずエラー文章を比較対象とする。
-        if isinstance(inputs['i'], list) or isinstance(port_exs['i'], list):
+        if isinstance(inputs['i'], list) or isinstance(i_port_exs, list):
             # エラーメッセージを一時ファイルへ書き出す
             with i_output_path.open(mode="w")as f:
-                i_exs_list = [str(x).strip().replace("\n", "") for x in [port_exs['i']]]
+                i_exs_list = [str(x).strip().replace("\n", "") for x in i_port_exs]
                 f.write('\n'.join(i_exs_list))
             i_is_exs = True
         
         if isinstance(inputs['m'], Exception):
-            port_exs['m'] = [inputs['m']]
+            m_port_exs = [inputs['m']]
             m_is_exs = True
         elif isinstance(inputs['m'], (NysolModule, List)):
             nysol_cmd_m = inputs['m'].content
             nysol_cmd_m <<= nm.m2tee(o=m_output_path.as_posix())
-            port_exs['m'] = RunsCommand().run({}, {'m':NysolModule(nysol_cmd_m)})['m']
+            m_port_exs = RunsCommand().run({}, {'m':NysolModule(nysol_cmd_m)})['m']
         else:
             raise Exception("入力ポートmに <type: " + str(type(inputs['m'])) + " >は対応していません")
 
 
         # もしエラーが発生していたら、それまでの出力に関わらずエラー文章を比較対象とする。
-        if isinstance(inputs['m'], list) or isinstance(port_exs['m'], list):
+        if isinstance(inputs['m'], list) or isinstance(m_port_exs, list):
             with m_output_path.open(mode="w")as f:
-                m_exs_list = [str(x).strip().replace("\n", "") for x in [port_exs['m']]]
+                m_exs_list = [str(x).strip().replace("\n", "") for x in m_port_exs]
                 f.write('\n'.join(m_exs_list))
             m_is_exs = True
 
