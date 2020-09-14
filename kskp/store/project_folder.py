@@ -183,13 +183,12 @@ class ProjectFolder(Folder):
                 continue
             self.join_member(member)
 
-        # メンバリストに自分が指定されていない場合は自分を削除する
-        # (leave_user()のチェック処理をパスする)
-        self_role = self_user.load_self_role()
-        self_role.clear_authz(self.id) 
-
-        # メンバリストに自分が指定されている場合は改めて追加する
-        if self_member is not None:
+        if self_member is None:
+            # メンバリストに自分が指定されていない場合は自分を削除する
+            self_role = self_user.load_self_role()
+            self_role.clear_authz(self.id) 
+        else:
+            # メンバリストに自分が指定されている場合は改めて追加する
             self.join_member(self_member)
 
     def get_joined_members(self):
