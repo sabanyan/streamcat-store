@@ -351,15 +351,38 @@ class AuthzSession(Session):
     def ownership(self, datum_id) -> bool:
         """
         ユーザIDとDatumについて所有権の有無を判定する
+        (フォルダの所有権はオーバーライドされない)
         """
-        from kskp.core import Datum
+        # from kskp.core import Datum
+        # from .auth import Auth
+        # # ここでfind_by_id・find_by_uuidを使うとdatum.readableがFalseに何故かなってしまう
+        # # query(Datum).get()を使うとdatum.readableがNoneに何故かなってしまう
+        # result = self._session.query(Datum.id, Datum.parent_id).filter(Datum.id==datum_id).one_or_none()
+        # if result is None:
+        #     raise Exception('datum is None')
+        # 
+        # return self._operatable(result, Auth.OWN_OP)
+
+        from sqlalchemy import exists, func, false, and_, or_
+        from sqlalchemy.orm import aliased
         from .auth import Auth
-        # ここでfind_by_id・find_by_uuidを使うとdatum.readableがFalseに何故かなってしまう
-        # query(Datum).get()を使うとdatum.readableがNoneに何故かなってしまう
-        result = self._session.query(Datum.id, Datum.parent_id).filter(Datum.id==datum_id).one_or_none()
-        if result is None:
-            raise Exception('datum is None')
-        return self._operatable(result, Auth.OWN_OP)
+        from .user import User
+        from .user_role import UserRole
+
+        A = aliased(Auth, name='A')
+
+        # 操作ユーザが所属するロールであることを指定する条件
+        exists_user_role = exists().where(and_(UserRole.role_id==A.role_id, UserRole.user_id==self.user.id))
+        exists_user = exists().where(and_(User.self_role_id==A.role_id, User.id==self.user.id))
+
+        query = self._session.query(func.coalesce(func.bool_and(A.permission),false()).label('owner')).\
+                              select_from(A).\
+                              filter(A.operation==Auth.OWN_OP).\
+                              filter(or_(exists_user_role, exists_user)).\
+                              filter(A.datum_id==datum_id)
+
+        result = query.one_or_none()
+        return result.owner == True
 
     def is_addition_root_by_sysadmin(self, datum_id, operation) -> bool:
         """
@@ -381,7 +404,6 @@ class AuthzSession(Session):
         from .user_role import UserRole
 
         A = aliased(Auth, name='A')
-        U = aliased(User, name='U')
         
         # UR = aliased(UserRole, name='UR')
         # 
@@ -425,7 +447,7 @@ class AuthzSession(Session):
 
             # 操作ユーザが所属するロールであることを指定する条件
             exists_user_role0 = exists().where(and_(UserRole.role_id==A0.c.role_id, UserRole.user_id==self.user.id))
-            exists_user0 = exists().where(and_(User.self_role_id==U.self_role_id, User.id==self.user.id))
+            exists_user0 = exists().where(and_(User.self_role_id==A0.c.role_id, User.id==self.user.id))
 
             # 操作ユーザが複数のロールに所属する場合、対象のDatumの操作権限を判定する
             subquery = select([
