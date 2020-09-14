@@ -13,8 +13,9 @@ class Factory():
         from kskp.store.auth.authz_session import AuthzSession
 
         # セッションを生成する
-        # session.commit()によるExpireでquery_expression()で設定されているreadableがNoneになる
-        # これを回避するためexpire_on_commit=Falseとする、autoflush=Falseも必要!
+        # ・session.commit()によるExpireでquery_expression()で設定されているreadableがNoneになる
+        # ・これを回避するためexpire_on_commit=Falseとする、autoflush=Falseも必要!
+        # ・session.rollback()によるExprireを回避する方法はない
         session_maker = sessionmaker(bind=engine, expire_on_commit=False, autoflush=False)
 
         # セッションを保持する

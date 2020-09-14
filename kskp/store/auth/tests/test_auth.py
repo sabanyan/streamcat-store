@@ -16,6 +16,36 @@ class AuthTest(TestCaseBase):
         pass
 
     # 
+    # SQLAlchemy Session
+    # 
+
+    def test_session_rollback(self):
+        """
+        SQLAlchemyのSession.rollback()によりExpireが発生し、全てのDatum.readableがNoneになってしまう
+        """
+        # ルートフォルダを取得する
+        root = self.factory.data.load_root()
+
+        # ルートフォルダの下にフォルダを作成する
+        folder = root.create_folder('FOLDER')
+        folder.save()
+        folder = folder.reload()
+
+        # reload直後はDatum.readable=True
+        self.assertTrue(folder.readable)
+
+        # Session.rollback()
+        folder._session.rollback()
+
+        # Datum.readableがNoneに変化してしまう
+        self.assertIsNone(folder.readable)
+
+        # フォルダを再読み込みした後、削除する
+        folder = folder.reload()
+        folder.delete()
+
+
+    # 
     # Users
     # 
 
@@ -876,6 +906,66 @@ class AuthTest(TestCaseBase):
         # フローJSONのnodesを取得する
         flow.flow_data.get_nodes(use_exec_auth=True)
 
+    def test_own_frame_in_no_own_folder(self):
+        """
+        フレームの所有権は親フォルダの所有権に影響しないこと
+        (フォルダの所有権はオーバーライドされない)
+        """
+        # ルートフォルダを取得する
+        root = self.factory2.data.load_root()
+
+        # ルートフォルダの下にフォルダAを作成する (所有者はUSER2)
+        folder_a = root.create_folder('所有権の無いフォルダA')
+        folder_a.save()
+
+        # USER3にフォルダAの更新権限を付与する
+        user3 = self.factory2.user.find_by_uuid(self.USER3.uuid)
+        user3.load_self_role().init_authz(folder_a.id, read=True, write=True)
+
+        # フォルダAの下にフレームAを作成する (所有者はUSER3)
+        folder_a = self.factory3.data.find_by_uuid(folder_a.uuid)
+        frame_a = folder_a.create_frame('My Frame A', io.BytesIO(b''))
+        frame_a.save()
+
+        # ルートフォルダの下にフォルダBを作成する (所有者はUSER3)
+        root = self.factory3.data.load_root()
+        folder_b = root.create_folder('所有権の有るフォルダB')
+        folder_b.save()
+
+        # フォルダBの下にフレームBを作成する (所有者はUSER3)
+        frame_b = folder_b.create_frame('My Frame B', io.BytesIO(b''))
+        frame_b.save()
+
+        # フレームAの所有者は権限を変更できること
+        self_role = self.USER3.load_self_role()
+        self_role.init_authz(frame_a.id, read=None, write=False, own=True)
+
+        # フレームBの所有者は権限を変更できること
+        self_role.init_authz(frame_b.id, read=None, write=False, own=True)
+
+        # 更新権限が否定されたのでフレームA,Bは削除できないこと
+        with self.assertRaises(NotAuthorizedException):
+            frame_a.delete()
+        with self.assertRaises(NotAuthorizedException):
+            frame_b.delete()
+
+        # フレームA,Bに更新権限を付与する
+        self_role.init_authz(frame_a.id, read=None, write=True)
+        self_role.init_authz(frame_b.id, read=None, write=True)
+
+        # # フレームA,Bを削除する
+        frame_a.delete()
+        frame_b.delete()
+
+        # NotAuthorizedExceptionの送出後のSession.rollback()により、
+        # Expireが発生し、readable=Noneとなるため再読み込みする
+        folder_a = folder_a.reload()
+        folder_b = folder_b.reload()
+
+        # フォルダA,Bを削除する
+        folder_a.delete()
+        folder_b.delete()
+
     # 
     # Projects
     # 
@@ -1154,7 +1244,7 @@ class AuthTest(TestCaseBase):
     # 
     # System Folders
     # 
-    
+
     def test_root_folder_auths(self):
         """
         ルートフォルダの権限設定を検証する
