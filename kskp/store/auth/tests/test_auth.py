@@ -1,7 +1,6 @@
 import io
 import unittest
 import pprint
-from kskp.store import trashcan
 from sqlalchemy.orm.exc import NoResultFound
 from kskp.core import Datum
 from kskp.store import ProjectFolder
@@ -15,6 +14,10 @@ class AuthTest(TestCaseBase):
 
     def tearDown(self):
         pass
+
+    # 
+    # Users
+    # 
 
     def test_create_get_delete_user(self):
         """
@@ -101,6 +104,10 @@ class AuthTest(TestCaseBase):
         new_user = self.factory.user.find_by_email('test-man4@kskp.io')
         self.assertIsNotNone(new_user)
 
+    # 
+    # Roles
+    # 
+
     def test_create_get_delete_role(self):
         """
         Roleの作成・取得・削除を検証する
@@ -127,7 +134,6 @@ class AuthTest(TestCaseBase):
         with self.assertRaises(NoResultFound):
             self.factory.role.find_by_uuid(new_role.uuid)
 
-
     def test_create_get_delete_role_by_user(self):
         """
         一般ユーザは、自身が作成したRoleの取得・更新・削除をできること
@@ -151,8 +157,7 @@ class AuthTest(TestCaseBase):
         # 削除後のロールは取得できない
         with self.assertRaises(NoResultFound):
             self.factory2.role.find_by_uuid(new_role.uuid)
-
-    
+  
     def test_join_leave_role(self):
         """
         Roleへの参加と脱退を検証する
@@ -177,6 +182,41 @@ class AuthTest(TestCaseBase):
         
         # ユーザを脱退させる
         new_role.leave_user(self.USER2)
+
+    def test_join_role_on_no_auth(self):
+        """
+        Roleにユーザを追加できるのは管理者かRoleの作成者のみである
+        """
+        # ロールを作成する
+        new_role = self.factory.role.create('ロール')
+        new_role.save()
+
+        # 管理者でもRoleの作成者でもないユーザは、
+        # ユーザの追加操作はできない
+        new_role = self.factory2.role.find_by_uuid(new_role.uuid)
+        with self.assertRaises(NotAuthorizedException):
+            new_role.join_user(self.USER2)
+
+    def test_leave_role_on_no_auth(self):
+        """
+        Roleからユーザを削除できるのは管理者かRoleの作成者のみである
+        """
+        # ロールを作成する
+        new_role = self.factory.role.create('ロール')
+        new_role.save()
+
+        # ロールにユーザを追加する
+        new_role.join_user(self.USER2)
+
+        # 管理者でもRoleの作成者でもないユーザは、
+        # ユーザの削除操作はできない
+        new_role = self.factory2.role.find_by_uuid(new_role.uuid)
+        with self.assertRaises(NotAuthorizedException):
+            new_role.leave_user(self.USER2)
+
+    # 
+    # Auths
+    # 
 
     def test_create_get_delete_auth(self):
         """
@@ -274,38 +314,6 @@ class AuthTest(TestCaseBase):
         with self.assertRaises(NotAuthorizedException):
             new_auth.delete()
 
-
-    def test_join_role_on_no_auth(self):
-        """
-        Roleにユーザを追加できるのは管理者かRoleの作成者のみである
-        """
-        # ロールを作成する
-        new_role = self.factory.role.create('ロール')
-        new_role.save()
-
-        # 管理者でもRoleの作成者でもないユーザは、
-        # ユーザの追加操作はできない
-        new_role = self.factory2.role.find_by_uuid(new_role.uuid)
-        with self.assertRaises(NotAuthorizedException):
-            new_role.join_user(self.USER2)
-
-    def test_leave_role_on_no_auth(self):
-        """
-        Roleからユーザを削除できるのは管理者かRoleの作成者のみである
-        """
-        # ロールを作成する
-        new_role = self.factory.role.create('ロール')
-        new_role.save()
-
-        # ロールにユーザを追加する
-        new_role.join_user(self.USER2)
-
-        # 管理者でもRoleの作成者でもないユーザは、
-        # ユーザの削除操作はできない
-        new_role = self.factory2.role.find_by_uuid(new_role.uuid)
-        with self.assertRaises(NotAuthorizedException):
-            new_role.leave_user(self.USER2)
-
     def test_no_authz(self):
         """
         権限レコードのないFrameは読み取れないことを検証する
@@ -328,7 +336,6 @@ class AuthTest(TestCaseBase):
         # フレームのpathは取得できないこと
         with self.assertRaises(NotAuthorizedException):
             frame.path
-
 
     def test_readless_frame(self):
         """
@@ -364,7 +371,6 @@ class AuthTest(TestCaseBase):
         with self.assertRaises(NotAuthorizedException):
             frame.path
 
-
     def test_writeless_frame(self):
         """
         更新権限のないFrameは更新できないことを検証する
@@ -391,7 +397,6 @@ class AuthTest(TestCaseBase):
         with self.assertRaises(NotAuthorizedException):
             frame.delete()
 
-    
     def test_readless_folder(self):
         """
         参照権限のないFolderは読み取れないことを検証する
@@ -430,7 +435,6 @@ class AuthTest(TestCaseBase):
             folder.find_children_by_label('フロー')
         with self.assertRaises(NotAuthorizedException):
             folder.find_child_by_uuid(flow.uuid)
-
 
     def test_writeless_folder(self):
         """
@@ -745,7 +749,6 @@ class AuthTest(TestCaseBase):
         # フローが移動していないこと
         self.assertEqual(flow.parent_id, from_folder.id)
 
-
     def test_move_to_writeless_folder(self):
         """
         更新権限のないFolderへFlowは移動できないこと
@@ -775,7 +778,6 @@ class AuthTest(TestCaseBase):
 
         # フローが移動していないこと
         self.assertEqual(flow.parent_id, from_folder.id)
-
 
     def test_folder_in_writeless_folder(self):
         """
@@ -873,6 +875,10 @@ class AuthTest(TestCaseBase):
 
         # フローJSONのnodesを取得する
         flow.flow_data.get_nodes(use_exec_auth=True)
+
+    # 
+    # Projects
+    # 
 
     def test_cannot_save_project_outside_root(self):
         """
@@ -1145,6 +1151,10 @@ class AuthTest(TestCaseBase):
         project = project.reload()
         project.delete()
 
+    # 
+    # System Folders
+    # 
+    
     def test_root_folder_auths(self):
         """
         ルートフォルダの権限設定を検証する
