@@ -19,3 +19,81 @@ class CommandException(Exception):
 
     def __str__(self):
         return self._ex.__str__()
+        
+        
+        
+class FieldNotFoundException(CommandException):
+    """
+    exception class for Field Not Found error
+    
+    inputs:
+    not_found_field    field that was not found
+    command_name       name of command (optional)
+    option_id          input field id (optional)
+    """
+    def __init__(self, not_found_field, command_name = '', option_id = ''):
+        self._not_found_field = not_found_field
+        self._command_name = command_name
+        self._option_id = option_id
+        
+    def __str__(self):
+        msg = ''
+        if self._command_name != '':
+            msg +=  f'【コマンド：{self._command_name}】'
+        if self._option_id != '':
+            msg += f'【オプションID：{self._option_id}】'
+
+        msg += f'指定した項目名は存在しません。{self._not_found_field}'
+        return msg
+    
+class FieldConflictException(CommandException):
+    """
+    exception class for Field Conflict error
+    
+    inputs:
+    conflict_field    field that was not found
+    command_name       name of command (optional)
+    option_id          input field id (optional)
+    """
+    def __init__(self, conflict_field, command_name = '', option_id = ''):
+        self._conflict_field = conflict_field
+        self._command_name = command_name
+        self._option_id = option_id
+        
+    def __str__(self):
+        msg = ''
+        if self._command_name != '':
+            msg +=  f'【コマンド：{self._command_name}】'
+        if self._option_id != '':
+            msg += f'【オプションID：{self._option_id}】'
+
+        msg += f'同じ項目名が複数回指定されています。{self._conflict_field}'
+        return msg
+
+class EmptyFieldException(CommandException):
+    """
+    exception class for Empty Field error
+    
+    inputs:
+    command_name       name of command (optional)
+    option_id          input field id (optional)
+    """
+    def __init__(self, command_name = '', option_id = ''):
+        self._command_name = command_name
+        self._option_id = option_id
+        
+    def __str__(self):
+        msg = ''
+        if self._command_name != '':
+            msg +=  f'【コマンド：{self._command_name}】'
+        if self._option_id != '':
+            msg += f'【オプションID：{self._option_id}】'
+
+        msg += f'空文字列の項目名は指定できません。'
+        return msg
+    
+class GroupBy2Exception(CommandException):
+    """
+    class for exceptions in the GroupBy2 Command
+    """
+    pass

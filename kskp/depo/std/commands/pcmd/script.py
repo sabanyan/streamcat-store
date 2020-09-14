@@ -9,7 +9,7 @@ import nysol.util.mtemp as mtemp
 from nysol.util._utillib import mcsvout as mcsvout
 from pathlib import Path
 
-from kskp.store import NysolModule
+from kskp.store import NysolModule, FieldNotFoundException
 from kskp.core import Command, Port
 
 PCMD_DIR = Path(__file__).resolve().parent
@@ -412,6 +412,10 @@ class CheckDuplicateRowsCommand(PCommand):
         'UnknownError' : '項目名の指定は正しくありません。${fieldinput}'
     }
     
+    def const(self, s):
+        if s == 'commandname':
+            return '重複行の抽出'
+    
     def __init__(self):
         super().__init__()
 
@@ -468,9 +472,9 @@ class CheckDuplicateRowsCommand(PCommand):
 
         # check if expandWildCards returned a dict (error signature)
         if type(expanded_list) == dict:
-            err = self.generateCommandErrorMessage(expanded_list['error'], 'k',
-                                                   expanded_list['unmatched'])
-            raise Exception(err)
+            raise FieldNotFoundException(expanded_list['unmatched'], 
+                                         command_name = self.const('commandname'),
+                                         option_id = 'k')
             
         for col in expanded_list:
             # ForbiddenCharacterError
@@ -485,8 +489,9 @@ class CheckDuplicateRowsCommand(PCommand):
             
             # FieldNotFoundError
             if col not in self.header:
-                err = self.generateCommandErrorMessage('FieldNotFoundError', 'k', col)
-                raise Exception(err)
+                raise FieldNotFoundException(col, 
+                                            command_name = self.const('commandname'),
+                                            option_id = 'k')
 
             # FieldConflictError
             if col in targets_list:
