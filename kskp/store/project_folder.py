@@ -122,7 +122,7 @@ class ProjectFolder(Folder):
         self_role = factory.find_by_id(member.user.self_role_id)
 
         if member.type == ProjectFolder.READER_MEMBER_TYPE:
-            self_role.init_authz(self.id, read=True, write=None)
+            self_role.init_authz(self.id, read=True, write=None, exec=True)
         elif member.type == ProjectFolder.WRITER_MEMBER_TYPE:
             self_role.init_authz(self.id, read=True, write=True, exec=True)
         elif member.type == ProjectFolder.OWNER_MEMBER_TYPE:
@@ -224,7 +224,7 @@ class ProjectFolder(Folder):
         query = self._session.query(
                     User,
                     case(
-                        {1000 : ProjectFolder.READER_MEMBER_TYPE,
+                        {1010 : ProjectFolder.READER_MEMBER_TYPE,
                          1110 : ProjectFolder.WRITER_MEMBER_TYPE,
                          1111 : ProjectFolder.OWNER_MEMBER_TYPE},
                         value=func.sum(
