@@ -2482,7 +2482,7 @@ class GroupByRemakeCommand(PCommand):
         all_calcs, common_args = self.parseArgs(args)
 
         # if manual_key is False, make new key column 
-        manual_key = common_args.get('manual_key')
+        manual_key = common_args.get('manual_k')
         if not manual_key:
             cmd <<= nm.mcal(a = common_args['k'], c = '"all"')
         
