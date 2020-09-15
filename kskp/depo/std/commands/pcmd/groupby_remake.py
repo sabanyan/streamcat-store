@@ -731,6 +731,8 @@ class GroupByRemakeCommand(PCommand):
         common_args['dateformat'] = raw_args.get('dateformat')
         common_args['precision'] = raw_args.get('precision')
         common_args['batch_size'] = raw_args.get('batch_size')
+        if common_args['batch_size'] == None:
+            common_args['batch_size'] = 5
 
         # error handling for common args
         # k errors
@@ -1069,7 +1071,7 @@ class GroupByRemakeCommand(PCommand):
                 # cut out only relevant columns
                 cmd[i] = self.cutToRelevantCols(cmd[i], thiscalc, common_args)
 
-                calctype = thiscalc.get('type')
+                calctype = thiscalc.pop('type')
                 if calctype == 'msummary':
                     func = self.feature_msummary
                     # if thiscalc is a count calc, remove nonnumbers
@@ -2482,7 +2484,7 @@ class GroupByRemakeCommand(PCommand):
         all_calcs, common_args = self.parseArgs(args)
 
         # if manual_key is False, make new key column 
-        manual_key = common_args.get('manual_key')
+        manual_key = common_args.get('manual_k')
         if not manual_key:
             cmd <<= nm.mcal(a = common_args['k'], c = '"all"')
         
