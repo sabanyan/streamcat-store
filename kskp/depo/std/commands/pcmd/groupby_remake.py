@@ -731,6 +731,10 @@ class GroupByRemakeCommand(PCommand):
         common_args['dateformat'] = raw_args.get('dateformat')
         common_args['precision'] = raw_args.get('precision')
         common_args['batch_size'] = raw_args.get('batch_size')
+        
+        # for backwards compatibility, assign default value of batch size
+        if common_args['batch_size'] == None:
+            common_args['batch_size'] = 5
 
         # error handling for common args
         # k errors
