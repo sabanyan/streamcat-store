@@ -742,7 +742,11 @@ class GroupByRemakeCommand(PCommand):
         ks = raw_args.get('k') 
         if ks:
             ks_list = ks.split(',')
-            
+            for key in ks_list:
+                if key not in self.header:
+                    errmsg = self.generateCommandErrorMessage('FieldNotFoundError', 'k', key)
+                    raise Exception(errmsg)
+                    
             if self.containsAny(ks, '%&'):
                 errmsg = self.generateCommandErrorMessage('KeyFieldForbiddenCharacterError', 'k', ks)
                 raise Exception(errmsg)
