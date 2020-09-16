@@ -768,7 +768,7 @@ class RunsCommand(SCommand):
             if isinstance(input, CommandException):
                 rets[i_port_name] = ApparentLast(None, None, [input])
                 exception_exists = True
-            elif isinstance(input, NysolModule):
+            elif isinstance(input,  (NysolModule, List)):
                 rets[i_port_name] = ApparentLast(None, input.context.get('frame'))
             else:
                 raise Exception('RunsCommandにNysolModuleまたはCommandException以外のデータ型が入力されました')
