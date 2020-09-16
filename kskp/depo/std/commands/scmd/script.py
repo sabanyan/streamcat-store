@@ -768,7 +768,7 @@ class RunsCommand(SCommand):
             if isinstance(input, CommandException):
                 rets[i_port_name] = ApparentLast(None, None, [input])
                 exception_exists = True
-            elif isinstance(input, NysolModule):
+            elif isinstance(input, (NysolModule, List)):
                 rets[i_port_name] = ApparentLast(None, input.context.get('frame'))
             else:
                 raise Exception('RunsCommandにNysolModuleまたはCommandException以外のデータ型が入力されました')
@@ -999,7 +999,7 @@ class AssertCommand(SCommand):
                     # 差分情報をリスト形式で取得
                     for i_row, m_row in zip_longest(i_port_output, m_port_output, fillvalue=''):
                         if i_row != m_row:
-                            diff_row = [row_number]
+                            diff_row = [str(row_number)]
                             escaped_list = escape_csv([i_row, m_row])
                             diff_row.extend(escaped_list)
                             diff_list.append(diff_row)
@@ -1052,7 +1052,7 @@ class AssertCommand(SCommand):
             # is_trueの判定 と diffの出力
             if diff_result == [] or diff_result == None:
                 is_true = "True"
-                diff = ["nothing","nothing","nothing"]
+                diff = ["","",""]
             else:
                 is_true = "False"
                 diff = diff_result
@@ -1088,9 +1088,10 @@ class AssertCommand(SCommand):
             raise Exception('AssertCommandの入力ポートmに値が入力されていません')
 
 
-        # それぞれの入力portで与えられたデータの一時書き出し先
-        i_output_path = Path("/tmp/" + str(uuid.uuid4()) + "_i.csv")
-        m_output_path = Path("/tmp/" + str(uuid.uuid4()) + "_m.csv")
+        # # それぞれの入力portで与えられたデータの一時書き出し先
+        from kskp.core import Tmp
+        i_output_path = Tmp.create_file()
+        m_output_path = Tmp.create_file()
 
         # 入力portが送出するエラーメッセージを格納
         i_port_exs = {}
@@ -1117,7 +1118,10 @@ class AssertCommand(SCommand):
             raise Exception("入力ポートiに <type: " + str(type(inputs['i'])) + " >は対応していません")
 
         # もしエラーが発生していたら、それまでの出力に関わらずエラー文章を比較対象とする。
-        if isinstance(inputs['i'], list) or isinstance(i_port_exs, list):
+        if isinstance(inputs['i'], list) or isinstance(i_port_exs, list) or i_port_exs.has_exs:
+            if not isinstance(i_port_exs, list):
+                if i_port_exs.has_exs:
+                    i_port_exs = i_port_exs.exs
             # エラーメッセージを一時ファイルへ書き出す
             with i_output_path.open(mode="w")as f:
                 i_exs_list = [str(x).strip().replace("\n", "") for x in i_port_exs]
@@ -1134,9 +1138,11 @@ class AssertCommand(SCommand):
         else:
             raise Exception("入力ポートmに <type: " + str(type(inputs['m'])) + " >は対応していません")
 
-
         # もしエラーが発生していたら、それまでの出力に関わらずエラー文章を比較対象とする。
-        if isinstance(inputs['m'], list) or isinstance(m_port_exs, list):
+        if isinstance(inputs['m'], list) or isinstance(m_port_exs , list) or m_port_exs.has_exs:
+            if not isinstance(m_port_exs , list):
+                if m_port_exs.has_exs:
+                    m_port_exs = m_port_exs.exs
             with m_output_path.open(mode="w")as f:
                 m_exs_list = [str(x).strip().replace("\n", "") for x in m_port_exs]
                 f.write('\n'.join(m_exs_list))
