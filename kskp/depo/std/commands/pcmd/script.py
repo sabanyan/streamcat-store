@@ -9,7 +9,7 @@ import nysol.util.mtemp as mtemp
 from nysol.util._utillib import mcsvout as mcsvout
 from pathlib import Path
 
-from kskp.store import NysolModule, FieldNotFoundException
+from kskp.store import NysolModule, FieldForbiddenCharacterException, EmptyFieldException, FieldConflictException, FieldNotFoundException
 from kskp.core import Command, Port
 
 PCMD_DIR = Path(__file__).resolve().parent
@@ -401,17 +401,6 @@ class GroupbyColumnsCommand(PCommand):
 
 
 class CheckDuplicateRowsCommand(PCommand):
-
-    commandname = '重複行の抽出'
-    errormessages = {
-        '' : '',
-        'FieldNotFoundError' : '指定した項目名は存在しません。${fieldinput}',
-        'ForbiddenCharacterError' : '半角の（ :　%　&　\\ ）は、項目名の指定に使用できません。 ${fieldinput}',
-        'FieldConflictError' : '同じ項目名が複数回指定されています。${fieldinput}',
-        'EmptyFieldNameError' : '空文字列の項目名は指定できません。${fieldinput}',
-        'UnknownError' : '項目名の指定は正しくありません。${fieldinput}'
-    }
-    
     def const(self, s):
         if s == 'commandname':
             return '重複行の抽出'
@@ -467,36 +456,34 @@ class CheckDuplicateRowsCommand(PCommand):
         
         # error checks go here:
         self.header = self.get_field_names(inputs['i'])
-        expanded_list = self.expandWildCards(targetcols)
         targets_list = []
 
-        # check if expandWildCards returned a dict (error signature)
-        if type(expanded_list) == dict:
-            raise FieldNotFoundException(expanded_list['unmatched'], 
-                                         command_name = self.const('commandname'),
-                                         option_id = 'k')
             
-        for col in expanded_list:
+        for col in targetcols.split(','):
+            expanded_list = self.expandWildCards(targetcols)
+
             # ForbiddenCharacterError
             if self.containsAny(col, ':%&\\'):
-                err = self.generateCommandErrorMessage('ForbiddenCharacterError', 'k', col)
-                raise Exception(err)
+                raise FieldForbiddenCharacterException(col,
+                                                       command_name = self.const('commandname'),
+                                                       option_id = 'k')
             
             # EmptyFieldNameError
             if col == '':
-                err = self.generateCommandErrorMessage('EmptyFieldNameError', 'k', col)
-                raise Exception(err)
-            
-            # FieldNotFoundError
-            if col not in self.header:
-                raise FieldNotFoundException(col, 
+                raise EmptyFieldException(command_name = self.const('commandname'), 
+                                          option_id = 'k')
+
+            # check if expandWildCards returned a dict (error signature)
+            if type(expanded_list) == dict:
+                raise FieldNotFoundException(expanded_list['unmatched'], 
                                             command_name = self.const('commandname'),
                                             option_id = 'k')
-
+                                            
             # FieldConflictError
             if col in targets_list:
-                err = self.generateCommandErrorMessage('FieldConflictError', 'k', targetcols)
-                raise Exception(err)
+                raise FieldConflictException(col,
+                                            command_name = self.const('commandname'),
+                                            option_id = 'k')
             else:
                 targets_list.append(col)
                 
