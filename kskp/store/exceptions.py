@@ -119,6 +119,12 @@ class FieldForbiddenCharacterException(CommandException):
 
 class GroupBy2Exception(CommandException):
     """
-    class for exceptions in the GroupBy2 Command
+    class for unique exceptions in the GroupBy2 Command
+    """
+    pass
+
+class ColumnNameException(CommandException):
+    """
+    class for unique exceptions in the Column Name Command
     """
     pass
