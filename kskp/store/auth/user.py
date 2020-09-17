@@ -454,6 +454,20 @@ class User(BaseModel):
                               filter(exists_stmt)
         return query.order_by(ProjectFolder._label).all()
 
+    def get_allowlist(self):
+        """
+        処理の許可リストを返す
+        """
+        has_usr_admin = self._session.has_usr_admin()
+        return {
+            'findUsers'      : has_usr_admin,
+            'createUser'     : has_usr_admin,
+            'updateUser'     : has_usr_admin,
+            'updateSelfUser' : True,
+            'readUserPassword' : has_usr_admin,
+            'deleteUser'     : has_usr_admin,
+        }
+
     def to_json(self):
         ret = {
             'uuid'     : self.uuid,
