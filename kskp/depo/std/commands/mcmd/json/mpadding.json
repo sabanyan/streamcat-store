@@ -150,5 +150,58 @@
   "label": "行の補完",
   "classification": "row_edit",
   "description": "項目の値が連続するようにレコードを追加する",
-  "url": "./static/pdf/mcmd/row_edit/mpadding.pdf"
+  "url": "./static/pdf/mcmd/row_edit/mpadding.pdf",
+  "groups": [
+    {
+      "name": "grouping",
+      "label": "グループの設定",
+      "params": [
+        "k"
+      ]
+    },
+    {
+      "name": "sorting",
+      "label": "グループ内のソートの設定",
+      "params": [
+        "S"
+      ]
+    },
+    {
+      "name": "cmd_main",
+      "label": "〇〇の設定",
+      "params": [
+        "f",
+        "v"
+      ]
+    },
+    {
+      "name": "cmd_sub",
+      "label": "その他 (省略可)",
+      "params": [
+        "E",
+        "n",
+        "nfn",
+        "q"
+      ]
+    },
+    {
+      "name": "fields",
+      "label": "項目名・項目番号についての設定（省略可）",
+      "params": [
+        "nfno",
+        "x"
+      ]
+    },
+    {
+      "name": "system",
+      "label": "システム管理用設定（作業領域・ログ出力）",
+      "params": [
+        "assert_diffSize",
+        "assert_nullkey",
+        "assert_nullin",
+        "assert_nullout",
+        "tmpPath"
+      ]
+    }
+  ]
 }

@@ -32,8 +32,25 @@
     {
       "name": "-nfno",
       "type": "boolean",
-      "label": "出力データの項目名行を出力しない(No Field Names for Outputの略)"
+      "label": "出力データの項目名行を出力しない"
     }
   ],
-  "url": ""
+  "url": "",
+  "groups": [
+    {
+      "name": "cmd_sub",
+      "label": "その他 (省略可)",
+      "params": [
+        "n",
+        "no"
+      ]
+    },
+    {
+      "name": "その他 (省略可)",
+      "label": "cmd_sub",
+      "params": [
+        "-nfno"
+      ]
+    }
+  ]
 }

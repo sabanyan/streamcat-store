@@ -45,5 +45,24 @@
       "label": "項目グループの開始項目へも 修辞句 を付与する"
     }
   ],
-  "url": ""
+  "url": "",
+  "groups": [
+    {
+      "name": "cmd_main",
+      "label": "〇〇の設定",
+      "params": [
+        "f"
+      ]
+    },
+    {
+      "name": "cmd_sub",
+      "label": "その他 (省略可)",
+      "params": [
+        "O",
+        "d",
+        "r",
+        "R"
+      ]
+    }
+  ]
 }

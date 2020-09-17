@@ -66,5 +66,39 @@
   "label": "GroupBy処理",
   "classification": "col_edit",
   "description": "複数の数値項目に対して、複数の統計量を一括算出する (特徴量: 22種類)",
-  "url": ""
+  "url": "",
+  "groups": [
+    {
+      "name": "grouping",
+      "label": "グループの設定",
+      "params": [
+        "k"
+      ]
+    },
+    {
+      "name": "cmd_main",
+      "label": "〇〇の設定",
+      "params": [
+        "f",
+        "c"
+      ]
+    },
+    {
+      "name": "cmd_sub",
+      "label": "その他 (省略可)",
+      "params": [
+        "delimiter",
+        "q",
+        "prefix",
+        "precision"
+      ]
+    },
+    {
+      "name": "fields",
+      "label": "項目名・項目番号についての設定（省略可）",
+      "params": [
+        "nfno"
+      ]
+    }
+  ]
 }

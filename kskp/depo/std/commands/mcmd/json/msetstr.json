@@ -86,5 +86,38 @@
   "label": "文字列項目の追加",
   "classification": "col_edit",
   "description": "指定した文字列を値とする項目を追加する",
-  "url": "./static/pdf/mcmd/col_edit/msetstr.pdf"
+  "url": "./static/pdf/mcmd/col_edit/msetstr.pdf",
+  "groups": [
+    {
+      "name": "cmd_main",
+      "label": "〇〇の設定",
+      "params": [
+        "v",
+        "a"
+      ]
+    },
+    {
+      "name": "cmd_sub",
+      "label": "その他 (省略可)",
+      "params": [
+        "nfn"
+      ]
+    },
+    {
+      "name": "fields",
+      "label": "項目名・項目番号についての設定（省略可）",
+      "params": [
+        "nfno",
+        "x"
+      ]
+    },
+    {
+      "name": "system",
+      "label": "システム管理用設定（作業領域・ログ出力）",
+      "params": [
+        "assert_diffSize",
+        "tmpPath"
+      ]
+    }
+  ]
 }

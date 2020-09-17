@@ -54,5 +54,37 @@
   "label": "項目を行展開したgroupby処理",
   "classification": "col_edit",
   "description": "列項目を行展開して、GroupBy処理を行う (特徴量: 22種類)",
-  "url": ""
+  "url": "",
+  "groups": [
+    {
+      "name": "grouping",
+      "label": "グループの設定",
+      "params": [
+        "k"
+      ]
+    },
+    {
+      "name": "cmd_main",
+      "label": "〇〇の設定",
+      "params": [
+        "f",
+        "c"
+      ]
+    },
+    {
+      "name": "cmd_sub",
+      "label": "その他 (省略可)",
+      "params": [
+        "delimiter",
+        "prefix"
+      ]
+    },
+    {
+      "name": "system",
+      "label": "システム管理用設定（作業領域・ログ出力）",
+      "params": [
+        "cmd_path"
+      ]
+    }
+  ]
 }

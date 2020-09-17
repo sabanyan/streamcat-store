@@ -113,5 +113,42 @@
   "label": "ベクトルのNULL要素の削除",
   "classification": "value_transform",
   "description": "ベクトル要素でNULLの要素を削除する",
-  "url": "./static/pdf/mcmd/value_transform/mvdelnull.pdf"
+  "url": "./static/pdf/mcmd/value_transform/mvdelnull.pdf",
+  "groups": [
+    {
+      "name": "cmd_main",
+      "label": "〇〇の設定",
+      "params": [
+        "vf",
+        "A"
+      ]
+    },
+    {
+      "name": "cmd_sub",
+      "label": "その他 (省略可)",
+      "params": [
+        "delim",
+        "nfn",
+        "q"
+      ]
+    },
+    {
+      "name": "fields",
+      "label": "項目名・項目番号についての設定（省略可）",
+      "params": [
+        "nfno",
+        "x"
+      ]
+    },
+    {
+      "name": "system",
+      "label": "システム管理用設定（作業領域・ログ出力）",
+      "params": [
+        "assert_diffSize",
+        "assert_nullin",
+        "assert_nullout",
+        "tmpPath"
+      ]
+    }
+  ]
 }

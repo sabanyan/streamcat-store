@@ -25,5 +25,14 @@
       "label": "キー項目名(必須)"
     }
   ],
-  "url": ""
+  "url": "",
+  "groups": [
+    {
+      "name": "grouping",
+      "label": "グループの設定",
+      "params": [
+        "k"
+      ]
+    }
+  ]
 }

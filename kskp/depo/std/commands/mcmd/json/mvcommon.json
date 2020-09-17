@@ -149,5 +149,44 @@
   "label": "ベクトル要素の参照選択",
   "classification": "table_join",
   "description": "ベクトルから、参照データで指定された要素を選択する",
-  "url": "./static/pdf/mcmd/table_join/mvcommon.pdf"
+  "url": "./static/pdf/mcmd/table_join/mvcommon.pdf",
+  "groups": [
+    {
+      "name": "key",
+      "label": "結合キーの設定",
+      "params": [
+        "vf",
+        "K"
+      ]
+    },
+    {
+      "name": "merge_sub",
+      "label": "その他 (省略可)",
+      "params": [
+        "A",
+        "r",
+        "delim",
+        "q"
+      ]
+    },
+    {
+      "name": "fields",
+      "label": "項目名・項目番号についての設定（省略可）",
+      "params": [
+        "nfn",
+        "nfno",
+        "x"
+      ]
+    },
+    {
+      "name": "system",
+      "label": "システム管理用設定（作業領域・ログ出力）",
+      "params": [
+        "assert_diffSize",
+        "assert_nullin",
+        "assert_nullout",
+        "tmpPath"
+      ]
+    }
+  ]
 }

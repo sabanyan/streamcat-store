@@ -167,5 +167,46 @@
   "label": "数値範囲による置換",
   "classification": "value_transform",
   "description": "数値範囲条件をもとに、置換文字へ変換する",
-  "url": "./static/pdf/mcmd/value_transform/mchgnum.pdf"
+  "url": "./static/pdf/mcmd/value_transform/mchgnum.pdf",
+  "groups": [
+    {
+      "name": "cmd_main",
+      "label": "〇〇の設定",
+      "params": [
+        "f",
+        "v",
+        "F",
+        "A"
+      ]
+    },
+    {
+      "name": "cmd_sub",
+      "label": "その他 (省略可)",
+      "params": [
+        "R",
+        "O",
+        "r",
+        "nfn",
+        "q"
+      ]
+    },
+    {
+      "name": "fields",
+      "label": "項目名・項目番号についての設定（省略可）",
+      "params": [
+        "nfno",
+        "x"
+      ]
+    },
+    {
+      "name": "system",
+      "label": "システム管理用設定（作業領域・ログ出力）",
+      "params": [
+        "assert_diffSize",
+        "assert_nullin",
+        "assert_nullout",
+        "tmpPath"
+      ]
+    }
+  ]
 }
