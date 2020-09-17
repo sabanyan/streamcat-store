@@ -1,9 +1,8 @@
 import os
-import json
 
 from sqlalchemy import Column, text
 from sqlalchemy.dialects.postgresql import INTEGER, TIMESTAMP, JSONB, ENUM
-from kskp.store import BaseModel, ss as session
+from kskp.store import BaseModel
 
 class Store(BaseModel):
     """
@@ -19,57 +18,45 @@ class Store(BaseModel):
         __table_args__ = {'schema': os.environ['KSKP_POSTGRESQL_SCHEMA_NAME']}
 
     # カラム
-    id          = Column(ENUM('Directory', 'PostgreSQL', 'MySql', 'ORACLE', name='store_type') ,primary_key=True)
-    data        = Column(JSONB)
-    creator     = Column(INTEGER)
-    modifier    = Column(INTEGER)
-    created_at  = Column(TIMESTAMP, default=text('statement_timestamp()'))
-    modified_at = Column(TIMESTAMP, default=text('statement_timestamp()'), onupdate=text('statement_timestamp()'))
+    id           = Column(ENUM('Directory', 'PostgreSQL', 'MySql', 'ORACLE', name='store_type') ,primary_key=True)
+    data         = Column(JSONB)
+    _creator_id  = Column('creator', INTEGER)
+    _modifier_id = Column('modifier', INTEGER)
+    created_at   = Column(TIMESTAMP, default=text('statement_timestamp()'))
+    modified_at  = Column(TIMESTAMP, default=text('statement_timestamp()'), onupdate=text('statement_timestamp()'))
 
     def __init__(self, id=None, data=None, creator=None):
+        self._session = None
+
         self.id = id
         self.data = data
-        self.creator = creator
-        self.modifier = creator
+        
+        # creator, modifier
+        if creator is not None:
+            self._creator_id = creator.id
+            self._modifier_id = creator.id
 
-    @classmethod
-    def create(cls, id, version=None, label=None, description=None, url=None, params=None, creator=None):
-        data = {'version'    : version,
-                'label'      : label,
-                'description': description,
-                'url'        : url,
-                'params'     : params}
-        return Store(id, data, creator)
+    @property
+    def creator(self):
+        from kskp.store.auth import User
+        if self._creator_id is None:
+            return None
+        return User.find_by_id(self._creator_id)
 
-    @classmethod
-    def find_all(cls):
-        results = session.query(Store.id,
-                                   Store.data,
-                                   Store.created_at,
-                                   Store.modified_at,
-                                   Store.creator,
-                                   Store.modifier).all()
-        return [Store(result.id, result.data, result.creator) for result in results]
-
-    @classmethod
-    def find_by_id(cls, id):
-        result = session.query(Store.id,
-                                  Store.data,
-                                  Store.created_at,
-                                  Store.modified_at,
-                                  Store.creator,
-                                  Store.modifier).filter(Store.id==id).one_or_none()
-        if result is None:
-            raise Exception('No store is found by designated store id')
-        return Store(result.id, result.data, result.creator)
+    @property
+    def modifier(self):
+        from kskp.store.auth import User
+        if self._modifier_id is None:
+            return None
+        return User.find_by_id(self._modifier_id)
 
     def save(self):
-        session.add(self)
-        session.commit()
+        self._session.add(self)
+        self._session.commit()
 
     def delete(self):
-        session.query(Store).filter(Store.id==self.id).delete()
-        session.commit()
+        self._session.delete(self)
+        self._session.commit()
 
     def __str__(self):
         return self.id

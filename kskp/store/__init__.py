@@ -1,19 +1,6 @@
 import os
 from pathlib import Path
 
-FLOW_FOLDER_UUID    = 'ff37fe34-9c25-4Ad0-b74A-affda3712a45'
-FLOW_FOLDER_LABEL   = 'フロー'
-RESULT_FOLDER_UUID  = 'aacb4914-0695-40fc-b14b-95b7f1f81707'
-RESULT_FOLDER_LABEL = '実行結果'
-CACHE_FOLDER_UUID   = 'cc9f050d-b007-414e-a6e0-6d31a9c13395'
-CACHE_FOLDER_LABEL  = 'キャッシュ'
-
-# フローがDBに保存されるようになるまでは下記のパスをstoreが持っておく
-STORE_DIR = Path(__file__).parent.parent / 'depo/files'
-# FLOW_PATH = (STORE_DIR / 'flows/json').as_posix()
-# if not os.path.exists(FLOW_PATH):
-#     os.makedirs(FLOW_PATH)
-
 def _is_unittest():
     # python3 -m unittestで実行した場合は、is_unittest=Trueとなる
     import sys
@@ -78,26 +65,24 @@ if _is_unittest():
 # ベースクラスをつくる
 from sqlalchemy.ext.declarative import declarative_base
 BaseModel = declarative_base()
-# セッションをつくる
-# scoped_sessionでラップすることで、Session()を何回実行しても同一のSessionが返される
-from sqlalchemy.orm import sessionmaker, scoped_session
-Session = scoped_session(sessionmaker(bind=engine))
-# 変数名がsessionだとwebでimportした時にflaskのsessionと被るので、一応ssにしている
-ss = Session()
 
 from kskp.core import Datum, Port, Command
 
-from .store import Store, NysolModule, ModuleStore, List
+from .exceptions import NothingToPutbackException, NoResultsException, CommandException
+from .store import Store, NysolModule, ModuleStore, List, ApparentLast
 from .database_conn import DatabaseConn
 from .remote_folder_conn import RemoteFolderConn
 from .mountable import Mountable
 from .lock_manager import LockManager, LockedDatumException
 from .frame import Frame
-from .cache import Cache
+# from .cache import Cache
+from .flow_data import FlowData
 from .flow import Flow
 from .folder import Folder
+from .project_folder import ProjectFolder
 from .awss3 import AwsS3
 from .remote_folder import RemoteFolder
+from .trashcan import TrashCan
 from .vis import Vis, BokehPlotVis
 from .datasource import DataSource
 from .activity import Activity
@@ -105,34 +90,30 @@ from .database import Database
 from .children_getter import ChildrenGetter
 from .flow_dumper import FlowDumper
 
-# from .commands import CommandLink, CommandsPathLink, CommandsPathFileSource, RunfuncCommand
 from .library import Library
 from .store_model import Store as StoreModel
-from .flows import FlowLink
+# from .flows import FlowLink
 
 from ..depo.std.commands import CommandLink, CommandsPathLink, CommandsPathFileSource, RunfuncCommand
-from .model import *
+
+# 管理者グループと管理者ユーザを作成する
+# (とりあえず、権限管理のないsessionで作成する)
+from kskp.store.factory import UnAuthzFactory
+from kskp.store.auth import add_admin_user_and_group
+with UnAuthzFactory() as db_session:
+    add_admin_user_and_group(db_session)
 
 # テーブルを作成する
 BaseModel.metadata.create_all(bind=engine, checkfirst=True)
 
-# label列の新規追加(後方互換)
-sql1 = """
-ALTER TABLE data 
-ADD COLUMN label VARCHAR;
-"""
-# try:
-#     engine.execute(sql1)
-# except Exception as e:
-#     pass
-
+from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy import event, DDL
 
 @event.listens_for(BaseModel.metadata, 'after_create')
 def receive_after_create(target, connection, tables, **kw):
     "listen for the 'after_create' event"
 
-    if tables:
+    if 'data' in tables:
         # tables were created.
         create_d_view()
 
