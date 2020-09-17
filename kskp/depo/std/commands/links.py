@@ -14,6 +14,7 @@ class CommandLink:
     コマンド名を解決するリンク
     """
     from kskp.depo.std.commands.pcmd.square_command import Square
+    from kskp.depo.std.commands.pcmd.iot_command import *
 
     COMMAND_TABLE = {
         # テスト用コマンド
@@ -124,6 +125,12 @@ class CommandLink:
         'rowrange': RowRangeCommand(),
         'convtoutf8' : ConvToUtf8(),
         'to_list' : ToListCommand(),
+        # IoT コマンド
+        'ts_polation' : MissingValueInterpolateCommand(),
+        'ts_mpid' : MeasurementPeriodIdentifyCommand(),
+        'ts_join' : TimeSeriesDataJoinCommand(),
+        'ts_axis_1in_generator' : TimeAxisDataGenerateIn1Command(),
+        'ts_axis_0in_generator' : TimeAxisDataGenerateIn0Command(),
         # ビジュアライズ
         'csvtohtmltable': CsvToTableCommand(),
         'csvtolinegraph': CsvToLineGraphCommand(),
