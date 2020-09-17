@@ -1,0 +1,113 @@
+{
+    "id": "ts_mpid",
+    "groups": [     
+      {
+        "name": "group1",
+        "label": "グループの設定（省略可)",
+        "params": ["k"]
+      },
+      {
+        "name": "group2",
+        "label": "センサー時系列の設定",
+        "params": ["time","time_type","q"]
+      },
+      {
+          "name": "group3",
+          "label": "停止判定の設定",
+          "params": ["c","t_dynamic_interval_num","t_fixed_time"]
+      },
+      {
+        "name": "group4",
+        "label": "その他の設定",
+        "params": ["overwrite","a"]       
+      }      
+    ],
+    "params": [
+      {
+        "name": "overwrite",
+        "type": "boolean",
+        "label": "追加する項目が存在する場合、エラーとせず、上書きする",
+        "description": "",
+        "optional": true
+      },        
+      {
+        "name": "a",
+        "type": "string",
+        "label": "追加する項目名 (省略可)",
+        "description": "下記順序で9項目を、カンマ区切りで指定\n\t1:区間開始\t2:区間終了\n\t3:間隔\n\t4:稼働開始フラグ\t5:稼働終了フラグ\n\t6:停止開始フラグ\t7:停止終了フラグ\n\t8:稼働区間ID\t9:停止区間ID",
+        "optional": true,
+        "default": "区間開始,区間終了,間隔,稼働開始フラグ,稼働終了フラグ,停止開始フラグ,停止終了フラグ,稼働区間ID,停止区間ID"
+      },  
+      {
+        "name": "k",
+        "type": "string",
+        "label": "グループ化する項目",
+        "description": "カンマ区切りで複数指定可\nグループ別に時系列を判定する",
+        "optional": true
+      },
+      {
+        "name": "time",
+        "type": "string",
+        "label": "時間軸の項目 (必須)",
+        "description": ""
+      },
+      {
+        "name": "time_type",
+        "type": "select",
+        "label": "時間軸のデータ型 (必須)",
+        "options":{
+            "labels": ["暦型(YYYYMMDDhhmmss.小数6桁まで)","数値型"],
+            "values": ["datetime","number"]
+        },
+        "default": "datetime"
+      },
+      {
+        "name": "q",
+        "type": "boolean",
+        "label": "自動並べ替えの無効化",
+        "description": "入力データがグループ単位でソート済みの場合、指定すると処理速度が向上",
+        "optional": true
+      },
+      {
+        "name": "c",
+        "type": "select",
+        "label": "計測の停止期間と見なす判定の方法 (必須)",
+        "options": {
+        "labels": ["計測間隔(動的な推定値)で判定","指定間隔(固定時間)で判定"],
+        "values": ["dynamic_ave","fix"]
+        },
+        "default": "dynamic_ave"
+      },
+      {
+        "name": "t_dynamic_interval_num",
+        "type": "string",
+        "label": "閾値：【計測間隔（動的な推定値）で判定】",
+        "description": "●動的に推定した計測間隔の 連続数 を指定"
+      },
+      {
+        "name": "t_fixed_time",
+        "type": "string",
+        "label": "閾値：【計測間隔（固定時間）で判定】",
+        "description": "●計測間隔の時間（秒）を指定"
+      }
+    ],
+    "ports": [
+      [
+        {
+          "name": "i",
+          "type": "frame"
+        }
+      ],
+      [
+        {
+          "name": "o",
+          "type": "frame"
+        }
+      ]
+    ],
+    "version": "0.7.0",
+    "label": "センサ時系列稼働停止判定",
+    "classification": "table_grouping",
+    "description": "時系列の間隔より計測停止期間を判定し、稼働・停止にIDを付与する。",
+    "url": ""
+  }
