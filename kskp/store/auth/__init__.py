@@ -1,25 +1,23 @@
 from sqlalchemy import event, DDL
 
-from kskp.library import session
-from kskp.library import engine
-from kskp.library import BaseModel
+from kskp.store import engine, BaseModel
 
+from .stamp import Stamp
+
+from .exceptions import NotAuthorizedException
+from .auth import Auth
 from .user_group import UserGroup
 from .group import Group
 from .user import User
-from .auth import Auth
 
 @event.listens_for(BaseModel.metadata, 'after_create')
 def receive_after_create(target, connection, tables, **kw):
     "listen for the 'after_create' event"
 
-    if tables:
-        print('tables were created')
-    else:
-        print('tables were not created')
-
-    create_useful_views()
-    create_ud_view()
+    if 'users' in tables and 'groups' in tables and 'users_groups' in tables:
+        create_useful_views()
+        if 'data' in tables and 'auths' in tables:
+            create_ud_view()
 
 def create_useful_views():
     """
@@ -28,7 +26,7 @@ def create_useful_views():
     """
     ug_view = """
     create view ug as
-    select U.id, U.name, G.id, G.name
+    select U.id as user_id, U.name as user_name, G.id as group_id, G.name as group_name
     from groups G left join users U
     on exists (select * from Users_Groups UG
                where UG.user_id = U.id and UG.group_id = G.id)
@@ -43,11 +41,11 @@ def create_ud_view():
     """
     ud_view = """
     create view ud as
-    select U.id, U.name, D.uuid, D.path
+    select U.id, U.name, D.uuid, D.label, D.path, D.type
     from Data D left join Users U
     on exists (select * from Auths A
-               where A.data_id = D.id
-                 and exists (select * from Groups G
+                join Data D on A.datum_id = D.id
+                where exists (select * from Groups G
                              where exists (select * from users_groups UG
                                            where UG.group_id = G.id
                                              and UG.user_id = U.id) ))
@@ -60,41 +58,35 @@ def admin_exists():
     """
     管理者グループに所属するユーザがいる場合はTrueを返す
     """
-    sql = """
+
+    sql = f"""
     select count(*) from groups G
-    where is_admin = 1
+    where G.uuid = '{Group.ADMIN_GROUP_UUID}'
       and exists (select * from users_groups UG
                   where UG.group_id = G.id
                     and exists (select * from users U
                                 where U.id = UG.user_id) )
     """
     # adminグループに所属するユーザ数をカウントする
-    count = session.execute(sql).scalar()
+    count = engine.execute(sql).scalar()
     return count > 0
-
-def add_admin_user_and_group():
-    """
-    デフォルト管理者ユーザとデフォルト管理者グループを作成する
-    """
-    # 初期管理者ユーザを作成する
-    admin_user = User('dev@kskp.io', 'devpass', 'Admin')
-    # 管理者ユーザの作成者は管理者自身である
-    admin_user.creator = admin_user.id
-    # 初期管理者グループを作成する
-    admin_group = Group('Admin', is_admin=1, creator=admin_user.id)
-    # 初期管理者ユーザを初期管理者グループに所属させる
-    user_group = UserGroup(admin_user.id, admin_group.id, creator=admin_user.id)
-    # DBに格納する
-    session.add(admin_user)
-    session.add(admin_group)
-    session.add(user_group)
-    session.commit()
-
 
 # テーブルを作成する
 BaseModel.metadata.create_all(bind=engine, checkfirst=True)
 
-# 管理者グループに所属するユーザが存在しない場合は、
-# デフォルト管理者ユーザとデフォルト管理者グループを作成する
-if not admin_exists():
-    add_admin_user_and_group()
+def add_admin_user_and_group(unauhz_session):
+    """
+    デフォルト管理者ユーザと管理者グループを作成する
+    """
+    # 管理者グループが存在しない場合は作成する
+    admin_group = unauhz_session.load_admin_group()
+
+    # 管理者ユーザが存在しない場合はデフォルト管理者ユーザを作成する
+    if not admin_group.has_joined_user():
+        # 初期管理者ユーザを作成する
+        admin_user = unauhz_session.create_admin_user()
+        admin_user.save()
+        # 初期管理者ユーザを管理者グループに参加させる
+        admin_group.join_user(admin_user)
+
+
