@@ -127,5 +127,43 @@
   "label": "ベクトルの併合",
   "classification": "col_edit",
   "description": "複数項目のベクトルを併合した新しいベクトルを作成する",
-  "url": "./static/pdf/mcmd/col_edit/mvcat.pdf"
+  "url": "./static/pdf/mcmd/col_edit/mvcat.pdf",
+  "groups": [
+    {
+      "name": "cmd_main",
+      "label": "〇〇の設定",
+      "params": [
+        "vf",
+        "a",
+        "A"
+      ]
+    },
+    {
+      "name": "cmd_sub",
+      "label": "その他 (省略可)",
+      "params": [
+        "delim",
+        "nfn",
+        "q"
+      ]
+    },
+    {
+      "name": "fields",
+      "label": "項目名・項目番号についての設定（省略可）",
+      "params": [
+        "nfno",
+        "x"
+      ]
+    },
+    {
+      "name": "system",
+      "label": "システム管理用設定（作業領域・ログ出力）",
+      "params": [
+        "assert_diffSize",
+        "assert_nullin",
+        "assert_nullout",
+        "tmpPath"
+      ]
+    }
+  ]
 }

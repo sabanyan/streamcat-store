@@ -178,5 +178,49 @@
   "label": "参照データの複数範囲条件による行選択",
   "classification": "table_join",
   "description": "指定した範囲条件にマッチする行を選択する",
-  "url": "./static/pdf/mcmd/table_join/mnrcommon.pdf"
+  "url": "./static/pdf/mcmd/table_join/mnrcommon.pdf",
+  "groups": [
+    {
+      "name": "key",
+      "label": "結合キーの設定",
+      "params": [
+        "k",
+        "K"
+      ]
+    },
+    {
+      "name": "key_range",
+      "label": "範囲結合キーの設定",
+      "params": [
+        "rf"
+      ]
+    },
+    {
+      "name": "merge_sub",
+      "label": "その他 (省略可)",
+      "params": [
+        "R",
+        "r",
+        "q"
+      ]
+    },
+    {
+      "name": "fields",
+      "label": "項目名・項目番号についての設定（省略可）",
+      "params": [
+        "nfn",
+        "nfno",
+        "x"
+      ]
+    },
+    {
+      "name": "system",
+      "label": "システム管理用設定（作業領域・ログ出力）",
+      "params": [
+        "assert_diffSize",
+        "assert_nullkey",
+        "tmpPath"
+      ]
+    }
+  ]
 }

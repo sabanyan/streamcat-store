@@ -106,5 +106,40 @@
   "label": "参照データの直積結合",
   "classification": "table_join",
   "description": "入力データ1行に対して、参照データの全行を結合する",
-  "url": "./static/pdf/mcmd/table_join/mproduct.pdf"
+  "url": "./static/pdf/mcmd/table_join/mproduct.pdf",
+  "groups": [
+    {
+      "name": "merge_fields",
+      "label": "結合する項目の設定",
+      "params": [
+        "f"
+      ]
+    },
+    {
+      "name": "merge_sub",
+      "label": "その他 (省略可)",
+      "params": [
+        "q"
+      ]
+    },
+    {
+      "name": "fields",
+      "label": "項目名・項目番号についての設定（省略可）",
+      "params": [
+        "nfn",
+        "nfno",
+        "x"
+      ]
+    },
+    {
+      "name": "system",
+      "label": "システム管理用設定（作業領域・ログ出力）",
+      "params": [
+        "bufcount",
+        "assert_diffSize",
+        "assert_nullin",
+        "tmpPath"
+      ]
+    }
+  ]
 }

@@ -105,5 +105,39 @@
   "label": "行の複写",
   "classification": "row_edit",
   "description": "各レコードを複写して出力する",
-  "url": "./static/pdf/mcmd/row_edit/mduprec.pdf"
+  "url": "./static/pdf/mcmd/row_edit/mduprec.pdf",
+  "groups": [
+    {
+      "name": "cmd_main",
+      "label": "〇〇の設定",
+      "params": [
+        "f"
+      ]
+    },
+    {
+      "name": "cmd_sub",
+      "label": "その他 (省略可)",
+      "params": [
+        "n",
+        "nfn"
+      ]
+    },
+    {
+      "name": "fields",
+      "label": "項目名・項目番号についての設定（省略可）",
+      "params": [
+        "nfno",
+        "x"
+      ]
+    },
+    {
+      "name": "system",
+      "label": "システム管理用設定（作業領域・ログ出力）",
+      "params": [
+        "assert_diffSize",
+        "assert_nullin",
+        "tmpPath"
+      ]
+    }
+  ]
 }

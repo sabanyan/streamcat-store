@@ -88,5 +88,39 @@
   "label": "行の単一化",
   "classification": "row_edit",
   "description": "キー項目に対して、値が重複した行を単一化する",
-  "url": "./static/pdf/mcmd/row_edit/muniq.pdf"
+  "url": "./static/pdf/mcmd/row_edit/muniq.pdf",
+  "groups": [
+    {
+      "name": "grouping",
+      "label": "グループの設定",
+      "params": [
+        "k"
+      ]
+    },
+    {
+      "name": "cmd_sub",
+      "label": "その他 (省略可)",
+      "params": [
+        "nfn",
+        "q"
+      ]
+    },
+    {
+      "name": "fields",
+      "label": "項目名・項目番号についての設定（省略可）",
+      "params": [
+        "nfno",
+        "x"
+      ]
+    },
+    {
+      "name": "system",
+      "label": "システム管理用設定（作業領域・ログ出力）",
+      "params": [
+        "assert_diffSize",
+        "assert_nullkey",
+        "tmpPath"
+      ]
+    }
+  ]
 }

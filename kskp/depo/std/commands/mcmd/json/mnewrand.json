@@ -82,5 +82,47 @@
   "label": "乱数データの新規生成",
   "classification": "data_source",
   "description": "実数/整数の乱数で、指定した行数を作成する",
-  "url": ""
+  "url": "",
+  "groups": [
+    {
+      "name": "sorting",
+      "label": "グループ内のソートの設定",
+      "params": [
+        "S"
+      ]
+    },
+    {
+      "name": "cmd_main",
+      "label": "〇〇の設定",
+      "params": [
+        "a",
+        "l",
+        "int"
+      ]
+    },
+    {
+      "name": "cmd_sub",
+      "label": "その他 (省略可)",
+      "params": [
+        "max",
+        "min",
+        "nfn"
+      ]
+    },
+    {
+      "name": "fields",
+      "label": "項目名・項目番号についての設定（省略可）",
+      "params": [
+        "nfno",
+        "x"
+      ]
+    },
+    {
+      "name": "system",
+      "label": "システム管理用設定（作業領域・ログ出力）",
+      "params": [
+        "tmpPath"
+      ]
+    }
+  ]
 }

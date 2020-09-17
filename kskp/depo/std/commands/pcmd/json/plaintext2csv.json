@@ -137,5 +137,27 @@
   "label": "CSVデータの抽出",
   "classification": "data_format",
   "description": "不完全なCSVから、不要部分を除きCSV領域のみ出力する",
-  "url": ""
+  "url": "",
+  "groups": [
+    {
+      "name": "cmd_main",
+      "label": "〇〇の設定",
+      "params": [
+        "attr",
+        "observe"
+      ]
+    },
+    {
+      "name": "cmd_sub",
+      "label": "その他 (省略可)",
+      "params": [
+        "field",
+        "except_chr",
+        "except_end_chr",
+        "except_end_range",
+        "except_null",
+        "except_end_null"
+      ]
+    }
+  ]
 }

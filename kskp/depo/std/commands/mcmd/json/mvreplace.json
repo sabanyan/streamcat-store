@@ -163,5 +163,57 @@
   "label": "ベクトル要素の参照置換",
   "classification": "table_join",
   "description": "ベクトル要素をキーにして参照データ上のベクトル型データで置換",
-  "url": "./static/pdf/mcmd/table_join/mvreplace.pdf"
+  "url": "./static/pdf/mcmd/table_join/mvreplace.pdf",
+  "groups": [
+    {
+      "name": "key",
+      "label": "結合キーの設定",
+      "params": [
+        "vf",
+        "K"
+      ]
+    },
+    {
+      "name": "merge_type",
+      "label": "結合方法の設定  (省略時は 共通部分を出力)",
+      "params": [
+        "n"
+      ]
+    },
+    {
+      "name": "merge_fields",
+      "label": "結合する項目の設定",
+      "params": [
+        "f"
+      ]
+    },
+    {
+      "name": "merge_sub",
+      "label": "その他 (省略可)",
+      "params": [
+        "A",
+        "delim",
+        "q"
+      ]
+    },
+    {
+      "name": "fields",
+      "label": "項目名・項目番号についての設定（省略可）",
+      "params": [
+        "nfn",
+        "nfno",
+        "x"
+      ]
+    },
+    {
+      "name": "system",
+      "label": "システム管理用設定（作業領域・ログ出力）",
+      "params": [
+        "assert_diffSize",
+        "assert_nullin",
+        "assert_nullout",
+        "tmpPath"
+      ]
+    }
+  ]
 }

@@ -75,5 +75,40 @@
   "label": "CSV検査",
   "classification": "validation",
   "description": "入力データが規定のCSV形式であるかを検査する",
-  "url": "./static/pdf/mcmd/validation/mchkcsv.pdf"
+  "url": "./static/pdf/mcmd/validation/mchkcsv.pdf",
+  "groups": [
+    {
+      "name": "cmd_main",
+      "label": "〇〇の設定",
+      "params": [
+        "a"
+      ]
+    },
+    {
+      "name": "cmd_sub",
+      "label": "その他 (省略可)",
+      "params": [
+        "diag",
+        "r",
+        "nfn",
+        "q"
+      ]
+    },
+    {
+      "name": "fields",
+      "label": "項目名・項目番号についての設定（省略可）",
+      "params": [
+        "nfno",
+        "x"
+      ]
+    },
+    {
+      "name": "system",
+      "label": "システム管理用設定（作業領域・ログ出力）",
+      "params": [
+        "assert_nullout",
+        "tmpPath"
+      ]
+    }
+  ]
 }

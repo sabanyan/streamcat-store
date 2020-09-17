@@ -139,5 +139,45 @@
   "label": "正規表現による文字列の置換",
   "classification": "value_transform",
   "description": "正規表現に一致する内容を指定した文字列で置換する",
-  "url": "./static/pdf/mcmd/value_transform/msed.pdf"
+  "url": "./static/pdf/mcmd/value_transform/msed.pdf",
+  "groups": [
+    {
+      "name": "cmd_main",
+      "label": "〇〇の設定",
+      "params": [
+        "c",
+        "f",
+        "v",
+        "A"
+      ]
+    },
+    {
+      "name": "cmd_sub",
+      "label": "その他 (省略可)",
+      "params": [
+        "g",
+        "W",
+        "nfn",
+        "q"
+      ]
+    },
+    {
+      "name": "fields",
+      "label": "項目名・項目番号についての設定（省略可）",
+      "params": [
+        "nfno",
+        "x"
+      ]
+    },
+    {
+      "name": "system",
+      "label": "システム管理用設定（作業領域・ログ出力）",
+      "params": [
+        "assert_diffSize",
+        "assert_nullin",
+        "assert_nullout",
+        "tmpPath"
+      ]
+    }
+  ]
 }

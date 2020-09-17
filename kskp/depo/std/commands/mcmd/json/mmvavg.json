@@ -209,5 +209,61 @@
   "label": "移動平均の計算",
   "classification": "table_grouping",
   "description": "移動平均（単純、線形加重、指数平滑）を算出する",
-  "url": "./static/pdf/mcmd/table_grouping/mmvavg.pdf"
+  "url": "./static/pdf/mcmd/table_grouping/mmvavg.pdf",
+  "groups": [
+    {
+      "name": "grouping",
+      "label": "グループの設定",
+      "params": [
+        "k"
+      ]
+    },
+    {
+      "name": "sorting",
+      "label": "グループ内のソートの設定",
+      "params": [
+        "s"
+      ]
+    },
+    {
+      "name": "cmd_main",
+      "label": "〇〇の設定",
+      "params": [
+        "f",
+        "t",
+        "skip"
+      ]
+    },
+    {
+      "name": "cmd_sub",
+      "label": "その他 (省略可)",
+      "params": [
+        "n",
+        "exp",
+        "w",
+        "alpha",
+        "nfn",
+        "q"
+      ]
+    },
+    {
+      "name": "fields",
+      "label": "項目名・項目番号についての設定（省略可）",
+      "params": [
+        "nfno",
+        "x"
+      ]
+    },
+    {
+      "name": "system",
+      "label": "システム管理用設定（作業領域・ログ出力）",
+      "params": [
+        "assert_diffSize",
+        "assert_nullkey",
+        "assert_nullin",
+        "assert_nullout",
+        "tmpPath"
+      ]
+    }
+  ]
 }

@@ -208,5 +208,53 @@
   "label": "二変数間の類似度の計算",
   "classification": "table_grouping",
   "description": "二変数間の類似度(距離)を計算し類似度行列として出力する",
-  "url": "./static/pdf/mcmd/table_grouping/msim.pdf"
+  "url": "./static/pdf/mcmd/table_grouping/msim.pdf",
+  "groups": [
+    {
+      "name": "grouping",
+      "label": "グループの設定",
+      "params": [
+        "k"
+      ]
+    },
+    {
+      "name": "cmd_main",
+      "label": "〇〇の設定",
+      "params": [
+        "c",
+        "f",
+        "a",
+        "bufcount"
+      ]
+    },
+    {
+      "name": "cmd_sub",
+      "label": "その他 (省略可)",
+      "params": [
+        "n",
+        "d",
+        "nfn",
+        "q"
+      ]
+    },
+    {
+      "name": "fields",
+      "label": "項目名・項目番号についての設定（省略可）",
+      "params": [
+        "nfno",
+        "x"
+      ]
+    },
+    {
+      "name": "system",
+      "label": "システム管理用設定（作業領域・ログ出力）",
+      "params": [
+        "assert_diffSize",
+        "assert_nullkey",
+        "assert_nullin",
+        "assert_nullout",
+        "tmpPath"
+      ]
+    }
+  ]
 }

@@ -56,5 +56,31 @@
   "label": "データのコピー",
   "classification": "data_source",
   "description": "入力データをそのまま出力する",
-  "url": "./static/pdf/mcmd/data_source/mtee.pdf"
+  "url": "./static/pdf/mcmd/data_source/mtee.pdf",
+  "groups": [
+    {
+      "name": "cmd_sub",
+      "label": "その他 (省略可)",
+      "params": [
+        "nostdout",
+        "nfn",
+        "q"
+      ]
+    },
+    {
+      "name": "fields",
+      "label": "項目名・項目番号についての設定（省略可）",
+      "params": [
+        "nfno",
+        "x"
+      ]
+    },
+    {
+      "name": "system",
+      "label": "システム管理用設定（作業領域・ログ出力）",
+      "params": [
+        "tmpPath"
+      ]
+    }
+  ]
 }
