@@ -1,8 +1,19 @@
+import sys
+import copy
+import uuid
+import nysol.mcmd as nm
+import numpy as np
+import fnmatch as fn
+import nysol.util.mtemp as mtemp
+from nysol.util._utillib import mcsvout as mcsvout
+from pathlib import Path
+
+from kskp.store import NysolModule
+from kskp.core import Command, Port
+from .script import PCommand
 
 
-
-
-class MeasurementPeriodIdentifyCommand(Command):
+class MeasurementPeriodIdentifyCommand(PCommand):
     def __init__(self):
         super().__init__()
         self.i_ports = [Port('i', 'frame')]
@@ -23,7 +34,7 @@ class MeasurementPeriodIdentifyCommand(Command):
         import math
 
         try:
-            sys.__stdin__.flush()#not needed for bigger data
+            # sys.__stdin__.flush()#not needed for bigger data
 
             headerflg = True
 
@@ -151,10 +162,12 @@ class MeasurementPeriodIdentifyCommand(Command):
 
         f = None
 
-        header = nm.mread(inputs).getline(header=True)  #inputs
-        header = next(header)
+        # header = nm.mread(inputs).getline(header=True)  #inputs
+        # header = next(header)
+        header = self.get_field_names(inputs['i'])
 
-        f <<= nm.mread(inputs)
+        # f <<= nm.mread(inputs)
+        f <<= copy.deepcopy(inputs['i'].content)
 
         # --- 出力項目の上書きモード ---
         tg_overwrite = list(aflds.values()) + list(aflds_tmp.values()) + [ time + aflds_tmp['uxt_sfx'] ]
@@ -246,7 +259,7 @@ class MeasurementPeriodIdentifyCommand(Command):
 
 
 
-class MissingValueInterpolateCommand(Command):
+class MissingValueInterpolateCommand(PCommand):
     def __init__(self):
         super().__init__()
         self.i_ports = [Port('i', 'frame')]
@@ -591,8 +604,11 @@ class MissingValueInterpolateCommand(Command):
            sys.stderr.write( 'ip_c[0]: ' + args['iplist'][0]['ip_c'] + '\n' )
  
         # --- ヘッダー行だけ取得 ---
-        header = nm.mread(inputs).getline(header=True)
-        header = next(header)
+        # header = nm.mread(inputs).getline(header=True)
+        # header = next(header)
+
+        header = self.get_field_names(inputs['i'])
+
         if debug:
             sys.stderr.write( 'header : ' + ','.join(header) + '\n' )
 
@@ -997,7 +1013,7 @@ class MissingValueInterpolateCommand(Command):
             return res
 
         try:
-            sys.__stdin__.flush()#not needed for bigger data
+            # sys.__stdin__.flush()#not needed for bigger data
 
             header = None
             data = None
@@ -1192,7 +1208,7 @@ class MissingValueInterpolateCommand(Command):
         import traceback
 
         try:
-            sys.__stdin__.flush()#not needed for bigger data
+            # sys.__stdin__.flush()#not needed for bigger data
 
             max_num  = args['max_num']
             trim_num = args['trim_num']
@@ -1274,7 +1290,7 @@ class MissingValueInterpolateCommand(Command):
             sys.__stdout__.flush()#not needed for bigger data
 
 
-class TimeSeriesDataJoinCommand(Command):
+class TimeSeriesDataJoinCommand(PCommand):
     def __init__(self):
         super().__init__()
         self.i_ports = [Port('i', 'frame'), Port('m', 'frame')]
@@ -1350,8 +1366,9 @@ class TimeSeriesDataJoinCommand(Command):
         # header_i = nm.mread(i=inputs['i']).getline(header=True)
         # header_i = next(header_i)
 
-        header_m = nm.mread(i=inputs['m']).getline(header=True)
-        header_m = next(header_m)
+        # header_m = nm.mread(i=inputs['m']).getline(header=True)
+        # header_m = next(header_m)
+        header_m = self.get_field_names(inputs['i'])
 
 
         if debug:
@@ -1523,7 +1540,7 @@ class TimeSeriesDataJoinCommand(Command):
         nysol_module_o.set_content(fi)
         return {'o': nysol_module_o}
 
-class TimeAxisDataGenerateIn0Command(Command):
+class TimeAxisDataGenerateIn0Command(PCommand):
     def __init__(self):
         super().__init__()
         self.i_ports = []
@@ -1600,7 +1617,7 @@ class TimeAxisDataGenerateIn0Command(Command):
         from dateutil.relativedelta import relativedelta
 
         try:
-            sys.__stdin__.flush()#not needed for bigger data                    
+            # sys.__stdin__.flush()#not needed for bigger data                    
 
             # header            
             print(args['time'])
@@ -1789,7 +1806,7 @@ class TimeAxisDataGenerateIn0Command(Command):
 
 
 
-class TimeAxisDataGenerateIn1Command(Command):
+class TimeAxisDataGenerateIn1Command(PCommand):
     def __init__(self):
         super().__init__()
         self.i_ports = [Port('i', 'frame')]
@@ -1819,7 +1836,7 @@ class TimeAxisDataGenerateIn1Command(Command):
         from dateutil.relativedelta import relativedelta
 
         try:
-            sys.__stdin__.flush()#not needed for bigger data
+            # sys.__stdin__.flush()#not needed for bigger data
 
             time = args['time']
             time_type = args['time_type']
@@ -2004,7 +2021,7 @@ class TimeAxisDataGenerateIn1Command(Command):
         Step3: グループ別に、区間単位と指定間隔で、一定間隔の、時系列単位のデータ作成
         """
         f = None
-        f = inputs['i']
+        f = inputs['i'].content
 
         t_end_suffix = f'{time}_2'      
 
@@ -2021,7 +2038,13 @@ class TimeAxisDataGenerateIn1Command(Command):
         # Step2: グループ別に、区間単位のデータ作成
         if mpi:
             cmd = MeasurementPeriodIdentifyCommand()
-            res = cmd.run(args=args,inputs={'i':f}) 
+
+            # NOTE command must be wrapped in NysolModule object before sent to
+            # another command
+            nysol_module_o = NysolModule()
+            nysol_module_o.set_content(f)
+
+            res = cmd.run(args=args,inputs={'i': nysol_module_o}) 
             f   = res['o'].content
             
             addflds = cmd.const('addflds')
