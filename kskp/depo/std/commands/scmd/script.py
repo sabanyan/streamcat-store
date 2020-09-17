@@ -1105,8 +1105,9 @@ class AssertCommand(SCommand):
 
         # 一時ファイルへフローの結果を書き出し
         # エラー発生もここで確認する
+
         if isinstance(inputs['i'], Exception):
-            i_port_exs['i'] = [inputs['i']]
+            i_port_exs = [inputs['i']]
             i_is_exs = True
         elif isinstance(inputs['i'], (NysolModule, List)):
             # RunsCommand を確認したら、実行結果にエラーがない場合にはframeが返却され、エラーが発生した場合はlistが返却される
@@ -1117,17 +1118,23 @@ class AssertCommand(SCommand):
         else:
             raise Exception("入力ポートiに <type: " + str(type(inputs['i'])) + " >は対応していません")
 
+        from kskp.store import CommandException
+
+        if isinstance(i_port_exs, list):
+            i_is_exs = True
+        elif i_port_exs.has_exs:
+            i_port_exs = i_port_exs.exs
+            i_is_exs = True
+        
         # もしエラーが発生していたら、それまでの出力に関わらずエラー文章を比較対象とする。
-        if isinstance(inputs['i'], list) or isinstance(i_port_exs, list) or i_port_exs.has_exs:
-            if not isinstance(i_port_exs, list):
-                if i_port_exs.has_exs:
-                    i_port_exs = i_port_exs.exs
+        if i_is_exs:
             # エラーメッセージを一時ファイルへ書き出す
             with i_output_path.open(mode="w")as f:
                 i_exs_list = [str(x).strip().replace("\n", "") for x in i_port_exs]
                 f.write('\n'.join(i_exs_list))
             i_is_exs = True
         
+    
         if isinstance(inputs['m'], Exception):
             m_port_exs = [inputs['m']]
             m_is_exs = True
@@ -1138,16 +1145,17 @@ class AssertCommand(SCommand):
         else:
             raise Exception("入力ポートmに <type: " + str(type(inputs['m'])) + " >は対応していません")
 
+        if isinstance(m_port_exs , list):
+            m_is_exs = True
+        elif m_port_exs.has_exs:
+            m_port_exs = m_port_exs.exs
+            m_is_exs = True
+
         # もしエラーが発生していたら、それまでの出力に関わらずエラー文章を比較対象とする。
-        if isinstance(inputs['m'], list) or isinstance(m_port_exs , list) or m_port_exs.has_exs:
-            if not isinstance(m_port_exs , list):
-                if m_port_exs.has_exs:
-                    m_port_exs = m_port_exs.exs
+        if m_is_exs:
             with m_output_path.open(mode="w")as f:
                 m_exs_list = [str(x).strip().replace("\n", "") for x in m_port_exs]
                 f.write('\n'.join(m_exs_list))
-            m_is_exs = True
-
 
         # 親フォルダの情報を取得
         # 元々datumクラスのget_prev_parent_pathを参考に現在のパスを取得しようと考えていたが、flowクラスに現在いるフォルダを取得する方法があったのでそちらを利用。
