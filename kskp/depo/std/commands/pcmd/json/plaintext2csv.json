@@ -81,42 +81,45 @@
     {
       "name": "field",
       "type": "string",
-      "label": "列名【行位置】:1始まりの行番号"
+      "label": "項目名行の指定",
+      "description": "1始まりの行番号で、１行のみ指定する"
     },
     {
       "name": "attr",
       "type": "string",
-      "label": "属性【行範囲】:1始まり行番号範囲 (例:1-2)"
+      "label": "属性の行範囲の指定(未実装)",
+      "description": "1始まりの行番号で、ハイフン(-)区切りで指定する(例:1-2)"
     },
     {
       "name": "observe",
       "type": "string",
-      "label": "観測値【開始行】:1始まり行番号"
+      "label": "観測値の開始行",
+      "description": "1始まりの行番号で指定する"
     },
     {
       "name": "except_chr",
       "type": "string",
-      "label": "不要行条件【開始】：文字列の場合(正規表現)"
+      "label": "不要行範囲の開始条件：正規表現で指定"
     },
     {
       "name": "except_end_chr",
       "type": "string",
-      "label": "不要行条件【終了】：文字列の場合(正規表現)"
+      "label": "不要行範囲の終了条件：正規表現で指定"
     },
     {
       "name": "except_end_range",
       "type": "string",
-      "label": "不要行条件【終了】：開始からの固定行の場合"
+      "label": "不要行範囲の終了条件：開始条件からの行数で指定"
     },
     {
       "name": "except_null",
       "type": "boolean",
-      "label": "不要行条件【開始】：空行で始まる"
+      "label": "不要業範囲の開始条件: 空の行"
     },
     {
       "name": "except_end_null",
       "type": "boolean",
-      "label": "不要行条件【終了】：空行で終わる"
+      "label": "不要行範囲の終了条件：空の行"
     }
   ],
   "ports": [
@@ -143,20 +146,26 @@
       "name": "cmd_main",
       "label": "行選択の設定",
       "params": [
-        "attr",
+        "field",
         "observe"
       ]
     },
     {
-      "name": "cmd_sub",
-      "label": "その他 (省略可)",
+      "name": "cmd_sub1",
+      "label": "不要行範囲の設定(省略可)",
       "params": [
-        "field",
         "except_chr",
         "except_end_chr",
         "except_end_range",
         "except_null",
         "except_end_null"
+      ]
+    },
+    {
+      "name": "cmd_sub2",
+      "label": "その他(省略可)",
+      "params": [
+      "attr"
       ]
     }
   ]

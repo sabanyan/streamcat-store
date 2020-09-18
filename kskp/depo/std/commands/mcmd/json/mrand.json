@@ -52,7 +52,7 @@
     {
       "name": "k",
       "type": "string",
-      "label": "指定キーと同名のキー値に同じ乱数値",
+      "label": "キー項目名",
       "optional": true
     },
     {
@@ -63,14 +63,16 @@
     {
       "name": "max",
       "type": "string",
-      "label": "乱数の最大値、この値の指定時には-intも設定することが必須",
-      "optional": true
+      "label": "最大値の指定",
+      "optional": true,
+      "description": "「整数乱数を生成時する」有効時のみ指定可能"
     },
     {
       "name": "min",
       "type": "string",
-      "label": "乱数の最小値、この値の指定時には-intも設定することが必須",
-      "optional": true
+      "label": "最小値の指定",
+      "optional": true,
+      "description": "「整数乱数を生成時する」有効時のみ指定可能"
     },
     {
       "name": "S",
@@ -81,7 +83,7 @@
     {
       "name": "int",
       "type": "boolean",
-      "label": "整数乱数を生成",
+      "label": "整数乱数を生成する",
       "optional": true
     },
     {

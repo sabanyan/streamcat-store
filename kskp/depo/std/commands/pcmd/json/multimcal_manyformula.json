@@ -82,7 +82,7 @@
     {
       "name": "nfno",
       "type": "boolean",
-      "label": "出力データに項目名行を出力しない。",
+      "label": "出力データに項目名行を出力しない。",
       "optional": true
     },
     {

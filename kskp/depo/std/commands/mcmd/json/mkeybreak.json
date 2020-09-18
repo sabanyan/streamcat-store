@@ -126,7 +126,7 @@
       "name": "a",
       "type": "string",
       "label": "先頭と終端のフラグの項目名",
-      "description": "●省略時： top,bot \n●指定時： 先頭、終端の順番でカンマ区切りで指定",
+      "description": "先頭、終端の順番でカンマ区切りで指定する",
       "optional": true
     },
     {

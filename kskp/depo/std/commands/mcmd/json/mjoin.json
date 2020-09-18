@@ -140,13 +140,13 @@
     {
       "name": "assert_nullkey",
       "type": "boolean",
-      "label": "キー項目に NULL 値が含まれているかどうかのチェックを行う",
+      "label": "キー項目に NULL 値が含まれているかどうかのチェックを行う",
       "optional": true
     },
     {
       "name": "assert_nullin",
       "type": "boolean",
-      "label": "結合する項目名で指定された項目の NULL 値チェックを行う",
+      "label": "結合する項目名で指定された項目の NULL 値チェックを行う",
       "optional": true
     },
     {

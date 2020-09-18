@@ -34,21 +34,22 @@
     {
       "name": "I",
       "type": "string",
-      "label": "連番を振る間隔",
+      "label": "間隔",
       "optional": true,
       "default": "1"
     },
     {
       "name": "S",
       "type": "string",
-      "label": "開始数値/アルファベット(大文字)",
+      "label": "開始の値",
       "optional": true,
-      "default": "1"
+      "default": "1",
+      "description": "正の整数、または、アルファベット(大文字)で指定する"
     },
     {
       "name": "l",
       "type": "string",
-      "label": "作成するデータ行数",
+      "label": "生成行数",
       "optional": true,
       "default": "10"
     },
@@ -97,16 +98,16 @@
       "label": "データ生成の設定",
       "params": [
         "a",
-        "I",
-        "l"
+        "l",
+        "S",
+        "I"
       ]
     },
     {
       "name": "cmd_sub",
       "label": "その他 (省略可)",
       "params": [
-        "nfn",
-        "S"
+        "nfn"
       ]
     },
     {

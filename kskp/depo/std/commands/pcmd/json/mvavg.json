@@ -187,7 +187,7 @@
     {
       "name": "tmpPath",
       "type": "string",
-      "label": "作業ファイル格納パス名",
+      "label": "作業ファイル格納パス名",
       "optional": true
     }
   ],
