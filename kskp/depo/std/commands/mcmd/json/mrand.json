@@ -75,7 +75,7 @@
     {
       "name": "S",
       "type": "string",
-      "label": "乱数の種",
+      "label": "乱数のシード",
       "optional": true
     },
     {
@@ -155,10 +155,14 @@
       ]
     },
     {
-      "name": "sorting",
-      "label": "グループ内のソートの設定",
+      "name": "cmd_sub",
+      "label": "その他 (省略可)",
       "params": [
-        "S"
+        "S",
+        "max",
+        "min",
+        "nfn",
+        "q"
       ]
     },
     {
@@ -167,16 +171,6 @@
       "params": [
         "a",
         "int"
-      ]
-    },
-    {
-      "name": "cmd_sub",
-      "label": "その他 (省略可)",
-      "params": [
-        "max",
-        "min",
-        "nfn",
-        "q"
       ]
     },
     {

@@ -66,7 +66,7 @@
     {
       "name": "S",
       "type": "string",
-      "label": "乱数の種",
+      "label": "乱数のシード",
       "optional": true
     },
     {
@@ -150,10 +150,14 @@
       ]
     },
     {
-      "name": "sorting",
-      "label": "グループ内のソートの設定",
+      "name": "cmd_sub",
+      "label": "その他 (省略可)",
       "params": [
-        "S"
+        "S",
+        "p",
+        "B",
+        "nfn",
+        "q"
       ]
     },
     {
@@ -161,16 +165,6 @@
       "label": "行選択の設定",
       "params": [
         "c"
-      ]
-    },
-    {
-      "name": "cmd_sub",
-      "label": "その他 (省略可)",
-      "params": [
-        "p",
-        "B",
-        "nfn",
-        "q"
       ]
     },
     {
