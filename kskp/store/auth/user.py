@@ -67,6 +67,18 @@ class User(BaseModel):
             self._creator_id = session.user.id
             self._modifier_id = session.user.id
 
+    def _init_on_activation(self):
+        """
+        登録状態に遷移した時の初期処理
+        """
+        # 本人ロールを作成する
+        self.load_self_role()
+        # MyProjectを作成する
+        from kskp.store.factory import DatumFactory
+        root = DatumFactory(self._session).load_root()
+        project =root.create_project_folder('MyProject')
+        project.save()
+
     def _valid_email_or_raise(self, email):
         if email is None or email=='':
             raise Exception('E-Mailに空文字を指定できません')
@@ -138,7 +150,7 @@ class User(BaseModel):
 
         if self.state == User.TMP_STATE and next_state == User.ACTIVE_STATE:
             # 仮登録状態から登録状態へ遷移する場合
-            pass
+            self._init_on_activation()
 
         self.state = next_state
 
@@ -402,6 +414,59 @@ class User(BaseModel):
             self_role = role_factory.find_by_id(self.self_role_id)
 
         return self_role
+
+    def get_joined_roles(self):
+        """
+        所属する全てのロールを返す
+        """
+        from sqlalchemy import exists, and_, or_
+        from .role import Role
+        from .user_role import UserRole
+
+        exists_user_role = exists().where(and_(UserRole.role_id==Role.id, UserRole.user_id==self.id))
+        exists_user = exists().where(and_(User.self_role_id==Role.id, User.id==self.id))
+
+        query = self._session.query(Role).\
+                      filter(or_(exists_user_role, exists_user))
+        return query.order_by(Role.name).all()
+
+    def get_joined_projects(self):
+        """
+        所属する全てのプロジェクトを返す
+        """
+        from sqlalchemy import exists, and_, or_
+        from kskp.store import Datum, ProjectFolder
+        from .user_role import UserRole
+        from .auth import Auth
+
+        exists_user_role = exists().where(and_(UserRole.role_id==Auth.role_id, UserRole.user_id==self.id))
+        exists_user = exists().where(and_(User.self_role_id==Auth.role_id, User.id==self.id))
+
+        exists_stmt = exists().where(
+                                        and_(Auth.datum_id==ProjectFolder.id,
+                                             Auth.permission==True,
+                                             or_(exists_user, exists_user_role)
+                                        )
+                                    )
+
+        query = self._session.query(ProjectFolder).\
+                              filter(ProjectFolder.type==Datum.PROJECT_TYPE).\
+                              filter(exists_stmt)
+        return query.order_by(ProjectFolder._label).all()
+
+    def get_allowlist(self):
+        """
+        処理の許可リストを返す
+        """
+        has_usr_admin = self._session.has_usr_admin()
+        return {
+            'findUsers'      : has_usr_admin,
+            'createUser'     : has_usr_admin,
+            'updateUser'     : has_usr_admin,
+            'updateSelfUser' : True,
+            'readUserPassword' : has_usr_admin,
+            'deleteUser'     : has_usr_admin,
+        }
 
     def to_json(self):
         ret = {

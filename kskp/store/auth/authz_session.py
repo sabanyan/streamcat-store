@@ -123,7 +123,7 @@ class AuthzSession(Session):
     
     def _make_readable_query(self):
         from sqlalchemy.orm import aliased
-        from sqlalchemy.sql.expression import select, func, literal_column, text, false, and_, or_
+        from sqlalchemy.sql.expression import select, func, exists, literal_column, text, false, and_, or_
         from kskp.core import Datum
         from .auth import Auth
         from .user import User
@@ -146,21 +146,41 @@ class AuthzSession(Session):
                 select_from(R.join(D, D.id==R.c.parent_id))
             )
 
-        # select_from(Auth.join(Role, ...))と記述できないので、select()が使えない、そのためquery()を使う
-        subquery = self._session.query(func.coalesce(func.bool_and(Auth.permission),false()).label("read")).\
-                                outerjoin(UserRole, and_(UserRole.role_id==Auth.role_id, UserRole.user_id==self.user.id)).\
-                                outerjoin(User, and_(User.self_role_id==Auth.role_id, User.id==self.user.id)).\
-                                filter(Auth.datum_id==R.c.id).\
-                                filter(Auth.operation==Auth.READ_OP).\
-                                filter(or_(UserRole.user_id!=None, User.id!=None)).label('')
+        # # select_from(Auth.join(Role, ...))と記述できないので、select()が使えない、そのためquery()を使う
+        # subquery = self._session.query(func.coalesce(func.bool_and(Auth.permission),false()).label("read")).\
+        #                         outerjoin(UserRole, and_(UserRole.role_id==Auth.role_id, UserRole.user_id==self.user.id)).\
+        #                         outerjoin(User, and_(User.self_role_id==Auth.role_id, User.id==self.user.id)).\
+        #                         filter(Auth.datum_id==R.c.id).\
+        #                         filter(Auth.operation==Auth.READ_OP).\
+        #                         filter(or_(UserRole.user_id!=None, User.id!=None)).label('')
 
+        # AuthのTableオブジェクト
+        A = Auth.metadata.sorted_tables[0]
+
+        # 操作ユーザが所属するロールであることを指定する条件
+        exists_user_role = exists().where(and_(UserRole.role_id==A.c.role_id, UserRole.user_id==self.user.id))
+        exists_user = exists().where(and_(User.self_role_id==A.c.role_id, User.id==self.user.id))
+
+        # 操作ユーザが複数のロールに所属する場合、対象のDatumの操作権限を判定する
+        subquery = select([
+                        func.coalesce(func.bool_and(A.c.permission),false()).label('read')
+                    ]).\
+                    select_from(A).\
+                    where(
+                        and_(
+                            A.c.datum_id==R.c.id,
+                            A.c.operation==Auth.READ_OP,
+                            or_(exists_user_role, exists_user)
+                        )
+                    ).as_scalar()
+
+        # フォルダ権限のオーバライドを判定する
         subquery = select([func.bool_and(subquery).label('readable')]).select_from(R).\
                    where(R.c.leaf_id==Datum_id).as_scalar()
 
-
         # SELECT句内にWITH句を記述する必要があるが、SQLAlchemyではそれができないようだ
         # そのため、ここでWITH句を含むSELECT文をtextで記述してこれをメインのSELECT文に含める
-        subquery = str(subquery.compile(compile_kwargs={"literal_binds": True}))
+        subquery = str(subquery.compile(compile_kwargs={'literal_binds': True}))
 
         # query.count()でSQLAlchemyがエラーを送出するため、
         # これを回避するためtextをselectオブジェクトでラップする
@@ -170,7 +190,7 @@ class AuthzSession(Session):
         from kskp.core import Datum
         from kskp.store import Folder, Flow
         from kskp.store.auth import User, Role, UserRole, Auth
-                
+
         if isinstance(obj, Datum):
             # Datumの新規追加時はその親フォルダの変更権限を判定する
             # (ROOTフォルダの新規追加の場合は変更を許可する)
@@ -196,14 +216,12 @@ class AuthzSession(Session):
             # FolderまたはFlowの場合は実行権限を付与する
             folder_or_flow = isinstance(obj, Folder) or isinstance(obj, Flow) or None
             # 本人ロールへ追加データの権限を付与する
-            self_role.init_authz(obj.id, True, True, exec=folder_or_flow)
+            self_role.init_authz(obj.id, True, True, exec=folder_or_flow, own=True)
 
-            # everyoneロールが無ければ作成し、ユーザをeveryoneロールに所属させる
+            # usr_adminロールへ追加データの権限を付与する
             from kskp.store.factory import RoleFactory
-            everyone_role = RoleFactory(self).load_everyone_role()
-            everyone_role.join_user(self.user)
-            # everyoneロールへ追加データの権限を付与する
-            everyone_role.init_authz(obj.id, True, True, exec=folder_or_flow)
+            usr_admin_role = RoleFactory(self).load_usr_admin_role()
+            usr_admin_role.init_authz(obj.id, True, True, exec=folder_or_flow)
 
         elif isinstance(obj, User):
             # ユーザ管理者のみユーザを新規追加できる
@@ -333,15 +351,38 @@ class AuthzSession(Session):
     def ownership(self, datum_id) -> bool:
         """
         ユーザIDとDatumについて所有権の有無を判定する
+        (フォルダの所有権はオーバーライドされない)
         """
-        from kskp.core import Datum
+        # from kskp.core import Datum
+        # from .auth import Auth
+        # # ここでfind_by_id・find_by_uuidを使うとdatum.readableがFalseに何故かなってしまう
+        # # query(Datum).get()を使うとdatum.readableがNoneに何故かなってしまう
+        # result = self._session.query(Datum.id, Datum.parent_id).filter(Datum.id==datum_id).one_or_none()
+        # if result is None:
+        #     raise Exception('datum is None')
+        # 
+        # return self._operatable(result, Auth.OWN_OP)
+
+        from sqlalchemy import exists, func, false, and_, or_
+        from sqlalchemy.orm import aliased
         from .auth import Auth
-        # ここでfind_by_id・find_by_uuidを使うとdatum.readableがFalseに何故かなってしまう
-        # query(Datum).get()を使うとdatum.readableがNoneに何故かなってしまう
-        result = self._session.query(Datum.id, Datum.parent_id).filter(Datum.id==datum_id).one_or_none()
-        if result is None:
-            raise Exception('datum is None')
-        return self._operatable(result, Auth.OWN_OP)
+        from .user import User
+        from .user_role import UserRole
+
+        A = aliased(Auth, name='A')
+
+        # 操作ユーザが所属するロールであることを指定する条件
+        exists_user_role = exists().where(and_(UserRole.role_id==A.role_id, UserRole.user_id==self.user.id))
+        exists_user = exists().where(and_(User.self_role_id==A.role_id, User.id==self.user.id))
+
+        query = self._session.query(func.coalesce(func.bool_and(A.permission),false()).label('owner')).\
+                              select_from(A).\
+                              filter(A.operation==Auth.OWN_OP).\
+                              filter(or_(exists_user_role, exists_user)).\
+                              filter(A.datum_id==datum_id)
+
+        result = query.one_or_none()
+        return result.owner == True
 
     def is_addition_root_by_sysadmin(self, datum_id, operation) -> bool:
         """
@@ -356,21 +397,30 @@ class AuthzSession(Session):
         """
         ユーザIDとDatumについてoperation権限の有無を判定する
         """
-        from sqlalchemy import func, false, and_, or_
+        from sqlalchemy import select, exists, func, false, and_, or_
         from sqlalchemy.orm import aliased
         from .auth import Auth
         from .user import User
         from .user_role import UserRole
 
         A = aliased(Auth, name='A')
-        U = aliased(User, name='U')
-        UR = aliased(UserRole, name='UR')
+        
+        # UR = aliased(UserRole, name='UR')
+        # 
+        # query = self._session.query(func.coalesce(func.bool_and(A.permission),false()).label('operation')).\
+        #                       outerjoin(UR, and_(UR.role_id==A.role_id, UR.user_id==self.user.id)).\
+        #                       outerjoin(U,  and_(U.self_role_id==A.role_id, U.id==self.user.id)).\
+        #                       filter(A.operation==operation).\
+        #                       filter(or_(UR.user_id!=None, U.id!=None))
+
+        # 操作ユーザが所属するロールであることを指定する条件
+        exists_user_role = exists().where(and_(UserRole.role_id==A.role_id, UserRole.user_id==self.user.id))
+        exists_user = exists().where(and_(User.self_role_id==A.role_id, User.id==self.user.id))
 
         query = self._session.query(func.coalesce(func.bool_and(A.permission),false()).label('operation')).\
-                              outerjoin(UR, and_(UR.role_id==A.role_id, UR.user_id==self.user.id)).\
-                              outerjoin(U,  and_(U.self_role_id==A.role_id, U.id==self.user.id)).\
+                              select_from(A).\
                               filter(A.operation==operation).\
-                              filter(or_(UR.user_id!=None, U.id!=None))
+                              filter(or_(exists_user_role, exists_user))
 
         if datum.parent_id is None:
             # ルートフォルダの場合は親フォルダの権限判定をしない
@@ -380,16 +430,37 @@ class AuthzSession(Session):
             query = query.filter(A.datum_id==datum.parent_id)
         else:
             # 親フォルダとDatumの両方のoperation権限がある場合にのみ、operationの実行がOKの判定をする
-            A0 = aliased(Auth, name='A0')
-            U0 = aliased(User, name='U0')
-            UR0 = aliased(UserRole, name='UR0')
 
-            subquery = self._session.query(func.coalesce(func.bool_and(A0.permission),false()).label('operation_of_parent')).\
-                        select_from(A0).outerjoin(UR0, and_(UR0.role_id==A0.role_id, UR0.user_id==self.user.id)).\
-                        outerjoin(U0, and_(U0.self_role_id==U.self_role_id, U0.id==self.user.id)).\
-                        filter(A0.operation==A.operation).\
-                        filter(A0.datum_id==datum.parent_id).\
-                        filter(or_(UR0.user_id!=None, U0.id!=None)).label('')
+            # A0 = aliased(Auth, name='A0')
+            # U0 = aliased(User, name='U0')
+            # UR0 = aliased(UserRole, name='UR0')
+            # 
+            # subquery = self._session.query(func.coalesce(func.bool_and(A0.permission),false()).label('operation_of_parent')).\
+            #             select_from(A0).outerjoin(UR0, and_(UR0.role_id==A0.role_id, UR0.user_id==self.user.id)).\
+            #             outerjoin(U0, and_(U0.self_role_id==U.self_role_id, U0.id==self.user.id)).\
+            #             filter(A0.operation==A.operation).\
+            #             filter(A0.datum_id==datum.parent_id).\
+            #             filter(or_(UR0.user_id!=None, U0.id!=None)).label('')
+
+            # AuthのTableオブジェクト
+            A0 = Auth.metadata.sorted_tables[0]
+
+            # 操作ユーザが所属するロールであることを指定する条件
+            exists_user_role0 = exists().where(and_(UserRole.role_id==A0.c.role_id, UserRole.user_id==self.user.id))
+            exists_user0 = exists().where(and_(User.self_role_id==A0.c.role_id, User.id==self.user.id))
+
+            # 操作ユーザが複数のロールに所属する場合、対象のDatumの操作権限を判定する
+            subquery = select([
+                            func.coalesce(func.bool_and(A0.c.permission),false()).label('operation_of_parent')
+                        ]).\
+                        select_from(A0).\
+                        where(
+                            and_(
+                                A0.c.datum_id==datum.parent_id,
+                                A0.c.operation==A.operation,
+                                or_(exists_user_role0, exists_user0)
+                            )
+                        ).as_scalar()
 
             query = query.filter(A.datum_id==datum.id).\
                           filter(True == subquery)

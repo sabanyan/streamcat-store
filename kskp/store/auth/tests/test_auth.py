@@ -1,7 +1,9 @@
+import io
 import unittest
 import pprint
 from sqlalchemy.orm.exc import NoResultFound
 from kskp.core import Datum
+from kskp.store import ProjectFolder
 from kskp.store.auth import Auth, NotAuthorizedException
 from ...tests.test_case_base import TestCaseBase
 
@@ -12,6 +14,40 @@ class AuthTest(TestCaseBase):
 
     def tearDown(self):
         pass
+
+    # 
+    # SQLAlchemy Session
+    # 
+
+    def test_session_rollback(self):
+        """
+        SQLAlchemyのSession.rollback()によりExpireが発生し、全てのDatum.readableがNoneになってしまう
+        """
+        # ルートフォルダを取得する
+        root = self.factory.data.load_root()
+
+        # ルートフォルダの下にフォルダを作成する
+        folder = root.create_folder('FOLDER')
+        folder.save()
+        folder = folder.reload()
+
+        # reload直後はDatum.readable=True
+        self.assertTrue(folder.readable)
+
+        # Session.rollback()
+        folder._session.rollback()
+
+        # Datum.readableがNoneに変化してしまう
+        self.assertIsNone(folder.readable)
+
+        # フォルダを再読み込みした後、削除する
+        folder = folder.reload()
+        folder.delete()
+
+
+    # 
+    # Users
+    # 
 
     def test_create_get_delete_user(self):
         """
@@ -98,6 +134,10 @@ class AuthTest(TestCaseBase):
         new_user = self.factory.user.find_by_email('test-man4@kskp.io')
         self.assertIsNotNone(new_user)
 
+    # 
+    # Roles
+    # 
+
     def test_create_get_delete_role(self):
         """
         Roleの作成・取得・削除を検証する
@@ -124,7 +164,6 @@ class AuthTest(TestCaseBase):
         with self.assertRaises(NoResultFound):
             self.factory.role.find_by_uuid(new_role.uuid)
 
-
     def test_create_get_delete_role_by_user(self):
         """
         一般ユーザは、自身が作成したRoleの取得・更新・削除をできること
@@ -148,8 +187,7 @@ class AuthTest(TestCaseBase):
         # 削除後のロールは取得できない
         with self.assertRaises(NoResultFound):
             self.factory2.role.find_by_uuid(new_role.uuid)
-
-    
+  
     def test_join_leave_role(self):
         """
         Roleへの参加と脱退を検証する
@@ -174,6 +212,41 @@ class AuthTest(TestCaseBase):
         
         # ユーザを脱退させる
         new_role.leave_user(self.USER2)
+
+    def test_join_role_on_no_auth(self):
+        """
+        Roleにユーザを追加できるのは管理者かRoleの作成者のみである
+        """
+        # ロールを作成する
+        new_role = self.factory.role.create('ロール')
+        new_role.save()
+
+        # 管理者でもRoleの作成者でもないユーザは、
+        # ユーザの追加操作はできない
+        new_role = self.factory2.role.find_by_uuid(new_role.uuid)
+        with self.assertRaises(NotAuthorizedException):
+            new_role.join_user(self.USER2)
+
+    def test_leave_role_on_no_auth(self):
+        """
+        Roleからユーザを削除できるのは管理者かRoleの作成者のみである
+        """
+        # ロールを作成する
+        new_role = self.factory.role.create('ロール')
+        new_role.save()
+
+        # ロールにユーザを追加する
+        new_role.join_user(self.USER2)
+
+        # 管理者でもRoleの作成者でもないユーザは、
+        # ユーザの削除操作はできない
+        new_role = self.factory2.role.find_by_uuid(new_role.uuid)
+        with self.assertRaises(NotAuthorizedException):
+            new_role.leave_user(self.USER2)
+
+    # 
+    # Auths
+    # 
 
     def test_create_get_delete_auth(self):
         """
@@ -271,38 +344,6 @@ class AuthTest(TestCaseBase):
         with self.assertRaises(NotAuthorizedException):
             new_auth.delete()
 
-
-    def test_join_role_on_no_auth(self):
-        """
-        Roleにユーザを追加できるのは管理者かRoleの作成者のみである
-        """
-        # ロールを作成する
-        new_role = self.factory.role.create('ロール')
-        new_role.save()
-
-        # 管理者でもRoleの作成者でもないユーザは、
-        # ユーザの追加操作はできない
-        new_role = self.factory2.role.find_by_uuid(new_role.uuid)
-        with self.assertRaises(NotAuthorizedException):
-            new_role.join_user(self.USER2)
-
-    def test_leave_role_on_no_auth(self):
-        """
-        Roleからユーザを削除できるのは管理者かRoleの作成者のみである
-        """
-        # ロールを作成する
-        new_role = self.factory.role.create('ロール')
-        new_role.save()
-
-        # ロールにユーザを追加する
-        new_role.join_user(self.USER2)
-
-        # 管理者でもRoleの作成者でもないユーザは、
-        # ユーザの削除操作はできない
-        new_role = self.factory2.role.find_by_uuid(new_role.uuid)
-        with self.assertRaises(NotAuthorizedException):
-            new_role.leave_user(self.USER2)
-
     def test_no_authz(self):
         """
         権限レコードのないFrameは読み取れないことを検証する
@@ -310,9 +351,7 @@ class AuthTest(TestCaseBase):
         # ルートフォルダを取得する
         root = self.factory.data.load_root()
         # ルートフォルダの下にフレームを作成する
-        import io
-        f = io.BytesIO(b'')
-        frame = root.create_frame('CSV', f)
+        frame = root.create_frame('CSV', io.BytesIO(b''))
         frame.save()
 
         # フレームの参照権限を全て削除する
@@ -328,7 +367,6 @@ class AuthTest(TestCaseBase):
         with self.assertRaises(NotAuthorizedException):
             frame.path
 
-
     def test_readless_frame(self):
         """
         参照権限のないFrameは読み取れないことを検証する
@@ -336,9 +374,7 @@ class AuthTest(TestCaseBase):
         # ルートフォルダを取得する
         root = self.factory.data.load_root()
         # ルートフォルダの下にフレームを作成する
-        import io
-        f = io.BytesIO(b'')
-        frame = root.create_frame('CSV', f)
+        frame = root.create_frame('CSV', io.BytesIO(b''))
         frame.save()
         frame = frame.reload()
 
@@ -365,7 +401,6 @@ class AuthTest(TestCaseBase):
         with self.assertRaises(NotAuthorizedException):
             frame.path
 
-
     def test_writeless_frame(self):
         """
         更新権限のないFrameは更新できないことを検証する
@@ -373,9 +408,7 @@ class AuthTest(TestCaseBase):
         # ルートフォルダを取得する
         root = self.factory.data.load_root()
         # ルートフォルダの下にフレームを作成する
-        import io
-        f = io.BytesIO(b'')
-        frame = root.create_frame('CSV', f)
+        frame = root.create_frame('CSV', io.BytesIO(b''))
         frame.save()
         frame = frame.reload()
 
@@ -394,7 +427,6 @@ class AuthTest(TestCaseBase):
         with self.assertRaises(NotAuthorizedException):
             frame.delete()
 
-    
     def test_readless_folder(self):
         """
         参照権限のないFolderは読み取れないことを検証する
@@ -433,7 +465,6 @@ class AuthTest(TestCaseBase):
             folder.find_children_by_label('フロー')
         with self.assertRaises(NotAuthorizedException):
             folder.find_child_by_uuid(flow.uuid)
-
 
     def test_writeless_folder(self):
         """
@@ -515,9 +546,7 @@ class AuthTest(TestCaseBase):
         # ルートフォルダを取得する
         root = self.factory.data.load_root()
         # ルートフォルダの下にフレームを作成する
-        import io
-        f = io.BytesIO(b'')
-        frame = root.create_frame('CSV2', f)
+        frame = root.create_frame('CSV2', io.BytesIO(b''))
         frame.save()
 
         # フレームの参照権限を全て削除する
@@ -540,9 +569,7 @@ class AuthTest(TestCaseBase):
         # ルートフォルダを取得する
         root = self.factory.data.load_root()
         # ルートフォルダの下にフレームを作成する
-        import io
-        f = io.BytesIO(b'')
-        frame = root.create_frame('CSV2', f)
+        frame = root.create_frame('CSV2', io.BytesIO(b''))
         frame.save()
         # ルートフォルダの下にフローを作成する
         flow = root.create_simple_flow(root, 'フロー', frame)
@@ -706,7 +733,6 @@ class AuthTest(TestCaseBase):
         flow = from_folder.create_flow('フローA', {})
         flow.save()
 
-        
         # 移動元フォルダを参照不可にする
         everyone_role = self.factory.role.load_everyone_role()
         everyone_role.init_authz(from_folder.id, False, True)
@@ -753,7 +779,6 @@ class AuthTest(TestCaseBase):
         # フローが移動していないこと
         self.assertEqual(flow.parent_id, from_folder.id)
 
-
     def test_move_to_writeless_folder(self):
         """
         更新権限のないFolderへFlowは移動できないこと
@@ -783,7 +808,6 @@ class AuthTest(TestCaseBase):
 
         # フローが移動していないこと
         self.assertEqual(flow.parent_id, from_folder.id)
-
 
     def test_folder_in_writeless_folder(self):
         """
@@ -881,3 +905,465 @@ class AuthTest(TestCaseBase):
 
         # フローJSONのnodesを取得する
         flow.flow_data.get_nodes(use_exec_auth=True)
+
+    def test_own_frame_in_no_own_folder(self):
+        """
+        フレームの所有権は親フォルダの所有権に影響しないこと
+        (フォルダの所有権はオーバーライドされない)
+        """
+        # ルートフォルダを取得する
+        root = self.factory2.data.load_root()
+
+        # ルートフォルダの下にフォルダAを作成する (所有者はUSER2)
+        folder_a = root.create_folder('所有権の無いフォルダA')
+        folder_a.save()
+
+        # USER3にフォルダAの更新権限を付与する
+        user3 = self.factory2.user.find_by_uuid(self.USER3.uuid)
+        user3.load_self_role().init_authz(folder_a.id, read=True, write=True)
+
+        # フォルダAの下にフレームAを作成する (所有者はUSER3)
+        folder_a = self.factory3.data.find_by_uuid(folder_a.uuid)
+        frame_a = folder_a.create_frame('My Frame A', io.BytesIO(b''))
+        frame_a.save()
+
+        # ルートフォルダの下にフォルダBを作成する (所有者はUSER3)
+        root = self.factory3.data.load_root()
+        folder_b = root.create_folder('所有権の有るフォルダB')
+        folder_b.save()
+
+        # フォルダBの下にフレームBを作成する (所有者はUSER3)
+        frame_b = folder_b.create_frame('My Frame B', io.BytesIO(b''))
+        frame_b.save()
+
+        # フレームAの所有者は権限を変更できること
+        self_role = self.USER3.load_self_role()
+        self_role.init_authz(frame_a.id, read=None, write=False, own=True)
+
+        # フレームBの所有者は権限を変更できること
+        self_role.init_authz(frame_b.id, read=None, write=False, own=True)
+
+        # 更新権限が否定されたのでフレームA,Bは削除できないこと
+        with self.assertRaises(NotAuthorizedException):
+            frame_a.delete()
+        with self.assertRaises(NotAuthorizedException):
+            frame_b.delete()
+
+        # フレームA,Bに更新権限を付与する
+        self_role.init_authz(frame_a.id, read=None, write=True)
+        self_role.init_authz(frame_b.id, read=None, write=True)
+
+        # # フレームA,Bを削除する
+        frame_a.delete()
+        frame_b.delete()
+
+        # NotAuthorizedExceptionの送出後のSession.rollback()により、
+        # Expireが発生し、readable=Noneとなるため再読み込みする
+        folder_a = folder_a.reload()
+        folder_b = folder_b.reload()
+
+        # フォルダA,Bを削除する
+        folder_a.delete()
+        folder_b.delete()
+
+    # 
+    # Projects
+    # 
+
+    def test_cannot_save_project_outside_root(self):
+        """
+        プロジェクトはルートフォルダ直下にしか保存できないこと
+        """
+        # ルートフォルダを取得する
+        root = self.factory.data.load_root()
+
+        # ルートフォルダの下にプロジェクトを作成する
+        project0 = root.create_project_folder('プロジェクト0')
+        project0.save()
+        project0 = project0.reload()
+        # プロジェクトの下にプロジェクトを作成する
+        with self.assertRaises(Exception):
+            sub_project0 = project0.create_project_folder('Subプロジェクト0')
+            sub_project0.save()
+
+        # ルートフォルダの下にフォルダを作成する
+        folder = root.create_folder('フォルダ0')
+        folder.save()
+        folder = folder.reload()
+        # フォルダの下にプロジェクトを作成する
+        with self.assertRaises(Exception):
+            sub_project0 = folder.create_project_folder('Subプロジェクト0')
+            sub_project0.save()
+
+    def test_cannot_move_project(self):
+        """
+        ゴミ箱へにほかされるか、ゴミ箱から元の場所に戻す場合を除いて、プロジェクトは移動できない
+        """
+        # ルートフォルダを取得する
+        root = self.factory.data.load_root()
+
+        # ルートフォルダの下にプロジェクトを作成する
+        project = root.create_project_folder('移動できないぜProject')
+        project.save()
+        project = project.reload()
+
+        # ルートフォルダの下にフォルダを作成する
+        folder = root.create_folder('フォルダだぜ')
+        folder.save()
+        folder = folder.reload()
+
+        # プロジェクトをフォルダの下に移動する
+        with self.assertRaises(Exception):
+            project.move(folder.uuid)
+
+    def test_throw_away_project(self):
+        """
+        プロジェクトはゴミ箱にほかせること
+        """
+        # ルートフォルダを取得する
+        root = self.factory.data.load_root()
+
+        # ルートフォルダの下にプロジェクトを作成する
+        project = root.create_project_folder('ゴミプロジェクト')
+        project.save()
+        project = project.reload()
+
+        # プロジェクトの下にフローを作成する
+        flow = project.create_flow('フロー', {})
+        flow.save()
+        flow = flow.reload()
+
+        # プロジェクトの下にフレームを作成する
+        frame = project.create_frame('フレーム', io.BytesIO(b''))
+        frame.save()
+        frame = frame.reload()
+
+        # プロジェクトをほかす
+        project.throw_away()
+
+        # プロジェクトがゴミ箱に存在すること
+        self.assertTrue(self.factory.data.trashed(project.uuid))
+        self.assertTrue(self.factory.data.trashed(flow.uuid))
+        self.assertTrue(self.factory.data.trashed(frame.uuid))
+
+        # プロジェクトを元の場所に戻す
+        project.put_back()
+
+        # プロジェクトが元の場所に存在すること
+        self.assertEqual(project.find_parent().id, root.id)
+
+        # プロジェクトを再度ほかして、ゴミ箱を空にする
+        project.throw_away()
+        self.factory.data.find_trashcan().trash_all()
+
+        # プロジェクトは削除されていること
+        self.assertFalse(self.factory.data.exists(project.uuid))
+        self.assertFalse(self.factory.data.exists(flow.uuid))
+        self.assertFalse(self.factory.data.exists(frame.uuid))
+
+    def test_cannot_move_datum(self):
+        """
+        プロジェクト以外のDatumはルートフォルダへ移動できない
+        """
+        pass
+
+    def test_cannot_delete_project(self):
+        """
+        プロジェクト管理者はプロジェクトを削除できる
+        """
+        # ルートフォルダを取得する
+        root = self.factory2.data.load_root()
+
+        # ルートフォルダの下にプロジェクトを作成する
+        # 作成者(=プロジェクト管理者)はUSER2
+        project = root.create_project_folder('捨てるよプロジェクト🗑')
+        project.save()
+        project = project.reload()
+
+        # プロジェクト管理者(USER2)がプロジェクトをほかす
+        project.throw_away()
+
+        # プロジェクトがゴミ箱に存在すること
+        self.assertTrue(self.factory.data.trashed(project.uuid))
+
+        # プロジェクト管理者(USER2)がプロジェクトを削除する
+        project.delete()
+
+        # プロジェクトは削除されていること
+        self.assertFalse(self.factory.data.exists(project.uuid))
+
+    def test_cannot_delete_project(self):
+        """
+        プロジェクト管理者以外はプロジェクトを削除できない
+        """
+        # ルートフォルダを取得する
+        root = self.factory2.data.load_root()
+
+        # ルートフォルダの下にプロジェクトを作成する
+        # 作成者(=プロジェクト管理者)はUSER2
+        project = root.create_project_folder('捨てるなプロジェクト🚯')
+        project.save()
+        project = project.reload()
+
+        # プロジェクトメンバ以外のユーザ(USER3)が削除を試みる
+        project = self.factory3.data.find_by_uuid(project.uuid)
+        with self.assertRaises(NotAuthorizedException):
+            project.throw_away()
+        with self.assertRaises(NotAuthorizedException):
+            project.delete()
+
+        # USER3をプロジェクトの編集者メンバとして追加する
+        project = self.factory2.data.find_by_id(project.id)
+        user3_member = ProjectFolder.Member(self.USER3, ProjectFolder.WRITER_MEMBER_TYPE)
+        project.join_member(user3_member)
+
+        # 編集者メンバ(USER3)がプロジェクトの削除を試みる
+        project = self.factory3.data.find_by_uuid(project.uuid)
+        with self.assertRaises(NotAuthorizedException):
+            project.throw_away()
+        with self.assertRaises(NotAuthorizedException):
+            project.delete()
+
+        # プロジェクトは削除されていないこと
+        self.assertTrue(self.factory.data.exists_by_id(project.id))
+
+    def test_join_project(self):
+        """
+        プロジェクト管理者を交代する
+        (元のプロジェクト管理者は削除する)
+        """
+        # ルートフォルダを取得する
+        root = self.factory.data.load_root()
+        # ルートフォルダの下にプロジェクトを作成する
+        project = root.create_project_folder('プロジェクト1')
+        project.save()
+
+        # メンバを設定する
+        member1 = ProjectFolder.Member(self.USER2, ProjectFolder.OWNER_MEMBER_TYPE)
+        member2 = ProjectFolder.Member(self.USER3, ProjectFolder.READER_MEMBER_TYPE)
+        project.init_members([member1, member2])
+
+        # メンバを取得する
+        members = project.get_joined_members()
+
+        # 期待する結果が返ることを確認する
+        self.assertEqual(len(members), 2)
+        self.assertEqual(members, [member1, member2])
+
+        # プロジェクトは更新できない
+        with self.assertRaises(NotAuthorizedException):
+            project = project.reload()
+            project.update_data('ぷろじぇくと1')
+
+    def test_join_project2(self):
+        """
+        プロジェクト管理者を交代する
+        (元のプロジェクト管理者は閲覧者にする)
+        """
+        # ルートフォルダを取得する
+        root = self.factory.data.load_root()
+        # ルートフォルダの下にプロジェクトを作成する
+        project = root.create_project_folder('プロジェクト2')
+        project.save()
+
+        # メンバを設定する
+        member1 = ProjectFolder.Member(self.USER1, ProjectFolder.READER_MEMBER_TYPE)
+        member2 = ProjectFolder.Member(self.USER3, ProjectFolder.OWNER_MEMBER_TYPE)
+        project.init_members([member1, member2])
+
+        # メンバを取得する
+        members = project.get_joined_members()
+
+        # 期待する結果が返ることを確認する
+        self.assertEqual(len(members), 2)
+        self.assertEqual(members, [member2, member1])
+
+        # プロジェクトは更新できない
+        with self.assertRaises(NotAuthorizedException):
+            project = project.reload()
+            project.update_data('ぷろじぇくと2')
+
+    def test_join_project_without_owner(self):
+        """
+        プロジェクト管理者は必ず指定すること
+        """
+        # ルートフォルダを取得する
+        root = self.factory.data.load_root()
+        # ルートフォルダの下にプロジェクトを作成する
+        project = root.create_project_folder('プロジェクト3')
+        project.save()
+
+        # メンバを設定する
+        member1 = ProjectFolder.Member(self.USER2, ProjectFolder.READER_MEMBER_TYPE)
+        member2 = ProjectFolder.Member(self.USER3, ProjectFolder.WRITER_MEMBER_TYPE)
+        with self.assertRaises(Exception):
+            project.init_members([member1, member2])
+
+        # プロジェクトは削除する
+        project = project.reload()
+        project.delete()
+
+    def test_join_project_with_other_type(self):
+        """
+        プロジェクトに規定のユーザタイプ以外を指定できないこと
+        """
+        # ルートフォルダを取得する
+        root = self.factory.data.load_root()
+        # ルートフォルダの下にプロジェクトを作成する
+        project = root.create_project_folder('プロジェクト4')
+        project.save()
+
+        # メンバを設定する
+        member1 = ProjectFolder.Member(self.USER2, ProjectFolder.READER_MEMBER_TYPE)
+        member2 = ProjectFolder.Member(self.USER3, ProjectFolder.OTHER_MEMBER_TYPE)
+        with self.assertRaises(Exception):
+            project.init_members([member1, member2])
+
+        # プロジェクトは削除する
+        project = project.reload()
+        project.delete()
+
+    def test_join_project_without_member(self):
+        """
+        プロジェクトメンバは必ず指定すること
+        """
+        # ルートフォルダを取得する
+        root = self.factory.data.load_root()
+        # ルートフォルダの下にプロジェクトを作成する
+        project = root.create_project_folder('プロジェクト5')
+        project.save()
+
+        # メンバを設定する
+        with self.assertRaises(Exception):
+            project.init_members([])
+
+        # プロジェクトは削除する
+        project = project.reload()
+        project.delete()
+
+    # 
+    # System Folders
+    # 
+
+    def test_root_folder_auths(self):
+        """
+        ルートフォルダの権限設定を検証する
+        """
+        # ルートフォルダを取得する
+        root = self.factory.data.load_root()
+
+        # ルートフォルダの権限を取得する
+        root_auths = self.factory.auth.find_all_by_datum_id(root.id)
+
+        # システムロールを取得する
+        everyone_role = self.factory.role.load_everyone_role()
+        usr_admin_role = self.factory.role.load_usr_admin_role()
+
+        # ルートフォルダには、everyoneにRWX権限が設定されること
+        # システムフォルダには、usr_adminにO権限が設定されること
+        # システムフォルダには、作成者の本人ロールの権限が設定されていないこと
+
+        # 権限設定の数は正しいこと
+        self.assertEqual(len(root_auths), 4)
+
+        # everyone read
+        role = self.factory.role.find_by_id(root_auths[0].role_id)
+        self.assertEqual(role, everyone_role)
+        self.assertEqual(root_auths[0].operation, 'read')
+        self.assertEqual(root_auths[0].permission, True)
+
+        # everyone write
+        role = self.factory.role.find_by_id(root_auths[1].role_id)
+        self.assertEqual(role, everyone_role)
+        self.assertEqual(root_auths[1].operation, 'write')
+        self.assertEqual(root_auths[1].permission, True)
+
+        # everyone exec
+        role = self.factory.role.find_by_id(root_auths[2].role_id)
+        self.assertEqual(role, everyone_role)
+        self.assertEqual(root_auths[2].operation, 'exec')
+        self.assertEqual(root_auths[2].permission, True)
+
+        # usr_admin own
+        role = self.factory.role.find_by_id(root_auths[3].role_id)
+        self.assertEqual(role, usr_admin_role)
+        self.assertEqual(root_auths[3].operation, 'own')
+        self.assertEqual(root_auths[3].permission, True)
+
+    def test_cache_folder_auths(self):
+        """
+        キャッシュフォルダの権限設定を検証する
+        """
+        # キャッシュフォルダを取得する
+        cache = self.factory.data.load_cache_folder()
+
+        # キャッシュフォルダの権限を取得する
+        cache_auths = self.factory.auth.find_all_by_datum_id(cache.id)
+
+        # システムロールを取得する
+        everyone_role = self.factory.role.load_everyone_role()
+        usr_admin_role = self.factory.role.load_usr_admin_role()
+        
+        # キャッシュフォルダには、everyoneにRW権限が設定されること
+        # システムフォルダには、usr_adminにO権限が設定されること
+        # システムフォルダには、作成者の本人ロールの権限が設定されていないこと
+
+        # 権限設定の数は正しいこと
+        self.assertEqual(len(cache_auths), 3)
+
+        # everyone read
+        role = self.factory.role.find_by_id(cache_auths[0].role_id)
+        self.assertEqual(role, everyone_role)
+        self.assertEqual(cache_auths[0].operation, 'read')
+        self.assertEqual(cache_auths[0].permission, True)
+
+        # everyone write
+        role = self.factory.role.find_by_id(cache_auths[1].role_id)
+        self.assertEqual(role, everyone_role)
+        self.assertEqual(cache_auths[1].operation, 'write')
+        self.assertEqual(cache_auths[1].permission, True)
+
+        # usr_admin own
+        role = self.factory.role.find_by_id(cache_auths[2].role_id)
+        self.assertEqual(role, usr_admin_role)
+        self.assertEqual(cache_auths[2].operation, 'own')
+        self.assertEqual(cache_auths[2].permission, True)
+
+    def test_trash_folder_auths(self):
+        """
+        ゴミ箱フォルダの権限設定を検証する
+        """
+        # ゴミ箱フォルダを取得する
+        trash = self.factory.data.load_trash_folder()
+
+        # ゴミ箱フォルダの権限を取得する
+        trash_auths = self.factory.auth.find_all_by_datum_id(trash.id)
+
+        # システムロールを取得する
+        everyone_role = self.factory.role.load_everyone_role()
+        usr_admin_role = self.factory.role.load_usr_admin_role()
+        
+        # ゴミ箱フォルダには、everyoneにRW権限が設定されること
+        # システムフォルダには、usr_adminにO権限が設定されること
+        # システムフォルダには、作成者の本人ロールの権限が設定されていないこと
+
+        # 権限設定の数は正しいこと
+        self.assertEqual(len(trash_auths), 3)
+
+        # everyone read
+        role = self.factory.role.find_by_id(trash_auths[0].role_id)
+        self.assertEqual(role, everyone_role)
+        self.assertEqual(trash_auths[0].operation, 'read')
+        self.assertEqual(trash_auths[0].permission, True)
+
+        # everyone write
+        role = self.factory.role.find_by_id(trash_auths[1].role_id)
+        self.assertEqual(role, everyone_role)
+        self.assertEqual(trash_auths[1].operation, 'write')
+        self.assertEqual(trash_auths[1].permission, True)
+
+        # usr_admin own
+        role = self.factory.role.find_by_id(trash_auths[2].role_id)
+        self.assertEqual(role, usr_admin_role)
+        self.assertEqual(trash_auths[2].operation, 'own')
+        self.assertEqual(trash_auths[2].permission, True)

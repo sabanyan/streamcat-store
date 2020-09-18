@@ -50,11 +50,17 @@ class Query():
     def select_from(self, *from_obj):
         return Query(self._query.select_from(*from_obj), self._session)
 
+    def join(self, *props, **kwargs):
+        return Query(self._query.join(*props, **kwargs), self._session)
+
     def outerjoin(self, *props, **kwargs):
         return Query(self._query.outerjoin(*props, **kwargs), self._session)
 
     def exists(self):
         return self._query.exists()
+
+    def group_by(self, *criterion):
+        return Query(self._query.group_by(*criterion), self._session)
 
     def order_by(self, *criterion):
         return Query(self._query.order_by(*criterion), self._session)
