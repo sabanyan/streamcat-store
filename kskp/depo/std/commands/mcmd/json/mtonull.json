@@ -120,7 +120,7 @@
   "groups": [
     {
       "name": "cmd_main",
-      "label": "〇〇の設定",
+      "label": "置換の設定",
       "params": [
         "f",
         "v"

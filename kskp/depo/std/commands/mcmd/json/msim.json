@@ -219,7 +219,7 @@
     },
     {
       "name": "cmd_main",
-      "label": "〇〇の設定",
+      "label": "類似度計算の設定",
       "params": [
         "c",
         "f",

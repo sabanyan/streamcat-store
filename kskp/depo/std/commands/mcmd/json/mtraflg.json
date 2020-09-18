@@ -133,7 +133,7 @@
   "groups": [
     {
       "name": "cmd_main",
-      "label": "〇〇の設定",
+      "label": "データ変換の設定",
       "params": [
         "a",
         "f"

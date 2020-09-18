@@ -124,7 +124,7 @@
   "groups": [
     {
       "name": "cmd_main",
-      "label": "〇〇の設定",
+      "label": "項目名変更の設定",
       "params": [
         "f"
       ]

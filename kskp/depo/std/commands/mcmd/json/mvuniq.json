@@ -123,7 +123,7 @@
   "groups": [
     {
       "name": "cmd_main",
-      "label": "〇〇の設定",
+      "label": "要素の単一化の設定",
       "params": [
         "vf",
         "A"

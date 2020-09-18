@@ -42,13 +42,7 @@
       "label": "その他 (省略可)",
       "params": [
         "n",
-        "no"
-      ]
-    },
-    {
-      "name": "その他 (省略可)",
-      "label": "cmd_sub",
-      "params": [
+        "no",
         "-nfno"
       ]
     }

@@ -75,7 +75,7 @@
   "groups": [
     {
       "name": "cmd_main",
-      "label": "〇〇の設定",
+      "label": "データ生成の設定",
       "params": [
         "a",
         "v",
