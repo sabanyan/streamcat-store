@@ -160,13 +160,6 @@
       ]
     },
     {
-      "name": "sorting",
-      "label": "グループ内のソートの設定",
-      "params": [
-        "S"
-      ]
-    },
-    {
       "name": "cmd_main",
       "label": "行補完の設定",
       "params": [
@@ -178,6 +171,7 @@
       "name": "cmd_sub",
       "label": "その他 (省略可)",
       "params": [
+        "S",
         "E",
         "n",
         "nfn",

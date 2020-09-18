@@ -76,7 +76,7 @@
     {
       "name": "nfn",
       "type": "boolean",
-      "label": "入力データの 1 行目を項目名行とみなさない。",
+      "label": "入力データの 1 行目を項目名行とみなさない。",
       "optional": true
     },
     {
