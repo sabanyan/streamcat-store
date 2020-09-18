@@ -286,7 +286,7 @@ class MissingValueInterpolateCommand(PCommand):
         import numpy as np
 
         try:
-            sys.__stdin__.flush()#not needed for bigger data
+            # sys.__stdin__.flush()#not needed for bigger data
 
             headerflg = True
 
@@ -640,7 +640,7 @@ class MissingValueInterpolateCommand(PCommand):
         sorted = False
 
         f = None
-        f = inputs['i']
+        f = inputs['i'].content
 
 
         # --- 出力項目名の重複処理 ---
@@ -1434,7 +1434,7 @@ class TimeSeriesDataJoinCommand(PCommand):
 
         # --- 入力i の処理 ---
         fi = None
-        fi = inputs['i']
+        fi = inputs['i'].content
 
         # unix時間の項目作成
         time_i = args['TIME']
