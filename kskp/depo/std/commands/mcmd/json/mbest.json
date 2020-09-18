@@ -9,23 +9,22 @@
     {
       "name": "from",
       "type": "string",
-      "label": "選択する開始行番号",
+      "label": "開始行番号(必須)",
       "optional": true,
-      "default": 0
+      "default": "0"
     },
     {
       "name": "to",
       "type": "string",
-      "label": "選択する終了行番号",
-      "optional": true,
-      "default": 0
+      "label": "終了行番号",
+      "optional": true
     },
     {
       "name": "size",
       "type": "string",
-      "label": "選択する行数",
+      "label": "開始行からの行数",
       "optional": true,
-      "default": 1
+      "default": "1"
     },
     {
       "name": "k",
@@ -36,14 +35,15 @@
     {
       "name": "r",
       "type": "boolean",
-      "label": "from=,to=(size=) パラメータで指定した行番号以外の行を選択する",
+      "label": "条件にマッチしなかった行を選択する",
       "optional": true
     },
     {
       "name": "R",
       "type": "string",
-      "label": "行番号範囲リスト (複数項目指定可)",
-      "optional": true
+      "label": "行番号リスト (複数項目指定可)",
+      "optional": true,
+      "description": "●カンマ区切りで複数指定可\n●範囲の複数指定も可能\n   方法: 開始と終了の行番号を _ 区切りで指定する"
     },
     {
       "name": "assert_diffSize",
@@ -127,14 +127,39 @@
       ]
     },
     {
-      "name": "cmd_sub",
-      "label": "その他 (省略可)",
+      "name": "cmd_main",
+      "label": "行番号による選択の設定",
+      "description": "行番号の範囲、およびリストによる指定が可能\n行番号は、0始まりの整数で指定する",
+      "params": []
+    },
+    {
+      "name": "cmd_main1",
+      "label": "範囲で選択",
+      "description": "(必須)開始行番号\n終了条件は、終了行番号か、開始行からの行数で指定する",
       "params": [
         "from",
         "to",
-        "size",
-        "r",
-        "R",
+        "size"
+      ]
+    },
+    {
+      "name": "cmd_main2",
+      "label": "リストで選択",
+      "params": [
+        "R"
+      ]
+    },
+    {
+      "name": "cmd_main3",
+      "label": "条件反転",
+      "params": [
+        "r"
+      ]
+    },
+    {
+      "name": "cmd_sub",
+      "label": "その他 (省略可)",
+      "params": [
         "nfn",
         "q"
       ]
