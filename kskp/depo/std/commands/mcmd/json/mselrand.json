@@ -150,6 +150,13 @@
       ]
     },
     {
+      "name": "cmd_main",
+      "label": "行選択の設定",
+      "params": [
+        "c"
+      ]
+    },
+    {
       "name": "cmd_sub",
       "label": "その他 (省略可)",
       "params": [
@@ -158,13 +165,6 @@
         "B",
         "nfn",
         "q"
-      ]
-    },
-    {
-      "name": "cmd_main",
-      "label": "行選択の設定",
-      "params": [
-        "c"
       ]
     },
     {
