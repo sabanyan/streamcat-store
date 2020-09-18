@@ -97,20 +97,23 @@
     },
     {
       "name": "n",
-      "type": "string",
-      "label": "Null データの場合は NULL にするフラグ",
-      "optional": true
+      "type": "boolean",
+      "label": "NULL のある期間は計算しない",
+      "optional": true,
+      "description": "その期間の値は、NULLとして出力される"
     },
     {
       "name": "f",
       "type": "string",
-      "label": "移動平均を求める列名(複数項目指定可, 必須)"
+      "label": "対象とする項目名(必須)",
+      "description": "●カンマ区切りで複数指定可\n  項目名時:*,？ 使用可\n  項目番号時:0−3,5,0L 等使用可"
     },
     {
       "name": "t",
       "type": "string",
-      "label": "移動平均を求める項目名リスト (複数項目指定可) を指定する。",
-      "optional": true
+      "label": "期間数の指定",
+      "optional": true,
+      "description": "●行数で指定する\n●カンマ区切りで複数指定が可能"
     },
     {
       "name": "exp",
@@ -127,14 +130,16 @@
     {
       "name": "alpha",
       "type": "string",
-      "label": "-exp が指定された時の平滑化係数を実数値で与える。省略時は alpha=2/(t=の値 +1)。",
-      "optional": true
+      "label": "平滑化係数 (指数平滑化指定時のみ)",
+      "optional": true,
+      "description": "●0-1の実数で指定する\n●デフォルト値:  2 ÷ ( 期間数の指定値 + 1)"
     },
     {
       "name": "skip",
       "type": "string",
-      "label": "出力を抑制する最初の行数。デフォルト値: skip=(t=の値-1), -exp が指定された場合は skip=0",
-      "optional": true
+      "label": "出力対象外とする先頭の行数",
+      "optional": true,
+      "description": "●デフォルトでは、対象値が期間数未満で計算できなかった行は除外される\n●必要な場合には、任意の行数を設定することで出力することも可能\n   (不足の対象値は、NULLとして扱い、計算される)"
     },
     {
       "name": "assert_diffSize",
