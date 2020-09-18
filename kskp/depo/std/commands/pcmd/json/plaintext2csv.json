@@ -165,7 +165,7 @@
       "name": "cmd_sub2",
       "label": "その他(省略可)",
       "params": [
-      "attr"
+        "attr"
       ]
     }
   ]
