@@ -49,7 +49,7 @@
   "groups": [
     {
       "name": "cmd_main",
-      "label": "〇〇の設定",
+      "label": "対象の設定",
       "params": [
         "f"
       ]

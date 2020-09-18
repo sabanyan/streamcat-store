@@ -153,7 +153,7 @@
   "groups": [
     {
       "name": "cmd_main",
-      "label": "〇〇の設定",
+      "label": "要素の置換の設定",
       "params": [
         "vf",
         "v",

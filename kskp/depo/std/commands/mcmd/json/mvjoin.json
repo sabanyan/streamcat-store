@@ -2,13 +2,8 @@
   "id": "mvjoin",
   "groups": [
     {
-      "name": "group1",
-      "label": "グループの設定 (省略可)",
-      "params": []
-    },
-    {
       "name": "group5",
-      "label": "〇〇の設定 (必須)",
+      "label": "結合の設定 (必須)",
       "params": [
         "f",
         "K",

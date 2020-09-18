@@ -109,7 +109,7 @@
   "groups": [
     {
       "name": "cmd_main",
-      "label": "〇〇の設定",
+      "label": "複写の設定",
       "params": [
         "f"
       ]

@@ -79,7 +79,7 @@
   "groups": [
     {
       "name": "cmd_main",
-      "label": "〇〇の設定",
+      "label": "検査の設定",
       "params": [
         "a"
       ]

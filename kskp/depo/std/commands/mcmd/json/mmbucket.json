@@ -177,7 +177,7 @@
     },
     {
       "name": "cmd_main",
-      "label": "〇〇の設定",
+      "label": "バケット分割の設定",
       "params": [
         "f",
         "F",
