@@ -199,7 +199,7 @@ class ProjectFolder(Folder):
         from kskp.store.auth import User, Auth, UserRole
 
         # 
-        # プロジェクトの権限判定にのみ対応している(フォルダ権限のオーバーライドには対応していない)
+        # プロジェクトの権限判定にのみ対応している(フォルダ権限をオーバーライドしない仕様)
         # Auth.datum_idにインデックスを設定することで速度は改善される
         # 
 
@@ -223,15 +223,15 @@ class ProjectFolder(Folder):
         query = self._session.query(
                     User,
                     case(
-                        {1010 : ProjectFolder.READER_MEMBER_TYPE,
-                         1110 : ProjectFolder.WRITER_MEMBER_TYPE,
-                         1111 : ProjectFolder.OWNER_MEMBER_TYPE},
+                        {0b1010 : ProjectFolder.READER_MEMBER_TYPE,
+                         0b1110 : ProjectFolder.WRITER_MEMBER_TYPE,
+                         0b1111 : ProjectFolder.OWNER_MEMBER_TYPE},
                         value=func.sum(
                                 case([(AU.c.permission,
-                                    case([(AU.c.operation=='read', 1000),
-                                          (AU.c.operation=='write', 100),
-                                          (AU.c.operation=='exec',   10),
-                                          (AU.c.operation=='own',     1)
+                                    case([(AU.c.operation=='read', 0b1000),
+                                          (AU.c.operation=='write', 0b100),
+                                          (AU.c.operation=='exec',   0b10),
+                                          (AU.c.operation=='own',     0b1)
                                     ])
                                 )])
                               ),

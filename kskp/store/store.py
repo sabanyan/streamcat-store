@@ -127,7 +127,7 @@ class Store(Datum):
         from kskp.store import Flow
         return Flow(self._session, self, label, flow_json)
 
-    def create_simple_flow(self, parent, label, data_source):
+    def create_simple_flow(self, label, data_source):
         from kskp.store import Flow
         flow_json = {
                         "label": label,

@@ -19,9 +19,141 @@ class AuthTest(TestCaseBase):
     # SQLAlchemy Session
     # 
 
+    def test_after_create_data(self):
+        """
+        新規作成したDatumはDBに保存するまで権限フリーであること
+        """
+        # ルートフォルダを取得する
+        root = self.factory.data.load_root()
+        # ルートフォルダの下にフォルダを作成する
+        folder = root.create_folder('Folder!')
+        # ルートフォルダの下にFlowを作成する
+        flow = root.create_flow('Flow!', {})
+        # ルートフォルダの下にフレームを作成する
+        frame = root.create_frame('Frame!', io.BytesIO(b''))
+
+        # フォルダの参照と更新と実行権限は付与されていること
+        self.assertTrue(folder.readable)
+        self.assertTrue(folder.writable)
+        self.assertTrue(folder.executable)
+
+        # Flowの参照と更新と実行権限は付与されていること
+        self.assertTrue(flow.readable)
+        self.assertTrue(flow.writable)
+        self.assertTrue(flow.executable)
+
+        # フレームの参照と更新権限は付与されていること
+        # (フレームなので実行権限はない)
+        self.assertTrue(frame.readable)
+        self.assertTrue(frame.writable)
+        self.assertFalse(frame.executable)
+
+        # フォルダを保存する
+        folder.save()
+        # Flowを保存する
+        flow.save()
+        # フレームを保存する
+        frame.save()
+
+        # 保存後は全ての権限はNoneに設定される
+        self.assertIsNone(folder.readable)
+        self.assertIsNone(folder.writable)
+        self.assertIsNone(folder.executable)
+        self.assertIsNone(flow.readable)
+        self.assertIsNone(flow.writable)
+        self.assertIsNone(flow.executable)
+        self.assertIsNone(frame.readable)
+        self.assertIsNone(frame.writable)
+        self.assertIsNone(frame.executable)
+
+        # フォルダを再読み込みする
+        folder.reload()
+        # Flowを再読み込みする
+        flow.reload()
+        # フレームを再読み込みする
+        frame.reload()
+
+        # フォルダを削除する
+        folder.delete()
+        # Flowを削除する
+        flow.delete()
+        # フレームを削除する
+        frame.delete()
+
+    def test_set_session_datum_property(self):
+        """
+        SessionからDatumを抽出したら
+        Datum._sessionプロパティにSessionが設定されていること
+        """
+        # ルートフォルダを取得する
+        root = self.factory.data.load_root()
+        # ルートフォルダの下にフレームを作成する
+        frame = root.create_frame('Frame!', io.BytesIO(b''))
+
+        # 新規作成したら_sessionプロパティが設定されること
+        self.assertIs(frame._session, self.factory._session)
+
+        # フレームを保存する
+        frame.save()
+
+        # 保存後も_sessionプロパティを取得できること
+        self.assertIs(frame._session, self.factory._session)
+
+        # find_by_id()でフレームを取得する
+        frame = self.factory.data.find_by_id(frame.id)
+
+        # Sessionクラスで_sessionプロパティが設定されること
+        self.assertIs(frame._session, self.factory._session)
+
+        # find_by_uuid()でフレームを取得する
+        frame = self.factory.data.find_by_uuid(frame.uuid)
+
+        # Sessionクラスで_sessionプロパティが設定されること
+        self.assertIs(frame._session, self.factory._session)
+
+        # フレームを削除する
+        frame.delete()
+
+    def test_set_session_role_property(self):
+        """
+        SessionからRoleを抽出したら
+        Role._sessionプロパティにSessionが設定されていること
+        """
+        # ロールを作成する
+        role = self.factory.role.create('Role!')
+
+        # 新規作成したら_sessionプロパティが設定されること
+        self.assertIs(role._session, self.factory._session)
+
+        # ロールを保存する
+        role.save()
+
+        # 保存後も_sessionプロパティを取得できること
+        self.assertIs(role._session, self.factory._session)
+
+        # frame_by_id()でロールを取得する
+        role = self.factory.role.find_by_id(role.id)
+
+        # Sessionクラスで_sessionプロパティが設定されること
+        self.assertIs(role._session, self.factory._session)
+
+        # frame_by_uuid()でロールを取得する
+        role = self.factory.role.find_by_uuid(role.uuid)
+
+        # Sessionクラスで_sessionプロパティが設定されること
+        self.assertIs(role._session, self.factory._session)
+
+        # ロールを全権取得する、全てのロールに_sessionプロパティが設定される
+        for role in self.factory.role.find_all():
+            self.assertIs(role._session, self.factory._session)
+
+        # ロールを削除する
+        role.delete()
+
     def test_session_rollback(self):
         """
-        SQLAlchemyのSession.rollback()によりExpireが発生し、全てのDatum.readableがNoneになってしまう
+        SQLAlchemyのSession.rollback()によりExpireが発生し、
+        全てのDatum._permissionsがNoneになってしまう
         """
         # ルートフォルダを取得する
         root = self.factory.data.load_root()
@@ -31,19 +163,22 @@ class AuthTest(TestCaseBase):
         folder.save()
         folder = folder.reload()
 
-        # reload直後はDatum.readable=True
+        # reload直後はDatum._permissions=True
         self.assertTrue(folder.readable)
+        self.assertTrue(folder.writable)
+        self.assertTrue(folder.executable)
 
         # Session.rollback()
         folder._session.rollback()
 
-        # Datum.readableがNoneに変化してしまう
+        # Datum._permissionsがNoneに変化してしまう
         self.assertIsNone(folder.readable)
+        self.assertIsNone(folder.writable)
+        self.assertIsNone(folder.executable)
 
         # フォルダを再読み込みした後、削除する
         folder = folder.reload()
         folder.delete()
-
 
     # 
     # Users
@@ -360,12 +495,22 @@ class AuthTest(TestCaseBase):
         # フローを再取得する
         frame = frame.reload()
 
-        # フレームのreadableはNoneであること
+        # フレームのpermissionsはNoneであること
         self.assertFalse(frame.readable)
+        self.assertFalse(frame.writable)
+        self.assertFalse(frame.executable)
 
         # フレームのpathは取得できないこと
         with self.assertRaises(NotAuthorizedException):
             frame.path
+
+        # フレームは更新できないこと
+        with self.assertRaises(NotAuthorizedException):
+            frame.update_label('csv')
+
+        # フレームは削除できないこと
+        with self.assertRaises(NotAuthorizedException):
+            frame.delete()
 
     def test_readless_frame(self):
         """
@@ -385,17 +530,19 @@ class AuthTest(TestCaseBase):
 
 
         # 
-        # 参照権限の削除後にframeオブジェクトのreadableをexpireした方がいい？
+        # 参照権限の削除後にframeオブジェクトのpermissionsをexpireした方がいい？
         #         
         persistent_obj = self.factory._session._session.identity_map.values()
         for obj in persistent_obj:
             if isinstance(obj, Datum):
-                self.factory._session._session.expire(obj, ['readable'])
+                self.factory._session._session.expire(obj, ['_permissions'])
 
 
 
-        # フレームのreadableはNoneであること
+        # フレームのpermissionsはNoneであること
         self.assertIsNone(frame.readable)
+        self.assertIsNone(frame.writable)
+        self.assertIsNone(frame.executable)
 
         # フレームのpathは取得できないこと
         with self.assertRaises(NotAuthorizedException):
@@ -447,16 +594,18 @@ class AuthTest(TestCaseBase):
 
 
         # 
-        # 参照権限の削除後にframeオブジェクトのreadableをexpireした方がいい？
+        # 参照権限の削除後にframeオブジェクトのpermissionsをexpireした方がいい？
         #         
         persistent_obj = self.factory._session._session.identity_map.values()
         for obj in persistent_obj:
             if isinstance(obj, Datum):
-                self.factory._session._session.expire(obj, ['readable'])
+                self.factory._session._session.expire(obj, ['_permissions'])
 
 
-        # フローのreadableはNoneであること
+        # フローのpermissionsはNoneであること
         self.assertIsNone(flow.readable)
+        self.assertIsNone(flow.writable)
+        self.assertIsNone(flow.executable)
 
         # フォルダ内のDatumは参照できないこと
         with self.assertRaises(NotAuthorizedException):
@@ -502,7 +651,7 @@ class AuthTest(TestCaseBase):
         flow = root.create_flow('フロー', {})
         flow.save()
 
-        # フォルダの参照権限を全て削除する
+        # フローの参照権限を全て削除する
         self.factory.auth.delete_all_by_datum_id(flow.id)
 
         # ロールAを作成する
@@ -524,8 +673,10 @@ class AuthTest(TestCaseBase):
         # フローを再取得する
         flow = flow.reload()
 
-        # フローのreadableはFalseであること
+        # フローのreadable,writable,executableはFalseであること
         self.assertFalse(flow.readable)
+        self.assertFalse(flow.writable)
+        self.assertFalse(flow.executable)
 
         # フレームのpathは取得できないこと
         with self.assertRaises(NotAuthorizedException):
@@ -555,8 +706,10 @@ class AuthTest(TestCaseBase):
         # フローを再取得する
         frame = frame.reload()
 
-        # フレームのreadableはNoneであること
+        # フレームのreadable,writable,executableはFalseであること
         self.assertFalse(frame.readable)
+        self.assertFalse(frame.writable)
+        self.assertFalse(frame.executable)
 
         # フレームのメタデータは取得できること
         self.assertEqual(frame.encoding_str, 'UNKNOWN')
@@ -572,7 +725,7 @@ class AuthTest(TestCaseBase):
         frame = root.create_frame('CSV2', io.BytesIO(b''))
         frame.save()
         # ルートフォルダの下にフローを作成する
-        flow = root.create_simple_flow(root, 'フロー', frame)
+        flow = root.create_simple_flow('フロー', frame)
         flow.save()
 
         # フレームの参照権限を全て削除する
@@ -612,6 +765,9 @@ class AuthTest(TestCaseBase):
 
         # フローは参照可能
         self.assertTrue(flow.readable)
+        # フローは更新、実行不可
+        self.assertFalse(flow.writable)
+        self.assertFalse(flow.executable)
 
     def test_read_flow_by_other_role(self):
         """
@@ -634,6 +790,9 @@ class AuthTest(TestCaseBase):
 
         # フローは参照不可能
         self.assertFalse(flow.readable)
+        # フローは更新、実行不可
+        self.assertFalse(flow.writable)
+        self.assertFalse(flow.executable)
 
     def test_write_flow_by_self_role(self):
         """
@@ -767,7 +926,7 @@ class AuthTest(TestCaseBase):
         everyone_role = self.factory.role.load_everyone_role()
         everyone_role.init_authz(from_folder.id, True, False)
         # 移動先フォルダを更新不可にする
-        everyone_role.init_authz(to_folder.id, True, False)
+        everyone_role.init_authz(to_folder.id, True, True)
         # フローを参照・更新可能にする
         everyone_role.init_authz(flow.id, True, True)
 
@@ -802,7 +961,7 @@ class AuthTest(TestCaseBase):
         everyone_role.init_authz(flow.id, True, True)
 
         # フローを移動する
-        # (フローCの更新エラーになる)
+        # to_folderが更新不可なのでエラーが発生する
         with self.assertRaises(NotAuthorizedException):
             flow.move(to_folder.uuid)
 
@@ -811,7 +970,7 @@ class AuthTest(TestCaseBase):
 
     def test_folder_in_writeless_folder(self):
         """
-        更新権限のないFolderの直下のFolder内にあるFlowは更新できること
+        更新権限のないFolderの直下のFolder内にあるFlowは更新できないこと
         """
         # ルートフォルダを取得する
         root = self.factory.data.load_root()
@@ -837,12 +996,14 @@ class AuthTest(TestCaseBase):
         with self.assertRaises(NotAuthorizedException):
             folder2.update_data('フォルダ20')
 
-        # フローは更新できること
-        flow.update_data('myFlow0', {})
+        # フローは更新できないこと
+        with self.assertRaises(NotAuthorizedException):
+            flow.update_data('myFlow0', {})
 
-        # フォルダ2にフローを新規追加できること
+        # フォルダ2にフローを新規追加できないこと
         flow2 = folder2.create_flow('myFlow1', {})
-        flow2.save()
+        with self.assertRaises(NotAuthorizedException):
+            flow2.save()
 
     def test_del_folder_has_writeless_flow(self):
         """
@@ -903,7 +1064,14 @@ class AuthTest(TestCaseBase):
         everyone_role.init_authz(folder.id, False, False, exec=True)
         everyone_role.init_authz(flow.id, False, False, exec=True)
 
-        # フローJSONのnodesを取得する
+        # フローを再取得するまでは実行不可のママである
+        with self.assertRaises(NotAuthorizedException):
+            flow.flow_data.get_nodes(use_exec_auth=True)
+
+        # フローを再取得する
+        flow = flow.reload()
+
+        # フローJSONのnodesを取得dekirukoto
         flow.flow_data.get_nodes(use_exec_auth=True)
 
     def test_own_frame_in_no_own_folder(self):
@@ -965,6 +1133,87 @@ class AuthTest(TestCaseBase):
         # フォルダA,Bを削除する
         folder_a.delete()
         folder_b.delete()
+
+    def test_override_permissions(self):
+        """
+        参照・更新・実行の権限がフォルダ階層においてオーバライドされること
+        """
+        # ルートフォルダを取得する
+        root = self.factory.data.load_root()
+
+        # ルートフォルダの下にフォルダ1を作成する
+        folder1 = root.create_folder('folder 1')
+        folder1.save()
+        # フォルダ1の下にフォルダ2を作成する
+        folder2 = folder1.create_folder('folder 2')
+        folder2.save()
+        # フォルダ2の下にフォルダ3を作成する
+        folder3 = folder2.create_folder('folder 3')
+        folder3.save()
+        # フォルダ3の下にフォルダ4を作成する
+        folder4 = folder3.create_folder('folder 4')
+        folder4.save()
+
+        # フォルダ4の下にフレームを作成する
+        frame = folder4.create_frame('フレームファイル♪', io.BytesIO(b'abc'))
+        frame.save()
+
+        # ルートフォルダの下にフローを作成する
+        flow = folder4.create_simple_flow('フロー', frame)
+        flow.save()
+
+        # フォルダ1の参照権限を全て削除する
+        self.factory.auth.delete_all_by_datum_id(folder1.id)
+
+        # 
+        # フレームを再取得する
+        # 
+        frame = frame.reload()
+
+        # フレームのreadable,writable,executableはFalseであること
+        self.assertFalse(frame.readable)
+        self.assertFalse(frame.writable)
+        self.assertFalse(frame.executable)
+
+        # フレームのpathは取得できないこと
+        with self.assertRaises(NotAuthorizedException):
+            frame.path
+
+        # フレームの更新はできないこと
+        with self.assertRaises(NotAuthorizedException):
+            frame.update_label('flame_file')
+
+        # フレームは削除できないこと
+        with self.assertRaises(NotAuthorizedException):
+            frame.delete()
+
+        # 
+        # フローを再取得する
+        # 
+        flow = flow.reload()
+
+        # フローのreadable,writable,executableはFalseであること
+        self.assertFalse(flow.readable)
+        self.assertFalse(flow.writable)
+        self.assertFalse(flow.executable)
+
+        # フローJSONのうちnodes以外のキーは取得できること
+        self.assertEqual(flow.flow_data.label, 'フロー')
+        self.assertEqual(flow.flow_data.description, '')
+        self.assertEqual(flow.flow_data.ports, [[],[]])
+        self.assertTrue(flow.flow_data.has_nodes)
+
+        # フローJSONのうちnodesキーは取得できないこと
+        with self.assertRaises(NotAuthorizedException):
+            flow.flow_data.get_nodes()
+
+        # フローの更新はできないこと
+        with self.assertRaises(NotAuthorizedException):
+            flow.update_data('flame_file', {})
+
+        # フローは削除できないこと
+        with self.assertRaises(NotAuthorizedException):
+            flow.delete()
 
     # 
     # Projects
@@ -1067,7 +1316,7 @@ class AuthTest(TestCaseBase):
         """
         pass
 
-    def test_cannot_delete_project(self):
+    def test_delete_project(self):
         """
         プロジェクト管理者はプロジェクトを削除できる
         """
