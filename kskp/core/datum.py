@@ -85,8 +85,8 @@ class Datum(BaseModel):
     _modifier_id = Column('modifier', INTEGER)
     created_at   = Column(TIMESTAMP, default=text('statement_timestamp()'))
     modified_at  = Column(TIMESTAMP, default=text('statement_timestamp()'), onupdate=text('statement_timestamp()'))
-    # read権限(queryで追加した列の結果を格納する)
-    readable     = query_expression()
+    # 各種権限(queryで追加した列の結果を格納する)
+    _permissions = query_expression()
 
     user = query_expression()
 
@@ -132,8 +132,8 @@ class Datum(BaseModel):
             self._creator_id = session.user.id
             self._modifier_id = session.user.id
 
-        # DBに保存する前のDatumへの参照権限は制限しない
-        self.readable = True
+        # DBに保存する前のDatumへの参照と更新権限は制限しない
+        self._permissions = 0b1100
 
         # Engineから参照する
         self.context = {}
@@ -208,6 +208,21 @@ class Datum(BaseModel):
             return self._data.get('label') or ''
         else:
             return self._label
+
+    @property
+    def readable(self):
+        p = self._permissions
+        return p if p is None else (p & 0b1000) > 0
+
+    @property
+    def writable(self):
+        p = self._permissions
+        return p if p is None else (p & 0b0100) > 0
+
+    @property
+    def executable(self):
+        p = self._permissions
+        return p if p is None else (p & 0b0010) > 0
 
     @property
     def is_root(self):
@@ -313,6 +328,8 @@ class Datum(BaseModel):
         to_folder = DatumFactory(self._session).find_by_uuid(parent_uuid)
         if not isinstance(to_folder, Folder):
             raise Exception('移動先の指定はフォルダ、プロジェクトまたはゴミ箱のUUIDしか許可していません')
+        elif not self._session.writable(to_folder):
+            raise NotAuthorizedException((f'{self._session.user}は{to_folder.label}の更新権限がないため{self.label}を移動できません'))
 
         # # 移動対象がマウントポイントの場合は、path列を変更することはマウントポイントを変更することになるので
         # # とりあえずエラーとする
@@ -383,8 +400,6 @@ class Datum(BaseModel):
                 raise NotAuthorizedException((f'{user_name}は更新権限がないため{self.label}を移動できません'))
             elif not self._session.writable(from_folder):
                 raise NotAuthorizedException((f'{user_name}は{from_folder.label}の更新権限がないため{self.label}を移動できません'))
-            elif not self._session.writable(to_folder):
-                raise NotAuthorizedException((f'{user_name}は{to_folder.label}の更新権限がないため{self.label}を移動できません'))
             else:
                 raise e
         except Exception as e:

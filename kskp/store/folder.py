@@ -15,8 +15,8 @@ class Folder(Store):
         """
         super().__init__(session, parent, Datum.FOLDER_TYPE, label)
 
-        # data列の値を作成する
-        # self.data = {}
+        # DBに保存する前のFolderへの参照と更新と実行権限は制限しない
+        self._permissions = 0b1110
 
     def save(self, file_path=None):
         """
