@@ -1,4 +1,4 @@
-from kskp.store.auth.authz_query import Query
+from .authz_query import Query
 from .exceptions import NotAuthorizedException
 
 class Session():
@@ -75,7 +75,6 @@ class AuthzSession(Session):
 
     def __init__(self, session_factory, user):
         super().__init__(session_factory, user)
-        self._select_permissions = self._make_select_permissions()
 
     @property
     def user(self):
@@ -106,11 +105,17 @@ class AuthzSession(Session):
             return inspect.isclass(obj_type) and hasattr(obj_type, '__tablename__') and obj_type.__tablename__ == table_name
 
         if is_type(datum_type, 'data'):
-            # 下記を両方満たす場合にのみreadable=Trueとする
-            # ・ユーザが属する全てのロールについて、Datumを参照する権限がTrue
-            # ・Datumが属する全ての親フォルダについて、Datumを参照する権限がTrue
-            select_permissions = self._select_permissions
+            # 下記を両方満たす場合にのみpermission=Trueとする
+            # ・ユーザが属する全てのロールについて、DatumのpermissionがTrue
+            # ・Datumが属する全ての親フォルダについて、DatumのpermissionがTrue
 
+            # read,write,execのpermissionの値を取得する
+            select_permissions = self._make_select_permissions()
+            
+            # read=TrueのDatumのみ抽出する
+            # exists_readable = self._make_exists_readable()
+
+            # Datumを抽出するQuery
             query = self._session.query(Datum).\
                                   options(with_expression(Datum._permissions, select_permissions.label('permissions'))).\
                                   options(with_expression(Datum.user, literal_column(f"'{self.user.name}'")))
@@ -131,12 +136,12 @@ class AuthzSession(Session):
 
         # 相関条件を記述するとSQLAlchemyがFROM句にdataテーブルを追加するので、
         # それを回避するためtextで記述する
-        Datum_id = text(str(Datum.id.compile()))
+        datum_id_column = text(str(Datum.id.compile()))
 
         # cte: Common Table Expression WITH句のこと
         D0 = aliased(Datum, name='D0')
         R = select([D0.id.label('leaf_id'), D0.id, D0.parent_id]).select_from(D0).\
-            where(D0.id==Datum_id).\
+            where(D0.id==datum_id_column).\
             cte(name='R', recursive=True)
 
         # WITH句にUNION ALLを用いて再帰クエリとする
@@ -176,7 +181,7 @@ class AuthzSession(Session):
 
         # フォルダ権限のオーバライドを判定する
         subquery = select([func.bool_and(subquery).label('readable')]).select_from(R).\
-                   where(R.c.leaf_id==Datum_id).as_scalar()
+                   where(R.c.leaf_id==datum_id_column).as_scalar()
 
         # SELECT句内にWITH句を記述する必要があるが、SQLAlchemyではそれができないようだ
         # そのため、ここでWITH句を含むSELECT文をtextで記述してこれをメインのSELECT文に含める
@@ -192,9 +197,9 @@ class AuthzSession(Session):
 
         # 相関条件を記述するとSQLAlchemyがFROM句にdataテーブルを追加するので、
         # それを回避するためtextで記述する
-        Datum_id = text(str(Datum.id.compile()))
+        datum_id_column = text(str(Datum.id.compile()))
 
-        select_stmt = self._make_select_permissions_inner(Datum_id).as_scalar()
+        select_stmt = self._make_select_permissions_inner(datum_id_column).as_scalar()
 
         # SELECT句内にWITH句を記述する必要があるが、SQLAlchemyではそれができないようだ
         # そのため、ここでWITH句を含むSELECT文をtextで記述してこれをメインのSELECT文に含める
@@ -204,9 +209,28 @@ class AuthzSession(Session):
         # これを回避するためtextをselectオブジェクトでラップする
         return select([literal_column(select_stmt_str)]).as_scalar()
 
-    def _make_select_permissions_inner(self, Datum_id):
+    def _make_exists_readable(self):
+        from sqlalchemy.sql.expression import exists, literal, text
+        from kskp.core import Datum
+
+        # 相関条件を記述するとSQLAlchemyがFROM句にdataテーブルを追加するので、
+        # それを回避するためtextで記述する
+        datum_id_column = text(str(Datum.id.compile()))
+
+        # label()は括弧で囲むが何故かAlias名(RA1)が付かない
+        select_stmt = self._make_select_permissions_inner(datum_id_column).label('RA1')
+
+        # SELECT句内にWITH句を記述する必要があるが、SQLAlchemyではそれができないようだ
+        # そのため、ここでWITH句を含むSELECT文をtextで記述してこれをメインのSELECT文に含める
+        select_stmt_str = str(select_stmt.compile(compile_kwargs={'literal_binds': True}))
+
+        # label()でAlias名が付かないのでSQL文の末尾に付ける
+        return exists().select_from(text(select_stmt_str + ' RA1')).\
+                        where(text('RA1.permissions') >= literal(0b1000))
+
+    def _make_select_permissions_inner(self, datum_id_column):
         from sqlalchemy.orm import aliased
-        from sqlalchemy.sql.expression import select, func, case, exists, literal_column, literal, text, false, and_, or_
+        from sqlalchemy.sql.expression import select, func, case, exists, literal, false, and_, or_
         from kskp.core import Datum
         from .auth import Auth
         from .user import User
@@ -218,7 +242,7 @@ class AuthzSession(Session):
         D0 = aliased(Datum, name='D0')
         R = select([D0.id.label('leaf_id'), D0.id, D0.parent_id, literal(1).label('depth')]).\
             select_from(D0).\
-            where(D0.id==Datum_id).\
+            where(D0.id==datum_id_column).\
             cte(name='R', recursive=True) 
             # cte: Common Table Expression WITH句のこと
 
@@ -272,13 +296,12 @@ class AuthzSession(Session):
              select_from(
                  R.outerjoin(A, R.c.id==A.c.datum_id)
              ).\
-             where(R.c.leaf_id==Datum_id).\
+             where(R.c.leaf_id==datum_id_column).\
              group_by(A.c.operation).\
              alias('RA')
 
         # 権限フラグのAND演算をする(SQLの集計関数を入れ子にできないのでSELECT文でラップする)
-        return select([func.sum(RA.c.permission)]).select_from(RA)
-
+        return select([func.sum(RA.c.permission).label('permissions')]).select_from(RA)
 
     def add(self, obj):
         from kskp.core import Datum
@@ -427,10 +450,24 @@ class AuthzSession(Session):
         # 削除する
         self._session.delete(obj)
 
+    def readable(self, datum) -> bool:
+        """
+        UserによるDatumの参照権限の有無を判定する
+        """
+        if datum.id is None:
+            # save()してないDatumの参照権限はFalseとする
+            return False
+        else:
+            datum_id = datum.id
+
+        select_permissions = self._make_select_permissions_inner(datum_id).alias('permissions')
+        query = self._session.query(select_permissions)
+        
+        return (query.scalar() & 0b1000) > 0
 
     def writable(self, datum) -> bool:
         """
-        ユーザIDとDatumについて書き込み権限の有無を判定する
+        UserによるDatumの更新権限の有無を判定する
         """
         if datum.id is None:
             # Datumの新規追加の場合(datum.id=None)は親フォルダのoperation権限だけを判定する
@@ -445,7 +482,7 @@ class AuthzSession(Session):
 
     def executable(self, datum) -> bool:
         """
-        ユーザIDとDatumについて実行権限の有無を判定する
+        UserによるDatumの実行権限の有無を判定する
         """
         if datum.id is None:
             # save()してないFlowの場合(datum.id=None)は親フォルダのoperation権限だけを判定する

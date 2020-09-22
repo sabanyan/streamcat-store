@@ -54,10 +54,10 @@ class ProjectFolder(Folder):
 
         if parent_uuid == trash_folder.uuid:
             # ゴミ箱にほかされる場合
-            super().move(parent_uuid, modifier=modifier)
+            return super().move(parent_uuid, modifier=modifier)
         elif self.prev_parent_id is not None and parent_uuid == factory.find_by_id(self.prev_parent_id).uuid:
             # 元の場所に戻す場合
-            super().move(parent_uuid, modifier=modifier)
+            return super().move(parent_uuid, modifier=modifier)
         else:
             raise Exception('プロジェクトは移動できません')
 

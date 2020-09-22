@@ -1,9 +1,10 @@
 import os
 from kskp.store import BaseModel
-from sqlalchemy import Column, String, text, PrimaryKeyConstraint
+from sqlalchemy import Column, text, PrimaryKeyConstraint
 from sqlalchemy.dialects.postgresql import INTEGER, BOOLEAN, TIMESTAMP, ENUM
 
 class Auth(BaseModel):
+    FIND_OP = 'find'
     READ_OP = 'read'
     WRITE_OP = 'write'
     DELETE_OP = 'delete'
@@ -27,7 +28,7 @@ class Auth(BaseModel):
     # ProjectFolder.get_joined_members()で発行するSQLでdatum_idへのインデックスを利用するため、datum_idを1列目に配置する
     datum_id     = Column(INTEGER, primary_key=True)
     role_id      = Column(INTEGER, primary_key=True)
-    operation    = Column(ENUM(READ_OP, WRITE_OP, DELETE_OP, EXEC_OP, OWN_OP, name='op_type'), primary_key=True)
+    operation    = Column(ENUM(FIND_OP, READ_OP, WRITE_OP, DELETE_OP, EXEC_OP, OWN_OP, name='op_type'), primary_key=True)
     permission   = Column(BOOLEAN, nullable=False)
     _creator_id  = Column('creator', INTEGER)
     _modifier_id = Column('modifier', INTEGER)
