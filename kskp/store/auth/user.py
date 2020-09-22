@@ -1,8 +1,8 @@
 import os
 import uuid
-from kskp.store.auth.exceptions import NotAuthorizedException
 from sqlalchemy import Column, String, text
 from sqlalchemy.dialects.postgresql import INTEGER, TIMESTAMP, UUID, ENUM
+from .exceptions import NotAuthorizedException
 from .. import BaseModel
 
 class User(BaseModel):

@@ -111,6 +111,13 @@ class AuthTest(TestCaseBase):
         # Sessionクラスで_sessionプロパティが設定されること
         self.assertIs(frame._session, self.factory._session)
 
+        # find_all()で全てのDatumを取得する
+        data = self.factory.data.find_all()
+
+        # Sessionクラスで_sessionプロパティが設定されること
+        for datum in data:
+            self.assertIs(datum._session, self.factory._session)
+
         # フレームを削除する
         frame.delete()
 
@@ -464,7 +471,7 @@ class AuthTest(TestCaseBase):
         folder.save()
 
         # フォルダを取得する
-        folder = self.factory2.data.find_by_id(folder.id)
+        folder = self.factory.data.find_by_id(folder.id)
 
         # 新規権限を追加する
         new_auth = self.factory3.auth.create(new_role.id, folder.id, Auth.WRITE_OP, True)
@@ -492,10 +499,11 @@ class AuthTest(TestCaseBase):
         # フレームの参照権限を全て削除する
         self.factory.auth.delete_all_by_datum_id(frame.id)
 
-        # フローを再取得する
-        frame = frame.reload()
+        # フローは再取得できないこと
+        with self.assertRaises(NotAuthorizedException):
+            frame.reload()
 
-        # フレームのpermissionsはNoneであること
+        # 再取得が失敗してもpermissionsの値は更新される
         self.assertFalse(frame.readable)
         self.assertFalse(frame.writable)
         self.assertFalse(frame.executable)
@@ -646,7 +654,7 @@ class AuthTest(TestCaseBase):
         複数のロールで異なる権限判定の場合
         """
         # ルートフォルダを取得する
-        root = self.factory.data.load_root()
+        root = self.factory2.data.load_root()
         # ルートフォルダの下にフローを作成する
         flow = root.create_flow('フロー', {})
         flow.save()
@@ -661,10 +669,10 @@ class AuthTest(TestCaseBase):
         roleB = self.factory.role.create('roleB')
         roleB.save()
 
-        # ロールAにフローの参照・更新許可を付与する
-        roleA.init_authz(flow.id, True, True)
-        # ロールBにフローの参照・更新不可を付与する
-        roleB.init_authz(flow.id, False, False)
+        # ロールAにフローの更新・実行許可を付与する
+        roleA.init_authz(flow.id, True, True, exec=True)
+        # ロールBにフローの更新・実行不可を付与する
+        roleB.init_authz(flow.id, True, False, exec=False)
 
         # TESTユーザをロールAとロールBに参加させる
         roleA.join_user(self.USER2)
@@ -673,14 +681,14 @@ class AuthTest(TestCaseBase):
         # フローを再取得する
         flow = flow.reload()
 
-        # フローのreadable,writable,executableはFalseであること
-        self.assertFalse(flow.readable)
+        # フローのwritable,executableはFalseであること
+        self.assertTrue(flow.readable)
         self.assertFalse(flow.writable)
         self.assertFalse(flow.executable)
 
-        # フレームのpathは取得できないこと
+        # フローのnodesは取得できないこと
         with self.assertRaises(NotAuthorizedException):
-            flow.path
+            flow.flow_data.get_nodes(use_exec_auth=True)
 
         # フローは更新不可
         with self.assertRaises(NotAuthorizedException):
@@ -690,6 +698,7 @@ class AuthTest(TestCaseBase):
         with self.assertRaises(NotAuthorizedException):
             flow.delete()
 
+    @unittest.skip('参照権限のないDatumは取得できない仕様に変更されたため')
     def test_read_data_of_frame(self):
         """
         参照権限のないFrameでもdataプロパティは読み取れること
@@ -715,6 +724,7 @@ class AuthTest(TestCaseBase):
         self.assertEqual(frame.encoding_str, 'UNKNOWN')
         self.assertEqual(frame.newline_str, 'UNKNOWN')
 
+    @unittest.skip('参照権限のないDatumは取得できない仕様に変更されたため')
     def test_read_data_of_flow(self):
         """
         参照権限のないFlowのnodesキーは読み取れないこと
@@ -785,14 +795,9 @@ class AuthTest(TestCaseBase):
         # USER1の本人グループに参照権限を付与する
         self.USER1.load_self_role().init_authz(flow.id, True, False)
 
-        # 他ユーザによりフローを取得する
-        flow = self.factory2.data.find_by_id(flow.id)
-
-        # フローは参照不可能
-        self.assertFalse(flow.readable)
-        # フローは更新、実行不可
-        self.assertFalse(flow.writable)
-        self.assertFalse(flow.executable)
+        # 他ユーザはフローを取得できないこと
+        with self.assertRaises(NotAuthorizedException):
+            self.factory2.data.find_by_id(flow.id)
 
     def test_write_flow_by_self_role(self):
         """
@@ -809,9 +814,6 @@ class AuthTest(TestCaseBase):
 
         # USER1の本人グループに更新権限を付与する
         self.USER1.load_self_role().init_authz(flow.id, False, True)
-
-        # フローを再取得する
-        flow = flow.reload()
 
         # フローは更新可能
         flow.update_data('変更したフロー名', {})
@@ -840,10 +842,6 @@ class AuthTest(TestCaseBase):
         self.USER1.load_self_role().init_authz(folder.id, False, True)
         self.USER1.load_self_role().init_authz(flow.id, False, True)
 
-        # フォルダとフローを再取得する
-        folder = folder.reload()
-        flow = flow.reload()
-
         # フローは更新可能
         flow.update_data('変更したフロー名2', {})
 
@@ -852,7 +850,7 @@ class AuthTest(TestCaseBase):
 
     def test_write_flow_by_other_role(self):
         """
-        本人グループにのみ参照可能なFlowを他ユーザは更新できないこと
+        本人グループにのみ更新可能なFlowを他ユーザは更新できないこと
         """
         # ルートフォルダを取得する
         root = self.factory.data.load_root()
@@ -864,9 +862,13 @@ class AuthTest(TestCaseBase):
         self.factory.auth.delete_all_by_datum_id(flow.id)
 
         # USER1の本人グループに更新権限を付与する
-        self.USER1.load_self_role().init_authz(flow.id, False, True)
+        self.USER1.load_self_role().init_authz(flow.id, None, True)
 
-        # 他ユーザによりフローを取得する
+        # USER2の本人グループに参照権限を付与する
+        user2_auth = self.factory.auth.create(self.USER2.load_self_role().id, flow.id, Auth.READ_OP, True)
+        user2_auth.save()
+
+        # USER2によりフローを取得する
         flow = self.factory2.data.find_by_id(flow.id)
 
         # フローは更新不可能
@@ -1056,13 +1058,13 @@ class AuthTest(TestCaseBase):
         everyone_role = self.factory.role.load_everyone_role()
         everyone_role.init_authz(flow.id, True, True, exec=False)
 
-        # フローJSONのnodesを取得する
+        # フローJSONのnodesを取得できないこと
         with self.assertRaises(NotAuthorizedException):
             flow.flow_data.get_nodes(use_exec_auth=True)
 
         # フローを実行可にする
-        everyone_role.init_authz(folder.id, False, False, exec=True)
-        everyone_role.init_authz(flow.id, False, False, exec=True)
+        everyone_role.init_authz(folder.id, True, False, exec=True)
+        everyone_role.init_authz(flow.id, True, False, exec=True)
 
         # フローを再取得するまでは実行不可のママである
         with self.assertRaises(NotAuthorizedException):
@@ -1071,7 +1073,7 @@ class AuthTest(TestCaseBase):
         # フローを再取得する
         flow = flow.reload()
 
-        # フローJSONのnodesを取得dekirukoto
+        # フローJSONのnodesを取得できること
         flow.flow_data.get_nodes(use_exec_auth=True)
 
     def test_own_frame_in_no_own_folder(self):
@@ -1134,7 +1136,7 @@ class AuthTest(TestCaseBase):
         folder_a.delete()
         folder_b.delete()
 
-    def test_override_permissions(self):
+    def test_override_all_permissions(self):
         """
         参照・更新・実行の権限がフォルダ階層においてオーバライドされること
         """
@@ -1166,11 +1168,12 @@ class AuthTest(TestCaseBase):
         self.factory.auth.delete_all_by_datum_id(folder1.id)
 
         # 
-        # フレームを再取得する
+        # フレームは取得できないこと
         # 
-        frame = frame.reload()
+        with self.assertRaises(NotAuthorizedException):
+            frame.reload()
 
-        # フレームのreadable,writable,executableはFalseであること
+        # フレームのreadable,writable,executableは再取得により更新される
         self.assertFalse(frame.readable)
         self.assertFalse(frame.writable)
         self.assertFalse(frame.executable)
@@ -1188,24 +1191,97 @@ class AuthTest(TestCaseBase):
             frame.delete()
 
         # 
-        # フローを再取得する
+        # フローは取得できないこと
         # 
-        flow = flow.reload()
+        with self.assertRaises(NotAuthorizedException):
+            flow.reload()
 
-        # フローのreadable,writable,executableはFalseであること
+        # フローのreadable,writable,executableは再取得により更新される
         self.assertFalse(flow.readable)
         self.assertFalse(flow.writable)
         self.assertFalse(flow.executable)
 
-        # フローJSONのうちnodes以外のキーは取得できること
+        # フローJSONのうちnodesキーは取得できないこと
+        with self.assertRaises(NotAuthorizedException):
+            flow.flow_data.get_nodes()
+
+        # フローの更新はできないこと
+        with self.assertRaises(NotAuthorizedException):
+            flow.update_data('flame_file', {})
+
+        # フローは削除できないこと
+        with self.assertRaises(NotAuthorizedException):
+            flow.delete()
+
+    def test_override_read_write_permissions(self):
+        """
+        更新・実行の権限がフォルダ階層においてオーバライドされること
+        """
+        # ルートフォルダを取得する
+        root = self.factory.data.load_root()
+
+        # ルートフォルダの下にフォルダ1を作成する
+        folder1 = root.create_folder('folder 1')
+        folder1.save()
+        # フォルダ1の下にフォルダ2を作成する
+        folder2 = folder1.create_folder('folder 2')
+        folder2.save()
+        # フォルダ2の下にフォルダ3を作成する
+        folder3 = folder2.create_folder('folder 3')
+        folder3.save()
+        # フォルダ3の下にフォルダ4を作成する
+        folder4 = folder3.create_folder('folder 4')
+        folder4.save()
+
+        # フォルダ4の下にフレームを作成する
+        frame = folder4.create_frame('フレームファイル♪', io.BytesIO(b'abc'))
+        frame.save()
+
+        # ルートフォルダの下にフローを作成する
+        flow = folder4.create_simple_flow('フロー', frame)
+        flow.save()
+
+        # フォルダ1の権限を全て削除する
+        self.factory.auth.delete_all_by_datum_id(folder1.id)
+
+        # フォルダ1に参照権限のみを付与する
+        user1_role = self.USER1.load_self_role()
+        user1_role.init_authz(folder1.id, True, None)
+
+        # 
+        # フレームを再取得する
+        # 
+        frame = frame.reload()
+
+        # フレームのreadable,writable,executableを検証する
+        self.assertTrue(frame.readable)
+        self.assertFalse(frame.writable)
+        self.assertFalse(frame.executable)
+
+        # フレームの更新はできないこと
+        with self.assertRaises(NotAuthorizedException):
+            frame.update_label('flame_file')
+
+        # フレームは削除できないこと
+        with self.assertRaises(NotAuthorizedException):
+            frame.delete()
+
+        # 
+        # フローを再取得する
+        # 
+        flow = flow.reload()
+
+        # フローのreadable,writable,executableを検証する
+        self.assertTrue(flow.readable)
+        self.assertFalse(flow.writable)
+        self.assertFalse(flow.executable)
+
+        # フローJSONは取得できること
         self.assertEqual(flow.flow_data.label, 'フロー')
         self.assertEqual(flow.flow_data.description, '')
         self.assertEqual(flow.flow_data.ports, [[],[]])
         self.assertTrue(flow.flow_data.has_nodes)
-
-        # フローJSONのうちnodesキーは取得できないこと
-        with self.assertRaises(NotAuthorizedException):
-            flow.flow_data.get_nodes()
+        self.assertGreater(len(flow.flow_data.get_nodes()), 0)
 
         # フローの更新はできないこと
         with self.assertRaises(NotAuthorizedException):
@@ -1354,12 +1430,9 @@ class AuthTest(TestCaseBase):
         project.save()
         project = project.reload()
 
-        # プロジェクトメンバ以外のユーザ(USER3)が削除を試みる
-        project = self.factory3.data.find_by_uuid(project.uuid)
+        # プロジェクトメンバ以外のユーザ(USER3)は参照できないこと
         with self.assertRaises(NotAuthorizedException):
-            project.throw_away()
-        with self.assertRaises(NotAuthorizedException):
-            project.delete()
+            project = self.factory3.data.find_by_uuid(project.uuid)
 
         # USER3をプロジェクトの編集者メンバとして追加する
         project = self.factory2.data.find_by_id(project.id)
