@@ -25,6 +25,7 @@ class Database(Store):
         self._data = {'conn' : database_conn.to_json()}
 
     @Constraints.prohibit_save_under_root
+    @Constraints.set_permissions_for_everyone
     def save(self):
         """
         Databaseを保存する

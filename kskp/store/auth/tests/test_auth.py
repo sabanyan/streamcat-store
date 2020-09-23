@@ -1657,6 +1657,72 @@ class AuthTest(TestCaseBase):
         # フレームを削除する
         frame.delete()
 
+    def test_everyone_has_permissions(self):
+        """
+        everyoneは、プロジェクト以外の全てのDatumの
+        参照・更新・実行権限を付与されていること
+        """
+        # ルートフォルダを取得する
+        root = self.factory3.data.load_root()
+        # ルートフォルダの下にプロジェクトを作成する
+        project = root.create_project_folder('MacBook Pro')
+        project.save()
+        project = project.reload()
+
+        # プロジェクトにeveryoneロールの権限を付与されていないこと
+        everyone_role = self.factory3.role.load_everyone_role()
+        self.assertFalse(self.factory3.auth.exists(everyone_role.id, project.id))
+
+        # プロジェクトの下にフォルダを作成する
+        folder = project.create_folder('Mac mini')
+        folder.save()
+        folder = folder.reload()
+
+        # フォルダにeveryoneロールの参照・更新・実行権限が付与されていること
+        self.assertTrue(self.factory3.auth.exists(everyone_role.id, folder.id))
+        self.assertFalse(self.factory3.auth.exists(everyone_role.id, folder.id, Auth.OWN_OP))
+        read_auth = self.factory3.auth.find_by_id(everyone_role.id, folder.id, Auth.READ_OP)
+        self.assertTrue(read_auth.permission)
+        write_auth = self.factory3.auth.find_by_id(everyone_role.id, folder.id, Auth.WRITE_OP)
+        self.assertTrue(write_auth.permission)
+        exec_auth = self.factory3.auth.find_by_id(everyone_role.id, folder.id, Auth.EXEC_OP)
+        self.assertTrue(exec_auth.permission)
+
+        # フォルダの下にフローを作成する
+        flow = folder.create_flow('Mac pro', {})
+        flow.save()
+        flow = flow.reload()
+
+        # フローにeveryoneロールの参照・更新・実行権限が付与されていること
+        self.assertTrue(self.factory3.auth.exists(everyone_role.id, flow.id))
+        self.assertFalse(self.factory3.auth.exists(everyone_role.id, flow.id, Auth.OWN_OP))
+        read_auth = self.factory3.auth.find_by_id(everyone_role.id, flow.id, Auth.READ_OP)
+        self.assertTrue(read_auth.permission)
+        write_auth = self.factory3.auth.find_by_id(everyone_role.id, flow.id, Auth.WRITE_OP)
+        self.assertTrue(write_auth.permission)
+        exec_auth = self.factory3.auth.find_by_id(everyone_role.id, flow.id, Auth.EXEC_OP)
+        self.assertTrue(exec_auth.permission)
+
+        # フォルダの下にフレームを作成する
+        frame = folder.create_frame('iMac', io.BytesIO(b'mac'))
+        frame.save()
+        frame = frame.reload()
+
+        # フローにeveryoneロールの参照・更新権限が付与されていること
+        self.assertTrue(self.factory3.auth.exists(everyone_role.id, frame.id))
+        self.assertFalse(self.factory3.auth.exists(everyone_role.id, frame.id, Auth.EXEC_OP))
+        self.assertFalse(self.factory3.auth.exists(everyone_role.id, frame.id, Auth.OWN_OP))
+        read_auth = self.factory3.auth.find_by_id(everyone_role.id, frame.id, Auth.READ_OP)
+        self.assertTrue(read_auth.permission)
+        write_auth = self.factory3.auth.find_by_id(everyone_role.id, frame.id, Auth.WRITE_OP)
+        self.assertTrue(write_auth.permission)
+
+        # プロジェクトをほかす
+        project.throw_away()
+
+        # ゴミ箱を空にする
+        self.factory3.data.find_trashcan().trash_all()
+
     # 
     # System Folders
     # 

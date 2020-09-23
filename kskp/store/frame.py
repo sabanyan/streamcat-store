@@ -42,6 +42,7 @@ class Frame(Datum):
         self.is_cache = False
 
     @Constraints.prohibit_save_under_root
+    @Constraints.set_permissions_for_everyone
     def save(self, file_path=None):
         """
         Frameを保存する
