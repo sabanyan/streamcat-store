@@ -24,6 +24,7 @@ class AwsS3(Folder, Mountable):
         # self._s3 = boto3.resource('s3')
 
     @Constraints.prohibit_save_under_root
+    @Constraints.set_permissions_for_everyone
     def save(self):
         """
         バケットを保存する

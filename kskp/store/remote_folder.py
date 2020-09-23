@@ -26,6 +26,7 @@ class RemoteFolder(Folder, Mountable):
         self._data = {'conn' : remoteFolderConn.to_json()}
 
     @Constraints.prohibit_save_under_root
+    @Constraints.set_permissions_for_everyone
     def save(self):
         """
         共有フォルダを保存する

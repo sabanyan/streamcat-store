@@ -19,6 +19,7 @@ class Folder(Store):
         self._permissions = 0b1110
 
     @Constraints.prohibit_save_under_root
+    @Constraints.set_permissions_for_everyone
     def save(self, file_path=None):
         """
         Folderを保存する
