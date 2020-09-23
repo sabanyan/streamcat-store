@@ -9,6 +9,7 @@ from sqlalchemy import Column, String, text
 from sqlalchemy.sql import operators
 from sqlalchemy.orm import query_expression
 from sqlalchemy.dialects.postgresql import INTEGER, TIMESTAMP, JSONB, ENUM, UUID
+from .constraints import Constraints
 
 class Datum(BaseModel):
     """
@@ -89,7 +90,6 @@ class Datum(BaseModel):
     _permissions = query_expression()
 
     user = query_expression()
-
 
 
     # これを設定することで、session.query(Datum).all()でもサブクラスの型で結果を得ることができる
@@ -311,6 +311,7 @@ class Datum(BaseModel):
         factory = DatumFactory(self._session)
         return factory.find_by_id(self.id)
 
+    @Constraints.prohibit_movement_to_root
     def move(self, parent_uuid, modifier=None):
         """
         指定されたStoreの直下に移動する
