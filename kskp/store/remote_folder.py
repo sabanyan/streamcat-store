@@ -1,4 +1,4 @@
-from kskp.core import Datum
+from kskp.core import Datum, Constraints
 from kskp.store import Folder, RemoteFolderConn, Mountable
 
 # 
@@ -25,6 +25,7 @@ class RemoteFolder(Folder, Mountable):
             raise Exception('remoteFolderConn引数がNoneです')
         self._data = {'conn' : remoteFolderConn.to_json()}
 
+    @Constraints.prohibit_save_under_root
     def save(self):
         """
         共有フォルダを保存する

@@ -1,6 +1,6 @@
 import os
 
-from kskp.core import Datum
+from kskp.core import Datum, Constraints
 
 class Frame(Datum):
 
@@ -41,6 +41,7 @@ class Frame(Datum):
         # data.type列='cache'を用意するべきだろうか？
         self.is_cache = False
 
+    @Constraints.prohibit_save_under_root
     def save(self, file_path=None):
         """
         Frameを保存する

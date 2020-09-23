@@ -1,4 +1,4 @@
-from kskp.core import Datum
+from kskp.core import Datum, Constraints
 from kskp.store import Store, DatabaseConn
 
 class Database(Store):
@@ -24,6 +24,7 @@ class Database(Store):
             raise Exception('database_conn引数がNoneです')
         self._data = {'conn' : database_conn.to_json()}
 
+    @Constraints.prohibit_save_under_root
     def save(self):
         """
         Databaseを保存する

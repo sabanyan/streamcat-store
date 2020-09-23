@@ -1,5 +1,4 @@
-
-from kskp.core import Datum
+from kskp.core import Datum, Constraints
 
 class Flow(Datum):
 
@@ -43,6 +42,7 @@ class Flow(Datum):
         if not self.executable:
             raise NotAuthorizedException(f'{self._session.user.name} ({self.user})は{self.label}の実行権限がありません')
 
+    @Constraints.prohibit_save_under_root
     def save(self):
         """
         Flowを保存する
