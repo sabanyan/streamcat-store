@@ -1,6 +1,6 @@
 import os
 
-from kskp.core import Datum
+from kskp.core import Datum, Constraints
 from kskp.store import Store
 
 class Folder(Store):
@@ -18,6 +18,7 @@ class Folder(Store):
         # DBに保存する前のFolderへの参照と更新と実行権限は制限しない
         self._permissions = 0b1110
 
+    @Constraints.prohibit_save_under_root
     def save(self, file_path=None):
         """
         Folderを保存する

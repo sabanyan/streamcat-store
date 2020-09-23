@@ -1,4 +1,4 @@
-from kskp.core import Datum
+from kskp.core import Datum, Constraints
 from kskp.store import Folder, Mountable
 
 class AwsS3(Folder, Mountable):
@@ -23,6 +23,7 @@ class AwsS3(Folder, Mountable):
         # S3のオブジェクトを用意する
         # self._s3 = boto3.resource('s3')
 
+    @Constraints.prohibit_save_under_root
     def save(self):
         """
         バケットを保存する

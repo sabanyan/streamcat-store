@@ -438,8 +438,13 @@ class AuthTest(TestCaseBase):
 
         # ルートフォルダを取得する
         root = self.factory2.data.load_root()
-        # ルートフォルダの下にフォルダを作成する
-        folder = root.create_folder('フォルダS')
+
+        # ルートフォルダの下にプロジェクトを作成する
+        project = root.create_project_folder('プロジェクト！！')
+        project.save()
+
+        # プロジェクトの下にフォルダを作成する
+        folder = project.create_folder('フォルダS')
         folder.save()
         folder = self.factory2.data.find_by_id(folder.id)
 
@@ -455,6 +460,9 @@ class AuthTest(TestCaseBase):
         # 削除後の権限は取得できない
         with self.assertRaises(Exception):
             self.factory2.auth.find_by_id(new_role.id, folder.id, Auth.WRITE_OP)
+
+        # プロジェクトを削除する
+        project.delete()
 
     def test_create_get_delete_auth_by_other_user(self):
         """
@@ -655,8 +663,15 @@ class AuthTest(TestCaseBase):
         """
         # ルートフォルダを取得する
         root = self.factory2.data.load_root()
-        # ルートフォルダの下にフローを作成する
-        flow = root.create_flow('フロー', {})
+        # ルートフォルダの下にプロジェクトを作成する
+        project = root.create_project_folder('プロジェクト💣')
+        project.save()
+        # everyoneにプロジェクトの参照・更新・実行権限を付与する
+        everyone_role = self.factory2.role.load_everyone_role()
+        everyone_role.init_authz(project.id, True, True, exec=True)
+
+        # プロジェクトの下にフローを作成する
+        flow = project.create_flow('フロー', {})
         flow.save()
 
         # フローの参照権限を全て削除する
@@ -697,6 +712,17 @@ class AuthTest(TestCaseBase):
         # フローは削除不可
         with self.assertRaises(NotAuthorizedException):
             flow.delete()
+
+        # ロールBを削除する
+        roleB.leave_all_users()
+        roleB.delete()
+
+        # フローを削除する
+        flow.delete()
+        
+        # プロジェクトを削除する
+        project = project.reload()
+        project.delete()
 
     @unittest.skip('参照権限のないDatumは取得できない仕様に変更されたため')
     def test_read_data_of_frame(self):
@@ -1078,32 +1104,32 @@ class AuthTest(TestCaseBase):
 
     def test_own_frame_in_no_own_folder(self):
         """
-        フレームの所有権は親フォルダの所有権に影響しないこと
-        (フォルダの所有権はオーバーライドされない)
+        フレームの所有権は親プロジェクトの所有権に影響しないこと
+        (プロジェクトの所有権はオーバーライドされない)
         """
         # ルートフォルダを取得する
         root = self.factory2.data.load_root()
 
-        # ルートフォルダの下にフォルダAを作成する (所有者はUSER2)
-        folder_a = root.create_folder('所有権の無いフォルダA')
-        folder_a.save()
+        # ルートフォルダの下にプロジェクトAを作成する (所有者はUSER2)
+        project_a = root.create_project_folder('所有権の無いプロジェクトA')
+        project_a.save()
 
         # USER3にフォルダAの更新権限を付与する
         user3 = self.factory2.user.find_by_uuid(self.USER3.uuid)
-        user3.load_self_role().init_authz(folder_a.id, read=True, write=True)
+        user3.load_self_role().init_authz(project_a.id, read=True, write=True)
 
         # フォルダAの下にフレームAを作成する (所有者はUSER3)
-        folder_a = self.factory3.data.find_by_uuid(folder_a.uuid)
-        frame_a = folder_a.create_frame('My Frame A', io.BytesIO(b''))
+        project_a = self.factory3.data.find_by_uuid(project_a.uuid)
+        frame_a = project_a.create_frame('My Frame A', io.BytesIO(b''))
         frame_a.save()
 
-        # ルートフォルダの下にフォルダBを作成する (所有者はUSER3)
+        # ルートフォルダの下にプロジェクトBを作成する (所有者はUSER3)
         root = self.factory3.data.load_root()
-        folder_b = root.create_folder('所有権の有るフォルダB')
-        folder_b.save()
+        project_b = root.create_project_folder('所有権の有るプロジェクトB')
+        project_b.save()
 
         # フォルダBの下にフレームBを作成する (所有者はUSER3)
-        frame_b = folder_b.create_frame('My Frame B', io.BytesIO(b''))
+        frame_b = project_b.create_frame('My Frame B', io.BytesIO(b''))
         frame_b.save()
 
         # フレームAの所有者は権限を変更できること
@@ -1129,12 +1155,12 @@ class AuthTest(TestCaseBase):
 
         # NotAuthorizedExceptionの送出後のSession.rollback()により、
         # Expireが発生し、readable=Noneとなるため再読み込みする
-        folder_a = folder_a.reload()
-        folder_b = folder_b.reload()
+        project_a = self.factory2.data.find_by_id(project_a.id)
+        project_b = self.factory3.data.find_by_id(project_b.id)
 
         # フォルダA,Bを削除する
-        folder_a.delete()
-        folder_b.delete()
+        project_a.delete()
+        project_b.delete()
 
     def test_override_all_permissions(self):
         """
@@ -1595,10 +1621,41 @@ class AuthTest(TestCaseBase):
         # ゴミ箱を空にする
         self.factory3.data.find_trashcan().trash_all()
 
-
     def test_cannot_save_datum_at_root(self):
-        pass
+        """
+        ユーザ管理者以外は、ルートフォルダにプロジェクト以外のDatumを新規追加できないこと
+        """
+        # ルートフォルダを取得する
+        root = self.factory.data.load_root()
 
+        # ユーザ管理者は、ルートフォルダの下にフレームを作成できること
+        frame = root.create_frame('ワンワン🐕', io.BytesIO(b'wanwan'))
+        frame.save()
+
+        # フレームが作成されていること
+        self.assertTrue(self.factory.data.exists(frame.uuid))
+
+        # 一般ユーザは、ルートフォルダを取得する
+        root = self.factory3.data.load_root()
+
+        # 一般ユーザは、ルートフォルダの下にフローを作成できないこと
+        flow = root.create_flow('ワオーン🐕‍🦺', {})
+        with self.assertRaises(Exception):
+            flow.save()
+
+        # フローは作成されていないこと
+        self.assertFalse(self.factory3.data.exists(flow.uuid))
+
+        # 一般ユーザは、ルートフォルダの下にフォルダを作成できないこと
+        folder = root.create_folder('ワン！')
+        with self.assertRaises(Exception):
+            folder.save()
+
+        # フォルダは作成されていないこと
+        self.assertFalse(self.factory3.data.exists(folder.uuid))
+
+        # フレームを削除する
+        frame.delete()
 
     # 
     # System Folders
