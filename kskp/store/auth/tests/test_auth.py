@@ -1386,12 +1386,6 @@ class AuthTest(TestCaseBase):
         self.assertFalse(self.factory.data.exists(flow.uuid))
         self.assertFalse(self.factory.data.exists(frame.uuid))
 
-    def test_cannot_move_datum(self):
-        """
-        プロジェクト以外のDatumはルートフォルダへ移動できない
-        """
-        pass
-
     def test_delete_project(self):
         """
         プロジェクト管理者はプロジェクトを削除できる
@@ -1562,6 +1556,49 @@ class AuthTest(TestCaseBase):
         # プロジェクトは削除する
         project = project.reload()
         project.delete()
+
+    #
+    # Other Datum
+    # 
+
+    def test_cannot_move_datum_to_root(self):
+        """
+        プロジェクト以外のDatumはルートフォルダへ移動できないこと
+        """
+        # ルートフォルダを取得する
+        root = self.factory3.data.load_root()
+        # ルートフォルダの下にプロジェクトを作成する
+        project = root.create_project_folder('猫ハウス📦')
+        project.save()
+
+        # プロジェクトの下にフレームを作成する
+        frame = project.create_frame('にゃゴー', io.BytesIO(b''))
+        frame.save()
+
+        # フレームはルートの直下に移動できないこと
+        with self.assertRaises(Exception):
+            frame.move(root.uuid)
+
+        # プロジェクトの下にフォルダを作成する
+        folder = project.create_folder('にゃおーん🐱')
+        folder.save()
+        folder = folder.reload()
+
+        # フォルダはルートの直下に移動できないこと
+        with self.assertRaises(Exception):
+            folder.move(root.uuid)
+
+        # フレームとフォルダはゴミ箱へは移動できること
+        frame.throw_away()
+        folder.throw_away()
+
+        # ゴミ箱を空にする
+        self.factory3.data.find_trashcan().trash_all()
+
+
+    def test_cannot_save_datum_at_root(self):
+        pass
+
 
     # 
     # System Folders
