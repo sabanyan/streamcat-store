@@ -4,7 +4,7 @@
     {
       "name": "s",
       "type": "string",
-      "label": "ソート対象列名"
+      "label": "グループ内順序の指定"
     },
     {
       "name": "from",
@@ -29,7 +29,7 @@
     {
       "name": "k",
       "type": "string",
-      "label": "指定列が同じ値の行ごとにfrom=,to=,sizeで指定した行番号の行を選択",
+      "label": "グループ化する項目名",
       "optional": true
     },
     {
