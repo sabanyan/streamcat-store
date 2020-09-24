@@ -202,13 +202,7 @@ class AwsS3(Folder, Mountable):
     #     return key
 
     def to_json(self):
-        ret =  {'uuid'      : self.uuid,
-                'type'      : Datum.AWSS3_TYPE,
-                'label'     : self.label,
-                'readable'  : self.readable,
-                'prevFolderPath' : self.get_prev_folder_path(),
-                'creator'   : self.creator_str,
-                'createdAt' : self.created_at_str}
+        ret = super().to_json()
         if self.readable:
             ret['bucket'] = self.bucket_name
         return ret

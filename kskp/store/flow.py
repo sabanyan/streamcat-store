@@ -478,6 +478,12 @@ class Flow(Datum):
                 node['cacheCreatedAt'] = datetime.now(timezone(timedelta(hours=+9), 'JST')).strftime('%Y-%m-%d %H:%M:%S')
         # self.update_data(self.label, flow_data)
 
+    def to_json(self):
+        ret = super().to_json()
+        ret['allowlist']['execute'] = self.executable
+        ret['allowlist']['lock'] = self.writable
+        return ret
+
     @staticmethod
     def create_flow(request_json, creator, data_source_name=None):
         """

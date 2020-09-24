@@ -144,15 +144,7 @@ class Database(Store):
         return database_conn.valid_or_raise()
 
     def to_json(self):
-        ret =  {'uuid'      : self.uuid,
-                'type'      : Datum.DATABASE_TYPE,
-                'label'     : self.label,
-                'readable'  : self.readable,
-                'prevFolderPath' : self.get_prev_folder_path(),
-                'creator'   : self.creator_str,
-                'createdAt' : self.created_at_str}
-
+        ret =  super().to_json()
         if self.readable:
             ret.update(self.conn.to_json())
-
         return ret

@@ -407,15 +407,9 @@ class Frame(Datum):
             return 'UNKNOWN'
 
     def to_json(self):
-        ret =  {'uuid'      : self.uuid,
-                'type'      : self.type,
-                'label'     : self.label,
-                'readable'  : self.readable,
-                'prevFolderPath' : self.get_prev_folder_path(),
-                'encoding'  : self.encoding_str,
-                'newline'   : self.newline_str,
-                'creator'   : self.creator_str,
-                'createdAt' : self.created_at_str}
+        ret = super().to_json()
+        ret['encoding'] = self.encoding_str
+        ret['newline'] = self.newline_str
         return ret
 
     def load_as_data_frame(self, offset, limit):
