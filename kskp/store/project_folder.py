@@ -73,6 +73,12 @@ class ProjectFolder(Folder):
         # 保存処理はFolderクラスと同じ
         super().save()
 
+        # ユーザ管理者は全てのDatumの参照・更新・実行、及び権限の変更ができること
+        # (ProjectにRWXO権限を付与することでこれを実現する)
+        from kskp.store.factory import RoleFactory
+        usr_admin_role = RoleFactory(self._session).load_usr_admin_role()
+        usr_admin_role.init_authz(self.id, True, True, exec=True, own=True)
+
     def throw_away(self):
         """
         プロジェクトをほかす
