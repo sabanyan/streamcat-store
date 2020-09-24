@@ -1583,6 +1583,141 @@ class AuthTest(TestCaseBase):
         project = project.reload()
         project.delete()
 
+    def test_sys_admin_has_permissions(self):
+        """
+        システム管理者は、プロジェクトの
+        参照・更新・実行・所有権限を付与されていないこと
+        """
+        # ルートフォルダを取得する
+        root = self.factory3.data.load_root()
+        # USER3は、ルートフォルダの下にプロジェクトを作成する
+        project = root.create_project_folder('きらら⭐️三大言っていない名言！')
+        project.save()
+        project = project.reload()
+
+        # プロジェクトにシステム管理者の権限が付与されていないこと
+        sys_admin_role = self.factory3.role.load_sys_admin_role()
+        self.assertFalse(self.factory3.auth.exists(sys_admin_role.id, project.id))
+
+        # USER3は、プロジェクトの下にフォルダを作成する
+        folder = project.create_folder('うるさいですね💢')
+        folder.save()
+        folder = folder.reload()
+
+        # USER3は、フォルダの下にフローを作成する
+        flow = folder.create_flow('シャミ子が悪いんだよ💘', {})
+        flow.save()
+        flow = flow.reload()
+
+        # USER3は、フォルダの下にフレームを作成する
+        frame = folder.create_frame('お前がそう思うんならそうなんだろう お前ん中ではな', io.BytesIO(b'hidamari'))
+        frame.save()
+        frame = frame.reload()
+
+        # システム管理者は、フォルダの参照ができないこと
+        with self.assertRaises(NotAuthorizedException):
+            self.factory0.data.find_by_uuid(folder.uuid)
+
+        # システム管理者は、フローの参照ができないこと
+        with self.assertRaises(NotAuthorizedException):
+            self.factory0.data.find_by_uuid(flow.uuid)
+
+        # システム管理者は、フレームの参照ができないこと
+        with self.assertRaises(NotAuthorizedException):
+            self.factory0.data.find_by_uuid(frame.uuid)
+
+        # プロジェクト以外のDatumにシステム管理者の権限が付与されていないこと
+        self.assertFalse(self.factory0.auth.exists(sys_admin_role.id, folder.id))
+        self.assertFalse(self.factory0.auth.exists(sys_admin_role.id, flow.id))
+        self.assertFalse(self.factory0.auth.exists(sys_admin_role.id, frame.id))
+
+        # プロジェクトをほかす
+        project.throw_away()
+
+        # ゴミ箱を空にする
+        self.factory3.data.find_trashcan().trash_all()
+
+    def test_usr_admin_has_permissions(self):
+        """
+        ユーザ管理者は、プロジェクトの
+        参照・更新・実行・所有権限を付与されていること
+        """
+        # ルートフォルダを取得する
+        root = self.factory3.data.load_root()
+        # USER3は、ルートフォルダの下にプロジェクトを作成する
+        project = root.create_project_folder('😒😞😔😟😕🙁☹️😣😖😫😩🥺😢😭😤🤲🏾👐🏼')
+        project.save()
+        project = project.reload()
+
+        # プロジェクトにユーザ管理者の権限が付与されていること
+        usr_admin_role = self.factory3.role.load_usr_admin_role()
+        self.assertTrue(self.factory3.auth.exists(usr_admin_role.id, project.id))
+
+        # プロジェクトにユーザ管理者の参照・更新・実行・所有権限が付与されていること
+        self.assertTrue(self.factory3.auth.exists(usr_admin_role.id, project.id))
+        read_auth = self.factory3.auth.find_by_id(usr_admin_role.id, project.id, Auth.READ_OP)
+        self.assertTrue(read_auth.permission)
+        write_auth = self.factory3.auth.find_by_id(usr_admin_role.id, project.id, Auth.WRITE_OP)
+        self.assertTrue(write_auth.permission)
+        exec_auth = self.factory3.auth.find_by_id(usr_admin_role.id, project.id, Auth.EXEC_OP)
+        self.assertTrue(exec_auth.permission)
+        own_auth = self.factory3.auth.find_by_id(usr_admin_role.id, project.id, Auth.OWN_OP)
+        self.assertTrue(own_auth.permission)
+
+        # USER3は、プロジェクトの下にフォルダを作成する
+        folder = project.create_folder('厭離穢土欣求浄土')
+        folder.save()
+        folder = folder.reload()
+
+        # USER3は、フォルダの下にフローを作成する
+        flow = folder.create_flow('疾如風徐如林侵掠如火不動如山', {})
+        flow.save()
+        flow = flow.reload()
+
+        # USER3は、フォルダの下にフレームを作成する
+        frame = folder.create_frame('是非に及ばず', io.BytesIO(b'honnouji'))
+        frame.save()
+        frame = frame.reload()
+
+        # ユーザ管理者は、フォルダの参照・更新ができること
+        folder = self.factory.data.find_by_uuid(folder.uuid)
+        folder.update_data('德川家康')
+
+        # ユーザ管理者は、フォルダの参照・更新・実行のプロパティがTrueであること
+        self.assertTrue(folder.readable)
+        self.assertTrue(folder.writable)
+        self.assertTrue(folder.executable)
+
+        # ユーザ管理者は、フローの参照・更新・実行ができること
+        flow = self.factory.data.find_by_uuid(flow.uuid)
+        flow.update_data('武田晴信', {})
+        flow.flow_data.get_nodes(use_exec_auth=True)
+
+        # ユーザ管理者は、フローの参照・更新・実行のプロパティがTrueであること
+        self.assertTrue(flow.readable)
+        self.assertTrue(flow.writable)
+        self.assertTrue(flow.executable)
+
+        # ユーザ管理者は、フレームの参照・更新ができること
+        frame = self.factory.data.find_by_uuid(frame.uuid)
+        frame.update_label('織田信長')
+        
+        # ユーザ管理者は、フレームの参照・更新のプロパティがTrueであること
+        self.assertTrue(frame.readable)
+        self.assertTrue(frame.writable)
+        self.assertFalse(frame.executable)
+
+        # プロジェクト以外のDatumにユーザ管理者の権限が付与されていないこと
+        self.assertFalse(self.factory.auth.exists(usr_admin_role.id, folder.id))
+        self.assertFalse(self.factory.auth.exists(usr_admin_role.id, flow.id))
+        self.assertFalse(self.factory.auth.exists(usr_admin_role.id, frame.id))
+
+        # プロジェクトをほかす
+        project.throw_away()
+
+        # ゴミ箱を空にする
+        self.factory3.data.find_trashcan().trash_all()
+
     #
     # Other Datum
     # 
