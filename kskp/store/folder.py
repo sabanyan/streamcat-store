@@ -240,6 +240,12 @@ class Folder(Store):
         path_to_root.reverse()
         return path_to_root
 
+    def to_json(self):
+        ret = super().to_json()
+        ret['allowlist']['create'] = self.writable
+        ret['allowlist']['upload'] = self.writable
+        return ret
+
     def _make_dir(self, path):
         """
         Folderに対応するディレクトリを作成する

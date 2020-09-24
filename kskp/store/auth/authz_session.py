@@ -111,6 +111,9 @@ class AuthzSession(Session):
 
             # read,write,execのpermissionの値を取得する
             select_permissions = self._make_select_permissions()
+
+            # ownのpermissionsの値を取得する
+            select_ownership = self._make_select_ownership(Datum.id)
             
             # read=TrueのDatumのみ抽出する
             # exists_readable = self._make_exists_readable()
@@ -118,6 +121,7 @@ class AuthzSession(Session):
             # Datumを抽出するQuery
             query = self._session.query(Datum).\
                                   options(with_expression(Datum._permissions, select_permissions.label('permissions'))).\
+                                  options(with_expression(Datum._ownership, select_ownership.label('ownership'))).\
                                   options(with_expression(Datum.user, literal_column(f"'{self.user.name}'")))
 
             return AuthzDatumQuery(query, self)
@@ -207,7 +211,7 @@ class AuthzSession(Session):
 
         # query.count()でSQLAlchemyがエラーを送出するため、
         # これを回避するためtextをselectオブジェクトでラップする
-        return select([literal_column(select_stmt_str)]).as_scalar()
+        return select([literal_column(select_stmt_str)])
 
     def _make_exists_readable(self):
         from sqlalchemy.sql.expression import exists, literal, text
@@ -302,6 +306,34 @@ class AuthzSession(Session):
 
         # 権限フラグのAND演算をする(SQLの集計関数を入れ子にできないのでSELECT文でラップする)
         return select([func.sum(RA.c.permission).label('permissions')]).select_from(RA)
+
+    def _make_select_ownership(self, datum_id):
+        """
+        操作ユーザがDatumの所有権を有するか判定する
+        (フォルダの所有権はオーバーライドしない)
+        """
+        from sqlalchemy import select, exists, func, false, and_, or_
+        from sqlalchemy.orm import aliased
+        from .auth import Auth
+        from .user import User
+        from .user_role import UserRole
+
+        A = aliased(Auth, name='A')
+
+        # 操作ユーザが所属するロールであることを指定する条件
+        exists_user_role = exists().where(and_(UserRole.role_id==A.role_id, UserRole.user_id==self.user.id))
+        exists_user = exists().where(and_(User.self_role_id==A.role_id, User.id==self.user.id))
+
+        select_stmt = select([func.coalesce(func.bool_and(A.permission),false()).label('owner')]).\
+                            select_from(A).\
+                            where(
+                                and_(
+                                    A.datum_id==datum_id,
+                                    A.operation==Auth.OWN_OP,
+                                    or_(exists_user_role, exists_user)
+                                )
+                            )
+        return select_stmt
 
     def add(self, obj):
         from kskp.core import Datum
@@ -497,8 +529,7 @@ class AuthzSession(Session):
 
     def ownership(self, datum_id) -> bool:
         """
-        ユーザIDとDatumについて所有権の有無を判定する
-        (フォルダの所有権はオーバーライドされない)
+        UserによるDatumの所有権の有無を判定する
         """
         # from kskp.core import Datum
         # from .auth import Auth
@@ -510,24 +541,8 @@ class AuthzSession(Session):
         # 
         # return self._operatable(result, Auth.OWN_OP)
 
-        from sqlalchemy import exists, func, false, and_, or_
-        from sqlalchemy.orm import aliased
-        from .auth import Auth
-        from .user import User
-        from .user_role import UserRole
-
-        A = aliased(Auth, name='A')
-
-        # 操作ユーザが所属するロールであることを指定する条件
-        exists_user_role = exists().where(and_(UserRole.role_id==A.role_id, UserRole.user_id==self.user.id))
-        exists_user = exists().where(and_(User.self_role_id==A.role_id, User.id==self.user.id))
-
-        query = self._session.query(func.coalesce(func.bool_and(A.permission),false()).label('owner')).\
-                              select_from(A).\
-                              filter(A.operation==Auth.OWN_OP).\
-                              filter(or_(exists_user_role, exists_user)).\
-                              filter(A.datum_id==datum_id)
-
+        select_stmt = self._make_select_ownership(datum_id).alias('owner')
+        query = self._session.query(select_stmt)
         result = query.one_or_none()
         return result.owner == True
 

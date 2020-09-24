@@ -132,15 +132,7 @@ class RemoteFolder(Folder, Mountable):
         return self.conn.get_mount_cmd(mount_point_path)
 
     def to_json(self):
-        ret =  {'uuid'      : self.uuid,
-                'type'      : Datum.RFOLDER_TYPE,
-                'label'     : self.label,
-                'readable'  : self.readable,
-                'prevFolderPath' : self.get_prev_folder_path(),
-                'creator'   : self.creator_str,
-                'createdAt' : self.created_at_str}
-
+        ret = super().to_json()
         if self.readable:
             ret.update(self.conn.to_json())
-
         return ret

@@ -257,3 +257,9 @@ class ProjectFolder(Folder):
             user._session = self._session
             members.append(ProjectFolder.Member(user, type))
         return members
+
+    def to_json(self):
+        ret = super().to_json()
+        ret['allowlist']['findMember'] = self.ownership
+        ret['allowlist']['updateMember'] = self.ownership
+        return ret

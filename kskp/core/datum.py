@@ -88,6 +88,8 @@ class Datum(BaseModel):
     modified_at  = Column(TIMESTAMP, default=text('statement_timestamp()'), onupdate=text('statement_timestamp()'))
     # 各種権限(queryで追加した列の結果を格納する)
     _permissions = query_expression()
+    # 所有権(queryで追加した列の結果を格納する)
+    _ownership = query_expression()
 
     user = query_expression()
 
@@ -223,6 +225,10 @@ class Datum(BaseModel):
     def executable(self):
         p = self._permissions
         return p if p is None else (p & 0b0010) > 0
+
+    @property
+    def ownership(self):
+        return self._ownership
 
     @property
     def is_root(self):
@@ -486,14 +492,25 @@ class Datum(BaseModel):
         return f'Datum({self.id}, {self._label}, {self.type})'
 
     def to_json(self):
-        ret =  {'uuid'      : self.uuid,
+        return {'uuid'      : self.uuid,
                 'type'      : self.type,
                 'label'     : self.label,
-                'readable'  : self.readable,
+                'allowlist' : {
+                    'read'   : self.readable,
+                    'update' : self.writable,
+                    'delete' : self.writable,
+                    'execute': False,
+                    'move'   : self.writable,
+                    'copy'   : self.writable,
+                    # 閲覧者以外はDownload可能なのでwritableで判定する
+                    'download'    : self.writable,
+                    'findMember'  : False,
+                    'updateMember': False,
+                    'lock'   : False,
+                },
                 'prevFolderPath' : self.get_prev_folder_path(),
                 'creator'   : self.creator_str,
-                'createdAt' : self.created_at_str}
-        return ret
+                'createdAt' : self.created_at_str }
 
     def _readable_or_raise(self):
         from kskp.store.auth import NotAuthorizedException
@@ -636,7 +653,7 @@ class Datum(BaseModel):
         if uuid is None:
             return False
         import re
-        return re.match("^[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}$", uuid)
+        return re.match('^[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}$', uuid)
 
     @staticmethod
     def valid_uuid_or_raise(uuid):
