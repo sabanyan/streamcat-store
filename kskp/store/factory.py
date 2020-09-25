@@ -586,6 +586,12 @@ class UserRoleFactory():
     def find_all_by_user_id(self, user_id):
         return self._session.query(UserRole).filter(UserRole.user_id==user_id).all()
 
+    def exists(self, user_id, role_id=None) -> bool:
+        query = self._session.query(UserRole).filter(UserRole.user_id==user_id)
+        if role_id is not None:
+            query = query.filter(UserRole.role_id==role_id)
+        return query.count() > 0
+
     def delete_all_by_user_id(self, user_id):
         """
         UsersRolesテーブルから指定したユーザの所属情報を全て削除する
