@@ -132,16 +132,6 @@
       "params": []
     },
     {
-      "name": "cmd_sub",
-      "label": "その他 (省略可)",
-      "params": [
-        "q",
-        "nfn",
-        "nfno",
-        "x"
-      ]
-    },
-    {
       "name": "cmd_main1",
       "label": "範囲で選択",
       "description": "(必須)開始行番号\n終了条件は、終了行番号か、開始行からの行数で指定する",
@@ -163,6 +153,16 @@
       "label": "条件反転",
       "params": [
         "r"
+      ]
+    },
+    {
+      "name": "cmd_sub",
+      "label": "その他 (省略可)",
+      "params": [
+        "nfn",
+        "q",
+        "nfno",
+        "x"
       ]
     },
     {
