@@ -37,8 +37,7 @@
       "label": "システム管理用設定（作業領域・ログ出力）",
       "params": [
         "precision",
-        "tmpPath",
-        "q"
+        "tmpPath"
       ]
     }
   ],
@@ -116,12 +115,6 @@
       "name": "x",
       "type": "boolean",
       "label": "項目番号による指定",
-      "optional": true
-    },
-    {
-      "name": "q",
-      "type": "boolean",
-      "label": "自動並べ替えの無効化",
       "optional": true
     },
     {

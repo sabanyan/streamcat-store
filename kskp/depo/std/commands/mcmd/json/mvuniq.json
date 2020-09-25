@@ -90,12 +90,6 @@
       "optional": true
     },
     {
-      "name": "q",
-      "type": "boolean",
-      "label": "自動並べ替えの無効化",
-      "optional": true
-    },
-    {
       "name": "tmpPath",
       "type": "string",
       "label": "作業ファイル格納パス名",
@@ -136,8 +130,7 @@
       "params": [
         "n",
         "delim",
-        "nfn",
-        "q"
+        "nfn"
       ]
     },
     {
