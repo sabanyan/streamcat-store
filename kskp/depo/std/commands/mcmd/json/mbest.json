@@ -4,7 +4,8 @@
     {
       "name": "s",
       "type": "string",
-      "label": "グループ内順序の指定"
+      "label": "グループ内ソートの設定",
+      "description": "ソートのキー項目を、カンマ区切りで複数指定可\n●ソートの種類は変更可能　(デフォルト: 文字列昇順)\n 　方法: 項目名末尾に記号を付与 (数値昇順：%n,  文字列降順： %r,  数値降順：%nr)\n●注意 グループ化する項目名と同じ項目名があると、不整合になり、ソートされません"
     },
     {
       "name": "from",
@@ -30,7 +31,8 @@
       "name": "k",
       "type": "string",
       "label": "グループ化する項目名",
-      "optional": true
+      "optional": true,
+      "description": "カンマ区切りで複数指定可\n省略時は全ての行を同じグループとみなして処理される"
     },
     {
       "name": "r",
@@ -48,13 +50,14 @@
     {
       "name": "assert_diffSize",
       "type": "boolean",
-      "label": "入力、出力件数比較を行う",
-      "optional": true
+      "label": "入力、出力件数比較結果をログに出す",
+      "optional": true,
+      "description": "ログにWarningが表示される"
     },
     {
       "name": "assert_nullkey",
       "type": "boolean",
-      "label": "キー項目に NULL 値が含まれているかどうかのチェックを行う",
+      "label": "グループ項目にNULL 値が含まれている場合はログに出す",
       "optional": true
     },
     {
@@ -72,14 +75,16 @@
     {
       "name": "x",
       "type": "boolean",
-      "label": "項目番号による指定",
-      "optional": true
+      "label": "0始まりの項目番号で指定する",
+      "optional": true,
+      "description": "● 個別指定と、範囲指定が可能\n　　範囲指定は、開始と終了を-区切りで指定する\n● 先頭からではなく、末端からの番号でも指定が可能\n　　方法: 項目番号にLを付ける"
     },
     {
       "name": "q",
       "type": "boolean",
       "label": "自動並べ替えの無効化",
-      "optional": true
+      "optional": true,
+      "description": "入力データがグループ単位でソート済みの場合、指定すると処理速度が向上"
     },
     {
       "name": "tmpPath",
@@ -116,13 +121,7 @@
       "name": "grouping",
       "label": "グループの設定",
       "params": [
-        "k"
-      ]
-    },
-    {
-      "name": "sorting",
-      "label": "グループ内のソートの設定",
-      "params": [
+        "k",
         "s"
       ]
     },
@@ -131,6 +130,16 @@
       "label": "行番号による選択の設定",
       "description": "行番号の範囲、およびリストによる指定が可能\n行番号は、0始まりの整数で指定する",
       "params": []
+    },
+    {
+      "name": "cmd_sub",
+      "label": "その他 (省略可)",
+      "params": [
+        "q",
+        "nfn",
+        "nfno",
+        "x"
+      ]
     },
     {
       "name": "cmd_main1",
@@ -154,22 +163,6 @@
       "label": "条件反転",
       "params": [
         "r"
-      ]
-    },
-    {
-      "name": "cmd_sub",
-      "label": "その他 (省略可)",
-      "params": [
-        "nfn",
-        "q"
-      ]
-    },
-    {
-      "name": "fields",
-      "label": "項目名・項目番号についての設定（省略可）",
-      "params": [
-        "nfno",
-        "x"
       ]
     },
     {

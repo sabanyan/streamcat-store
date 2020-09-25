@@ -24,8 +24,9 @@
     {
       "name": "k",
       "type": "string",
-      "label": "キー列名",
-      "optional": true
+      "label": "単一化キーの項目名",
+      "optional": true,
+      "description": "カンマ区切りで複数指定可\n省略時はキーがないため、任意の１行が出力される"
     },
     {
       "name": "assert_diffSize",
@@ -61,7 +62,8 @@
       "name": "q",
       "type": "boolean",
       "label": "自動並べ替えの無効化",
-      "optional": true
+      "optional": true,
+      "description": "入力データがグループ単位でソート済みの場合、指定すると処理速度が向上"
     },
     {
       "name": "tmpPath",
@@ -91,8 +93,8 @@
   "url": "./static/pdf/mcmd/row_edit/muniq.pdf",
   "groups": [
     {
-      "name": "grouping",
-      "label": "グループの設定",
+      "name": "group1",
+      "label": "単一化キーの設定",
       "params": [
         "k"
       ]

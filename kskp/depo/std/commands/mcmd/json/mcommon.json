@@ -45,13 +45,15 @@
     {
       "name": "k",
       "type": "string",
-      "label": "結合キー名(必須)"
+      "label": "入力 i の項目名",
+      "description": "カンマ区切りで複数指定可"
     },
     {
       "name": "K",
       "type": "string",
-      "label": "参照列名",
-      "optional": true
+      "label": "入力 m の参照キーの項目名",
+      "optional": true,
+      "description": "カンマ区切りで複数指定可\n入力iのキー項目名と、1対1に対応させて指定する\n入力mのキー項目名と同じ場合は省略可"
     },
     {
       "name": "r",
@@ -93,7 +95,8 @@
       "name": "q",
       "type": "boolean",
       "label": "自動並べ替えの無効化",
-      "optional": true
+      "optional": true,
+      "description": "入力i と入力m ともにキー項目でソート済みの場合、指定すると処理速度が向上"
     },
     {
       "name": "tmpPath",
@@ -132,7 +135,7 @@
   "groups": [
     {
       "name": "key",
-      "label": "結合キーの設定",
+      "label": "参照キーの設定 (必須)",
       "params": [
         "k",
         "K"

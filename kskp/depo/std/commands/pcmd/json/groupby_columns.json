@@ -14,8 +14,9 @@
     {
       "name": "k",
       "type": "string",
-      "label": "集計のキー項目がある場合、項目名をカンマ区切りで指定する",
-      "optional": true
+      "label": "グループ化する項目名(必須)",
+      "optional": true,
+      "description": "カンマ区切りで複数指定可"
     },
     {
       "name": "delimiter",

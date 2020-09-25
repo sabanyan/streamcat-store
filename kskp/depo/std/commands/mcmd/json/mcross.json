@@ -3,7 +3,7 @@
   "groups": [
     {
       "name": "group1",
-      "label": "グループの設定 (省略可)",
+      "label": "変換キーの設定",
       "params": [
         "k"
       ]
@@ -136,7 +136,7 @@
     {
       "name": "k",
       "type": "string",
-      "label": "グループ化する項目名",
+      "label": "変換キーの項目名",
       "description": "カンマ区切りで複数指定可",
       "optional": true
     },
