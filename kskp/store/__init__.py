@@ -116,11 +116,10 @@ with UnAuthzFactory() as unauthz_factory:
     with Factory(usr_admin_user) as factory:
         usr_admin_user = factory.user.find_by_id(usr_admin_user.id)
 
-        # システムフォルダを作成する
         with Factory(usr_admin_user) as factory:
+            # システムフォルダを作成する
             factory.data.load_cache_folder()
             factory.data.load_trash_folder()
-
 
 from sqlalchemy import event, DDL
 
