@@ -52,8 +52,9 @@
     {
       "name": "k",
       "type": "string",
-      "label": "キー項目名",
-      "optional": true
+      "label": "グループ化する項目名",
+      "optional": true,
+      "description": "カンマ区切りで複数指定可\n省略時は全ての行を同じグループとみなして処理される"
     },
     {
       "name": "a",
@@ -77,8 +78,9 @@
     {
       "name": "S",
       "type": "string",
-      "label": "乱数のシード",
-      "optional": true
+      "label": "乱数のシード値",
+      "optional": true,
+      "description": "同じ乱数系列を発生させたい場合に指定する\nデフォルトは時刻値なので、実行の都度変化する"
     },
     {
       "name": "int",
@@ -120,7 +122,8 @@
       "name": "q",
       "type": "boolean",
       "label": "自動並べ替えの無効化",
-      "optional": true
+      "optional": true,
+      "description": "入力データがグループ単位でソート済みの場合、指定すると処理速度が向上"
     },
     {
       "name": "tmpPath",

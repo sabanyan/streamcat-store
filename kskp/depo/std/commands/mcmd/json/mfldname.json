@@ -92,8 +92,9 @@
     {
       "name": "q",
       "type": "boolean",
-      "label": "自動並べ替えの無効化",
-      "optional": true
+      "label": "ソート記号の削除",
+      "optional": true,
+      "description": "項目名末尾のソート記号を削除する"
     },
     {
       "name": "tmpPath",

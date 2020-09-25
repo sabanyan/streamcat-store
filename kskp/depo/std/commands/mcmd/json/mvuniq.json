@@ -32,7 +32,8 @@
     {
       "name": "vf",
       "type": "string",
-      "label": "対象列名(必須)"
+      "label": "対象とする項目名(必須)",
+      "description": "カンマ区切りで複数指定可"
     },
     {
       "name": "A",

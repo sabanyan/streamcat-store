@@ -62,12 +62,14 @@
     {
       "name": "vf",
       "type": "string",
-      "label": "置換キーとなるベクトル列名(必須)"
+      "label": "入力 i のキー項目名",
+      "description": "ベクトルの項目名を指定する\nカンマ区切りで複数指定可\n項目名のあとに、:区切りで新項目名を書くと、項目名を変更して出力される"
     },
     {
       "name": "K",
       "type": "string",
-      "label": "参照ファイル上の置換キーとなるベクトル要素の列名(必須)"
+      "label": "入力 m の参照キーの項目名",
+      "description": "ベクトル要素の項目名を1つ指定する"
     },
     {
       "name": "f",
@@ -132,7 +134,8 @@
       "name": "q",
       "type": "boolean",
       "label": "自動並べ替えの無効化",
-      "optional": true
+      "optional": true,
+      "description": "入力i と入力m ともにキー項目でソート済みの場合、指定すると処理速度が向上"
     },
     {
       "name": "tmpPath",
@@ -167,7 +170,7 @@
   "groups": [
     {
       "name": "key",
-      "label": "結合キーの設定",
+      "label": "参照キーの設定 (必須)",
       "params": [
         "vf",
         "K"

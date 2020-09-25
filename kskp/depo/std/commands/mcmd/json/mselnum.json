@@ -2,10 +2,16 @@
   "id": "mselnum",
   "groups": [
     {
+      "name": "grouping",
+      "label": "グループの設定",
+      "params": [
+        "k"
+      ]
+    },
+    {
       "name": "group1",
       "label": "グループ単位での行選択の設定 (省略可)",
       "params": [
-        "k",
         "R",
         "q"
       ]
@@ -115,7 +121,7 @@
       "name": "k",
       "type": "string",
       "label": "グループ化する項目名",
-      "description": "●条件を満たしたグループの全行が出力される\n●カンマ区切りで複数指定可",
+      "description": "カンマ区切りで複数指定可\n省略時は全ての行を同じグループとみなして処理される",
       "optional": true
     },
     {

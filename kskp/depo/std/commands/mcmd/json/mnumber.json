@@ -75,20 +75,23 @@
     {
       "name": "k",
       "type": "string",
-      "label": "項目名リスト",
-      "optional": true
+      "label": "グループ化する項目名",
+      "optional": true,
+      "description": "カンマ区切りで複数指定可\n省略時は全ての行を同じグループとみなして処理される"
     },
     {
       "name": "s",
       "type": "string",
-      "label": "ソート対象列名",
-      "optional": true
+      "label": "グループ内ソートの設定",
+      "optional": true,
+      "description": "ソートのキー項目を、カンマ区切りで複数指定可\n●ソートの種類は変更可能　(デフォルト: 文字列昇順)\n 　方法: 項目名末尾に記号を付与 (数値昇順：%n,  文字列降順： %r,  数値降順：%nr)\n●注意 グループ化する項目名と同じ項目名があると、不整合になり、ソートされません"
     },
     {
       "name": "S",
       "type": "string",
-      "label": "開始No",
-      "optional": true
+      "label": "開始値",
+      "optional": true,
+      "description": "整数連番とアルファベット連番が選択可能\nアルファベット連番の場合は、大文字で指定する"
     },
     {
       "name": "B",
@@ -130,7 +133,8 @@
       "name": "q",
       "type": "boolean",
       "label": "自動並べ替えの無効化",
-      "optional": true
+      "optional": true,
+      "description": "入力データがグループ単位でソート済みの場合、指定すると処理速度が向上"
     },
     {
       "name": "tmpPath",
@@ -163,13 +167,7 @@
       "name": "grouping",
       "label": "グループの設定",
       "params": [
-        "k"
-      ]
-    },
-    {
-      "name": "sorting",
-      "label": "グループ内のソートの設定",
-      "params": [
+        "k",
         "s"
       ]
     },

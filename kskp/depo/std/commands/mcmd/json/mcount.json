@@ -2,8 +2,8 @@
   "id": "mcount",
   "groups": [
     {
-      "name": "group2",
-      "label": "グループの設定（省略可)",
+      "name": "grouping",
+      "label": "グループの設定",
       "params": [
         "k"
       ]
@@ -79,7 +79,7 @@
       "name": "k",
       "type": "string",
       "label": "グループ化する項目名",
-      "description": "カンマ区切りで複数指定可\n省略時はグループ別ではなく、データの総行数を出力"
+      "description": "カンマ区切りで複数指定可\n省略時は全ての行を同じグループとみなして処理される"
     },
     {
       "name": "assert_diffSize",

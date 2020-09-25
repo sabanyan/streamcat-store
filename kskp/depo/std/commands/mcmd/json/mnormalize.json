@@ -55,8 +55,8 @@
   },
   "groups": [
     {
-      "name": "group1",
-      "label": "グループの設定 (省略可)",
+      "name": "grouping",
+      "label": "グループの設定",
       "params": [
         "k"
       ]
@@ -128,7 +128,7 @@
       "name": "k",
       "type": "string",
       "label": "グループ化する項目名",
-      "description": "●カンマ区切りで複数指定可",
+      "description": "カンマ区切りで複数指定可\n省略時は全ての行を同じグループとみなして処理される",
       "optional": true
     },
     {
@@ -183,7 +183,7 @@
     {
       "name": "q",
       "type": "boolean",
-      "label": "自動並べ替えの無効化",
+      "label": "自動並べ替えの無効化",
       "description": "入力データがグループ単位でソート済みの場合、指定すると処理速度が向上",
       "optional": true
     },

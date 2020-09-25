@@ -12,7 +12,7 @@
     },
     {
       "name": "group1",
-      "label": "グループ結合キーの設定 (省略可)",
+      "label": "結合キーの設定 (必須)",
       "params": [
         "k",
         "K"
@@ -184,15 +184,15 @@
     {
       "name": "k",
       "type": "string",
-      "label": "入力i のキー項目名",
-      "description": "●カンマ区切りで複数指定可\n項目番号時:0−3,5,0L 等使用可",
+      "label": "入力 i のキー項目名",
+      "description": "カンマ区切りで複数指定可",
       "optional": true
     },
     {
       "name": "K",
       "type": "string",
-      "label": "入力m  のキー項目名",
-      "description": "●入力i の指定項目と、1対1に対応させて指定",
+      "label": "入力 m のキー項目名",
+      "description": "カンマ区切りで複数指定可\n入力iのキー項目名と、1対1に対応させて指定する\n入力mのキー項目名と同じ場合は省略可",
       "optional": true
     },
     {
@@ -262,7 +262,8 @@
       "name": "q",
       "type": "boolean",
       "label": "自動並べ替えの無効化",
-      "optional": true
+      "optional": true,
+      "description": "入力i と入力m ともにキー項目でソート済みの場合、指定すると処理速度が向上"
     },
     {
       "name": "tmpPath",

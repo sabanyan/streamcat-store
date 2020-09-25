@@ -62,14 +62,16 @@
     {
       "name": "s",
       "type": "string",
-      "label": "ここで指定した項目 (複数項目指定可) で並べ替えられた後、変換が行われる。",
-      "optional": true
+      "label": "グループ内ソートの設定",
+      "optional": true,
+      "description": "ソートのキー項目を、カンマ区切りで複数指定可\n●ソートの種類は変更可能　(デフォルト: 文字列昇順)\n 　方法: 項目名末尾に記号を付与 (数値昇順：%n,  文字列降順： %r,  数値降順：%nr)\n●注意 グループ化する項目名と同じ項目名があると、不整合になり、ソートされません"
     },
     {
       "name": "k",
       "type": "string",
-      "label": "変換キー列名",
-      "optional": true
+      "label": "変換キーの項目名",
+      "optional": true,
+      "description": "カンマ区切りで複数指定可"
     },
     {
       "name": "delim",
@@ -129,7 +131,8 @@
       "name": "q",
       "type": "boolean",
       "label": "自動並べ替えの無効化",
-      "optional": true
+      "optional": true,
+      "description": "入力データがグループ単位でソート済みの場合、指定すると処理速度が向上"
     },
     {
       "name": "tmpPath",
@@ -160,15 +163,9 @@
   "groups": [
     {
       "name": "grouping",
-      "label": "グループの設定",
+      "label": "変換キーの設定",
       "params": [
-        "k"
-      ]
-    },
-    {
-      "name": "sorting",
-      "label": "グループ内のソートの設定",
-      "params": [
+        "k",
         "s"
       ]
     },

@@ -4,7 +4,8 @@
     {
       "name": "k",
       "type": "string",
-      "label": "集計キー項目をカンマ区切りで与える（必須）"
+      "label": "グループ化する項目名(必須)",
+      "description": "カンマ区切りで複数指定可"
     },
     {
       "name": "f",
@@ -25,8 +26,9 @@
     {
       "name": "q",
       "type": "boolean",
-      "label": "集計キー項目でソートをしない",
-      "optional": true
+      "label": "自動並べ替えの無効化",
+      "optional": true,
+      "description": "入力データがグループ単位でソート済みの場合、指定すると処理速度が向上"
     },
     {
       "name": "nfno",
