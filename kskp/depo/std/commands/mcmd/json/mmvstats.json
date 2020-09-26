@@ -89,13 +89,15 @@
     {
       "name": "t",
       "type": "string",
-      "label": "期関数の指定",
-      "optional": true
+      "label": "期間数(必須)",
+      "optional": true,
+      "description": "移動窓の幅を、１以上の正の整数で指定する",
+      "default": "2"
     },
     {
       "name": "c",
       "type": "select",
-      "label": "統計量を指定",
+      "label": "統計量",
       "options": {
         "labels": [
           "合計",
@@ -136,13 +138,14 @@
     {
       "name": "skip",
       "type": "string",
-      "label": "出力抑制を行う最初の行数指定",
-      "optional": true
+      "label": "計算対象外とする先頭のレコード数",
+      "optional": true,
+      "description": "●デフォルトでは、グループ先頭の期間数に満たないレコードは、除外される\n●除外行数を指定すると、不足の値はNULL扱いで計算した結果を出力する"
     },
     {
       "name": "n",
       "type": "boolean",
-      "label": "Null データの場合は NULL にするフラグ",
+      "label": "NULL の含まれる期間の結果は、NULLとする",
       "optional": true
     },
     {
@@ -184,8 +187,9 @@
     {
       "name": "x",
       "type": "boolean",
-      "label": "項目番号による指定",
-      "optional": true
+      "label": "項目名ではなく、項目番号で指定する",
+      "optional": true,
+      "description": "●0始まりの項目番号で指定する\n●Lをつけると、右端起点の項目番号とみなす(例:3L)\n●複数入力可能なOptの場合は、列範囲としての指定も可能(例: 0-5)"
     },
     {
       "name": "q",
@@ -238,30 +242,25 @@
     },
     {
       "name": "cmd_main",
-      "label": "統計量の計算の設定",
+      "label": "移動窓の統計量の計算の設定(必須)",
+      "description": "対象項目と移動窓を設定し、統計量を計算する\n移動窓は、期間数で幅を指定する",
       "params": [
         "f",
         "t",
         "c",
-        "skip"
+        "skip",
+        "n"
       ]
     },
     {
       "name": "cmd_sub",
       "label": "その他 (省略可)",
       "params": [
-        "n",
-        "nfn",
         "q",
-        "precision"
-      ]
-    },
-    {
-      "name": "fields",
-      "label": "項目名・項目番号についての設定（省略可）",
-      "params": [
+        "nfn",
         "nfno",
-        "x"
+        "x",
+        "precision"
       ]
     },
     {

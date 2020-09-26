@@ -143,14 +143,17 @@
     {
       "name": "t",
       "type": "string",
-      "label": "期間数の指定",
-      "optional": true
+      "label": "期間数(必須)",
+      "optional": true,
+      "description": "移動窓の幅を、１以上の正の整数で指定する",
+      "default": "2"
     },
     {
       "name": "skip",
       "type": "string",
-      "label": "出力抑制を行う最初の行数指定",
-      "optional": true
+      "label": "計算対象外とする先頭のレコード数",
+      "optional": true,
+      "description": "●デフォルトでは、グループ先頭の期間数に満たないレコードは、除外される\n●除外行数を指定すると、不足の値はNULL扱いで計算した結果を出力する"
     },
     {
       "name": "n",
