@@ -17,18 +17,12 @@
       ]
     },
     {
-      "name": "group5",
-      "label": "項目名・項目番号についての設定（省略可）",
-      "params": [
-        "x",
-        "nfn",
-        "nfno"
-      ]
-    },
-    {
       "name": "group6",
       "label": "その他（省略可）",
       "params": [
+        "nfn",
+        "nfno",
+        "x",
         "precision"
       ]
     },
@@ -61,7 +55,7 @@
       "name": "factlist",
       "type": "list",
       "label": "計算対象の設定",
-      "description": "【対象項目】項目名時:*,？,[...] 使用可\n\t項目番号時:0−3,5,0L 等使用可\n【統計量】カンマ区切りで統計量指定可。\n\t指定可能統計量:sum, mean, devsq, var, uvar, sd, usd, cv, min, max, range, skew, uskew, kurt, ukurt\n【期間数】データ件数で指定する。１以上の整数をカンマ区切りで複数指定可\n【結果項目名】&:元の項目を表す記号\n\t%:統計量を表わす記号\n\t#:期間数を表わす記号",
+      "description": "【対象項目】項目名時:*,？,[...] 使用可\n【統計量】カンマ区切りで統計量指定可。\n\t指定可能統計量:sum, mean, devsq, var, uvar, sd, usd, cv, min, max, range, skew, uskew, kurt, ukurt\n【期間数】データ件数で指定する。１以上の整数をカンマ区切りで複数指定可\n【結果項目名】&:元の項目を表す記号\n\t%:統計量を表わす記号\n\t#:期間数を表わす記号",
       "elements": [
         {
           "name": "f",
@@ -88,8 +82,8 @@
         {
           "f": "",
           "c": "",
-          "t": "",
-          "a": ""
+          "t": "2",
+          "a": "&_%_#"
         }
       ]
     },
@@ -104,8 +98,9 @@
     {
       "name": "x",
       "type": "boolean",
-      "label": "項目番号による指定",
-      "optional": true
+      "label": "項目名ではなく、項目番号で指定する",
+      "optional": true,
+      "description": "●0始まりの項目番号で指定する\n●Lをつけると、右端起点の項目番号とみなす(例:3L)\n●複数入力可能なOptの場合は、列範囲としての指定も可能(例: 0-5)"
     },
     {
       "name": "nfn",
