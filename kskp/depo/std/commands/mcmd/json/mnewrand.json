@@ -28,8 +28,9 @@
     {
       "name": "S",
       "type": "string",
-      "label": "乱数のシード",
-      "optional": true
+      "label": "乱数のシード値",
+      "optional": true,
+      "description": "同じ乱数系列を発生させたい場合に指定する\nデフォルトは時刻値なので、実行の都度変化する"
     },
     {
       "name": "l",
