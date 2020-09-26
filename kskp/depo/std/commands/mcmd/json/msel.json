@@ -4,16 +4,18 @@
     {
       "name": "group1",
       "label": "条件式の設定（必須）",
+      "description": "条件式に一致する行を o に、それ以外を u　に出力する",
       "params": [
-        "c"
+        "c",
+        "r"
       ]
     },
     {
-      "name": "group3",
-      "label": "項目名・項目番号についての設定（省略可）",
+      "name": "cmd_sub",
+      "label": "その他（省略可)",
       "params": [
-        "x",
         "nfn",
+        "x",
         "nfno"
       ]
     },
@@ -22,8 +24,7 @@
       "label": "システム管理用設定（作業領域・ログ出力）",
       "params": [
         "tmpPath",
-        "assert_diffSize",
-        "r"
+        "assert_diffSize"
       ]
     }
   ],
@@ -38,13 +39,13 @@
     {
       "name": "c",
       "type": "string",
-      "label": "絞込条件式",
+      "label": "条件式(必須)",
       "description": "●マッチした行は o に、それ以外は u に出力する\n●項目の値、数値、文字列、時刻に対する演算子と関数が100種以上とif文による制御を組み合わせた計算が可能\n●値の参照\n  ${項目名}で当行参照、#{項目名}で前行参照が可能\n●型の指定\n  数値：${}, 文字列:$s{}, 時刻:$t{}, 日付:$d{}, 論理:$b{}"
     },
     {
       "name": "r",
       "type": "boolean",
-      "label": "条件反転",
+      "label": "条件反転(マッチしなかった行を o に出力する)",
       "optional": true
     },
     {
@@ -68,8 +69,9 @@
     {
       "name": "x",
       "type": "boolean",
-      "label": "項目番号による指定",
-      "optional": true
+      "label": "項目名ではなく、項目番号で指定する",
+      "optional": true,
+      "description": "●0始まりの項目番号で指定する\n●Lをつけると、右端起点の項目番号とみなす(例:3L)\n●複数入力可能なOptの場合は、列範囲としての指定も可能(例: 0-5)"
     },
     {
       "name": "tmpPath",
