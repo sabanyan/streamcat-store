@@ -52,7 +52,8 @@
     {
       "name": "f",
       "type": "string",
-      "label": "対象列名(必須)"
+      "label": "対象とする項目名 (必須)",
+      "description": "●カンマ区切りで複数指定可\n●ワイルドカード(*,？ )使用可"
     },
     {
       "name": "k",
@@ -64,26 +65,29 @@
     {
       "name": "F",
       "type": "boolean",
-      "label": "項目間 AND 条件",
+      "label": "対象とする項目全てにNULLがある行のみ削除する",
       "optional": true
     },
     {
       "name": "r",
       "type": "boolean",
-      "label": "条件反転、削除ではなく選択",
+      "label": "条件反転 (削除対象を o に出力する)",
       "optional": true
     },
     {
       "name": "R",
       "type": "boolean",
-      "label": "レコード間 AND 条件",
-      "optional": true
+      "label": "レコードではなく、グループ単位で判定する",
+      "optional": true,
+      "description": "グループ内の全てのレコードが条件にあてはまる場合のみ、削除する"
     },
     {
       "name": "bufcount",
       "type": "string",
-      "label": "バッファの数",
-      "optional": true
+      "label": "バッファのブロック数",
+      "optional": true,
+      "description": "デフォルト:10 (40MB)",
+      "default": "10"
     },
     {
       "name": "assert_diffSize",
@@ -162,29 +166,30 @@
     },
     {
       "name": "cmd_main",
-      "label": "行削除の設定",
+      "label": "NULL行削除の設定",
+      "description": "削除条件を設定し、マッチした行を u に、それ以外を o に出力する",
       "params": [
-        "f",
+        "f"
+      ]
+    },
+    {
+      "name": "cmd_main_2",
+      "label": "削除条件の設定",
+      "params": [
         "F",
-        "bufcount"
+        "R",
+        "r"
       ]
     },
     {
       "name": "cmd_sub",
       "label": "その他 (省略可)",
       "params": [
-        "r",
-        "R",
+        "q",
         "nfn",
-        "q"
-      ]
-    },
-    {
-      "name": "fields",
-      "label": "項目名・項目番号についての設定（省略可）",
-      "params": [
         "nfno",
-        "x"
+        "x",
+        "bufcount"
       ]
     },
     {
