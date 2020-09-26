@@ -1,4 +1,5 @@
 from typing import Union
+from sqlalchemy.orm.exc import NoResultFound
 from kskp.core import Datum
 from kskp.store.folder import Folder
 from kskp.store.trashcan import TrashCan
@@ -166,7 +167,6 @@ class DatumFactory():
         """
         指定されたidを持つDatumを取得する
         """
-        from kskp.store import NoResultFound
         query = self._session.query(Datum).filter(Datum.id==id)
 
         if type is not None:
@@ -186,7 +186,6 @@ class DatumFactory():
         指定されたuuidを持つDatumを取得する
         """
         # UUID値の形式チェックをする
-        from kskp.store import NoResultFound
         Datum.valid_uuid_or_raise(uuid)
 
         query = self._session.query(Datum).filter(Datum.uuid==uuid)
@@ -645,15 +644,21 @@ class UserFactory():
     def find_by_uuid(self, uuid) -> User:
         # UUID値の形式チェックをする
         Datum.valid_uuid_or_raise(uuid)
-        user = self._session.query(User).filter(User.uuid==uuid).one()
-        return user
+        # 結果が1件以外の場合はNoResultFoundが送出される
+        try:
+            return self._session.query(User).filter(User.uuid==uuid).one()
+        except NoResultFound:
+            raise Exception(f'指定したUser({uuid})は存在しませんでした')
 
     def find_by_email(self, email) -> User:
         """
         指定されたuuidを持つUserを取得する
         """
-        user = self._session.query(User).filter(User.email==email).one()
-        return user
+        # 結果が1件以外の場合はNoResultFoundが送出される
+        try:
+            return self._session.query(User).filter(User.email==email).one()
+        except NoResultFound:
+            raise Exception(f'指定したUser({email})は存在しませんでした')
 
     def find_by_keyword(self, keyword):
         """

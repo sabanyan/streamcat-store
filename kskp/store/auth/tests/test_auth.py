@@ -216,7 +216,7 @@ class AuthTest(TestCaseBase):
         # 新規ユーザを削除する
         new_user.delete()
         # 削除後のユーザは取得できない
-        with self.assertRaises(NoResultFound):
+        with self.assertRaises(Exception):
             self.factory.user.find_by_email('test-man@kskp.io')
 
     def test_create_user_by_user(self):

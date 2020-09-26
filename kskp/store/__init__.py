@@ -99,7 +99,7 @@ from ..depo.std.commands import CommandLink, CommandsPathLink, CommandsPathFileS
 
 # factory.data.find_by_uuid()等で参照しているので、
 # 管理者ユーザの作成等の処理の前に記述する必要がある
-from sqlalchemy.orm.exc import NoResultFound
+# from sqlalchemy.orm.exc import NoResultFound
 
 
 # テーブルを作成する
