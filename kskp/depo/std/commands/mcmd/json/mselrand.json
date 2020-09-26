@@ -50,12 +50,15 @@
     {
       "name": "c",
       "type": "string",
-      "label": "各キーの値毎に選択する行数(pとどちらか必須)"
+      "label": "抽出するレコード数",
+      "description": "0以上の整数で指定する",
+      "default": "1"
     },
     {
       "name": "p",
       "type": "string",
-      "label": "各キーを選択する割合をパーセンテージで指定(cとどちらか必須)"
+      "label": "抽出率(％)",
+      "description": "0から100の値で指定する"
     },
     {
       "name": "k",
@@ -67,14 +70,16 @@
     {
       "name": "S",
       "type": "string",
-      "label": "乱数のシード",
-      "optional": true
+      "label": "乱数のシード値",
+      "optional": true,
+      "description": "同じ乱数系列を発生させたい場合に指定する\nデフォルトは時刻値なので、実行の都度変化する"
     },
     {
       "name": "B",
       "type": "boolean",
-      "label": "キー単位選択",
-      "optional": true
+      "label": "レコードではなく、グループを選択する",
+      "optional": true,
+      "description": "選択されたグループのレコードが、全て o に出力される"
     },
     {
       "name": "assert_diffSize",
@@ -85,7 +90,7 @@
     {
       "name": "assert_nullkey",
       "type": "boolean",
-      "label": "キー項目にNULL値が含まれているかどうかのチェックを行う",
+      "label": "グループ化する項目にNULL値が含まれているかどうかのチェックを行う",
       "optional": true
     },
     {
@@ -153,27 +158,22 @@
     },
     {
       "name": "cmd_main",
-      "label": "行選択の設定",
+      "label": "ランダム抽出の設定(必須)",
+      "description": "グループごとに、ランダムに抽出する\n抽出されたレコードは o に、それ以外は u　に出力される\n抽出量は、レコード数または比率で指定する",
       "params": [
-        "c"
+        "c",
+        "p",
+        "B",
+        "S"
       ]
     },
     {
       "name": "cmd_sub",
       "label": "その他 (省略可)",
       "params": [
-        "S",
-        "p",
-        "B",
-        "nfn",
-        "q"
-      ]
-    },
-    {
-      "name": "fields",
-      "label": "項目名・項目番号についての設定（省略可）",
-      "params": [
+        "q",
         "nfno",
+        "nfn",
         "x"
       ]
     },
