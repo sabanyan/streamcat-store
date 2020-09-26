@@ -93,33 +93,33 @@
     {
       "name": "observe",
       "type": "string",
-      "label": "観測値の開始行",
+      "label": "観測値の開始行(必須)",
       "description": "1始まりの行番号で指定する"
     },
     {
       "name": "except_chr",
       "type": "string",
-      "label": "不要行範囲の開始条件：正規表現で指定"
+      "label": "正規表現で指定"
     },
     {
       "name": "except_end_chr",
       "type": "string",
-      "label": "不要行範囲の終了条件：正規表現で指定"
+      "label": "正規表現で指定"
     },
     {
       "name": "except_end_range",
       "type": "string",
-      "label": "不要行範囲の終了条件：開始条件からの行数で指定"
+      "label": "開始からの行数"
     },
     {
       "name": "except_null",
       "type": "boolean",
-      "label": "不要業範囲の開始条件: 空の行"
+      "label": "空の行で終了する"
     },
     {
       "name": "except_end_null",
       "type": "boolean",
-      "label": "不要行範囲の終了条件：空の行"
+      "label": "空の行で開始する"
     }
   ],
   "ports": [
@@ -151,13 +151,27 @@
       ]
     },
     {
+      "name": "cmd_sub",
+      "label": "除外範囲の設定(省略可)",
+      "description": "開始と終了の行条件に合う範囲を除外します。マッチする範囲が複数回ある場合は、全て除外されます。",
+      "params": []
+    },
+    {
       "name": "cmd_sub1",
-      "label": "不要行範囲の設定(省略可)",
+      "label": "開始条件",
+      "description": "正規表現または空の行、どちらかで指定してください",
       "params": [
         "except_chr",
-        "except_end_chr",
+        "except_null"
+      ]
+    },
+    {
+      "name": "cmd_sub２",
+      "label": "終了条件",
+      "description": "開始からの行数、正規表現または空の行、いずれか１つで指定してください",
+      "params": [
         "except_end_range",
-        "except_null",
+        "except_end_chr",
         "except_end_null"
       ]
     },
