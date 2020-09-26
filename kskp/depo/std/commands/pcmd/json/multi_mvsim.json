@@ -11,25 +11,20 @@
     },
     {
       "name": "group3",
-      "label": "計算対象と結果の項目設定（必須）",
+      "label": "移動窓と類似度計算の設定(必須）",
+      "description": "類似度計算の設定を、対象項目1,2と類似度名で行う\n移動窓は、期間数で幅を設定する",
       "params": [
-        "a",
-        "fctlist"
-      ]
-    },
-    {
-      "name": "group5",
-      "label": "項目名・項目番号についての設定（省略可）",
-      "params": [
-        "x",
-        "nfn",
-        "nfno"
+        "fctlist",
+        "a"
       ]
     },
     {
       "name": "group6",
       "label": "その他（省略可）",
       "params": [
+        "nfn",
+        "nfno",
+        "x",
         "precision"
       ]
     },
@@ -62,25 +57,25 @@
     {
       "name": "a",
       "type": "string",
-      "label": "結果項目名",
-      "description": "&:元の二つの項目名を表す記号\n%:類似度名を表わす記号\n#:期間数を表わす記号",
+      "label": "結果の項目名の書式設定 (省略可)",
+      "description": "【記号】&:元の二つの項目名,  %:類似度名,   #:期間数",
       "default": "&_%_#"
     },
     {
       "name": "fctlist",
       "type": "list",
-      "label": "計算対象の設定",
-      "description": "【対象項目】項目名時:*,？,[...] 使用可\n\t項目番号時:0−3,5,0L 等使用可\n【類似度名】カンマ区切りで統計量指定可。\n\t指定可能類似度名:covar, ucovar, pearson, spearman, kendall, euclid, cosine, cityblock, hamming, chi, phi, jaccard, support, lift\n【対象行数】データ件数で指定する。１以上の整数をカンマ区切りで複数指定可",
+      "label": "移動窓と類似度計算の設定(必須)",
+      "description": "【対象項目1,2】 項目名を、それぞれ1つ指定可\n【類似度名】カンマ区切りで複数指定可\n\t類似度名:covar, ucovar, pearson, spearman, kendall, euclid, cosine, cityblock, hamming, chi, phi, jaccard, support, lift\n【期間数】 カンマ区切りで複数指定可。1以上の整数で指定する",
       "elements": [
         {
           "name": "f1",
           "type": "string",
-          "label": "対象項目"
+          "label": "対象項目1"
         },
         {
           "name": "f2",
           "type": "string",
-          "label": "対象項目"
+          "label": "対象項目2"
         },
         {
           "name": "c",
@@ -90,7 +85,7 @@
         {
           "name": "t",
           "type": "string",
-          "label": "対象行数"
+          "label": "期間数"
         }
       ],
       "default": [
@@ -98,7 +93,7 @@
           "f1": "",
           "f2": "",
           "c": "",
-          "t": ""
+          "t": "2"
         }
       ]
     },
@@ -113,8 +108,9 @@
     {
       "name": "x",
       "type": "boolean",
-      "label": "項目番号による指定",
-      "optional": true
+      "label": "項目名ではなく、項目番号で指定する",
+      "optional": true,
+      "description": "●0始まりの項目番号で指定する\n●Lをつけると、右端起点の項目番号とみなす(例:3L)\n●複数入力可能なOptの場合は、列範囲としての指定も可能(例: 0-5)"
     },
     {
       "name": "nfn",
@@ -143,7 +139,7 @@
     {
       "name": "assert_nullin",
       "type": "boolean",
-      "label": "入力項目のf=で指定された項目のNULL値チェックを行う",
+      "label": "対象項目で指定された項目のNULL値チェックを行う",
       "optional": true
     },
     {

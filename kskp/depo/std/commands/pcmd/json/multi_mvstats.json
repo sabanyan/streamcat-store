@@ -11,7 +11,8 @@
     },
     {
       "name": "group3",
-      "label": "計算対象と結果の項目設定（必須）",
+      "label": "移動窓の統計量の計算の設定(必須)",
+      "description": "統計量の計算は、対象項目と、統計量で設定する\n移動窓は、期間数で窓の幅を設定する",
       "params": [
         "factlist"
       ]
@@ -54,8 +55,8 @@
     {
       "name": "factlist",
       "type": "list",
-      "label": "計算対象の設定",
-      "description": "【対象項目】項目名時:*,？,[...] 使用可\n【統計量】カンマ区切りで統計量指定可。\n\t指定可能統計量:sum, mean, devsq, var, uvar, sd, usd, cv, min, max, range, skew, uskew, kurt, ukurt\n【期間数】データ件数で指定する。１以上の整数をカンマ区切りで複数指定可\n【結果項目名】&:元の項目を表す記号\n\t%:統計量を表わす記号\n\t#:期間数を表わす記号",
+      "label": "統計量の計算と結果の項目名の設定",
+      "description": "【対象項目】項目名時:*,？,[...] 使用可\n【統計量】カンマ区切りで複数指定可\n\t指定可能統計量:sum, mean, devsq, var, uvar, sd, usd, cv, min, max, range, skew, uskew, kurt, ukurt\n【期間数】 カンマ区切りで複数指定可. 1以上の整数で設定する\n【結果項目名】記号を組合せて書式を設定する\n     (記号) &:元の二つの項目名,  %:類似度名,   #:期間数",
       "elements": [
         {
           "name": "f",
@@ -129,7 +130,7 @@
     {
       "name": "assert_nullin",
       "type": "boolean",
-      "label": "入力項目のf=で指定された項目のNULL値チェックを行う",
+      "label": "対象項目で指定された項目のNULL値チェックを行う",
       "optional": true
     },
     {
