@@ -24,12 +24,12 @@
       ]
     },
     {
-      "name": "group10",
-      "label": "項目名・項目番号についての設定（省略可）",
+      "name": "cmd_sub",
+      "label": "その他（省略可）",
       "params": [
-        "x",
         "nfn",
-        "nfno"
+        "nfno",
+        "x"
       ]
     },
     {
@@ -90,13 +90,13 @@
     {
       "name": "a",
       "type": "string",
-      "label": "追加する項目名リスト(必須)",
-      "description": "カンマ区切りで指定する"
+      "label": "追加する項目名(必須)",
+      "description": "複数ある場合はカンマ区切りで指定する\n追加項目数より要素のほうが多い場合は、超過要素は出力されない"
     },
     {
       "name": "r",
       "type": "boolean",
-      "label": "分割前の項目は削除して出力する",
+      "label": "分割前の項目を削除する",
       "optional": true
     },
     {
