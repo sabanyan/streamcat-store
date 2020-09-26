@@ -43,7 +43,8 @@
     {
       "name": "f",
       "type": "string",
-      "label": "指定列の値の回数分の複写を実行(nとどちらか必須)"
+      "label": "複写回数の項目名",
+      "description": "レコードごとに複写回数を変えることが可能"
     },
     {
       "name": "n",
@@ -111,6 +112,7 @@
       "name": "cmd_main",
       "label": "複写の設定",
       "params": [
+        "n",
         "f"
       ]
     },
@@ -118,7 +120,6 @@
       "name": "cmd_sub",
       "label": "その他 (省略可)",
       "params": [
-        "n",
         "nfn"
       ]
     },

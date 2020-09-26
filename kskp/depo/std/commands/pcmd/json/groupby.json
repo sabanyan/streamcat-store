@@ -10,7 +10,8 @@
     {
       "name": "f",
       "type": "string",
-      "label": "同じ統計量計算を行う対象とする列範囲の指定、入力データの列名をカンマ区切りで与える（必須）"
+      "label": "対象とする項目名 (必須)",
+      "description": "●カンマ区切りで複数指定可\n●ワイルドカード(*,？ )使用可"
     },
     {
       "name": "c",
@@ -20,8 +21,9 @@
     {
       "name": "delimiter",
       "type": "string",
-      "label": "センサー名と特徴量名との区切り文字、省略時は _",
-      "optional": true
+      "label": "結合の区切り文字の設定",
+      "optional": true,
+      "description": "省略時は_(アンダーバー)"
     },
     {
       "name": "q",
@@ -39,8 +41,9 @@
     {
       "name": "prefix",
       "type": "boolean",
-      "label": "センサー名と特徴量名との連結方法を接頭辞型にする。 省略時は接尾型",
-      "optional": true
+      "label": "統計量名, 対象項目名の順で結合する",
+      "optional": true,
+      "description": "省略時は、対象項目名,特徴量名の順になる"
     },
     {
       "name": "precision",
@@ -86,20 +89,21 @@
       ]
     },
     {
-      "name": "cmd_sub",
-      "label": "その他 (省略可)",
+      "name": "cmd_sub1",
+      "label": "出力データの項目名の書式設定(省略可)",
+      "description": "対象項目名と統計量を結合して作られる、出力データの項目名の書式を設定する",
       "params": [
         "delimiter",
-        "q",
-        "prefix",
-        "precision"
+        "prefix"
       ]
     },
     {
-      "name": "fields",
-      "label": "項目名・項目番号についての設定（省略可）",
+      "name": "cmd_sub",
+      "label": "その他 (省略可)",
       "params": [
-        "nfno"
+        "nfno",
+        "q",
+        "precision"
       ]
     }
   ]
