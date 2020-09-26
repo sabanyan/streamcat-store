@@ -113,20 +113,21 @@
     {
       "name": "t",
       "type": "string",
-      "label": "期間数の指定",
+      "label": "期間数",
       "optional": true,
-      "description": "●行数で指定する\n●カンマ区切りで複数指定が可能"
+      "description": "1以上の整数で指定する",
+      "default": "2"
     },
     {
       "name": "exp",
       "type": "boolean",
-      "label": "指数平滑移動平均を求める。",
+      "label": "単純移動平均ではなく、指数平滑移動平均を求める",
       "optional": true
     },
     {
       "name": "w",
       "type": "boolean",
-      "label": "線形加重移動平均を求める。",
+      "label": "単純移動平均ではなく、線形加重移動平均を求める",
       "optional": true
     },
     {
@@ -134,14 +135,14 @@
       "type": "string",
       "label": "指数平滑移動平均の平滑化係数 ",
       "optional": true,
-      "description": "●0-1の実数で指定する\n●デフォルト値:  2 ÷ ( 期間数の指定値 + 1)"
+      "description": "●デフォルト値は 2 / (期間数の指定値 + 1) \n●指定時は、0-1の値で指定する\n●指定した値は、期間数の指定より優先で使用される"
     },
     {
       "name": "skip",
       "type": "string",
-      "label": "出力対象外とする先頭の行数",
+      "label": "先頭の計算対象外のレコード数",
       "optional": true,
-      "description": "●デフォルトでは、対象値が期間数未満で計算できなかった行は除外される\n●必要な場合には、任意の行数を設定することで出力することも可能\n   (不足の対象値は、NULL扱いで計算される)"
+      "description": "●デフォルトでは、グループ先頭の期間数に満たないレコードは、除外される\n●除外行数を指定すると、不足の値はNULL扱いで計算した結果を出力する"
     },
     {
       "name": "assert_diffSize",
@@ -229,31 +230,37 @@
     },
     {
       "name": "cmd_main",
-      "label": "計算の設定",
+      "label": "移動平均の計算の設定(必須)",
+      "description": "対象 とする項目名、移動窓および計算方法の設定を行う\n移動窓は、期間数で幅を設定する",
+      "params": []
+    },
+    {
+      "name": "cmd_main_1",
+      "label": "計算対象と移動窓の設定(必須)",
       "params": [
         "f",
-        "t",
-        "skip"
+        "t"
+      ]
+    },
+    {
+      "name": "cmd_main_2",
+      "label": "計算方法の設定(省略可)",
+      "params": [
+        "w",
+        "exp",
+        "alpha",
+        "skip",
+        "n"
       ]
     },
     {
       "name": "cmd_sub",
       "label": "その他 (省略可)",
       "params": [
-        "n",
-        "exp",
-        "w",
-        "alpha",
         "nfn",
-        "q"
-      ]
-    },
-    {
-      "name": "fields",
-      "label": "項目名・項目番号についての設定（省略可）",
-      "params": [
         "nfno",
-        "x"
+        "x",
+        "q"
       ]
     },
     {
