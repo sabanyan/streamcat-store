@@ -57,7 +57,8 @@
     {
       "name": "f",
       "type": "string",
-      "label": "対象とする項目名　および　新規項目名(必須)"
+      "label": "対象とする項目名と変換後の項目名(必須)",
+      "description": "対象とする項目名と変換後の項目名を:区切りで指定する"
     },
     {
       "name": "s",
@@ -78,12 +79,12 @@
       "type": "string",
       "label": "区切り文字の設定",
       "optional": true,
-      "description": "指定のない場合は、半角スペースが区切り文字とみなされる"
+      "description": "指定のない場合は、半角スペースを区切り文字を使用する"
     },
     {
       "name": "r",
       "type": "boolean",
-      "label": "ベクトル形式から逆変換する",
+      "label": "変換時とは逆に、ベクトル要素を行方向に展開する",
       "optional": true
     },
     {
@@ -164,7 +165,7 @@
   "groups": [
     {
       "name": "grouping",
-      "label": "変換キーの設定",
+      "label": "変換キーの設定(省略可)",
       "params": [
         "k",
         "s"
@@ -172,7 +173,8 @@
     },
     {
       "name": "cmd_main",
-      "label": "変換の設定",
+      "label": "ベクトルへの変換の設定(必須)",
+      "description": "対象とする項目名をベクトル形式へ変換する",
       "params": [
         "f",
         "delim",
