@@ -52,7 +52,7 @@
     {
       "name": "f",
       "type": "string",
-      "label": "連続パディング対象列名(必須)"
+      "label": "補完対象の項目名(必須)"
     },
     {
       "name": "v",
@@ -166,26 +166,20 @@
       "label": "行補完の設定",
       "params": [
         "f",
-        "v"
+        "S",
+        "E",
+        "v",
+        "n"
       ]
     },
     {
       "name": "cmd_sub",
       "label": "その他 (省略可)",
       "params": [
-        "S",
-        "E",
-        "n",
+        "q",
+        "x",
         "nfn",
-        "q"
-      ]
-    },
-    {
-      "name": "fields",
-      "label": "項目名・項目番号についての設定（省略可）",
-      "params": [
-        "nfno",
-        "x"
+        "nfno"
       ]
     },
     {

@@ -57,7 +57,7 @@
     {
       "name": "f",
       "type": "string",
-      "label": "連結前列名:連結後列名(必須)"
+      "label": "対象とする項目名　および　新規項目名(必須)"
     },
     {
       "name": "s",
@@ -76,13 +76,14 @@
     {
       "name": "delim",
       "type": "string",
-      "label": "ここで指定した文字を区切り文字とする(省略時はスペース)。",
-      "optional": true
+      "label": "区切り文字の設定",
+      "optional": true,
+      "description": "指定のない場合は、半角スペースが区切り文字とみなされる"
     },
     {
       "name": "r",
       "type": "boolean",
-      "label": "トランザクション項目を縦型データに変換する。",
+      "label": "ベクトル形式から逆変換する",
       "optional": true
     },
     {
@@ -171,27 +172,21 @@
     },
     {
       "name": "cmd_main",
-      "label": "変換対象の設定",
+      "label": "変換の設定",
       "params": [
-        "f"
+        "f",
+        "delim",
+        "r"
       ]
     },
     {
       "name": "cmd_sub",
       "label": "その他 (省略可)",
       "params": [
-        "delim",
-        "r",
+        "q",
+        "x",
         "nfn",
-        "q"
-      ]
-    },
-    {
-      "name": "fields",
-      "label": "項目名・項目番号についての設定（省略可）",
-      "params": [
-        "nfno",
-        "x"
+        "nfno"
       ]
     },
     {
