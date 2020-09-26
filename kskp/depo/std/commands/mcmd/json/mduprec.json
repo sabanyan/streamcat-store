@@ -44,12 +44,14 @@
       "name": "f",
       "type": "string",
       "label": "複写回数の項目名",
-      "description": "レコードごとに複写回数を変えることが可能"
+      "description": "指定した項目の値をもとに、複写する\nレコードごとに複写回数を変えることも可能"
     },
     {
       "name": "n",
       "type": "string",
-      "label": "各行の複写回数(fとどちらか必須)"
+      "label": "複写回数",
+      "description": "1以上の整数で指定する",
+      "default": "2"
     },
     {
       "name": "assert_diffSize",
@@ -60,7 +62,7 @@
     {
       "name": "assert_nullin",
       "type": "boolean",
-      "label": "入力項目の f=または vf=で指定された項目の NULL 値チェックを行う",
+      "label": "複写回数の項目名で指定された項目の NULL 値チェックを行う",
       "optional": true
     },
     {
@@ -78,8 +80,9 @@
     {
       "name": "x",
       "type": "boolean",
-      "label": "項目番号による指定",
-      "optional": true
+      "label": "項目名ではなく、項目番号で指定する",
+      "optional": true,
+      "description": "●0始まりの項目番号で指定する\n●Lをつけると、右端起点の項目番号とみなす(例:3L)\n●複数入力可能なOptの場合は、列範囲としての指定も可能(例: 0-5)"
     },
     {
       "name": "tmpPath",
@@ -110,7 +113,8 @@
   "groups": [
     {
       "name": "cmd_main",
-      "label": "複写の設定",
+      "label": "複写回数の設定(必須)",
+      "description": "複写回数か、複写回数の項目名のどちらかを選択する",
       "params": [
         "n",
         "f"
@@ -120,13 +124,7 @@
       "name": "cmd_sub",
       "label": "その他 (省略可)",
       "params": [
-        "nfn"
-      ]
-    },
-    {
-      "name": "fields",
-      "label": "項目名・項目番号についての設定（省略可）",
-      "params": [
+        "nfn",
         "nfno",
         "x"
       ]
