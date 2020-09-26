@@ -42,34 +42,38 @@
     {
       "name": "c",
       "type": "string",
-      "label": "変換パターン(必須)"
+      "label": "マッチ条件(必須)",
+      "description": "正規表現で指定する"
     },
     {
       "name": "f",
       "type": "string",
-      "label": "対象列名(必須)"
+      "label": "対象とする項目名 (必須)",
+      "description": "●カンマ区切りで複数指定可\n●ワイルドカード(*,？ )使用可"
     },
     {
       "name": "v",
       "type": "string",
-      "label": "変換後文字列(必須)"
+      "label": "置換文字列(必須)",
+      "description": "●マッチ結果の置換: 文字列で指定する\n●マッチ結果を用いた置換: 　文字列と置換記号を組み合わせて指定する\n　(置換記号)$&: マッチした文字列, $‘: マッチ文字列の前方の文字列, $’: マッチ文字列の後方の文字列, $N: N番目の部分マッチ文字列"
     },
     {
       "name": "A",
       "type": "boolean",
-      "label": "指定した項目を置き換えるのではなく、 新たに項目が追加される。",
-      "optional": true
+      "label": "置換した結果を、新しい項目に追加する",
+      "optional": true,
+      "description": "新しい列名は、対象とする項目名とセットで、:区切りで指定する"
     },
     {
       "name": "g",
       "type": "boolean",
-      "label": "正規表現にマッチする全ての部分文字列を置換対象とする。",
+      "label": "文字列の最初ではなく、全てのマッチ部分を置換する",
       "optional": true
     },
     {
       "name": "W",
       "type": "boolean",
-      "label": "ワイド文字として正規表現による文字列置換を行う。",
+      "label": "ワイド文字とみなしてマッチと置換を行う",
       "optional": true
     },
     {
@@ -81,7 +85,7 @@
     {
       "name": "assert_nullin",
       "type": "boolean",
-      "label": "入力項目のf=またはvf=で指定された項目のNULL値チェックを行う",
+      "label": "対象とする項目名で指定された項目のNULL値チェックを行う",
       "optional": true
     },
     {
@@ -137,29 +141,30 @@
   "groups": [
     {
       "name": "cmd_main",
-      "label": "置換の設定",
+      "label": "置換対象の設定",
+      "params": [
+        "f",
+        "A"
+      ]
+    },
+    {
+      "name": "cmd_main_1",
+      "label": "マッチと置換の設定",
+      "description": "マッチ結果の置換と、マッチ結果を用いたより高度な置換が可能",
       "params": [
         "c",
-        "f",
         "v",
-        "A"
+        "g",
+        "W"
       ]
     },
     {
       "name": "cmd_sub",
       "label": "その他 (省略可)",
       "params": [
-        "g",
-        "W",
-        "nfn"
-      ]
-    },
-    {
-      "name": "fields",
-      "label": "項目名・項目番号についての設定（省略可）",
-      "params": [
         "nfno",
-        "x"
+        "x",
+        "nfn"
       ]
     },
     {
