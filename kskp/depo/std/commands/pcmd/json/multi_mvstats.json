@@ -56,7 +56,7 @@
       "name": "factlist",
       "type": "list",
       "label": "統計量の計算と結果の項目名の設定",
-      "description": "【対象項目】項目名時:*,？,[...] 使用可\n【統計量】カンマ区切りで複数指定可\n\t指定可能統計量:sum, mean, devsq, var, uvar, sd, usd, cv, min, max, range, skew, uskew, kurt, ukurt\n【期間数】 カンマ区切りで複数指定可. 1以上の整数で設定する\n【結果項目名】記号を組合せて書式を設定する\n     (記号) &:元の二つの項目名,  %:類似度名,   #:期間数",
+      "description": "【対象項目】項目名時:*,？,[...] 使用可\n【統計量】カンマ区切りで複数指定可\n\t指定可能統計量:sum, mean, devsq, var, uvar, sd, usd, cv, min, max, range, skew, uskew, kurt, ukurt\n【期間数】 カンマ区切りで複数指定可. 1以上の整数で設定する\n【結果項目】記号を組合せて書式を設定する\n     (記号) &:元の二つの項目名,  %:類似度名,   #:期間数",
       "elements": [
         {
           "name": "f",
@@ -76,7 +76,7 @@
         {
           "name": "a",
           "type": "string",
-          "label": "結果項目名"
+          "label": "結果項目"
         }
       ],
       "default": [

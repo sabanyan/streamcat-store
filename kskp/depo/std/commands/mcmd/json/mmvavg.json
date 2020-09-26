@@ -100,7 +100,7 @@
     {
       "name": "n",
       "type": "boolean",
-      "label": "NULL のある期間は計算しない",
+      "label": "NULL の含まれる期間の結果は、NULLとする",
       "optional": true,
       "description": "その期間の値は、NULLとして出力される"
     },
@@ -132,7 +132,7 @@
     {
       "name": "alpha",
       "type": "string",
-      "label": "平滑化係数 (指数平滑化指定時のみ)",
+      "label": "指数平滑移動平均の平滑化係数 ",
       "optional": true,
       "description": "●0-1の実数で指定する\n●デフォルト値:  2 ÷ ( 期間数の指定値 + 1)"
     },
@@ -141,7 +141,7 @@
       "type": "string",
       "label": "出力対象外とする先頭の行数",
       "optional": true,
-      "description": "●デフォルトでは、対象値が期間数未満で計算できなかった行は除外される\n●必要な場合には、任意の行数を設定することで出力することも可能\n   (不足の対象値は、NULLとして扱い、計算される)"
+      "description": "●デフォルトでは、対象値が期間数未満で計算できなかった行は除外される\n●必要な場合には、任意の行数を設定することで出力することも可能\n   (不足の対象値は、NULL扱いで計算される)"
     },
     {
       "name": "assert_diffSize",
