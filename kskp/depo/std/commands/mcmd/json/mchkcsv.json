@@ -4,19 +4,21 @@
     {
       "name": "a",
       "type": "string",
-      "label": "入力データの項目名を無視し、ここで指定した項目名を出力",
-      "optional": true
+      "label": "新しい項目名に置き換える",
+      "optional": true,
+      "description": "入力データの項目名数と同じ数を、カンマ区切りで指定する"
     },
     {
       "name": "diag",
       "type": "boolean",
-      "label": "チェックのみ実行する。",
-      "optional": true
+      "label": "検査レポートを出力する",
+      "optional": true,
+      "default": true
     },
     {
       "name": "r",
       "type": "boolean",
-      "label": "制御文字を無視",
+      "label": "制御文字を無視する",
       "optional": true
     },
     {
@@ -75,22 +77,16 @@
       "name": "cmd_main",
       "label": "検査の設定",
       "params": [
-        "a"
+        "diag",
+        "r"
       ]
     },
     {
       "name": "cmd_sub",
       "label": "その他 (省略可)",
       "params": [
-        "diag",
-        "r",
-        "nfn"
-      ]
-    },
-    {
-      "name": "fields",
-      "label": "項目名・項目番号についての設定（省略可）",
-      "params": [
+        "a",
+        "nfn",
         "nfno",
         "x"
       ]
