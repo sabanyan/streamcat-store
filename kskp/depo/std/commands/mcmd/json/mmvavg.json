@@ -101,8 +101,7 @@
       "name": "n",
       "type": "boolean",
       "label": "NULL の含まれる期間の結果は、NULLとする",
-      "optional": true,
-      "description": "その期間の値は、NULLとして出力される"
+      "optional": true
     },
     {
       "name": "f",
