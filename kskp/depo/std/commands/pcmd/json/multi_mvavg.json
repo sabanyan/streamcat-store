@@ -11,14 +11,15 @@
     },
     {
       "name": "group3",
-      "label": "計算対象と結果の項目設定（必須）",
+      "label": "対象項目と移動窓の設定（必須）",
+      "description": "移動平均の計算対象の項目と、移動窓の設定をする\n移動窓は、期間数で幅を設定する",
       "params": [
         "fatlist"
       ]
     },
     {
-      "name": "group4",
-      "label": "計算の共通設定（省略可）",
+      "name": "cmd_sub1",
+      "label": "移動平均計算の設定（省略可）",
       "params": [
         "type",
         "alpha",
@@ -26,18 +27,12 @@
       ]
     },
     {
-      "name": "group5",
-      "label": "項目名・項目番号についての設定（省略可）",
-      "params": [
-        "x",
-        "nfn",
-        "nfno"
-      ]
-    },
-    {
       "name": "group6",
       "label": "その他（省略可）",
       "params": [
+        "nfn",
+        "nfno",
+        "x",
         "precision"
       ]
     },
@@ -70,7 +65,7 @@
       "name": "fatlist",
       "type": "list",
       "label": "計算対象の設定",
-      "description": "【対象項目】項目名時:*,？,[...] 使用可\n\t項目番号時:0−3,5,0L 等使用可\n【期間数】データ件数で指定する。１以上の整数をカンマ区切りで複数指定可\n【結果項目】&:元の項目名を表す記号\n\t#:期間数を表わす記号",
+      "description": "【対象項目】項目名時:*,？,[...] 使用可\n【期間数】 カンマ区切りで複数指定可。1以上の整数で指定する\n【結果項目】記号を組合せて書式を設定する\n     (記号) &:元の項目名, #:期間数",
       "elements": [
         {
           "name": "f",
@@ -91,15 +86,15 @@
       "default": [
         {
           "f": "",
-          "t": "",
-          "a": ""
+          "t": "2",
+          "a": "&_%"
         }
       ]
     },
     {
       "name": "type",
       "type": "select",
-      "label": "移動平均手法の選択",
+      "label": "移動平均の計算手法",
       "options": {
         "labels": [
           "単純移動平均(SMA)",
@@ -117,8 +112,8 @@
     {
       "name": "alpha",
       "type": "string",
-      "label": "平滑化係数α",
-      "description": "指数平滑手法時、0~1の実数値、省略時は2/（期間数+1）",
+      "label": "指数平滑移動平均の平滑化係数 ",
+      "description": "●0-1の実数で指定する\n●デフォルト値:  2 ÷ ( 期間数の指定値 + 1)",
       "default": "",
       "optional": true
     },
@@ -133,14 +128,15 @@
     {
       "name": "n",
       "type": "boolean",
-      "label": "NULL 値が 1 つでも含まれていると結果も NULL 値とする",
+      "label": "NULL の含まれる期間の結果は、NULLとする",
       "optional": true
     },
     {
       "name": "x",
       "type": "boolean",
-      "label": "項目番号による指定",
-      "optional": true
+      "label": "項目名ではなく、項目番号で指定する",
+      "optional": true,
+      "description": "●0始まりの項目番号で指定する\n●Lをつけると、右端起点の項目番号とみなす(例:3L)\n●複数入力可能なOptの場合は、列範囲としての指定も可能(例: 0-5)"
     },
     {
       "name": "nfn",
