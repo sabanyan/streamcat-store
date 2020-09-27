@@ -65,23 +65,27 @@
     {
       "name": "a",
       "type": "string",
-      "label": "追加列名(必須)"
+      "label": "組合せの項目名(必須)",
+      "description": "要素の数と同数の項目名を、カンマ区切りで指定する"
     },
     {
       "name": "f",
       "type": "string",
-      "label": "組み合わせ列名(必須)"
+      "label": "対象とする項目名 (必須)",
+      "description": "要素を１つ指定する"
     },
     {
       "name": "n",
       "type": "string",
-      "label": "組み合わせ数(必須)"
+      "label": "組合せの要素数(必須)",
+      "description": "1以上の整数で指定する"
     },
     {
       "name": "s",
       "type": "string",
-      "label": "組み合わせ対象列",
-      "optional": true
+      "label": "グループ内ソートの設定",
+      "optional": true,
+      "description": "ソートのキー項目を、カンマ区切りで複数指定可\n●ソートの種類を指定可能　(デフォルト: 文字列昇順)\n 　方法: 項目名末尾に記号を付与 (数値昇順：%n,  文字列降順： %r,  数値降順：%nr)\n●注意 グループ化する項目名と同じ項目名があると、不整合になり、ソートされません"
     },
     {
       "name": "k",
@@ -99,7 +103,7 @@
     {
       "name": "dup",
       "type": "boolean",
-      "label": "同一の値の組み合せも出力する",
+      "label": "重複組合せを求める",
       "optional": true
     },
     {
@@ -111,7 +115,7 @@
     {
       "name": "assert_nullin",
       "type": "boolean",
-      "label": "入力項目のf=またはvf=で指定された項目のNULL値チェックを行う",
+      "label": "対象とする項目名で指定された項目のNULL値チェックを行う",
       "optional": true
     },
     {
@@ -168,43 +172,31 @@
   "groups": [
     {
       "name": "grouping",
-      "label": "グループの設定",
+      "label": "グループの設定(省略可)",
       "params": [
-        "k"
-      ]
-    },
-    {
-      "name": "sorting",
-      "label": "組み合わせの設定",
-      "params": [
+        "k",
         "s"
       ]
     },
     {
       "name": "cmd_main",
-      "label": "組合せの設定",
+      "label": "組合せの設定(必須)",
       "params": [
+        "f",
+        "n",
         "a",
-        "f"
+        "p",
+        "dup"
       ]
     },
     {
       "name": "cmd_sub",
       "label": "その他 (省略可)",
       "params": [
-        "n",
-        "p",
-        "dup",
         "nfn",
-        "q"
-      ]
-    },
-    {
-      "name": "fields",
-      "label": "項目名・項目番号についての設定（省略可）",
-      "params": [
         "nfno",
-        "x"
+        "x",
+        "q"
       ]
     },
     {
