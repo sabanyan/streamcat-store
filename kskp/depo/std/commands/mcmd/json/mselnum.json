@@ -3,47 +3,42 @@
   "groups": [
     {
       "name": "grouping",
-      "label": "グループの設定",
+      "label": "グループの設定(省略可)",
       "params": [
         "k"
       ]
     },
     {
-      "name": "group1",
-      "label": "グループ単位での行選択の設定 (省略可)",
+      "name": "cmd_main_2",
+      "label": "数値範囲による行選択の設定（必須）",
+      "description": "数値範囲の条件にマッチした行を o に、それ以外を u に出力する",
       "params": [
-        "R",
-        "q"
-      ]
-    },
-    {
-      "name": "group2",
-      "label": "数値範囲による行選択条件の設定（必須）",
-      "params": [
-        "c",
         "f",
-        "F"
+        "c",
+        "F",
+        "R",
+        "r"
       ]
     },
     {
-      "name": "group10",
-      "label": "項目名・項目番号についての設定（省略可）",
+      "name": "cmd_sub",
+      "label": "その他（省略可）",
       "params": [
-        "x",
+        "q",
         "nfn",
-        "nfno"
+        "nfno",
+        "x",
+        "bufcount"
       ]
     },
     {
       "name": "group20",
       "label": "システム管理用設定（作業領域・ログ出力）",
       "params": [
-        "bufcount",
-        "tmpPath",
         "assert_diffSize",
         "assert_nullkey",
         "assert_nullin",
-        "r"
+        "tmpPath"
       ]
     }
   ],
@@ -108,46 +103,50 @@
     {
       "name": "f",
       "type": "string",
-      "label": "条件判定をする項目を指定",
-      "description": "●カンマ区切りで複数指定可"
+      "label": "対象とする項目名 (必須)",
+      "description": "●カンマ区切りで複数指定可\n●ワイルドカード(*,？ )使用可"
     },
     {
       "name": "c",
       "type": "string",
-      "label": "数値範囲条件を指定",
-      "description": "●区間は、閉区間[] 開区間() の記号を、下限値、上限値と組み合わせて表記する\n【指定の例】[1,3): 1以上3未満 \n●区間は、カンマ区切りで複数指定が可能"
+      "label": "数値範囲の指定(必須)",
+      "description": "●区間の指定: 閉区間[] 開区間() の記号を、下限値、上限値と組み合わせて表記する\n【指定の例】[1,3): 1以上3未満 \n●カンマ区切りで複数指定が可能"
     },
     {
       "name": "k",
       "type": "string",
       "label": "グループ化する項目名",
-      "description": "カンマ区切りで複数指定可\n省略時は全ての行を同じグループとみなして処理される",
+      "description": "カンマ区切りで複数指定可\n省略時は全ての行を1つのグループとみなして処理する",
       "optional": true
     },
     {
       "name": "F",
       "type": "boolean",
-      "label": "複数の項目指定時に、各項目のOR条件ではなく、AND条件で判定",
-      "optional": true
+      "label": "対象とする項目全てがマッチする行のみ選択する",
+      "optional": true,
+      "description": "選択された行は、o に出力されます"
     },
     {
       "name": "r",
       "type": "boolean",
-      "label": "条件反転",
-      "optional": true
+      "label": "条件の反転",
+      "optional": true,
+      "description": "マッチした行を、o　ではなく u　に出力します"
     },
     {
       "name": "R",
       "type": "boolean",
-      "label": "一部の行ではなく、全ての行で条件を満たすグループを出力",
-      "optional": true
+      "label": "行ではなく、グループ単位で判定する",
+      "optional": true,
+      "description": "グループ内の全ての行が条件にあてはまる場合のみマッチとみなします"
     },
     {
       "name": "bufcount",
       "type": "string",
-      "label": "バッファの数",
+      "label": "バッファのブロック数",
       "optional": true,
-      "default": 10
+      "default": 10,
+      "description": "デフォルト:10 (40MB)"
     },
     {
       "name": "assert_diffSize",
@@ -164,7 +163,7 @@
     {
       "name": "assert_nullin",
       "type": "boolean",
-      "label": "入力項目のf=またはvf=で指定された項目のNULL値チェックを行う",
+      "label": "対象とする項目名で指定された項目のNULL値チェックを行う",
       "optional": true
     },
     {
