@@ -56,7 +56,7 @@
     {
       "name": "c",
       "type": "select",
-      "label": "統計量を指定",
+      "label": "統計量　(必須)",
       "options": {
         "multiple": true,
         "labels": [
@@ -112,14 +112,16 @@
     {
       "name": "f",
       "type": "string",
-      "label": "集計列名"
+      "label": "対象とする項目名 (必須)",
+      "description": "●カンマ区切りで複数指定可\n●ワイルドカード(*,？ )使用可"
     },
     {
       "name": "a",
       "type": "string",
-      "label": "新項目名",
+      "label": "追加する項目名 (必須)",
       "optional": true,
-      "default": "fld"
+      "default": "fieldname",
+      "description": "対象とする項目名の列ラベルを、値として展開する項目を作成する"
     },
     {
       "name": "k",
@@ -176,7 +178,7 @@
     {
       "name": "n",
       "type": "boolean",
-      "label": "NULLデータの場合はNULLにするフラグ",
+      "label": "NULLが含まれている時は、結果をNULLで出力する",
       "optional": true
     },
     {
@@ -264,29 +266,24 @@
     },
     {
       "name": "cmd_main",
-      "label": "統計量の計算の設定",
+      "label": "統計量の計算の設定 (必須)",
+      "description": "対象とする項目名について、統計量別に項目を出力する\n元の項目名は、追加する項目へ値として展開される",
       "params": [
-        "c",
         "f",
-        "a"
+        "c",
+        "a",
+        "n"
       ]
     },
     {
       "name": "cmd_sub",
       "label": "その他 (省略可)",
       "params": [
-        "precision",
-        "n",
+        "q",
         "nfn",
-        "q"
-      ]
-    },
-    {
-      "name": "fields",
-      "label": "項目名・項目番号についての設定（省略可）",
-      "params": [
         "nfno",
-        "x"
+        "x",
+        "precision"
       ]
     },
     {
