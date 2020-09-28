@@ -18,19 +18,19 @@
     {
       "name": "a",
       "type": "string",
-      "label": "項目名の設定(必須)",
+      "label": "項目名の設定 (必須)",
       "description": "複数項目の指定は不可"
     },
     {
       "name": "v",
       "type": "string",
-      "label": "追加する値(必須)",
+      "label": "追加する値 (必須)",
       "optional": true
     },
     {
       "name": "l",
       "type": "string",
-      "label": "生成データの行数(必須)",
+      "label": "生成データの行数 (必須)",
       "optional": true,
       "default": "10",
       "description": "正の整数で設定する"

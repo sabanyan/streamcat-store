@@ -30,12 +30,13 @@
     {
       "name": "v",
       "type": "string",
-      "label": "追加する値"
+      "label": "追加する値 (必須)"
     },
     {
       "name": "a",
       "type": "string",
-      "label": "追加列名"
+      "label": "項目名の設定 (必須)",
+      "description": "複数項目の指定は不可"
     },
     {
       "name": "assert_diffSize",
@@ -90,7 +91,7 @@
   "groups": [
     {
       "name": "cmd_main",
-      "label": "列追加の設定",
+      "label": "文字列項目追加の設定 (必須)",
       "params": [
         "v",
         "a"
@@ -100,13 +101,7 @@
       "name": "cmd_sub",
       "label": "その他 (省略可)",
       "params": [
-        "nfn"
-      ]
-    },
-    {
-      "name": "fields",
-      "label": "項目名・項目番号についての設定（省略可）",
-      "params": [
+        "nfn",
         "nfno",
         "x"
       ]
