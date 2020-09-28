@@ -4,6 +4,7 @@
     {
       "name": "group1",
       "label": "計算式の設定（必須）",
+      "description": "対象項目名に対して、同じ計算を行う\n計算式と、結果項目の書式設定では、元項目名を記号 & で記述する",
       "params": [
         "targets",
         "a",
@@ -11,18 +12,12 @@
       ]
     },
     {
-      "name": "group2",
-      "label": "項目名・項目番号についての設定（省略可）",
-      "params": [
-        "x",
-        "nfn",
-        "nfno"
-      ]
-    },
-    {
       "name": "group3",
       "label": "その他（省略可）",
       "params": [
+        "nfn",
+        "nfno",
+        "x",
         "precision"
       ]
     },
@@ -30,9 +25,9 @@
       "name": "group4",
       "label": "システム管理用設定（作業領域・ログ出力）",
       "params": [
-        "tmpPath",
         "assert_diffSize",
-        "assert_nullout"
+        "assert_nullout",
+        "tmpPath"
       ]
     }
   ],
@@ -57,20 +52,20 @@
     {
       "name": "targets",
       "type": "string",
-      "label": "対象とする項目",
-      "description": "項目名時:*,？,[...] 使用可\n項目番号時:0−3,5,0L 等使用可"
+      "label": "対象項目名 (必須)",
+      "description": "●カンマ区切りで複数指定可\n●ワイルドカード(*,？ )使用可"
     },
     {
       "name": "a",
       "type": "string",
-      "label": "追加する項目名",
-      "description": "&:元の項目名を表す記号",
+      "label": "結果項目名の設定 (必須)",
+      "description": "元項目名の記号 & を使って、書式として記述する",
       "default": "new_&"
     },
     {
       "name": "c",
       "type": "string",
-      "label": "計算式",
+      "label": "計算式　(必須)",
       "description": "●項目の値、数値、文字列、時刻に対する演算子と関数が100種以上とif文による制御を組み合わせた計算が可能\n●値の参照\n  ${項目名}で当行参照、#{項目名}で前行参照が可能\n●型の指定\n  数値：${}, 文字列:$s{}, 時刻:$t{}, 日付:$d{}, 論理:$b{}\n●対象とする項目は${&}で指定",
       "default": "${&}"
     },

@@ -12,9 +12,9 @@
       "name": "group3",
       "label": "その他（省略可）",
       "params": [
-        "x",
         "nfn",
         "nfno",
+        "x",
         "precision"
       ]
     },
@@ -22,9 +22,9 @@
       "name": "group4",
       "label": "システム管理用設定（作業領域・ログ出力）",
       "params": [
-        "tmpPath",
         "assert_diffSize",
-        "assert_nullout"
+        "assert_nullout",
+        "tmpPath"
       ]
     }
   ],
@@ -32,7 +32,7 @@
     {
       "name": "arglist",
       "type": "list",
-      "label": "項目名と計算式（追加・順序変更・削除　可）",
+      "label": "結果項目と計算式 (必須)",
       "description": "計算式\n●項目の値、数値、文字列、時刻に対する演算子と関数が100種以上とif文による制御を組み合わせた計算が可能\n●値の参照\n  ${項目名}で当行参照、#{項目名}で前行参照が可能\n●型の指定\n  数値：${}, 文字列:$s{}, 時刻:$t{}, 日付:$d{}, 論理:$b{}",
       "elements": [
         {
