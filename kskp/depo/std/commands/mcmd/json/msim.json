@@ -120,7 +120,7 @@
     {
       "name": "n",
       "type": "boolean",
-      "label": "Null データの場合はNULLにするフラグ",
+      "label": "NULLが含まれている時は、結果をNULLで出力する",
       "optional": true
     },
     {
