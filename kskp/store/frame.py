@@ -1,6 +1,6 @@
 import os
 
-from kskp.core import Datum
+from kskp.core import Datum, Constraints
 
 class Frame(Datum):
 
@@ -41,6 +41,8 @@ class Frame(Datum):
         # data.type列='cache'を用意するべきだろうか？
         self.is_cache = False
 
+    @Constraints.prohibit_save_under_root
+    @Constraints.set_permissions_for_everyone
     def save(self, file_path=None):
         """
         Frameを保存する
@@ -405,15 +407,9 @@ class Frame(Datum):
             return 'UNKNOWN'
 
     def to_json(self):
-        ret =  {'uuid'      : self.uuid,
-                'type'      : self.type,
-                'label'     : self.label,
-                'readable'  : self.readable,
-                'prevFolderPath' : self.get_prev_folder_path(),
-                'encoding'  : self.encoding_str,
-                'newline'   : self.newline_str,
-                'creator'   : self.creator_str,
-                'createdAt' : self.created_at_str}
+        ret = super().to_json()
+        ret['encoding'] = self.encoding_str
+        ret['newline'] = self.newline_str
         return ret
 
     def load_as_data_frame(self, offset, limit):

@@ -99,7 +99,7 @@ from ..depo.std.commands import CommandLink, CommandsPathLink, CommandsPathFileS
 
 # factory.data.find_by_uuid()等で参照しているので、
 # 管理者ユーザの作成等の処理の前に記述する必要がある
-from sqlalchemy.orm.exc import NoResultFound
+# from sqlalchemy.orm.exc import NoResultFound
 
 
 # テーブルを作成する
@@ -116,11 +116,10 @@ with UnAuthzFactory() as unauthz_factory:
     with Factory(usr_admin_user) as factory:
         usr_admin_user = factory.user.find_by_id(usr_admin_user.id)
 
-        # システムフォルダを作成する
         with Factory(usr_admin_user) as factory:
+            # システムフォルダを作成する
             factory.data.load_cache_folder()
             factory.data.load_trash_folder()
-
 
 from sqlalchemy import event, DDL
 

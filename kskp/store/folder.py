@@ -1,6 +1,6 @@
 import os
 
-from kskp.core import Datum
+from kskp.core import Datum, Constraints
 from kskp.store import Store
 
 class Folder(Store):
@@ -15,9 +15,11 @@ class Folder(Store):
         """
         super().__init__(session, parent, Datum.FOLDER_TYPE, label)
 
-        # data列の値を作成する
-        # self.data = {}
+        # DBに保存する前のFolderへの参照と更新と実行権限は制限しない
+        self._permissions = 0b1110
 
+    @Constraints.prohibit_save_under_root
+    @Constraints.set_permissions_for_everyone
     def save(self, file_path=None):
         """
         Folderを保存する
@@ -237,6 +239,12 @@ class Folder(Store):
         # 保存したリストの並びを逆にする
         path_to_root.reverse()
         return path_to_root
+
+    def to_json(self):
+        ret = super().to_json()
+        ret['allowlist']['create'] = self.writable
+        ret['allowlist']['upload'] = self.writable
+        return ret
 
     def _make_dir(self, path):
         """

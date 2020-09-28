@@ -9,6 +9,7 @@ from sqlalchemy import Column, String, text
 from sqlalchemy.sql import operators
 from sqlalchemy.orm import query_expression
 from sqlalchemy.dialects.postgresql import INTEGER, TIMESTAMP, JSONB, ENUM, UUID
+from .constraints import Constraints
 
 class Datum(BaseModel):
     """
@@ -85,11 +86,12 @@ class Datum(BaseModel):
     _modifier_id = Column('modifier', INTEGER)
     created_at   = Column(TIMESTAMP, default=text('statement_timestamp()'))
     modified_at  = Column(TIMESTAMP, default=text('statement_timestamp()'), onupdate=text('statement_timestamp()'))
-    # read権限(queryで追加した列の結果を格納する)
-    readable     = query_expression()
+    # 各種権限(queryで追加した列の結果を格納する)
+    _permissions = query_expression()
+    # 所有権(queryで追加した列の結果を格納する)
+    _ownership = query_expression()
 
     user = query_expression()
-
 
 
     # これを設定することで、session.query(Datum).all()でもサブクラスの型で結果を得ることができる
@@ -132,8 +134,8 @@ class Datum(BaseModel):
             self._creator_id = session.user.id
             self._modifier_id = session.user.id
 
-        # DBに保存する前のDatumへの参照権限は制限しない
-        self.readable = True
+        # DBに保存する前のDatumへの参照と更新権限は制限しない
+        self._permissions = 0b1100
 
         # Engineから参照する
         self.context = {}
@@ -208,6 +210,25 @@ class Datum(BaseModel):
             return self._data.get('label') or ''
         else:
             return self._label
+
+    @property
+    def readable(self):
+        p = self._permissions
+        return p if p is None else (p & 0b1000) > 0
+
+    @property
+    def writable(self):
+        p = self._permissions
+        return p if p is None else (p & 0b0100) > 0
+
+    @property
+    def executable(self):
+        p = self._permissions
+        return p if p is None else (p & 0b0010) > 0
+
+    @property
+    def ownership(self):
+        return self._ownership
 
     @property
     def is_root(self):
@@ -296,6 +317,7 @@ class Datum(BaseModel):
         factory = DatumFactory(self._session)
         return factory.find_by_id(self.id)
 
+    @Constraints.prohibit_movement_to_root
     def move(self, parent_uuid, modifier=None):
         """
         指定されたStoreの直下に移動する
@@ -313,6 +335,8 @@ class Datum(BaseModel):
         to_folder = DatumFactory(self._session).find_by_uuid(parent_uuid)
         if not isinstance(to_folder, Folder):
             raise Exception('移動先の指定はフォルダ、プロジェクトまたはゴミ箱のUUIDしか許可していません')
+        elif not self._session.writable(to_folder):
+            raise NotAuthorizedException((f'{self._session.user}は{to_folder.label}の更新権限がないため{self.label}を移動できません'))
 
         # # 移動対象がマウントポイントの場合は、path列を変更することはマウントポイントを変更することになるので
         # # とりあえずエラーとする
@@ -383,8 +407,6 @@ class Datum(BaseModel):
                 raise NotAuthorizedException((f'{user_name}は更新権限がないため{self.label}を移動できません'))
             elif not self._session.writable(from_folder):
                 raise NotAuthorizedException((f'{user_name}は{from_folder.label}の更新権限がないため{self.label}を移動できません'))
-            elif not self._session.writable(to_folder):
-                raise NotAuthorizedException((f'{user_name}は{to_folder.label}の更新権限がないため{self.label}を移動できません'))
             else:
                 raise e
         except Exception as e:
@@ -470,14 +492,25 @@ class Datum(BaseModel):
         return f'Datum({self.id}, {self._label}, {self.type})'
 
     def to_json(self):
-        ret =  {'uuid'      : self.uuid,
+        return {'uuid'      : self.uuid,
                 'type'      : self.type,
                 'label'     : self.label,
-                'readable'  : self.readable,
+                'allowlist' : {
+                    'read'   : self.readable,
+                    'update' : self.writable,
+                    'delete' : self.writable,
+                    'execute': False,
+                    'move'   : self.writable,
+                    'copy'   : self.writable,
+                    # 閲覧者以外はDownload可能なのでwritableで判定する
+                    'download'    : self.writable,
+                    'findMember'  : False,
+                    'updateMember': False,
+                    'lock'   : False,
+                },
                 'prevFolderPath' : self.get_prev_folder_path(),
                 'creator'   : self.creator_str,
-                'createdAt' : self.created_at_str}
-        return ret
+                'createdAt' : self.created_at_str }
 
     def _readable_or_raise(self):
         from kskp.store.auth import NotAuthorizedException
@@ -620,7 +653,7 @@ class Datum(BaseModel):
         if uuid is None:
             return False
         import re
-        return re.match("^[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}$", uuid)
+        return re.match('^[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}$', uuid)
 
     @staticmethod
     def valid_uuid_or_raise(uuid):

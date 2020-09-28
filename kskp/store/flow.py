@@ -1,5 +1,4 @@
-
-from kskp.core import Datum
+from kskp.core import Datum, Constraints
 
 class Flow(Datum):
 
@@ -20,6 +19,9 @@ class Flow(Datum):
         # data列の値を作成する
         self._data = {'label' : label, 'flow' : flow_json}
 
+        # DBに保存する前のFlowへの参照と更新と実行権限は制限しない
+        self._permissions = 0b1110
+
         # フローデータの妥当性を検証する
         self.valid_uuids_in_flowdata_or_raise()
 
@@ -28,16 +30,20 @@ class Flow(Datum):
         from kskp.store import FlowData
         return FlowData(self._data['flow'], self._readable_or_raise, self._executable_or_raise)
 
-    @property
-    def executable(self) -> bool:
-        # DBに保存する前のFlowの実行権限は制限しない
-        return self.id is None or self._session.executable(self)
+    # @property
+    # def executable(self) -> bool:
+    #     # DBに保存する前のFlowの実行権限は制限しない
+    #     return self.id is None or self._session.executable(self)
 
     def _executable_or_raise(self):
         from kskp.store.auth import NotAuthorizedException
+        if self.executable is None:
+            raise NotAuthorizedException(f'{self.label}の実行権限がNoneです(save後のDatumオブジェクトは実行権限がNoneになります)')
         if not self.executable:
             raise NotAuthorizedException(f'{self._session.user.name} ({self.user})は{self.label}の実行権限がありません')
 
+    @Constraints.prohibit_save_under_root
+    @Constraints.set_permissions_for_everyone
     def save(self):
         """
         Flowを保存する
@@ -471,6 +477,12 @@ class Flow(Datum):
                 # 記録時間はUTC、表示時間は現地時間にすべきでは？？
                 node['cacheCreatedAt'] = datetime.now(timezone(timedelta(hours=+9), 'JST')).strftime('%Y-%m-%d %H:%M:%S')
         # self.update_data(self.label, flow_data)
+
+    def to_json(self):
+        ret = super().to_json()
+        ret['allowlist']['execute'] = self.executable
+        ret['allowlist']['lock'] = self.writable
+        return ret
 
     @staticmethod
     def create_flow(request_json, creator, data_source_name=None):

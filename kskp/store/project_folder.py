@@ -54,10 +54,10 @@ class ProjectFolder(Folder):
 
         if parent_uuid == trash_folder.uuid:
             # ゴミ箱にほかされる場合
-            super().move(parent_uuid, modifier=modifier)
+            return super().move(parent_uuid, modifier=modifier)
         elif self.prev_parent_id is not None and parent_uuid == factory.find_by_id(self.prev_parent_id).uuid:
             # 元の場所に戻す場合
-            super().move(parent_uuid, modifier=modifier)
+            return super().move(parent_uuid, modifier=modifier)
         else:
             raise Exception('プロジェクトは移動できません')
 
@@ -72,6 +72,12 @@ class ProjectFolder(Folder):
 
         # 保存処理はFolderクラスと同じ
         super().save()
+
+        # ユーザ管理者は全てのDatumの参照・更新・実行、及び権限の変更ができること
+        # (ProjectにRWXO権限を付与することでこれを実現する)
+        from kskp.store.factory import RoleFactory
+        usr_admin_role = RoleFactory(self._session).load_usr_admin_role()
+        usr_admin_role.init_authz(self.id, True, True, exec=True, own=True)
 
     def throw_away(self):
         """
@@ -199,7 +205,7 @@ class ProjectFolder(Folder):
         from kskp.store.auth import User, Auth, UserRole
 
         # 
-        # プロジェクトの権限判定にのみ対応している(フォルダ権限のオーバーライドには対応していない)
+        # プロジェクトの権限判定にのみ対応している(フォルダ権限をオーバーライドしない仕様)
         # Auth.datum_idにインデックスを設定することで速度は改善される
         # 
 
@@ -223,15 +229,15 @@ class ProjectFolder(Folder):
         query = self._session.query(
                     User,
                     case(
-                        {1010 : ProjectFolder.READER_MEMBER_TYPE,
-                         1110 : ProjectFolder.WRITER_MEMBER_TYPE,
-                         1111 : ProjectFolder.OWNER_MEMBER_TYPE},
+                        {0b1010 : ProjectFolder.READER_MEMBER_TYPE,
+                         0b1110 : ProjectFolder.WRITER_MEMBER_TYPE,
+                         0b1111 : ProjectFolder.OWNER_MEMBER_TYPE},
                         value=func.sum(
                                 case([(AU.c.permission,
-                                    case([(AU.c.operation=='read', 1000),
-                                          (AU.c.operation=='write', 100),
-                                          (AU.c.operation=='exec',   10),
-                                          (AU.c.operation=='own',     1)
+                                    case([(AU.c.operation=='read', 0b1000),
+                                          (AU.c.operation=='write', 0b100),
+                                          (AU.c.operation=='exec',   0b10),
+                                          (AU.c.operation=='own',     0b1)
                                     ])
                                 )])
                               ),
@@ -251,3 +257,9 @@ class ProjectFolder(Folder):
             user._session = self._session
             members.append(ProjectFolder.Member(user, type))
         return members
+
+    def to_json(self):
+        ret = super().to_json()
+        ret['allowlist']['findMember'] = self.ownership
+        ret['allowlist']['updateMember'] = self.ownership
+        return ret

@@ -1,4 +1,4 @@
-from kskp.store.auth.authz_query import Query
+from .authz_query import Query
 from .exceptions import NotAuthorizedException
 
 class Session():
@@ -22,18 +22,18 @@ class Session():
     def expire(self, obj):
         from kskp.core import Datum
         if isinstance(obj, Datum):
-            tmp = obj.readable
+            tmp = obj._permissions
             self._session.expire(obj)
-            obj.readable = tmp
+            obj._permissions = tmp
         else:
             self._session.expire(obj)
 
     def flush(self, obj):
         from kskp.core import Datum
         if isinstance(obj, Datum):
-            tmp = obj.readable
+            tmp = obj._permissions
             self._session.flush([obj])
-            obj.readable = tmp
+            obj._permissions = tmp
         else:
             self._session.flush([obj])
 
@@ -75,7 +75,6 @@ class AuthzSession(Session):
 
     def __init__(self, session_factory, user):
         super().__init__(session_factory, user)
-        self._readable_query = self._make_readable_query()
 
     @property
     def user(self):
@@ -106,13 +105,23 @@ class AuthzSession(Session):
             return inspect.isclass(obj_type) and hasattr(obj_type, '__tablename__') and obj_type.__tablename__ == table_name
 
         if is_type(datum_type, 'data'):
-            # 下記を両方満たす場合にのみreadable=Trueとする
-            # ・ユーザが属する全てのロールについて、Datumを参照する権限がTrue
-            # ・Datumが属する全ての親フォルダについて、Datumを参照する権限がTrue
-            readable_query = self._readable_query
+            # 下記を両方満たす場合にのみpermission=Trueとする
+            # ・ユーザが属する全てのロールについて、DatumのpermissionがTrue
+            # ・Datumが属する全ての親フォルダについて、DatumのpermissionがTrue
 
+            # read,write,execのpermissionの値を取得する
+            select_permissions = self._make_select_permissions()
+
+            # ownのpermissionsの値を取得する
+            select_ownership = self._make_select_ownership(Datum.id)
+            
+            # read=TrueのDatumのみ抽出する
+            # exists_readable = self._make_exists_readable()
+
+            # Datumを抽出するQuery
             query = self._session.query(Datum).\
-                                  options(with_expression(Datum.readable, readable_query.label('readable'))).\
+                                  options(with_expression(Datum._permissions, select_permissions.label('permissions'))).\
+                                  options(with_expression(Datum._ownership, select_ownership.label('ownership'))).\
                                   options(with_expression(Datum.user, literal_column(f"'{self.user.name}'")))
 
             return AuthzDatumQuery(query, self)
@@ -121,7 +130,7 @@ class AuthzSession(Session):
             query = self._session.query(datum_type, *args)
             return Query(query, self)
     
-    def _make_readable_query(self):
+    def _make_readable_query_old(self):
         from sqlalchemy.orm import aliased
         from sqlalchemy.sql.expression import select, func, exists, literal_column, text, false, and_, or_
         from kskp.core import Datum
@@ -131,12 +140,12 @@ class AuthzSession(Session):
 
         # 相関条件を記述するとSQLAlchemyがFROM句にdataテーブルを追加するので、
         # それを回避するためtextで記述する
-        Datum_id = text(str(Datum.id.compile()))
+        datum_id_column = text(str(Datum.id.compile()))
 
         # cte: Common Table Expression WITH句のこと
         D0 = aliased(Datum, name='D0')
         R = select([D0.id.label('leaf_id'), D0.id, D0.parent_id]).select_from(D0).\
-            where(D0.id==Datum_id).\
+            where(D0.id==datum_id_column).\
             cte(name='R', recursive=True)
 
         # WITH句にUNION ALLを用いて再帰クエリとする
@@ -176,7 +185,7 @@ class AuthzSession(Session):
 
         # フォルダ権限のオーバライドを判定する
         subquery = select([func.bool_and(subquery).label('readable')]).select_from(R).\
-                   where(R.c.leaf_id==Datum_id).as_scalar()
+                   where(R.c.leaf_id==datum_id_column).as_scalar()
 
         # SELECT句内にWITH句を記述する必要があるが、SQLAlchemyではそれができないようだ
         # そのため、ここでWITH句を含むSELECT文をtextで記述してこれをメインのSELECT文に含める
@@ -185,6 +194,146 @@ class AuthzSession(Session):
         # query.count()でSQLAlchemyがエラーを送出するため、
         # これを回避するためtextをselectオブジェクトでラップする
         return select([literal_column(subquery)]).as_scalar()
+
+    def _make_select_permissions(self):
+        from sqlalchemy.sql.expression import select, literal_column, text
+        from kskp.core import Datum
+
+        # 相関条件を記述するとSQLAlchemyがFROM句にdataテーブルを追加するので、
+        # それを回避するためtextで記述する
+        datum_id_column = text(str(Datum.id.compile()))
+
+        select_stmt = self._make_select_permissions_inner(datum_id_column).as_scalar()
+
+        # SELECT句内にWITH句を記述する必要があるが、SQLAlchemyではそれができないようだ
+        # そのため、ここでWITH句を含むSELECT文をtextで記述してこれをメインのSELECT文に含める
+        select_stmt_str = str(select_stmt.compile(compile_kwargs={'literal_binds': True}))
+
+        # query.count()でSQLAlchemyがエラーを送出するため、
+        # これを回避するためtextをselectオブジェクトでラップする
+        return select([literal_column(select_stmt_str)])
+
+    def _make_exists_readable(self):
+        from sqlalchemy.sql.expression import exists, literal, text
+        from kskp.core import Datum
+
+        # 相関条件を記述するとSQLAlchemyがFROM句にdataテーブルを追加するので、
+        # それを回避するためtextで記述する
+        datum_id_column = text(str(Datum.id.compile()))
+
+        # label()は括弧で囲むが何故かAlias名(RA1)が付かない
+        select_stmt = self._make_select_permissions_inner(datum_id_column).label('RA1')
+
+        # SELECT句内にWITH句を記述する必要があるが、SQLAlchemyではそれができないようだ
+        # そのため、ここでWITH句を含むSELECT文をtextで記述してこれをメインのSELECT文に含める
+        select_stmt_str = str(select_stmt.compile(compile_kwargs={'literal_binds': True}))
+
+        # label()でAlias名が付かないのでSQL文の末尾に付ける
+        return exists().select_from(text(select_stmt_str + ' RA1')).\
+                        where(text('RA1.permissions') >= literal(0b1000))
+
+    def _make_select_permissions_inner(self, datum_id_column):
+        from sqlalchemy.orm import aliased
+        from sqlalchemy.sql.expression import select, func, case, exists, literal, false, and_, or_
+        from kskp.core import Datum
+        from .auth import Auth
+        from .user import User
+        from .user_role import UserRole
+
+        # leaf_id : 検索対象Datumのid
+        # id      : 検索対象DatumからRootDatumへの経路の全てのDatumのid
+        # depth   : RootDatumからの深さ(検索対象Datum=1)
+        D0 = aliased(Datum, name='D0')
+        R = select([D0.id.label('leaf_id'), D0.id, D0.parent_id, literal(1).label('depth')]).\
+            select_from(D0).\
+            where(D0.id==datum_id_column).\
+            cte(name='R', recursive=True) 
+            # cte: Common Table Expression WITH句のこと
+
+        # WITH句にUNION ALLを用いて再帰クエリとする
+        D = aliased(Datum, name='D')
+        R = R.union_all(
+                select([R.c.leaf_id, D.id, D.parent_id, (R.c.depth+literal(1)).label('depth')]).\
+                select_from(R.join(D, D.id==R.c.parent_id))
+            )
+
+        # AuthのTableオブジェクト
+        A0 = Auth.metadata.sorted_tables[0]
+
+        # 操作ユーザが所属するロールであることを指定する条件
+        exists_user_role = exists().where(and_(UserRole.role_id==A0.c.role_id, UserRole.user_id==self.user.id))
+        exists_user = exists().where(and_(User.self_role_id==A0.c.role_id, User.id==self.user.id))
+
+        # 操作ユーザが複数のロールに所属する場合、対象のDatumの操作権限を判定する
+        A = select([
+                A0.c.datum_id,
+                A0.c.operation,
+                func.coalesce(func.bool_and(A0.c.permission),false()).label('permission')
+            ]).\
+            select_from(A0).\
+            where(
+                and_(
+                    A0.c.operation.in_([Auth.READ_OP, Auth.WRITE_OP, Auth.EXEC_OP]),
+                    or_(exists_user_role, exists_user)
+                )
+            ).\
+            group_by(A0.c.datum_id, A0.c.operation).\
+            alias('A')
+
+        # フォルダ権限のオーバライドを判定する
+        RA = select([
+                case([(
+                    func.coalesce(
+                        # 各operationについて、自身からルート迄の各Datumに1つでも権限レコードが欠けている場合、
+                        # そのoperationの権限はFalseである(経路の数=権限レコードの数)
+                        and_(func.bool_and(A.c.permission), func.max(R.c.depth)==func.count()),
+                        false()),
+                    case(
+                        {'read' : 0b1000,
+                         'write': 0b0100,
+                         'exec' : 0b0010},
+                        value=A.c.operation,
+                        else_=0
+                    )
+                )], else_=0).label('permission')
+             ]).\
+             select_from(
+                 R.outerjoin(A, R.c.id==A.c.datum_id)
+             ).\
+             where(R.c.leaf_id==datum_id_column).\
+             group_by(A.c.operation).\
+             alias('RA')
+
+        # 権限フラグのAND演算をする(SQLの集計関数を入れ子にできないのでSELECT文でラップする)
+        return select([func.sum(RA.c.permission).label('permissions')]).select_from(RA)
+
+    def _make_select_ownership(self, datum_id):
+        """
+        操作ユーザがDatumの所有権を有するか判定する
+        (フォルダの所有権はオーバーライドしない)
+        """
+        from sqlalchemy import select, exists, func, false, and_, or_
+        from sqlalchemy.orm import aliased
+        from .auth import Auth
+        from .user import User
+        from .user_role import UserRole
+
+        A = aliased(Auth, name='A')
+
+        # 操作ユーザが所属するロールであることを指定する条件
+        exists_user_role = exists().where(and_(UserRole.role_id==A.role_id, UserRole.user_id==self.user.id))
+        exists_user = exists().where(and_(User.self_role_id==A.role_id, User.id==self.user.id))
+
+        select_stmt = select([func.coalesce(func.bool_and(A.permission),false()).label('owner')]).\
+                            select_from(A).\
+                            where(
+                                and_(
+                                    A.datum_id==datum_id,
+                                    A.operation==Auth.OWN_OP,
+                                    or_(exists_user_role, exists_user)
+                                )
+                            )
+        return select_stmt
 
     def add(self, obj):
         from kskp.core import Datum
@@ -201,9 +350,9 @@ class AuthzSession(Session):
             # Datumを新規追加する
             self._session.add(obj)
 
-            # 新規追加したDatumのreadableはNoneにする
+            # 新規追加したDatumのpermissionsはNoneにする
             self._session.flush([obj])
-            self._session.expire(obj, ['readable'])
+            self._session.expire(obj, ['_permissions'])
 
             # 本人ロールが無ければ作成し、ユーザを本人ロールに所属させる
             self_role = self.user.load_self_role()
@@ -218,10 +367,10 @@ class AuthzSession(Session):
             # 本人ロールへ追加データの権限を付与する
             self_role.init_authz(obj.id, True, True, exec=folder_or_flow, own=True)
 
-            # usr_adminロールへ追加データの権限を付与する
-            from kskp.store.factory import RoleFactory
-            usr_admin_role = RoleFactory(self).load_usr_admin_role()
-            usr_admin_role.init_authz(obj.id, True, True, exec=folder_or_flow)
+            # # usr_adminロールへ追加データの権限を付与する
+            # from kskp.store.factory import RoleFactory
+            # usr_admin_role = RoleFactory(self).load_usr_admin_role()
+            # usr_admin_role.init_authz(obj.id, True, True, exec=folder_or_flow)
 
         elif isinstance(obj, User):
             # ユーザ管理者のみユーザを新規追加できる
@@ -333,25 +482,54 @@ class AuthzSession(Session):
         # 削除する
         self._session.delete(obj)
 
+    def readable(self, datum) -> bool:
+        """
+        UserによるDatumの参照権限の有無を判定する
+        """
+        if datum.id is None:
+            # save()してないDatumの参照権限はFalseとする
+            return False
+        else:
+            datum_id = datum.id
+
+        select_permissions = self._make_select_permissions_inner(datum_id).alias('permissions')
+        query = self._session.query(select_permissions)
+        
+        return (query.scalar() & 0b1000) > 0
 
     def writable(self, datum) -> bool:
         """
-        ユーザIDとDatumについて書き込み権限の有無を判定する
+        UserによるDatumの更新権限の有無を判定する
         """
-        from .auth import Auth
-        return self._operatable(datum, Auth.WRITE_OP)
+        if datum.id is None:
+            # Datumの新規追加の場合(datum.id=None)は親フォルダのoperation権限だけを判定する
+            datum_id = datum.parent_id
+        else:
+            datum_id = datum.id
+
+        select_permissions = self._make_select_permissions_inner(datum_id).alias('permissions')
+        query = self._session.query(select_permissions)
+
+        return (query.scalar() & 0b0100) > 0
 
     def executable(self, datum) -> bool:
         """
-        ユーザIDとDatumについて実行権限の有無を判定する
+        UserによるDatumの実行権限の有無を判定する
         """
-        from .auth import Auth
-        return self._operatable(datum, Auth.EXEC_OP)
+        if datum.id is None:
+            # save()してないFlowの場合(datum.id=None)は親フォルダのoperation権限だけを判定する
+            datum_id = datum.parent_id
+        else:
+            datum_id = datum.id
+
+        select_permissions = self._make_select_permissions_inner(datum_id).alias('permissions')
+        query = self._session.query(select_permissions)
+        
+        return (query.scalar() & 0b0010) > 0
 
     def ownership(self, datum_id) -> bool:
         """
-        ユーザIDとDatumについて所有権の有無を判定する
-        (フォルダの所有権はオーバーライドされない)
+        UserによるDatumの所有権の有無を判定する
         """
         # from kskp.core import Datum
         # from .auth import Auth
@@ -363,24 +541,8 @@ class AuthzSession(Session):
         # 
         # return self._operatable(result, Auth.OWN_OP)
 
-        from sqlalchemy import exists, func, false, and_, or_
-        from sqlalchemy.orm import aliased
-        from .auth import Auth
-        from .user import User
-        from .user_role import UserRole
-
-        A = aliased(Auth, name='A')
-
-        # 操作ユーザが所属するロールであることを指定する条件
-        exists_user_role = exists().where(and_(UserRole.role_id==A.role_id, UserRole.user_id==self.user.id))
-        exists_user = exists().where(and_(User.self_role_id==A.role_id, User.id==self.user.id))
-
-        query = self._session.query(func.coalesce(func.bool_and(A.permission),false()).label('owner')).\
-                              select_from(A).\
-                              filter(A.operation==Auth.OWN_OP).\
-                              filter(or_(exists_user_role, exists_user)).\
-                              filter(A.datum_id==datum_id)
-
+        select_stmt = self._make_select_ownership(datum_id).alias('owner')
+        query = self._session.query(select_stmt)
         result = query.one_or_none()
         return result.owner == True
 

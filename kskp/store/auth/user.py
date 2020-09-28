@@ -1,8 +1,8 @@
 import os
 import uuid
-from kskp.store.auth.exceptions import NotAuthorizedException
 from sqlalchemy import Column, String, text
 from sqlalchemy.dialects.postgresql import INTEGER, TIMESTAMP, UUID, ENUM
+from .exceptions import NotAuthorizedException
 from .. import BaseModel
 
 class User(BaseModel):
@@ -72,12 +72,9 @@ class User(BaseModel):
         登録状態に遷移した時の初期処理
         """
         # 本人ロールを作成する
+        # (プロジェクトにユーザを所属させる処理(ProjectFolder.join_member)において
+        #  他ユーザが本人ロールのIDを参照する必要があるため、ここで本人ロールを作成する)
         self.load_self_role()
-        # MyProjectを作成する
-        from kskp.store.factory import DatumFactory
-        root = DatumFactory(self._session).load_root()
-        project =root.create_project_folder('MyProject')
-        project.save()
 
     def _valid_email_or_raise(self, email):
         if email is None or email=='':
@@ -143,8 +140,8 @@ class User(BaseModel):
         return str(uuid.uuid4())[0:8]
 
     def _set_state(self, next_state):
-        if self.state == User.TMP_STATE and next_state == User.INACTIVE_STATE:
-            raise Exception('誤ったユーザの状態遷移が指定されました')
+        # if self.state == User.TMP_STATE and next_state == User.INACTIVE_STATE:
+        #     raise Exception('誤ったユーザの状態遷移が指定されました')
         if self.state == User.INACTIVE_STATE and next_state == User.TMP_STATE:
             raise Exception('誤ったユーザの状態遷移が指定されました')
 
@@ -223,9 +220,9 @@ class User(BaseModel):
         finally:
             self._session.commit()
             # everyoneロールに所属させる
+            # (everyoneロールの作成者であるユーザ管理者のみがにユーザを追加できる)
             from kskp.store.factory import RoleFactory
-            role_factory = RoleFactory(self._session)
-            everyone_role = role_factory.load_everyone_role()
+            everyone_role = RoleFactory(self._session).load_everyone_role()
             everyone_role.join_user(self)
 
     def update_email(self, new_email, modifier=None):
@@ -344,10 +341,23 @@ class User(BaseModel):
         """
         登録Userを論理削除する
         """
-        # 仮登録Userは物理削除する
-        if self.is_temp:
-            self.delete()
-            return
+        # 仮登録Userで、本人ロールと(everyoneを除く)自分が属するロールが存在していなければ物理削除する
+        if self.is_temp and self.self_role_id is None:
+            from kskp.store.factory import RoleFactory, UserRoleFactory
+            everyone_role = RoleFactory(self._session).load_everyone_role()
+            user_roles = UserRoleFactory(self._session).find_all_by_user_id(self.id)
+
+            # everyone以外の所属ロールを探す
+            user_join_in_other_than_everyone_role = False
+            for user_role in user_roles:
+                if user_role.role_id != everyone_role.id:
+                    user_join_in_other_than_everyone_role = True
+                    break
+
+            # everyone以外の所属ロールが無ければ、Userを物理削除する
+            if not user_join_in_other_than_everyone_role:
+                self.delete()
+                return  
 
         try:
             # 論理削除状態に変更する

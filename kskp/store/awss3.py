@@ -1,4 +1,4 @@
-from kskp.core import Datum
+from kskp.core import Datum, Constraints
 from kskp.store import Folder, Mountable
 
 class AwsS3(Folder, Mountable):
@@ -23,6 +23,8 @@ class AwsS3(Folder, Mountable):
         # S3のオブジェクトを用意する
         # self._s3 = boto3.resource('s3')
 
+    @Constraints.prohibit_save_under_root
+    @Constraints.set_permissions_for_everyone
     def save(self):
         """
         バケットを保存する
@@ -200,13 +202,7 @@ class AwsS3(Folder, Mountable):
     #     return key
 
     def to_json(self):
-        ret =  {'uuid'      : self.uuid,
-                'type'      : Datum.AWSS3_TYPE,
-                'label'     : self.label,
-                'readable'  : self.readable,
-                'prevFolderPath' : self.get_prev_folder_path(),
-                'creator'   : self.creator_str,
-                'createdAt' : self.created_at_str}
+        ret = super().to_json()
         if self.readable:
             ret['bucket'] = self.bucket_name
         return ret
