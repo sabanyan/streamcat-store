@@ -50,7 +50,7 @@
     {
       "name": "c",
       "type": "select",
-      "label": "統計量を指定",
+      "label": "統計量 (必須)",
       "options": {
         "labels": [
           "件数(NULL値以外)",
@@ -105,7 +105,7 @@
     {
       "name": "f",
       "type": "string",
-      "label": "対象列名(必須)"
+      "label": "対象とする項目名 (必須)"
     },
     {
       "name": "k",
@@ -129,13 +129,13 @@
     {
       "name": "assert_nullkey",
       "type": "boolean",
-      "label": "キー項目にNULL値が含まれているかどうかのチェックを行う",
+      "label": "グループ化項目名にNULL値が含まれているかどうかのチェックを行う",
       "optional": true
     },
     {
       "name": "assert_nullin",
       "type": "boolean",
-      "label": "入力項目のf=またはvf=で指定された項目のNULL値チェックを行う",
+      "label": "対象とする項目名で指定された項目のNULL値チェックを行う",
       "optional": true
     },
     {
@@ -212,28 +212,23 @@
     },
     {
       "name": "cmd_main",
-      "label": "統計量の計算の設定",
+      "label": "統計量の計算の設定　(必須)",
+      "description": "項目ごとに統計量を計算し、同じ項目名で出力する",
       "params": [
+        "f",
         "c",
-        "f"
+        "n"
       ]
     },
     {
       "name": "cmd_sub",
       "label": "その他 (省略可)",
       "params": [
-        "n",
-        "nfn",
         "q",
-        "precision"
-      ]
-    },
-    {
-      "name": "fields",
-      "label": "項目名・項目番号についての設定（省略可）",
-      "params": [
+        "nfn",
         "nfno",
-        "x"
+        "x",
+        "precision"
       ]
     },
     {
