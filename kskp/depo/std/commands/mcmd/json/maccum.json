@@ -20,17 +20,11 @@
       "name": "group10",
       "label": "その他 (省略可)",
       "params": [
-        "precision",
-        "q"
-      ]
-    },
-    {
-      "name": "group15",
-      "label": "項目名・項目番号についての設定（省略可）",
-      "params": [
-        "x",
         "nfn",
-        "nfno"
+        "nfno",
+        "x",
+        "q",
+        "precision"
       ]
     },
     {
@@ -109,8 +103,8 @@
     {
       "name": "f",
       "type": "string",
-      "label": "対象とする項目名と追加項目名の指定",
-      "description": "●対象列名、追加列名の順で コロン区切りで指定\n●カンマ区切りで複数指定可"
+      "label": "対象とする項目名と累積値の項目名の指定",
+      "description": "●対象列名、累積値の項目名の順で コロン区切りで指定\n●カンマ区切りで複数指定可"
     },
     {
       "name": "s",
@@ -140,7 +134,7 @@
     {
       "name": "assert_nullin",
       "type": "boolean",
-      "label": "入力項目の f=または vf=で指定された項目の NULL 値チェックを行う",
+      "label": "対象とする項目名の NULL 値チェックを行う",
       "optional": true
     },
     {
