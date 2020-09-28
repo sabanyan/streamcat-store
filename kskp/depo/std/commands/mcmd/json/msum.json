@@ -45,7 +45,8 @@
     {
       "name": "f",
       "type": "string",
-      "label": "合計する列名:合計後の列名"
+      "label": "対象とする項目名と合計値の項目名の指定 (必須)",
+      "description": "●対象列名、合計値の項目名の順で コロン区切りで指定\n●カンマ区切りで複数指定可"
     },
     {
       "name": "k",
@@ -69,13 +70,13 @@
     {
       "name": "assert_nullkey",
       "type": "boolean",
-      "label": "キー項目にNULL値が含まれているかどうかのチェックを行う",
+      "label": "グループ化項目にNULL値が含まれているかどうかのチェックを行う",
       "optional": true
     },
     {
       "name": "assert_nullin",
       "type": "boolean",
-      "label": "入力項目のf=またはvf=で指定された項目のNULL値チェックを行う",
+      "label": "対象とする項目名で指定された項目のNULL値チェックを行う",
       "optional": true
     },
     {
@@ -152,27 +153,21 @@
     },
     {
       "name": "cmd_main",
-      "label": "対象の設定",
+      "label": "合計の計算の設定 (必須)",
       "params": [
-        "f"
+        "f",
+        "n"
       ]
     },
     {
       "name": "cmd_sub",
       "label": "その他 (省略可)",
       "params": [
-        "n",
-        "nfn",
         "q",
-        "precision"
-      ]
-    },
-    {
-      "name": "fields",
-      "label": "項目名・項目番号についての設定（省略可）",
-      "params": [
+        "nfn",
         "nfno",
-        "x"
+        "x",
+        "precision"
       ]
     },
     {
