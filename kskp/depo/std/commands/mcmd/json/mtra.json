@@ -77,9 +77,9 @@
     {
       "name": "delim",
       "type": "string",
-      "label": "区切り文字の設定",
+      "label": "ベクトル要素の区切り文字",
       "optional": true,
-      "description": "指定のない場合は、半角スペースを区切り文字を使用する"
+      "description": "省略時は半角スペース"
     },
     {
       "name": "r",

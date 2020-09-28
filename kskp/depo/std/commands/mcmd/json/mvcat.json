@@ -57,8 +57,9 @@
     {
       "name": "delim",
       "type": "string",
-      "label": "ベクトル要素の区切り文字を指定",
-      "optional": true
+      "label": "ベクトル要素の区切り文字",
+      "optional": true,
+      "description": "省略時は半角スペース"
     },
     {
       "name": "assert_diffSize",

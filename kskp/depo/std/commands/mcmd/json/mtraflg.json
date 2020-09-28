@@ -42,25 +42,28 @@
     {
       "name": "a",
       "type": "string",
-      "label": "トランザクション列名(必須)"
+      "label": "追加するベクトルの項目名 (必須)"
     },
     {
       "name": "f",
       "type": "string",
-      "label": "列名リスト(必須)"
+      "label": "対象とする項目名 (必須)",
+      "description": "●カンマ区切りで複数指定可\n●ワイルドカード(*,？ )使用可"
     },
     {
       "name": "delim",
       "type": "string",
-      "label": "トランザクション項目アイテムを区切る文字",
+      "label": "ベクトル要素の区切り文字(省略可)",
       "optional": true,
-      "default": " "
+      "default": " ",
+      "description": "省略時は半角スペース"
     },
     {
       "name": "r",
       "type": "boolean",
-      "label": "トランザクション型から縦型へデータを変換する。",
-      "optional": true
+      "label": "変換時とは逆に、ベクトル要素を項目名へ展開する",
+      "optional": true,
+      "description": "展開する要素の値は、対象とする項目名に、カンマ区切りで指定する"
     },
     {
       "name": "assert_diffSize",
@@ -71,7 +74,7 @@
     {
       "name": "assert_nullin",
       "type": "boolean",
-      "label": "入力項目のf=またはvf=で指定された項目のNULL値チェックを行う",
+      "label": "対象とする項目名で指定された項目のNULL値チェックを行う",
       "optional": true
     },
     {
@@ -127,25 +130,19 @@
   "groups": [
     {
       "name": "cmd_main",
-      "label": "データ変換の設定",
+      "label": "データ変換の設定(必須)",
       "params": [
+        "f",
         "a",
-        "f"
+        "delim",
+        "r"
       ]
     },
     {
       "name": "cmd_sub",
       "label": "その他 (省略可)",
       "params": [
-        "delim",
-        "r",
-        "nfn"
-      ]
-    },
-    {
-      "name": "fields",
-      "label": "項目名・項目番号についての設定（省略可）",
-      "params": [
+        "nfn",
         "nfno",
         "x"
       ]
