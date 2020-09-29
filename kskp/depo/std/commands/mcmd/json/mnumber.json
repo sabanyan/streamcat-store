@@ -57,47 +57,62 @@
     {
       "name": "a",
       "type": "string",
-      "label": "追加列名"
+      "label": "連番の項目名 (必須)"
     },
     {
       "name": "e",
-      "type": "string",
-      "label": "同一キー同一ソート項目値への処理方法を指定する。",
+      "type": "select",
+      "label": "連番または順位の選択 (必須)",
       "optional": true,
-      "default": "seq"
+      "default": "seq",
+      "options": {
+        "labels": [
+          "連番",
+          "順位",
+          "順位 (同順位に複数あれば、その数だけ次の順位をずらす)"
+        ],
+        "values": [
+          "seq",
+          "same",
+          "skip"
+        ]
+      }
     },
     {
       "name": "I",
       "type": "string",
-      "label": "連番の間隔を指定する。",
-      "optional": true
+      "label": "間隔 (必須)",
+      "optional": true,
+      "default": "1"
     },
     {
       "name": "k",
       "type": "string",
       "label": "グループ化する項目名",
       "optional": true,
-      "description": "カンマ区切りで複数指定可\n省略時は全ての行を同じグループとみなして処理される"
+      "description": "・カンマ区切りで複数指定可\n・省略時は全ての行を同じグループとみなして処理される"
     },
     {
       "name": "s",
       "type": "string",
       "label": "グループ内ソートの設定",
       "optional": true,
-      "description": "ソートのキー項目を、カンマ区切りで複数指定可\n●ソートの種類は変更可能　(デフォルト: 文字列昇順)\n 　方法: 項目名末尾に記号を付与 (数値昇順：%n,  文字列降順： %r,  数値降順：%nr)\n●注意 グループ化する項目名と同じ項目名があると、不整合になり、ソートされません"
+      "description": "・ソートのキー項目を、カンマ区切りで複数指定可\n・ソートの種類は変更可能　(デフォルト: 文字列昇順)\n 　方法: 項目名末尾に記号を付与 (数値昇順：%n,  文字列降順： %r,  数値降順：%nr)\n・注意 グループ化する項目名と同じ項目名があると、不整合になり、ソートされません"
     },
     {
       "name": "S",
       "type": "string",
-      "label": "開始値",
+      "label": "開始値 (必須)",
       "optional": true,
-      "description": "整数連番とアルファベット連番が選択可能\nアルファベット連番の場合は、大文字で指定する"
+      "description": "・整数連番とアルファベット連番が選択可能\n・アルファベット連番の場合は、大文字で指定する",
+      "default": "1"
     },
     {
       "name": "B",
       "type": "boolean",
-      "label": "キー毎に連番もしくはアルファベット連番をふる。",
-      "optional": true
+      "label": "グループ内ではなく、グループに連番を付与する",
+      "optional": true,
+      "description": "同じグループには同じ値を付与する"
     },
     {
       "name": "assert_diffSize",
@@ -173,19 +188,21 @@
     },
     {
       "name": "cmd_main",
-      "label": "列追加の設定",
+      "label": "連番の設定 (必須)",
+      "description": "ソート順に連番または順位を付与することが可能",
       "params": [
         "a",
-        "I"
+        "S",
+        "I",
+        "e",
+        "B"
       ]
     },
     {
       "name": "cmd_sub",
       "label": "その他 (省略可)",
       "params": [
-        "e",
-        "S",
-        "B",
+        "nfno",
         "nfn",
         "q"
       ]
@@ -194,7 +211,6 @@
       "name": "fields",
       "label": "項目名・項目番号についての設定（省略可）",
       "params": [
-        "nfno",
         "x"
       ]
     },
