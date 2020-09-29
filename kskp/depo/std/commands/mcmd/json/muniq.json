@@ -26,7 +26,7 @@
       "type": "string",
       "label": "単一化キーの項目名",
       "optional": true,
-      "description": "カンマ区切りで複数指定可\n省略時はキーがないため、任意の１行が出力される"
+      "description": "・カンマ区切りで複数指定可\n・省略時はキーがないため、任意の１行が出力される"
     },
     {
       "name": "assert_diffSize",
@@ -94,7 +94,7 @@
   "groups": [
     {
       "name": "group1",
-      "label": "単一化キーの設定",
+      "label": "単一化の設定 (必須)",
       "params": [
         "k"
       ]
@@ -103,14 +103,8 @@
       "name": "cmd_sub",
       "label": "その他 (省略可)",
       "params": [
+        "q",
         "nfn",
-        "q"
-      ]
-    },
-    {
-      "name": "fields",
-      "label": "項目名・項目番号についての設定（省略可）",
-      "params": [
         "nfno",
         "x"
       ]
