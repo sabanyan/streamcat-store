@@ -27,12 +27,13 @@
     {
       "name": "vf",
       "type": "string",
-      "label": "要素数をカウントするベクトルの列名"
+      "label": "対象項目名と要素数の項目名の指定",
+      "description": "・対象列名、要素数の項目名の順で コロン区切りで指定\n・カンマ区切りで複数指定可"
     },
     {
       "name": "delim",
       "type": "string",
-      "label": "ベクトル要素の区切り文字",
+      "label": "ベクトル要素の区切り文字 (省略可)",
       "optional": true,
       "description": "省略時は半角スペース"
     },
@@ -45,7 +46,7 @@
     {
       "name": "assert_nullin",
       "type": "boolean",
-      "label": "入力項目のf=またはvf=で指定された項目のNULL値チェックを行う",
+      "label": "対象とする項目名で指定された項目のNULL値チェックを行う",
       "optional": true
     },
     {
@@ -95,23 +96,17 @@
   "groups": [
     {
       "name": "cmd_main",
-      "label": "ベクトル併合の設定",
+      "label": "要素数カウントの設定 (必須)",
       "params": [
-        "vf"
+        "vf",
+        "delim"
       ]
     },
     {
       "name": "cmd_sub",
       "label": "その他 (省略可)",
       "params": [
-        "delim",
-        "nfn"
-      ]
-    },
-    {
-      "name": "fields",
-      "label": "項目名・項目番号についての設定（省略可）",
-      "params": [
+        "nfn",
         "nfno",
         "x"
       ]
