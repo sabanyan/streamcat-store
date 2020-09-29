@@ -52,21 +52,23 @@
     {
       "name": "f",
       "type": "string",
-      "label": "平均を求める列名(必須)"
+      "label": "対象とする項目名 (必須)",
+      "description": "・カンマ区切りで複数指定可\n・ワイルドカード(*,？ )使用可"
     },
     {
       "name": "hs",
       "type": "string",
       "label": "ハッシュサイズ",
       "optional": true,
-      "default": 199999
+      "default": 199999,
+      "description": "１以上の整数で指定する"
     },
     {
       "name": "k",
       "type": "string",
       "label": "グループ化する項目名",
       "optional": true,
-      "description": "カンマ区切りで複数指定可\n省略時は全ての行を同じグループとみなして処理される"
+      "description": "・カンマ区切りで複数指定可\n・省略時は全ての行を同じグループとみなして処理される"
     },
     {
       "name": "precision",
@@ -111,7 +113,8 @@
         ]
       },
       "optional": true,
-      "default": "10"
+      "default": "10",
+      "description": "1~16の整数で指定する"
     },
     {
       "name": "n",
@@ -134,7 +137,7 @@
     {
       "name": "assert_nullin",
       "type": "boolean",
-      "label": "入力項目の f=または vf=で指定された項目の NULL 値チェックを行う",
+      "label": "対象とする項目名で指定された項目の NULL 値チェックを行う",
       "optional": true
     },
     {
@@ -197,16 +200,17 @@
   "groups": [
     {
       "name": "grouping",
-      "label": "グループの設定",
+      "label": "グループの設定 (省略可)",
       "params": [
         "k"
       ]
     },
     {
       "name": "cmd_main",
-      "label": "計算の設定",
+      "label": "計算の設定 (必須)",
       "params": [
         "f",
+        "n",
         "hs"
       ]
     },
@@ -214,18 +218,11 @@
       "name": "cmd_sub",
       "label": "その他 (省略可)",
       "params": [
-        "precision",
-        "n",
+        "q",
         "nfn",
-        "q"
-      ]
-    },
-    {
-      "name": "fields",
-      "label": "項目名・項目番号についての設定（省略可）",
-      "params": [
         "nfno",
-        "x"
+        "x",
+        "precision"
       ]
     },
     {
