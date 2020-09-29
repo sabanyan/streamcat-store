@@ -146,7 +146,7 @@ class Role(BaseModel):
         finally:
             self._session.commit()
 
-    def is_self_role(self):
+    def is_self_role(self) -> bool:
         """
         本人ロールの場合はTrueを返す
         """
@@ -154,17 +154,20 @@ class Role(BaseModel):
         count = self._session.query(User).filter(User.self_role_id==self.id).count()
         return count > 0
 
-    def is_joined_user(self, user):
+    def is_joined_user(self, user) -> bool:
         from .user import User
         count1 = self._session.query(User).filter(User.self_role_id==self.id).filter(User.id==user.id).count()
         count2 = self._session.query(UserRole).filter(UserRole.role_id==self.id).filter(UserRole.user_id==user.id).count()
         return count1 + count2 > 0
 
-    def has_joined_user(self):
+    def count_joined_users(self) -> int:
         from .user import User
         count1 = self._session.query(User).filter(User.self_role_id==self.id).count()
         count2 = self._session.query(UserRole).filter(UserRole.role_id==self.id).count()
-        return count1 + count2 > 0
+        return count1 + count2
+
+    def has_joined_user(self) -> bool:
+        return self.count_joined_users() > 0
 
     def get_joined_users(self):
         """
@@ -256,8 +259,8 @@ class Role(BaseModel):
             # permission=Noneが指定された場合は何もしない
             pass
         else:
-            authz = auth_factory.create(self.id, datum_id, operation, permission=permission)
-            authz.save()
+            auth = auth_factory.create(self.id, datum_id, operation, permission=permission)
+            auth.save()
 
     @property
     def created_at_str(self):

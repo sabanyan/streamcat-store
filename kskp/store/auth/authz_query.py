@@ -37,6 +37,12 @@ class Query():
             result._session = self._session
         return result
 
+    def first(self):
+        result = self._query.first()
+        if Query._is_base_model(result):
+            result._session = self._session
+        return result
+
     def all(self):
         results = self._query.all()
         if results is not None and len(results) > 0 and Query._is_base_model(results[0]):

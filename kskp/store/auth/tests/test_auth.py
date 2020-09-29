@@ -1469,9 +1469,67 @@ class AuthTest(TestCaseBase):
         # プロジェクトは削除されていないこと
         self.assertTrue(self.factory.data.exists_by_id(project.id))
 
-    def test_join_project(self):
+    def test_join_project1(self):
         """
         プロジェクト管理者を交代する
+        (元のプロジェクト管理者は削除する)
+        """
+        # ルートフォルダを取得する
+        root = self.factory2.data.load_root()
+        # ルートフォルダの下にプロジェクトを作成する
+        project = root.create_project_folder('アイドルプロジェクト！')
+        project.save()
+
+        # メンバを設定する
+        member1 = ProjectFolder.Member(self.USER3, ProjectFolder.OWNER_MEMBER_TYPE)
+        project.init_members([member1])
+
+        # メンバを取得する
+        members = project.get_joined_members()
+
+        # 期待する結果が返ることを確認する
+        usr_admin_member = ProjectFolder.Member(self.USER1, ProjectFolder.OWNER_MEMBER_TYPE)
+        self.assertEqual(len(members), 2)
+        self.assertEqual(members, [member1, usr_admin_member])
+
+        # 元のプロジェクト管理者は、プロジェクトを更新できないこと
+        with self.assertRaises(NotAuthorizedException):
+            project = project.reload()
+            project.update_data('ぷろじぇくと1')
+
+    def test_join_project2(self):
+        """
+        プロジェクト管理者を交代する
+        (元のプロジェクト管理者は閲覧者にする)
+        """
+        # ルートフォルダを取得する
+        root = self.factory2.data.load_root()
+        # ルートフォルダの下にプロジェクトを作成する
+        project = root.create_project_folder('V作戦')
+        project.save()
+
+        # メンバを設定する
+        member1 = ProjectFolder.Member(self.USER2, ProjectFolder.READER_MEMBER_TYPE)
+        member2 = ProjectFolder.Member(self.USER3, ProjectFolder.OWNER_MEMBER_TYPE)
+        project.init_members([member1, member2])
+
+        # メンバを取得する
+        members = project.get_joined_members()
+
+        # 期待する結果が返ることを確認する
+        usr_admin_member = ProjectFolder.Member(self.USER1, ProjectFolder.OWNER_MEMBER_TYPE)
+        self.assertEqual(len(members), 3)
+        self.assertEqual(members, [member2, usr_admin_member, member1])
+
+        # 元のプロジェクト管理者は、プロジェクトを更新できないこと
+        with self.assertRaises(NotAuthorizedException):
+            project = project.reload()
+            project.update_data('ぷろじぇくと1')
+
+    def test_join_project3(self):
+        """
+        プロジェクト管理者を交代する
+        (ユーザ管理者はプロジェクト管理者から外すことはできないこと)
         (元のプロジェクト管理者は削除する)
         """
         # ルートフォルダを取得する
@@ -1489,17 +1547,22 @@ class AuthTest(TestCaseBase):
         members = project.get_joined_members()
 
         # 期待する結果が返ることを確認する
-        self.assertEqual(len(members), 2)
-        self.assertEqual(members, [member1, member2])
+        usr_admin_member = ProjectFolder.Member(self.USER1, ProjectFolder.OWNER_MEMBER_TYPE)
+        self.assertEqual(len(members), 3)
+        self.assertEqual(members, [member1, usr_admin_member, member2])
 
-        # プロジェクトは更新できない
-        with self.assertRaises(NotAuthorizedException):
-            project = project.reload()
-            project.update_data('ぷろじぇくと1')
+        # ユーザ管理者は、プロジェクトは更新できること
+        project = project.reload()
+        project.update_data('ぷろじぇくと1')
 
-    def test_join_project2(self):
+        # プロジェクトは削除する
+        project = project.reload()
+        project.delete()
+
+    def test_join_project4(self):
         """
         プロジェクト管理者を交代する
+        (ユーザ管理者はプロジェクト管理者から外すことはできないこと)
         (元のプロジェクト管理者は閲覧者にする)
         """
         # ルートフォルダを取得する
@@ -1517,13 +1580,17 @@ class AuthTest(TestCaseBase):
         members = project.get_joined_members()
 
         # 期待する結果が返ることを確認する
+        usr_admin_member = ProjectFolder.Member(self.USER1, ProjectFolder.OWNER_MEMBER_TYPE)
         self.assertEqual(len(members), 2)
-        self.assertEqual(members, [member2, member1])
+        self.assertEqual(members, [member2, usr_admin_member])
 
-        # プロジェクトは更新できない
-        with self.assertRaises(NotAuthorizedException):
-            project = project.reload()
-            project.update_data('ぷろじぇくと2')
+        # ユーザ管理者は、プロジェクトは更新できること
+        project = project.reload()
+        project.update_data('ぷろじぇくと2')
+
+        # プロジェクトは削除する
+        project = project.reload()
+        project.delete()
 
     def test_join_project_without_owner(self):
         """

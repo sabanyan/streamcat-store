@@ -219,11 +219,12 @@ class User(BaseModel):
             raise e
         finally:
             self._session.commit()
-            # everyoneロールに所属させる
-            # (everyoneロールの作成者であるユーザ管理者のみがにユーザを追加できる)
-            from kskp.store.factory import RoleFactory
-            everyone_role = RoleFactory(self._session).load_everyone_role()
-            everyone_role.join_user(self)
+
+        # everyoneロールに所属させる
+        # (everyoneロールの作成者であるユーザ管理者のみがにユーザを追加できる)
+        from kskp.store.factory import RoleFactory
+        everyone_role = RoleFactory(self._session).load_everyone_role()
+        everyone_role.join_user(self)
 
     def update_email(self, new_email, modifier=None):
         """
@@ -502,3 +503,6 @@ class User(BaseModel):
 
     def __ne__(self, other):
         return self.uuid != other.uuid
+
+    def __hash__(self) -> int:
+        return hash(self.uuid)
