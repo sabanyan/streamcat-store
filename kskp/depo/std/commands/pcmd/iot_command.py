@@ -1368,7 +1368,8 @@ class TimeSeriesDataJoinCommand(PCommand):
 
         # header_m = nm.mread(i=inputs['m']).getline(header=True)
         # header_m = next(header_m)
-        header_m = self.get_field_names(inputs['i'])
+        header_m = self.get_field_names(inputs['m'])
+        header_i = self.get_field_names(inputs['i'])
 
 
         if debug:
