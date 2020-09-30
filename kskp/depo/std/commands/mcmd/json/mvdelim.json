@@ -37,24 +37,25 @@
     {
       "name": "vf",
       "type": "string",
-      "label": "対象とする項目名(必須)",
-      "description": "カンマ区切りで複数指定可"
+      "label": "対象とする項目名 (必須)",
+      "description": "・カンマ区切りで複数指定可\n・ワイルドカード(*,？ )使用可"
     },
     {
       "name": "v",
       "type": "string",
-      "label": "新しい区切り文字(必須)"
+      "label": "新しい区切り文字 (必須)"
     },
     {
       "name": "A",
       "type": "boolean",
-      "label": "vf=で:(コロン) に続けて指定した項目名で、新たな項目が追加される。",
-      "optional": true
+      "label": "置換ではなく、項目を追加して出力する",
+      "optional": true,
+      "description": "追加する項目名は、対象項目名の後に、:区切りで入力する"
     },
     {
       "name": "delim",
       "type": "string",
-      "label": "ベクトル要素の区切り文字",
+      "label": "入力データの区切り文字 (省略可)",
       "optional": true,
       "description": "省略時は半角スペース"
     },
@@ -123,25 +124,20 @@
   "groups": [
     {
       "name": "cmd_main",
-      "label": "区切り文字変更の設定",
+      "label": "区切り文字変更の設定 (必須)",
+      "description": "対象とする項目の値をベクトルとみなし、要素の区切り文字を変更する",
       "params": [
         "vf",
+        "A",
         "v",
-        "A"
+        "delim"
       ]
     },
     {
       "name": "cmd_sub",
       "label": "その他 (省略可)",
       "params": [
-        "delim",
-        "nfn"
-      ]
-    },
-    {
-      "name": "fields",
-      "label": "項目名・項目番号についての設定（省略可）",
-      "params": [
+        "nfn",
         "nfno",
         "x"
       ]
