@@ -3,7 +3,7 @@
   "groups": [
     {
       "name": "grouping",
-      "label": "グループの設定(省略可)",
+      "label": "グループの設定 (省略可)",
       "params": [
         "k"
       ]
