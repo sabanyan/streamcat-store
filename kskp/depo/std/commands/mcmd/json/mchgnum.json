@@ -63,42 +63,49 @@
     {
       "name": "f",
       "type": "string",
-      "label": "置換対象列(必須)"
+      "label": "対象とする項目名 (必須)",
+      "description": "・カンマ区切りで複数指定可\n・ワイルドカード(*,？ )使用可"
     },
     {
       "name": "R",
       "type": "string",
-      "label": "置換対象となる数の範囲(必須)"
+      "label": "区間範囲 (必須)",
+      "description": "・区間範囲を、開始値、終了値および区間ごとの境界値で設定する\n・開始値,境界値および終了値は、カンマ区切りで指定する(例: 1,1.5,2)\n・最小値を指定する場合はMIN、最大値ならMAXと指定する(例: MIN,1,2,NAX)"
     },
     {
       "name": "O",
       "type": "string",
-      "label": "R=に無い数または文字列を置換する場合の文字列",
-      "optional": true
+      "label": "区間範囲外の置換文字列",
+      "optional": true,
+      "description": "省略時は、区間範囲外の値はNULLで置換される"
     },
     {
       "name": "v",
       "type": "string",
-      "label": "R=にて指定した値に対応する置換文字列",
-      "optional": true
+      "label": "区間名リスト (必須)",
+      "optional": true,
+      "description": "・区間ごとの名前を、区間範囲の設定順に合わせて、カンマ区切りで入力する"
     },
     {
       "name": "F",
       "type": "boolean",
-      "label": "範囲外を項目の値として出力",
-      "optional": true
+      "label": "区間範囲外は置換しない",
+      "optional": true,
+      "description": "区間範囲外の値はそのまま出力されます"
     },
     {
       "name": "A",
       "type": "boolean",
-      "label": "指定した項目を置き換えるのではなく、新たに項目が追加される",
-      "optional": true
+      "label": "置換ではなく、別項目として出力する",
+      "optional": true,
+      "description": "・追加する項目名は、対象となる項目とセットで:区切りで入力する"
     },
     {
       "name": "r",
       "type": "boolean",
-      "label": "R=パラメータの範囲を’~より大きく~以下’ として扱う",
-      "optional": true
+      "label": "境界値を、右側ではなく左側の区間に含める",
+      "optional": true,
+      "description": "境界値の扱いが、 a ≦ x < b から、 a < x ≦ b へと変わります"
     },
     {
       "name": "assert_diffSize",
@@ -109,7 +116,7 @@
     {
       "name": "assert_nullin",
       "type": "boolean",
-      "label": "入力項目の f=または vf=で指定された項目の NULL 値チェックを行う",
+      "label": "対象となる項目名で指定された項目の NULL 値チェックを行う",
       "optional": true
     },
     {
@@ -172,29 +179,37 @@
   "groups": [
     {
       "name": "cmd_main",
-      "label": "置換の設定",
+      "label": "置換の設定　(必須)",
       "params": [
         "f",
-        "v",
-        "F",
         "A"
+      ]
+    },
+    {
+      "name": "cmd_main_1",
+      "label": "区間範囲の設定　(必須)",
+      "description": "数値範囲で区間を設定し、値を区間名で置き換える",
+      "params": [
+        "R",
+        "v",
+        "r"
+      ]
+    },
+    {
+      "name": "cmd_main_2",
+      "label": "区間範囲外の設定　(省略可)",
+      "description": "数値範囲で区間を設定し、値を区間名で置き換える",
+      "params": [
+        "O",
+        "F"
       ]
     },
     {
       "name": "cmd_sub",
       "label": "その他 (省略可)",
       "params": [
-        "R",
-        "O",
-        "r",
+        "q",
         "nfn",
-        "q"
-      ]
-    },
-    {
-      "name": "fields",
-      "label": "項目名・項目番号についての設定（省略可）",
-      "params": [
         "nfno",
         "x"
       ]
