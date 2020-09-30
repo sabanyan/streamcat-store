@@ -71,11 +71,6 @@
       "optional": true
     },
     {
-      "type": "boolean",
-      "label": "ワイド文字とみなしてマッチと置換を行う",
-      "optional": true
-    },
-    {
       "name": "assert_diffSize",
       "type": "boolean",
       "label": "入力、出力件数比較を行う",
