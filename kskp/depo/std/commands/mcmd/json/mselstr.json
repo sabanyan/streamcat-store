@@ -112,12 +112,6 @@
       "optional": true
     },
     {
-      "name": "W",
-      "type": "boolean",
-      "label": "sub,head,tail オプションが指定されているときにワイド文字として部分文字列マッチをおこなう。",
-      "optional": true
-    },
-    {
       "name": "bufcount",
       "type": "string",
       "label": "バッファの数",
@@ -224,7 +218,6 @@
         "sub",
         "head",
         "tail",
-        "W",
         "nfn",
         "q"
       ]

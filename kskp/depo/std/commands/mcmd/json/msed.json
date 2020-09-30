@@ -71,7 +71,6 @@
       "optional": true
     },
     {
-      "name": "W",
       "type": "boolean",
       "label": "ワイド文字とみなしてマッチと置換を行う",
       "optional": true
@@ -154,8 +153,7 @@
       "params": [
         "c",
         "v",
-        "g",
-        "W"
+        "g"
       ]
     },
     {
