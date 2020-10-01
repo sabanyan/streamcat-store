@@ -43,8 +43,14 @@
   },
   "groups": [
     {
+      "name": "abstract",
+      "label": "コマンドの概要",
+      "description": "対象項目の値がグループ単位の合計に占める割合(構成比)を計算する",
+      "params": []
+    },
+    {
       "name": "grouping",
-      "label": "グループの設定",
+      "label": "グループの設定 (省略可)",
       "params": [
         "k"
       ]
@@ -60,27 +66,21 @@
       "name": "group10",
       "label": "その他 (省略可)",
       "params": [
-        "q"
-      ]
-    },
-    {
-      "name": "group15",
-      "label": "項目名・項目番号についての設定（省略可）",
-      "params": [
-        "x",
+        "q",
         "nfn",
-        "nfno"
+        "nfno",
+        "x"
       ]
     },
     {
       "name": "group20",
       "label": "システム管理用設定（作業領域・ログ出力）",
       "params": [
-        "tmpPath",
         "assert_diffSize",
-        "assert_nullout",
         "assert_nullkey",
-        "assert_nullin"
+        "assert_nullin",
+        "assert_nullout",
+        "tmpPath"
       ]
     }
   ],
@@ -88,8 +88,8 @@
     {
       "name": "f",
       "type": "string",
-      "label": "対象とする項目名と追加項目名の指定",
-      "description": "●対象列名、追加列名の順で コロン区切りで指定\n●カンマ区切りで複数指定可"
+      "label": "対象項目名と構成比の項目名の指定 (必須)",
+      "description": "・対象項目名、構成比の項目名の順で コロン区切りで指定する\n・カンマ区切りで複数指定可"
     },
     {
       "name": "k",
@@ -113,7 +113,7 @@
     {
       "name": "assert_nullin",
       "type": "boolean",
-      "label": "入力項目のf=またはvf=で指定された項目のNULL値チェックを行う",
+      "label": "対象項目名で指定された項目のNULL値チェックを行う",
       "optional": true
     },
     {
