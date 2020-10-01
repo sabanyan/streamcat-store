@@ -80,11 +80,15 @@ class ProjectFolder(Folder):
         usr_admin_role = RoleFactory(self._session).load_usr_admin_role()
         usr_admin_role.init_authz(self.id, True, True, exec=True, own=True)
 
-        # Ownersロールを作成する
+        # プロジェクトロールを作成する
+        readers_role = self._load_readers_role()
+        writers_role = self._load_writers_role()
         owners_role = self._load_owners_role()
 
-        # 作成者はOwnersロールに参加する
+        # 作成者はプロジェクトロールに参加する
         self_user = self._session.user
+        readers_role.join_user(self_user)
+        writers_role.join_user(self_user)
         owners_role.join_user(self_user)
 
         # 作成者(creator)の本人ロールからDatumの権限を削除する
@@ -123,17 +127,17 @@ class ProjectFolder(Folder):
         from kskp.store.auth import User, Role, Auth
 
         not_exists_self_role = ~exists().where(User.self_role_id==Role.id)
-        exists_read  = exists().where(and_(Auth.datum_id==self.id, Auth.role_id==Role.id, Auth.operation==Auth.READ_OP))
+        not_exists_read  = ~exists().where(and_(Auth.datum_id==self.id, Auth.role_id==Role.id, Auth.operation==Auth.READ_OP))
         exists_write = exists().where(and_(Auth.datum_id==self.id, Auth.role_id==Role.id, Auth.operation==Auth.WRITE_OP))
-        exists_exec  = exists().where(and_(Auth.datum_id==self.id, Auth.role_id==Role.id, Auth.operation==Auth.EXEC_OP))
+        not_exists_exec  = ~exists().where(and_(Auth.datum_id==self.id, Auth.role_id==Role.id, Auth.operation==Auth.EXEC_OP))
         not_exists_own = ~exists().where(and_(Auth.datum_id==self.id, Auth.role_id==Role.id, Auth.operation==Auth.OWN_OP))
 
         query = self._session.query(Role).\
                      filter(Role.uuid.notin_([Role.SYS_ADMIN_ROLE_UUID, Role.USR_ADMIN_ROLE_UUID, Role.EVERYONE_ROLE_UUID])).\
                      filter(not_exists_self_role).\
-                     filter(exists_read).\
+                     filter(not_exists_read).\
                      filter(exists_write).\
-                     filter(exists_exec).\
+                     filter(not_exists_exec).\
                      filter(not_exists_own)
         
         # 複数のロールが紐づいている場合は、role_idが小さい方がプロジェクトロールのはず
@@ -147,17 +151,17 @@ class ProjectFolder(Folder):
         from kskp.store.auth import User, Role, Auth
 
         not_exists_self_role = ~exists().where(User.self_role_id==Role.id)
-        exists_read  = exists().where(and_(Auth.datum_id==self.id, Auth.role_id==Role.id, Auth.operation==Auth.READ_OP))
-        exists_write = exists().where(and_(Auth.datum_id==self.id, Auth.role_id==Role.id, Auth.operation==Auth.WRITE_OP))
-        exists_exec  = exists().where(and_(Auth.datum_id==self.id, Auth.role_id==Role.id, Auth.operation==Auth.EXEC_OP))
+        not_exists_read  = ~exists().where(and_(Auth.datum_id==self.id, Auth.role_id==Role.id, Auth.operation==Auth.READ_OP))
+        not_exists_write = ~exists().where(and_(Auth.datum_id==self.id, Auth.role_id==Role.id, Auth.operation==Auth.WRITE_OP))
+        not_exists_exec  = ~exists().where(and_(Auth.datum_id==self.id, Auth.role_id==Role.id, Auth.operation==Auth.EXEC_OP))
         exists_own   = exists().where(and_(Auth.datum_id==self.id, Auth.role_id==Role.id, Auth.operation==Auth.OWN_OP))
 
         query = self._session.query(Role).\
                      filter(Role.uuid.notin_([Role.SYS_ADMIN_ROLE_UUID, Role.USR_ADMIN_ROLE_UUID, Role.EVERYONE_ROLE_UUID])).\
                      filter(not_exists_self_role).\
-                     filter(exists_read).\
-                     filter(exists_write).\
-                     filter(exists_exec).\
+                     filter(not_exists_read).\
+                     filter(not_exists_write).\
+                     filter(not_exists_exec).\
                      filter(exists_own)
         
         # 複数のロールが紐づいている場合は、role_idが小さい方がプロジェクトロールのはず
@@ -186,7 +190,7 @@ class ProjectFolder(Folder):
             from kskp.store.factory import RoleFactory
             writers_role = RoleFactory(self._session).create(self.label[:8] + '_writers')
             writers_role.save()
-            writers_role.init_authz(self.id, read=True, write=True, exec=True)
+            writers_role.init_authz(self.id, read=None, write=True, exec=None)
         return writers_role
 
     def _load_owners_role(self):
@@ -199,12 +203,12 @@ class ProjectFolder(Folder):
             from kskp.store.factory import RoleFactory
             owners_role = RoleFactory(self._session).create(self.label[:8] + '_owners')
             owners_role.save()
-            owners_role.init_authz(self.id, read=True, write=True, exec=True, own=True)
+            owners_role.init_authz(self.id, read=None, write=None, exec=None, own=True)
         return owners_role
 
     def throw_away(self):
         """
-        プロジェクトをほかす
+        プロジェクトをゴミ箱にほかす
         """
         from kskp.store.auth import NotAuthorizedException
         if not self._session.ownership(self.id):
@@ -212,6 +216,17 @@ class ProjectFolder(Folder):
 
         # ほかす処理はFolderクラスと同じ
         super().throw_away()
+
+    def put_back(self):
+        """
+        直前の親のStoreの直下に戻す
+        """
+        from kskp.store.auth import NotAuthorizedException
+        if not self._session.ownership(self.id):
+            raise NotAuthorizedException('プロジェクト管理者以外のメンバはプロジェクトを元に戻せません')
+
+        # 戻す処理はFolderクラスと同じ
+        super().put_back()
 
     def delete(self):
         """
@@ -264,13 +279,13 @@ class ProjectFolder(Folder):
             writers_role.leave_user(member.user)
             owners_role.leave_user(member.user)
         elif member.type == ProjectFolder.WRITER_MEMBER_TYPE:
+            readers_role.join_user(member.user)
             writers_role.join_user(member.user)
-            readers_role.leave_user(member.user)
             owners_role.leave_user(member.user)
         elif member.type == ProjectFolder.OWNER_MEMBER_TYPE:
+            readers_role.join_user(member.user)
+            writers_role.join_user(member.user)
             owners_role.join_user(member.user)
-            readers_role.leave_user(member.user)
-            writers_role.leave_user(member.user)
         else:
             raise Exception('member.typeの値が誤っています')
 
@@ -303,7 +318,9 @@ class ProjectFolder(Folder):
         """
         from kskp.store.auth import NotAuthorizedException
 
+        # 
         # 指定されたメンバリストの妥当性を検証する
+        # 
         users = set()
         owner_exists = False
         for member in members:
@@ -346,16 +363,23 @@ class ProjectFolder(Folder):
             if member.type == ProjectFolder.READER_MEMBER_TYPE:
                 readers_role.join_user(member.user)
             elif member.type == ProjectFolder.WRITER_MEMBER_TYPE:
+                readers_role.join_user(member.user)
                 writers_role.join_user(member.user)
             elif member.type == ProjectFolder.OWNER_MEMBER_TYPE:
                 if member.user == self_user:
                     self_member = member
                 else:
+                    readers_role.join_user(member.user)
+                    writers_role.join_user(member.user)
                     owners_role.join_user(member.user)
 
-        # メンバリストに自分が指定されていない場合は自分を削除する
         if self_member is None:
-            owners_role.leave_user(self_user) 
+            # 自分がプロジェクト管理者に指定されていない場合は自分を削除する
+            owners_role.leave_user(self_user)
+        else:
+            # 自分がプロジェクト管理者に指定されている場合は改めて追加する
+            readers_role.join_user(self_user)
+            writers_role.join_user(self_user)
 
     def get_joined_members(self):
         """

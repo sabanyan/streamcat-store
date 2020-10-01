@@ -98,7 +98,7 @@ class Folder(Store):
 
         return self
 
-
+    @Constraints.set_project_role_on_throwing_away
     def throw_away(self):
         """
         Folderを中身のファイルも一緒にゴミ箱にほかす

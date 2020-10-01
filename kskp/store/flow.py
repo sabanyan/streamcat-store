@@ -146,6 +146,7 @@ class Flow(Datum):
 
     #     return self
 
+    @Constraints.set_project_role_on_throwing_away
     def throw_away(self):
         """
         Flowをゴミ箱にほかす

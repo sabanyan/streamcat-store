@@ -197,6 +197,7 @@ class Frame(Datum):
         self._modifier_id = (modifier or self._session.user).id
         self._session.update(self)
 
+    @Constraints.set_project_role_on_throwing_away
     def throw_away(self):
         """
         Frameをゴミ箱にほかす
