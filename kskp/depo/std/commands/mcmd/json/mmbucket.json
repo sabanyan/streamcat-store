@@ -48,51 +48,62 @@
     {
       "name": "f",
       "type": "string",
-      "label": "対象列名(必須)"
+      "label": "対象項目名とバケット項目名の指定 (必須)",
+      "description": "・対象列名、追加列名の順で コロン区切りで指定\n・カンマ区切りで複数指定可"
     },
     {
       "name": "n",
       "type": "string",
-      "label": "行数(必須)"
+      "label": "バケット分割数 (必須)",
+      "description": "2以上の整数を指定する",
+      "default": "2"
     },
     {
       "name": "F",
-      "type": "string",
-      "label": "出力形式",
+      "type": "select",
+      "label": "バケット値の形式の設定 (必須)",
+      "options": {
+        "labels": [
+          "番号 (例 1, 2, ...)",
+          "範囲 (例 _1.5, 1.5_3, ...)",
+          "番号と範囲 (例 1:_1.5, 2:1.5_3, ...)"
+        ],
+        "values": [
+          "0",
+          "1",
+          "2"
+        ]
+      },
       "optional": true,
-      "default": 1
+      "default": "0"
     },
     {
       "name": "k",
       "type": "string",
       "label": "グループ化する項目名",
       "optional": true,
-      "description": "カンマ区切りで複数指定可\n省略時は全ての行を同じグループとみなして処理される"
-    },
-    {
-      "name": "O",
-      "type": "string",
-      "label": "f=パラメータで指定した各項目の各バケットの数値範囲を出力するファイル名を指定する。",
-      "optional": true
+      "description": "・カンマ区切りで複数指定可\n・省略時は全ての行を同じグループとみなして処理される"
     },
     {
       "name": "ms",
       "type": "boolean",
-      "label": "各項目を順次バケット分割していく時の開始項目を変えることで複数回のバケット分割をトライし、よりよい解を求める。",
-      "optional": true
+      "label": "複数の分割パターンを試し、最も良い解を出力する",
+      "optional": true,
+      "description": "・最初に分割する項目を変えて、複数の分割パターンを試します\n・項目の値や次元数によっては、処理時間が大幅に増加する可能性があります"
     },
     {
       "name": "r",
       "type": "boolean",
-      "label": "バケット番号を逆順に出力する。",
+      "label": "バケットの番号を逆順にして出力する",
       "optional": true
     },
     {
       "name": "bufcount",
       "type": "string",
-      "label": "バッファの数",
+      "label": "バッファのブロック数",
       "optional": true,
-      "default": 10
+      "default": 10,
+      "description": "デフォルト:10 (40MB)"
     },
     {
       "name": "assert_diffSize",
@@ -109,7 +120,7 @@
     {
       "name": "assert_nullin",
       "type": "boolean",
-      "label": "入力項目の f=または vf=で指定された項目の NULL 値チェックを行う",
+      "label": "対象とする項目名で指定された項目の NULL 値チェックを行う",
       "optional": true
     },
     {
@@ -171,37 +182,35 @@
   "url": "./static/pdf/mcmd/table_split/mmbucket.pdf",
   "groups": [
     {
+      "name": "abstract",
+      "label": "コマンドの概要",
+      "description": "・対象項目の組合せで生じた多次元空間を分割し、バケット値を付与する\n・バケット値は、各分割空間内の件数がなるべく均等になるように付与される",
+      "params": []
+    },
+    {
       "name": "grouping",
-      "label": "グループの設定",
+      "label": "グループの設定 (省略可)",
       "params": [
         "k"
       ]
     },
     {
       "name": "cmd_main",
-      "label": "バケット分割の設定",
+      "label": "バケット分割の設定　(必須)",
       "params": [
         "f",
+        "n",
         "F",
-        "bufcount"
+        "r",
+        "ms"
       ]
     },
     {
       "name": "cmd_sub",
       "label": "その他 (省略可)",
       "params": [
-        "n",
-        "O",
-        "ms",
-        "r",
+        "q",
         "nfn",
-        "q"
-      ]
-    },
-    {
-      "name": "fields",
-      "label": "項目名・項目番号についての設定（省略可）",
-      "params": [
         "nfno",
         "x"
       ]
@@ -215,6 +224,13 @@
         "assert_nullin",
         "assert_nullout",
         "tmpPath"
+      ]
+    },
+    {
+      "name": "group20",
+      "label": "システム管理用設定（作業領域・ログ出力）",
+      "params": [
+        "bufcount"
       ]
     }
   ]
