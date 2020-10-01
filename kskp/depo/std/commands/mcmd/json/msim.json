@@ -70,8 +70,8 @@
           "yuleのY連関係数 (yuleY)",
           "カッパ値 (kappa)",
           "オッズ比 (oddsRatio)",
-          "最大確信度 (convMax)",
-          "最小確信度 (convMin)"
+          "最大conviction (convMax)",
+          "最小conviction (convMin)"
         ],
         "values": [
           "covar",
