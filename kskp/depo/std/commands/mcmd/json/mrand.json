@@ -54,33 +54,33 @@
       "type": "string",
       "label": "グループ化する項目名",
       "optional": true,
-      "description": "カンマ区切りで複数指定可\n省略時は全ての行を同じグループとみなして処理される"
+      "description": "・カンマ区切りで複数指定可\n・省略時は全ての行を同じグループとみなして処理される"
     },
     {
       "name": "a",
       "type": "string",
-      "label": "追加列名"
+      "label": "乱数の項目名 (必須)"
     },
     {
       "name": "max",
       "type": "string",
-      "label": "最大値の指定",
+      "label": "整数乱数の最大値",
       "optional": true,
       "description": "「整数乱数を生成時する」有効時のみ指定可能"
     },
     {
       "name": "min",
       "type": "string",
-      "label": "最小値の指定",
+      "label": "整数乱数の最小値",
       "optional": true,
       "description": "「整数乱数を生成時する」有効時のみ指定可能"
     },
     {
       "name": "S",
       "type": "string",
-      "label": "乱数のシード値",
+      "label": "乱数のシード値　(省略可)",
       "optional": true,
-      "description": "同じ乱数系列を発生させたい場合に指定する\nデフォルトは時刻値なので、実行の都度変化する"
+      "description": "同じ乱数系列を発生させたい場合に指定する\nデフォルトは時刻値で、実行の都度変化する"
     },
     {
       "name": "int",
@@ -154,34 +154,28 @@
   "groups": [
     {
       "name": "grouping",
-      "label": "グループの設定",
+      "label": "グループの設定 (省略可)",
       "params": [
         "k"
       ]
     },
     {
       "name": "cmd_main",
-      "label": "データ生成の設定",
+      "label": "乱数生成の設定 (必須)",
       "params": [
         "a",
-        "int"
+        "int",
+        "min",
+        "max",
+        "S"
       ]
     },
     {
       "name": "cmd_sub",
       "label": "その他 (省略可)",
       "params": [
-        "S",
-        "max",
-        "min",
+        "q",
         "nfn",
-        "q"
-      ]
-    },
-    {
-      "name": "fields",
-      "label": "項目名・項目番号についての設定（省略可）",
-      "params": [
         "nfno",
         "x"
       ]
