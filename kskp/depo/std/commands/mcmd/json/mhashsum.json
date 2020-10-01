@@ -58,7 +58,7 @@
     {
       "name": "hs",
       "type": "string",
-      "label": "ハッシュサイズ",
+      "label": "ハッシュサイズ (必須)",
       "optional": true,
       "default": 199999,
       "description": "１以上の整数で指定する"
@@ -162,7 +162,7 @@
   "groups": [
     {
       "name": "grouping",
-      "label": "グループの設定",
+      "label": "グループの設定 (省略可)",
       "params": [
         "k"
       ]
