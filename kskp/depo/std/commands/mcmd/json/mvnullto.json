@@ -50,36 +50,39 @@
     {
       "name": "vf",
       "type": "string",
-      "label": "対象とする項目名(必須)"
+      "label": "対象とする項目名 (必須)",
+      "description": "・カンマ区切りで複数指定可\n・ワイルドカード(*,？ )使用可"
     },
     {
       "name": "v",
       "type": "string",
-      "label": "置換文字列",
+      "label": "NULLを置換する値 (必須)",
       "optional": true
     },
     {
       "name": "p",
       "type": "boolean",
-      "label": "直前の要素で置換する。v=と同時に指定はできない。",
+      "label": "値を指定せず、直前の要素で置換する",
       "optional": true
     },
     {
       "name": "O",
       "type": "string",
-      "label": "NULL 値以外の要素を全て、ここで指定した文字列に置換する。",
-      "optional": true
+      "label": "NULL要素以外を置換する値 (省略可)",
+      "optional": true,
+      "description": "NULL要素以外を置換したい場合のみ指定する"
     },
     {
       "name": "A",
       "type": "boolean",
-      "label": "vf=で:(コロン) に続けて指定した項目名で、新たな項目が追加される。",
-      "optional": true
+      "label": "置換ではなく、別項目として出力する",
+      "optional": true,
+      "description": "追加する項目名は、対象となる項目とセットで:区切りで入力する"
     },
     {
       "name": "delim",
       "type": "string",
-      "label": "ベクトル要素の区切り文字",
+      "label": "ベクトル要素の区切り文字　(省略可)",
       "optional": true,
       "description": "省略時は半角スペース"
     },
@@ -92,7 +95,7 @@
     {
       "name": "assert_nullin",
       "type": "boolean",
-      "label": "入力項目のf=またはvf=で指定された項目のNULL値チェックを行う",
+      "label": "対象とする項目名で指定された項目のNULL値チェックを行う",
       "optional": true
     },
     {
@@ -148,27 +151,21 @@
   "groups": [
     {
       "name": "cmd_main",
-      "label": "要素の置換の設定",
+      "label": "NULL要素置換の設定 (必須)",
       "params": [
         "vf",
+        "A",
         "v",
-        "A"
+        "p",
+        "delim",
+        "O"
       ]
     },
     {
       "name": "cmd_sub",
       "label": "その他 (省略可)",
       "params": [
-        "p",
-        "O",
-        "delim",
-        "nfn"
-      ]
-    },
-    {
-      "name": "fields",
-      "label": "項目名・項目番号についての設定（省略可）",
-      "params": [
+        "nfn",
         "nfno",
         "x"
       ]
