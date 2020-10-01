@@ -9,7 +9,7 @@ from nysol.util._utillib import mcsvout as mcsvout
 from pathlib import Path
 
 from kskp.store import NysolModule
-from kskp.core import Command, Port
+from kskp.core import Command, Port, Tmp
 from .script import PCommand
 
 
@@ -134,6 +134,7 @@ class MeasurementPeriodIdentifyCommand(PCommand):
         a_opt_seq = self.const('a_opt_seq') # Opt欄 a= で入力される項目名の順序
 
         remove_fields = []          # 後始末用項目名
+        args = copy.deepcopy()
 
         # --- 引数チェック ---
         if 'c' not in args:
@@ -164,10 +165,38 @@ class MeasurementPeriodIdentifyCommand(PCommand):
 
         # header = nm.mread(inputs).getline(header=True)  #inputs
         # header = next(header)
-        header = self.get_field_names(inputs['i'])
+        # header = self.get_field_names(inputs['i'])
 
-        # f <<= nm.mread(inputs)
-        f <<= copy.deepcopy(inputs['i'].content)
+        header = args.get('header')
+        if header is None:
+            # get all of the flow before this
+            prev_flow = copy.deepcopy(inputs['i'].content)
+            
+            # put this into a tmpfile
+            input_file = Tmp.create_file()
+            input_filename = input_file.as_posix()
+            
+            prev_flow <<= nm.m2tee(o = input_filename)
+            
+            prev_flow_obj = NysolModule()
+            prev_flow_obj.set_content(prev_flow)
+            self.do_runs(prev_flow_obj) # run savetotmpfile
+            
+            # get header
+            get_header = nm.m2tee(i = input_filename)
+            
+            get_header_module = NysolModule()
+            get_header_module.set_content(get_header)
+            header = self.get_field_names(get_header_module)
+
+            f <<= nm.m2tee(i = input_filename)
+        else:
+            # if header is passed just read from input
+            # f <<= nm.mread(inputs)
+            f <<= copy.deepcopy(inputs['i'].content)
+            
+        
+
 
         # --- 出力項目の上書きモード ---
         tg_overwrite = list(aflds.values()) + list(aflds_tmp.values()) + [ time + aflds_tmp['uxt_sfx'] ]
@@ -606,8 +635,37 @@ class MissingValueInterpolateCommand(PCommand):
         # --- ヘッダー行だけ取得 ---
         # header = nm.mread(inputs).getline(header=True)
         # header = next(header)
+        # header = self.get_field_names(inputs['i'])
 
-        header = self.get_field_names(inputs['i'])
+        f = None
+        header = args.get('header')
+        if header is None:
+            # get all of the flow before this
+            prev_flow = copy.deepcopy(inputs['i'].content)
+            
+            # put this into a tmpfile
+            input_file = Tmp.create_file()
+            input_filename = input_file.as_posix()
+            
+            prev_flow <<= nm.m2tee(o = input_filename)
+            
+            prev_flow_obj = NysolModule()
+            prev_flow_obj.set_content(prev_flow)
+            self.do_runs(prev_flow_obj) # run savetotmpfile
+            
+            # get header
+            get_header = nm.m2tee(i = input_filename)
+            
+            get_header_module = NysolModule()
+            get_header_module.set_content(get_header)
+            header = self.get_field_names(get_header_module)
+
+            f <<= nm.m2tee(i = input_filename)
+        else:
+            # if header is passed just read from input
+            # f <<= nm.mread(inputs)
+            f <<= copy.deepcopy(inputs['i'].content)
+
 
         if debug:
             sys.stderr.write( 'header : ' + ','.join(header) + '\n' )
@@ -639,8 +697,9 @@ class MissingValueInterpolateCommand(PCommand):
 
         sorted = False
 
-        f = None
-        f = inputs['i'].content
+        # this is handld above, in get header block
+        # f = None
+        # f = inputs['i'].content
 
 
         # --- 出力項目名の重複処理 ---
@@ -1371,6 +1430,56 @@ class TimeSeriesDataJoinCommand(PCommand):
         header_m = self.get_field_names(inputs['m'])
         header_i = self.get_field_names(inputs['i'])
 
+        # TODO encapsulate this
+        header = args.get('header')
+        if header is None:
+            # get all of the flow before this
+            prev_flow_i = copy.deepcopy(inputs['i'].content)
+            prev_flow_m = copy.deepcopy(inputs['m'].content)
+            
+            # put this into a tmpfile
+            input_file_i = Tmp.create_file()
+            input_filename_i = input_file_i.as_posix()
+            input_file_m = Tmp.create_file()
+            input_filename_m = input_file_m.as_posix()
+            
+            prev_flow_i <<= nm.m2tee(o = input_filename_i)
+            prev_flow_m <<= nm.m2tee(o = input_filename_m)
+            
+            prev_flow_obj_i = NysolModule()
+            prev_flow_obj_i.set_content(prev_flow_i)
+            self.do_runs(prev_flow_obj_i) # run savetotmpfile
+
+            prev_flow_obj_m = NysolModule()
+            prev_flow_obj_m.set_content(prev_flow_m)
+            self.do_runs(prev_flow_obj_m) # run savetotmpfile
+            
+            # get headers
+            # get header for i input
+            get_header_i = nm.m2tee(i = input_filename_i)
+            
+            get_header_module_i = NysolModule()
+            get_header_module_i.set_content(get_header_i)
+            header_i = self.get_field_names(get_header_module_i)
+
+            # get header for m input
+            get_header_m = nm.m2tee(i = input_filename_m)
+            
+            get_header_module_m = NysolModule()
+            get_header_module_m.set_content(get_header_m)
+            header_m = self.get_field_names(get_header_module_m)
+
+            fi = nm.m2tee(i = input_filename_i)
+            
+            fm_mtee = nm.m2tee(i = input_filename_m)
+            fm = NysolModule()
+            fm.set_content(fm_mtee)
+        else:
+            # if header is passed just read from input
+            # f <<= nm.mread(inputs)
+            fi <<= copy.deepcopy(inputs['i'].content)
+            fm = inputs['m']
+
 
         if debug:
             sys.stderr.write( 'header_m : ' + ','.join(header_m) + '\n' )
@@ -1434,8 +1543,8 @@ class TimeSeriesDataJoinCommand(PCommand):
                          n=True, q=True, l=True)
 
         # --- 入力i の処理 ---
-        fi = None
-        fi = inputs['i'].content
+        # fi = None
+        # fi = inputs['i'].content
 
         # unix時間の項目作成
         time_i = args['TIME']
