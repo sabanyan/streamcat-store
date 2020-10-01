@@ -302,11 +302,35 @@ class Datum(BaseModel):
         """
         自分の親を取得する
         """
-        datum = self._session.query(Datum)\
+        return self._session.query(Datum)\
                             .filter(Datum.id==self.parent_id).one()
 
-        # datum.session = self._session
-        return datum
+    def find_my_project(self):
+        """
+        自分のプロジェクトを取得する
+        """
+        from sqlalchemy.orm import aliased
+        from sqlalchemy.sql.expression import select, exists, and_
+        from kskp.store import ProjectFolder
+
+        # cte: Common Table Expression WITH句のこと
+        D0 = aliased(Datum, name='D0')
+        R = select([D0.id, D0.parent_id, D0.type]).select_from(D0).\
+            where(D0.id==self.id).\
+            cte(name='R', recursive=True)
+
+        # WITH句にUNION ALLを用いて再帰クエリとする
+        D = aliased(Datum, name='D')
+        R = R.union_all(
+                select([D.id, D.parent_id, D.type]).\
+                select_from(R.join(D, and_(D.id==R.c.parent_id,
+                                           R.c.type!=Datum.PROJECT_TYPE)))
+            )
+
+        # プロジェクトを取得する
+        exists_project = exists().where(and_(R.c.id==ProjectFolder.id, R.c.type==Datum.PROJECT_TYPE))
+        query = self._session.query(ProjectFolder).filter(exists_project)
+        return query.one()
 
     def reload(self):
         """
@@ -418,6 +442,7 @@ class Datum(BaseModel):
 
         return self
 
+    @Constraints.set_project_role_on_throwing_away
     def throw_away(self):
         """
         ゴミ箱にほかす
@@ -428,9 +453,10 @@ class Datum(BaseModel):
 
         self.move(trash_folder.uuid)
 
+    @Constraints.unset_project_role_on_put_back
     def put_back(self):
         """
-        直前の親のStoreの直下に移動する
+        直前の親のStoreの直下に戻す
         """
         moved_data, exps = self._put_back_inner(self)
         if len(moved_data) == 0:

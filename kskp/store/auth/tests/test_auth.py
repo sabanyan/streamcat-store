@@ -155,6 +155,7 @@ class AuthTest(TestCaseBase):
             self.assertIs(role._session, self.factory._session)
 
         # ロールを削除する
+        print('>> ', role.get_joined_users())
         role.delete()
 
     def test_session_rollback(self):
@@ -1104,23 +1105,28 @@ class AuthTest(TestCaseBase):
 
     def test_own_frame_in_no_own_folder(self):
         """
-        フレームの所有権は親プロジェクトの所有権に影響しないこと
-        (プロジェクトの所有権はオーバーライドされない)
+        フレームの所有権は親フォルダの所有権に影響しないこと
+        (フォルダの所有権はオーバーライドしない)
         """
         # ルートフォルダを取得する
-        root = self.factory2.data.load_root()
+        root = self.factory.data.load_root()
 
-        # ルートフォルダの下にプロジェクトAを作成する (所有者はUSER2)
-        project_a = root.create_project_folder('所有権の無いプロジェクトA')
-        project_a.save()
+        # ルートフォルダの下にフォルダを作成する (所有者はユーザ管理者)
+        folder_a = root.create_folder('所有権の無いフォルダA')
+        folder_a.save()
+
+        # USER2にフォルダAの所有権を付与する
+        user2 = self.factory.user.find_by_uuid(self.USER2.uuid)
+        user2.load_self_role().init_authz(folder_a.id, read=True, write=True, exec=True, own=True)
+        self.USER1.load_self_role().clear_authz(folder_a.id)
 
         # USER3にフォルダAの更新権限を付与する
         user3 = self.factory2.user.find_by_uuid(self.USER3.uuid)
-        user3.load_self_role().init_authz(project_a.id, read=True, write=True)
+        user3.load_self_role().init_authz(folder_a.id, read=True, write=True)
 
         # フォルダAの下にフレームAを作成する (所有者はUSER3)
-        project_a = self.factory3.data.find_by_uuid(project_a.uuid)
-        frame_a = project_a.create_frame('My Frame A', io.BytesIO(b''))
+        folder_a = self.factory3.data.find_by_uuid(folder_a.uuid)
+        frame_a = folder_a.create_frame('My Frame A', io.BytesIO(b''))
         frame_a.save()
 
         # ルートフォルダの下にプロジェクトBを作成する (所有者はUSER3)
@@ -1128,7 +1134,7 @@ class AuthTest(TestCaseBase):
         project_b = root.create_project_folder('所有権の有るプロジェクトB')
         project_b.save()
 
-        # フォルダBの下にフレームBを作成する (所有者はUSER3)
+        # プロジェクトBの下にフレームBを作成する (所有者はUSER3)
         frame_b = project_b.create_frame('My Frame B', io.BytesIO(b''))
         frame_b.save()
 
@@ -1155,11 +1161,11 @@ class AuthTest(TestCaseBase):
 
         # NotAuthorizedExceptionの送出後のSession.rollback()により、
         # Expireが発生し、readable=Noneとなるため再読み込みする
-        project_a = self.factory2.data.find_by_id(project_a.id)
+        folder_a = self.factory2.data.find_by_id(folder_a.id)
         project_b = self.factory3.data.find_by_id(project_b.id)
 
         # フォルダA,Bを削除する
-        project_a.delete()
+        folder_a.delete()
         project_b.delete()
 
     def test_override_all_permissions(self):
@@ -1924,6 +1930,169 @@ class AuthTest(TestCaseBase):
 
         # ゴミ箱を空にする
         self.factory3.data.find_trashcan().trash_all()
+
+    def test_cannot_read_trash_by_other_user(self):
+        """
+        プロジェクトから捨てたゴミを、
+        プロジェクトメンバ以外のユーザが参照できないこと(ゴミ漁り禁止!🚫)
+        """
+        # ルートフォルダを取得する
+        root = self.factory2.data.load_root()
+        # ルートフォルダの下にプロジェクトを作成する
+        project = root.create_project_folder('ねこまんま')
+        project.save()
+        project = project.reload()
+
+        # プロジェクトの下にフォルダを作成する
+        folder = project.create_folder('猫ハウス')
+        folder.save()
+        folder = folder.reload()
+
+        # フォルダの下にフローを作成する
+        flow = folder.create_flow('かつお節', {})
+        flow.save()
+        flow = flow.reload() 
+
+        # フォルダをほかす
+        folder.throw_away()
+
+        # プロジェクトメンバ以外のユーザがゴミを参照できないこと
+        with self.assertRaises(NotAuthorizedException):
+            self.factory3.data.find_by_uuid(folder.uuid)
+        with self.assertRaises(NotAuthorizedException):
+            self.factory3.data.find_by_uuid(flow.uuid)
+        
+        # プロジェクトをほかす
+        project.throw_away()
+
+        # 先にプロジェクトを物理削除する
+        project.delete()
+
+        # プロジェクトメンバ以外のユーザがゴミを参照できないこと
+        with self.assertRaises(NotAuthorizedException):
+            self.factory3.data.find_by_uuid(folder.uuid)
+        with self.assertRaises(NotAuthorizedException):
+            self.factory3.data.find_by_uuid(flow.uuid)
+
+        # フォルダを物理削除する
+        flow.delete()
+        folder.delete()
+
+    def test_cannot_write_trash_by_reader(self):
+        """
+        プロジェクトから捨てたゴミを、
+        閲覧者が更新したり元の位置に戻せないこと
+        """
+        # ルートフォルダを取得する
+        root = self.factory2.data.load_root()
+        # ルートフォルダの下にプロジェクトを作成する
+        project = root.create_project_folder('ひとーーつ、人の世の生き血をすすり')
+        project.save()
+        project = project.reload()
+
+        # メンバを設定する
+        member1 = ProjectFolder.Member(self.USER2, ProjectFolder.OWNER_MEMBER_TYPE)
+        member2 = ProjectFolder.Member(self.USER3, ProjectFolder.READER_MEMBER_TYPE)
+        project.init_members([member1, member2])
+
+        # プロジェクトの下にフォルダを作成する
+        folder = project.create_folder('ふたつ、不埒な悪行三昧')
+        folder.save()
+        folder = folder.reload()
+
+        # フォルダの下にフローを作成する
+        flow = folder.create_flow('みっつ、醜い浮世の鬼を', {'label': '退治てくれよう桃太郎！'})
+        flow.save()
+        flow = flow.reload() 
+
+        # フォルダをほかす
+        folder.throw_away()
+
+        # 閲覧者はゴミを参照できること
+        folder = self.factory3.data.find_by_uuid(folder.uuid)
+        flow = self.factory3.data.find_by_uuid(flow.uuid)
+
+        # 閲覧者はゴミを更新できないこと
+        with self.assertRaises(NotAuthorizedException):
+            folder.update_data('不埒な悪行三昧')
+        with self.assertRaises(NotAuthorizedException):
+            flow.update_data('醜い浮き世の鬼を', {})
+
+        # 閲覧者はゴミを元の場所に戻せないこと
+        with self.assertRaises(NotAuthorizedException):
+            folder.put_back()
+
+        # 閲覧者はゴミを物理削除できないこと
+        with self.assertRaises(NotAuthorizedException):
+            folder.delete()
+        with self.assertRaises(NotAuthorizedException):
+            flow.delete()
+
+        # プロジェクト管理者はゴミ箱を空にする
+        trashcan = self.factory2.data.find_trashcan()
+        trashcan.trash_all()
+
+        # ゴミ箱は空になっていること
+        children = trashcan.find_children()
+        self.assertEqual(len(children), 0)
+
+        # プロジェクトを削除する
+        project.delete()
+
+    def test_putback_trash_by_writer(self):
+        """
+        プロジェクトから捨てたゴミを、
+        編集者が更新したり元の位置に戻せること
+        """
+        # ルートフォルダを取得する
+        root = self.factory2.data.load_root()
+        # ルートフォルダの下にプロジェクトを作成する
+        project = root.create_project_folder('こころぴょんぴょん待ち')
+        project.save()
+        project = project.reload()
+
+        # メンバを設定する
+        member1 = ProjectFolder.Member(self.USER2, ProjectFolder.OWNER_MEMBER_TYPE)
+        member2 = ProjectFolder.Member(self.USER3, ProjectFolder.WRITER_MEMBER_TYPE)
+        project.init_members([member1, member2])
+
+        # プロジェクトの下にフォルダを作成する
+        folder = project.create_folder('考えるフリして')
+        folder.save()
+        folder = folder.reload()
+
+        # フォルダの下にフローを作成する
+        flow = folder.create_flow('もうちょっとちーかづいちゃえ', {})
+        flow.save()
+        flow = flow.reload() 
+
+        # フォルダをほかす
+        folder.throw_away()
+
+        # 編集者はゴミを参照できること
+        folder = self.factory3.data.find_by_uuid(folder.uuid)
+        flow = self.factory3.data.find_by_uuid(flow.uuid)
+
+        # 編集者はゴミを更新できること
+        folder.update_data('簡単にはお〜しえないっ')
+        flow.update_data('こんなに素敵なことを〜', {})
+
+        # 編集者はゴミを元の場所に戻せること
+        folder.put_back()
+
+        # 再びフォルダをほかす
+        folder.throw_away()
+
+        # 編集者はゴミ箱を空にできること
+        trashcan = self.factory3.data.find_trashcan()
+        trashcan.trash_all()
+
+        # ゴミ箱は空になっていること
+        children = trashcan.find_children()
+        self.assertEqual(len(children), 0)
+
+        # プロジェクトを削除する
+        project.delete()
 
     # 
     # System Folders
