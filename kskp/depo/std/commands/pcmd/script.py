@@ -138,6 +138,13 @@ class PCommand(Command):
         # 'fld'キーへの入力結果は'fld'キーを指定して取得する
         return results['fld'].datum
 
+    def do_runs(self, nysol_module):
+        from kskp.depo.std.commands import RunsCommand
+        runs_cmd = RunsCommand()
+        results = runs_cmd.run(args={}, inputs={'pcmd': nysol_module})
+        # 'i'キーへの入力結果は'i'キーを指定して取得する
+        return results['pcmd'] 
+
     def run(self, args, inputs):
         """
         実際実行(for override)

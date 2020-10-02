@@ -134,7 +134,7 @@ class MeasurementPeriodIdentifyCommand(PCommand):
         a_opt_seq = self.const('a_opt_seq') # Opt欄 a= で入力される項目名の順序
 
         remove_fields = []          # 後始末用項目名
-        args = copy.deepcopy()
+        args = copy.deepcopy(args)
 
         # --- 引数チェック ---
         if 'c' not in args:
