@@ -3,53 +3,50 @@
   "groups": [
     {
       "name": "group1",
-      "label": "結合キーの設定 (必須)",
+      "label": "結合キーの設定 (必須)",
+      "description": "・カンマ区切りで複数指定可\n・入力i と m のキー項目を、1対1に対応させて指定する\n",
       "params": [
         "k",
         "K"
       ]
     },
     {
+      "name": "group3",
+      "label": "結合項目の設定 (省略可)",
+      "description": "・入力m から特定の項目を結合する場合に指定する\n・結合結果で、項目名重複が生じた場合、エラー発生",
+      "params": [
+        "f"
+      ]
+    },
+    {
       "name": "group5",
-      "label": "結合方法の設定  (省略時は 共通部分を出力)",
+      "label": "結合方法の設定  (省略可)",
+      "description": "・対応するものが無い場合は、Null値を出力\n・省略時は、共通部分を出力\n・両方指定により、両者の和集合を出力",
       "params": [
         "n",
         "N"
       ]
     },
     {
-      "name": "group3",
-      "label": "結合する項目の設定",
-      "params": [
-        "f"
-      ]
-    },
-    {
       "name": "group10",
       "label": "その他 (省略可)",
       "params": [
-        "q"
-      ]
-    },
-    {
-      "name": "group15",
-      "label": "項目名・項目番号についての設定（省略可）",
-      "params": [
-        "x",
+        "q",
         "nfn",
-        "nfno"
+        "nfno",
+        "x"
       ]
     },
     {
       "name": "group20",
       "label": "システム管理用設定（作業領域・ログ出力）",
       "params": [
-        "tmpPath",
-        "bufcount",
         "assert_diffSize",
-        "assert_nullout",
         "assert_nullkey",
-        "assert_nullin"
+        "assert_nullin",
+        "assert_nullout",
+        "bufcount",
+        "tmpPath"
       ]
     }
   ],
@@ -101,35 +98,35 @@
     {
       "name": "k",
       "type": "string",
-      "label": "入力 i のキー項目名",
+      "label": "入力 i のキー項目名　(必須)",
       "description": "カンマ区切りで複数指定可"
     },
     {
       "name": "K",
       "type": "string",
       "label": "入力 m のキー項目名",
-      "description": "カンマ区切りで複数指定可\n入力iのキー項目名と、1対1に対応させて指定する\n入力mのキー項目名と同じ場合は省略可",
+      "description": "・入力i のキー項目名と同じ場合は省略可",
       "optional": true
     },
     {
       "name": "f",
       "type": "string",
-      "label": "入力m から結合する項目名 (省略可)",
-      "description": "●キー項目を除いた全ての項目ではなく、一部の項目のみを結合する場合に指定\n●結合後に、重複が生じない設定が必要\n●カンマ区切りで複数指定可\n  項目名時:*,？ 使用可\n  項目番号時:0−3,5,0L 等使用可\n【注意】入力i に存在する列名を指定した場合は、エラーとなり、処理を停止",
+      "label": "入力m から結合する項目名",
+      "description": "・カンマ区切りで複数指定可\n・ワイルドカード(*,？ )使用可",
       "optional": true
     },
     {
       "name": "n",
       "type": "boolean",
-      "label": "入力i にある行を全て出す (左結合)",
-      "description": "対応するものが無い場合は、Null値を出力\nもう一方も指定により、両者の和集合を出力",
+      "label": "左結合",
+      "description": "入力i にある行を全て出力します",
       "optional": true
     },
     {
       "name": "N",
       "type": "boolean",
-      "label": "入力m にある行を全て出す (右結合)",
-      "description": "対応するものが無い場合は、Null値を出力\nもう一方も指定により、両者の和集合を出力",
+      "label": "右結合",
+      "description": "入力m にある行を全て出力します",
       "optional": true
     },
     {
@@ -190,9 +187,10 @@
     {
       "name": "bufcount",
       "type": "string",
-      "label": "バッファの数",
+      "label": "バッファのブロック数",
       "optional": true,
-      "default": "10"
+      "default": "10",
+      "description": "デフォルト:10 (40MB)"
     }
   ],
   "ports": [
