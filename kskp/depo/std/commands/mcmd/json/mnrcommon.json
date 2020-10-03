@@ -84,32 +84,35 @@
     {
       "name": "k",
       "type": "string",
-      "label": "入力 i の項目名",
+      "label": "入力 i のグループ項目名",
       "optional": true,
       "description": "カンマ区切りで複数指定可"
     },
     {
       "name": "R",
       "type": "string",
-      "label": "参照ファイルの範囲列名(必須)"
+      "label": "入力m の範囲開始と終了の項目名",
+      "description": "・カンマ区切りで、開始、終了の順で指定する\n・開始のNull値は無限小、終了は無限大とみなして処理する\n・開区間、閉区間の指定 （開始項目をA, 終了項目をBとする)\n    指定         ：  意味\n    A,B          ：   [A,B)   A以上、B未満  （デフォルト）\n    A%n,B      :    (A,B)   Aより大きく、B未満\n    A,B%e      :    [A,B]   A以上、B以下\n    A%n,B%e  :   (A,B]   Aより大きく、B以下\n\n【注意】 各区間に重複がある場合、行が増える可能性があります"
     },
     {
       "name": "rf",
       "type": "string",
-      "label": "範囲比較を行う入力ファイル上の列名(必須)"
+      "label": "入力i の範囲比較項目名",
+      "description": "・項目を1つ指定する\n・型の指定\n     デフォルトは文字列型で、数値型の場合は項目名末尾に%nをつける"
     },
     {
       "name": "K",
       "type": "string",
-      "label": "入力 m の参照キーの項目名",
+      "label": "入力 m のグループ項目名",
       "optional": true,
-      "description": "カンマ区切りで複数指定可\n入力iのキー項目名と、1対1に対応させて指定する\n入力mのキー項目名と同じ場合は省略可"
+      "description": "・入力i と同じ場合は省略可"
     },
     {
       "name": "r",
       "type": "boolean",
-      "label": "R=パラメータで指定した行番号以外の行を選択する",
-      "optional": true
+      "label": "条件反転　",
+      "optional": true,
+      "description": "範囲選択された行を、o　ではなく　u に出力する"
     },
     {
       "name": "assert_diffSize",
@@ -184,33 +187,35 @@
   "url": "./static/pdf/mcmd/table_join/mnrcommon.pdf",
   "groups": [
     {
-      "name": "key",
-      "label": "参照キーの設定 (必須)",
+      "name": "abstract",
+      "label": "コマンドの概要",
+      "description": "・入力i の比較項目と、入力m の範囲の開始項目と終了項目を比較し、範囲内のものを o に、それ以外を uに出力する\n・範囲比較は、入力データのソート順をもとにおこない、文字列順と数値順が選択可能\n・【注意】このコマンドでは入力データのソート順を整えられないため、ソート済みのデータを入力データに用いてください",
+      "params": []
+    },
+    {
+      "name": "group1",
+      "label": "グループの設定 (省略可)",
+      "description": "・カンマ区切りで複数指定可\n・入力i と m の項目を、1対1に対応させて指定する\n",
       "params": [
         "k",
         "K"
       ]
     },
     {
-      "name": "key_range",
-      "label": "範囲結合キーの設定",
+      "name": "group3",
+      "label": "範囲条件による結合の設定 (必須)",
+      "description": "・入力i の比較項目と、入力m の範囲の開始と終了の項目名を指定する",
       "params": [
-        "rf"
+        "rf",
+        "R",
+        "r"
       ]
     },
     {
       "name": "merge_sub",
       "label": "その他 (省略可)",
       "params": [
-        "R",
-        "r",
-        "q"
-      ]
-    },
-    {
-      "name": "fields",
-      "label": "項目名・項目番号についての設定（省略可）",
-      "params": [
+        "q",
         "nfn",
         "nfno",
         "x"
