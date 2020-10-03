@@ -91,6 +91,7 @@ class AwsS3(Folder, Mountable):
 
         return self
 
+    @Constraints.delete_role_when_isolated
     def delete(self):
         """
         バケットを削除する

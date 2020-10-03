@@ -4,7 +4,7 @@ import pprint
 from sqlalchemy.orm.exc import NoResultFound
 from kskp.core import Datum
 from kskp.store import ProjectFolder
-from kskp.store.auth import Auth, NotAuthorizedException
+from kskp.store.auth import Auth, Role, NotAuthorizedException
 from ...tests.test_case_base import TestCaseBase
 
 class AuthTest(TestCaseBase):
@@ -340,7 +340,7 @@ class AuthTest(TestCaseBase):
         new_role.save()
 
         # 新規ロールにユーザを参加させる
-        new_role.join_user(self.USER2)
+        new_role.join_member(Role.Member(self.USER2))
 
         # UserRoleを取得する
         user_role = self.factory.user_role.find_by_id(self.USER2.id, new_role.id)
@@ -354,38 +354,73 @@ class AuthTest(TestCaseBase):
         self.assertEqual(user_role.created_at, user_role.modified_at)
         
         # ユーザを脱退させる
-        new_role.leave_user(self.USER2)
+        new_role.leave_member(self.USER2)
 
     def test_join_role_on_no_auth(self):
         """
-        Roleにユーザを追加できるのは管理者かRoleの作成者のみである
+        Roleにユーザを追加できるのはユーザ管理者かRoleの所有者のみである
         """
         # ロールを作成する
         new_role = self.factory.role.create('ロール')
         new_role.save()
 
-        # 管理者でもRoleの作成者でもないユーザは、
+        # 管理者でもRoleの所有者でもないユーザは、
         # ユーザの追加操作はできない
         new_role = self.factory2.role.find_by_uuid(new_role.uuid)
         with self.assertRaises(NotAuthorizedException):
-            new_role.join_user(self.USER2)
+            new_role.join_member(Role.Member(self.USER2))
 
     def test_leave_role_on_no_auth(self):
         """
-        Roleからユーザを削除できるのは管理者かRoleの作成者のみである
+        Roleからユーザを削除できるのはユーザ管理者かRoleの所有者のみである
         """
         # ロールを作成する
         new_role = self.factory.role.create('ロール')
         new_role.save()
 
         # ロールにユーザを追加する
-        new_role.join_user(self.USER2)
+        new_role.join_member(Role.Member(self.USER2))
 
-        # 管理者でもRoleの作成者でもないユーザは、
+        # 管理者でもRoleの所有者でもないユーザは、
         # ユーザの削除操作はできない
         new_role = self.factory2.role.find_by_uuid(new_role.uuid)
         with self.assertRaises(NotAuthorizedException):
-            new_role.leave_user(self.USER2)
+            new_role.leave_member(self.USER2)
+
+    def test_join_role_without_owner(self):
+        """
+        ロール管理者は必ず指定すること
+        """
+        # ロールを作成する
+        new_role = self.factory.role.create('黒ネコは甘えんぼ！')
+        new_role.save()
+
+        # メンバを設定する
+        member1 = Role.Member(self.USER2)
+        member2 = Role.Member(self.USER3, owner=False)
+        with self.assertRaises(Exception):
+            new_role.init_members([member1, member2])
+
+        # ロールを削除する
+        new_role = self.factory.role.find_by_uuid(new_role.uuid)
+        new_role.delete()
+
+    def test_update_role_owner_to_false(self):
+        """
+        ロールの所属処理によってロール所有者が不在にならないこと
+        """
+        # ロールを作成する
+        new_role = self.factory.role.create('Pitapa')
+        new_role.save()
+
+        # 所有権が不在になるようなメンバの更新はできないこと
+        member1 = Role.Member(self.USER1, owner=False)
+        with self.assertRaises(Exception):
+            new_role.join_member(member1)
+
+        # ロールを削除する
+        new_role = self.factory.role.find_by_uuid(new_role.uuid)
+        new_role.delete()
 
     # 
     # Auths
@@ -691,8 +726,8 @@ class AuthTest(TestCaseBase):
         roleB.init_authz(flow.id, True, False, exec=False)
 
         # TESTユーザをロールAとロールBに参加させる
-        roleA.join_user(self.USER2)
-        roleB.join_user(self.USER2)
+        roleA.join_member(Role.Member(self.USER2))
+        roleB.join_member(Role.Member(self.USER2))
 
         # フローを再取得する
         flow = flow.reload()
@@ -715,7 +750,6 @@ class AuthTest(TestCaseBase):
             flow.delete()
 
         # ロールBを削除する
-        roleB.leave_all_users()
         roleB.delete()
 
         # フローを削除する

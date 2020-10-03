@@ -26,8 +26,9 @@ class Store(Datum):
         # 
         # for datum in data:
         #     from kskp.store.factory import RoleFactory, AuthFactory
+        #     from kskp.store.auth import Role
         #     everyone_role = RoleFactory(self._session).load_everyone_role()
-        #     everyone_role.join_user(self._session.user)
+        #     everyone_role.join_member(Role.Member(self._session.user))
         #     if not AuthFactory(self._session).exists(everyone_role.id, datum.id):
         #         from kskp.store import Folder, Flow
         #         # FolderまたはFlowの場合は実行権限を付与する

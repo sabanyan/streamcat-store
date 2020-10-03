@@ -172,6 +172,7 @@ class Folder(Store):
             # データベース接続、リモートフォルダ接続
             return 0, 0
 
+    @Constraints.delete_role_when_isolated
     def delete(self):
         """
         Folderを削除する

@@ -101,7 +101,8 @@ class Database(Store):
     #         self.session.commit()
 
     #     return self
-        
+
+    @Constraints.delete_role_when_isolated     
     def delete(self):
         """
         Databaseを削除する

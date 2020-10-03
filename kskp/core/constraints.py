@@ -201,3 +201,35 @@ class Constraints():
 
             return result
         return wrapper
+
+    @staticmethod
+    def delete_role_when_isolated(func):
+        """
+        Datumを削除した後に、どのDatumにも紐づかないRoleがあれば削除する
+        """
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            from kskp.store.auth import NotAuthorizedException
+
+            if func.__name__ != 'delete':
+                raise Exception('このDecoratorはdelete()以外をデコレートできません')
+
+            # Datumを削除する
+            result = func(*args, **kwargs)
+
+            # self
+            myself = args[0]
+
+            # どのDatumにも紐づかないRole、かつ削除していいよフラグのあるRoleを取得する
+            from kskp.store.factory import RoleFactory
+            delete_roles = RoleFactory(myself._session).find_isolated(delete_on_isolated=True)
+            
+            # Roleから全てのユーザを外す
+            for delete_role in delete_roles:
+                # Roleを削除する権限が無い場合は、Roleを削除しない
+                session = delete_role._session
+                if session.is_role_owner(delete_role.id) or session.has_usr_admin():
+                    delete_role.delete()
+
+            return result
+        return wrapper
