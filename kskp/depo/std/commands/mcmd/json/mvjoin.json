@@ -2,41 +2,47 @@
   "id": "mvjoin",
   "groups": [
     {
+      "name": "abstract",
+      "label": "コマンドの概要",
+      "description": "・入力i の対象ベクトルの要素と、入力m の要素キーを照合して、対応する追加要素からベクトルを生成する\n・生成するベクトルは、対象ベクトルと結合して出力される",
+      "params": []
+    },
+    {
       "name": "group5",
       "label": "結合キーの設定 (必須)",
       "params": [
         "vf",
-        "K",
-        "f",
         "A",
-        "n",
+        "K",
         "delim"
+      ]
+    },
+    {
+      "name": "group6",
+      "label": "追加要素の設定 (必須)",
+      "params": [
+        "f",
+        "n"
       ]
     },
     {
       "name": "group10",
       "label": "その他 (省略可)",
       "params": [
-        "q"
-      ]
-    },
-    {
-      "name": "group15",
-      "label": "項目名・項目番号についての設定（省略可）",
-      "params": [
-        "x",
         "nfn",
-        "nfno"
+        "nfno",
+        "x",
+        "q"
       ]
     },
     {
       "name": "group20",
       "label": "システム管理用設定（作業領域・ログ出力）",
       "params": [
-        "tmpPath",
         "assert_diffSize",
-        "assert_nullout",
-        "assert_nullin"
+        "tmpPath",
+        "assert_nullin",
+        "assert_nullout"
       ]
     }
   ],
@@ -114,36 +120,39 @@
     {
       "name": "vf",
       "type": "string",
-      "label": "入力 i のキー項目名",
-      "description": "ベクトルの項目名を指定する\nカンマ区切りで複数指定可\n項目名のあとに、:区切りで新項目名を書くと、項目名を変更して出力される"
+      "label": "入力i の対象ベクトル項目名 (必須)",
+      "description": "・カンマ区切りで複数指定可\n・ワイルドカード(*,？ )使用可"
     },
     {
       "name": "K",
       "type": "string",
-      "label": "入力 m の結合キーの項目名",
-      "description": "ベクトル要素の項目名を1つ指定する"
+      "label": "入力m の要素キー項目名 (必須)",
+      "description": "・項目名を1つ指定する"
     },
     {
       "name": "f",
       "type": "string",
-      "label": "結合ベクトル列名(必須)"
+      "label": "入力m の追加要素の項目名 (必須)",
+      "description": "・項目名を1つ指定する"
     },
     {
       "name": "A",
       "type": "boolean",
-      "label": "vf=で:(コロン) に続けて指定した項目名で、新たな項目が追加される。",
-      "optional": true
+      "label": "置換ではなく、項目を追加して出力する",
+      "optional": true,
+      "description": "追加する項目名は、対象ベクトル項目名の後に、コロン区切りで入力する"
     },
     {
       "name": "n",
       "type": "string",
-      "label": "vf=とk=がマッチしなかった場合に結合する文字列",
-      "optional": true
+      "label": "入力m にない要素に対応する追加要素 (省略可)",
+      "optional": true,
+      "description": "省略時は、マッチしない値はNULLで置換される"
     },
     {
       "name": "delim",
       "type": "string",
-      "label": "ベクトル要素の区切り文字",
+      "label": "ベクトル要素の区切り文字　(省略可)",
       "optional": true,
       "description": "省略時は半角スペース"
     },
@@ -156,7 +165,7 @@
     {
       "name": "assert_nullin",
       "type": "boolean",
-      "label": "入力項目のf=またはvf=で指定された項目のNULL値チェックを行う",
+      "label": "対象ベクトル項目名指定された項目のNULL値チェックを行う",
       "optional": true
     },
     {
