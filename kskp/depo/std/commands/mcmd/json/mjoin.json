@@ -104,7 +104,7 @@
       "type": "string",
       "label": "入力 m のキー項目名",
       "optional": true,
-      "description": "・入力i のキー項目名と同じ場合は省略可"
+      "description": "入力i のキー項目名と同じ場合は省略可"
     },
     {
       "name": "f",
