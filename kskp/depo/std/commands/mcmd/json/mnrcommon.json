@@ -105,7 +105,7 @@
       "type": "string",
       "label": "入力 m のグループ項目名",
       "optional": true,
-      "description": "・入力i と同じ場合は省略可"
+      "description": "入力i と同じ場合は省略可"
     },
     {
       "name": "r",

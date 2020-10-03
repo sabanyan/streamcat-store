@@ -45,21 +45,22 @@
     {
       "name": "k",
       "type": "string",
-      "label": "入力 i の項目名",
+      "label": "入力 i のキー項目名　(必須)",
       "description": "カンマ区切りで複数指定可"
     },
     {
       "name": "K",
       "type": "string",
-      "label": "入力 m の参照キーの項目名",
+      "label": "入力 m のキー項目名 (省略可)",
       "optional": true,
-      "description": "カンマ区切りで複数指定可\n入力iのキー項目名と、1対1に対応させて指定する\n入力mのキー項目名と同じ場合は省略可"
+      "description": "入力i のキー項目名と同じ場合は省略可"
     },
     {
       "name": "r",
       "type": "boolean",
       "label": "条件反転",
-      "optional": true
+      "optional": true,
+      "description": "選択された行を、　o ではなく　uに出力する"
     },
     {
       "name": "assert_diffSize",
@@ -134,25 +135,26 @@
   "url": "./static/pdf/mcmd/table_join/mcommon.pdf",
   "groups": [
     {
-      "name": "key",
+      "name": "abstract",
+      "label": "コマンドの概要",
+      "description": "・入力i と入力m のキー項目を比較し、一致する行を o に、それ以外を uに出力する",
+      "params": []
+    },
+    {
+      "name": "group1",
       "label": "参照キーの設定 (必須)",
+      "description": "・カンマ区切りで複数指定可\n・入力i と m のキー項目を、1対1に対応させて指定する\n",
       "params": [
         "k",
-        "K"
+        "K",
+        "r"
       ]
     },
     {
       "name": "merge_sub",
       "label": "その他 (省略可)",
       "params": [
-        "r",
-        "q"
-      ]
-    },
-    {
-      "name": "fields",
-      "label": "項目名・項目番号についての設定（省略可）",
-      "params": [
+        "q",
         "nfn",
         "nfno",
         "x"
