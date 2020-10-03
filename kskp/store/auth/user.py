@@ -27,7 +27,7 @@ class User(BaseModel):
     uuid          = Column(UUID, nullable=False, unique=True)
     email         = Column(String, nullable=False, unique=True)
     name          = Column(String, nullable=False)
-    password      = Column(String)
+    password      = Column(String, nullable=False)
     # ユーザ状態
     state         = Column(ENUM(TMP_STATE, ACTIVE_STATE, INACTIVE_STATE, name='user_state'), nullable=False)
     # 本人ロールのRoleId
@@ -221,10 +221,11 @@ class User(BaseModel):
             self._session.commit()
 
         # everyoneロールに所属させる
-        # (everyoneロールの作成者であるユーザ管理者のみがにユーザを追加できる)
+        # (everyoneロールの作成者であるユーザ管理者のみがユーザを追加できる)
+        from kskp.store.auth import Role
         from kskp.store.factory import RoleFactory
         everyone_role = RoleFactory(self._session).load_everyone_role()
-        everyone_role.join_user(self)
+        everyone_role.join_member(Role.Member(self, False))
 
     def update_email(self, new_email, modifier=None):
         """

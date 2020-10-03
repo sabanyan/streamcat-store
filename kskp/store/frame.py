@@ -213,6 +213,7 @@ class Frame(Datum):
 
         self.move(trash_folder.uuid)
 
+    @Constraints.delete_role_when_isolated
     def delete(self):
         """
         Frameを削除する

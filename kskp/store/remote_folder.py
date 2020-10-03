@@ -93,6 +93,7 @@ class RemoteFolder(Folder, Mountable):
 
         return self
 
+    @Constraints.delete_role_when_isolated
     def delete(self):
         """
         共有フォルダを削除する

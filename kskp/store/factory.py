@@ -79,65 +79,59 @@ class UnAuthzFactory():
         # セッションを保持する
         self._session = Session(session_maker, user=None)
 
-    def create_sys_admin_user(self):
-        from kskp.store.auth import User
-        # FIXIT:管理者パスワードはどうする？
-        return User(self._session, 'Admin@kskp.io', 'システム管理者', 'adminpass')
-
-    def create_usr_admin_user(self):
-        from kskp.store.auth import User
-        return User(self._session, 'admin@kskp.io', 'ユーザ管理者', 'adminpass')
-
     def find_user_by_email(self, email):
-        user = UserFactory(self._session).find_by_email(email)
-        return user
+        return UserFactory(self._session).find_by_email(email)
 
     def find_user_by_id(self, user_id):
-        user = UserFactory(self._session).find_by_id(user_id)
-        return user
-
-    def load_sys_admin_role(self):
-        role = RoleFactory(self._session).load_sys_admin_role()
-        return role
-
-    def load_usr_admin_role(self):
-        role = RoleFactory(self._session).load_usr_admin_role()
-        return role
+        return UserFactory(self._session).find_by_id(user_id)
 
     def load_sys_admin_user(self):
         """
         システム管理者を取得する、存在しない場合は作成する
         """
-        # 管理者ロールが存在しない場合は作成する
-        sys_admin_role = self.load_sys_admin_role()
+        from kskp.store.auth import Role
 
-        if sys_admin_role.has_joined_user():
-            # 管理者ユーザが存在する場合は、idが最も小さいユーザを返す
-            sys_admin_user = sys_admin_role.get_joined_users()[0]
-        else:
-            # 管理者ユーザが存在しない場合はデフォルト管理者ユーザを作成する
-            # 初期管理者ユーザを作成する
-            sys_admin_user = self.create_sys_admin_user()
-            sys_admin_user.save()
-            # 初期管理者ユーザを管理者ロールに参加させる
-            sys_admin_role.join_user(sys_admin_user)
+        SYS_ADMIN_USER_EMAIL = 'Admin@kskp.io'
+        SYS_ADMIN_USER_NAME = 'システム管理者'
 
+        user_factory = UserFactory(self._session)
+        role_factory = RoleFactory(self._session)
+
+        # 管理者ユーザが存在する場合は、それを返す
+        if user_factory.exists_by_email(SYS_ADMIN_USER_EMAIL):
+            return user_factory.find_by_email(SYS_ADMIN_USER_EMAIL)
+
+        # 管理者ロールが存在する場合は、そのロールの中でidが最も小さいユーザを取得する
+        if role_factory.exists(Role.SYS_ADMIN_ROLE_UUID):
+            sys_admin_role = role_factory.find_by_uuid(Role.SYS_ADMIN_ROLE_UUID)
+            return sys_admin_role.get_joined_users()[0]
+
+        # 管理者ロールが無い場合は、デフォルトの管理者ユーザを作成する
+        sys_admin_user = user_factory.create(SYS_ADMIN_USER_EMAIL, SYS_ADMIN_USER_NAME, 'adminpass')
+        sys_admin_user.save()
         return sys_admin_user
 
     def load_usr_admin_user(self):
         """
         ユーザ管理者を取得する、存在しない場合は作成する
         """
-        # 管理者ロールが存在しない場合は作成する
-        usr_admin_role = self.load_usr_admin_role()
+        from kskp.store.auth import Role
 
-        if usr_admin_role.has_joined_user():
-            usr_admin_user = usr_admin_role.get_joined_users()[0]
-        else:
-            usr_admin_user = self.create_usr_admin_user()
-            usr_admin_user.save()
-            usr_admin_role.join_user(usr_admin_user)
+        USR_ADMIN_USER_EMAIL = 'admin@kskp.io'
+        USR_ADMIN_USER_NAME = 'ユーザ管理者'
 
+        user_factory = UserFactory(self._session)
+        role_factory = RoleFactory(self._session)
+
+        if user_factory.exists_by_email(USR_ADMIN_USER_EMAIL):
+            return user_factory.find_by_email(USR_ADMIN_USER_EMAIL)
+
+        if role_factory.exists(Role.USR_ADMIN_ROLE_UUID):
+            usr_admin_role = role_factory.find_by_uuid(Role.USR_ADMIN_ROLE_UUID)
+            return usr_admin_role.get_joined_users()[0]
+
+        usr_admin_user = user_factory.create(USR_ADMIN_USER_EMAIL, USR_ADMIN_USER_NAME, 'adminpass')
+        usr_admin_user.save()
         return usr_admin_user
 
     def __enter__(self):
@@ -519,9 +513,9 @@ class RoleFactory():
     def __init__(self, session):
         self._session = session
 
-    def create(self, name):
+    def create(self, name, delete_on_isolated=False):
         from kskp.store.auth import Role
-        return Role(self._session, name)
+        return Role(self._session, name, delete_on_isolated)
 
     def find_by_id(self, role_id) -> Role:
         return self._session.query(Role).filter(Role.id == role_id).one()
@@ -534,6 +528,20 @@ class RoleFactory():
         全件取得する
         """
         return self._session.query(Role).all()
+
+    def find_isolated(self, delete_on_isolated=False):
+        """
+        どのDatumにも紐づかない場合はTrueを返す
+        """
+        from sqlalchemy import exists
+        from kskp.store.auth import Auth
+
+        query = self._session.query(Role).\
+                filter(~exists().where(Auth.role_id==Role.id))
+        if delete_on_isolated:
+            query = query.filter(Role._delete_on_isolated==True)
+
+        return query.all()
 
     def load_sys_admin_role(self):
         if self.exists(Role.SYS_ADMIN_ROLE_UUID):
@@ -603,12 +611,18 @@ class UserRoleFactory():
         finally:
             self._session.commit()
 
-    def delete_all_by_role_id(self, role_id):
+    def delete_all_by_role_id(self, role_id, except_user_id=None):
         """
         UsersRolesテーブルから指定したロールの所属情報を全て削除する
         """
+        query = self._session.query(UserRole).filter(UserRole.role_id==role_id)
+
+        # 削除から除外するユーザが指定されている場合
+        if except_user_id is not None:
+            query = query.filter(UserRole.user_id!=except_user_id)
+
         try:
-            self._session.query(UserRole).filter(UserRole.role_id==role_id).delete()
+            query.delete()
         except Exception as e:
             self._session.rollback()
             raise e
@@ -673,4 +687,8 @@ class UserFactory():
 
     def exists(self, uuid) -> bool:
         count = self._session.query(User).filter(User.uuid==uuid).count()
+        return count > 0
+
+    def exists_by_email(self, email) -> bool:
+        count = self._session.query(User).filter(User.email==email).count()
         return count > 0
