@@ -165,7 +165,7 @@
     {
       "name": "assert_nullin",
       "type": "boolean",
-      "label": "対象ベクトル項目名指定された項目のNULL値チェックを行う",
+      "label": "2",
       "optional": true
     },
     {
