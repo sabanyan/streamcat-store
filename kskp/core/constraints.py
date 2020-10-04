@@ -118,6 +118,50 @@ class Constraints():
         return wrapper
 
     @staticmethod
+    def set_project_role_on_set_cache(func):
+        """
+        キャッシュを作成する時にプロジェクトロールを設定する
+        """
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            from sqlalchemy.orm.exc import NoResultFound
+
+            if func.__name__ != 'set_cache':
+                raise Exception('このDecoratorはset_cache()以外をデコレートできません')
+
+            # self
+            myself = args[0]
+            # node_id
+            node_id = args[1]
+            # cache_uuid
+            cache = args[2]
+
+            try:
+                # 自分のプロジェクトを取得する
+                my_project = myself.find_my_project()
+            except NoResultFound:
+                # 自分のプロジェクトがない場合はプロジェクトロールを設定しない
+                return func(*args, **kwargs)
+
+            # キャッシュにプロジェクトロールを設定する
+            readers_role = my_project._load_readers_role()
+            readers_role.init_authz(cache.id, read=True, write=None)
+
+            # ユーザ管理者は全てのDatumの参照・更新・実行、及び権限の変更ができること
+            from kskp.store.factory import RoleFactory
+            usr_admin_role = RoleFactory(myself._session).load_usr_admin_role()
+            usr_admin_role.init_authz(cache.id, True, True, own=True)
+
+            # everyoneロールからキャッシュの権限を全て削除する
+            everyone_role = RoleFactory(myself._session).load_everyone_role()
+            everyone_role.clear_authz(cache.id)
+
+            # キャッシュフォルダへ行ってらっしゃい! 頑張るんだぞ
+            return func(*args, **kwargs)
+
+        return wrapper
+
+    @staticmethod
     def set_project_role_on_throwing_away(func):
         """
         ゴミ箱にほかす時にプロジェクトロールを設定する

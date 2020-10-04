@@ -465,7 +465,8 @@ class Flow(Datum):
                     node['uuid'] = new_uuid
                     break
 
-    def set_cache(self, node_id, cache_uuid):
+    @Constraints.set_project_role_on_set_cache
+    def set_cache(self, node_id, cache):
         from datetime import datetime, timedelta, timezone
 
         flow_data = self.flow_data
@@ -475,7 +476,7 @@ class Flow(Datum):
 
         for node in flow_data.get_nodes():
             if node['id'] == node_id:
-                node['uuid'] = cache_uuid
+                node['uuid'] = cache.uuid
                 # 記録時間はUTC、表示時間は現地時間にすべきでは？？
                 node['cacheCreatedAt'] = datetime.now(timezone(timedelta(hours=+9), 'JST')).strftime('%Y-%m-%d %H:%M:%S')
         # self.update_data(self.label, flow_data)
