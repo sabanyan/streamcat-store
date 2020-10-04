@@ -62,36 +62,39 @@
     {
       "name": "vf",
       "type": "string",
-      "label": "入力 i のキー項目名",
-      "description": "ベクトルの項目名を指定する\nカンマ区切りで複数指定可\n項目名のあとに、:区切りで新項目名を書くと、項目名を変更して出力される"
+      "label": "入力i の対象ベクトル項目名 (必須)",
+      "description": "・カンマ区切りで複数指定可\n・ワイルドカード(*,？ )使用可"
     },
     {
       "name": "K",
       "type": "string",
-      "label": "入力 m の参照キーの項目名",
-      "description": "ベクトル要素の項目名を1つ指定する"
+      "label": "入力m の要素キー項目名 (必須)",
+      "description": "項目名を1つ指定する"
     },
     {
       "name": "f",
       "type": "string",
-      "label": "結合ベクトル列名(必須)"
+      "label": "入力m の置換要素の項目名(必須)",
+      "description": "項目名を1つ指定する"
     },
     {
       "name": "n",
       "type": "string",
-      "label": "vf=とk=がマッチしなかった場合に置換する文字列",
-      "optional": true
+      "label": "アンマッチ要素を置換する値 (省略可)",
+      "optional": true,
+      "description": "省略時は、アンマッチ要素はNULLで置換される"
     },
     {
       "name": "A",
       "type": "boolean",
-      "label": "vf=で:(コロン) に続けて指定した項目名で、新たな項目が追加される。",
-      "optional": true
+      "label": "置換ではなく、項目を追加して出力する",
+      "optional": true,
+      "description": "追加する項目名は、対象ベクトル項目名の後に、コロン区切りで入力する"
     },
     {
       "name": "delim",
       "type": "string",
-      "label": "ベクトル要素の区切り文字",
+      "label": "ベクトル要素の区切り文字 (省略可)",
       "optional": true,
       "description": "省略時は半角スペース"
     },
@@ -104,7 +107,7 @@
     {
       "name": "assert_nullin",
       "type": "boolean",
-      "label": "入力項目のf=またはvf=で指定された項目のNULL値チェックを行う",
+      "label": "入力i の対象ベクトル項目名で指定された項目のNULL値チェックを行う",
       "optional": true
     },
     {
@@ -170,40 +173,28 @@
   "url": "./static/pdf/mcmd/table_join/mvreplace.pdf",
   "groups": [
     {
-      "name": "key",
-      "label": "参照キーの設定 (必須)",
+      "name": "abstract",
+      "label": "コマンドの概要",
+      "description": "・入力i の対象ベクトル項目の要素と、入力m の要素キー項目を比較し、一致した要素を置換要素の項目名の値で置換します\n・【注意】要素キーの項目がユニーク化されていない場合、複数回マッチが発生し、結果が不定となります",
+      "params": []
+    },
+    {
+      "name": "cmd_main",
+      "label": "要素置換の設定 (必須)",
       "params": [
         "vf",
-        "K"
-      ]
-    },
-    {
-      "name": "merge_type",
-      "label": "結合方法の設定  (省略時は 共通部分を出力)",
-      "params": [
+        "A",
+        "K",
+        "f",
+        "delim",
         "n"
-      ]
-    },
-    {
-      "name": "merge_fields",
-      "label": "結合する項目の設定",
-      "params": [
-        "f"
       ]
     },
     {
       "name": "merge_sub",
       "label": "その他 (省略可)",
       "params": [
-        "A",
-        "delim",
-        "q"
-      ]
-    },
-    {
-      "name": "fields",
-      "label": "項目名・項目番号についての設定（省略可）",
-      "params": [
+        "q",
         "nfn",
         "nfno",
         "x"
