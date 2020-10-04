@@ -67,7 +67,7 @@
       "name": "K",
       "type": "string",
       "label": "入力m の要素キー項目名 (必須)",
-      "description": "・項目名を1つ指定する"
+      "description": "項目名を1つ指定する"
     },
     {
       "name": "r",
@@ -79,7 +79,7 @@
     {
       "name": "delim",
       "type": "string",
-      "label": "ベクトル要素の区切り文字",
+      "label": "ベクトル要素の区切り文字 (省略可)",
       "optional": true,
       "description": "省略時は半角スペース"
     },
