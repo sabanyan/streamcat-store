@@ -53,26 +53,28 @@
     {
       "name": "vf",
       "type": "string",
-      "label": "入力 i のキー項目名",
-      "description": "ベクトルの項目名を指定する\nカンマ区切りで複数指定可\n項目名のあとに、:区切りで新項目名を書くと、項目名を変更して出力される"
+      "label": "入力i の対象ベクトル項目名 (必須)",
+      "description": "・カンマ区切りで複数指定可\n・ワイルドカード(*,？ )使用可"
     },
     {
       "name": "A",
       "type": "boolean",
-      "label": "vf=で:(コロン) に続けて指定した項目名で、新たな項目が追加される。",
-      "optional": true
+      "label": "置換ではなく、項目を追加して出力する",
+      "optional": true,
+      "description": "追加する項目名は、対象ベクトル項目名の後に、コロン区切りで入力する"
     },
     {
       "name": "K",
       "type": "string",
-      "label": "入力 m の参照キーの項目名",
-      "description": "ベクトル要素の項目名を1つ指定する"
+      "label": "入力m の要素キー項目名 (必須)",
+      "description": "・項目名を1つ指定する"
     },
     {
       "name": "r",
       "type": "boolean",
-      "label": "vf=と K=の要素がマッチしない要素を選択する。",
-      "optional": true
+      "label": "条件反転　",
+      "optional": true,
+      "description": "入力m に存在しない要素だけを出力します"
     },
     {
       "name": "delim",
@@ -90,7 +92,7 @@
     {
       "name": "assert_nullin",
       "type": "boolean",
-      "label": "入力項目のf=またはvf=で指定された項目のNULL値チェックを行う",
+      "label": "入力i の対象ベクトル項目名で指定された項目のNULL値チェックを行う",
       "optional": true
     },
     {
@@ -102,13 +104,13 @@
     {
       "name": "nfn",
       "type": "boolean",
-      "label": "入力データの1行目を項目名行とみなさない。",
+      "label": "入力データの 1 行目を項目名行とみなさない。",
       "optional": true
     },
     {
       "name": "nfno",
       "type": "boolean",
-      "label": "入力データの1行目を項目名行とみなさない。",
+      "label": "出力データに項目名行を出力しない。",
       "optional": true
     },
     {
@@ -160,23 +162,17 @@
       "label": "参照キーの設定 (必須)",
       "params": [
         "vf",
-        "K"
+        "A",
+        "K",
+        "delim",
+        "r"
       ]
     },
     {
       "name": "merge_sub",
       "label": "その他 (省略可)",
       "params": [
-        "A",
-        "r",
-        "delim",
-        "q"
-      ]
-    },
-    {
-      "name": "fields",
-      "label": "項目名・項目番号についての設定（省略可）",
-      "params": [
+        "q",
         "nfn",
         "nfno",
         "x"
