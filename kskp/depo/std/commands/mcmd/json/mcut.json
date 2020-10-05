@@ -27,19 +27,21 @@
     {
       "name": "f",
       "type": "string",
-      "label": "対象列名"
+      "label": "対象とする項目名 (必須)",
+      "description": "・カンマ区切りで複数指定可\n・ワイルドカード(*,？ )使用可"
     },
     {
       "name": "r",
       "type": "boolean",
-      "label": "項目削除スイッチ",
+      "label": "条件反転　選択ではなく削除する",
       "optional": true
     },
     {
       "name": "nfni",
       "type": "boolean",
-      "label": "入力データの1行目を項目名行とみなさず、項目番号で指定する",
-      "optional": true
+      "label": "項目番号で指定し、項目名が無いデータに項目名を付与する",
+      "optional": true,
+      "description": "・対象とする項目名で指定された新項目名から、項目名行を生成します\n・新項目名は、項目番号とセットで、コロン区切りで指定してください(例 0:新項目名)\n・入力データの１行目は、項目名行とみなされません\n"
     },
     {
       "name": "assert_diffSize",
@@ -50,7 +52,7 @@
     {
       "name": "assert_nullin",
       "type": "boolean",
-      "label": "入力項目の f=または vf=で指定された項目の NULL 値チェックを行う",
+      "label": "対象とする項目名で指定された項目の NULL 値チェックを行う",
       "optional": true
     },
     {
@@ -96,5 +98,34 @@
   "label": "項目の選択",
   "classification": "col_edit",
   "description": "指定した項目を選択する （列の抽出）",
-  "url": "./static/pdf/mcmd/col_edit/mcut.pdf"
+  "url": "./static/pdf/mcmd/col_edit/mcut.pdf",
+  "groups": [
+    {
+      "name": "cmd_main",
+      "label": "列選択の設定 (必須)",
+      "params": [
+        "f",
+        "r",
+        "nfni"
+      ]
+    },
+    {
+      "name": "cmd_sub",
+      "label": "その他 (省略可)",
+      "params": [
+        "nfn",
+        "nfno",
+        "x"
+      ]
+    },
+    {
+      "name": "system",
+      "label": "システム管理用設定（作業領域・ログ出力）",
+      "params": [
+        "assert_diffSize",
+        "assert_nullin",
+        "tmpPath"
+      ]
+    }
+  ]
 }

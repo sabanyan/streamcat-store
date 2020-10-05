@@ -2,15 +2,15 @@
   "id": "mcount",
   "groups": [
     {
-      "name": "group2",
-      "label": "グループの設定（省略可)",
+      "name": "grouping",
+      "label": "グループの設定",
       "params": [
         "k"
       ]
     },
     {
       "name": "group1",
-      "label": "追加する項目名の設定 (必須)",
+      "label": "行数カウントの設定 (必須)",
       "params": [
         "a"
       ]
@@ -19,16 +19,10 @@
       "name": "group3",
       "label": "その他（省略可)",
       "params": [
-        "q"
-      ]
-    },
-    {
-      "name": "group10",
-      "label": "項目名・項目番号についての設定（省略可）",
-      "params": [
-        "x",
+        "q",
         "nfn",
-        "nfno"
+        "nfno",
+        "x"
       ]
     },
     {
@@ -72,14 +66,14 @@
     {
       "name": "a",
       "type": "string",
-      "label": "行数の項目名",
+      "label": "追加する行数の項目名",
       "description": "「入力データの 1 行目を項目名行とみなさない。」指定時は、省略可"
     },
     {
       "name": "k",
       "type": "string",
       "label": "グループ化する項目名",
-      "description": "カンマ区切りで複数指定可\n省略時はグループ別ではなく、データの総行数を出力"
+      "description": "カンマ区切りで複数指定可\n省略時は全ての行を同じグループとみなして処理される"
     },
     {
       "name": "assert_diffSize",

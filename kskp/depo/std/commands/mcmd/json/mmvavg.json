@@ -86,55 +86,62 @@
     {
       "name": "s",
       "type": "string",
-      "label": "並べ替えの後、移動平均を計算する列名",
-      "optional": true
+      "label": "グループ内ソートの設定",
+      "optional": true,
+      "description": "ソートのキー項目を、カンマ区切りで複数指定可\n●ソートの種類は変更可能　(デフォルト: 文字列昇順)\n 　方法: 項目名末尾に記号を付与 (数値昇順：%n,  文字列降順： %r,  数値降順：%nr)\n●注意 グループ化する項目名と同じ項目名があると、不整合になり、ソートされません"
     },
     {
       "name": "k",
       "type": "string",
-      "label": "単位とする列名",
-      "optional": true
+      "label": "グループ化する項目名",
+      "optional": true,
+      "description": "カンマ区切りで複数指定可\n省略時は全ての行を同じグループとみなして処理される"
     },
     {
       "name": "n",
-      "type": "string",
-      "label": "Null データの場合は NULL にするフラグ",
+      "type": "boolean",
+      "label": "NULL の含まれる期間の結果は、NULLとする",
       "optional": true
     },
     {
       "name": "f",
       "type": "string",
-      "label": "移動平均を求める列名(複数項目指定可, 必須)"
+      "label": "対象とする項目名(必須)",
+      "description": "●カンマ区切りで複数指定可\n●ワイルドカード(*,？ )使用可"
     },
     {
       "name": "t",
       "type": "string",
-      "label": "移動平均を求める項目名リスト (複数項目指定可) を指定する。",
-      "optional": true
+      "label": "期間数(必須)",
+      "optional": true,
+      "description": "移動窓の幅を、１以上の正の整数で指定する",
+      "default": "2"
     },
     {
       "name": "exp",
       "type": "boolean",
-      "label": "指数平滑移動平均を求める。",
+      "label": "単純移動平均ではなく、指数平滑移動平均を求める",
       "optional": true
     },
     {
       "name": "w",
       "type": "boolean",
-      "label": "線形加重移動平均を求める。",
+      "label": "単純移動平均ではなく、線形加重移動平均を求める",
       "optional": true
     },
     {
       "name": "alpha",
       "type": "string",
-      "label": "-exp が指定された時の平滑化係数を実数値で与える。省略時は alpha=2/(t=の値 +1)。",
-      "optional": true
+      "label": "指数平滑移動平均の平滑化係数 ",
+      "optional": true,
+      "description": "●デフォルト値は 2 / (期間数の指定値 + 1) \n●指定時は、0-1の値で指定する\n●指定した値は、期間数の指定より優先で使用される"
     },
     {
       "name": "skip",
       "type": "string",
-      "label": "出力を抑制する最初の行数。デフォルト値: skip=(t=の値-1), -exp が指定された場合は skip=0",
-      "optional": true
+      "label": "計算対象外とする先頭のレコード数",
+      "optional": true,
+      "description": "●デフォルトでは、グループ先頭の期間数に満たないレコードは、除外される\n●除外行数を指定すると、不足の値はNULL扱いで計算した結果を出力する"
     },
     {
       "name": "assert_diffSize",
@@ -182,7 +189,54 @@
       "name": "q",
       "type": "boolean",
       "label": "自動並べ替えの無効化",
-      "optional": true
+      "optional": true,
+      "description": "入力データがグループ単位でソート済みの場合、指定すると処理速度が向上"
+    },
+    {
+      "name": "precision",
+      "type": "select",
+      "label": "有効桁数",
+      "description": "デフォルト:10桁",
+      "options": {
+        "labels": [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "6",
+          "7",
+          "8",
+          "9",
+          "10",
+          "11",
+          "12",
+          "13",
+          "14",
+          "15",
+          "16"
+        ],
+        "values": [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "6",
+          "7",
+          "8",
+          "9",
+          "10",
+          "11",
+          "12",
+          "13",
+          "14",
+          "15",
+          "16"
+        ]
+      },
+      "optional": true,
+      "default": "10"
     },
     {
       "name": "tmpPath",
@@ -209,5 +263,62 @@
   "label": "移動平均の計算",
   "classification": "table_grouping",
   "description": "移動平均（単純、線形加重、指数平滑）を算出する",
-  "url": "./static/pdf/mcmd/table_grouping/mmvavg.pdf"
+  "url": "./static/pdf/mcmd/table_grouping/mmvavg.pdf",
+  "groups": [
+    {
+      "name": "grouping",
+      "label": "グループの設定",
+      "params": [
+        "k",
+        "s"
+      ]
+    },
+    {
+      "name": "cmd_main",
+      "label": "移動平均の計算の設定(必須)",
+      "description": "対象 とする項目名、移動窓および計算方法の設定を行う\n移動窓は、期間数で幅を設定する",
+      "params": []
+    },
+    {
+      "name": "cmd_main_1",
+      "label": "計算対象と移動窓の設定(必須)",
+      "params": [
+        "f",
+        "t"
+      ]
+    },
+    {
+      "name": "cmd_main_2",
+      "label": "計算方法の設定(省略可)",
+      "params": [
+        "w",
+        "exp",
+        "alpha",
+        "skip",
+        "n"
+      ]
+    },
+    {
+      "name": "cmd_sub",
+      "label": "その他 (省略可)",
+      "params": [
+        "nfn",
+        "nfno",
+        "x",
+        "q",
+        "precision"
+      ]
+    },
+    {
+      "name": "system",
+      "label": "システム管理用設定（作業領域・ログ出力）",
+      "params": [
+        "assert_diffSize",
+        "assert_nullkey",
+        "assert_nullin",
+        "assert_nullout",
+        "tmpPath"
+      ]
+    }
+  ]
 }

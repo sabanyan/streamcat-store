@@ -27,18 +27,19 @@
     {
       "name": "f",
       "type": "string",
-      "label": "対象列名(必須)"
+      "label": "対象とする項目名 (必須)",
+      "description": "・カンマ区切りで複数指定可\n・ワイルドカード(*,？ )使用可"
     },
     {
       "name": "r",
       "type": "boolean",
-      "label": "逆順に並べる。",
+      "label": "昇順ではなく、降順でソートする",
       "optional": true
     },
     {
       "name": "n",
       "type": "boolean",
-      "label": "数値順に並べる。",
+      "label": "文字列ではなく、数値順でソートする",
       "optional": true
     },
     {
@@ -50,7 +51,7 @@
     {
       "name": "assert_nullin",
       "type": "boolean",
-      "label": "入力項目の f=または vf=で指定された項目の NULL 値チェックを行う",
+      "label": "対象とする項目名で指定された項目の NULL 値チェックを行う",
       "optional": true
     },
     {
@@ -96,5 +97,40 @@
   "label": "複数項目の値のソート",
   "classification": "col_edit",
   "description": "行でも列でもなく、列項目の値を並び替えて出力する",
-  "url": "./static/pdf/mcmd/row_sort/mfsort.pdf"
+  "url": "./static/pdf/mcmd/row_sort/mfsort.pdf",
+  "groups": [
+    {
+      "name": "abstract",
+      "label": "コマンドの概要",
+      "description": "対象とする項目の値を行内で並び替える",
+      "params": []
+    },
+    {
+      "name": "cmd_main",
+      "label": "値のソートの設定 (必須)",
+      "params": [
+        "f",
+        "r",
+        "n"
+      ]
+    },
+    {
+      "name": "cmd_sub",
+      "label": "その他 (省略可)",
+      "params": [
+        "nfn",
+        "nfno",
+        "x"
+      ]
+    },
+    {
+      "name": "system",
+      "label": "システム管理用設定（作業領域・ログ出力）",
+      "params": [
+        "assert_diffSize",
+        "assert_nullin",
+        "tmpPath"
+      ]
+    }
+  ]
 }

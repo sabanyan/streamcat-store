@@ -2,39 +2,29 @@
   "id": "multi_mvsim",
   "groups": [
     {
-      "name": "group1",
-      "label": "キー項目の設定（省略可）",
+      "name": "grouping",
+      "label": "グループの設定",
       "params": [
-        "k"
-      ]
-    },
-    {
-      "name": "group2",
-      "label": "時系列の設定（省略可）",
-      "params": [
+        "k",
         "s"
       ]
     },
     {
       "name": "group3",
-      "label": "計算対象と結果の項目設定（必須）",
+      "label": "移動窓と類似度計算の設定(必須）",
+      "description": "類似度計算の設定を、対象項目1,2と類似度名で行う\n移動窓は、期間数で幅を設定する",
       "params": [
-        "factlist"
-      ]
-    },
-    {
-      "name": "group5",
-      "label": "項目名・項目番号についての設定（省略可）",
-      "params": [
-        "x",
-        "nfn",
-        "nfno"
+        "fctlist",
+        "a"
       ]
     },
     {
       "name": "group6",
       "label": "その他（省略可）",
       "params": [
+        "nfn",
+        "nfno",
+        "x",
         "precision"
       ]
     },
@@ -54,26 +44,38 @@
     {
       "name": "s",
       "type": "string",
-      "label": "ソートが必要な場合の項目設定",
-      "description": "●カンマ区切りで複数指定可\n●入力データがソート済の場合、省略で処理速度が向上\n●表記：【末尾に付与】無しは文字列の昇順、%nは数値の昇順、%rは文字列の降順、%nrは数値の降順",
+      "label": "グループ内ソートの設定",
+      "description": "ソートのキー項目を、カンマ区切りで複数指定可\n●ソートの種類は変更可能　(デフォルト: 文字列昇順)\n 　方法: 項目名末尾に記号を付与 (数値昇順：%n,  文字列降順： %r,  数値降順：%nr)\n●注意 グループ化する項目名と同じ項目名があると、不整合になり、ソートされません",
       "default": ""
     },
     {
       "name": "k",
       "type": "string",
-      "label": "グループ化する列",
-      "description": "カンマ区切りで複数指定可"
+      "label": "グループ化する項目名",
+      "description": "カンマ区切りで複数指定可\n省略時は全ての行を同じグループとみなして処理される"
     },
     {
-      "name": "factlist",
+      "name": "a",
+      "type": "string",
+      "label": "結果の項目名の書式設定 (省略可)",
+      "description": "【記号】&:元の二つの項目名,  %:類似度名,   #:期間数",
+      "default": "&_%_#"
+    },
+    {
+      "name": "fctlist",
       "type": "list",
-      "label": "計算対象の設定",
-      "description": "【対象項目】項目名時:*,？,[...] 使用可\n\t項目番号時:0−3,5,0L 等使用可\n【類似度名】カンマ区切りで統計量指定可。\n\t指定可能類似度名:covar, ucovar, pearson, spearman, kendall, euclid, cosine, cityblock, hamming, chi, phi, jaccard, support, lift\n【期間数】データ件数で指定する。１以上の整数をカンマ区切りで複数指定可\n【結果項目名】%:類似度名を表わす記号\n\t#:期間数を表わす記号",
+      "label": "移動窓と類似度計算の設定(必須)",
+      "description": "【対象項目1,2】 項目名を、それぞれ1つ指定可\n【類似度名】カンマ区切りで複数指定可\n\t類似度名:covar, ucovar, pearson, spearman, kendall, euclid, cosine, cityblock, hamming, chi, phi, jaccard, support, lift\n【期間数】 カンマ区切りで複数指定可。1以上の整数で指定する",
       "elements": [
         {
-          "name": "f",
+          "name": "f1",
           "type": "string",
-          "label": "対象項目"
+          "label": "対象項目1"
+        },
+        {
+          "name": "f2",
+          "type": "string",
+          "label": "対象項目2"
         },
         {
           "name": "c",
@@ -84,19 +86,14 @@
           "name": "t",
           "type": "string",
           "label": "期間数"
-        },
-        {
-          "name": "a",
-          "type": "string",
-          "label": "結果項目名"
         }
       ],
       "default": [
         {
-          "f": "",
-          "a": "",
+          "f1": "",
+          "f2": "",
           "c": "",
-          "t": ""
+          "t": "2"
         }
       ]
     },
@@ -111,8 +108,9 @@
     {
       "name": "x",
       "type": "boolean",
-      "label": "項目番号による指定",
-      "optional": true
+      "label": "項目名ではなく、項目番号で指定する",
+      "optional": true,
+      "description": "●0始まりの項目番号で指定する\n●Lをつけると、右端起点の項目番号とみなす(例:3L)\n●複数入力可能なOptの場合は、列範囲としての指定も可能(例: 0-5)"
     },
     {
       "name": "nfn",
@@ -141,7 +139,7 @@
     {
       "name": "assert_nullin",
       "type": "boolean",
-      "label": "入力項目のf=で指定された項目のNULL値チェックを行う",
+      "label": "対象項目で指定された項目のNULL値チェックを行う",
       "optional": true
     },
     {
