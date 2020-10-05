@@ -34,38 +34,40 @@
     {
       "name": "a",
       "type": "string",
-      "label": "トランザクション列名(必須)"
+      "label": "追加する項目名(必須)"
     },
     {
       "name": "f",
       "type": "string",
-      "label": "列名リスト",
-      "optional": true
+      "label": "対象とする項目名 (必須)",
+      "optional": true,
+      "description": "●カンマ区切りで複数指定可\n●ワイルドカード(*,？ )使用可"
     },
     {
       "name": "delim",
       "type": "string",
-      "label": "トランザクション項目アイテムを区切る文字列",
+      "label": "ベクトル要素の区切り文字",
       "optional": true,
-      "default": " "
+      "default": "",
+      "description": "省略時は半角スペース"
     },
     {
       "name": "delim2",
       "type": "string",
-      "label": "項目名と値ペアを区切る文字列",
+      "label": "元の項目名と値の区切り文字",
       "optional": true,
       "default": "="
     },
     {
       "name": "r",
       "type": "boolean",
-      "label": "トランザクション項目をクロス表に変換する。",
+      "label": "変換時とは逆に、ベクトル要素を列に展開する",
       "optional": true
     },
     {
       "name": "valOnly",
       "type": "boolean",
-      "label": "アイテムとして「項目名=」は出力しない。",
+      "label": "元の項目名を、ベクトル要素の一部として使用しない",
       "optional": true
     },
     {
@@ -83,7 +85,7 @@
     {
       "name": "assert_nullout",
       "type": "boolean",
-      "label": "入力項目のf=またはvf=で指定された項目のNULL値チェックを行う",
+      "label": "対象とする項目名のNULL値チェックを行う",
       "optional": true
     },
     {
@@ -102,12 +104,6 @@
       "name": "x",
       "type": "boolean",
       "label": "項目番号による指定",
-      "optional": true
-    },
-    {
-      "name": "q",
-      "type": "boolean",
-      "label": "自動並べ替えの無効化",
       "optional": true
     },
     {
@@ -135,5 +131,38 @@
   "label": "クロス表をトランザクション項目に変換(Mtrafld)",
   "classification": "value_crossing",
   "description": "複数項目の値を要素とするベクトル項目を作成する",
-  "url": "./static/pdf/mcmd/value_crossing/mtrafld.pdf"
+  "url": "./static/pdf/mcmd/value_crossing/mtrafld.pdf",
+  "groups": [
+    {
+      "name": "cmd_main",
+      "label": "データ変換の設定",
+      "params": [
+        "a",
+        "delim",
+        "f",
+        "delim2",
+        "valOnly",
+        "r"
+      ]
+    },
+    {
+      "name": "cmd_sub",
+      "label": "その他 (省略可)",
+      "params": [
+        "nfn",
+        "nfno",
+        "x"
+      ]
+    },
+    {
+      "name": "system",
+      "label": "システム管理用設定（作業領域・ログ出力）",
+      "params": [
+        "assert_diffSize",
+        "assert_nullin",
+        "assert_nullout",
+        "tmpPath"
+      ]
+    }
+  ]
 }

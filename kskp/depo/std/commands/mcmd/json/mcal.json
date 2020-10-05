@@ -10,18 +10,12 @@
       ]
     },
     {
-      "name": "group2",
-      "label": "項目名・項目番号についての設定（省略可）",
-      "params": [
-        "x",
-        "nfn",
-        "nfno"
-      ]
-    },
-    {
       "name": "group3",
       "label": "その他（省略可）",
       "params": [
+        "nfn",
+        "nfno",
+        "x",
         "precision"
       ]
     },
@@ -29,9 +23,9 @@
       "name": "group4",
       "label": "システム管理用設定（作業領域・ログ出力）",
       "params": [
-        "tmpPath",
         "assert_diffSize",
-        "assert_nullout"
+        "assert_nullout",
+        "tmpPath"
       ]
     }
   ],
@@ -51,7 +45,7 @@
     {
       "name": "a",
       "type": "string",
-      "label": "追加する項目名"
+      "label": "追加する項目名 (必須)"
     },
     {
       "name": "c",

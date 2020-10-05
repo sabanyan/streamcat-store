@@ -2,8 +2,8 @@
   "id": "groupby2",
   "groups": [
     {
-      "name": "group1",
-      "label": "キー項目の設定",
+      "name": "grouping",
+      "label": "グループの設定",
       "params": [
         "k"
       ]
@@ -64,8 +64,8 @@
     {
       "name": "k",
       "type": "string",
-      "label": "集計キー項目を指定する",
-      "description": "●カンマ区切りで複数指定可"
+      "label": "グループ化する項目名",
+      "description": "カンマ区切りで複数指定可"
     },
     {
       "name": "clist",
@@ -206,8 +206,8 @@
         {
           "x": "",
           "f": "",
-          "c": "",
-          "n": ""
+          "n": "",
+          "c": ""
         }
       ]
     },
@@ -217,7 +217,7 @@
       "label": "時間軸項目のデータ型",
       "options": {
         "labels": [
-          "暦型（YYYYMMDDhhmmss少数6桁まで）",
+          "暦型（YYYYMMDDhhmmss小数6桁まで）",
           "数値"
         ],
         "values": [

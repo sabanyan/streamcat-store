@@ -42,29 +42,33 @@
     {
       "name": "wk",
       "type": "string",
-      "label": "出力データにおける、窓を識別する値となる入力データの列名(必須)"
+      "label": "ソートの設定と追加項目名(必須)",
+      "description": "ソートの設定と、追加される窓のキー値の項目名を:区切りで入力する\n●ソートの設定(デフォルト: 文字列昇順)\n 　変更方法: 項目名末尾に記号を付与 (数値昇順：%n,  文字列降順： %r,  数値降順：%nr)\n●注意 グループ化する項目名に使用している項目名でのソートは、不可能です"
     },
     {
       "name": "t",
       "type": "string",
-      "label": "窓の行数指定(必須)"
+      "label": "期間数(必須)",
+      "description": "移動窓の幅を、１以上の正の整数で指定する",
+      "default": "2"
     },
     {
       "name": "k",
       "type": "string",
-      "label": "窓を生成する単位となる列名",
-      "optional": true
+      "label": "グループ化する項目名",
+      "optional": true,
+      "description": "カンマ区切りで複数指定可\n省略時は全ての行を同じグループとみなして処理される"
     },
     {
       "name": "r",
       "type": "boolean",
-      "label": "窓における基準行を先頭行とする。指定がなければ最終行となる。",
+      "label": "終了行ではなく、開始行の値と窓のキー値とする",
       "optional": true
     },
     {
       "name": "n",
       "type": "boolean",
-      "label": "窓のサイズが t=で指定した行数に満たなくても出力する。",
+      "label": "レコード数が期間数に満たない窓も出力する",
       "optional": true
     },
     {
@@ -94,14 +98,16 @@
     {
       "name": "x",
       "type": "boolean",
-      "label": "項目番号による指定",
-      "optional": true
+      "label": "項目名ではなく、項目番号で指定する",
+      "optional": true,
+      "description": "●0始まりの項目番号で指定する\n●Lをつけると、右端起点の項目番号とみなす(例:3L)\n●複数入力可能なOptの場合は、列範囲としての指定も可能(例: 0-5)"
     },
     {
       "name": "q",
       "type": "boolean",
       "label": "自動並べ替えの無効化",
-      "optional": true
+      "optional": true,
+      "description": "入力データがグループ単位でソート済みの場合、指定すると処理速度が向上"
     },
     {
       "name": "tmpPath",
@@ -128,5 +134,44 @@
   "label": "スライド窓の生成",
   "classification": "table_grouping",
   "description": "複数行をずらしながら行を複製していく",
-  "url": "./static/pdf/mcmd/table_grouping/mwindow.pdf"
+  "url": "./static/pdf/mcmd/table_grouping/mwindow.pdf",
+  "groups": [
+    {
+      "name": "grouping",
+      "label": "グループの設定",
+      "params": [
+        "k"
+      ]
+    },
+    {
+      "name": "cmd_main",
+      "label": "スライド窓の設定(必須)",
+      "description": "レコードをソート後、行複製を期間数行い、窓のキーを付与する\n窓のキーの値は、ソート設定の項目名の値を使用する",
+      "params": [
+        "wk",
+        "t",
+        "r",
+        "n"
+      ]
+    },
+    {
+      "name": "cmd_sub",
+      "label": "その他 (省略可)",
+      "params": [
+        "nfn",
+        "nfno",
+        "x",
+        "q"
+      ]
+    },
+    {
+      "name": "system",
+      "label": "システム管理用設定（作業領域・ログ出力）",
+      "params": [
+        "assert_diffSize",
+        "assert_nullkey",
+        "tmpPath"
+      ]
+    }
+  ]
 }

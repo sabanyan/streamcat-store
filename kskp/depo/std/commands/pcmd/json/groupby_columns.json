@@ -4,7 +4,8 @@
     {
       "name": "f",
       "type": "string",
-      "label": "新規追加列名:カンマ区切りの複数項目名リストをバックスラッシュ区切りで指定する（必須）"
+      "label": "新規追加列名:カンマ区切りの複数項目名リストをバックスラッシュ区切りで指定する（必須）",
+      "description": "新規追加列名:カンマ区切りの複数項目名リストをバックスラッシュ区切りで指定する（必須）"
     },
     {
       "name": "c",
@@ -14,8 +15,9 @@
     {
       "name": "k",
       "type": "string",
-      "label": "集計のキー項目がある場合、項目名をカンマ区切りで指定する",
-      "optional": true
+      "label": "グループ化する項目名(必須)",
+      "optional": true,
+      "description": "カンマ区切りで複数指定可"
     },
     {
       "name": "delimiter",
@@ -54,5 +56,37 @@
   "label": "項目を行展開したgroupby処理",
   "classification": "col_edit",
   "description": "列項目を行展開して、GroupBy処理を行う (特徴量: 22種類)",
-  "url": ""
+  "url": "",
+  "groups": [
+    {
+      "name": "grouping",
+      "label": "グループの設定",
+      "params": [
+        "k"
+      ]
+    },
+    {
+      "name": "cmd_main",
+      "label": "集計の設定",
+      "params": [
+        "f",
+        "c"
+      ]
+    },
+    {
+      "name": "cmd_sub",
+      "label": "その他 (省略可)",
+      "params": [
+        "delimiter",
+        "prefix"
+      ]
+    },
+    {
+      "name": "system",
+      "label": "システム管理用設定（作業領域・ログ出力）",
+      "params": [
+        "cmd_path"
+      ]
+    }
+  ]
 }

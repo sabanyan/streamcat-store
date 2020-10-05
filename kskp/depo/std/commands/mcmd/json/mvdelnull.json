@@ -43,8 +43,9 @@
     {
       "name": "delim",
       "type": "string",
-      "label": "ベクトル要素の区切り文字を指定",
-      "optional": true
+      "label": "ベクトル要素の区切り文字",
+      "optional": true,
+      "description": "省略時は半角スペース"
     },
     {
       "name": "assert_diffSize",
@@ -83,12 +84,6 @@
       "optional": true
     },
     {
-      "name": "q",
-      "type": "boolean",
-      "label": "自動並べ替えの無効化",
-      "optional": true
-    },
-    {
       "name": "tmpPath",
       "type": "string",
       "label": "作業ファイル格納パス名",
@@ -113,5 +108,41 @@
   "label": "ベクトルのNULL要素の削除",
   "classification": "value_transform",
   "description": "ベクトル要素でNULLの要素を削除する",
-  "url": "./static/pdf/mcmd/value_transform/mvdelnull.pdf"
+  "url": "./static/pdf/mcmd/value_transform/mvdelnull.pdf",
+  "groups": [
+    {
+      "name": "cmd_main",
+      "label": "要素の削除の設定",
+      "params": [
+        "vf",
+        "A"
+      ]
+    },
+    {
+      "name": "cmd_sub",
+      "label": "その他 (省略可)",
+      "params": [
+        "delim",
+        "nfn"
+      ]
+    },
+    {
+      "name": "fields",
+      "label": "項目名・項目番号についての設定（省略可）",
+      "params": [
+        "nfno",
+        "x"
+      ]
+    },
+    {
+      "name": "system",
+      "label": "システム管理用設定（作業領域・ログ出力）",
+      "params": [
+        "assert_diffSize",
+        "assert_nullin",
+        "assert_nullout",
+        "tmpPath"
+      ]
+    }
+  ]
 }

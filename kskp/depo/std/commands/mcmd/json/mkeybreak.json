@@ -2,40 +2,28 @@
   "id": "mkeybreak",
   "groups": [
     {
-      "name": "group1",
-      "label": "グループの設定(必須)",
+      "name": "grouping",
+      "label": "グループの設定 (必須)",
       "params": [
-        "k"
-      ]
-    },
-    {
-      "name": "group2",
-      "label": "グループ内のソートの設定（省略可)",
-      "params": [
+        "k",
         "s"
       ]
     },
     {
       "name": "group4",
-      "label": "追加する項目名の設定(省略可)",
+      "label": "キーブレイクフラグの設定 (必須)",
       "params": [
         "a"
       ]
     },
     {
       "name": "group3",
-      "label": "その他(省略可)",
+      "label": "その他 (省略可)",
       "params": [
-        "q"
-      ]
-    },
-    {
-      "name": "group10",
-      "label": "項目名・項目番号についての設定（省略可）",
-      "params": [
-        "x",
+        "q",
         "nfn",
-        "nfno"
+        "nfno",
+        "x"
       ]
     },
     {
@@ -112,22 +100,23 @@
     {
       "name": "k",
       "type": "string",
-      "label": "グループ化する項目名",
-      "description": "●カンマ区切りで複数指定可"
+      "label": "グループ化する項目名 (省略可)",
+      "description": "・カンマ区切りで複数指定可\n・省略時は全ての行を同じグループとみなして処理される"
     },
     {
       "name": "s",
       "type": "string",
-      "label": "グループ内順序の指定",
-      "description": "●カンマ区切りで複数指定可\n●表記：【末尾に付与】無しは文字列の昇順、%nは数値の昇順、%rは文字列の降順、%nrは数値の降順\n●注意： グループ化に用いた項目を含めるとグループ内順序の指定が無効になるため、含めずに設定します",
+      "label": "グループ内ソートの設定 (必須)",
+      "description": "・ソートのキー項目を、カンマ区切りで複数指定可\n・ソートの種類は変更可能　(デフォルト: 文字列昇順)\n 　方法: 項目名末尾に記号を付与 (数値昇順：%n,  文字列降順： %r,  数値降順：%nr)\n・注意 グループ化する項目名と同じ項目名があると、不整合になり、ソートされません",
       "optional": true
     },
     {
       "name": "a",
       "type": "string",
-      "label": "先頭と終端のフラグの項目名",
-      "description": "●省略時： top,bot \n●指定時： 先頭、終端の順番でカンマ区切りで指定",
-      "optional": true
+      "label": "先端および終端フラグの項目名 (必須)",
+      "description": "先頭、終端の順番でカンマ区切りで指定する",
+      "optional": true,
+      "default": "top,bot"
     },
     {
       "name": "assert_diffSize",
@@ -169,7 +158,7 @@
       "name": "q",
       "type": "boolean",
       "label": "自動並べ替えの無効化",
-      "description": "入力データがグループ化済かつソート済の場合、指定すると処理速度が向上",
+      "description": "入力データがグループ単位でソート済みの場合、指定すると処理速度が向上",
       "optional": true
     },
     {

@@ -32,19 +32,22 @@
     {
       "name": "vf",
       "type": "string",
-      "label": "対象列名(必須)"
+      "label": "対象となる項目名(必須)",
+      "description": "カンマ区切りで複数指定可\nワイルドカード(*,？ )使用可\n●ソートの種類を指定可能　(デフォルト: 文字列昇順)\n 　方法: 項目名末尾に記号を付与 (数値昇順：%n,  文字列降順： %r,  数値降順：%nr)"
     },
     {
       "name": "A",
       "type": "boolean",
-      "label": "vf=で:(コロン) に続けて指定した項目名で、新たな項目が追加される。",
-      "optional": true
+      "label": "ソート結果で置換せず、項目を追加して出力する",
+      "optional": true,
+      "description": "追加する項目名は、対象となる項目名の後に、:区切りで入力する"
     },
     {
       "name": "delim",
       "type": "string",
-      "label": "ベクトル要素の区切り文字を指定",
-      "optional": true
+      "label": "ベクトル要素の区切り文字",
+      "optional": true,
+      "description": "省略時は半角スペース"
     },
     {
       "name": "assert_diffSize",
@@ -55,7 +58,7 @@
     {
       "name": "assert_nullin",
       "type": "boolean",
-      "label": "入力項目のf=またはvf=で指定された項目のNULL値チェックを行う",
+      "label": "対象とする項目名で指定された項目のNULL値チェックを行う",
       "optional": true
     },
     {
@@ -113,5 +116,36 @@
   "label": "ベクトル要素のソート",
   "classification": "value_transform",
   "description": "ベクトル型の項目の値を並び替えて出力する",
-  "url": "./static/pdf/mcmd/value_transform/mvsort.pdf"
+  "url": "./static/pdf/mcmd/value_transform/mvsort.pdf",
+  "groups": [
+    {
+      "name": "cmd_main",
+      "label": "要素のソートの設定",
+      "params": [
+        "vf",
+        "A",
+        "delim"
+      ]
+    },
+    {
+      "name": "cmd_sub",
+      "label": "その他 (省略可)",
+      "params": [
+        "nfn",
+        "nfno",
+        "x",
+        "q"
+      ]
+    },
+    {
+      "name": "system",
+      "label": "システム管理用設定（作業領域・ログ出力）",
+      "params": [
+        "assert_diffSize",
+        "assert_nullin",
+        "assert_nullout",
+        "tmpPath"
+      ]
+    }
+  ]
 }

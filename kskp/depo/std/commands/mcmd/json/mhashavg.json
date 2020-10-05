@@ -52,20 +52,23 @@
     {
       "name": "f",
       "type": "string",
-      "label": "平均を求める列名(必須)"
+      "label": "対象とする項目名 (必須)",
+      "description": "・カンマ区切りで複数指定可\n・ワイルドカード(*,？ )使用可"
     },
     {
       "name": "hs",
       "type": "string",
-      "label": "ハッシュサイズ",
+      "label": "ハッシュサイズ (必須)",
       "optional": true,
-      "default": 199999
+      "default": 199999,
+      "description": "１以上の整数で指定する"
     },
     {
       "name": "k",
       "type": "string",
-      "label": "キー列名",
-      "optional": true
+      "label": "グループ化する項目名",
+      "optional": true,
+      "description": "・カンマ区切りで複数指定可\n・省略時は全ての行を同じグループとみなして処理される"
     },
     {
       "name": "precision",
@@ -110,12 +113,13 @@
         ]
       },
       "optional": true,
-      "default": "10"
+      "default": "10",
+      "description": "1~16の整数で指定する"
     },
     {
       "name": "n",
       "type": "boolean",
-      "label": "NULL 値が 1 つでも含まれていると結果も NULL 値とする。",
+      "label": "NULLが含まれている時は、結果をNULLで出力する",
       "optional": true
     },
     {
@@ -133,7 +137,7 @@
     {
       "name": "assert_nullin",
       "type": "boolean",
-      "label": "入力項目の f=または vf=で指定された項目の NULL 値チェックを行う",
+      "label": "対象とする項目名で指定された項目の NULL 値チェックを行う",
       "optional": true
     },
     {
@@ -164,20 +168,14 @@
       "name": "q",
       "type": "boolean",
       "label": "自動並べ替えの無効化",
-      "optional": true
+      "optional": true,
+      "description": "入力データがグループ単位でソート済みの場合、指定すると処理速度が向上"
     },
     {
       "name": "tmpPath",
       "type": "string",
       "label": "作業ファイル格納パス名",
       "optional": true
-    },
-    {
-      "name": "precision",
-      "type": "string",
-      "label": "有効桁数",
-      "optional": true,
-      "default": 10
     }
   ],
   "ports": [
@@ -198,5 +196,45 @@
   "label": "ハッシュ法による項目値の平均",
   "classification": "table_grouping",
   "description": "キー項目別の平均値を、hash法を用いてソート無しで計算する",
-  "url": "./static/pdf/mcmd/table_grouping/mhashavg.pdf"
+  "url": "./static/pdf/mcmd/table_grouping/mhashavg.pdf",
+  "groups": [
+    {
+      "name": "grouping",
+      "label": "グループの設定 (省略可)",
+      "params": [
+        "k"
+      ]
+    },
+    {
+      "name": "cmd_main",
+      "label": "計算の設定 (必須)",
+      "params": [
+        "f",
+        "hs",
+        "n"
+      ]
+    },
+    {
+      "name": "cmd_sub",
+      "label": "その他 (省略可)",
+      "params": [
+        "q",
+        "nfn",
+        "nfno",
+        "x",
+        "precision"
+      ]
+    },
+    {
+      "name": "system",
+      "label": "システム管理用設定（作業領域・ログ出力）",
+      "params": [
+        "assert_diffSize",
+        "assert_nullkey",
+        "assert_nullin",
+        "assert_nullout",
+        "tmpPath"
+      ]
+    }
+  ]
 }
