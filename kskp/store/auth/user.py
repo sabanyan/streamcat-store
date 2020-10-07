@@ -57,6 +57,8 @@ class User(BaseModel):
 
         # パスワードを設定する
         new_password = password or self._generate_password()
+        # 妥当なパスワードでない場合は例外を送出する
+        self._valid_password_or_raise(new_password)
         self.password = self._get_encrypt_password(new_password)
 
         # 本パスワードに変更する前は仮登録状態である
@@ -85,9 +87,15 @@ class User(BaseModel):
             raise Exception('ユーザ名に空文字を指定できません')
 
     def _valid_password_or_raise(self, password):
+        import re
         from .exceptions import InvalidPassword
         if password is None or password == '':
             raise InvalidPassword('空のパスワードに変更できません')
+        if len(password) < 10 or 64 < len(password):
+            raise InvalidPassword('パスワードは10文字以上64文字以下にしてください')
+        if not re.search(r'^[\x21-\x7E]+$', password):
+            raise InvalidPassword('パスワードに使用できる文字は英数・記号(空白を除く)です')
+
         if self.is_temp:
             if self._get_encrypt_password(password) == self.password:
                 raise InvalidPassword('同じパスワードに変更できません')
@@ -137,7 +145,7 @@ class User(BaseModel):
 
     def _generate_password(self):
         # パスワードを自動生成する
-        return str(uuid.uuid4())[0:8]
+        return str(uuid.uuid4())[-10:]
 
     def _set_state(self, next_state):
         # if self.state == User.TMP_STATE and next_state == User.INACTIVE_STATE:
