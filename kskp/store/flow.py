@@ -42,8 +42,8 @@ class Flow(Datum):
         if not self.executable:
             raise NotAuthorizedException(f'{self._session.user.name} ({self.user})は{self.label}の実行権限がありません')
 
-    @Constraints.prohibit_save_under_root
-    @Constraints.set_permissions_for_everyone
+    @Constraints.prohibit_save_on_root
+    @Constraints.set_project_role_on_adding
     def save(self):
         """
         Flowを保存する
@@ -146,7 +146,6 @@ class Flow(Datum):
 
     #     return self
 
-    @Constraints.set_project_role_on_throwing_away
     def throw_away(self):
         """
         Flowをゴミ箱にほかす
@@ -161,7 +160,7 @@ class Flow(Datum):
             flow = factory.find_by_uuid(using_flow_uuids[0])
             raise Exception(f'このフローは別のフロー({flow.label})で使用しているため削除できません')
 
-        self.move(trash_folder.uuid)
+        return self.move(trash_folder.uuid)
 
     @Constraints.delete_role_when_isolated
     def delete(self):

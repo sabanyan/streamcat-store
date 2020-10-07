@@ -71,6 +71,11 @@ class Session():
     def delete(self, obj):
         raise NotAuthorizedException('認証なき削除はできません')
 
+    @property
+    def deleted(self):
+        # return self._session.deleted
+        raise NotImplemented('session.deletedを使った削除済み判定は何故かできない')
+
 class AuthzSession(Session):
 
     def __init__(self, session_factory, user):
