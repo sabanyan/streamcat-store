@@ -74,7 +74,95 @@
       "name": "c",
       "type": "string",
       "label": "日付時刻書式の指定 (必須)",
-      "description": "・対象項目の日付時刻要素を、プレースホルダで置き換えた文字列を指定する\n・プレースホルダ記号の一覧\n   日付時刻の要素 ：プレースホルダ記号 (条件）\n         年                  : %Y (西暦4桁以内),  %y(西暦2桁以内)\n         月                  : %m (2桁以内)\n         日                  : %d  (2桁以内)\n       時間                : %H  (24時間表記で2桁以内)\n         分                 : %M  (2桁以内)\n         秒                 : %S  (2桁以内),  %s (秒と秒以下でピリオド区切り) \n・抽出指定の例\n   入力                              ：抽出の指定\n   yyyy-mm-dd HH:MM:SS   :%Y-%m-%d %H:%M:%S\n   yyyymmdd HHMMSS        :%Y%m%d %H%M%S"
+      "description": "・対象項目の日付時刻要素を、プレースホルダで置き換えた文字列を指定する",
+      "helper": {
+        "c": {
+          "label": "日付時刻指定",
+          "tabs": [
+            {
+              "label": "日付時刻要素の指定",
+              "data": [
+                {
+                  "label": "プレースホルダ記号",
+                  "shortcuts": [
+                    {
+                      "value": "%Y",
+                      "label": "年 (西暦4桁以内)",
+                      "link": "%Y",
+                      "delimiter": ""
+                    },
+                    {
+                      "value": "%y",
+                      "label": "年 (西暦2桁以内)",
+                      "link": "%y",
+                      "delimiter": ""
+                    },
+                    {
+                      "value": "%m",
+                      "label": "月 (2桁以内)",
+                      "link": "%m",
+                      "delimiter": ""
+                    },
+                    {
+                      "value": "%d",
+                      "label": "日 (2桁以内)",
+                      "link": "%d",
+                      "delimiter": ""
+                    },
+                    {
+                      "value": "%H",
+                      "label": "時 (24時間表記で2桁以内)",
+                      "link": "%H",
+                      "delimiter": ""
+                    },
+                    {
+                      "value": "%M",
+                      "label": "分 (2桁以内)",
+                      "link": "%M",
+                      "delimiter": ""
+                    },
+                    {
+                      "value": "%S",
+                      "label": "秒 (2桁以内)",
+                      "link": "%S",
+                      "delimiter": ""
+                    },
+                    {
+                      "value": "%s",
+                      "label": "秒と秒以下 (秒以下6桁以内)",
+                      "link": "%s",
+                      "delimiter": ""
+                    },
+                    {
+                      "value": "",
+                      "label": "  ※秒と秒以下の区切り文字はピリオド",
+                      "link": "",
+                      "delimiter": ""
+                    }
+                  ]
+                },
+                {
+                  "label": "指定の例",
+                  "shortcuts": [
+                    {
+                      "value": "%Y-%m-%d %H:%M:%S",
+                      "label": "yyyy-mm-dd HH:MM:SS",
+                      "link": "%Y-%m-%d %H:%M:%S",
+                      "delimiter": ""
+                    },
+                    {
+                      "value": "%Y%m%d %H%M%S",
+                      "label": "yyyymmdd HHMMSS",
+                      "link": "%Y%m%d %H%M%S",
+                      "delimiter": ""
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      }
     },
     {
       "name": "f",
