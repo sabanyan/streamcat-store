@@ -11,7 +11,7 @@
     },
     {
       "name": "group3",
-      "label": "移動窓と類似度計算の設定(必須）",
+      "label": "移動窓と類似度計算の設定 (必須）",
       "description": "類似度計算の設定を、対象項目1,2と類似度名で行う\n移動窓は、期間数で幅を設定する",
       "params": [
         "fctlist",
@@ -64,7 +64,7 @@
     {
       "name": "fctlist",
       "type": "list",
-      "label": "移動窓と類似度計算の設定(必須)",
+      "label": "移動窓と類似度計算の設定 (必須)",
       "description": "【対象項目1,2】 項目名を、それぞれ1つ指定可\n【類似度名】カンマ区切りで複数指定可\n\t類似度名:covar, ucovar, pearson, spearman, kendall, euclid, cosine, cityblock, hamming, chi, phi, jaccard, support, lift\n【期間数】 カンマ区切りで複数指定可。1以上の整数で指定する",
       "elements": [
         {
