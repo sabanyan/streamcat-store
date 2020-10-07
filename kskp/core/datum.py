@@ -341,7 +341,8 @@ class Datum(BaseModel):
         factory = DatumFactory(self._session)
         return factory.find_by_id(self.id)
 
-    @Constraints.prohibit_movement_to_root
+    @Constraints.prohibit_move_to_root
+    @Constraints.set_role_on_moving
     def move(self, parent_uuid, modifier=None):
         """
         指定されたStoreの直下に移動する
@@ -442,7 +443,6 @@ class Datum(BaseModel):
 
         return self
 
-    @Constraints.set_project_role_on_throwing_away
     def throw_away(self):
         """
         ゴミ箱にほかす
@@ -451,9 +451,8 @@ class Datum(BaseModel):
         factory = DatumFactory(self._session)
         trash_folder = factory.load_trash_folder()
 
-        self.move(trash_folder.uuid)
+        return self.move(trash_folder.uuid)
 
-    @Constraints.unset_project_role_on_put_back
     def put_back(self):
         """
         直前の親のStoreの直下に戻す
@@ -516,6 +515,15 @@ class Datum(BaseModel):
 
     def __repr__(self):
         return f'Datum({self.id}, {self._label}, {self.type})'
+
+    def __eq__(self, other):
+        return self.uuid == other.uuid
+
+    def __ne__(self, other):
+        return self.uuid != other.uuid
+
+    def __hash__(self) -> int:
+        return hash(self.uuid)
 
     def to_json(self):
         return {'uuid'      : self.uuid,

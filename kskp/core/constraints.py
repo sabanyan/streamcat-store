@@ -7,7 +7,7 @@ class Constraints():
     """
 
     @staticmethod
-    def prohibit_movement_to_root(func):
+    def prohibit_move_to_root(func):
         """
         プロジェクト以外のDatumは、Rootへ移動できないよう制限する
         """
@@ -40,7 +40,7 @@ class Constraints():
         return wrapper
 
     @staticmethod
-    def prohibit_save_under_root(func):
+    def prohibit_save_on_root(func):
         """
         ユーザ管理者以外は、Rootフォルダにプロジェクト以外のDatumを新規追加できないよう制限する
         """
@@ -65,9 +65,10 @@ class Constraints():
         return wrapper
 
     @staticmethod
-    def set_permissions_for_everyone(func):
+    def set_project_role_on_adding(func):
         """
-        プロジェクト以外のDatumを新規追加した後、everyoneにRWXを追加設定する
+        プロジェクト以外のDatumを新規追加した場合、
+        everyoneロールとプロジェクトロールを設定する
         """
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
@@ -104,6 +105,8 @@ class Constraints():
 
             # プロジェクト管理者と編集者がDatumをゴミ箱にほかせるようにするため
             # Writersプロジェクトロールに所有権を付与する
+            # (編集者とプロジェクト管理者が、ゴミ箱から削除したり戻したりするために、
+            #  everyoneのwrite=Trueに加え、Datumのwrite=Trueも必要である)
             # (編集者がDatumの権限を自由に設定できてしまうが、
             #  Datumの権限を設定するAPIは用意していないので、問題にはならないだろう)
             writers_role = my_project._load_writers_role()
@@ -162,9 +165,136 @@ class Constraints():
         return wrapper
 
     @staticmethod
-    def set_project_role_on_throwing_away(func):
+    def set_role_on_moving(func):
         """
-        ゴミ箱にほかす時にプロジェクトロールを設定する
+        Datumをプロジェクトを跨いで移動する場合、プロジェクトロール等の設定をする
+        """
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            from sqlalchemy.orm.exc import NoResultFound
+            from kskp.core import Datum
+            from kskp.store import Folder, Flow
+            from kskp.store.factory import DatumFactory, RoleFactory
+
+            if func.__name__ != 'move':
+                raise Exception('このDecoratorはmove()以外をデコレートできません')
+
+            # self
+            myself = args[0]
+            # parent_uuid
+            to_folder_uuid = args[1]
+
+            # プロジェクト自身の移動の場合、権限設定の変更は必要ない
+            if myself.type == Datum.PROJECT_TYPE:
+                return func(*args, **kwargs)
+
+            try:
+                # 自分のプロジェクトを取得する
+                my_project = myself.find_my_project()
+            except NoResultFound:
+                # 自分のプロジェクトがない場合はプロジェクトロールを設定しない
+                my_project = None
+
+            to_folder = DatumFactory(myself._session).find_by_uuid(to_folder_uuid)
+
+            try:
+                # 移動先のプロジェクトを取得する
+                to_project = to_folder.find_my_project()
+            except NoResultFound:
+                # 移動先がプロジェクトでない場合
+                to_project = None
+
+            # 
+            # 移動元がProject内で、移動先がProject外の場合、移動元の権限設定を引き継ぐ
+            # 
+            if my_project is not None and to_project is None:
+                # FolderまたはFlowの場合は実行権限を付与する
+                folder_or_flow = isinstance(myself, Folder) or isinstance(myself, Flow) or None
+
+                # everyoneロールからDatumの権限を全て削除する
+                # (移動処理とeveryoneロールの削除の間隙に全ユーザから丸見えになるので、移動処理の前に行う)
+                everyone_role = RoleFactory(myself._session).load_everyone_role()
+                everyone_role.clear_authz(myself.id)
+
+                try:
+                    # 行ってらっしゃい! 元気でね-(≧∇≦)ﾉﾞ
+                    result = func(*args, **kwargs)
+                except Exception:
+                    # 移動処理に失敗したらeveryoneロールを戻す
+                    everyone_role.init_authz(myself.id, True, True, exec=folder_or_flow)
+                    # 例外は再送出する
+                    raise
+
+                # Datumにプロジェクトロールを設定する
+                readers_role = my_project._load_readers_role()
+                readers_role.init_authz(myself.id, read=True, write=None, exec=folder_or_flow)
+
+                # ユーザ管理者は全てのDatumの参照・更新・実行、及び権限の変更ができること
+                usr_admin_role = RoleFactory(myself._session).load_usr_admin_role()
+                usr_admin_role.init_authz(myself.id, True, True, exec=folder_or_flow, own=True)
+
+                return result
+
+            # 
+            # 移動元がProject外で、移動先がProject内の場合、移動先のProjectの権限設定に変更する
+            # 
+            elif my_project is None and to_project is not None:
+                # ただいま〜
+                result = func(*args, **kwargs)
+
+                # FolderまたはFlowの場合は実行権限を付与する
+                folder_or_flow = isinstance(myself, Folder) or isinstance(myself, Flow) or None
+
+                # 移動先のProjectの権限設定に変更する
+                writers_role = to_project._load_writers_role()
+                writers_role.init_authz(myself.id, read=None, write=True, exec=None, own=True)
+                readers_role = to_project._load_readers_role()
+                readers_role.clear_authz(myself.id)
+
+                # usr_adminロールの権限を全て削除する
+                usr_admin_role = RoleFactory(myself._session).load_usr_admin_role()
+                usr_admin_role.clear_authz(myself.id)
+
+                # everyoneロールへ権限を付与する
+                everyone_role = RoleFactory(myself._session).load_everyone_role()
+                everyone_role.init_authz(myself.id, True, True, exec=folder_or_flow)
+
+                # 本人ロールの権限を全て削除する
+                creator = myself.creator
+                if creator is not None:
+                    creator_role = creator.load_self_role()
+                    creator_role.clear_authz(myself.id)
+
+                return result
+
+            # 
+            # 移動元がProject内で、移動先が他のProject内の場合、移動先のProjectの権限設定に変更する
+            # 
+            elif my_project is not None and to_project is not None and my_project != to_project:
+                # インターステラー
+                result = func(*args, **kwargs)
+
+                # 移動先のProjectの権限設定に変更する
+                writers_role = to_project._load_writers_role()
+                writers_role.init_authz(myself.id, read=None, write=True, exec=None, own=True)
+
+                # 移動元のプロジェクトロールを全て削除する
+                writers_role = my_project._load_writers_role()
+                writers_role.clear_authz(myself.id)
+
+            # 
+            # 同じプロジェクト内での移動、または移動元と移動先がプロジェクト外での移動の場合、権限設定は必要ない
+            # 
+            else:
+                return func(*args, **kwargs)
+
+        return wrapper
+
+    @staticmethod
+    def set_role_to_trashed_folder(func):
+        """
+        ゴミ箱に形代フォルダを作成した場合、
+        形代フォルダにプロジェクトロールを設定する
         """
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
@@ -173,77 +303,40 @@ class Constraints():
             if func.__name__ != 'throw_away':
                 raise Exception('このDecoratorはthrow_away()以外をデコレートできません')
 
+            trashed_folder = func(*args, **kwargs)
+
             # self
             myself = args[0]
+
+            # 形代フォルダを作成しなかった場合、プロジェクトロールを設定しない
+            if trashed_folder is None:
+                return trashed_folder
 
             try:
                 # 自分のプロジェクトを取得する
                 my_project = myself.find_my_project()
             except NoResultFound:
                 # 自分のプロジェクトがない場合はプロジェクトロールを設定しない
-                return func(*args, **kwargs)
+                return trashed_folder
 
-            # ゴミにプロジェクトロールを設定する
+            # 形代フォルダを、Projectの権限設定に変更する
+            writers_role = my_project._load_writers_role()
+            writers_role.init_authz(trashed_folder.id, read=None, write=True, exec=None, own=True)
             readers_role = my_project._load_readers_role()
-            readers_role.init_authz(myself.id, read=True, write=None)
+            readers_role.init_authz(trashed_folder.id, read=True, write=None, exec=True)
 
             # ユーザ管理者は全てのDatumの参照・更新・実行、及び権限の変更ができること
             from kskp.store.factory import RoleFactory
-            usr_admin_role = RoleFactory(myself._session).load_usr_admin_role()
-            usr_admin_role.init_authz(myself.id, True, True, own=True)
+            usr_admin_role = RoleFactory(trashed_folder._session).load_usr_admin_role()
+            usr_admin_role.init_authz(trashed_folder.id, True, True, exec=True, own=True)
 
-            # everyoneロールからゴミの権限を全て削除する
-            everyone_role = RoleFactory(myself._session).load_everyone_role()
-            everyone_role.clear_authz(myself.id)
+            # 本人ロールから形代フォルダの権限を削除する
+            creator = trashed_folder._session.user
+            creator_role = creator.load_self_role()
+            creator_role.clear_authz(trashed_folder.id)
 
-            # ゴミ箱へ行ってらっしゃい! 元気でね-(≧∇≦)ﾉﾞ
-            return func(*args, **kwargs)
+            return trashed_folder
 
-        return wrapper
-
-    @staticmethod
-    def unset_project_role_on_put_back(func):
-        """
-        ゴミ箱から戻す時にプロジェクトロールを戻す
-        """
-        @functools.wraps(func)
-        def wrapper(*args, **kwargs):
-            from sqlalchemy.orm.exc import NoResultFound
-
-            if func.__name__ != 'put_back':
-                raise Exception('このDecoratorはput_back()以外をデコレートできません')
-
-            # ゴミ箱からただいま〜
-            result = func(*args, **kwargs)
-
-            # self
-            myself = args[0]
-
-            try:
-                # 自分のプロジェクトを取得する
-                my_project = myself.find_my_project()
-            except NoResultFound:
-                # 自分のプロジェクトがない場合はプロジェクトロールを設定しない
-                return result
-
-            # FolderまたはFlowの場合は実行権限を付与する
-            from kskp.store import Folder, Flow
-            folder_or_flow = isinstance(myself, Folder) or isinstance(myself, Flow) or None
-
-            # プロジェクトロールを元に戻す
-            readers_role = my_project._load_readers_role()
-            readers_role.clear_authz(myself.id)
-
-            # usr_adminロールの権限を全て削除する
-            from kskp.store.factory import RoleFactory
-            usr_admin_role = RoleFactory(myself._session).load_usr_admin_role()
-            usr_admin_role.clear_authz(myself.id)
-
-            # everyoneロールへ権限を再び付与する
-            everyone_role = RoleFactory(myself._session).load_everyone_role()
-            everyone_role.init_authz(myself.id, True, True, exec=folder_or_flow)
-
-            return result
         return wrapper
 
     @staticmethod

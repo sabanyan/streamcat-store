@@ -220,7 +220,7 @@ class ProjectFolder(Folder):
             raise NotAuthorizedException('プロジェクト管理者以外のメンバはプロジェクトを削除できません')
 
         # ほかす処理はFolderクラスと同じ
-        super().throw_away()
+        return super().throw_away()
 
     def put_back(self):
         """

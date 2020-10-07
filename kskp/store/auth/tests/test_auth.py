@@ -15,6 +15,82 @@ class AuthTest(TestCaseBase):
     def tearDown(self):
         pass
 
+    # フローJSON
+    # mnewnumber -> d(cache=on) -> mcut -> d1(out=on)
+    flow_json = {
+        "label": "flow", 
+        "nodes": [
+        {
+            "id": "d", 
+            "type": "frame", 
+            "uuid": None, 
+            "label": "d", 
+            "makeCache": True, 
+            "dataSource": "csv", 
+            "cacheCreatedAt": None
+        }, 
+        {
+            "id": "c", 
+            "args": {
+            "I": "1", 
+            "S": "1", 
+            "a": "a", 
+            "l": "10"
+            }, 
+            "dsts": {
+            "o": "d"
+            },
+            "srcs": {}, 
+            "type": "command", 
+            "label": "c", 
+            "commandId": "mnewnumber", 
+            "srcsOrder": []
+        }, 
+        {
+            "id": "d1", 
+            "type": "frame", 
+            "uuid": None, 
+            "label": "d1", 
+            "makeCache": False, 
+            "dataSource": "csv", 
+            "cacheCreatedAt": None
+        }, 
+        {
+            "id": "c1", 
+            "args": {
+            "f": "*"
+            }, 
+            "dsts": {
+            "o": "d1"
+            }, 
+            "srcs": {
+            "i": "d"
+            }, 
+            "type": "command", 
+            "label": "c1", 
+            "commandId": "mcut", 
+            "srcsOrder": [
+            "i"
+            ]
+        }
+        ], 
+        "ports": [
+        [], 
+        [
+            {
+            "type": "frame", 
+            "label": "d1", 
+            "nodeId": "d1"
+            }
+        ]
+        ], 
+        "params": [], 
+        "creator": "ユーザ管理者", 
+        "createdAt": "2020-10-04 17:45:16", 
+        "projectId": None, 
+        "description": ""
+    }
+
     # 
     # SQLAlchemy Session
     # 
@@ -2073,6 +2149,127 @@ class AuthTest(TestCaseBase):
         # プロジェクトを削除する
         project.delete()
 
+    def test_cannot_read_trashed_folder_by_other_user(self):
+        """
+        ゴミ箱に作成した形代フォルダは、
+        プロジェクトメンバ以外のユーザが参照できないこと
+        """
+        # ルートフォルダを取得する
+        root = self.factory2.data.load_root()
+        # ルートフォルダの下にプロジェクトを作成する
+        project = root.create_project_folder('人間五十年')
+        project.save()
+        project = project.reload()
+
+        # プロジェクトの下にフォルダを作成する
+        folder = project.create_folder('下天のうちに比べれば')
+        folder.save()
+        folder = folder.reload()
+
+        # フォルダの下にデータソースを作成する
+        source = folder.create_frame('夢のまた夢', io.BytesIO(b''))
+        source.save()
+        source = source.reload()
+
+        # フォルダの下にもう一つフレームを作成する
+        frame = folder.create_frame('是非もなし', io.BytesIO(b''))
+        frame.save()
+        frame = frame.reload()
+
+        # プロジェクトの下にフローを作成する
+        flow = project.create_simple_flow('難波のことも', source)
+        flow.save()
+        flow = flow.reload()
+
+        # フォルダをほかす
+        # (データソースはフローから参照されているので、ゴミ箱にフォルダの形代が作成される)
+        trashed_folder = folder.throw_away()
+
+        # プロジェクトメンバ以外のユーザは、形代フォルダを参照できないこと
+        with self.assertRaises(NotAuthorizedException):
+            self.factory3.data.find_by_uuid(trashed_folder.uuid)
+
+        # 形代フォルダをほかす前の場所に戻す
+        trashed_folder.put_back()
+
+        # 形代フォルダはゴミ箱に残る
+        self.assertEqual(trashed_folder.find_parent(), self.factory2.data.load_trash_folder())
+
+        # 中のフォルダはほかす前の場所に戻っていること
+        self.assertEqual(folder.find_parent(), project)
+
+        # プロジェクトをゴミ箱にほかす
+        project.throw_away()
+
+        # ゴミ箱を空にする
+        trashcan = self.factory2.data.find_trashcan()
+        trashcan.trash_all()
+
+        # ゴミ箱は空になっていること
+        children = trashcan.find_children()
+        self.assertEqual(len(children), 0)
+        
+    def test_cannot_write_trashed_folder_by_reader(self):
+        """
+        ゴミ箱に作成した形代フォルダは、
+        閲覧者が更新したり元の位置に戻せないこと
+        """
+        # ルートフォルダを取得する
+        root = self.factory2.data.load_root()
+        # ルートフォルダの下にプロジェクトを作成する
+        project = root.create_project_folder('中村主水')
+        project.save()
+        project = project.reload()
+
+        # プロジェクトの下にフォルダを作成する
+        folder = project.create_folder('婿殿！')
+        folder.save()
+        folder = folder.reload()
+
+        # フォルダの下にデータソースを作成する
+        source = folder.create_frame('あなたまた酔って帰ってきたんですね', io.BytesIO(b''))
+        source.save()
+        source = source.reload()
+
+        # フォルダの下にもう一つフレームを作成する
+        frame = folder.create_frame('この中村家は由緒正しき家柄それをこともあろうに・・', io.BytesIO(b''))
+        frame.save()
+        frame = frame.reload()
+
+        # プロジェクトの下にフローを作成する
+        flow = project.create_simple_flow('これといった手柄も立てず・・', source)
+        flow.save()
+        flow = flow.reload()
+
+        # フォルダをほかす
+        # (データソースはフローから参照されているので、ゴミ箱にフォルダの形代が作成される)
+        trashed_folder = folder.throw_away()
+
+        # USER3を閲覧者としてプロジェクトメンバに加える
+        project.join_member(ProjectFolder.Member(self.USER3, ProjectFolder.READER_MEMBER_TYPE))
+
+        # 閲覧者は、形代フォルダを参照できること
+        trashed_folder = self.factory3.data.find_by_uuid(trashed_folder.uuid)
+
+        # 閲覧者は、形代フォルダを更新できないこと
+        with self.assertRaises(NotAuthorizedException):
+            trashed_folder.update_data('お隣の田中さんまた出世されたんですってよ')
+
+        # 閲覧者は、形代フォルダをほかす前の場所に戻せないこと
+        with self.assertRaises(NotAuthorizedException):
+            trashed_folder.put_back()
+
+        # プロジェクトをゴミ箱にほかす
+        project.throw_away()
+
+        # ゴミ箱を空にする
+        trashcan = self.factory2.data.find_trashcan()
+        trashcan.trash_all()
+
+        # ゴミ箱は空になっていること
+        children = trashcan.find_children()
+        self.assertEqual(len(children), 0)
+
     def test_putback_trash_by_writer(self):
         """
         プロジェクトから捨てたゴミを、
@@ -2127,6 +2324,198 @@ class AuthTest(TestCaseBase):
 
         # プロジェクトを削除する
         project.delete()
+
+    def test_cannot_read_cache_by_other_user(self):
+        """
+        プロジェクトメンバ以外のユーザがキャッシュを参照できないこと
+        """
+        # ルートフォルダを取得する
+        root = self.factory2.data.load_root()
+        # ルートフォルダの下にプロジェクトを作成する
+        project = root.create_project_folder('🌏プロジェクト🗻')
+        project.save()
+        project = project.reload()
+
+        # プロジェクトの下にフローを作成する
+        import copy
+        flow = project.create_flow('フロー🚅', copy.deepcopy(self.flow_json))
+        flow.save()
+        flow = flow.reload() 
+
+        # フローを実行する
+        from kskp.engine import execute, FlowJsonLink
+        link = FlowJsonLink(flow, self.factory2)
+        activity = execute(link=link, args={}, inputs={})
+        # フローの実行結果を取得する
+        out_frame = activity.result[0][1]
+
+        # プロジェクト管理者は、フローの実行結果を参照できること
+        out_frame = self.factory2.data.find_by_uuid(out_frame.uuid)
+        # プロジェクト管理者は、フローの実行結果を更新できること
+        out_frame.update_label('実行結果☢')
+        self.assertEqual(out_frame.label, '実行結果☢')
+        
+        # プロジェクトメンバ以外のユーザは、フローの実行結果を参照できないこと
+        with self.assertRaises(NotAuthorizedException):
+            self.factory3.data.find_by_uuid(out_frame.uuid)
+
+        # プロジェクト管理者は、フローのキャッシュを参照できること
+        cache_frame_uuid = flow.get_cache_frame_uuids()[0]
+        cache_frame = self.factory2.data.find_by_uuid(cache_frame_uuid)
+        # プロジェクト管理者は、フローのキャッシュを更新できること
+        cache_frame.update_label('キャッシュ㊗')
+        self.assertEqual(cache_frame.label, 'キャッシュ㊗')
+
+        # プロジェクトメンバ以外のユーザは、フローのキャッシュを参照できないこと
+        with self.assertRaises(NotAuthorizedException):
+            self.factory3.data.find_by_uuid(cache_frame.uuid)
+
+        # フローとキャッシュと実行結果を削除する
+        flow.delete()
+        cache_frame.delete()
+        out_frame.delete()
+
+    def test_cannot_write_cache_by_reader(self):
+        """
+        閲覧者がキャッシュを更新できないこと
+        """
+        # ルートフォルダを取得する
+        root = self.factory2.data.load_root()
+        # ルートフォルダの下にプロジェクトを作成する
+        project = root.create_project_folder('京都⛩️')
+        project.save()
+        project = project.reload()
+
+        # プロジェクトの下にフローを作成する
+        import copy
+        flow = project.create_flow('大阪🏯', copy.deepcopy(self.flow_json))
+        flow.save()
+        flow = flow.reload() 
+
+        # フローを実行する
+        from kskp.engine import execute, FlowJsonLink
+        link = FlowJsonLink(flow, self.factory2)
+        activity = execute(link=link, args={}, inputs={})
+        # フローの実行結果を取得する
+        out_frame = activity.result[0][1]
+
+        # プロジェクト管理者は、フローの実行結果を参照できること
+        out_frame = self.factory2.data.find_by_uuid(out_frame.uuid)
+        # プロジェクト管理者は、フローの実行結果を更新できること
+        out_frame.update_label('神戸⚓️')
+        self.assertEqual(out_frame.label, '神戸⚓️')
+        
+        # USER3を閲覧者に加える
+        project.join_member(ProjectFolder.Member(self.USER3, ProjectFolder.READER_MEMBER_TYPE))
+
+        # 閲覧者は、フローの実行結果を参照できること
+        out_frame = self.factory3.data.find_by_uuid(out_frame.uuid)
+        self.assertEqual(out_frame.label, '神戸⚓️')
+
+        # プロジェクト管理者は、フローのキャッシュを参照できること
+        cache_frame_uuid = flow.get_cache_frame_uuids()[0]
+        cache_frame = self.factory2.data.find_by_uuid(cache_frame_uuid)
+        # プロジェクト管理者は、フローのキャッシュを更新できること
+        cache_frame.update_label('琵琶湖🛥')
+        self.assertEqual(cache_frame.label, '琵琶湖🛥')
+
+        # 閲覧者は、フローのキャッシュを参照できること
+        cache_frame = self.factory3.data.find_by_uuid(cache_frame.uuid)
+        self.assertEqual(cache_frame.label, '琵琶湖🛥')
+
+        # フローを削除する
+        flow.delete()
+
+        # 閲覧者は、キャッシュと実行結果を削除できないこと
+        with self.assertRaises(NotAuthorizedException):
+            cache_frame.delete()
+        with self.assertRaises(NotAuthorizedException):
+            out_frame.delete()
+
+        # キャッシュと実行結果を削除する
+        out_frame = self.factory2.data.find_by_uuid(out_frame.uuid)
+        cache_frame = self.factory2.data.find_by_uuid(cache_frame_uuid)
+        cache_frame.delete()
+        out_frame.delete()
+
+    def test_cannot_exec_cache_flow_by_reader(self):
+        """
+        残念ながら、閲覧者はフロー実行によるキャッシュ作成ができない
+        """
+        # ルートフォルダを取得する
+        root = self.factory2.data.load_root()
+        # ルートフォルダの下にプロジェクトを作成する
+        project = root.create_project_folder('iPhone')
+        project.save()
+        project = project.reload()
+
+        # プロジェクトの下にフローを作成する
+        flow = project.create_flow('iPad', self.flow_json)
+        flow.save()
+        flow = flow.reload()
+
+        # USER3を閲覧者に加える
+        project.join_member(ProjectFolder.Member(self.USER3, ProjectFolder.READER_MEMBER_TYPE))
+
+        # USER3は、フローにキャッシュのuuidを書き込めないので、フローを実行できない
+        from kskp.engine import execute, FlowJsonLink
+        flow = self.factory3.data.find_by_uuid(flow.uuid)
+        link = FlowJsonLink(flow, self.factory3)
+        with self.assertRaises(NotAuthorizedException):
+            activity = execute(link=link, args={}, inputs={})
+            
+        # フローを削除する
+        flow = self.factory2.data.find_by_uuid(flow.uuid)
+        flow.delete()
+
+        # プロジェクトを削除する
+        project.delete()
+
+    def test_move_inter_projects(self):
+        """
+        プロジェクト間でファイルを移動した場合、
+        ファイルの権限は移動先プロジェクトの権限に従うこと
+        """
+        # ルートフォルダを取得する
+        root = self.factory0.data.load_root()
+        # ルートフォルダの下にプロジェクトAを作成する
+        project_a = root.create_project_folder('インド人はゼロを発明した')
+        project_a.save()
+        project_a = project_a.reload()
+
+        # ルートフォルダを取得する
+        root = self.factory2.data.load_root()
+        # ルートフォルダの下にプロジェクトBを作成する
+        project_b = root.create_project_folder('だが日本人はストロングゼロを発明した')
+        project_b.save()
+        project_b = project_b.reload()
+
+        # USER3をプロジェクトAとBの編集者にする
+        project_a.join_member(ProjectFolder.Member(self.USER3, ProjectFolder.WRITER_MEMBER_TYPE))
+        project_b.join_member(ProjectFolder.Member(self.USER3, ProjectFolder.WRITER_MEMBER_TYPE))
+
+        # プロジェクトAの下にフレームを作成する
+        frame = project_a.create_frame('飲む福祉ストロングゼロ!', io.BytesIO(b'STRONGZERO'))
+        frame.save()
+
+        # USER3は、フレームをプロジェクトAからプロジェクトBへ移動できること
+        frame = self.factory3.data.find_by_uuid(frame.uuid)
+        frame.move(project_b.uuid)
+        self.assertEqual(frame.parent_id, project_b.id)
+
+        # プロジェクトAのメンバはフレームの参照できないこと
+        with self.assertRaises(NotAuthorizedException):
+            self.factory0.data.find_by_uuid(frame.uuid)
+
+        # プロジェクトBのメンバはフレームの参照・更新ができること
+        frame = self.factory2.data.find_by_uuid(frame.uuid)
+        frame.update_label('美味しい魔法の水')
+        self.assertEqual(frame.label, '美味しい魔法の水')
+
+        # プロジェクトとフレームを削除する
+        project_a.delete()
+        frame.delete()
+        project_b.delete()
 
     # 
     # System Folders

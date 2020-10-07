@@ -114,7 +114,7 @@ with UnAuthzFactory() as unauthz_factory:
 
     with Factory(sys_admin_user) as factory:
         # システム管理者ロールを作成する
-        sys_admin_user = factory.role.load_sys_admin_role()
+        sys_admin_role = factory.role.load_sys_admin_role()
 
     with Factory(usr_admin_user) as factory:
         # ユーザ管理者ロールを作成する
