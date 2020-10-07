@@ -56,7 +56,7 @@
       "name": "factlist",
       "type": "list",
       "label": "統計量の計算と結果の項目名の設定",
-      "description": "【対象項目】項目名時:*,？,[...] 使用可\n【統計量】カンマ区切りで複数指定可\n\t指定可能統計量:sum, mean, devsq, var, uvar, sd, usd, cv, min, max, range, skew, uskew, kurt, ukurt\n【期間数】 カンマ区切りで複数指定可. 1以上の整数で設定する\n【結果項目】記号を組合せて書式を設定する\n     (記号) &:元の二つの項目名,  %:類似度名,   #:期間数",
+      "description": "【対象項目】項目名時:*,？,[...] 使用可\n【統計量】カンマ区切りで複数指定可\n【期間数】 カンマ区切りで複数指定可. 1以上の整数で設定する\n【結果項目】記号を組合せて書式を設定する\n     (記号) &:元の二つの項目名,  %:類似度名,   #:期間数",
       "elements": [
         {
           "name": "f",
@@ -86,7 +86,144 @@
           "t": "2",
           "a": "&_%_#"
         }
-      ]
+      ],
+      "helper": {
+        "c": {
+          "label": "移動窓で計算可能な統計量の一覧",
+          "tabs": [
+            {
+              "label": "統計量の一覧",
+              "data": [
+                {
+                  "label": "分布の中央",
+                  "shortcuts": [
+                    {
+                      "value": "mean",
+                      "label": "算術平均",
+                      "link": "mean",
+                      "delimiter": ","
+                    }
+                  ]
+                },
+                {
+                  "label": "極値",
+                  "shortcuts": [
+                    {
+                      "value": "min",
+                      "label": "最小値",
+                      "link": "min",
+                      "delimiter": ","
+                    },
+                    {
+                      "value": "max",
+                      "label": "最大値",
+                      "link": "max",
+                      "delimiter": ","
+                    }
+                  ]
+                },
+                {
+                  "label": "合計",
+                  "shortcuts": [
+                    {
+                      "value": "sum",
+                      "label": "合計",
+                      "link": "sum",
+                      "delimiter": ","
+                    }
+                  ]
+                },
+                {
+                  "label": "偏差",
+                  "shortcuts": [
+                    {
+                      "value": "devsq",
+                      "label": "偏差平方和",
+                      "link": "devsq",
+                      "delimiter": ","
+                    }
+                  ]
+                },
+                {
+                  "label": "分散・標準偏差",
+                  "shortcuts": [
+                    {
+                      "value": "var",
+                      "label": "標本分散",
+                      "link": "var",
+                      "delimiter": ","
+                    },
+                    {
+                      "value": "uvar",
+                      "label": "不偏分散",
+                      "link": "uvar",
+                      "delimiter": ","
+                    },
+                    {
+                      "value": "sd",
+                      "label": "標準偏差",
+                      "link": "sd",
+                      "delimiter": ","
+                    },
+                    {
+                      "value": "usd",
+                      "label": "不偏標準偏差",
+                      "link": "usd",
+                      "delimiter": ","
+                    },
+                    {
+                      "value": "cv",
+                      "label": "変動係数 (標準偏差/平均値)",
+                      "link": "cv",
+                      "delimiter": ","
+                    }
+                  ]
+                },
+                {
+                  "label": "範囲",
+                  "shortcuts": [
+                    {
+                      "value": "range",
+                      "label": "範囲",
+                      "link": "range",
+                      "delimiter": ","
+                    }
+                  ]
+                },
+                {
+                  "label": "尖度/歪度",
+                  "shortcuts": [
+                    {
+                      "value": "skew",
+                      "label": "歪度",
+                      "link": "skew",
+                      "delimiter": ","
+                    },
+                    {
+                      "value": "uskew",
+                      "label": "歪度(不偏推定値)",
+                      "link": "uskew",
+                      "delimiter": ","
+                    },
+                    {
+                      "value": "kurt",
+                      "label": "尖度",
+                      "link": "kurt",
+                      "delimiter": ","
+                    },
+                    {
+                      "value": "ukurt",
+                      "label": "尖度(不偏推定値)",
+                      "link": "ukurt",
+                      "delimiter": ","
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      }
     },
     {
       "name": "precision",

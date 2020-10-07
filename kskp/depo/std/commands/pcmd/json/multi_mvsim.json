@@ -3,7 +3,7 @@
   "groups": [
     {
       "name": "grouping",
-      "label": "グループの設定",
+      "label": "グループの設定 (必須)",
       "params": [
         "k",
         "s"
@@ -12,7 +12,7 @@
     {
       "name": "group3",
       "label": "移動窓と類似度計算の設定 (必須）",
-      "description": "類似度計算の設定を、対象項目1,2と類似度名で行う\n移動窓は、期間数で幅を設定する",
+      "description": "・類似度計算の設定を、対象項目1,2と類似度名で行う\n・移動窓は、期間数で幅を設定する",
       "params": [
         "fctlist",
         "a"
@@ -44,28 +44,28 @@
     {
       "name": "s",
       "type": "string",
-      "label": "グループ内ソートの設定",
-      "description": "ソートのキー項目を、カンマ区切りで複数指定可\n●ソートの種類は変更可能　(デフォルト: 文字列昇順)\n 　方法: 項目名末尾に記号を付与 (数値昇順：%n,  文字列降順： %r,  数値降順：%nr)\n●注意 グループ化する項目名と同じ項目名があると、不整合になり、ソートされません",
+      "label": "グループ内ソートの設定 (必須)",
+      "description": "ソートのキー項目を、カンマ区切りで複数指定可\n・ソートの種類は変更可能　(デフォルト: 文字列昇順)\n 　方法: 項目名末尾に記号を付与 (数値昇順：%n,  文字列降順： %r,  数値降順：%nr)\n・注意 グループ化する項目名と同じ項目名があると、不整合になり、ソートされません",
       "default": ""
     },
     {
       "name": "k",
       "type": "string",
-      "label": "グループ化する項目名",
-      "description": "カンマ区切りで複数指定可\n省略時は全ての行を同じグループとみなして処理される"
+      "label": "グループ化する項目名 (省略可)",
+      "description": "・カンマ区切りで複数指定可\n・省略時は全ての行を同じグループとみなして処理される"
     },
     {
       "name": "a",
       "type": "string",
       "label": "結果の項目名の書式設定 (省略可)",
-      "description": "【記号】&:元の二つの項目名,  %:類似度名,   #:期間数",
+      "description": "・記号を組合せて書式を設定する\n・【記号】 &: 元の二つの項目名, %: 類似度名, #: 期間数",
       "default": "&_%_#"
     },
     {
       "name": "fctlist",
       "type": "list",
       "label": "移動窓と類似度計算の設定 (必須)",
-      "description": "【対象項目1,2】 項目名を、それぞれ1つ指定可\n【類似度名】カンマ区切りで複数指定可\n\t類似度名:covar, ucovar, pearson, spearman, kendall, euclid, cosine, cityblock, hamming, chi, phi, jaccard, support, lift\n【期間数】 カンマ区切りで複数指定可。1以上の整数で指定する",
+      "description": "【対象項目1,2】 項目名を、それぞれ1つ指定可\n【類似度名】カンマ区切りで複数指定可\n【期間数】 カンマ区切りで複数指定可。1以上の整数で指定する",
       "elements": [
         {
           "name": "f1",
@@ -95,7 +95,133 @@
           "c": "",
           "t": "2"
         }
-      ]
+      ],
+      "helper": {
+        "c": {
+          "label": "類似度の一覧",
+          "tabs": [
+            {
+              "label": "類似度",
+              "data": [
+                {
+                  "label": "共分散",
+                  "shortcuts": [
+                    {
+                      "value": "covar",
+                      "label": "共分散",
+                      "link": "covar",
+                      "delimiter": ","
+                    },
+                    {
+                      "value": "ucovar",
+                      "label": "不偏共分散",
+                      "link": "ucovar",
+                      "delimiter": ","
+                    }
+                  ]
+                },
+                {
+                  "label": "相関",
+                  "shortcuts": [
+                    {
+                      "value": "pearson",
+                      "label": "ピアソンの積率相関係数",
+                      "link": "pearson",
+                      "delimiter": ","
+                    },
+                    {
+                      "value": "spearman",
+                      "label": "スピアマンの順位相関係数",
+                      "link": "spearman",
+                      "delimiter": ","
+                    },
+                    {
+                      "value": "kendall",
+                      "label": "ケンドールの順位相関係数",
+                      "link": "kendall",
+                      "delimiter": ","
+                    }
+                  ]
+                },
+                {
+                  "label": "距離",
+                  "shortcuts": [
+                    {
+                      "value": "euclid",
+                      "label": "ユークリッド距離(数値)",
+                      "link": "euclid",
+                      "delimiter": ","
+                    },
+                    {
+                      "value": "cosine",
+                      "label": "コサイン",
+                      "link": "cosine",
+                      "delimiter": ","
+                    },
+                    {
+                      "value": "cityblock",
+                      "label": "都市ブロック距離",
+                      "link": "cityblock",
+                      "delimiter": ","
+                    },
+                    {
+                      "value": "hamming",
+                      "label": "ハミング距離",
+                      "link": "hamming",
+                      "delimiter": ","
+                    }
+                  ]
+                },
+                {
+                  "label": "一致度",
+                  "shortcuts": [
+                    {
+                      "value": "chi",
+                      "label": "カイ2乗値",
+                      "link": "chi",
+                      "delimiter": ","
+                    },
+                    {
+                      "value": "phi",
+                      "label": "ファイ係数",
+                      "link": "phi",
+                      "delimiter": ","
+                    }
+                  ]
+                },
+                {
+                  "label": "集合",
+                  "shortcuts": [
+                    {
+                      "value": "jaccard",
+                      "label": "ジャックカード係数",
+                      "link": "jaccard",
+                      "delimiter": ","
+                    }
+                  ]
+                },
+                {
+                  "label": "連関",
+                  "shortcuts": [
+                    {
+                      "value": "support",
+                      "label": "支持値",
+                      "link": "support",
+                      "delimiter": ","
+                    },
+                    {
+                      "value": "lift",
+                      "label": "リフト値",
+                      "link": "lift",
+                      "delimiter": ","
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      }
     },
     {
       "name": "precision",
@@ -110,7 +236,7 @@
       "type": "boolean",
       "label": "項目名ではなく、項目番号で指定する",
       "optional": true,
-      "description": "●0始まりの項目番号で指定する\n●Lをつけると、右端起点の項目番号とみなす(例:3L)\n●複数入力可能なOptの場合は、列範囲としての指定も可能(例: 0-5)"
+      "description": "・0始まりの項目番号で指定する\n・Lをつけると、右端起点の項目番号とみなす(例:3L)\n・複数入力可能なOptの場合は、列範囲としての指定も可能(例: 0-5)"
     },
     {
       "name": "nfn",
