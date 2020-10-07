@@ -285,7 +285,7 @@
                     },
                     {
                       "value": "数値1 == 数値2",
-                      "label": "等しい　[論理で出力]",
+                      "label": "等しい [論理で出力]",
                       "link": "数値1 == 数値2",
                       "delimiter": ""
                     },
@@ -325,75 +325,75 @@
                   "label": "集計",
                   "shortcuts": [
                     {
-                      "value": "sum(数値1,数値2,...)",
+                      "value": "sum(数値1, 数値2, ...)",
                       "label": "合計",
-                      "link": "sum(数値1,数値2,...) ※ワイルドカード使用可",
+                      "link": "sum(数値1, 数値2, ...) ※ワイルドカード使用可",
                       "delimiter": ""
                     },
                     {
-                      "value": "avg(数値1,数値2,...)",
+                      "value": "avg(数値1, 数値2, ...)",
                       "label": "平均",
-                      "link": "avg(数値1,数値2,...) ※ワイルドカード使用可",
+                      "link": "avg(数値1, 数値2, ...) ※ワイルドカード使用可",
                       "delimiter": ""
                     },
                     {
-                      "value": "sqsum(数値1,数値2,...)",
+                      "value": "sqsum(数値1, 数値2, ...)",
                       "label": "平方和",
-                      "link": "sqsum(数値1,数値2,...) ※ワイルドカード使用可",
+                      "link": "sqsum(数値1, 数値2, ...) ※ワイルドカード使用可",
                       "delimiter": ""
                     },
                     {
-                      "value": "min(数値1,数値2,...)",
+                      "value": "min(数値1, 数値2, ...)",
                       "label": "最小値",
-                      "link": "min(数値1,数値2,...) ※ワイルドカード使用可",
+                      "link": "min(数値1, 数値2, ...) ※ワイルドカード使用可",
                       "delimiter": ""
                     },
                     {
-                      "value": "max(数値1,数値2,...)",
+                      "value": "max(数値1, 数値2, ...)",
                       "label": "最大値",
-                      "link": "max(数値1,数値2,...) ※ワイルドカード使用可",
+                      "link": "max(数値1, 数値2, ...) ※ワイルドカード使用可",
                       "delimiter": ""
                     },
                     {
-                      "value": "product(数値1,数値2,...)",
+                      "value": "product(数値1, 数値2, ...)",
                       "label": "積",
-                      "link": "product(数値1,数値2,...) ※ワイルドカード使用可",
+                      "link": "product(数値1, 数値2, ...) ※ワイルドカード使用可",
                       "delimiter": ""
                     },
                     {
-                      "value": "sum(数値1,数値2,...,\"-n\")",
+                      "value": "sum(数値1, 数値2, ..., \"-n\")",
                       "label": "合計 (NULL値がある場合はNULL出力)",
-                      "link": "sum(数値1,数値2,...,\"-n\") ※ワイルドカード使用可",
+                      "link": "sum(数値1, 数値2, ..., \"-n\") ※ワイルドカード使用可",
                       "delimiter": ""
                     },
                     {
-                      "value": "avg(数値1,数値2,...,\"-n\")",
+                      "value": "avg(数値1, 数値2, ..., \"-n\")",
                       "label": "平均 (NULL値がある場合はNULL出力)",
-                      "link": "avg(数値1,数値2,...,\"-n\")　※ワイルドカード使用可",
+                      "link": "avg(数値1, 数値2, ..., \"-n\") ※ワイルドカード使用可",
                       "delimiter": ""
                     },
                     {
-                      "value": "sqsum(数値1,数値2,...,\"-n\")",
+                      "value": "sqsum(数値1, 数値2, ..., \"-n\")",
                       "label": "平方和 (NULL値がある場合はNULL出力)",
-                      "link": "sqsum(数値1,数値2,...,\"-n\")　※ワイルドカード使用可",
+                      "link": "sqsum(数値1, 数値2, ..., \"-n\") ※ワイルドカード使用可",
                       "delimiter": ""
                     },
                     {
-                      "value": "min(数値1,数値2,...,\"-n\")",
+                      "value": "min(数値1, 数値2, ..., \"-n\")",
                       "label": "最小値 (NULL値がある場合はNULL出力)",
-                      "link": "min(数値1,数値2,...,\"-n\")　※ワイルドカード使用可",
+                      "link": "min(数値1, 数値2, ..., \"-n\") ※ワイルドカード使用可",
                       "delimiter": ""
                     },
                     {
-                      "value": "max(数値1,数値2,...,\"-n\")",
+                      "value": "max(数値1, 数値2, ..., \"-n\")",
                       "label": "最大値 (NULL値がある場合はNULL出力)",
-                      "link": "max(数値1,数値2,...,\"-n\")　※ワイルドカード使用可",
+                      "link": "max(数値1, 数値2, ..., \"-n\") ※ワイルドカード使用可",
                       "delimiter": ""
                     },
                     {
-                      "value": "product(数値1,数値2,...,\"-n\")",
+                      "value": "product(数値1, 数値2, ..., \"-n\")",
                       "label": "積 (NULL値がある場合はNULL出力)",
-                      "link": "product(数値1,数値2,...,\"-n\")　※ワイルドカード使用可",
+                      "link": "product(数値1, 数値2, ..., \"-n\") ※ワイルドカード使用可",
                       "delimiter": ""
                     }
                   ]
@@ -408,15 +408,15 @@
                       "delimiter": ""
                     },
                     {
-                      "value": "gcd(数値1,数値2)",
+                      "value": "gcd(数値1, 数値2)",
                       "label": "最大公約数",
-                      "link": "gcd(数値1,数値2)",
+                      "link": "gcd(数値1, 数値2)",
                       "delimiter": ""
                     },
                     {
-                      "value": "lcm(数値1,数値2)",
+                      "value": "lcm(数値1, 数値2)",
                       "label": "最小公倍数",
-                      "link": "lcm(数値1,数値2)",
+                      "link": "lcm(数値1, 数値2)",
                       "delimiter": ""
                     },
                     {
@@ -450,27 +450,27 @@
                       "delimiter": ""
                     },
                     {
-                      "value": "round(数値,基準値)",
+                      "value": "round(数値, 基準値)",
                       "label": "四捨五入",
-                      "link": "round(数値,基準値)",
+                      "link": "round(数値, 基準値)",
                       "delimiter": ""
                     },
                     {
-                      "value": "floor(数値,基準値)",
+                      "value": "floor(数値, 基準値)",
                       "label": "切り捨て",
-                      "link": "floor(数値,基準値)",
+                      "link": "floor(数値, 基準値)",
                       "delimiter": ""
                     },
                     {
-                      "value": "ceil(数値,基準値)",
+                      "value": "ceil(数値, 基準値)",
                       "label": "切り上げ",
-                      "link": "ceil(数値,基準値)",
+                      "link": "ceil(数値, 基準値)",
                       "delimiter": ""
                     },
                     {
-                      "value": "power(数値,指数)",
+                      "value": "power(数値, 指数)",
                       "label": "累乗",
-                      "link": "power(数値,指数)",
+                      "link": "power(数値, 指数)",
                       "delimiter": ""
                     },
                     {
@@ -480,9 +480,9 @@
                       "delimiter": ""
                     },
                     {
-                      "value": "log(数値,底)",
+                      "value": "log(数値, 底)",
                       "label": "対数",
-                      "link": "log(数値,底)",
+                      "link": "log(数値, 底)",
                       "delimiter": ""
                     },
                     {
@@ -509,33 +509,33 @@
                   "label": "距離・面積",
                   "shortcuts": [
                     {
-                      "value": "dist(\"euclid\",数値1,数値2,...)",
+                      "value": "dist(\"euclid\", 数値1, 数値2, ...)",
                       "label": "ユークリッド距離",
-                      "link": "dist(\"euclid\",数値1,数値2,...)",
+                      "link": "dist(\"euclid\", 数値1, 数値2, ...)",
                       "delimiter": ""
                     },
                     {
-                      "value": "dist(\"cityblock\",数値1,数値2,...)",
+                      "value": "dist(\"cityblock\", 数値1, 数値2, ...)",
                       "label": "都市ブロック距離",
-                      "link": "dist(\"cityblock\",数値1,数値2,...)",
+                      "link": "dist(\"cityblock\", 数値1, 数値2, ...)",
                       "delimiter": ""
                     },
                     {
-                      "value": "dist(\"hamming\",文字列1,文字列2,...)",
+                      "value": "dist(\"hamming\", 文字列1, 文字列2, ...)",
                       "label": "ハミング距離",
-                      "link": "dist(\"hamming\",文字列1,文字列2,...)",
+                      "link": "dist(\"hamming\", 文字列1, 文字列2, ...)",
                       "delimiter": ""
                     },
                     {
-                      "value": "distgps(緯度1,経度1,緯度2,経度2)",
+                      "value": "distgps(緯度1, 経度1, 緯度2, 経度2)",
                       "label": "GPS距離",
-                      "link": "distgps(緯度1,経度1,緯度2,経度2)",
+                      "link": "distgps(緯度1, 経度1, 緯度2, 経度2)",
                       "delimiter": ""
                     },
                     {
-                      "value": "heron(点1_数値1,点1_数値2,...点2_数値1,点2_数値2,...,点3_数値1,点3_数値2,...)",
+                      "value": "heron(点1_数値1, 点1_数値2, ...点2_数値1, 点2_数値2, ..., 点3_数値1, 点3_数値2, ...)",
                       "label": "三角形の面積",
-                      "link": "heron(点1_数値1,点1_数値2,...点2_数値1,点2_数値2,...,点3_数値1,点3_数値2,...)",
+                      "link": "heron(点1_数値1, 点1_数値2, ...点2_数値1, 点2_数値2, ..., 点3_数値1, 点3_数値2, ...)",
                       "delimiter": ""
                     }
                   ]
@@ -550,27 +550,27 @@
                       "delimiter": ""
                     },
                     {
-                      "value": "randi(最大値,最小値,[乱数の種])",
+                      "value": "randi(最大値, 最小値, [乱数の種])",
                       "label": "一様乱数 (整数)",
-                      "link": "randi(最大値,最小値,[乱数の種])",
+                      "link": "randi(最大値, 最小値, [乱数の種])",
                       "delimiter": ""
                     },
                     {
-                      "value": "nrand(平均,標準偏差,[乱数の種])",
+                      "value": "nrand(平均, 標準偏差, [乱数の種])",
                       "label": "正規乱数",
-                      "link": "nrand(平均,標準偏差,[乱数の種])",
+                      "link": "nrand(平均, 標準偏差, [乱数の種])",
                       "delimiter": ""
                     },
                     {
-                      "value": "berrand(確率,[乱数の種])",
+                      "value": "berrand(確率, [乱数の種])",
                       "label": "ベルヌーイ乱数",
-                      "link": "berrand(確率,[乱数の種])",
+                      "link": "berrand(確率, [乱数の種])",
                       "delimiter": ""
                     },
                     {
-                      "value": "binomdist(成功確率,試行回数,成功確率)",
+                      "value": "binomdist(成功確率, 試行回数, 成功確率)",
                       "label": "二項分布の累積確率",
-                      "link": "binomdist(成功確率,試行回数,成功確率)",
+                      "link": "binomdist(成功確率, 試行回数, 成功確率)",
                       "delimiter": ""
                     },
                     {
@@ -586,9 +586,9 @@
                       "delimiter": ""
                     },
                     {
-                      "value": "format(数値,書式)",
+                      "value": "format(数値, 書式)",
                       "label": "書式付き出力 [文字列で出力]",
-                      "link": "format(数値,書式)",
+                      "link": "format(数値, 書式)",
                       "delimiter": ""
                     }
                   ]
@@ -651,9 +651,9 @@
                       "delimiter": ""
                     },
                     {
-                      "value": "atan2(数値1,数値2)",
+                      "value": "atan2(数値1, 数値2)",
                       "label": "座標の角度",
-                      "link": "atan2(数値1,数値2)",
+                      "link": "atan2(数値1, 数値2)",
                       "delimiter": ""
                     },
                     {
@@ -681,7 +681,7 @@
                     },
                     {
                       "value": "n2b(数値)",
-                      "label": "数値→論理　[論理で出力]",
+                      "label": "数値→論理 [論理で出力]",
                       "link": "n2b(数値)",
                       "delimiter": ""
                     }
@@ -697,9 +697,9 @@
                       "delimiter": ""
                     },
                     {
-                      "value": "countnull(数値1,数値2,...)",
+                      "value": "countnull(数値1, 数値2, ...)",
                       "label": "NULL値カウント",
-                      "link": "countnull(数値1,数値2,...) ※項目名ワイルドカード使用可",
+                      "link": "countnull(数値1, 数値2, ...) ※項目名ワイルドカード使用可",
                       "delimiter": ""
                     }
                   ]
@@ -737,7 +737,7 @@
                     },
                     {
                       "value": "文字列1 == 文字列2",
-                      "label": "等しい　[論理で出力]",
+                      "label": "等しい [論理で出力]",
                       "link": "文字列1 == 文字列2",
                       "delimiter": ""
                     },
@@ -777,9 +777,9 @@
                   "label": "基本操作",
                   "shortcuts": [
                     {
-                      "value": "cat(区切り文字,文字列1,文字列2,...)",
+                      "value": "cat(区切り文字, 文字列1, 文字列2, ...)",
                       "label": "文字列結合 [文字列で出力]",
-                      "link": "cat(区切り文字,文字列1,文字列2,...) ※項目名ワイルドカード使用可",
+                      "link": "cat(区切り文字, 文字列1, 文字列2, ...) ※項目名ワイルドカード使用可",
                       "delimiter": ""
                     },
                     {
@@ -789,33 +789,33 @@
                       "delimiter": ""
                     },
                     {
-                      "value": "fixlen(文字列,文字列長,\"R\",補完文字)",
+                      "value": "fixlen(文字列, 文字列長, \"R\", 補完文字)",
                       "label": "固定長変換 (右詰めで補完) [文字列で出力]",
-                      "link": "fixlen(文字列,長さ,\"R\",補完文字)",
+                      "link": "fixlen(文字列, 長さ, \"R\", 補完文字)",
                       "delimiter": ""
                     },
                     {
-                      "value": "fixlen(文字列,文字列長,\"L\",補完文字)",
+                      "value": "fixlen(文字列, 文字列長, \"L\", 補完文字)",
                       "label": "固定長変換 (左詰めで補完) [文字列で出力]",
-                      "link": "fixlen(文字列,長さ,\"L\",補完文字)",
+                      "link": "fixlen(文字列, 長さ, \"L\", 補完文字)",
                       "delimiter": ""
                     },
                     {
-                      "value": "right(文字列,長さ)",
+                      "value": "right(文字列, 長さ)",
                       "label": "末尾切り出し [文字列で出力]",
-                      "link": "right(文字列,長さ)",
+                      "link": "right(文字列, 長さ)",
                       "delimiter": ""
                     },
                     {
-                      "value": "left(文字列,長さ)",
+                      "value": "left(文字列, 長さ)",
                       "label": "先頭切り出し [文字列で出力]",
-                      "link": "left(文字列,長さ)",
+                      "link": "left(文字列, 長さ)",
                       "delimiter": ""
                     },
                     {
-                      "value": "mid(文字列,開始位置,長さ)",
+                      "value": "mid(文字列, 開始位置, 長さ)",
                       "label": "部分文字列切り出し [文字列で出力]",
-                      "link": "mid(文字列,開始位置,長さ) ※開始位置は0始まり",
+                      "link": "mid(文字列, 開始位置, 長さ) ※開始位置は0始まり",
                       "delimiter": ""
                     },
                     {
@@ -832,7 +832,7 @@
                     },
                     {
                       "value": "capitalize(文字列)",
-                      "label": "先頭文字を大文字変換　[文字列で出力]",
+                      "label": "先頭文字を大文字変換 [文字列で出力]",
                       "link": "capitalize(文字列) ※アルファベット以外は影響なし",
                       "delimiter": ""
                     }
@@ -842,27 +842,27 @@
                   "label": "検索",
                   "shortcuts": [
                     {
-                      "value": "match(検索文字列,文字列1,文字列2,...)",
+                      "value": "match(検索文字列, 文字列1, 文字列2, ...)",
                       "label": "いずれかに完全一致なら 真 [論理で出力]",
-                      "link": "match(検索文字列,文字列1,文字列2,...)",
+                      "link": "match(検索文字列, 文字列1, 文字列2, ...)",
                       "delimiter": ""
                     },
                     {
-                      "value": "matcha(検索文字列,文字列1,文字列2,...)",
+                      "value": "matcha(検索文字列, 文字列1, 文字列2, ...)",
                       "label": "全てに完全一致なら 真 [論理で出力]",
-                      "link": "matcha(検索文字列,文字列1,文字列2,...)",
+                      "link": "matcha(検索文字列, 文字列1, 文字列2, ...)",
                       "delimiter": ""
                     },
                     {
-                      "value": "matchs(検索文字列,文字列1,文字列2,...)",
+                      "value": "matchs(検索文字列, 文字列1, 文字列2, ...)",
                       "label": "いずれかに部分一致なら 真 [論理で出力]",
-                      "link": "matchs(検索文字列,文字列1,文字列2,...)",
+                      "link": "matchs(検索文字列, 文字列1, 文字列2, ...)",
                       "delimiter": ""
                     },
                     {
-                      "value": "matchas(検索文字列,文字列1,文字列2,...)",
+                      "value": "matchas(検索文字列, 文字列1, 文字列2, ...)",
                       "label": "全てに部分一致なら 真 [論理で出力]",
-                      "link": "matchas(検索文字列,文字列1,文字列2,...)",
+                      "link": "matchas(検索文字列, 文字列1, 文字列2, ...)",
                       "delimiter": ""
                     },
                     {
@@ -877,51 +877,51 @@
                   "label": "正規表現による操作",
                   "shortcuts": [
                     {
-                      "value": "regexm(文字列,正規表現)",
+                      "value": "regexm(文字列, 正規表現)",
                       "label": "全体マッチ [論理で出力]",
-                      "link": "regexm(文字列,正規表現)",
+                      "link": "regexm(文字列, 正規表現)",
                       "delimiter": ""
                     },
                     {
-                      "value": "regexs(文字列,正規表現)",
+                      "value": "regexs(文字列, 正規表現)",
                       "label": "マッチ [論理で出力]",
-                      "link": "regexs(文字列,正規表現)",
+                      "link": "regexs(文字列, 正規表現)",
                       "delimiter": ""
                     },
                     {
-                      "value": "regexrep(文字列,正規表現,置換文字列)",
+                      "value": "regexrep(文字列, 正規表現, 置換文字列)",
                       "label": "マッチ文字列の置換 [文字列で出力]",
-                      "link": "regexrep(文字列,正規表現,置換文字列)",
+                      "link": "regexrep(文字列, 正規表現, 置換文字列)",
                       "delimiter": ""
                     },
                     {
-                      "value": "regexlen(文字列,正規表現)",
+                      "value": "regexlen(文字列, 正規表現)",
                       "label": "マッチ文字数",
-                      "link": "regexlen(文字列,正規表現)",
+                      "link": "regexlen(文字列, 正規表現)",
                       "delimiter": ""
                     },
                     {
-                      "value": "regexpos(文字列,正規表現)",
+                      "value": "regexpos(文字列, 正規表現)",
                       "label": "マッチ位置",
-                      "link": "regexpos(文字列,正規表現)",
+                      "link": "regexpos(文字列, 正規表現)",
                       "delimiter": ""
                     },
                     {
-                      "value": "regexstr(文字列,正規表現)",
+                      "value": "regexstr(文字列, 正規表現)",
                       "label": "マッチ文字列 [文字列で出力]",
-                      "link": "regexstr(文字列,正規表現)",
+                      "link": "regexstr(文字列, 正規表現)",
                       "delimiter": ""
                     },
                     {
-                      "value": "regexpfx(文字列,正規表現)",
+                      "value": "regexpfx(文字列, 正規表現)",
                       "label": "マッチ文字列のプレフィックス [文字列で出力]",
-                      "link": "regexpfx(文字列,正規表現)",
+                      "link": "regexpfx(文字列, 正規表現)",
                       "delimiter": ""
                     },
                     {
-                      "value": "regexsfx(文字列,正規表現)",
+                      "value": "regexsfx(文字列, 正規表現)",
                       "label": "マッチ文字列のサフィックス [文字列で出力]",
-                      "link": "regexsfx(文字列,正規表現)",
+                      "link": "regexsfx(文字列, 正規表現)",
                       "delimiter": ""
                     }
                   ]
@@ -937,13 +937,13 @@
                     },
                     {
                       "value": "[abc]",
-                      "label": "a,b,cのいずれか1文字",
+                      "label": "a, b, cのいずれか1文字",
                       "link": "[abc]",
                       "delimiter": ""
                     },
                     {
                       "value": "[^abc]",
-                      "label": "a,b,c以外の任意の1文字",
+                      "label": "a, b, c以外の任意の1文字",
                       "link": "[^abc]",
                       "delimiter": ""
                     },
@@ -1025,9 +1025,9 @@
                       "delimiter": ""
                     },
                     {
-                      "value": "a{M,N}",
+                      "value": "a{M, N}",
                       "label": "aのM個以上N個以下の繰り返し",
-                      "link": "a{M,N}",
+                      "link": "a{M, N}",
                       "delimiter": ""
                     },
                     {
@@ -1043,9 +1043,9 @@
                       "delimiter": ""
                     },
                     {
-                      "value": "?　",
+                      "value": "? ",
                       "label": "最短マッチ(a*? のように、繰り返し記号の後につける)",
-                      "link": "?　",
+                      "link": "? ",
                       "delimiter": ""
                     }
                   ]
@@ -1090,7 +1090,7 @@
                     },
                     {
                       "value": "\\1",
-                      "label": "後方参照(\\1,...\\9)",
+                      "label": "後方参照(\\1, ...\\9)",
                       "link": "\\1",
                       "delimiter": ""
                     },
@@ -1147,9 +1147,9 @@
                       "delimiter": ""
                     },
                     {
-                      "value": "countnull(文字列1,文字列2,...)",
+                      "value": "countnull(文字列1, 文字列2, ...)",
                       "label": "NULL値カウント",
-                      "link": "countnull(文字列1,文字列2,...) ※項目名ワイルドカード使用可",
+                      "link": "countnull(文字列1, 文字列2, ...) ※項目名ワイルドカード使用可",
                       "delimiter": ""
                     }
                   ]
@@ -1211,7 +1211,7 @@
                     },
                     {
                       "value": "値1 == 値2",
-                      "label": "等しい　[論理で出力]",
+                      "label": "等しい [論理で出力]",
                       "link": "値1 == 値2",
                       "delimiter": ""
                     },
@@ -1377,7 +1377,7 @@
                     },
                     {
                       "value": "dow(日付)",
-                      "label": "曜日番号 (月曜:1,日曜:7)",
+                      "label": "曜日番号 (月曜:1, 日曜:7)",
                       "link": "dow(日付)",
                       "delimiter": ""
                     },
@@ -1401,7 +1401,7 @@
                     },
                     {
                       "value": "dow(時刻)",
-                      "label": "曜日番号 (月曜:1,日曜:7)",
+                      "label": "曜日番号 (月曜:1, 日曜:7)",
                       "link": "dow(時刻)",
                       "delimiter": ""
                     },
@@ -1448,7 +1448,7 @@
                     },
                     {
                       "value": "hours(時刻)",
-                      "label": "時　[文字列型で出力]",
+                      "label": "時 [文字列型で出力]",
                       "link": "hours(時刻)",
                       "delimiter": ""
                     },
@@ -1460,7 +1460,7 @@
                     },
                     {
                       "value": "minutes(時刻)",
-                      "label": "分　[文字列型で出力]",
+                      "label": "分 [文字列型で出力]",
                       "link": "minutes(時刻)",
                       "delimiter": ""
                     },
@@ -1500,99 +1500,99 @@
                       "delimiter": ""
                     },
                     {
-                      "value": "age(生年月日,日付)",
+                      "value": "age(生年月日, 日付)",
                       "label": "年令",
-                      "link": "age(生年月日,日付)",
+                      "link": "age(生年月日, 日付)",
                       "delimiter": ""
                     },
                     {
-                      "value": "age(生年月日,時刻)",
+                      "value": "age(生年月日, 時刻)",
                       "label": "年令",
-                      "link": "age(生年月日,時刻)",
+                      "link": "age(生年月日, 時刻)",
                       "delimiter": ""
                     },
                     {
-                      "value": "diffyear(日付1,日付2)",
+                      "value": "diffyear(日付1, 日付2)",
                       "label": "年数",
-                      "link": "diffyear(日付1,日付2)",
+                      "link": "diffyear(日付1, 日付2)",
                       "delimiter": ""
                     },
                     {
-                      "value": "diffyear(時刻1,時刻2)",
+                      "value": "diffyear(時刻1, 時刻2)",
                       "label": "年数",
-                      "link": "diffyear(時刻1,時刻2)",
+                      "link": "diffyear(時刻1, 時刻2)",
                       "delimiter": ""
                     },
                     {
-                      "value": "diffmounth(日付1,日付2)",
+                      "value": "diffmounth(日付1, 日付2)",
                       "label": "月数",
-                      "link": "diffmounth(日付1,日付2)",
+                      "link": "diffmounth(日付1, 日付2)",
                       "delimiter": ""
                     },
                     {
-                      "value": "diffmounth(時刻1,時刻2)",
+                      "value": "diffmounth(時刻1, 時刻2)",
                       "label": "月数",
-                      "link": "diffmounth(時刻1,時刻2)",
+                      "link": "diffmounth(時刻1, 時刻2)",
                       "delimiter": ""
                     },
                     {
-                      "value": "diffday(日付1,日付2)",
+                      "value": "diffday(日付1, 日付2)",
                       "label": "日数",
-                      "link": "diffday(日付1,日付2)",
+                      "link": "diffday(日付1, 日付2)",
                       "delimiter": ""
                     },
                     {
-                      "value": "diffday(時刻1,時刻2)",
+                      "value": "diffday(時刻1, 時刻2)",
                       "label": "日数",
-                      "link": "diffday(時刻1,時刻2)",
+                      "link": "diffday(時刻1, 時刻2)",
                       "delimiter": ""
                     },
                     {
-                      "value": "diffhour(日付1,日付2)",
+                      "value": "diffhour(日付1, 日付2)",
                       "label": "時間数",
-                      "link": "diffhour(日付1,日付2)",
+                      "link": "diffhour(日付1, 日付2)",
                       "delimiter": ""
                     },
                     {
-                      "value": "diffhour(時刻1,時刻2)",
+                      "value": "diffhour(時刻1, 時刻2)",
                       "label": "時間数",
-                      "link": "diffhour(時刻1,時刻2)",
+                      "link": "diffhour(時刻1, 時刻2)",
                       "delimiter": ""
                     },
                     {
-                      "value": "diffminute(日付1,日付2)",
+                      "value": "diffminute(日付1, 日付2)",
                       "label": "分数",
-                      "link": "diffminute(日付1,日付2)",
+                      "link": "diffminute(日付1, 日付2)",
                       "delimiter": ""
                     },
                     {
-                      "value": "diffminute(時刻1,時刻2)",
+                      "value": "diffminute(時刻1, 時刻2)",
                       "label": "分数",
-                      "link": "diffminute(時刻1,時刻2)",
+                      "link": "diffminute(時刻1, 時刻2)",
                       "delimiter": ""
                     },
                     {
-                      "value": "diffsecond(日付1,日付2)",
+                      "value": "diffsecond(日付1, 日付2)",
                       "label": "秒数",
-                      "link": "diffsecond(日付1,日付2)",
+                      "link": "diffsecond(日付1, 日付2)",
                       "delimiter": ""
                     },
                     {
-                      "value": "diffsecond(時刻1,時刻2)",
+                      "value": "diffsecond(時刻1, 時刻2)",
                       "label": "秒数",
-                      "link": "diffsecond(時刻1,時刻2)",
+                      "link": "diffsecond(時刻1, 時刻2)",
                       "delimiter": ""
                     },
                     {
-                      "value": "diffusecond(日付1,日付2)",
+                      "value": "diffusecond(日付1, 日付2)",
                       "label": "マイクロ秒数",
-                      "link": "diffusecond(日付1,日付2)",
+                      "link": "diffusecond(日付1, 日付2)",
                       "delimiter": ""
                     },
                     {
-                      "value": "diffusecond(時刻1,時刻2)",
+                      "value": "diffusecond(時刻1, 時刻2)",
                       "label": "マイクロ秒数",
-                      "link": "diffusecond(時刻1,時刻2)",
+                      "link": "diffusecond(時刻1, 時刻2)",
                       "delimiter": ""
                     }
                   ]
@@ -1695,15 +1695,15 @@
                       "delimiter": ""
                     },
                     {
-                      "value": "countnull(日付1,日付2,...)",
+                      "value": "countnull(日付1, 日付2, ...)",
                       "label": "NULL値カウント",
-                      "link": "countnull(日付1,日付2,...) ※項目名ワイルドカード使用可",
+                      "link": "countnull(日付1, 日付2, ...) ※項目名ワイルドカード使用可",
                       "delimiter": ""
                     },
                     {
-                      "value": "countnull(時刻1,時刻2,...)",
+                      "value": "countnull(時刻1, 時刻2, ...)",
                       "label": "NULL値カウント",
-                      "link": "countnull(時刻1,時刻2,...) ※項目名ワイルドカード使用可",
+                      "link": "countnull(時刻1, 時刻2, ...) ※項目名ワイルドカード使用可",
                       "delimiter": ""
                     }
                   ]
@@ -1794,7 +1794,7 @@
                     },
                     {
                       "value": "論理1 == 論理2",
-                      "label": "等しい　[論理で出力]",
+                      "label": "等しい [論理で出力]",
                       "link": "論理1 == 論理2",
                       "delimiter": ""
                     },
@@ -1834,15 +1834,15 @@
                   "label": "論理",
                   "shortcuts": [
                     {
-                      "value": "and(論理1,論理2)",
+                      "value": "and(論理1, 論理2)",
                       "label": "論理積",
-                      "link": "and(論理1,論理2,...) ※項目名ワイルドカード使用可",
+                      "link": "and(論理1, 論理2, ...) ※項目名ワイルドカード使用可",
                       "delimiter": ""
                     },
                     {
-                      "value": "or(論理1,論理2)",
+                      "value": "or(論理1, 論理2)",
                       "label": "論理和",
-                      "link": "or(論理1,論理2,...) ※項目名ワイルドカード使用可",
+                      "link": "or(論理1, 論理2, ...) ※項目名ワイルドカード使用可",
                       "delimiter": ""
                     },
                     {
@@ -1852,27 +1852,27 @@
                       "delimiter": ""
                     },
                     {
-                      "value": "if(論理, 数値, 数値)",
+                      "value": "if(論理,  数値,  数値)",
                       "label": "条件選択 ",
-                      "link": "if(論理, 数値, 数値)",
+                      "link": "if(論理,  数値,  数値)",
                       "delimiter": ""
                     },
                     {
-                      "value": "if(論理, 文字列, 文字列)",
+                      "value": "if(論理,  文字列,  文字列)",
                       "label": "条件選択 [文字列型で出力]",
-                      "link": "if(論理, 文字列, 文字列)",
+                      "link": "if(論理,  文字列,  文字列)",
                       "delimiter": ""
                     },
                     {
-                      "value": "if(論理, 日付, 日付)",
+                      "value": "if(論理,  日付,  日付)",
                       "label": "条件選択 [日付型で出力]",
-                      "link": "if(論理, 日付, 日付)",
+                      "link": "if(論理,  日付,  日付)",
                       "delimiter": ""
                     },
                     {
-                      "value": "if(論理, 時刻, 時刻)",
+                      "value": "if(論理,  時刻,  時刻)",
                       "label": "条件選択 [時刻型で出力]",
-                      "link": "if(論理, 時刻, 時刻)",
+                      "link": "if(論理,  時刻,  時刻)",
                       "delimiter": ""
                     }
                   ]
@@ -1905,9 +1905,9 @@
                       "delimiter": ""
                     },
                     {
-                      "value": "argsize(文字列1,文字列2)",
+                      "value": "argsize(文字列1, 文字列2)",
                       "label": "引数の数",
-                      "link": "argsize(文字列1,文字列2,...) ※項目名ワイルドカード使用可",
+                      "link": "argsize(文字列1, 文字列2, ...) ※項目名ワイルドカード使用可",
                       "delimiter": ""
                     }
                   ]
@@ -1928,9 +1928,9 @@
                       "delimiter": ""
                     },
                     {
-                      "value": "countnull(論理1,論理2,...)",
+                      "value": "countnull(論理1, 論理2, ...)",
                       "label": "NULL値カウント",
-                      "link": "countnull(論理1,論理2,...) ※項目名ワイルドカード使用可",
+                      "link": "countnull(論理1, 論理2, ...) ※項目名ワイルドカード使用可",
                       "delimiter": ""
                     }
                   ]
