@@ -15,10 +15,10 @@ class TestCaseBase(unittest.TestCase):
         cls.factory0 = Factory(sys_admin_user)
         cls.factory = Factory(usr_admin_user)
         # テストユーザ1を作成する
-        test_user = cls.factory.user.create('test@kskp.io', 'Test', 'testpass')
+        test_user = cls.factory.user.create('test@kskp.io', 'Test', '123abc(*)A')
         test_user.save()
         # テストユーザ2を作成する
-        test_user2 = cls.factory.user.create('test2@kskp.io', 'Test2', 'testpass2')
+        test_user2 = cls.factory.user.create('test2@kskp.io', 'Test2', '123abc(*)B')
         test_user2.save()
         # テストユーザのFactoryをOpenする
         cls.factory2 = Factory(test_user)
@@ -31,7 +31,7 @@ class TestCaseBase(unittest.TestCase):
         # 仮登録状態から登録状態にする
         sys_admin_user.update_password('adminpass0')
         usr_admin_user.update_password('adminpass0')
-        test_user.update_password('testpass0')
+        test_user.update_password('testpass00')
         test_user2.update_password('testpass20')
         # クラス変数に設定する
         cls.USER0 = sys_admin_user

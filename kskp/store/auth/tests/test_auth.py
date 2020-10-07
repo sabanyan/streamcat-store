@@ -4,7 +4,7 @@ import pprint
 from sqlalchemy.orm.exc import NoResultFound
 from kskp.core import Datum
 from kskp.store import ProjectFolder
-from kskp.store.auth import Auth, Role, NotAuthorizedException
+from kskp.store.auth import Auth, Role, InvalidPassword, NotAuthorizedException
 from ...tests.test_case_base import TestCaseBase
 
 class AuthTest(TestCaseBase):
@@ -273,7 +273,7 @@ class AuthTest(TestCaseBase):
         Userの作成・取得・削除を検証する
         """
         # 新規ユーザを追加する
-        new_user = self.factory.user.create('test-man@kskp.io', 'I AM TEST', 'tesepass')
+        new_user = self.factory.user.create('test-man@kskp.io', 'I AM TEST', '123abc(*)A')
         new_user.save()
 
         # 新規ユーザを取得する
@@ -301,7 +301,7 @@ class AuthTest(TestCaseBase):
         一般ユーザは、ユーザの作成ができないこと
         """
         # 新規ユーザを追加する
-        new_user = self.factory2.user.create('test-man2@kskp.io', 'I AM TEST', 'tesepass')
+        new_user = self.factory2.user.create('test-man2@kskp.io', 'I AM TEST', '123abc(*)A')
         with self.assertRaises(NotAuthorizedException):
             new_user.save()
 
@@ -310,7 +310,7 @@ class AuthTest(TestCaseBase):
         一般ユーザは、他ユーザの変更ができないこと
         """
         # 新規ユーザを追加する
-        new_user = self.factory.user.create('test-man3@kskp.io', 'I AM TEST', 'tesepass')
+        new_user = self.factory.user.create('test-man3@kskp.io', 'I AM TEST', '123abc(*)C')
         new_user.save()
 
         # 他ユーザで再取得する
@@ -323,7 +323,7 @@ class AuthTest(TestCaseBase):
 
         # パスワードを変更する
         with self.assertRaises(NotAuthorizedException):
-            new_user.update_password('abc')
+            new_user.update_password('abc!@#$%^&*()_+')
 
         # ユーザ名を変更する
         with self.assertRaises(NotAuthorizedException):
@@ -339,7 +339,7 @@ class AuthTest(TestCaseBase):
         一般ユーザは、他ユーザの削除ができないこと
         """
         # 新規ユーザを追加する
-        new_user = self.factory.user.create('test-man4@kskp.io', 'I AM TEST', 'tesepass')
+        new_user = self.factory.user.create('test-man4@kskp.io', 'I AM TEST', '123abc(*)D')
         new_user.save()
 
         # 他ユーザで再取得する
@@ -352,6 +352,53 @@ class AuthTest(TestCaseBase):
         # 削除後のユーザは取得できる
         new_user = self.factory.user.find_by_email('test-man4@kskp.io')
         self.assertIsNotNone(new_user)
+
+    def test_validate_password(self):
+        """
+        パスワードの妥当性が検証されること
+        """
+
+        # 新規ユーザを追加する
+        new_user = self.factory.user.create('suerp-mario@nintendo.com', 'ホッホ〜！', None)
+        new_user.save()
+
+        # ユーザを登録状態にする
+        new_user.update_password('PassWord123@')        
+
+        # パスワードはNoneにできないこと
+        with self.assertRaises(InvalidPassword):
+            new_user.update_password(None)
+
+        # パスワードは空にできないこと
+        with self.assertRaises(InvalidPassword):
+            new_user.update_password('')
+
+        # パスワードは10文字以上であること
+        with self.assertRaises(InvalidPassword):
+            new_user.update_password('123456789')
+
+        # パスワードは64文字以下であること
+        with self.assertRaises(InvalidPassword):
+            new_user.update_password('12345678901234567890123456789012345678901234567890123456789012345')
+
+        # パスワードに空白文字は使用できないこと
+        with self.assertRaises(InvalidPassword):
+            new_user.update_password('12345 67890')
+
+        # パスワードに使用できる文字は半角英数と記号のみである
+        with self.assertRaises(InvalidPassword):
+            new_user.update_password('1234567890あう')
+        with self.assertRaises(InvalidPassword):
+            new_user.update_password('1234567890ＡＢＣ')
+        with self.assertRaises(InvalidPassword):
+            new_user.update_password('12345漢字67890')
+        with self.assertRaises(InvalidPassword):
+            new_user.update_password('12345🧨67890')
+        with self.assertRaises(InvalidPassword):
+            new_user.update_password('1234567890')
+
+        # ユーザを削除する
+        new_user.delete()
 
     # 
     # Roles

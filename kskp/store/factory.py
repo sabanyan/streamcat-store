@@ -107,7 +107,7 @@ class UnAuthzFactory():
             return sys_admin_role.get_joined_users()[0]
 
         # 管理者ロールが無い場合は、デフォルトの管理者ユーザを作成する
-        sys_admin_user = user_factory.create(SYS_ADMIN_USER_EMAIL, SYS_ADMIN_USER_NAME, 'adminpass')
+        sys_admin_user = user_factory.create(SYS_ADMIN_USER_EMAIL, SYS_ADMIN_USER_NAME, 'adminpass0')
         sys_admin_user.save()
         return sys_admin_user
 
@@ -130,7 +130,7 @@ class UnAuthzFactory():
             usr_admin_role = role_factory.find_by_uuid(Role.USR_ADMIN_ROLE_UUID)
             return usr_admin_role.get_joined_users()[0]
 
-        usr_admin_user = user_factory.create(USR_ADMIN_USER_EMAIL, USR_ADMIN_USER_NAME, 'adminpass')
+        usr_admin_user = user_factory.create(USR_ADMIN_USER_EMAIL, USR_ADMIN_USER_NAME, 'adminpass0')
         usr_admin_user.save()
         return usr_admin_user
 
