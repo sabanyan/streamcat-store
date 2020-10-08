@@ -153,6 +153,12 @@
   "url": "./static/pdf/mcmd/col_edit/mrand.pdf",
   "groups": [
     {
+      "name": "abstract",
+      "label": "擬似乱数の付与",
+      "description": "擬似乱数を生成する",
+      "params": []
+    },
+    {
       "name": "grouping",
       "label": "グループの設定 (省略可)",
       "params": [

@@ -123,6 +123,12 @@
   "url": "./static/pdf/mcmd/value_transform/mvdelim.pdf",
   "groups": [
     {
+      "name": "abstract",
+      "label": "ベクトル要素の区切り文字の変更",
+      "description": "ベクトル型の要素を区切る文字列を変更する",
+      "params": []
+    },
+    {
       "name": "cmd_main",
       "label": "区切り文字変更の設定 (必須)",
       "description": "対象とする項目の値をベクトルとみなし、要素の区切り文字を変更する",

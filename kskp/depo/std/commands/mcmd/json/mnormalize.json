@@ -55,6 +55,12 @@
   },
   "groups": [
     {
+      "name": "abstract",
+      "label": "基準化",
+      "description": "基準化（z得点、偏差値、0-1への線形変換）する",
+      "params": []
+    },
+    {
       "name": "grouping",
       "label": "グループの設定 (省略可)",
       "params": [

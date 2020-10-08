@@ -119,6 +119,12 @@
   "url": "./static/pdf/mcmd/value_transform/mvuniq.pdf",
   "groups": [
     {
+      "name": "abstract",
+      "label": "ベクトル要素の単一化",
+      "description": "ベクトル型の項目の要素を単一化する",
+      "params": []
+    },
+    {
       "name": "cmd_main",
       "label": "要素の単一化の設定 (必須)",
       "params": [
