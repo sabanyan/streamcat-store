@@ -136,7 +136,7 @@
   "groups": [
     {
       "name": "abstract",
-      "label": "コマンドの概要",
+      "label": "参照データによる行選択",
       "description": "・入力i と入力m のキー項目を比較し、一致する行を o に、それ以外を uに出力する",
       "params": []
     },

@@ -178,6 +178,12 @@
   "url": "./static/pdf/mcmd/value_transform/mchgnum.pdf",
   "groups": [
     {
+      "name": "abstract",
+      "label": "数値範囲による置換",
+      "description": "数値範囲条件をもとに、置換文字へ変換する",
+      "params": []
+    },
+    {
       "name": "cmd_main",
       "label": "置換の設定　(必須)",
       "params": [

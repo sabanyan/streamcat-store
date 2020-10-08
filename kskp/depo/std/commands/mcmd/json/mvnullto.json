@@ -150,6 +150,12 @@
   "url": "./static/pdf/mcmd/value_transform/mvnullto.pdf",
   "groups": [
     {
+      "name": "abstract",
+      "label": "ベクトルのNULL要素の置換",
+      "description": "ベクトル要素でNULLの要素を任意の値に置換する",
+      "params": []
+    },
+    {
       "name": "cmd_main",
       "label": "NULL要素置換の設定 (必須)",
       "params": [

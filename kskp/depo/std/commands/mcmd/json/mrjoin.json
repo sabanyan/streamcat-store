@@ -2,6 +2,12 @@
   "id": "mrjoin",
   "groups": [
     {
+      "name": "abstract",
+      "label": "参照データの範囲条件による結合",
+      "description": "入力i の項目 と 入力m の範囲条件項目 を比較して結合する",
+      "params": []
+    },
+    {
       "name": "group1",
       "label": "グループの設定 (省略可)",
       "description": "・カンマ区切りで複数指定可\n・入力i と m の項目を、1対1に対応させて指定する\n",

@@ -2,6 +2,12 @@
   "id": "mslide",
   "groups": [
     {
+      "name": "abstract",
+      "label": "行ずらし",
+      "description": "項目の値を指定した行数ずらして出力する",
+      "params": []
+    },
+    {
       "name": "grouping",
       "label": "グループの設定 (必須)",
       "params": [

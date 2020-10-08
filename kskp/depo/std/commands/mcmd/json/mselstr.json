@@ -200,6 +200,12 @@
   "url": "./static/pdf/mcmd/row_edit/mselstr.pdf",
   "groups": [
     {
+      "name": "abstract",
+      "label": "文字列による行選択",
+      "description": "指定した文字列に一致する行を選択する",
+      "params": []
+    },
+    {
       "name": "grouping",
       "label": "グループの設定 (省略可)",
       "params": [
