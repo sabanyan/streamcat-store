@@ -147,6 +147,12 @@
   "url": "./static/pdf/mcmd/value_transform/mchgstr.pdf",
   "groups": [
     {
+      "name": "abstract",
+      "label": "文字列の置換",
+      "description": "文字列を置換する",
+      "params": []
+    },
+    {
       "name": "cmd_main",
       "label": "置換の設定(必須)",
       "params": [

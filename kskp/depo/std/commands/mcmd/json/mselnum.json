@@ -2,6 +2,12 @@
   "id": "mselnum",
   "groups": [
     {
+      "name": "abstract",
+      "label": "数値範囲による行選択",
+      "description": "指定した数値範囲にマッチする行を選択する",
+      "params": []
+    },
+    {
       "name": "grouping",
       "label": "グループの設定 (省略可)",
       "params": [

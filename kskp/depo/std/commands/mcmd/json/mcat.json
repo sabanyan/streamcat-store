@@ -35,6 +35,12 @@
   "url": "./static/pdf/mcmd/table_join/mcat.pdf",
   "groups": [
     {
+      "name": "abstract",
+      "label": "複数データの併合",
+      "description": "レコードを併合する",
+      "params": []
+    },
+    {
       "name": "cmd_sub",
       "label": "その他 (省略可)",
       "params": [

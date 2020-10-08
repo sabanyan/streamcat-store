@@ -171,6 +171,12 @@
   "url": "./static/pdf/mcmd/value_crossing/mcombi.pdf",
   "groups": [
     {
+      "name": "abstract",
+      "label": "組合せの生成",
+      "description": "指定した項目の値に対して、値の組合せ または 順列 を列として持つ行を生成する",
+      "params": []
+    },
+    {
       "name": "grouping",
       "label": "グループの設定(省略可)",
       "params": [
