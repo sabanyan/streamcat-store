@@ -2,6 +2,12 @@
   "id": "msortf",
   "groups": [
     {
+      "name": "abstract",
+      "label": "ソート",
+      "description": "行を並び替えて出力する（quick sortアルゴリズム）",
+      "params": []
+    },
+    {
       "name": "group1",
       "label": "ソートの設定 (必須)",
       "params": [

@@ -119,6 +119,12 @@
   "url": "./static/pdf/mcmd/value_transform/mvsort.pdf",
   "groups": [
     {
+      "name": "abstract",
+      "label": "ベクトル要素のソート",
+      "description": "ベクトル型の項目の値を並び替えて出力する",
+      "params": []
+    },
+    {
       "name": "cmd_main",
       "label": "要素のソートの設定",
       "params": [
