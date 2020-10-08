@@ -74,6 +74,12 @@
   "url": "",
   "groups": [
     {
+      "name": "abstract",
+      "label": "GroupBy処理",
+      "description": "複数の数値項目に対して、複数の統計量を一括算出する (特徴量: 22種類)",
+      "params": []
+    },
+    {
       "name": "grouping",
       "label": "グループの設定",
       "params": [

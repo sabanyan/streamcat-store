@@ -2,6 +2,12 @@
   "id": "multi_mcal_manyformula",
   "groups": [
     {
+      "name": "abstract",
+      "label": "複数項目の計算 (個別式)",
+      "description": "個別の式で、項目間の演算を行い、複数の結果を追加する",
+      "params": []
+    },
+    {
       "name": "group1",
       "label": "計算式の設定（必須）",
       "params": [
