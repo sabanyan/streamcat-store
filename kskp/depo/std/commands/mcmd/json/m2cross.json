@@ -2,6 +2,12 @@
   "id": "m2cross",
   "groups": [
     {
+      "name": "abstract",
+      "label": "クロス集計 (行・列を他方へ展開)",
+      "description": "クロス集計を行う（行を列へ or 列を行へと、どちらかを展開）",
+      "params": []
+    },
+    {
       "name": "group1",
       "label": "変換キーの設定",
       "params": [

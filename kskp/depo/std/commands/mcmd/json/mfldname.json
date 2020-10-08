@@ -127,9 +127,15 @@
   "url": "./static/pdf/mcmd/col_edit/mfldname.pdf",
   "groups": [
     {
+      "name": "abstract",
+      "label": "項目名の変更",
+      "description": "・項目名を変更する\n・項目名に付けられた、ソーティング記号の削除も可能",
+      "params": []
+    },
+    {
       "name": "cmd_main",
       "label": "項目名変更の設定 (必須)",
-      "description": "項目名の個別変更と、項目名の一括変更が可能\n一括変更では、項目名の無いデータに項目名を付与することも可能",
+      "description": "・項目名の個別変更と、項目名の一括変更が可能\n・一括変更では、項目名の無いデータに項目名を付与することも可能",
       "params": []
     },
     {

@@ -145,6 +145,12 @@
   "url": "./static/pdf/mcmd/table_grouping/msum.pdf",
   "groups": [
     {
+      "name": "abstract",
+      "label": "項目値の合計",
+      "description": "複数の数値項目に対して、合計値を計算する",
+      "params": []
+    },
+    {
       "name": "grouping",
       "label": "グループの設定",
       "params": [

@@ -204,6 +204,12 @@
   "url": "./static/pdf/mcmd/table_grouping/mstats.pdf",
   "groups": [
     {
+      "name": "abstract",
+      "label": "単数の統計量の計算",
+      "description": "複数の数値項目に対して、1つの統計量を計算する  (特徴量: 22種類)",
+      "params": []
+    },
+    {
       "name": "grouping",
       "label": "グループの設定",
       "params": [
