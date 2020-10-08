@@ -20,6 +20,12 @@
   ],
   "groups": [
     {
+      "name": "abstract",
+      "label": "項目順の変更",
+      "description": "ワイルドカードを用いて、先頭、末尾に移動したい列を指定する",
+      "params": []
+    },
+    {
       "name": "main",
       "label": "項目順の設定 (必須)",
       "params": [
