@@ -145,6 +145,12 @@
   "url": "./static/pdf/mcmd/table_grouping/mavg.pdf",
   "groups": [
     {
+      "name": "abstract",
+      "label": "項目値の平均",
+      "description": "複数の数値項目に対して、平均値を計算する",
+      "params": []
+    },
+    {
       "name": "grouping",
       "label": "グループの設定 (省略可)",
       "params": [

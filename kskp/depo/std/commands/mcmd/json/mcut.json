@@ -101,6 +101,12 @@
   "url": "./static/pdf/mcmd/col_edit/mcut.pdf",
   "groups": [
     {
+      "name": "abstract",
+      "label": "項目の選択",
+      "description": "指定した項目を選択する （列の抽出）",
+      "params": []
+    },
+    {
       "name": "cmd_main",
       "label": "列選択の設定 (必須)",
       "params": [

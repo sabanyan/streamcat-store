@@ -185,6 +185,12 @@
   "url": "./static/pdf/mcmd/value_transform/mnullto.pdf",
   "groups": [
     {
+      "name": "abstract",
+      "label": "NULL値の置換",
+      "description": "NULL値を指定した文字列に置換する",
+      "params": []
+    },
+    {
       "name": "grouping",
       "label": "グループの設定　(省略可)",
       "params": [
