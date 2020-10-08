@@ -59,6 +59,12 @@
   "url": "",
   "groups": [
     {
+      "name": "abstract",
+      "label": "項目を行展開したgroupby処理",
+      "description": "列項目を行展開して、GroupBy処理を行う (特徴量: 22種類)",
+      "params": []
+    },
+    {
       "name": "grouping",
       "label": "グループの設定",
       "params": [
