@@ -2,6 +2,12 @@
   "id": "mcross",
   "groups": [
     {
+      "name": "abstract",
+      "label": "クロス集計 (行・列を入れ換え)",
+      "description": "クロス集計を行う（行を列へと、列を行へ を同時に入れ替え）",
+      "params": []
+    },
+    {
       "name": "group1",
       "label": "変換キーの設定",
       "params": [

@@ -2,6 +2,12 @@
   "id": "maccum",
   "groups": [
     {
+      "name": "abstract",
+      "label": "累積の計算",
+      "description": "累積を計算する",
+      "params": []
+    },
+    {
       "name": "grouping",
       "label": "グループの設定",
       "params": [

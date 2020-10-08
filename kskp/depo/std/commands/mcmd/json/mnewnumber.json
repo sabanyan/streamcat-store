@@ -97,6 +97,12 @@
   "url": "",
   "groups": [
     {
+      "name": "abstract",
+      "label": "連番データの新規生成",
+      "description": "数値、英字の連番で、指定した行数を作成する",
+      "params": []
+    },
+    {
       "name": "cmd_main",
       "label": "連番データ生成の設定(必須)",
       "params": [
