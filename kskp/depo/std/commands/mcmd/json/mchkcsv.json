@@ -74,6 +74,12 @@
   "url": "./static/pdf/mcmd/validation/mchkcsv.pdf",
   "groups": [
     {
+      "name": "abstract",
+      "label": "CSV検査",
+      "description": "入力データが規定のCSV形式であるかを検査する",
+      "params": []
+    },
+    {
       "name": "cmd_main",
       "label": "検査の設定",
       "params": [

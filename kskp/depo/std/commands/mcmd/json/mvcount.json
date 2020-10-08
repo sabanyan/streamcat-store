@@ -95,6 +95,12 @@
   "url": "./static/pdf/mcmd/col_edit/mvcount.pdf",
   "groups": [
     {
+      "name": "abstract",
+      "label": "ベクトルサイズの計算",
+      "description": "ベクトルの要素数をカウントする",
+      "params": []
+    },
+    {
       "name": "cmd_main",
       "label": "要素数カウントの設定 (必須)",
       "params": [

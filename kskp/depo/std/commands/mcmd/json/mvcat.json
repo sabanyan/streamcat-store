@@ -127,6 +127,12 @@
   "url": "./static/pdf/mcmd/col_edit/mvcat.pdf",
   "groups": [
     {
+      "name": "abstract",
+      "label": "ベクトルの併合",
+      "description": "複数項目のベクトルを併合した新しいベクトルを作成する",
+      "params": []
+    },
+    {
       "name": "cmd_main",
       "label": "ベクトル併合の設定(必須)",
       "params": [

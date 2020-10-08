@@ -158,6 +158,12 @@
   "url": "./static/pdf/mcmd/row_edit/mdelnull.pdf",
   "groups": [
     {
+      "name": "abstract",
+      "label": "NULL値行の削除",
+      "description": "指定した項目で、NULL値が含まれる行を削除する",
+      "params": []
+    },
+    {
       "name": "grouping",
       "label": "グループの設定",
       "params": [

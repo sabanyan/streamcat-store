@@ -90,6 +90,12 @@
   "url": "",
   "groups": [
     {
+      "name": "abstract",
+      "label": "乱数データの新規生成",
+      "description": "実数/整数の乱数で、指定した行数を作成する",
+      "params": []
+    },
+    {
       "name": "cmd_main",
       "label": "データ生成の設定(必須)",
       "params": [

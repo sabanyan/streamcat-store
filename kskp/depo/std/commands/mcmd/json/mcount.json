@@ -2,6 +2,12 @@
   "id": "mcount",
   "groups": [
     {
+      "name": "abstract",
+      "label": "行数のカウント",
+      "description": "行数をカウントする",
+      "params": []
+    },
+    {
       "name": "grouping",
       "label": "グループの設定",
       "params": [
