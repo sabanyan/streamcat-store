@@ -15,7 +15,7 @@
       ]
     },
     {
-      "name": "cmd_main_2",
+      "name": "cmd_main",
       "label": "数値範囲による行選択の設定（必須）",
       "description": "数値範囲の条件にマッチした行を o に、それ以外を u に出力する",
       "params": [

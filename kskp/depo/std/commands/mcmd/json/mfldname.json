@@ -96,7 +96,7 @@
     {
       "name": "q",
       "type": "boolean",
-      "label": "ソート記号の削除",
+      "label": "項目名末尾のソート記号(%nなど)を削除して出力する",
       "optional": true,
       "description": "項目名末尾のソート記号(%nなど)を削除して出力する"
     },
@@ -158,10 +158,16 @@
       "name": "cmd_sub",
       "label": "その他 (省略可)",
       "params": [
-        "q",
         "nfn",
         "nfno",
         "x"
+      ]
+    },
+    {
+      "name": "cmd_main_3",
+      "label": "ソート記号の削除",
+      "params": [
+        "q"
       ]
     },
     {
