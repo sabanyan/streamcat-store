@@ -39,6 +39,12 @@
   "url": "",
   "groups": [
     {
+      "name": "abstract",
+      "label": "項目の行展開",
+      "description": "f=で指定した複数の列項目に対して、各項目の行を連結した新たな項目をa=で指定した名前で作成する",
+      "params": []
+    },
+    {
       "name": "grouping",
       "label": "グループの設定",
       "params": [
