@@ -142,7 +142,7 @@
     },
     {
       "name": "cmd_main",
-      "label": "置換対象の設定",
+      "label": "置換対象の設定 (必須)",
       "params": [
         "f",
         "A"
@@ -156,7 +156,8 @@
         "c",
         "v",
         "g"
-      ]
+      ],
+      "hide_background": true
     },
     {
       "name": "cmd_sub",

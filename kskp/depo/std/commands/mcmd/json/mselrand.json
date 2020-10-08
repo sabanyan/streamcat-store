@@ -51,7 +51,7 @@
       "name": "c",
       "type": "string",
       "label": "抽出するレコード数",
-      "description": "0以上の整数で指定する",
+      "description": "・0以上の整数で指定する\n",
       "default": "1"
     },
     {
@@ -70,7 +70,7 @@
     {
       "name": "S",
       "type": "string",
-      "label": "乱数のシード値",
+      "label": "乱数のシード値 (省略可)",
       "optional": true,
       "description": "・同じ乱数系列を発生させたい場合に指定する\n・デフォルトは時刻値で、実行の都度変化する"
     },

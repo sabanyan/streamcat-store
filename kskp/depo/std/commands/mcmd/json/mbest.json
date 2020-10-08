@@ -145,21 +145,24 @@
         "from",
         "to",
         "size"
-      ]
+      ],
+      "hide_background": true
     },
     {
       "name": "cmd_main_2",
       "label": "リストで選択",
       "params": [
         "R"
-      ]
+      ],
+      "hide_background": true
     },
     {
       "name": "cmd_main_3",
       "label": "条件反転",
       "params": [
         "r"
-      ]
+      ],
+      "hide_background": true
     },
     {
       "name": "cmd_sub",

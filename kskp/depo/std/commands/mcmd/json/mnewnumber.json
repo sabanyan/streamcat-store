@@ -29,13 +29,13 @@
     {
       "name": "a",
       "type": "string",
-      "label": "項目名の設定(必須)",
+      "label": "項目名の設定 (必須)",
       "description": "複数項目の指定は不可"
     },
     {
       "name": "I",
       "type": "string",
-      "label": "値の間隔(必須)",
+      "label": "値の間隔 (必須)",
       "optional": true,
       "default": "1",
       "description": "正の整数で設定する"
@@ -43,7 +43,7 @@
     {
       "name": "S",
       "type": "string",
-      "label": "開始の値(必須)",
+      "label": "開始の値 (必須)",
       "optional": true,
       "default": "1",
       "description": "正の整数、または、アルファベット(大文字)で指定する"
@@ -105,7 +105,7 @@
     },
     {
       "name": "cmd_main",
-      "label": "連番データ生成の設定(必須)",
+      "label": "連番データ生成の設定 (必須)",
       "params": [
         "a",
         "l",

@@ -82,7 +82,7 @@
     },
     {
       "name": "cmd_main",
-      "label": "検査の設定",
+      "label": "検査の設定 (必須)",
       "params": [
         "diag",
         "r"

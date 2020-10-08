@@ -46,7 +46,7 @@
     {
       "name": "delim",
       "type": "string",
-      "label": "ベクトル要素の区切り文字",
+      "label": "ベクトル要素の区切り文字 (省略可)",
       "optional": true,
       "default": "",
       "description": "省略時は半角スペース"
@@ -54,7 +54,7 @@
     {
       "name": "delim2",
       "type": "string",
-      "label": "元の項目名と値の区切り文字",
+      "label": "元の項目名と値の区切り文字 (省略可)",
       "optional": true,
       "default": "="
     },
@@ -142,7 +142,7 @@
     },
     {
       "name": "cmd_main",
-      "label": "データ変換の設定",
+      "label": "データ変換の設定 (必須)",
       "params": [
         "a",
         "delim",

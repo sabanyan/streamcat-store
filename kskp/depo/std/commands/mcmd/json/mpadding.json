@@ -187,7 +187,8 @@
         "f",
         "S",
         "E"
-      ]
+      ],
+      "hide_background": true
     },
     {
       "name": "cmd_main_2",
@@ -196,7 +197,8 @@
       "params": [
         "v",
         "n"
-      ]
+      ],
+      "hide_background": true
     },
     {
       "name": "cmd_sub",

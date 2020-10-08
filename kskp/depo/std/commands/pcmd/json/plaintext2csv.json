@@ -169,7 +169,8 @@
       "params": [
         "except_chr",
         "except_null"
-      ]
+      ],
+      "hide_background": true
     },
     {
       "name": "cmd_sub_２",
@@ -179,7 +180,8 @@
         "except_end_range",
         "except_end_chr",
         "except_end_null"
-      ]
+      ],
+      "hide_background": true
     },
     {
       "name": "cmd_sub2",

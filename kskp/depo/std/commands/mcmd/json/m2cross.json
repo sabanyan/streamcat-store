@@ -25,14 +25,16 @@
       "label": "列行展開の場合",
       "params": [
         "a"
-      ]
+      ],
+      "hide_background": true
     },
     {
       "name": "cmd_main_2",
       "label": "行列展開の場合",
       "params": [
         "s"
-      ]
+      ],
+      "hide_background": true
     },
     {
       "name": "group2",

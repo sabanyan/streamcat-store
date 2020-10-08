@@ -173,7 +173,7 @@
     },
     {
       "name": "cmd_main",
-      "label": "NULL行削除の設定",
+      "label": "NULL行削除の設定 (必須)",
       "description": "削除条件を設定し、マッチした行を u に、それ以外を o に出力する",
       "params": [
         "f",

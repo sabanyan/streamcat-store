@@ -144,7 +144,8 @@
       "label": "個別に変更",
       "params": [
         "f"
-      ]
+      ],
+      "hide_background": true
     },
     {
       "name": "cmd_main_2",
@@ -152,7 +153,16 @@
       "params": [
         "n",
         "nfni"
-      ]
+      ],
+      "hide_background": true
+    },
+    {
+      "name": "cmd_main_3",
+      "label": "ソート記号の削除",
+      "params": [
+        "q"
+      ],
+      "hide_background": true
     },
     {
       "name": "cmd_sub",
@@ -161,13 +171,6 @@
         "nfn",
         "nfno",
         "x"
-      ]
-    },
-    {
-      "name": "cmd_main_3",
-      "label": "ソート記号の削除",
-      "params": [
-        "q"
       ]
     },
     {

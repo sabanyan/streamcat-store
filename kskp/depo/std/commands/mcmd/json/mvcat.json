@@ -135,7 +135,7 @@
     },
     {
       "name": "cmd_main",
-      "label": "ベクトル併合の設定(必須)",
+      "label": "ベクトル併合の設定 (必須)",
       "params": [
         "vf",
         "delim",

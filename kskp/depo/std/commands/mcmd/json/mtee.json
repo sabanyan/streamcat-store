@@ -64,13 +64,7 @@
       "label": "その他 (省略可)",
       "params": [
         "nostdout",
-        "nfn"
-      ]
-    },
-    {
-      "name": "fields",
-      "label": "項目名・項目番号についての設定（省略可）",
-      "params": [
+        "nfn",
         "nfno",
         "x"
       ]
