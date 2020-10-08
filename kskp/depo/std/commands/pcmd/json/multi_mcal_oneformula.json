@@ -2,6 +2,12 @@
   "id": "multi_mcal_oneformula",
   "groups": [
     {
+      "name": "abstract",
+      "label": "複数項目の計算 (共通式)",
+      "description": "同一の式を、複数の項目に適用し、複数の結果を追加する",
+      "params": []
+    },
+    {
       "name": "group1",
       "label": "計算式の設定（必須）",
       "description": "対象項目名に対して、同じ計算を行う\n計算式と、結果項目の書式設定では、元項目名を記号 & で記述する",

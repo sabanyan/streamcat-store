@@ -266,6 +266,12 @@
   "url": "./static/pdf/mcmd/table_grouping/mmvavg.pdf",
   "groups": [
     {
+      "name": "abstract",
+      "label": "移動平均の計算",
+      "description": "移動平均（単純、線形加重、指数平滑）を算出する",
+      "params": []
+    },
+    {
       "name": "grouping",
       "label": "グループの設定",
       "params": [
