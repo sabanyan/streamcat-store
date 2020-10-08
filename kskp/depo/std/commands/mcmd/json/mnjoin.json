@@ -2,6 +2,12 @@
   "id": "mnjoin",
   "groups": [
     {
+      "name": "abstract",
+      "label": "自然結合",
+      "description": "入力データ と 参照データ を キー項目 で結合する",
+      "params": []
+    },
+    {
       "name": "group1",
       "label": "結合キーの設定 (必須)",
       "description": "・カンマ区切りで複数指定可\n・入力i と m のキー項目を、1対1に対応させて指定する\n",

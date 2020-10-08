@@ -111,6 +111,12 @@
   "url": "./static/pdf/mcmd/value_transform/mvdelnull.pdf",
   "groups": [
     {
+      "name": "abstract",
+      "label": "ベクトルのNULL要素の削除",
+      "description": "ベクトル要素でNULLの要素を削除する",
+      "params": []
+    },
+    {
       "name": "cmd_main",
       "label": "要素の削除の設定",
       "params": [

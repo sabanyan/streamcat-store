@@ -233,6 +233,12 @@
   "url": "./static/pdf/mcmd/table_grouping/mmvstats.pdf",
   "groups": [
     {
+      "name": "abstract",
+      "label": "移動窓の統計量の計算",
+      "description": "移動窓を設定し、1つの統計量(1変量)を計算する",
+      "params": []
+    },
+    {
       "name": "grouping",
       "label": "グループの設定",
       "params": [
