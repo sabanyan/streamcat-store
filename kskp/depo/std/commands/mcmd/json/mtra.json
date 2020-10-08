@@ -164,6 +164,12 @@
   "url": "./static/pdf/mcmd/value_crossing/mtra.pdf",
   "groups": [
     {
+      "name": "abstract",
+      "label": "縦型データをベクトル項目に変換",
+      "description": "縦型データをベクトル項目に変換する",
+      "params": []
+    },
+    {
       "name": "grouping",
       "label": "変換キーの設定(省略可)",
       "params": [

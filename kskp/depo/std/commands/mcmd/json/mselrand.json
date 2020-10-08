@@ -150,6 +150,12 @@
   "url": "./static/pdf/mcmd/row_edit/mselrand.pdf",
   "groups": [
     {
+      "name": "abstract",
+      "label": "ランダムに行を選択",
+      "description": "指定した行数をランダム（非復元抽出）する",
+      "params": []
+    },
+    {
       "name": "grouping",
       "label": "グループの設定 (省略可)",
       "params": [

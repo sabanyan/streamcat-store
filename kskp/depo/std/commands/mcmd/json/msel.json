@@ -2,6 +2,12 @@
   "id": "msel",
   "groups": [
     {
+      "name": "abstract",
+      "label": "条件式による行選択",
+      "description": "計算式による選択を行う",
+      "params": []
+    },
+    {
       "name": "group1",
       "label": "条件式の設定（必須）",
       "description": "条件式に一致する行を o に、それ以外を u　に出力する",

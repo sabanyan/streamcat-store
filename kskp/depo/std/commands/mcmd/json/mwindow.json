@@ -137,6 +137,12 @@
   "url": "./static/pdf/mcmd/table_grouping/mwindow.pdf",
   "groups": [
     {
+      "name": "abstract",
+      "label": "スライド窓の生成",
+      "description": "複数行をずらしながら行を複製していく",
+      "params": []
+    },
+    {
       "name": "grouping",
       "label": "グループの設定",
       "params": [

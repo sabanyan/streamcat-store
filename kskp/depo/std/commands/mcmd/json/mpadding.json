@@ -161,6 +161,12 @@
   "url": "./static/pdf/mcmd/row_edit/mpadding.pdf",
   "groups": [
     {
+      "name": "abstract",
+      "label": "行の補完",
+      "description": "項目の値が連続するようにレコードを追加する",
+      "params": []
+    },
+    {
       "name": "grouping",
       "label": "グループの設定",
       "params": [

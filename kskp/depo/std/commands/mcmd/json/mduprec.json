@@ -112,6 +112,12 @@
   "url": "./static/pdf/mcmd/row_edit/mduprec.pdf",
   "groups": [
     {
+      "name": "abstract",
+      "label": "行の複写",
+      "description": "各レコードを複写して出力する",
+      "params": []
+    },
+    {
       "name": "cmd_main",
       "label": "複写回数の設定(必須)",
       "description": "複写回数か、複写回数の項目名のどちらかを選択する",

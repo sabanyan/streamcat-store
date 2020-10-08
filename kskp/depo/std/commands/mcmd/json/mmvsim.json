@@ -245,6 +245,12 @@
   "url": "./static/pdf/mcmd/table_grouping/mmvsim.pdf",
   "groups": [
     {
+      "name": "abstract",
+      "label": "移動窓の類似度の計算",
+      "description": "移動窓を設定し、各種類似度(2変量の統計量)を計算する",
+      "params": []
+    },
+    {
       "name": "grouping",
       "label": "グループの設定 (必須)",
       "params": [
