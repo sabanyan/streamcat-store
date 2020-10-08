@@ -143,6 +143,12 @@
   "url": "",
   "groups": [
     {
+      "name": "abstract",
+      "label": "CSVデータの抽出",
+      "description": "不完全なCSVから、不要部分を除きCSV領域のみ出力する",
+      "params": []
+    },
+    {
       "name": "cmd_main",
       "label": "行選択の設定 (必須)",
       "params": [
