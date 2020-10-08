@@ -2,6 +2,12 @@
   "id": "mkeybreak",
   "groups": [
     {
+      "name": "abstract",
+      "label": "キーブレイク箇所の付与",
+      "description": "キー項目の値が変化する先頭と終端にフラグを付与する",
+      "params": []
+    },
+    {
       "name": "grouping",
       "label": "グループの設定 (必須)",
       "params": [

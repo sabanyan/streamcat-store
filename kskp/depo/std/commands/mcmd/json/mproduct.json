@@ -113,7 +113,7 @@
   "groups": [
     {
       "name": "abstract",
-      "label": "コマンドの概要",
+      "label": "参照データの直積結合",
       "description": "入力i の1行に対して、入力m の全行を結合する",
       "params": []
     },

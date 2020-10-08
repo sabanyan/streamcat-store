@@ -179,6 +179,12 @@
   "url": "./static/pdf/mcmd/col_edit/mnumber.pdf",
   "groups": [
     {
+      "name": "abstract",
+      "label": "連番の付与",
+      "description": "数字、英字の連番を付与する",
+      "params": []
+    },
+    {
       "name": "grouping",
       "label": "グループの設定",
       "params": [

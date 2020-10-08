@@ -93,6 +93,12 @@
   "url": "./static/pdf/mcmd/row_edit/muniq.pdf",
   "groups": [
     {
+      "name": "abstract",
+      "label": "行の単一化",
+      "description": "キー項目に対して、値が重複した行を単一化する",
+      "params": []
+    },
+    {
       "name": "group1",
       "label": "単一化の設定 (必須)",
       "params": [
