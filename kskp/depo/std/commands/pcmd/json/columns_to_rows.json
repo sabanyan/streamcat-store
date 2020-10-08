@@ -46,14 +46,14 @@
     },
     {
       "name": "grouping",
-      "label": "グループの設定",
+      "label": "グループの設定 (必須)",
       "params": [
         "k"
       ]
     },
     {
       "name": "cmd_main",
-      "label": "行展開の設定",
+      "label": "行展開の設定 (必須)",
       "params": [
         "f",
         "a"

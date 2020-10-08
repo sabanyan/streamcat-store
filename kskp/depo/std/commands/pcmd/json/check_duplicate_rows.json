@@ -23,14 +23,14 @@
       "name": "k",
       "type": "string",
       "label": "重複判定化する項目名(必須)",
-      "description": "●カンマ区切りで複数指定可\n●ワイルドカード(*,？ )使用可"
+      "description": "・カンマ区切りで複数指定可\n・ワイルドカード(*,？ )使用可"
     }
   ],
   "url": "",
   "groups": [
     {
       "name": "grouping",
-      "label": "重複判定キーの設定",
+      "label": "重複判定キーの設定 (必須)",
       "params": [
         "k"
       ]

@@ -81,7 +81,7 @@
     {
       "name": "field",
       "type": "string",
-      "label": "項目名行の指定",
+      "label": "項目名行の指定 (必須)",
       "description": "1始まりの行番号で、１行のみ指定する"
     },
     {
@@ -93,7 +93,7 @@
     {
       "name": "observe",
       "type": "string",
-      "label": "観測値の開始行(必須)",
+      "label": "観測値の開始行 (必須)",
       "description": "1始まりの行番号で指定する"
     },
     {
@@ -144,7 +144,7 @@
   "groups": [
     {
       "name": "cmd_main",
-      "label": "行選択の設定",
+      "label": "行選択の設定 (必須)",
       "params": [
         "field",
         "observe"
@@ -152,12 +152,12 @@
     },
     {
       "name": "cmd_sub",
-      "label": "除外範囲の設定(省略可)",
+      "label": "除外範囲の設定 (省略可)",
       "description": "開始と終了の行条件に合う範囲を除外します。マッチする範囲が複数回ある場合は、全て除外されます。",
       "params": []
     },
     {
-      "name": "cmd_sub1",
+      "name": "cmd_sub_1",
       "label": "開始条件",
       "description": "正規表現または空の行、どちらかで指定してください",
       "params": [
@@ -166,7 +166,7 @@
       ]
     },
     {
-      "name": "cmd_sub２",
+      "name": "cmd_sub_２",
       "label": "終了条件",
       "description": "開始からの行数、正規表現または空の行、いずれか１つで指定してください",
       "params": [
@@ -177,7 +177,7 @@
     },
     {
       "name": "cmd_sub2",
-      "label": "その他(省略可)",
+      "label": "その他 (省略可)",
       "params": [
         "attr"
       ]
