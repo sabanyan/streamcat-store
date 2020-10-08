@@ -199,6 +199,12 @@
   "url": "./static/pdf/mcmd/table_grouping/mhashavg.pdf",
   "groups": [
     {
+      "name": "abstract",
+      "label": "ハッシュ法による項目値の平均",
+      "description": "キー項目別の平均値を、hash法を用いてソート無しで計算する",
+      "params": []
+    },
+    {
       "name": "grouping",
       "label": "グループの設定 (省略可)",
       "params": [

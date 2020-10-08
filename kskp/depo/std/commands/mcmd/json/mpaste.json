@@ -116,7 +116,7 @@
   "groups": [
     {
       "name": "abstract",
-      "label": "コマンドの概要",
+      "label": "行番号による結合",
       "description": "行番号をキーにして、入力i のデータに、入力mのデータを結合する",
       "params": []
     },

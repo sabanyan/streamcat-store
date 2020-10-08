@@ -2,6 +2,12 @@
   "id": "mcal",
   "groups": [
     {
+      "name": "abstract",
+      "label": "計算",
+      "description": "項目間の演算を行い、1つの結果を追加する",
+      "params": []
+    },
+    {
       "name": "group1",
       "label": "計算式の設定（必須）",
       "params": [
