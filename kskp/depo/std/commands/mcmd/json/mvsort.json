@@ -45,7 +45,7 @@
     {
       "name": "delim",
       "type": "string",
-      "label": "ベクトル要素の区切り文字",
+      "label": "ベクトル要素の区切り文字 (省略可)",
       "optional": true,
       "description": "省略時は半角スペース"
     },
@@ -127,7 +127,7 @@
     },
     {
       "name": "cmd_main",
-      "label": "要素のソートの設定",
+      "label": "要素のソートの設定 (必須)",
       "params": [
         "vf",
         "A",

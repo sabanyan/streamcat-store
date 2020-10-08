@@ -200,7 +200,8 @@
         "R",
         "v",
         "r"
-      ]
+      ],
+      "hide_background": true
     },
     {
       "name": "cmd_main_2",
@@ -209,7 +210,8 @@
       "params": [
         "O",
         "F"
-      ]
+      ],
+      "hide_background": true
     },
     {
       "name": "cmd_sub",

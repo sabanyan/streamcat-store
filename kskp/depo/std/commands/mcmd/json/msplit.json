@@ -9,7 +9,7 @@
     },
     {
       "name": "group2",
-      "label": "分割の設定",
+      "label": "分割の設定 (必須)",
       "params": [
         "f",
         "delim"
@@ -17,7 +17,7 @@
     },
     {
       "name": "group4",
-      "label": "出力の設定",
+      "label": "出力の設定 (必須)",
       "params": [
         "a",
         "r"
@@ -77,21 +77,21 @@
     {
       "name": "f",
       "type": "string",
-      "label": "対象とする項目名(必須)",
+      "label": "対象とする項目名 (必須)",
       "description": "1項目のみ指定可能"
     },
     {
       "name": "delim",
       "type": "string",
-      "label": "区切り文字",
+      "label": "分割時の区切り文字",
       "description": "省略時は半角スペース",
       "optional": true
     },
     {
       "name": "a",
       "type": "string",
-      "label": "追加する項目名(必須)",
-      "description": "複数ある場合はカンマ区切りで指定する\n追加項目数より要素のほうが多い場合は、超過要素は出力されない"
+      "label": "追加する項目名 (必須)",
+      "description": "・複数ある場合はカンマ区切りで指定する\n・追加項目数より要素のほうが多い場合は、超過要素は出力されない"
     },
     {
       "name": "r",

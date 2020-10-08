@@ -292,7 +292,8 @@
       "params": [
         "f",
         "t"
-      ]
+      ],
+      "hide_background": true
     },
     {
       "name": "cmd_main_2",
@@ -303,7 +304,8 @@
         "alpha",
         "skip",
         "n"
-      ]
+      ],
+      "hide_background": true
     },
     {
       "name": "cmd_sub",

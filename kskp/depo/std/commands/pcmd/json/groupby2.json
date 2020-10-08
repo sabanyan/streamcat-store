@@ -32,14 +32,16 @@
       "label": "パラメータのない特徴量",
       "params": [
         "fclist"
-      ]
+      ],
+      "hide_background": true
     },
     {
       "name": "features1_2",
       "label": "パラメータのある特徴量",
       "params": [
         "nfclist"
-      ]
+      ],
+      "hide_background": true
     },
     {
       "name": "tsfeatures",
@@ -54,14 +56,16 @@
       "label": "パラメータのない特徴量",
       "params": [
         "xfclist"
-      ]
+      ],
+      "hide_background": true
     },
     {
       "name": "tsfeatures_2",
       "label": "パラメータのある特徴量",
       "params": [
         "xfcnlist"
-      ]
+      ],
+      "hide_background": true
     },
     {
       "name": "group3",

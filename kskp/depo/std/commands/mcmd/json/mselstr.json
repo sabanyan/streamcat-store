@@ -232,7 +232,8 @@
         "sub",
         "head",
         "tail"
-      ]
+      ],
+      "hide_background": true
     },
     {
       "name": "cmd_sub",

@@ -11,7 +11,7 @@
     {
       "name": "a",
       "type": "string",
-      "label": "項目名の設定(必須)",
+      "label": "項目名の設定 (必須)",
       "description": "複数項目の指定は不可"
     },
     {
@@ -37,7 +37,7 @@
     {
       "name": "l",
       "type": "string",
-      "label": "生成データの行数(必須)",
+      "label": "生成データの行数 (必須)",
       "optional": true,
       "default": "10",
       "description": "正の整数で設定する"
@@ -98,7 +98,7 @@
     },
     {
       "name": "cmd_main",
-      "label": "データ生成の設定(必須)",
+      "label": "データ生成の設定 (必須)",
       "params": [
         "a",
         "l"
@@ -106,12 +106,13 @@
     },
     {
       "name": "cmd_main_1",
-      "label": "整数乱数生成時の設定(省略可)",
+      "label": "整数乱数生成時の設定 (省略可)",
       "params": [
         "int",
         "max",
         "min"
-      ]
+      ],
+      "hide_background": true
     },
     {
       "name": "cmd_sub",
