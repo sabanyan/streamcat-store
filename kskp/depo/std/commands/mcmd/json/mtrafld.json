@@ -134,6 +134,12 @@
   "url": "./static/pdf/mcmd/value_crossing/mtrafld.pdf",
   "groups": [
     {
+      "name": "abstract",
+      "label": "クロス表をトランザクション項目に変換(Mtrafld)",
+      "description": "複数項目の値を要素とするベクトル項目を作成する",
+      "params": []
+    },
+    {
       "name": "cmd_main",
       "label": "データ変換の設定",
       "params": [

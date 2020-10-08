@@ -161,6 +161,12 @@
   "url": "./static/pdf/mcmd/table_grouping/mhashsum.pdf",
   "groups": [
     {
+      "name": "abstract",
+      "label": "ハッシュ法による項目値の合計",
+      "description": "キー項目別の合計値を、hash法を用いてソート無しで計算する",
+      "params": []
+    },
+    {
       "name": "grouping",
       "label": "グループの設定 (省略可)",
       "params": [

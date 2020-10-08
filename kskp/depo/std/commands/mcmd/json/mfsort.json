@@ -101,7 +101,7 @@
   "groups": [
     {
       "name": "abstract",
-      "label": "コマンドの概要",
+      "label": "複数項目の値のソート",
       "description": "対象とする項目の値を行内で並び替える",
       "params": []
     },

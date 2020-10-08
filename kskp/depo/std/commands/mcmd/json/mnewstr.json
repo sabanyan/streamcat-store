@@ -76,6 +76,12 @@
   "url": "",
   "groups": [
     {
+      "name": "abstract",
+      "label": "固定文字列データの新規生成",
+      "description": "固定文字列で、指定した行数を作成する",
+      "params": []
+    },
+    {
       "name": "cmd_main",
       "label": "文字列データ生成の設定(必須)",
       "params": [
