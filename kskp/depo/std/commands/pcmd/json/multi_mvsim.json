@@ -2,6 +2,12 @@
   "id": "multi_mvsim",
   "groups": [
     {
+      "name": "abstract",
+      "label": "複数の移動窓の類似度の計算",
+      "description": "複数の類似度を複数の期間に対して、算出する",
+      "params": []
+    },
+    {
       "name": "grouping",
       "label": "グループの設定 (必須)",
       "params": [

@@ -2,6 +2,12 @@
   "id": "groupby2",
   "groups": [
     {
+      "name": "abstract",
+      "label": "特徴量の計算",
+      "description": "複数項目に対して、複数の特徴量を一括算出する  (特徴量: 70種類)",
+      "params": []
+    },
+    {
       "name": "grouping",
       "label": "グループの設定 (省略可)",
       "params": [

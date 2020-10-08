@@ -39,6 +39,12 @@
   "url": "",
   "groups": [
     {
+      "name": "abstract",
+      "label": "項目名リストの取得",
+      "description": "指定した行数だけ、項目名と値を行方向へ展開した縦型データで出力する",
+      "params": []
+    },
+    {
       "name": "cmd_sub",
       "label": "その他 (省略可)",
       "params": [

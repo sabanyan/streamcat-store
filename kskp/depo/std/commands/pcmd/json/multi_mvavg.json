@@ -2,6 +2,12 @@
   "id": "multi_mvavg",
   "groups": [
     {
+      "name": "abstract",
+      "label": "複数項目の移動平均の計算",
+      "description": "複数列、複数の期間に対して、移動平均を算出する",
+      "params": []
+    },
+    {
       "name": "grouping",
       "label": "グループの設定 (必須)",
       "params": [
