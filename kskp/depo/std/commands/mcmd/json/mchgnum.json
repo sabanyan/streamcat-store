@@ -116,7 +116,7 @@
     {
       "name": "assert_nullin",
       "type": "boolean",
-      "label": "対象となる項目名で指定された項目の NULL 値チェックを行う",
+      "label": "対象とする項目名で指定された項目の NULL 値チェックを行う",
       "optional": true
     },
     {
@@ -140,8 +140,9 @@
     {
       "name": "x",
       "type": "boolean",
-      "label": "項目番号による指定",
-      "optional": true
+      "label": "項目名ではなく、項目番号で指定する",
+      "optional": true,
+      "description": "・0始まりの項目番号で指定する\n・Lをつけると、右端起点の項目番号とみなす(例:3L)\n・複数入力可能なOptの場合は、列範囲としての指定も可能(例: 0-5)"
     },
     {
       "name": "q",
