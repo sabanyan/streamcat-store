@@ -119,7 +119,7 @@
   "groups": [
     {
       "name": "abstract",
-      "label": "コマンドの概要",
+      "label": "指定行の選択",
       "description": "・ソートした結果の順番で行を選択する\n・選択した行は o　に、それ以外は u　に出力される",
       "params": []
     },

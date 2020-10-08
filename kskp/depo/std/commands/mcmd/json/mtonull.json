@@ -117,6 +117,12 @@
   "url": "./static/pdf/mcmd/value_transform/mtonull.pdf",
   "groups": [
     {
+      "name": "abstract",
+      "label": "NULL値へ置換",
+      "description": "指定した値にマッチした項目データをNULLに置換する",
+      "params": []
+    },
+    {
       "name": "cmd_main",
       "label": "置換の設定 (必須)",
       "params": [

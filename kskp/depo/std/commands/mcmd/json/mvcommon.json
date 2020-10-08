@@ -158,6 +158,12 @@
   "url": "./static/pdf/mcmd/table_join/mvcommon.pdf",
   "groups": [
     {
+      "name": "abstract",
+      "label": "ベクトル要素の参照選択",
+      "description": "ベクトルから、参照データで指定された要素を選択する",
+      "params": []
+    },
+    {
       "name": "key",
       "label": "参照キーの設定 (必須)",
       "params": [

@@ -134,6 +134,12 @@
   "url": "./static/pdf/mcmd/value_transform/msed.pdf",
   "groups": [
     {
+      "name": "abstract",
+      "label": "正規表現による文字列の置換",
+      "description": "正規表現に一致する内容を指定した文字列で置換する",
+      "params": []
+    },
+    {
       "name": "cmd_main",
       "label": "置換対象の設定",
       "params": [

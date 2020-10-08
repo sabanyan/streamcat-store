@@ -44,7 +44,7 @@
   "groups": [
     {
       "name": "abstract",
-      "label": "コマンドの概要",
+      "label": "構成比の計算",
       "description": "対象項目の値がグループ単位の合計に占める割合(構成比)を計算する",
       "params": []
     },
