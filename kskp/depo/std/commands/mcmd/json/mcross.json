@@ -4,57 +4,45 @@
     {
       "name": "abstract",
       "label": "クロス集計 (行・列を入れ換え)",
-      "description": "クロス集計を行う（行を列へと、列を行へ を同時に入れ替え）",
+      "description": "・値を項目名として使用したい項目を指定し、対象とする項目名と入替えて出力します\n・対象とする項目名は、値として行方向に展開されます",
       "params": []
     },
     {
       "name": "group1",
-      "label": "変換キーの設定",
+      "label": "グループの設定 (省略可)",
       "params": [
         "k"
       ]
     },
     {
-      "name": "group2",
-      "label": "列ラベルを行ラベルへ移動する設定 (必須)",
+      "name": "cmd_main",
+      "label": "入替えの設定 (必須)",
       "params": [
-        "s"
-      ]
-    },
-    {
-      "name": "group5",
-      "label": "行ラベルを列ラベルへ移動する設定 (必須)",
-      "params": [
+        "s",
         "f",
-        "a"
+        "a",
+        "v"
       ]
     },
     {
       "name": "group10",
       "label": "その他 (省略可)",
       "params": [
-        "q",
-        "v"
-      ]
-    },
-    {
-      "name": "group15",
-      "label": "項目名・項目番号についての設定（省略可）",
-      "params": [
-        "x",
         "nfn",
-        "nfno"
+        "nfno",
+        "x",
+        "q"
       ]
     },
     {
       "name": "group20",
       "label": "システム管理用設定（作業領域・ログ出力）",
       "params": [
-        "tmpPath",
         "assert_diffSize",
-        "assert_nullout",
+        "tmpPath",
         "assert_nullkey",
-        "assert_nullin"
+        "assert_nullin",
+        "assert_nullout"
       ]
     }
   ],
@@ -142,35 +130,35 @@
     {
       "name": "k",
       "type": "string",
-      "label": "変換キーの項目名",
-      "description": "カンマ区切りで複数指定可",
+      "label": "グループ化する項目名 (省略可)",
+      "description": "・カンマ区切りで複数指定可\n・省略時は全ての行を同じグループとみなして処理される",
       "optional": true
     },
     {
       "name": "f",
       "type": "string",
-      "label": "列ラベルから行へ移動する項目名(必須)",
-      "description": "指定した列名を値に持つ列が追加される\nカンマ区切りで複数指定可\n 項目名時:*,？ 使用可    項目番号時:0−3,5,0L 等使用可"
+      "label": "対象とする項目名 (必須)",
+      "description": "・コンマ区切りで複数指定可\n・ワイルドカード(*,?)使用可"
     },
     {
       "name": "a",
       "type": "string",
-      "label": "列ラベルから行へ移動したラベルを格納する項目名(省略可）",
-      "description": "必要な場合には指定が可能 【省略時は fld】",
+      "label": "追加する項目名 (必須)",
+      "description": "対象とする項目名で指定した項目名が、値として入る項目名を指定する　(省略時はfld)",
       "default": "fld",
       "optional": true
     },
     {
       "name": "s",
       "type": "string",
-      "label": "行から列ラベルへ移動する項目名",
-      "description": "●１項目のみ指定可能\n●列ラベルの順序指定が可能\n   表記：【末尾に付与】無しは文字列の昇順、%nは数値の昇順、%rは文字列の降順、%nrは数値の降順\n【注意】グループ単位で値の重複がある列を指定した場合、任意の値が出力されます",
+      "label": "値を列名へ展開する項目名 (必須)",
+      "description": "・1項目のみ指定可能\n・展開結果の項目名の順序指定が可能(デフォルトは文字列昇順)\n 　方法: 項目名末尾に記号を付与\n     数値昇順：%n,  文字列降順： %r,  数値降順：%nr\n・【注意】グループ単位で値の重複がある列を指定した場合、任意の値が出力されます",
       "optional": true
     },
     {
       "name": "v",
       "type": "string",
-      "label": "Null値置換文字列",
+      "label": "Null値置換文字列　(省略可)",
       "description": "入れ換え処理で発生したNull値を、別の値で置換する場合に指定",
       "optional": true
     },
@@ -189,13 +177,13 @@
     {
       "name": "assert_nullin",
       "type": "boolean",
-      "label": "入力項目の f=または vf=で指定された項目の NULL 値チェックを行う",
+      "label": "対象とする項目名で指定された項目の NULL 値チェックを行う",
       "optional": true
     },
     {
       "name": "assert_nullout",
       "type": "boolean",
-      "label": "-assert nullout 出力項目の NULL 値チェックを行う",
+      "label": "出力項目の NULL 値チェックを行う",
       "optional": true
     },
     {
