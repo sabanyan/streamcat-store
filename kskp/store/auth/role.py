@@ -303,7 +303,7 @@ class Role(BaseModel):
         if factory.exists(member.user.id, self.id):
             # システム系ロールが、この所属によって、ロールに所有者が居なくなる場合はエラーとする
             if self.is_system_role and member.owner == False and self.is_last_owner(member.user):
-                self._raise_no_role_owner_exception()
+                self.raise_no_role_owner_exception()
 
             # 既にメンバの場合は所有権フラグを更新する
             user_role = factory.find_by_id(member.user.id, self.id)
@@ -326,7 +326,7 @@ class Role(BaseModel):
         if factory.exists(user.id, self.id):
             # システム系ロールが、この脱退によって、ロールに所有者が居なくなる場合はエラーとする
             if self.is_system_role and self.is_last_owner(user):
-                self._raise_no_role_owner_exception()
+                self.raise_no_role_owner_exception()
             # ロールからメンバを削除する
             user_role = factory.find_by_id(user.id, self.id)
             user_role.delete()
@@ -340,7 +340,7 @@ class Role(BaseModel):
 
         # システム系ロールが、この脱退によって、ロールに所有者が居なくなる場合はエラーとする
         if self.is_system_role and not self.is_owner(except_user):
-            self._raise_no_role_owner_exception()
+            self.raise_no_role_owner_exception()
 
         from kskp.store.factory import UserRoleFactory
         UserRoleFactory(self._session).delete_all_by_role_id(self.id, except_user_id=except_user.id)
@@ -369,7 +369,7 @@ class Role(BaseModel):
 
         # システム系ロールが、この初期化によって、ロールに所有者が居なくなる場合はエラーとする
         if self.is_system_role and not owner_exists:
-            self._raise_no_role_owner_exception()
+            self.raise_no_role_owner_exception()
 
         # 操作ユーザがロール所有者以外の場合はエラーとする
         self_user = self._session.user

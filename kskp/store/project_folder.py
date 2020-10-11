@@ -282,7 +282,7 @@ class ProjectFolder(Folder):
         # 操作ユーザがプロジェクト管理者以外の場合はエラーとする
         self_user = self._session.user
         owners_role = self._load_owners_role()
-        if not owners_role.is_joined_user(self_user):
+        if not owners_role.is_joined_user(self_user) and not self._session.has_usr_admin():
             raise NotAuthorizedException('プロジェクト管理者以外のメンバはユーザの所属処理はできません')        
 
         # プロジェクトロールに所属させる
@@ -316,7 +316,7 @@ class ProjectFolder(Folder):
         # 操作ユーザがプロジェクト管理者以外の場合はエラーとする
         self_user = self._session.user
         owners_role = self._load_owners_role()
-        if not owners_role.is_joined_user(self_user):
+        if not owners_role.is_joined_user(self_user) and not self._session.has_usr_admin():
             raise NotAuthorizedException('プロジェクト管理者以外のメンバはユーザの脱退処理はできません')
 
         # 全てのプロジェクトロールから脱退させる
@@ -351,7 +351,7 @@ class ProjectFolder(Folder):
         # 
         self_user = self._session.user
         owners_role = self._load_owners_role()
-        if not owners_role.is_joined_user(self_user):
+        if not owners_role.is_joined_user(self_user) and not self._session.has_usr_admin():
             raise NotAuthorizedException('プロジェクト管理者以外のメンバは所属ユーザの初期化をできません')
 
         # 
