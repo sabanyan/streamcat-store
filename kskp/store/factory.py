@@ -678,11 +678,24 @@ class UserFactory():
         """
         キーワードを含むユーザ名またはE-MailのUserを取得する
         """
-        from sqlalchemy.sql.expression import or_
-        search_keyword = '%' + keyword.translate(self.escape_table) + '%'
-        query = self._session.query(User).\
-                filter(or_(User.name.like(search_keyword, escape='\\'),
-                           User.email.like(search_keyword, escape='\\')))
+        def split_keyword(keyword):
+            """
+            空白区切りの検索語をリストに分割する
+            """
+            import csv
+            ret = csv.reader([keyword.strip()], delimiter=" ", doublequote=True, quotechar='"', skipinitialspace=True)
+            return next(ret)
+
+        from sqlalchemy.sql.expression import and_, or_
+        query = self._session.query(User)
+
+        like_predicates = []
+        for k in split_keyword(keyword):
+            search_keyword = '%' + k.translate(self.escape_table) + '%'
+            like_predicates.append(or_(User.name.like(search_keyword, escape='\\'),
+                                       User.email.like(search_keyword, escape='\\')))
+        query = query.filter(and_(*like_predicates))
+
         return query.order_by(User.email).all()
 
     def exists(self, uuid) -> bool:
