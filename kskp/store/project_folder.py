@@ -257,6 +257,22 @@ class ProjectFolder(Folder):
 
         return query.count() > 0
 
+    def is_last_owner(self, user):
+        """
+        指定されたユーザがただ一人のプロジェクト管理者ならTrueを返す
+        """
+        owners_role = self._load_owners_role()
+        return owners_role.is_joined_user(user) and owners_role.count_joined_users() <= 1
+
+    def owner_exists(self, members):
+        """
+        指定されたメンバリストにプロジェクト管理者が存在する場合はTrueを返す
+        """
+        for member in members:
+            if member.type == ProjectFolder.OWNER_MEMBER_TYPE:
+                return True
+        return False
+
     def join_member(self, member):
         """
         プロジェクトにユーザを所属させる
@@ -268,12 +284,6 @@ class ProjectFolder(Folder):
         owners_role = self._load_owners_role()
         if not owners_role.is_joined_user(self_user):
             raise NotAuthorizedException('プロジェクト管理者以外のメンバはユーザの所属処理はできません')        
-
-        # この所属によって、プロジェクトに管理者が居なくなる場合(ユーザ管理者は除外)はエラーとする
-        if member.type != ProjectFolder.OWNER_MEMBER_TYPE and \
-           owners_role.is_joined_user(member.user) and \
-           owners_role.count_joined_users() <= 2:
-            raise Exception('この所属処理でプロジェクト管理者がいなくなります')
 
         # プロジェクトロールに所属させる
         # (1人のUserが複数種のプロジェクトロールに所属しないようにする)
@@ -309,10 +319,6 @@ class ProjectFolder(Folder):
         if not owners_role.is_joined_user(self_user):
             raise NotAuthorizedException('プロジェクト管理者以外のメンバはユーザの脱退処理はできません')
 
-        # この脱退によって、プロジェクトに管理者が居なくなる場合(ユーザ管理者は除外)はエラーとする
-        if owners_role.is_joined_user(user) and owners_role.count_joined_users() <= 2:
-            raise Exception('この脱退処理でプロジェクト管理者がいなくなります')
-
         # 全てのプロジェクトロールから脱退させる
         readers_role = self._load_readers_role()
         writers_role = self._load_writers_role()
@@ -330,12 +336,8 @@ class ProjectFolder(Folder):
         # 指定されたメンバリストの妥当性を検証する
         # 
         users = set()
-        owner_exists = False
         for member in members:
-            # プロジェクト管理者が設定されない場合はエラーとする
-            if member.type == ProjectFolder.OWNER_MEMBER_TYPE:
-                owner_exists = True
-            elif member.type not in (ProjectFolder.READER_MEMBER_TYPE, ProjectFolder.WRITER_MEMBER_TYPE):
+            if member.type not in (ProjectFolder.OWNER_MEMBER_TYPE, ProjectFolder.READER_MEMBER_TYPE, ProjectFolder.WRITER_MEMBER_TYPE):
                 raise Exception(f'無効なmember.type({member.type})が指定されました')
 
             # 1人のUserが複数種のプロジェクトロールに所属する場合はエラーとする
@@ -343,9 +345,6 @@ class ProjectFolder(Folder):
                 raise Exception(f'ユーザ({member.user.name})が重複して指定されました')
             else:
                 users.add(member.user)
-
-        if not owner_exists:
-            raise Exception('プロジェクト管理者が設定されていません')
 
         # 
         # 操作ユーザがプロジェクト管理者以外の場合はエラーとする
@@ -360,9 +359,9 @@ class ProjectFolder(Folder):
         # 
         readers_role = self._load_readers_role()
         writers_role = self._load_writers_role()
-        readers_role.leave_others(except_user_id=self_user.id)
-        writers_role.leave_others(except_user_id=self_user.id)
-        owners_role.leave_others(except_user_id=self_user.id)
+        readers_role.leave_others(except_user=self_user)
+        writers_role.leave_others(except_user=self_user)
+        owners_role.leave_others(except_user=self_user)
 
         # 
         # 自分以外のユーザをメンバ設定する

@@ -2,6 +2,7 @@ import os
 import uuid
 from sqlalchemy import Column, String, text
 from sqlalchemy.dialects.postgresql import INTEGER, BOOLEAN, TIMESTAMP, UUID
+from kskp.core import Constraints
 from kskp.store import BaseModel
 from .user_role import UserRole
 
@@ -117,6 +118,10 @@ class Role(BaseModel):
     def is_everyone(self):
         return self.uuid == Role.EVERYONE_ROLE_UUID
 
+    @property
+    def is_system_role(self):
+        return self.is_sys_admin or self.is_usr_admin or self.is_everyone
+
     def _get_system_role_label(self):
         if self.is_sys_admin:
             return Role.SYS_ADMIN_ROLE_LABEL
@@ -126,6 +131,17 @@ class Role(BaseModel):
             return Role.EVERYONE_ROLE_LABEL
         else:
             return ''
+
+    def raise_no_role_owner_exception(self):
+        from .exceptions import NoRoleOwnerException
+        if self.is_sys_admin:
+            raise NoRoleOwnerException('システム管理者権限を持つユーザがいなくなるのでこの操作はできません')
+        elif self.is_usr_admin:
+            raise NoRoleOwnerException('ユーザ管理者権限を持つユーザがいなくなるのでこの操作はできません')
+        elif self.is_everyone:
+            raise NoRoleOwnerException('ユーザ管理者権限を持つユーザがいなくなるのでこの操作はできません')
+        else:
+            raise NoRoleOwnerException('ロール所有者がいなくなるのでこの操作はできません')
 
     def save(self):
         """
@@ -167,6 +183,9 @@ class Role(BaseModel):
         # 
         # count = self._session.query(Auth).filter(Auth.role_id == self.id)\
         #                                  .filter(Auth.own == 1).count()
+
+        if self.is_system_role:
+            raise Exception(f'ロール({self.name})はシステムロールなので削除できません')
 
         try:
             self_id = self.id
@@ -256,6 +275,21 @@ class Role(BaseModel):
 
         return members
 
+    def is_last_owner(self, user):
+        """
+        指定されたユーザがただ一人の所有者ならTrueを返す
+        """
+        return self.is_owner(user) and self.count_owners() <= 1
+
+    def owner_exists(self, members):
+        """
+        指定されたメンバリストに所有者が存在する場合はTrueを返す
+        """
+        for member in members:
+            if member.owner:
+                return True
+        return False
+
     def join_member(self, member):
         """
         ロールにユーザを所属させる
@@ -267,11 +301,9 @@ class Role(BaseModel):
         factory = UserRoleFactory(self._session)
 
         if factory.exists(member.user.id, self.id):
-            # この所属によって、ロールに管理者が居なくなる場合はエラーとする
-            if member.owner == False and \
-                self.is_owner(member.user) and \
-                self.count_owners() <= 1:
-                raise Exception('この所属処理でロール管理者がいなくなります')
+            # システム系ロールが、この所属によって、ロールに所有者が居なくなる場合はエラーとする
+            if self.is_system_role and member.owner == False and self.is_last_owner(member.user):
+                self._raise_no_role_owner_exception()
 
             # 既にメンバの場合は所有権フラグを更新する
             user_role = factory.find_by_id(member.user.id, self.id)
@@ -280,7 +312,7 @@ class Role(BaseModel):
             # ロールにメンバを追加する
             user_role = UserRole(self._session, member.user.id, self.id, member.owner)
             user_role.save()
-    
+
     def leave_member(self, user):
         """
         ロールからユーザを脱退させる
@@ -292,24 +324,26 @@ class Role(BaseModel):
         factory = UserRoleFactory(self._session)
 
         if factory.exists(user.id, self.id):
-            # この脱退によって、ロールに管理者が居なくなる場合はエラーとする
-            if self.is_owner(user) and \
-               self.count_owners() <= 1:
-                raise Exception('この脱退処理でロール管理者がいなくなります')
+            # システム系ロールが、この脱退によって、ロールに所有者が居なくなる場合はエラーとする
+            if self.is_system_role and self.is_last_owner(user):
+                self._raise_no_role_owner_exception()
             # ロールからメンバを削除する
             user_role = factory.find_by_id(user.id, self.id)
             user_role.delete()
 
-    def leave_others(self, except_user_id):
+    def leave_others(self, except_user):
         """
         指定する1人を除いて、ロールから他のユーザを全て脱退させる
         """
         if self.is_self_role():
             raise Exception('本人ロールからユーザを脱退させることはできません')
 
+        # システム系ロールが、この脱退によって、ロールに所有者が居なくなる場合はエラーとする
+        if self.is_system_role and not self.is_owner(except_user):
+            self._raise_no_role_owner_exception()
+
         from kskp.store.factory import UserRoleFactory
-        UserRoleFactory(self._session).delete_all_by_role_id(self.id, except_user_id=except_user_id)
-        # raise Exception('全員脱退させたら管理者がいなくなっちゃう！')
+        UserRoleFactory(self._session).delete_all_by_role_id(self.id, except_user_id=except_user.id)
 
     def init_members(self, members):
         """
@@ -323,23 +357,24 @@ class Role(BaseModel):
         users = set()
         owner_exists = False
         for member in members:
-            # プロジェクト管理者が設定されない場合はエラーとする
+            # ロール所有者が設定されない場合はエラーとする
             if member.owner:
                 owner_exists = True
 
-            # 1人のUserが複数種のプロジェクトロールに所属する場合はエラーとする
+            # 1人のUserが重複指定された場合はエラーとする
             if member.user in users:
                 raise Exception(f'ユーザ({member.user.name})が重複して指定されました')
             else:
                 users.add(member.user)
 
-        if not owner_exists:
-            raise Exception('プロジェクト管理者が設定されていません')
+        # システム系ロールが、この初期化によって、ロールに所有者が居なくなる場合はエラーとする
+        if self.is_system_role and not owner_exists:
+            self._raise_no_role_owner_exception()
 
-        # 操作ユーザがプロジェクト管理者以外の場合はエラーとする
+        # 操作ユーザがロール所有者以外の場合はエラーとする
         self_user = self._session.user
         if not self.is_owner(self_user):
-            raise NotAuthorizedException(f'ロール管理者以外のユーザ({self_user})は所属ユーザの初期化をできません')
+            raise NotAuthorizedException(f'ロール所有者以外のユーザ({self_user})は所属ユーザの初期化をできません')
 
         # ロールから、自分以外のユーザを全て削除する
         for user in self.get_joined_users():

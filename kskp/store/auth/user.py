@@ -3,6 +3,7 @@ import uuid
 from sqlalchemy import Column, String, text
 from sqlalchemy.dialects.postgresql import INTEGER, TIMESTAMP, UUID, ENUM
 from .exceptions import NotAuthorizedException
+from kskp.core import Constraints
 from .. import BaseModel
 
 class User(BaseModel):
@@ -182,6 +183,16 @@ class User(BaseModel):
         # 戻り値の作成
         return {Role.SYS_ADMIN_ROLE_LABEL:result.sys_admin > 0, Role.USR_ADMIN_ROLE_LABEL:result.usr_admin > 0}
 
+    def _able_to_delete_user_or_raise(self):
+        # ユーザ管理者のみ、ユーザを削除できる
+        if not self._session.has_usr_admin():
+            raise NotAuthorizedException('ユーザを削除できませんでした')
+
+        # 削除ユーザが全てのロールから脱退できるか確認する(本人ロールを除く)
+        for role in self.get_joined_roles():
+            if role.is_system_role and role.is_last_owner(self):
+                role.raise_no_role_owner_exception()
+
     @property
     def is_temp(self):
         return self.state == User.TMP_STATE
@@ -333,12 +344,14 @@ class User(BaseModel):
         """
         Userを削除する
         """
-        from kskp.store.factory import UserRoleFactory
-        user_role_factory = UserRoleFactory(self._session)
-        
+        # 削除できない場合は例外を送出する
+        self._able_to_delete_user_or_raise()
+
         try:
-            # users_rolesテーブルから全ての削除ユーザの行を削除する
-            user_role_factory.delete_all_by_user_id(self.id)
+            # 全てのロールから脱退する(本人ロールを除く)
+            for role in self.get_joined_roles():
+                if not role.is_self_role():
+                    role.leave_member(self)
             # usersテーブルから削除ユーザの行を削除する
             self._session.delete(self)
         except Exception as e:
@@ -367,9 +380,16 @@ class User(BaseModel):
             # everyone以外の所属ロールが無ければ、Userを物理削除する
             if not user_join_in_other_than_everyone_role:
                 self.delete()
-                return  
+                return
+
+        # 削除できない場合は例外を送出する
+        self._able_to_delete_user_or_raise()
 
         try:
+            # 全てのロールから脱退する(本人ロールを除く)
+            for role in self.get_joined_roles():
+                if not role.is_self_role():
+                    role.leave_member(self)
             # 論理削除状態に変更する
             self._set_state(User.INACTIVE_STATE)
             self._modifier_id = (modifier or self._session.user).id

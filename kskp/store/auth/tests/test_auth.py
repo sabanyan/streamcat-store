@@ -4,7 +4,7 @@ import pprint
 from sqlalchemy.orm.exc import NoResultFound
 from kskp.core import Datum
 from kskp.store import ProjectFolder
-from kskp.store.auth import Auth, Role, InvalidPassword, NotAuthorizedException
+from kskp.store.auth import Auth, Role, InvalidPassword, NotAuthorizedException, NoRoleOwnerException
 from ...tests.test_case_base import TestCaseBase
 
 class AuthTest(TestCaseBase):
@@ -231,7 +231,7 @@ class AuthTest(TestCaseBase):
             self.assertIs(role._session, self.factory._session)
 
         # ロールを削除する
-        print('>> ', role.get_joined_users())
+        # print('>> ', role.get_joined_users())
         role.delete()
 
     def test_session_rollback(self):
@@ -357,7 +357,6 @@ class AuthTest(TestCaseBase):
         """
         パスワードの妥当性が検証されること
         """
-
         # 新規ユーザを追加する
         new_user = self.factory.user.create('suerp-mario@nintendo.com', 'ホッホ〜！', None)
         new_user.save()
@@ -512,38 +511,55 @@ class AuthTest(TestCaseBase):
 
     def test_join_role_without_owner(self):
         """
-        ロール管理者は必ず指定すること
+        システム管理者ロールの所有者は必ず指定すること
         """
-        # ロールを作成する
-        new_role = self.factory.role.create('黒ネコは甘えんぼ！')
-        new_role.save()
+        # システム管理者ロールを取得する
+        usr_admin_role = self.factory.role.load_sys_admin_role()
 
         # メンバを設定する
         member1 = Role.Member(self.USER2)
         member2 = Role.Member(self.USER3, owner=False)
-        with self.assertRaises(Exception):
-            new_role.init_members([member1, member2])
+        with self.assertRaises(NoRoleOwnerException):
+            usr_admin_role.init_members([member1, member2])
 
-        # ロールを削除する
-        new_role = self.factory.role.find_by_uuid(new_role.uuid)
-        new_role.delete()
+    def test_cannot_delete_system_role(self):
+        """
+        システムロールは削除できないこと
+        """
+        # システムロールを取得する
+        sys_admin_role = self.factory.role.load_sys_admin_role()
+        usr_admin_role = self.factory.role.load_usr_admin_role()
+        everyone_role = self.factory.role.load_everyone_role()
+
+        # システムロールは削除できないこと
+        with self.assertRaises(Exception):
+            sys_admin_role.delete()
+        with self.assertRaises(Exception):
+            usr_admin_role.delete()
+        with self.assertRaises(Exception):
+            everyone_role.delete()
 
     def test_update_role_owner_to_false(self):
         """
-        ロールの所属処理によってロール所有者が不在にならないこと
+        ユーザ管理者ロールの所属処理によってロール所有者が不在にならないこと
         """
-        # ロールを作成する
-        new_role = self.factory.role.create('Pitapa')
-        new_role.save()
+        # ユーザ管理者ロールを取得する
+        usr_admin_role = self.factory.role.load_usr_admin_role()
 
         # 所有権が不在になるようなメンバの更新はできないこと
         member1 = Role.Member(self.USER1, owner=False)
-        with self.assertRaises(Exception):
-            new_role.join_member(member1)
+        with self.assertRaises(NoRoleOwnerException):
+            usr_admin_role.join_member(member1)
 
-        # ロールを削除する
-        new_role = self.factory.role.find_by_uuid(new_role.uuid)
-        new_role.delete()
+    def test_cannot_delete_system_role_owner(self):
+        """
+        ユーザがシステムロールの唯一の所有者の場合、そのユーザを削除できないこと
+        """
+        # システム管理者ロールの所有者を削除できないこと
+        with self.assertRaises(NoRoleOwnerException):
+            self.USER1.throw_away()
+        with self.assertRaises(NoRoleOwnerException):
+            self.USER1.delete()
 
     # 
     # Auths
@@ -1757,7 +1773,7 @@ class AuthTest(TestCaseBase):
 
     def test_join_project_without_owner(self):
         """
-        プロジェクト管理者は必ず指定すること
+        プロジェクト管理者を設定しない
         """
         # ルートフォルダを取得する
         root = self.factory.data.load_root()
@@ -1765,11 +1781,10 @@ class AuthTest(TestCaseBase):
         project = root.create_project_folder('プロジェクト3')
         project.save()
 
-        # メンバを設定する
+        # プロジェクト管理者を設定しない場合でもエラーにならないこと
         member1 = ProjectFolder.Member(self.USER2, ProjectFolder.READER_MEMBER_TYPE)
         member2 = ProjectFolder.Member(self.USER3, ProjectFolder.WRITER_MEMBER_TYPE)
-        with self.assertRaises(Exception):
-            project.init_members([member1, member2])
+        project.init_members([member1, member2])
 
         # プロジェクトは削除する
         project = project.reload()
@@ -1797,7 +1812,7 @@ class AuthTest(TestCaseBase):
 
     def test_join_project_without_member(self):
         """
-        プロジェクトメンバは必ず指定すること
+        プロジェクトメンバに誰も設定しない
         """
         # ルートフォルダを取得する
         root = self.factory.data.load_root()
@@ -1805,9 +1820,8 @@ class AuthTest(TestCaseBase):
         project = root.create_project_folder('プロジェクト5')
         project.save()
 
-        # メンバを設定する
-        with self.assertRaises(Exception):
-            project.init_members([])
+        # 誰も設定しない場合でもエラーにならないこと
+        project.init_members([])
 
         # プロジェクトは削除する
         project = project.reload()
