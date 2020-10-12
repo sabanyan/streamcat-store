@@ -3,7 +3,7 @@ import unittest
 import pprint
 from sqlalchemy.orm.exc import NoResultFound
 from kskp.core import Datum
-from kskp.store import ProjectFolder
+from kskp.store import ProjectFolder, OptimisticLockException
 from kskp.store.auth import Auth, Role, InvalidPassword, NotAuthorizedException, NoRoleOwnerException
 from ...tests.test_case_base import TestCaseBase
 
@@ -155,6 +155,124 @@ class AuthTest(TestCaseBase):
         flow.delete()
         # フレームを削除する
         frame.delete()
+
+    def test_failure_after_update_data(self):
+        """
+        原因不明
+          save() -> update() -> reload()の順に実行すると
+          reload()で参照権限Noneのためエラーになる
+        """
+        # ルートフォルダを取得する
+        root = self.factory.data.load_root()
+
+        # 
+        # フレームを新規作成する
+        # 
+        frame = root.create_frame('Frame!!!', io.BytesIO(b''))
+
+        # フレームの参照と更新権限は付与されていること
+        # (フレームなので実行権限はない)
+        self.assertTrue(frame.readable)
+        self.assertTrue(frame.writable)
+        self.assertFalse(frame.executable)
+
+        # フレームを保存する
+        frame.save()
+
+        # 保存後は全ての権限はNoneに設定される
+        self.assertIsNone(frame.readable)
+        self.assertIsNone(frame.writable)
+        self.assertIsNone(frame.executable)
+
+        # ここでSELECTを発行すると、下のreload()は成功する
+        # frame.reload()
+
+        # フレームを更新する
+        # (SELECTを発行しない単純なUPDATE)
+        frame.update_label_only('frame!!!')
+
+        self.assertIsNone(frame.readable)
+        self.assertIsNone(frame.writable)
+        self.assertIsNone(frame.executable)
+
+        # フォルダを再読み込みする
+        # 参照権限がNoneのため、NotAuthorizedExceptionが送出される
+        with self.assertRaises(NotAuthorizedException):
+            frame.reload()
+
+        # 
+        # プロジェクトを新規作成する
+        # 
+        project = root.create_project_folder('Project!!!')
+
+        # プロジェクトを保存する
+        project.save()
+
+        # プロジェクトの更新者IDと最終更新時刻を更新する
+        project._update_timestamp()
+
+        # プロジェクトを再読み込みする
+        with self.assertRaises(NotAuthorizedException):
+            project.reload()
+
+    def test_success_after_update_data(self):
+        """
+        原因不明
+          save() -> update() -> reload()の順に実行すると
+          reload()で参照権限Noneのためエラーになる
+        """
+        # ルートフォルダを取得する
+        root = self.factory.data.load_root()
+
+        # 
+        # フレームを新規作成する
+        # 
+        frame = root.create_frame('Frame!!!', io.BytesIO(b''))
+
+        # フレームの参照と更新権限は付与されていること
+        # (フレームなので実行権限はない)
+        self.assertTrue(frame.readable)
+        self.assertTrue(frame.writable)
+        self.assertFalse(frame.executable)
+
+        # フレームを保存する
+        frame.save()
+
+        # 保存後は全ての権限はNoneに設定される
+        self.assertIsNone(frame.readable)
+        self.assertIsNone(frame.writable)
+        self.assertIsNone(frame.executable)
+
+        # ここでSELECTを発行すると、下のreload()は成功する
+        frame.reload()
+
+        # フレームを更新する
+        # (SELECTを発行しない単純なUPDATE)
+        frame.update_label_only('frame!!!')
+
+        self.assertTrue(frame.readable)
+        self.assertTrue(frame.writable)
+        self.assertFalse(frame.executable)
+
+        # フォルダを再読み込みする
+        frame.reload()
+
+        # 
+        # プロジェクトを新規作成する
+        # 
+        project = root.create_project_folder('Project!!!')
+
+        # プロジェクトを保存する
+        project.save()
+
+        # ここでSELECTを発行すると、下のreload()は成功する
+        project.reload()
+
+        # プロジェクトの更新者IDと最終更新時刻を更新する
+        project._update_timestamp()
+
+        # プロジェクトを再読み込みする
+        project.reload()
 
     def test_set_session_datum_property(self):
         """
@@ -1658,10 +1776,11 @@ class AuthTest(TestCaseBase):
         # ルートフォルダの下にプロジェクトを作成する
         project = root.create_project_folder('アイドルプロジェクト！')
         project.save()
+        project = project.reload()
 
         # メンバを設定する
         member1 = ProjectFolder.Member(self.USER3, ProjectFolder.OWNER_MEMBER_TYPE)
-        project.init_members([member1])
+        project.init_members([member1], last_modified_at=project.modified_at)
 
         # メンバを取得する
         members = project.get_joined_members()
@@ -1673,7 +1792,6 @@ class AuthTest(TestCaseBase):
 
         # 元のプロジェクト管理者は、プロジェクトを更新できないこと
         with self.assertRaises(NotAuthorizedException):
-            project = project.reload()
             project.update_data('ぷろじぇくと1')
 
     def test_join_project2(self):
@@ -1686,11 +1804,12 @@ class AuthTest(TestCaseBase):
         # ルートフォルダの下にプロジェクトを作成する
         project = root.create_project_folder('V作戦')
         project.save()
+        project = project.reload()
 
         # メンバを設定する
         member1 = ProjectFolder.Member(self.USER2, ProjectFolder.READER_MEMBER_TYPE)
         member2 = ProjectFolder.Member(self.USER3, ProjectFolder.OWNER_MEMBER_TYPE)
-        project.init_members([member1, member2])
+        project.init_members([member1, member2], last_modified_at=project.modified_at)
 
         # メンバを取得する
         members = project.get_joined_members()
@@ -1702,7 +1821,6 @@ class AuthTest(TestCaseBase):
 
         # 元のプロジェクト管理者は、プロジェクトを更新できないこと
         with self.assertRaises(NotAuthorizedException):
-            project = project.reload()
             project.update_data('ぷろじぇくと1')
 
     def test_join_project3(self):
@@ -1716,11 +1834,12 @@ class AuthTest(TestCaseBase):
         # ルートフォルダの下にプロジェクトを作成する
         project = root.create_project_folder('プロジェクト1')
         project.save()
+        project = project.reload()
 
         # メンバを設定する
         member1 = ProjectFolder.Member(self.USER2, ProjectFolder.OWNER_MEMBER_TYPE)
         member2 = ProjectFolder.Member(self.USER3, ProjectFolder.READER_MEMBER_TYPE)
-        project.init_members([member1, member2])
+        project.init_members([member1, member2], last_modified_at=project.modified_at)
 
         # メンバを取得する
         members = project.get_joined_members()
@@ -1731,11 +1850,9 @@ class AuthTest(TestCaseBase):
         self.assertEqual(members, [member1, usr_admin_member, member2])
 
         # ユーザ管理者は、プロジェクトは更新できること
-        project = project.reload()
         project.update_data('ぷろじぇくと1')
 
         # プロジェクトは削除する
-        project = project.reload()
         project.delete()
 
     def test_join_project4(self):
@@ -1749,11 +1866,12 @@ class AuthTest(TestCaseBase):
         # ルートフォルダの下にプロジェクトを作成する
         project = root.create_project_folder('プロジェクト2')
         project.save()
+        project = project.reload()
 
         # メンバを設定する
         member1 = ProjectFolder.Member(self.USER1, ProjectFolder.READER_MEMBER_TYPE)
         member2 = ProjectFolder.Member(self.USER3, ProjectFolder.OWNER_MEMBER_TYPE)
-        project.init_members([member1, member2])
+        project.init_members([member1, member2], last_modified_at=project.modified_at)
 
         # メンバを取得する
         members = project.get_joined_members()
@@ -1764,11 +1882,9 @@ class AuthTest(TestCaseBase):
         self.assertEqual(members, [member2, usr_admin_member])
 
         # ユーザ管理者は、プロジェクトは更新できること
-        project = project.reload()
         project.update_data('ぷろじぇくと2')
 
         # プロジェクトは削除する
-        project = project.reload()
         project.delete()
 
     def test_join_project_without_owner(self):
@@ -1780,14 +1896,14 @@ class AuthTest(TestCaseBase):
         # ルートフォルダの下にプロジェクトを作成する
         project = root.create_project_folder('プロジェクト3')
         project.save()
+        project = project.reload()
 
         # プロジェクト管理者を設定しない場合でもエラーにならないこと
         member1 = ProjectFolder.Member(self.USER2, ProjectFolder.READER_MEMBER_TYPE)
         member2 = ProjectFolder.Member(self.USER3, ProjectFolder.WRITER_MEMBER_TYPE)
-        project.init_members([member1, member2])
+        project.init_members([member1, member2], last_modified_at=project.modified_at)
 
         # プロジェクトは削除する
-        project = project.reload()
         project.delete()
 
     def test_join_project_with_other_type(self):
@@ -1799,15 +1915,15 @@ class AuthTest(TestCaseBase):
         # ルートフォルダの下にプロジェクトを作成する
         project = root.create_project_folder('プロジェクト4')
         project.save()
+        project = project.reload()
 
         # メンバを設定する
         member1 = ProjectFolder.Member(self.USER2, ProjectFolder.READER_MEMBER_TYPE)
         member2 = ProjectFolder.Member(self.USER3, ProjectFolder.OTHER_MEMBER_TYPE)
         with self.assertRaises(Exception):
-            project.init_members([member1, member2])
+            project.init_members([member1, member2], last_modified_at=project.modified_at)
 
         # プロジェクトは削除する
-        project = project.reload()
         project.delete()
 
     def test_join_project_without_member(self):
@@ -1819,12 +1935,12 @@ class AuthTest(TestCaseBase):
         # ルートフォルダの下にプロジェクトを作成する
         project = root.create_project_folder('プロジェクト5')
         project.save()
+        project = project.reload()
 
         # 誰も設定しない場合でもエラーにならないこと
-        project.init_members([])
+        project.init_members([], last_modified_at=project.modified_at)
 
         # プロジェクトは削除する
-        project = project.reload()
         project.delete()
 
     def test_sys_admin_has_permissions(self):
@@ -1961,6 +2077,120 @@ class AuthTest(TestCaseBase):
 
         # ゴミ箱を空にする
         self.factory3.data.find_trashcan().trash_all()
+
+    def test_join_by_serial(self):
+        """
+        プロジェクトメンバの設定は、順次実行すればいずれも更新できる
+        """
+        # ルートフォルダを取得する
+        root = self.factory2.data.load_root()
+        # ルートフォルダの下にプロジェクトを作成する
+        project = root.create_project_folder('ビッグカメラ')
+        project.save()
+
+        # USER2は、プロジェクトを取得する
+        project = project.reload()
+
+        # USER2は、メンバを設定する
+        member1 = ProjectFolder.Member(self.USER2, ProjectFolder.OWNER_MEMBER_TYPE)
+        project.init_members([member1], last_modified_at=project.modified_at)
+
+        # USER1は、プロジェクトを取得する
+        project2 = self.factory.data.find_by_uuid(project.uuid)
+
+        # USER1は、メンバを設定する
+        member1 = ProjectFolder.Member(self.USER2, ProjectFolder.OWNER_MEMBER_TYPE)
+        project2.init_members([member1], last_modified_at=project2.modified_at)
+
+        # プロジェクトは削除する
+        project.delete()
+
+    def test_cannot_join_by_late_user(self):
+        """
+        プロジェクトメンバの設定は、先にプロジェクトを更新した方が更新できる
+        """
+        # ルートフォルダを取得する
+        root = self.factory2.data.load_root()
+        # ルートフォルダの下にプロジェクトを作成する
+        project = root.create_project_folder('ヨドバシカメラ')
+        project.save()
+
+        # USER2は、プロジェクトを取得する
+        project = project.reload()
+
+        # USER1は、プロジェクトを取得する
+        project2 = self.factory.data.find_by_uuid(project.uuid)
+
+        # USER1は、メンバを設定する
+        member1 = ProjectFolder.Member(self.USER2, ProjectFolder.OWNER_MEMBER_TYPE)
+        project2.init_members([member1], last_modified_at=project2.modified_at)
+
+        # USER2は、メンバを設定する
+        with self.assertRaises(OptimisticLockException):
+            member1 = ProjectFolder.Member(self.USER2, ProjectFolder.OWNER_MEMBER_TYPE)
+            project.init_members([member1], last_modified_at=project.modified_at)
+
+        # プロジェクトは削除する
+        project.delete()
+
+    def test_cannot_join_by_late_user2(self):
+        """
+        プロジェクトメンバの設定は、先にプロジェクトを更新した方が更新できる
+        """
+        # ルートフォルダを取得する
+        root = self.factory2.data.load_root()
+        # ルートフォルダの下にプロジェクトを作成する
+        project = root.create_project_folder('Joshin')
+        project.save()
+
+        # USER2は、プロジェクトを取得する
+        project = project.reload()
+
+        # USER1は、プロジェクトを取得する
+        project2 = self.factory.data.find_by_uuid(project.uuid)
+
+        # USER1は、メンバを追加する
+        member1 = ProjectFolder.Member(self.USER2, ProjectFolder.OWNER_MEMBER_TYPE)
+        project2.join_member(member1)
+
+        # USER2は、メンバを設定する
+        with self.assertRaises(OptimisticLockException):
+            member1 = ProjectFolder.Member(self.USER2, ProjectFolder.OWNER_MEMBER_TYPE)
+            project.init_members([member1], last_modified_at=project.modified_at)
+
+        # プロジェクトは削除する
+        project.delete()
+
+    def test_cannot_join_by_late_user3(self):
+        """
+        プロジェクトメンバの設定は、先にプロジェクトを更新した方が更新できる
+        """
+        # ルートフォルダを取得する
+        root = self.factory2.data.load_root()
+        # ルートフォルダの下にプロジェクトを作成する
+        project = root.create_project_folder('Ninomiya')
+        project.save()
+
+        # USER2は、プロジェクトを取得する
+        project = project.reload()
+
+        # USER2は、メンバを追加する
+        member1 = ProjectFolder.Member(self.USER3, ProjectFolder.OWNER_MEMBER_TYPE)
+        project.join_member(member1)
+
+        # USER1は、プロジェクトを取得する
+        project2 = self.factory.data.find_by_uuid(project.uuid)
+
+        # USER1は、メンバを外す
+        project2.leave_member(self.USER3)
+
+        # USER2は、メンバを設定する
+        with self.assertRaises(OptimisticLockException):
+            member1 = ProjectFolder.Member(self.USER2, ProjectFolder.OWNER_MEMBER_TYPE)
+            project.init_members([member1], last_modified_at=project.modified_at)
+
+        # プロジェクトは削除する
+        project.delete()
 
     #
     # Other Datum
@@ -2164,7 +2394,7 @@ class AuthTest(TestCaseBase):
         # メンバを設定する
         member1 = ProjectFolder.Member(self.USER2, ProjectFolder.OWNER_MEMBER_TYPE)
         member2 = ProjectFolder.Member(self.USER3, ProjectFolder.READER_MEMBER_TYPE)
-        project.init_members([member1, member2])
+        project.init_members([member1, member2], last_modified_at=project.modified_at)
 
         # プロジェクトの下にフォルダを作成する
         folder = project.create_folder('ふたつ、不埒な悪行三昧')
@@ -2346,7 +2576,7 @@ class AuthTest(TestCaseBase):
         # メンバを設定する
         member1 = ProjectFolder.Member(self.USER2, ProjectFolder.OWNER_MEMBER_TYPE)
         member2 = ProjectFolder.Member(self.USER3, ProjectFolder.WRITER_MEMBER_TYPE)
-        project.init_members([member1, member2])
+        project.init_members([member1, member2], last_modified_at=project.modified_at)
 
         # プロジェクトの下にフォルダを作成する
         folder = project.create_folder('考えるフリして')
