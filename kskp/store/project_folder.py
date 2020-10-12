@@ -1,5 +1,5 @@
 from kskp.core import Datum
-from kskp.store import Folder
+from kskp.store import Folder, OptimisticLockException
 
 class ProjectFolder(Folder):
 
@@ -211,13 +211,23 @@ class ProjectFolder(Folder):
             owners_role.init_authz(self.id, read=None, write=None, exec=None, own=True)
         return owners_role
 
+    def _update_timestamp(self):
+        try:
+            self._modifier_id = self._session.user.id
+            self._session.update(self)
+        except Exception as e:
+            self._session.rollback()
+            raise e
+        finally:
+            self._session.commit()
+
     def throw_away(self):
         """
         プロジェクトをゴミ箱にほかす
         """
         from kskp.store.auth import NotAuthorizedException
         if not self._session.ownership(self.id):
-            raise NotAuthorizedException('プロジェクト管理者以外のメンバはプロジェクトを削除できません')
+            raise NotAuthorizedException(f'プロジェクト管理者以外のメンバはプロジェクト({self.label})を削除できません')
 
         # ほかす処理はFolderクラスと同じ
         return super().throw_away()
@@ -239,7 +249,7 @@ class ProjectFolder(Folder):
         """
         from kskp.store.auth import NotAuthorizedException
         if not self._session.ownership(self.id):
-            raise NotAuthorizedException('プロジェクト管理者以外のメンバはプロジェクトを削除できません')
+            raise NotAuthorizedException(f'プロジェクト管理者以外のメンバはプロジェクト({self.label})を削除できません')
 
         # 削除処理はFolderクラスと同じ
         super().delete()
@@ -285,6 +295,9 @@ class ProjectFolder(Folder):
         if not owners_role.is_joined_user(self_user) and not self._session.has_usr_admin():
             raise NotAuthorizedException('プロジェクト管理者以外のメンバはユーザの所属処理はできません')        
 
+        # 最終更新時刻を用いた楽観的排他制御
+        self._update_timestamp()
+
         # プロジェクトロールに所属させる
         # (1人のUserが複数種のプロジェクトロールに所属しないようにする)
         readers_role = self._load_readers_role()
@@ -319,6 +332,9 @@ class ProjectFolder(Folder):
         if not owners_role.is_joined_user(self_user) and not self._session.has_usr_admin():
             raise NotAuthorizedException('プロジェクト管理者以外のメンバはユーザの脱退処理はできません')
 
+        # 最終更新時刻を用いた楽観的排他制御
+        self._update_timestamp()
+
         # 全てのプロジェクトロールから脱退させる
         readers_role = self._load_readers_role()
         writers_role = self._load_writers_role()
@@ -326,7 +342,7 @@ class ProjectFolder(Folder):
         writers_role.leave_member(user)
         owners_role.leave_member(user)
 
-    def init_members(self, members):
+    def init_members(self, members, last_modified_at):
         """
         プロジェクトの所属ユーザを初期化する
         """
@@ -353,6 +369,17 @@ class ProjectFolder(Folder):
         owners_role = self._load_owners_role()
         if not owners_role.is_joined_user(self_user) and not self._session.has_usr_admin():
             raise NotAuthorizedException('プロジェクト管理者以外のメンバは所属ユーザの初期化をできません')
+
+        # 
+        # 最終更新時刻を用いた楽観的排他制御
+        # (メンバの更新はRoleの更新だが、3つのRoleの最終更新時刻をProjectを取得するたびに
+        #  返すのはSQLのコストが高いと考え、Projectの最終更新時刻を利用することにした)
+        # 
+        result = self._session.query(ProjectFolder.modified_at).filter(ProjectFolder.id==self.id).one_or_none()
+        if result is None or last_modified_at != result[0]:
+            raise OptimisticLockException(f'プロジェクト({self.label})は他ユーザが編集しているため更新できませんでした')
+        # 最終更新時刻を更新する
+        self._update_timestamp()
 
         # 
         # 自分以外のユーザを全て削除する
@@ -468,6 +495,8 @@ class ProjectFolder(Folder):
 
     def to_json(self):
         ret = super().to_json()
+        # 楽観的排他制御に最終更新時刻を用いる
+        ret['modifiedAt'] = self.modified_at.strftime('%Y-%m-%d %H:%M:%S.%f')
         ret['allowlist']['findMember'] = self.ownership
         ret['allowlist']['updateMember'] = self.ownership
         return ret

@@ -69,7 +69,7 @@ BaseModel = declarative_base()
 
 from kskp.core import Datum, Port, Command
 
-from .exceptions import NothingToPutbackException, NoResultsException
+from .exceptions import NothingToPutbackException, NoResultsException, OptimisticLockException
 from .store import Store, NysolModule, ModuleStore, List
 from .database_conn import DatabaseConn
 from .remote_folder_conn import RemoteFolderConn
