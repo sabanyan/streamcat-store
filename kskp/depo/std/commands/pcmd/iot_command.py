@@ -1517,8 +1517,8 @@ class TimeSeriesDataJoinCommand(PCommand):
         # --- 入力m の処理 ---  <区間の補間式を作成する>
 
         # フロー開始
-        fm = None
-        fm = inputs['m']
+        # fm = None
+        # fm = inputs['m']
 
         # 補間式算出： MissingValueInterpolateCommand()
         # 参照データm に対して補間式を算出し、mnrjoinで係数を、入力データiへ紐づけて、補間値を計算する
