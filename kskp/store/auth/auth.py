@@ -80,6 +80,10 @@ class Auth(BaseModel):
             self._session.commit()
 
     def update(self, permission):
+        # 同じ値への更新であれば何もしない
+        if permission == self.permission:
+            return self
+
         try:
             # レコードを更新する
             self.permission = permission
@@ -90,6 +94,8 @@ class Auth(BaseModel):
             raise e
         finally:
             self._session.commit()
+
+        return self
 
     def delete(self):
         """
