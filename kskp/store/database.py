@@ -24,8 +24,8 @@ class Database(Store):
             raise Exception('database_conn引数がNoneです')
         self._data = {'conn' : database_conn.to_json()}
 
-    @Constraints.prohibit_save_under_root
-    @Constraints.set_permissions_for_everyone
+    @Constraints.prohibit_save_on_root
+    @Constraints.set_project_role_on_adding
     def save(self):
         """
         Databaseを保存する
@@ -101,7 +101,8 @@ class Database(Store):
     #         self.session.commit()
 
     #     return self
-        
+
+    @Constraints.delete_role_when_isolated     
     def delete(self):
         """
         Databaseを削除する

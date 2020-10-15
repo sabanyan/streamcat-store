@@ -3,8 +3,8 @@ import unittest
 import pprint
 from sqlalchemy.orm.exc import NoResultFound
 from kskp.core import Datum
-from kskp.store import ProjectFolder
-from kskp.store.auth import Auth, NotAuthorizedException
+from kskp.store import ProjectFolder, OptimisticLockException
+from kskp.store.auth import Auth, Role, InvalidPassword, NotAuthorizedException, NoRoleOwnerException
 from ...tests.test_case_base import TestCaseBase
 
 class AuthTest(TestCaseBase):
@@ -14,6 +14,82 @@ class AuthTest(TestCaseBase):
 
     def tearDown(self):
         pass
+
+    # フローJSON
+    # mnewnumber -> d(cache=on) -> mcut -> d1(out=on)
+    flow_json = {
+        "label": "flow", 
+        "nodes": [
+        {
+            "id": "d", 
+            "type": "frame", 
+            "uuid": None, 
+            "label": "d", 
+            "makeCache": True, 
+            "dataSource": "csv", 
+            "cacheCreatedAt": None
+        }, 
+        {
+            "id": "c", 
+            "args": {
+            "I": "1", 
+            "S": "1", 
+            "a": "a", 
+            "l": "10"
+            }, 
+            "dsts": {
+            "o": "d"
+            },
+            "srcs": {}, 
+            "type": "command", 
+            "label": "c", 
+            "commandId": "mnewnumber", 
+            "srcsOrder": []
+        }, 
+        {
+            "id": "d1", 
+            "type": "frame", 
+            "uuid": None, 
+            "label": "d1", 
+            "makeCache": False, 
+            "dataSource": "csv", 
+            "cacheCreatedAt": None
+        }, 
+        {
+            "id": "c1", 
+            "args": {
+            "f": "*"
+            }, 
+            "dsts": {
+            "o": "d1"
+            }, 
+            "srcs": {
+            "i": "d"
+            }, 
+            "type": "command", 
+            "label": "c1", 
+            "commandId": "mcut", 
+            "srcsOrder": [
+            "i"
+            ]
+        }
+        ], 
+        "ports": [
+        [], 
+        [
+            {
+            "type": "frame", 
+            "label": "d1", 
+            "nodeId": "d1"
+            }
+        ]
+        ], 
+        "params": [], 
+        "creator": "ユーザ管理者", 
+        "createdAt": "2020-10-04 17:45:16", 
+        "projectId": None, 
+        "description": ""
+    }
 
     # 
     # SQLAlchemy Session
@@ -79,6 +155,124 @@ class AuthTest(TestCaseBase):
         flow.delete()
         # フレームを削除する
         frame.delete()
+
+    def test_failure_after_update_data(self):
+        """
+        原因不明
+          save() -> update() -> reload()の順に実行すると
+          reload()で参照権限Noneのためエラーになる
+        """
+        # ルートフォルダを取得する
+        root = self.factory.data.load_root()
+
+        # 
+        # フレームを新規作成する
+        # 
+        frame = root.create_frame('Frame!!!', io.BytesIO(b''))
+
+        # フレームの参照と更新権限は付与されていること
+        # (フレームなので実行権限はない)
+        self.assertTrue(frame.readable)
+        self.assertTrue(frame.writable)
+        self.assertFalse(frame.executable)
+
+        # フレームを保存する
+        frame.save()
+
+        # 保存後は全ての権限はNoneに設定される
+        self.assertIsNone(frame.readable)
+        self.assertIsNone(frame.writable)
+        self.assertIsNone(frame.executable)
+
+        # ここでSELECTを発行すると、下のreload()は成功する
+        # frame.reload()
+
+        # フレームを更新する
+        # (SELECTを発行しない単純なUPDATE)
+        frame.update_label_only('frame!!!')
+
+        self.assertIsNone(frame.readable)
+        self.assertIsNone(frame.writable)
+        self.assertIsNone(frame.executable)
+
+        # フォルダを再読み込みする
+        # 参照権限がNoneのため、NotAuthorizedExceptionが送出される
+        with self.assertRaises(NotAuthorizedException):
+            frame.reload()
+
+        # 
+        # プロジェクトを新規作成する
+        # 
+        project = root.create_project_folder('Project!!!')
+
+        # プロジェクトを保存する
+        project.save()
+
+        # プロジェクトの更新者IDと最終更新時刻を更新する
+        project._update_timestamp()
+
+        # プロジェクトを再読み込みする
+        with self.assertRaises(NotAuthorizedException):
+            project.reload()
+
+    def test_success_after_update_data(self):
+        """
+        原因不明
+          save() -> update() -> reload()の順に実行すると
+          reload()で参照権限Noneのためエラーになる
+        """
+        # ルートフォルダを取得する
+        root = self.factory.data.load_root()
+
+        # 
+        # フレームを新規作成する
+        # 
+        frame = root.create_frame('Frame!!!', io.BytesIO(b''))
+
+        # フレームの参照と更新権限は付与されていること
+        # (フレームなので実行権限はない)
+        self.assertTrue(frame.readable)
+        self.assertTrue(frame.writable)
+        self.assertFalse(frame.executable)
+
+        # フレームを保存する
+        frame.save()
+
+        # 保存後は全ての権限はNoneに設定される
+        self.assertIsNone(frame.readable)
+        self.assertIsNone(frame.writable)
+        self.assertIsNone(frame.executable)
+
+        # ここでSELECTを発行すると、下のreload()は成功する
+        frame.reload()
+
+        # フレームを更新する
+        # (SELECTを発行しない単純なUPDATE)
+        frame.update_label_only('frame!!!')
+
+        self.assertTrue(frame.readable)
+        self.assertTrue(frame.writable)
+        self.assertFalse(frame.executable)
+
+        # フォルダを再読み込みする
+        frame.reload()
+
+        # 
+        # プロジェクトを新規作成する
+        # 
+        project = root.create_project_folder('Project!!!')
+
+        # プロジェクトを保存する
+        project.save()
+
+        # ここでSELECTを発行すると、下のreload()は成功する
+        project.reload()
+
+        # プロジェクトの更新者IDと最終更新時刻を更新する
+        project._update_timestamp()
+
+        # プロジェクトを再読み込みする
+        project.reload()
 
     def test_set_session_datum_property(self):
         """
@@ -155,6 +349,7 @@ class AuthTest(TestCaseBase):
             self.assertIs(role._session, self.factory._session)
 
         # ロールを削除する
+        # print('>> ', role.get_joined_users())
         role.delete()
 
     def test_session_rollback(self):
@@ -196,7 +391,7 @@ class AuthTest(TestCaseBase):
         Userの作成・取得・削除を検証する
         """
         # 新規ユーザを追加する
-        new_user = self.factory.user.create('test-man@kskp.io', 'I AM TEST', 'tesepass')
+        new_user = self.factory.user.create('test-man@kskp.io', 'I AM TEST', '123abc(*)A')
         new_user.save()
 
         # 新規ユーザを取得する
@@ -224,7 +419,7 @@ class AuthTest(TestCaseBase):
         一般ユーザは、ユーザの作成ができないこと
         """
         # 新規ユーザを追加する
-        new_user = self.factory2.user.create('test-man2@kskp.io', 'I AM TEST', 'tesepass')
+        new_user = self.factory2.user.create('test-man2@kskp.io', 'I AM TEST', '123abc(*)A')
         with self.assertRaises(NotAuthorizedException):
             new_user.save()
 
@@ -233,7 +428,7 @@ class AuthTest(TestCaseBase):
         一般ユーザは、他ユーザの変更ができないこと
         """
         # 新規ユーザを追加する
-        new_user = self.factory.user.create('test-man3@kskp.io', 'I AM TEST', 'tesepass')
+        new_user = self.factory.user.create('test-man3@kskp.io', 'I AM TEST', '123abc(*)C')
         new_user.save()
 
         # 他ユーザで再取得する
@@ -246,7 +441,7 @@ class AuthTest(TestCaseBase):
 
         # パスワードを変更する
         with self.assertRaises(NotAuthorizedException):
-            new_user.update_password('abc')
+            new_user.update_password('abc!@#$%^&*()_+')
 
         # ユーザ名を変更する
         with self.assertRaises(NotAuthorizedException):
@@ -262,7 +457,7 @@ class AuthTest(TestCaseBase):
         一般ユーザは、他ユーザの削除ができないこと
         """
         # 新規ユーザを追加する
-        new_user = self.factory.user.create('test-man4@kskp.io', 'I AM TEST', 'tesepass')
+        new_user = self.factory.user.create('test-man4@kskp.io', 'I AM TEST', '123abc(*)D')
         new_user.save()
 
         # 他ユーザで再取得する
@@ -275,6 +470,52 @@ class AuthTest(TestCaseBase):
         # 削除後のユーザは取得できる
         new_user = self.factory.user.find_by_email('test-man4@kskp.io')
         self.assertIsNotNone(new_user)
+
+    def test_validate_password(self):
+        """
+        パスワードの妥当性が検証されること
+        """
+        # 新規ユーザを追加する
+        new_user = self.factory.user.create('suerp-mario@nintendo.com', 'ホッホ〜！', None)
+        new_user.save()
+
+        # ユーザを登録状態にする
+        new_user.update_password('PassWord123@')        
+
+        # パスワードはNoneにできないこと
+        with self.assertRaises(InvalidPassword):
+            new_user.update_password(None)
+
+        # パスワードは空にできないこと
+        with self.assertRaises(InvalidPassword):
+            new_user.update_password('')
+
+        # パスワードは10文字以上であること
+        with self.assertRaises(InvalidPassword):
+            new_user.update_password('123456789')
+
+        # パスワードは64文字以下であること
+        with self.assertRaises(InvalidPassword):
+            new_user.update_password('12345678901234567890123456789012345678901234567890123456789012345')
+
+        # パスワードに空白文字は使用できないこと
+        with self.assertRaises(InvalidPassword):
+            new_user.update_password('12345 67890')
+
+        # パスワードに使用できる文字は半角英数と記号のみである
+        with self.assertRaises(InvalidPassword):
+            new_user.update_password('1234567890あう')
+        with self.assertRaises(InvalidPassword):
+            new_user.update_password('1234567890ＡＢＣ')
+        with self.assertRaises(InvalidPassword):
+            new_user.update_password('12345漢字67890')
+        with self.assertRaises(InvalidPassword):
+            new_user.update_password('12345🧨67890')
+        with self.assertRaises(InvalidPassword):
+            new_user.update_password('1234567890')
+
+        # ユーザを削除する
+        new_user.delete()
 
     # 
     # Roles
@@ -339,7 +580,7 @@ class AuthTest(TestCaseBase):
         new_role.save()
 
         # 新規ロールにユーザを参加させる
-        new_role.join_user(self.USER2)
+        new_role.join_member(Role.Member(self.USER2))
 
         # UserRoleを取得する
         user_role = self.factory.user_role.find_by_id(self.USER2.id, new_role.id)
@@ -353,38 +594,90 @@ class AuthTest(TestCaseBase):
         self.assertEqual(user_role.created_at, user_role.modified_at)
         
         # ユーザを脱退させる
-        new_role.leave_user(self.USER2)
+        new_role.leave_member(self.USER2)
 
     def test_join_role_on_no_auth(self):
         """
-        Roleにユーザを追加できるのは管理者かRoleの作成者のみである
+        Roleにユーザを追加できるのはユーザ管理者かRoleの所有者のみである
         """
         # ロールを作成する
         new_role = self.factory.role.create('ロール')
         new_role.save()
 
-        # 管理者でもRoleの作成者でもないユーザは、
+        # 管理者でもRoleの所有者でもないユーザは、
         # ユーザの追加操作はできない
         new_role = self.factory2.role.find_by_uuid(new_role.uuid)
         with self.assertRaises(NotAuthorizedException):
-            new_role.join_user(self.USER2)
+            new_role.join_member(Role.Member(self.USER2))
 
     def test_leave_role_on_no_auth(self):
         """
-        Roleからユーザを削除できるのは管理者かRoleの作成者のみである
+        Roleからユーザを削除できるのはユーザ管理者かRoleの所有者のみである
         """
         # ロールを作成する
         new_role = self.factory.role.create('ロール')
         new_role.save()
 
         # ロールにユーザを追加する
-        new_role.join_user(self.USER2)
+        new_role.join_member(Role.Member(self.USER2))
 
-        # 管理者でもRoleの作成者でもないユーザは、
+        # 管理者でもRoleの所有者でもないユーザは、
         # ユーザの削除操作はできない
         new_role = self.factory2.role.find_by_uuid(new_role.uuid)
         with self.assertRaises(NotAuthorizedException):
-            new_role.leave_user(self.USER2)
+            new_role.leave_member(self.USER2)
+
+    def test_join_role_without_owner(self):
+        """
+        システム管理者ロールの所有者は必ず指定すること
+        """
+        # システム管理者ロールを取得する
+        usr_admin_role = self.factory.role.load_sys_admin_role()
+
+        # メンバを設定する
+        member1 = Role.Member(self.USER2)
+        member2 = Role.Member(self.USER3, owner=False)
+        with self.assertRaises(NoRoleOwnerException):
+            usr_admin_role.init_members([member1, member2])
+
+    def test_cannot_delete_system_role(self):
+        """
+        システムロールは削除できないこと
+        """
+        # システムロールを取得する
+        sys_admin_role = self.factory.role.load_sys_admin_role()
+        usr_admin_role = self.factory.role.load_usr_admin_role()
+        everyone_role = self.factory.role.load_everyone_role()
+
+        # システムロールは削除できないこと
+        with self.assertRaises(Exception):
+            sys_admin_role.delete()
+        with self.assertRaises(Exception):
+            usr_admin_role.delete()
+        with self.assertRaises(Exception):
+            everyone_role.delete()
+
+    def test_update_role_owner_to_false(self):
+        """
+        ユーザ管理者ロールの所属処理によってロール所有者が不在にならないこと
+        """
+        # ユーザ管理者ロールを取得する
+        usr_admin_role = self.factory.role.load_usr_admin_role()
+
+        # 所有権が不在になるようなメンバの更新はできないこと
+        member1 = Role.Member(self.USER1, owner=False)
+        with self.assertRaises(NoRoleOwnerException):
+            usr_admin_role.join_member(member1)
+
+    def test_cannot_delete_system_role_owner(self):
+        """
+        ユーザがシステムロールの唯一の所有者の場合、そのユーザを削除できないこと
+        """
+        # システム管理者ロールの所有者を削除できないこと
+        with self.assertRaises(NoRoleOwnerException):
+            self.USER1.throw_away()
+        with self.assertRaises(NoRoleOwnerException):
+            self.USER1.delete()
 
     # 
     # Auths
@@ -690,8 +983,8 @@ class AuthTest(TestCaseBase):
         roleB.init_authz(flow.id, True, False, exec=False)
 
         # TESTユーザをロールAとロールBに参加させる
-        roleA.join_user(self.USER2)
-        roleB.join_user(self.USER2)
+        roleA.join_member(Role.Member(self.USER2))
+        roleB.join_member(Role.Member(self.USER2))
 
         # フローを再取得する
         flow = flow.reload()
@@ -714,7 +1007,6 @@ class AuthTest(TestCaseBase):
             flow.delete()
 
         # ロールBを削除する
-        roleB.leave_all_users()
         roleB.delete()
 
         # フローを削除する
@@ -1104,23 +1396,28 @@ class AuthTest(TestCaseBase):
 
     def test_own_frame_in_no_own_folder(self):
         """
-        フレームの所有権は親プロジェクトの所有権に影響しないこと
-        (プロジェクトの所有権はオーバーライドされない)
+        フレームの所有権は親フォルダの所有権に影響しないこと
+        (フォルダの所有権はオーバーライドしない)
         """
         # ルートフォルダを取得する
-        root = self.factory2.data.load_root()
+        root = self.factory.data.load_root()
 
-        # ルートフォルダの下にプロジェクトAを作成する (所有者はUSER2)
-        project_a = root.create_project_folder('所有権の無いプロジェクトA')
-        project_a.save()
+        # ルートフォルダの下にフォルダを作成する (所有者はユーザ管理者)
+        folder_a = root.create_folder('所有権の無いフォルダA')
+        folder_a.save()
+
+        # USER2にフォルダAの所有権を付与する
+        user2 = self.factory.user.find_by_uuid(self.USER2.uuid)
+        user2.load_self_role().init_authz(folder_a.id, read=True, write=True, exec=True, own=True)
+        self.USER1.load_self_role().clear_authz(folder_a.id)
 
         # USER3にフォルダAの更新権限を付与する
         user3 = self.factory2.user.find_by_uuid(self.USER3.uuid)
-        user3.load_self_role().init_authz(project_a.id, read=True, write=True)
+        user3.load_self_role().init_authz(folder_a.id, read=True, write=True)
 
         # フォルダAの下にフレームAを作成する (所有者はUSER3)
-        project_a = self.factory3.data.find_by_uuid(project_a.uuid)
-        frame_a = project_a.create_frame('My Frame A', io.BytesIO(b''))
+        folder_a = self.factory3.data.find_by_uuid(folder_a.uuid)
+        frame_a = folder_a.create_frame('My Frame A', io.BytesIO(b''))
         frame_a.save()
 
         # ルートフォルダの下にプロジェクトBを作成する (所有者はUSER3)
@@ -1128,7 +1425,7 @@ class AuthTest(TestCaseBase):
         project_b = root.create_project_folder('所有権の有るプロジェクトB')
         project_b.save()
 
-        # フォルダBの下にフレームBを作成する (所有者はUSER3)
+        # プロジェクトBの下にフレームBを作成する (所有者はUSER3)
         frame_b = project_b.create_frame('My Frame B', io.BytesIO(b''))
         frame_b.save()
 
@@ -1155,11 +1452,11 @@ class AuthTest(TestCaseBase):
 
         # NotAuthorizedExceptionの送出後のSession.rollback()により、
         # Expireが発生し、readable=Noneとなるため再読み込みする
-        project_a = self.factory2.data.find_by_id(project_a.id)
+        folder_a = self.factory2.data.find_by_id(folder_a.id)
         project_b = self.factory3.data.find_by_id(project_b.id)
 
         # フォルダA,Bを削除する
-        project_a.delete()
+        folder_a.delete()
         project_b.delete()
 
     def test_override_all_permissions(self):
@@ -1469,32 +1766,32 @@ class AuthTest(TestCaseBase):
         # プロジェクトは削除されていないこと
         self.assertTrue(self.factory.data.exists_by_id(project.id))
 
-    def test_join_project(self):
+    def test_join_project1(self):
         """
         プロジェクト管理者を交代する
         (元のプロジェクト管理者は削除する)
         """
         # ルートフォルダを取得する
-        root = self.factory.data.load_root()
+        root = self.factory2.data.load_root()
         # ルートフォルダの下にプロジェクトを作成する
-        project = root.create_project_folder('プロジェクト1')
+        project = root.create_project_folder('アイドルプロジェクト！')
         project.save()
+        project = project.reload()
 
         # メンバを設定する
-        member1 = ProjectFolder.Member(self.USER2, ProjectFolder.OWNER_MEMBER_TYPE)
-        member2 = ProjectFolder.Member(self.USER3, ProjectFolder.READER_MEMBER_TYPE)
-        project.init_members([member1, member2])
+        member1 = ProjectFolder.Member(self.USER3, ProjectFolder.OWNER_MEMBER_TYPE)
+        project.init_members([member1], last_modified_at=project.modified_at)
 
         # メンバを取得する
         members = project.get_joined_members()
 
         # 期待する結果が返ることを確認する
+        usr_admin_member = ProjectFolder.Member(self.USER1, ProjectFolder.OWNER_MEMBER_TYPE)
         self.assertEqual(len(members), 2)
-        self.assertEqual(members, [member1, member2])
+        self.assertEqual(members, [member1, usr_admin_member])
 
-        # プロジェクトは更新できない
+        # 元のプロジェクト管理者は、プロジェクトを更新できないこと
         with self.assertRaises(NotAuthorizedException):
-            project = project.reload()
             project.update_data('ぷろじぇくと1')
 
     def test_join_project2(self):
@@ -1503,46 +1800,110 @@ class AuthTest(TestCaseBase):
         (元のプロジェクト管理者は閲覧者にする)
         """
         # ルートフォルダを取得する
-        root = self.factory.data.load_root()
+        root = self.factory2.data.load_root()
         # ルートフォルダの下にプロジェクトを作成する
-        project = root.create_project_folder('プロジェクト2')
+        project = root.create_project_folder('V作戦')
         project.save()
+        project = project.reload()
 
         # メンバを設定する
-        member1 = ProjectFolder.Member(self.USER1, ProjectFolder.READER_MEMBER_TYPE)
+        member1 = ProjectFolder.Member(self.USER2, ProjectFolder.READER_MEMBER_TYPE)
         member2 = ProjectFolder.Member(self.USER3, ProjectFolder.OWNER_MEMBER_TYPE)
-        project.init_members([member1, member2])
+        project.init_members([member1, member2], last_modified_at=project.modified_at)
 
         # メンバを取得する
         members = project.get_joined_members()
 
         # 期待する結果が返ることを確認する
-        self.assertEqual(len(members), 2)
-        self.assertEqual(members, [member2, member1])
+        usr_admin_member = ProjectFolder.Member(self.USER1, ProjectFolder.OWNER_MEMBER_TYPE)
+        self.assertEqual(len(members), 3)
+        self.assertEqual(members, [member2, usr_admin_member, member1])
 
-        # プロジェクトは更新できない
+        # 元のプロジェクト管理者は、プロジェクトを更新できないこと
         with self.assertRaises(NotAuthorizedException):
-            project = project.reload()
-            project.update_data('ぷろじぇくと2')
+            project.update_data('ぷろじぇくと1')
+
+    def test_join_project3(self):
+        """
+        プロジェクト管理者を交代する
+        (ユーザ管理者はプロジェクト管理者から外すことはできないこと)
+        (元のプロジェクト管理者は削除する)
+        """
+        # ルートフォルダを取得する
+        root = self.factory.data.load_root()
+        # ルートフォルダの下にプロジェクトを作成する
+        project = root.create_project_folder('プロジェクト1')
+        project.save()
+        project = project.reload()
+
+        # メンバを設定する
+        member1 = ProjectFolder.Member(self.USER2, ProjectFolder.OWNER_MEMBER_TYPE)
+        member2 = ProjectFolder.Member(self.USER3, ProjectFolder.READER_MEMBER_TYPE)
+        project.init_members([member1, member2], last_modified_at=project.modified_at)
+
+        # メンバを取得する
+        members = project.get_joined_members()
+
+        # 期待する結果が返ることを確認する
+        usr_admin_member = ProjectFolder.Member(self.USER1, ProjectFolder.OWNER_MEMBER_TYPE)
+        self.assertEqual(len(members), 3)
+        self.assertEqual(members, [member1, usr_admin_member, member2])
+
+        # ユーザ管理者は、プロジェクトは更新できること
+        project.update_data('ぷろじぇくと1')
+
+        # プロジェクトは削除する
+        project.delete()
+
+    def test_join_project4(self):
+        """
+        プロジェクト管理者を交代する
+        (ユーザ管理者はプロジェクト管理者から外すことはできないこと)
+        (元のプロジェクト管理者は閲覧者にする)
+        """
+        # ルートフォルダを取得する
+        root = self.factory.data.load_root()
+        # ルートフォルダの下にプロジェクトを作成する
+        project = root.create_project_folder('プロジェクト2')
+        project.save()
+        project = project.reload()
+
+        # メンバを設定する
+        member1 = ProjectFolder.Member(self.USER1, ProjectFolder.READER_MEMBER_TYPE)
+        member2 = ProjectFolder.Member(self.USER3, ProjectFolder.OWNER_MEMBER_TYPE)
+        project.init_members([member1, member2], last_modified_at=project.modified_at)
+
+        # メンバを取得する
+        members = project.get_joined_members()
+
+        # 期待する結果が返ることを確認する
+        usr_admin_member = ProjectFolder.Member(self.USER1, ProjectFolder.OWNER_MEMBER_TYPE)
+        self.assertEqual(len(members), 2)
+        self.assertEqual(members, [member2, usr_admin_member])
+
+        # ユーザ管理者は、プロジェクトは更新できること
+        project.update_data('ぷろじぇくと2')
+
+        # プロジェクトは削除する
+        project.delete()
 
     def test_join_project_without_owner(self):
         """
-        プロジェクト管理者は必ず指定すること
+        プロジェクト管理者を設定しない
         """
         # ルートフォルダを取得する
         root = self.factory.data.load_root()
         # ルートフォルダの下にプロジェクトを作成する
         project = root.create_project_folder('プロジェクト3')
         project.save()
+        project = project.reload()
 
-        # メンバを設定する
+        # プロジェクト管理者を設定しない場合でもエラーにならないこと
         member1 = ProjectFolder.Member(self.USER2, ProjectFolder.READER_MEMBER_TYPE)
         member2 = ProjectFolder.Member(self.USER3, ProjectFolder.WRITER_MEMBER_TYPE)
-        with self.assertRaises(Exception):
-            project.init_members([member1, member2])
+        project.init_members([member1, member2], last_modified_at=project.modified_at)
 
         # プロジェクトは削除する
-        project = project.reload()
         project.delete()
 
     def test_join_project_with_other_type(self):
@@ -1554,33 +1915,32 @@ class AuthTest(TestCaseBase):
         # ルートフォルダの下にプロジェクトを作成する
         project = root.create_project_folder('プロジェクト4')
         project.save()
+        project = project.reload()
 
         # メンバを設定する
         member1 = ProjectFolder.Member(self.USER2, ProjectFolder.READER_MEMBER_TYPE)
         member2 = ProjectFolder.Member(self.USER3, ProjectFolder.OTHER_MEMBER_TYPE)
         with self.assertRaises(Exception):
-            project.init_members([member1, member2])
+            project.init_members([member1, member2], last_modified_at=project.modified_at)
 
         # プロジェクトは削除する
-        project = project.reload()
         project.delete()
 
     def test_join_project_without_member(self):
         """
-        プロジェクトメンバは必ず指定すること
+        プロジェクトメンバに誰も設定しない
         """
         # ルートフォルダを取得する
         root = self.factory.data.load_root()
         # ルートフォルダの下にプロジェクトを作成する
         project = root.create_project_folder('プロジェクト5')
         project.save()
+        project = project.reload()
 
-        # メンバを設定する
-        with self.assertRaises(Exception):
-            project.init_members([])
+        # 誰も設定しない場合でもエラーにならないこと
+        project.init_members([], last_modified_at=project.modified_at)
 
         # プロジェクトは削除する
-        project = project.reload()
         project.delete()
 
     def test_sys_admin_has_permissions(self):
@@ -1717,6 +2077,120 @@ class AuthTest(TestCaseBase):
 
         # ゴミ箱を空にする
         self.factory3.data.find_trashcan().trash_all()
+
+    def test_join_by_serial(self):
+        """
+        プロジェクトメンバの設定は、順次実行すればいずれも更新できる
+        """
+        # ルートフォルダを取得する
+        root = self.factory2.data.load_root()
+        # ルートフォルダの下にプロジェクトを作成する
+        project = root.create_project_folder('ビッグカメラ')
+        project.save()
+
+        # USER2は、プロジェクトを取得する
+        project = project.reload()
+
+        # USER2は、メンバを設定する
+        member1 = ProjectFolder.Member(self.USER2, ProjectFolder.OWNER_MEMBER_TYPE)
+        project.init_members([member1], last_modified_at=project.modified_at)
+
+        # USER1は、プロジェクトを取得する
+        project2 = self.factory.data.find_by_uuid(project.uuid)
+
+        # USER1は、メンバを設定する
+        member1 = ProjectFolder.Member(self.USER2, ProjectFolder.OWNER_MEMBER_TYPE)
+        project2.init_members([member1], last_modified_at=project2.modified_at)
+
+        # プロジェクトは削除する
+        project.delete()
+
+    def test_cannot_join_by_late_user(self):
+        """
+        プロジェクトメンバの設定は、先にプロジェクトを更新した方が更新できる
+        """
+        # ルートフォルダを取得する
+        root = self.factory2.data.load_root()
+        # ルートフォルダの下にプロジェクトを作成する
+        project = root.create_project_folder('ヨドバシカメラ')
+        project.save()
+
+        # USER2は、プロジェクトを取得する
+        project = project.reload()
+
+        # USER1は、プロジェクトを取得する
+        project2 = self.factory.data.find_by_uuid(project.uuid)
+
+        # USER1は、メンバを設定する
+        member1 = ProjectFolder.Member(self.USER2, ProjectFolder.OWNER_MEMBER_TYPE)
+        project2.init_members([member1], last_modified_at=project2.modified_at)
+
+        # USER2は、メンバを設定する
+        with self.assertRaises(OptimisticLockException):
+            member1 = ProjectFolder.Member(self.USER2, ProjectFolder.OWNER_MEMBER_TYPE)
+            project.init_members([member1], last_modified_at=project.modified_at)
+
+        # プロジェクトは削除する
+        project.delete()
+
+    def test_cannot_join_by_late_user2(self):
+        """
+        プロジェクトメンバの設定は、先にプロジェクトを更新した方が更新できる
+        """
+        # ルートフォルダを取得する
+        root = self.factory2.data.load_root()
+        # ルートフォルダの下にプロジェクトを作成する
+        project = root.create_project_folder('Joshin')
+        project.save()
+
+        # USER2は、プロジェクトを取得する
+        project = project.reload()
+
+        # USER1は、プロジェクトを取得する
+        project2 = self.factory.data.find_by_uuid(project.uuid)
+
+        # USER1は、メンバを追加する
+        member1 = ProjectFolder.Member(self.USER2, ProjectFolder.OWNER_MEMBER_TYPE)
+        project2.join_member(member1)
+
+        # USER2は、メンバを設定する
+        with self.assertRaises(OptimisticLockException):
+            member1 = ProjectFolder.Member(self.USER2, ProjectFolder.OWNER_MEMBER_TYPE)
+            project.init_members([member1], last_modified_at=project.modified_at)
+
+        # プロジェクトは削除する
+        project.delete()
+
+    def test_cannot_join_by_late_user3(self):
+        """
+        プロジェクトメンバの設定は、先にプロジェクトを更新した方が更新できる
+        """
+        # ルートフォルダを取得する
+        root = self.factory2.data.load_root()
+        # ルートフォルダの下にプロジェクトを作成する
+        project = root.create_project_folder('Ninomiya')
+        project.save()
+
+        # USER2は、プロジェクトを取得する
+        project = project.reload()
+
+        # USER2は、メンバを追加する
+        member1 = ProjectFolder.Member(self.USER3, ProjectFolder.OWNER_MEMBER_TYPE)
+        project.join_member(member1)
+
+        # USER1は、プロジェクトを取得する
+        project2 = self.factory.data.find_by_uuid(project.uuid)
+
+        # USER1は、メンバを外す
+        project2.leave_member(self.USER3)
+
+        # USER2は、メンバを設定する
+        with self.assertRaises(OptimisticLockException):
+            member1 = ProjectFolder.Member(self.USER2, ProjectFolder.OWNER_MEMBER_TYPE)
+            project.init_members([member1], last_modified_at=project.modified_at)
+
+        # プロジェクトは削除する
+        project.delete()
 
     #
     # Other Datum
@@ -1857,6 +2331,482 @@ class AuthTest(TestCaseBase):
 
         # ゴミ箱を空にする
         self.factory3.data.find_trashcan().trash_all()
+
+    def test_cannot_read_trash_by_other_user(self):
+        """
+        プロジェクトから捨てたゴミを、
+        プロジェクトメンバ以外のユーザが参照できないこと(ゴミ漁り禁止!🚫)
+        """
+        # ルートフォルダを取得する
+        root = self.factory2.data.load_root()
+        # ルートフォルダの下にプロジェクトを作成する
+        project = root.create_project_folder('ねこまんま')
+        project.save()
+        project = project.reload()
+
+        # プロジェクトの下にフォルダを作成する
+        folder = project.create_folder('猫ハウス')
+        folder.save()
+        folder = folder.reload()
+
+        # フォルダの下にフローを作成する
+        flow = folder.create_flow('かつお節', {})
+        flow.save()
+        flow = flow.reload() 
+
+        # フォルダをほかす
+        folder.throw_away()
+
+        # プロジェクトメンバ以外のユーザがゴミを参照できないこと
+        with self.assertRaises(NotAuthorizedException):
+            self.factory3.data.find_by_uuid(folder.uuid)
+        with self.assertRaises(NotAuthorizedException):
+            self.factory3.data.find_by_uuid(flow.uuid)
+        
+        # プロジェクトをほかす
+        project.throw_away()
+
+        # 先にプロジェクトを物理削除する
+        project.delete()
+
+        # プロジェクトメンバ以外のユーザがゴミを参照できないこと
+        with self.assertRaises(NotAuthorizedException):
+            self.factory3.data.find_by_uuid(folder.uuid)
+        with self.assertRaises(NotAuthorizedException):
+            self.factory3.data.find_by_uuid(flow.uuid)
+
+        # フォルダを物理削除する
+        flow.delete()
+        folder.delete()
+
+    def test_cannot_write_trash_by_reader(self):
+        """
+        プロジェクトから捨てたゴミを、
+        閲覧者が更新したり元の位置に戻せないこと
+        """
+        # ルートフォルダを取得する
+        root = self.factory2.data.load_root()
+        # ルートフォルダの下にプロジェクトを作成する
+        project = root.create_project_folder('ひとーーつ、人の世の生き血をすすり')
+        project.save()
+        project = project.reload()
+
+        # メンバを設定する
+        member1 = ProjectFolder.Member(self.USER2, ProjectFolder.OWNER_MEMBER_TYPE)
+        member2 = ProjectFolder.Member(self.USER3, ProjectFolder.READER_MEMBER_TYPE)
+        project.init_members([member1, member2], last_modified_at=project.modified_at)
+
+        # プロジェクトの下にフォルダを作成する
+        folder = project.create_folder('ふたつ、不埒な悪行三昧')
+        folder.save()
+        folder = folder.reload()
+
+        # フォルダの下にフローを作成する
+        flow = folder.create_flow('みっつ、醜い浮世の鬼を', {'label': '退治てくれよう桃太郎！'})
+        flow.save()
+        flow = flow.reload() 
+
+        # フォルダをほかす
+        folder.throw_away()
+
+        # 閲覧者はゴミを参照できること
+        folder = self.factory3.data.find_by_uuid(folder.uuid)
+        flow = self.factory3.data.find_by_uuid(flow.uuid)
+
+        # 閲覧者はゴミを更新できないこと
+        with self.assertRaises(NotAuthorizedException):
+            folder.update_data('不埒な悪行三昧')
+        with self.assertRaises(NotAuthorizedException):
+            flow.update_data('醜い浮き世の鬼を', {})
+
+        # 閲覧者はゴミを元の場所に戻せないこと
+        with self.assertRaises(NotAuthorizedException):
+            folder.put_back()
+
+        # 閲覧者はゴミを物理削除できないこと
+        with self.assertRaises(NotAuthorizedException):
+            folder.delete()
+        with self.assertRaises(NotAuthorizedException):
+            flow.delete()
+
+        # プロジェクト管理者はゴミ箱を空にする
+        trashcan = self.factory2.data.find_trashcan()
+        trashcan.trash_all()
+
+        # ゴミ箱は空になっていること
+        children = trashcan.find_children()
+        self.assertEqual(len(children), 0)
+
+        # プロジェクトを削除する
+        project.delete()
+
+    def test_cannot_read_trashed_folder_by_other_user(self):
+        """
+        ゴミ箱に作成した形代フォルダは、
+        プロジェクトメンバ以外のユーザが参照できないこと
+        """
+        # ルートフォルダを取得する
+        root = self.factory2.data.load_root()
+        # ルートフォルダの下にプロジェクトを作成する
+        project = root.create_project_folder('人間五十年')
+        project.save()
+        project = project.reload()
+
+        # プロジェクトの下にフォルダを作成する
+        folder = project.create_folder('下天のうちに比べれば')
+        folder.save()
+        folder = folder.reload()
+
+        # フォルダの下にデータソースを作成する
+        source = folder.create_frame('夢のまた夢', io.BytesIO(b''))
+        source.save()
+        source = source.reload()
+
+        # フォルダの下にもう一つフレームを作成する
+        frame = folder.create_frame('是非もなし', io.BytesIO(b''))
+        frame.save()
+        frame = frame.reload()
+
+        # プロジェクトの下にフローを作成する
+        flow = project.create_simple_flow('難波のことも', source)
+        flow.save()
+        flow = flow.reload()
+
+        # フォルダをほかす
+        # (データソースはフローから参照されているので、ゴミ箱にフォルダの形代が作成される)
+        trashed_folder = folder.throw_away()
+
+        # プロジェクトメンバ以外のユーザは、形代フォルダを参照できないこと
+        with self.assertRaises(NotAuthorizedException):
+            self.factory3.data.find_by_uuid(trashed_folder.uuid)
+
+        # 形代フォルダをほかす前の場所に戻す
+        trashed_folder.put_back()
+
+        # 形代フォルダはゴミ箱に残る
+        self.assertEqual(trashed_folder.find_parent(), self.factory2.data.load_trash_folder())
+
+        # 中のフォルダはほかす前の場所に戻っていること
+        self.assertEqual(folder.find_parent(), project)
+
+        # プロジェクトをゴミ箱にほかす
+        project.throw_away()
+
+        # ゴミ箱を空にする
+        trashcan = self.factory2.data.find_trashcan()
+        trashcan.trash_all()
+
+        # ゴミ箱は空になっていること
+        children = trashcan.find_children()
+        self.assertEqual(len(children), 0)
+        
+    def test_cannot_write_trashed_folder_by_reader(self):
+        """
+        ゴミ箱に作成した形代フォルダは、
+        閲覧者が更新したり元の位置に戻せないこと
+        """
+        # ルートフォルダを取得する
+        root = self.factory2.data.load_root()
+        # ルートフォルダの下にプロジェクトを作成する
+        project = root.create_project_folder('中村主水')
+        project.save()
+        project = project.reload()
+
+        # プロジェクトの下にフォルダを作成する
+        folder = project.create_folder('婿殿！')
+        folder.save()
+        folder = folder.reload()
+
+        # フォルダの下にデータソースを作成する
+        source = folder.create_frame('あなたまた酔って帰ってきたんですね', io.BytesIO(b''))
+        source.save()
+        source = source.reload()
+
+        # フォルダの下にもう一つフレームを作成する
+        frame = folder.create_frame('この中村家は由緒正しき家柄それをこともあろうに・・', io.BytesIO(b''))
+        frame.save()
+        frame = frame.reload()
+
+        # プロジェクトの下にフローを作成する
+        flow = project.create_simple_flow('これといった手柄も立てず・・', source)
+        flow.save()
+        flow = flow.reload()
+
+        # フォルダをほかす
+        # (データソースはフローから参照されているので、ゴミ箱にフォルダの形代が作成される)
+        trashed_folder = folder.throw_away()
+
+        # USER3を閲覧者としてプロジェクトメンバに加える
+        project.join_member(ProjectFolder.Member(self.USER3, ProjectFolder.READER_MEMBER_TYPE))
+
+        # 閲覧者は、形代フォルダを参照できること
+        trashed_folder = self.factory3.data.find_by_uuid(trashed_folder.uuid)
+
+        # 閲覧者は、形代フォルダを更新できないこと
+        with self.assertRaises(NotAuthorizedException):
+            trashed_folder.update_data('お隣の田中さんまた出世されたんですってよ')
+
+        # 閲覧者は、形代フォルダをほかす前の場所に戻せないこと
+        with self.assertRaises(NotAuthorizedException):
+            trashed_folder.put_back()
+
+        # プロジェクトをゴミ箱にほかす
+        project.throw_away()
+
+        # ゴミ箱を空にする
+        trashcan = self.factory2.data.find_trashcan()
+        trashcan.trash_all()
+
+        # ゴミ箱は空になっていること
+        children = trashcan.find_children()
+        self.assertEqual(len(children), 0)
+
+    def test_putback_trash_by_writer(self):
+        """
+        プロジェクトから捨てたゴミを、
+        編集者が更新したり元の位置に戻せること
+        """
+        # ルートフォルダを取得する
+        root = self.factory2.data.load_root()
+        # ルートフォルダの下にプロジェクトを作成する
+        project = root.create_project_folder('こころぴょんぴょん待ち')
+        project.save()
+        project = project.reload()
+
+        # メンバを設定する
+        member1 = ProjectFolder.Member(self.USER2, ProjectFolder.OWNER_MEMBER_TYPE)
+        member2 = ProjectFolder.Member(self.USER3, ProjectFolder.WRITER_MEMBER_TYPE)
+        project.init_members([member1, member2], last_modified_at=project.modified_at)
+
+        # プロジェクトの下にフォルダを作成する
+        folder = project.create_folder('考えるフリして')
+        folder.save()
+        folder = folder.reload()
+
+        # フォルダの下にフローを作成する
+        flow = folder.create_flow('もうちょっとちーかづいちゃえ', {})
+        flow.save()
+        flow = flow.reload() 
+
+        # フォルダをほかす
+        folder.throw_away()
+
+        # 編集者はゴミを参照できること
+        folder = self.factory3.data.find_by_uuid(folder.uuid)
+        flow = self.factory3.data.find_by_uuid(flow.uuid)
+
+        # 編集者はゴミを更新できること
+        folder.update_data('簡単にはお〜しえないっ')
+        flow.update_data('こんなに素敵なことを〜', {})
+
+        # 編集者はゴミを元の場所に戻せること
+        folder.put_back()
+
+        # 再びフォルダをほかす
+        folder.throw_away()
+
+        # 編集者はゴミ箱を空にできること
+        trashcan = self.factory3.data.find_trashcan()
+        trashcan.trash_all()
+
+        # ゴミ箱は空になっていること
+        children = trashcan.find_children()
+        self.assertEqual(len(children), 0)
+
+        # プロジェクトを削除する
+        project.delete()
+
+    def test_cannot_read_cache_by_other_user(self):
+        """
+        プロジェクトメンバ以外のユーザがキャッシュを参照できないこと
+        """
+        # ルートフォルダを取得する
+        root = self.factory2.data.load_root()
+        # ルートフォルダの下にプロジェクトを作成する
+        project = root.create_project_folder('🌏プロジェクト🗻')
+        project.save()
+        project = project.reload()
+
+        # プロジェクトの下にフローを作成する
+        import copy
+        flow = project.create_flow('フロー🚅', copy.deepcopy(self.flow_json))
+        flow.save()
+        flow = flow.reload() 
+
+        # フローを実行する
+        from kskp.engine import execute, FlowJsonLink
+        link = FlowJsonLink(flow, self.factory2)
+        activity = execute(link=link, args={}, inputs={})
+        # フローの実行結果を取得する
+        out_frame = activity.result[0][1]
+
+        # プロジェクト管理者は、フローの実行結果を参照できること
+        out_frame = self.factory2.data.find_by_uuid(out_frame.uuid)
+        # プロジェクト管理者は、フローの実行結果を更新できること
+        out_frame.update_label('実行結果☢')
+        self.assertEqual(out_frame.label, '実行結果☢')
+        
+        # プロジェクトメンバ以外のユーザは、フローの実行結果を参照できないこと
+        with self.assertRaises(NotAuthorizedException):
+            self.factory3.data.find_by_uuid(out_frame.uuid)
+
+        # プロジェクト管理者は、フローのキャッシュを参照できること
+        cache_frame_uuid = flow.get_cache_frame_uuids()[0]
+        cache_frame = self.factory2.data.find_by_uuid(cache_frame_uuid)
+        # プロジェクト管理者は、フローのキャッシュを更新できること
+        cache_frame.update_label('キャッシュ㊗')
+        self.assertEqual(cache_frame.label, 'キャッシュ㊗')
+
+        # プロジェクトメンバ以外のユーザは、フローのキャッシュを参照できないこと
+        with self.assertRaises(NotAuthorizedException):
+            self.factory3.data.find_by_uuid(cache_frame.uuid)
+
+        # フローとキャッシュと実行結果を削除する
+        flow.delete()
+        cache_frame.delete()
+        out_frame.delete()
+
+    def test_cannot_write_cache_by_reader(self):
+        """
+        閲覧者がキャッシュを更新できないこと
+        """
+        # ルートフォルダを取得する
+        root = self.factory2.data.load_root()
+        # ルートフォルダの下にプロジェクトを作成する
+        project = root.create_project_folder('京都⛩️')
+        project.save()
+        project = project.reload()
+
+        # プロジェクトの下にフローを作成する
+        import copy
+        flow = project.create_flow('大阪🏯', copy.deepcopy(self.flow_json))
+        flow.save()
+        flow = flow.reload() 
+
+        # フローを実行する
+        from kskp.engine import execute, FlowJsonLink
+        link = FlowJsonLink(flow, self.factory2)
+        activity = execute(link=link, args={}, inputs={})
+        # フローの実行結果を取得する
+        out_frame = activity.result[0][1]
+
+        # プロジェクト管理者は、フローの実行結果を参照できること
+        out_frame = self.factory2.data.find_by_uuid(out_frame.uuid)
+        # プロジェクト管理者は、フローの実行結果を更新できること
+        out_frame.update_label('神戸⚓️')
+        self.assertEqual(out_frame.label, '神戸⚓️')
+        
+        # USER3を閲覧者に加える
+        project.join_member(ProjectFolder.Member(self.USER3, ProjectFolder.READER_MEMBER_TYPE))
+
+        # 閲覧者は、フローの実行結果を参照できること
+        out_frame = self.factory3.data.find_by_uuid(out_frame.uuid)
+        self.assertEqual(out_frame.label, '神戸⚓️')
+
+        # プロジェクト管理者は、フローのキャッシュを参照できること
+        cache_frame_uuid = flow.get_cache_frame_uuids()[0]
+        cache_frame = self.factory2.data.find_by_uuid(cache_frame_uuid)
+        # プロジェクト管理者は、フローのキャッシュを更新できること
+        cache_frame.update_label('琵琶湖🛥')
+        self.assertEqual(cache_frame.label, '琵琶湖🛥')
+
+        # 閲覧者は、フローのキャッシュを参照できること
+        cache_frame = self.factory3.data.find_by_uuid(cache_frame.uuid)
+        self.assertEqual(cache_frame.label, '琵琶湖🛥')
+
+        # フローを削除する
+        flow.delete()
+
+        # 閲覧者は、キャッシュと実行結果を削除できないこと
+        with self.assertRaises(NotAuthorizedException):
+            cache_frame.delete()
+        with self.assertRaises(NotAuthorizedException):
+            out_frame.delete()
+
+        # キャッシュと実行結果を削除する
+        out_frame = self.factory2.data.find_by_uuid(out_frame.uuid)
+        cache_frame = self.factory2.data.find_by_uuid(cache_frame_uuid)
+        cache_frame.delete()
+        out_frame.delete()
+
+    def test_cannot_exec_cache_flow_by_reader(self):
+        """
+        残念ながら、閲覧者はフロー実行によるキャッシュ作成ができない
+        """
+        # ルートフォルダを取得する
+        root = self.factory2.data.load_root()
+        # ルートフォルダの下にプロジェクトを作成する
+        project = root.create_project_folder('iPhone')
+        project.save()
+        project = project.reload()
+
+        # プロジェクトの下にフローを作成する
+        flow = project.create_flow('iPad', self.flow_json)
+        flow.save()
+        flow = flow.reload()
+
+        # USER3を閲覧者に加える
+        project.join_member(ProjectFolder.Member(self.USER3, ProjectFolder.READER_MEMBER_TYPE))
+
+        # USER3は、フローにキャッシュのuuidを書き込めないので、フローを実行できない
+        from kskp.engine import execute, FlowJsonLink
+        flow = self.factory3.data.find_by_uuid(flow.uuid)
+        link = FlowJsonLink(flow, self.factory3)
+        with self.assertRaises(NotAuthorizedException):
+            activity = execute(link=link, args={}, inputs={})
+            
+        # フローを削除する
+        flow = self.factory2.data.find_by_uuid(flow.uuid)
+        flow.delete()
+
+        # プロジェクトを削除する
+        project.delete()
+
+    def test_move_inter_projects(self):
+        """
+        プロジェクト間でファイルを移動した場合、
+        ファイルの権限は移動先プロジェクトの権限に従うこと
+        """
+        # ルートフォルダを取得する
+        root = self.factory0.data.load_root()
+        # ルートフォルダの下にプロジェクトAを作成する
+        project_a = root.create_project_folder('インド人はゼロを発明した')
+        project_a.save()
+        project_a = project_a.reload()
+
+        # ルートフォルダを取得する
+        root = self.factory2.data.load_root()
+        # ルートフォルダの下にプロジェクトBを作成する
+        project_b = root.create_project_folder('だが日本人はストロングゼロを発明した')
+        project_b.save()
+        project_b = project_b.reload()
+
+        # USER3をプロジェクトAとBの編集者にする
+        project_a.join_member(ProjectFolder.Member(self.USER3, ProjectFolder.WRITER_MEMBER_TYPE))
+        project_b.join_member(ProjectFolder.Member(self.USER3, ProjectFolder.WRITER_MEMBER_TYPE))
+
+        # プロジェクトAの下にフレームを作成する
+        frame = project_a.create_frame('飲む福祉ストロングゼロ!', io.BytesIO(b'STRONGZERO'))
+        frame.save()
+
+        # USER3は、フレームをプロジェクトAからプロジェクトBへ移動できること
+        frame = self.factory3.data.find_by_uuid(frame.uuid)
+        frame.move(project_b.uuid)
+        self.assertEqual(frame.parent_id, project_b.id)
+
+        # プロジェクトAのメンバはフレームの参照できないこと
+        with self.assertRaises(NotAuthorizedException):
+            self.factory0.data.find_by_uuid(frame.uuid)
+
+        # プロジェクトBのメンバはフレームの参照・更新ができること
+        frame = self.factory2.data.find_by_uuid(frame.uuid)
+        frame.update_label('美味しい魔法の水')
+        self.assertEqual(frame.label, '美味しい魔法の水')
+
+        # プロジェクトとフレームを削除する
+        project_a.delete()
+        frame.delete()
+        project_b.delete()
 
     # 
     # System Folders

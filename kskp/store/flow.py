@@ -42,8 +42,8 @@ class Flow(Datum):
         if not self.executable:
             raise NotAuthorizedException(f'{self._session.user.name} ({self.user})は{self.label}の実行権限がありません')
 
-    @Constraints.prohibit_save_under_root
-    @Constraints.set_permissions_for_everyone
+    @Constraints.prohibit_save_on_root
+    @Constraints.set_project_role_on_adding
     def save(self):
         """
         Flowを保存する
@@ -160,8 +160,9 @@ class Flow(Datum):
             flow = factory.find_by_uuid(using_flow_uuids[0])
             raise Exception(f'このフローは別のフロー({flow.label})で使用しているため削除できません')
 
-        self.move(trash_folder.uuid)
+        return self.move(trash_folder.uuid)
 
+    @Constraints.delete_role_when_isolated
     def delete(self):
         """
         Flowを削除する
@@ -463,7 +464,8 @@ class Flow(Datum):
                     node['uuid'] = new_uuid
                     break
 
-    def set_cache(self, node_id, cache_uuid):
+    @Constraints.set_project_role_on_set_cache
+    def set_cache(self, node_id, cache):
         from datetime import datetime, timedelta, timezone
 
         flow_data = self.flow_data
@@ -473,7 +475,7 @@ class Flow(Datum):
 
         for node in flow_data.get_nodes():
             if node['id'] == node_id:
-                node['uuid'] = cache_uuid
+                node['uuid'] = cache.uuid
                 # 記録時間はUTC、表示時間は現地時間にすべきでは？？
                 node['cacheCreatedAt'] = datetime.now(timezone(timedelta(hours=+9), 'JST')).strftime('%Y-%m-%d %H:%M:%S')
         # self.update_data(self.label, flow_data)

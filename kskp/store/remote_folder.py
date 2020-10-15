@@ -25,8 +25,8 @@ class RemoteFolder(Folder, Mountable):
             raise Exception('remoteFolderConn引数がNoneです')
         self._data = {'conn' : remoteFolderConn.to_json()}
 
-    @Constraints.prohibit_save_under_root
-    @Constraints.set_permissions_for_everyone
+    @Constraints.prohibit_save_on_root
+    @Constraints.set_project_role_on_adding
     def save(self):
         """
         共有フォルダを保存する
@@ -93,6 +93,7 @@ class RemoteFolder(Folder, Mountable):
 
         return self
 
+    @Constraints.delete_role_when_isolated
     def delete(self):
         """
         共有フォルダを削除する

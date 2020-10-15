@@ -18,8 +18,8 @@ class Folder(Store):
         # DBに保存する前のFolderへの参照と更新と実行権限は制限しない
         self._permissions = 0b1110
 
-    @Constraints.prohibit_save_under_root
-    @Constraints.set_permissions_for_everyone
+    @Constraints.prohibit_save_on_root
+    @Constraints.set_project_role_on_adding
     def save(self, file_path=None):
         """
         Folderを保存する
@@ -98,7 +98,7 @@ class Folder(Store):
 
         return self
 
-
+    @Constraints.set_role_to_trashed_folder
     def throw_away(self):
         """
         Folderを中身のファイルも一緒にゴミ箱にほかす
@@ -110,7 +110,7 @@ class Folder(Store):
         if self.parent_id is None:
             raise Exception('ルートフォルダは削除できません')
 
-        thrown_count, obstacle_count = self._throw_away_inner(trash_folder, self)
+        thrown_count, obstacle_count, trashed_folder = self._throw_away_inner(trash_folder, self)
 
         if obstacle_count == 0 and not self.is_system_folder():
             # 中のファイル全て削除可能であればフォルダ(ファイル)ごとゴミ箱へ移動する
@@ -119,6 +119,8 @@ class Folder(Store):
 
         if thrown_count == 0:
             raise Exception('削除できませんでした')
+
+        return trashed_folder
 
     def _throw_away_inner(self, parent, datum):
         if isinstance(datum, Folder):
@@ -135,7 +137,7 @@ class Folder(Store):
             obstacle_count = 0
 
             for child in children:
-                child_thrown_count, child_obstacle_count = self._throw_away_inner(trashed_folder, child)
+                child_thrown_count, child_obstacle_count, child_trashed_folder = self._throw_away_inner(trashed_folder, child)
                 # 削除可能リストの作成
                 if child_obstacle_count == 0:
                     throwables.append(child)
@@ -143,9 +145,14 @@ class Folder(Store):
                 thrown_count += child_thrown_count
                 obstacle_count += child_obstacle_count
 
+            # 形代フォルダの削除済みフラグ
+            trashed_folder_is_deleted = False
+
             if obstacle_count == 0 and not datum.is_system_folder():
                 # 全部捨る場合はフォルダごとゴミ箱へ移動する
                 trashed_folder.delete()
+                trashed_folder_is_deleted = True
+
             else:
                 # 一部捨てる場合はそれらを形代フォルダへ移動する
                 for throwable in throwables:
@@ -154,24 +161,27 @@ class Folder(Store):
                 # 捨るものがなかった場合は形代フォルダを作らない
                 if thrown_count == 0:
                     trashed_folder.delete()
+                    trashed_folder_is_deleted = True
 
-            return thrown_count, obstacle_count
+            # 形代フォルダを作る場合は返り値として返す、作らない場合はNoneを返す
+            return thrown_count, obstacle_count, None if trashed_folder_is_deleted else trashed_folder
 
         elif datum.type == Datum.FRAME_TYPE or datum.type == Datum.FLOW_TYPE:
             # 削除しようとするフレーム/サブフローの更新権限がない場合は削除できない
             if not self._session.writable(datum):
-                return 0, 1
+                return 0, 1, None
             # 削除しようとするフレーム/サブフローが、フローで使用されてる場合は削除できない
             using_flow_uuids = datum.get_flow_uuids_using_me()
             if len(using_flow_uuids) > 0:
-                return 0, 1
+                return 0, 1, None
             # 削除可能!
-            return 0, 0
+            return 0, 0, None
 
         else:
             # データベース接続、リモートフォルダ接続
-            return 0, 0
+            return 0, 0, None
 
+    @Constraints.delete_role_when_isolated
     def delete(self):
         """
         Folderを削除する

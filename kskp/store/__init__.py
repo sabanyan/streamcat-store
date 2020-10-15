@@ -69,7 +69,7 @@ BaseModel = declarative_base()
 
 from kskp.core import Datum, Port, Command
 
-from .exceptions import NothingToPutbackException, NoResultsException
+from .exceptions import NothingToPutbackException, NoResultsException, OptimisticLockException
 from .store import Store, NysolModule, ModuleStore, List
 from .database_conn import DatabaseConn
 from .remote_folder_conn import RemoteFolderConn
@@ -105,21 +105,30 @@ from ..depo.std.commands import CommandLink, CommandsPathLink, CommandsPathFileS
 # テーブルを作成する
 BaseModel.metadata.create_all(bind=engine, checkfirst=True)
 
-# 管理者ロールと管理者ユーザを作成する
+
 from kskp.store.factory import UnAuthzFactory, Factory
 with UnAuthzFactory() as unauthz_factory:
+    # システム管理者とユーザ管理者を作成する
     sys_admin_user = unauthz_factory.load_sys_admin_user()
     usr_admin_user = unauthz_factory.load_usr_admin_user()
 
-    # User.load_self_role()でusr_admin_userオブジェクトを更新するため
-    # Factoryでusr_admin_userをリロードする
-    with Factory(usr_admin_user) as factory:
-        usr_admin_user = factory.user.find_by_id(usr_admin_user.id)
+    with Factory(sys_admin_user) as factory:
+        # システム管理者ロールを作成する
+        sys_admin_role = factory.role.load_sys_admin_role()
 
-        with Factory(usr_admin_user) as factory:
-            # システムフォルダを作成する
-            factory.data.load_cache_folder()
-            factory.data.load_trash_folder()
+    with Factory(usr_admin_user) as factory:
+        # ユーザ管理者ロールを作成する
+        usr_admin_role = factory.role.load_usr_admin_role()
+        # everyoneロールにユーザ管理者を所有者として参加させる
+        # (unauthz_factoryからロールを新規追加された場合、作成者がロールに参加されない)
+        # (ユーザ管理者ロールを作成した後に処理すること)
+        from kskp.store.auth import Role
+        everyone_role = factory.role.load_everyone_role()
+        everyone_role.join_member(Role.Member(usr_admin_user, owner=True))
+        # システムフォルダを作成する
+        factory.data.load_cache_folder()
+        factory.data.load_trash_folder()
+
 
 from sqlalchemy import event, DDL
 

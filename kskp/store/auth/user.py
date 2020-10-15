@@ -3,6 +3,7 @@ import uuid
 from sqlalchemy import Column, String, text
 from sqlalchemy.dialects.postgresql import INTEGER, TIMESTAMP, UUID, ENUM
 from .exceptions import NotAuthorizedException
+from kskp.core import Constraints
 from .. import BaseModel
 
 class User(BaseModel):
@@ -27,7 +28,7 @@ class User(BaseModel):
     uuid          = Column(UUID, nullable=False, unique=True)
     email         = Column(String, nullable=False, unique=True)
     name          = Column(String, nullable=False)
-    password      = Column(String)
+    password      = Column(String, nullable=False)
     # ユーザ状態
     state         = Column(ENUM(TMP_STATE, ACTIVE_STATE, INACTIVE_STATE, name='user_state'), nullable=False)
     # 本人ロールのRoleId
@@ -57,6 +58,8 @@ class User(BaseModel):
 
         # パスワードを設定する
         new_password = password or self._generate_password()
+        # 妥当なパスワードでない場合は例外を送出する
+        self._valid_password_or_raise(new_password)
         self.password = self._get_encrypt_password(new_password)
 
         # 本パスワードに変更する前は仮登録状態である
@@ -85,9 +88,15 @@ class User(BaseModel):
             raise Exception('ユーザ名に空文字を指定できません')
 
     def _valid_password_or_raise(self, password):
+        import re
         from .exceptions import InvalidPassword
         if password is None or password == '':
             raise InvalidPassword('空のパスワードに変更できません')
+        if len(password) < 10 or 64 < len(password):
+            raise InvalidPassword('パスワードは10文字以上64文字以下にしてください')
+        if not re.search(r'^[\x21-\x7E]+$', password):
+            raise InvalidPassword('パスワードに使用できる文字は英数・記号(空白を除く)です')
+
         if self.is_temp:
             if self._get_encrypt_password(password) == self.password:
                 raise InvalidPassword('同じパスワードに変更できません')
@@ -137,7 +146,7 @@ class User(BaseModel):
 
     def _generate_password(self):
         # パスワードを自動生成する
-        return str(uuid.uuid4())[0:8]
+        return str(uuid.uuid4())[-10:]
 
     def _set_state(self, next_state):
         # if self.state == User.TMP_STATE and next_state == User.INACTIVE_STATE:
@@ -173,6 +182,16 @@ class User(BaseModel):
 
         # 戻り値の作成
         return {Role.SYS_ADMIN_ROLE_LABEL:result.sys_admin > 0, Role.USR_ADMIN_ROLE_LABEL:result.usr_admin > 0}
+
+    def _able_to_delete_user_or_raise(self):
+        # ユーザ管理者のみ、ユーザを削除できる
+        if not self._session.has_usr_admin():
+            raise NotAuthorizedException('ユーザを削除できませんでした')
+
+        # 削除ユーザが全てのロールから脱退できるか確認する(本人ロールを除く)
+        for role in self.get_joined_roles():
+            if role.is_system_role and role.is_last_owner(self):
+                role.raise_no_role_owner_exception()
 
     @property
     def is_temp(self):
@@ -219,11 +238,13 @@ class User(BaseModel):
             raise e
         finally:
             self._session.commit()
-            # everyoneロールに所属させる
-            # (everyoneロールの作成者であるユーザ管理者のみがにユーザを追加できる)
-            from kskp.store.factory import RoleFactory
-            everyone_role = RoleFactory(self._session).load_everyone_role()
-            everyone_role.join_user(self)
+
+        # everyoneロールに所属させる
+        # (everyoneロールの作成者であるユーザ管理者のみがユーザを追加できる)
+        from kskp.store.auth import Role
+        from kskp.store.factory import RoleFactory
+        everyone_role = RoleFactory(self._session).load_everyone_role()
+        everyone_role.join_member(Role.Member(self, False))
 
     def update_email(self, new_email, modifier=None):
         """
@@ -323,12 +344,14 @@ class User(BaseModel):
         """
         Userを削除する
         """
-        from kskp.store.factory import UserRoleFactory
-        user_role_factory = UserRoleFactory(self._session)
-        
+        # 削除できない場合は例外を送出する
+        self._able_to_delete_user_or_raise()
+
         try:
-            # users_rolesテーブルから全ての削除ユーザの行を削除する
-            user_role_factory.delete_all_by_user_id(self.id)
+            # 全てのロールから脱退する(本人ロールを除く)
+            for role in self.get_joined_roles():
+                if not role.is_self_role():
+                    role.leave_member(self)
             # usersテーブルから削除ユーザの行を削除する
             self._session.delete(self)
         except Exception as e:
@@ -357,9 +380,16 @@ class User(BaseModel):
             # everyone以外の所属ロールが無ければ、Userを物理削除する
             if not user_join_in_other_than_everyone_role:
                 self.delete()
-                return  
+                return
+
+        # 削除できない場合は例外を送出する
+        self._able_to_delete_user_or_raise()
 
         try:
+            # 全てのロールから脱退する(本人ロールを除く)
+            for role in self.get_joined_roles():
+                if not role.is_self_role():
+                    role.leave_member(self)
             # 論理削除状態に変更する
             self._set_state(User.INACTIVE_STATE)
             self._modifier_id = (modifier or self._session.user).id
@@ -502,3 +532,6 @@ class User(BaseModel):
 
     def __ne__(self, other):
         return self.uuid != other.uuid
+
+    def __hash__(self) -> int:
+        return hash(self.uuid)

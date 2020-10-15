@@ -41,8 +41,8 @@ class Frame(Datum):
         # data.type列='cache'を用意するべきだろうか？
         self.is_cache = False
 
-    @Constraints.prohibit_save_under_root
-    @Constraints.set_permissions_for_everyone
+    @Constraints.prohibit_save_on_root
+    @Constraints.set_project_role_on_adding
     def save(self, file_path=None):
         """
         Frameを保存する
@@ -210,8 +210,9 @@ class Frame(Datum):
         if len(flow_labels) > 0:
             raise Exception(f'このCSVファイルはフロー({flow_labels[0]})で使用しているため削除できません')
 
-        self.move(trash_folder.uuid)
+        return self.move(trash_folder.uuid)
 
+    @Constraints.delete_role_when_isolated
     def delete(self):
         """
         Frameを削除する

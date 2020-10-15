@@ -2,7 +2,7 @@ from sqlalchemy import event, DDL
 
 from kskp.store import engine, BaseModel
 
-from .exceptions import NotAuthorizedException, InvalidPassword
+from .exceptions import NotAuthorizedException, InvalidPassword, NoRoleOwnerException
 from .auth import Auth
 from .user_role import UserRole
 from .role import Role

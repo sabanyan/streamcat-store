@@ -71,6 +71,11 @@ class Session():
     def delete(self, obj):
         raise NotAuthorizedException('認証なき削除はできません')
 
+    @property
+    def deleted(self):
+        # return self._session.deleted
+        raise NotImplemented('session.deletedを使った削除済み判定は何故かできない')
+
 class AuthzSession(Session):
 
     def __init__(self, session_factory, user):
@@ -375,18 +380,30 @@ class AuthzSession(Session):
         elif isinstance(obj, User):
             # ユーザ管理者のみユーザを新規追加できる
             if not self.has_usr_admin():
-                raise NotAuthorizedException('ユーザを作成できませんでした')
+                raise NotAuthorizedException(f'ユーザ({obj})を作成できませんでした')
             self._session.add(obj)
 
         elif isinstance(obj, UserRole):
-            # ユーザ管理者かロールの作成者のみ、ロールにユーザを追加できる
-            if not self.is_role_creator(obj.role_id) and not self.has_usr_admin():
-                raise NotAuthorizedException('ロールにユーザを追加できませんでした')
+            # ユーザ管理者かロールの所有者のみ、ロールにユーザを追加できる
+            if not self.is_role_owner(obj.role_id) and not self.has_usr_admin():
+                from kskp.store.factory import UserFactory, RoleFactory
+                role = RoleFactory(self).find_by_id(obj.role_id)
+                user = UserFactory(self).find_by_id(obj.user_id)
+                raise NotAuthorizedException(f'{self.user}はロール({role})にユーザ({user})を追加できませんでした')
             self._session.add(obj)
 
         elif isinstance(obj, Role):
             # ロールの新規作成は誰でもできる
             self._session.add(obj)
+
+            # 新規追加したロールをDBに反映する
+            self._session.flush([obj])
+            self._session.expire(obj)
+
+            # ロールを新規作成したユーザには無条件にロールの所有権を付与する
+            from .user_role import UserRole
+            user_role = UserRole(self, obj.creator.id, obj.id, owner=True)
+            self._session.add(user_role)
 
         elif isinstance(obj, Auth):
             # ユーザ管理者かデータの所有者のみ、その権限を追加できる
@@ -420,11 +437,17 @@ class AuthzSession(Session):
                 raise NotAuthorizedException(f'{self.user.name}は更新権限がないためユーザ({obj})を変更できませんでした')
 
         elif isinstance(obj, UserRole):
-            raise NotAuthorizedException('UserRoleは更新できません')
+
+            # ユーザ管理者かロールの所有者のみ、ロールの所有権を変更できる
+            if not self.is_role_owner(obj.role_id) and not self.has_usr_admin():
+                from kskp.store.factory import UserFactory, RoleFactory
+                role = RoleFactory(self).find_by_id(obj.role_id)
+                user = UserFactory(self).find_by_id(obj.user_id)
+                raise NotAuthorizedException(f'{self.user}はロール({role})についてユーザ({user})の所有権を変更できませんでした')
 
         elif isinstance(obj, Role):
-            # ユーザ管理者かロールの作成者のみ、ロールを変更できる
-            if not self.is_role_creator(obj.id) and not self.has_usr_admin():
+            # ユーザ管理者かロールの所有者のみ、ロールを変更できる
+            if not self.is_role_owner(obj.id) and not self.has_usr_admin():
                 raise NotAuthorizedException('ロールを変更できませんでした')
 
         elif isinstance(obj, Auth):
@@ -461,14 +484,14 @@ class AuthzSession(Session):
                 raise NotAuthorizedException('ユーザを削除できませんでした')
 
         elif isinstance(obj, UserRole):
-            # ユーザ管理者かロールの作成者のみ、ロールからユーザを削除できる
-            if not self.is_role_creator(obj.role_id) and not self.has_usr_admin():
+            # ユーザ管理者かロールの所有者のみ、ロールからユーザを削除できる
+            if not self.is_role_owner(obj.role_id) and not self.has_usr_admin():
                 raise NotAuthorizedException('ロールからユーザを削除できませんでした')
 
         elif isinstance(obj, Role):
-            # ユーザ管理者かロールの作成者のみ、ロールを削除できる
-            if not self.is_role_creator(obj.id) and not self.has_usr_admin():
-                raise NotAuthorizedException('ロールを削除できませんでした')
+            # ユーザ管理者かロールの所有者のみ、ロールを削除できる
+            if not self.is_role_owner(obj.id) and not self.has_usr_admin():
+                raise NotAuthorizedException(f'{self.user}はロール({obj})を削除できませんでした')
 
         elif isinstance(obj, Auth):
             # ユーザ管理者かデータの所有者のみ、その権限を削除できる
@@ -656,6 +679,18 @@ class AuthzSession(Session):
         from .role import Role
         query = self._session.query(Role).\
                 filter(Role.id==role_id).filter(Role._creator_id==self.user.id)
+
+        return query.count() > 0
+
+    def is_role_owner(self, role_id) -> bool:
+        """
+        操作ユーザがRoleの所有者であればTrueを返す
+        """
+        from .role import UserRole
+        query = self._session.query(UserRole).\
+                filter(UserRole.role_id==role_id).\
+                filter(UserRole.user_id==self.user.id).\
+                filter(UserRole.owner==True)
 
         return query.count() > 0
 

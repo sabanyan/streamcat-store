@@ -11,6 +11,9 @@ class FlowDumper:
         # SQLAlchemy Session
         self.factory = factory
 
+        if not self.factory._session.has_usr_admin():
+            raise Exception('ユーザ管理者以外は、フローのエクスポート/インポートはできません')
+
         import uuid
         self.tmp_path = Path('/tmp')
         self.gathering_path = self.tmp_path / str(uuid.uuid4())
@@ -27,9 +30,11 @@ class FlowDumper:
         elif self.factory.data.exists(uuid):
             archive_name = self.factory.data.find_by_uuid(uuid).label
             self._get_folder(self.gathering_path, gathered_uuids, uuid)
+        else:
+            raise Exception(f'指定された({uuid})のフォルダまたはフローが存在しませんでした')
 
         # アーカイブファイルを作成する
-        archive_path = self._make_archive(archive_name)
+        archive_path = self._make_archive()
 
         # アーカイブされたファイルを削除する
         if self.gathering_path.exists():
@@ -146,7 +151,7 @@ class FlowDumper:
 
         return (reference_frames, reference_stores, reference_flows)
 
-    def _make_archive(self, archive_name):
+    def _make_archive(self):
         # 圧縮ファイル名
         import uuid
         tar_file_path = self.tmp_path / (str(uuid.uuid4()) + '.tgz')
@@ -161,33 +166,27 @@ class FlowDumper:
 
         return tar_file_path
 
-    def restore_archive(self, parent, stream):
+    def restore_archive(self, parent, archive_name, stream):
         # 展開処理
         import uuid
         tar_dir_path = Path('/tmp') / str(uuid.uuid4())
         extracted_members = self._extract_archive(tar_dir_path, stream)
 
-        # フレームの移行先フォルダを作成する
-        frame_folder = parent.create_folder('FromOtherServer')
-        frame_folder.save()
-        # 保存後に参照権限を取得するためDBから取得する
-        frame_folder = frame_folder.reload()
-
-        # フローフォルダを取得する
-        flow_folder = self.factory.data.load_flow_folder()
-        folder_uuid = flow_folder.uuid
-
         flow_uuids  = {}
         uuids = {}
 
         # label.txtからuuidとlabelの対応を取得する
+        type_labels = {}
         for member in extracted_members:
             file = tar_dir_path / member.name
             if file.name == 'labels.txt':
                 type_labels = self._read_labels(file)
                 break
+        if type_labels == {}:
+            raise Exception('labels.txtが存在しません')
 
         # ライブラリに登録する
+        default_top_folder = None
         folders = {}
         for member in extracted_members:
             file = tar_dir_path / member.name
@@ -200,25 +199,34 @@ class FlowDumper:
                     continue
 
                 if file.is_dir():
-                    folder = flow_folder.create_folder(file.name)
-                    folder_uuid = folder.uuid
-                    folders[file] = folder_uuid
-                    folder.save()
+                    if file.parent == tar_dir_path:
+                        # アーカイブ内のトップディレクトリの場合、
+                        # ルート直下にプロジェクトフォルダを作成する
+                        folder = parent.create_project_folder(file.name)
+                        folder.save()
+                        folders[file] = folder
+                    elif file.parent in folders:
+                        file_parent = folders[file.parent]
+                        folder = file_parent.create_folder(file.name)
+                        folder.save()
+                        folders[file] = folder
+                    else:
+                        raise Exception(f'parent folder of {file.name} is not found')
                     continue
                 elif file.parent in folders:
-                    folder_uuid = folders[file.parent]
+                    folder = folders[file.parent]
                 else:
-                    # 親フォルダがない場合は作る
-                    folder = flow_folder.create_folder('FromOtherServer')
-                    folder_uuid = folder.uuid
-                    folders[file] = folder_uuid
-                    folder.save()
+                    # 親フォルダがない場合はルート直下に作る
+                    if default_top_folder is None:
+                        default_top_folder = parent.create_project_folder(archive_name)
+                        default_top_folder.save()
+                    folder = default_top_folder
 
                 (datum_type, label) = type_labels[file.stem]
                 if datum_type == Datum.FRAME_TYPE:
                     file.parent
                     with file.open('rb') as f:
-                        frame = frame_folder.create_frame(label, f)
+                        frame = folder.create_frame(label, f)
                         uuids[file.stem] = frame.uuid
                         frame.save()
                 elif datum_type == Datum.DATABASE_TYPE:
@@ -226,14 +234,14 @@ class FlowDumper:
                         d = f.read()
                         db = json.loads(d)
                     db_conn = DatabaseConn(db)
-                    database = frame_folder.create_database(label, db_conn)
+                    database = folder.create_database(label, db_conn)
                     uuids[file.stem] = database.uuid
                     database.save()
                 elif datum_type == Datum.FLOW_TYPE:
                     with file.open('r') as f:
                         d = f.read()
                         flow_json = json.loads(d)
-                    flow = flow_folder.create_flow(label, flow_json)
+                    flow = folder.create_flow(label, flow_json)
                     flow_uuids[file.stem] = flow.uuid
                     uuids[file.stem] = flow.uuid
                     flow.save()
@@ -273,6 +281,7 @@ class FlowDumper:
 
     def _extract_archive(self, tar_dir_path, stream):
         import tarfile
-        with tarfile.open(fileobj=stream, mode='r|gz') as tar:
+        # 'r|*' : 圧縮または無圧縮形式のアーカイブを読み込みモードで開く
+        with tarfile.open(fileobj=stream, mode='r|*') as tar:
             tar.extractall(tar_dir_path)
             return [member for member in tar.getmembers()]
