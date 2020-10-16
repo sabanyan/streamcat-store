@@ -505,12 +505,18 @@ class Datum(BaseModel):
                 return [], [e]
 
     def get_prev_folder_path(self):
+        from kskp.store.auth import NotAuthorizedException
         from kskp.store.factory import DatumFactory
+
         factory = DatumFactory(self._session)
         if self.prev_parent_id is None or not factory.exists_by_id(self.prev_parent_id):
             return None
         else:
-            prev_parent = factory.find_by_id(self.prev_parent_id)
+            try:
+                prev_parent = factory.find_by_id(self.prev_parent_id)
+            except NotAuthorizedException:
+                # 参照権限がないため移動元の親Datumが取得できない場合、Noneを返す
+                return None
             return '/' + '/'.join([folder.get('label') for folder in prev_parent.get_folder_path()])
 
     def __repr__(self):

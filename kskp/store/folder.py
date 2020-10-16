@@ -236,14 +236,18 @@ class Folder(Store):
         """
         現在のフォルダ階層パスをリスト型で返す(APIのFolderPath属性の作成で用いる)
         """
-        # 指定されたUUIDのfolerレコードを取得する
-        datum = self._session.query(Datum).filter(Datum.uuid==self.uuid).one_or_none()
+        from kskp.store.auth import NotAuthorizedException
 
-        parent_id = datum.parent_id
+        datum = self
         path_to_root = [{'type':datum.type, 'uuid':datum.uuid, 'label':datum.label}]
-        # 取得したレコードから外部キー’parent_id’をたどり、途中のfolderレコードをリストに順に保存する
+        parent_id = datum.parent_id
+        # 自分からルートフォルダまでのfolderレコードをリストに順に保存する
         while parent_id != None:
-            datum = self._session.query(Datum).filter(Datum.id==parent_id).one_or_none()
+            try:
+                datum = datum.find_parent()
+            except NotAuthorizedException:
+                # 参照権限がないため親Datumが取得できない場合、空リストを返す
+                return []
             path_to_root.append({'type':datum.type, 'uuid':datum.uuid, 'label':datum.label})
             parent_id = datum.parent_id
         # 保存したリストの並びを逆にする
