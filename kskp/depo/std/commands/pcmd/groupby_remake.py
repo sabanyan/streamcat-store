@@ -51,7 +51,7 @@ class GroupByRemakeCommand(PCommand):
 
             # 結果列指定に関わるエラー
             'ResultsColForbiddenCharacterError' : '半角の（ *　?　[　]　,　:　\\ \' \"）は、項目名に使用できません。${fieldinput}',
-            'ResultsColConflictError' : '出力項目名が重複しています。%指定、&指定、ワイルドカード指定など、重複する出力項目名となる設定がないかを、確認してください。${fieldinput}',
+            'ResultsColConflictError' : '出力項目名が重複しています。%指定、&指定、ワイルドカード指定など、重複する出力項目名となる設定がないかを、確認してください。',
             'UnknownResultsColError' : '名前付けルールの設定の指定が正しくありません。${fieldinput}',
 
             # 統計量指定に関わるエラー
@@ -68,7 +68,7 @@ class GroupByRemakeCommand(PCommand):
             'ParameterConflictError' : 'パラメータが重複しています。${fieldinput}',
             'ParameterTypeError'  : '${calc} のパラメータへの ${fieldinput} 指定が正しくありません。${correct_type} を指定してください',
             'ParameterOutOfBoundsError' : '${calc} のパラメータへの ${fieldinput} 指定が正しくありません。 ${correct_value} で指定してください',
-            'ParameterFormatError' : '${calc} のパラメータへの ${fieldinput} 指定が正しくありません。${correct_format}で指定してください',
+            'ParameterFormatError' : '${calc} のパラメータへの ${fieldinput} 指定が正しくありません。${correct_format} を指定してください',
             'UnknownParameterError' : '${calc} のパラメータへの ${fieldinput} 指定が正しくありません'
             }
         elif s == 'paraminfo':
@@ -91,11 +91,11 @@ class GroupByRemakeCommand(PCommand):
                                             [self.checkParamOOB,{'low' : 2}]]},
             'quantile' : {'correct_type' : '数値', 
                           'correct_value' : '０−１の数値',
-                          'checks' : [[self.checkParamOOB, {'low' : 0,
-                                                            'high': 1}]]},
+                          'checks' : [[self.checkParamOOB, {'low_inc' : 0,
+                                                            'high_inc': 1}]]},
             'range_count' : {'correct_type' : '数値;数値', 
                              'correct_value' : '全ての数値', 
-                             'correct_format' : '開始＜終了の;区切り',
+                             'correct_format' : '数値;数値',
                              'checks': [[self.checkParamGTLT, {}]]},
             'autocorr' : {'correct_type' : '数値', 
                           'correct_value' : '１以上の整数',
@@ -106,11 +106,12 @@ class GroupByRemakeCommand(PCommand):
                             'checks' : [[self.checkParamIsNumber, {}]]},
             'peaks' : {'correct_type' : '数値', 
                        'correct_value' : '１以上の整数',
-                       'checks' : [[self.checkParamOOB, {'low' : 1}]]},
+                       'checks' : [[self.checkParamOOB, {'low' : 1}],
+                                   [self.checkParamIsInteger, {}]]},
             'imq' : {'correct_type' : '数値', 
                      'correct_value' : '０−１の数値',
-                     'checks' : [[self.checkParamOOB, {'low' : 0,
-                                                       'high': 1}]]},
+                     'checks' : [[self.checkParamOOB, {'low_inc' : 0,
+                                                       'high_inc': 1}]]},
             }
         elif s == 'supports_str':
             return [
@@ -309,7 +310,6 @@ class GroupByRemakeCommand(PCommand):
         code 0: executed properly, no errors
         code 1: no match in entire header (FieldNotfoundError)
         """
-        exitcode = 0
         expanded = []
         
         for elem in to_expand.split(','):
@@ -357,7 +357,8 @@ class GroupByRemakeCommand(PCommand):
 
         return None
 
-    def checkParamOOB(self, param, low = None, high = None):
+    def checkParamOOB(self, param, low = None, low_inc = None, 
+                      high = None, high_inc = None):
         '''
         checks if a param is outside the given bounds
         
@@ -370,21 +371,22 @@ class GroupByRemakeCommand(PCommand):
             return not_a_number
 
         param = float(param)
+        
+        if low_inc is not None:
+            if param < low_inc:
+                return 'ParameterOutOfBoundsError'
 
-        if isinstance(low, int):
-            if isinstance(high, int):
-                if not(low < param < high):
-                    return 'ParameterOutOfBoundsError'
-            
-            else:
-                if param < low:
-                    return 'ParameterOutOfBoundsError'
-        else:
-            if isinstance(high, int):
-                if high < param:
-                    return 'ParameterOutOfBoundsError'
-            else:
-                return 'BadBoundDefinition' # internal error for debugging
+        if low is not None:
+            if param <= low:
+                return 'ParameterOutOfBoundsError'
+
+        if high_inc is not None:
+            if param > high_inc:
+                return 'ParameterOutOfBoundsError'
+
+        if high is not None:
+            if param >= high:
+                return 'ParameterOutOfBoundsError'
         
         return None
             
@@ -409,7 +411,9 @@ class GroupByRemakeCommand(PCommand):
         contains paramformat check, and raises ParameterFormatError on fail
         '''
 
-        bad_format = self.checkParamFormat(param, '-?[0-9]+;-?[0-9]+')
+        valid_number = '[+,-]?([0-9]+|(([0-9]+[.][0-9]*)|([0-9]*[.][0-9]+))([E,e][+,-]?[0-9]*)?)'
+
+        bad_format = self.checkParamFormat(param, f'^{valid_number};{valid_number}$')
         if bad_format is not None:
             return bad_format
 
@@ -502,6 +506,11 @@ class GroupByRemakeCommand(PCommand):
         '''
         formatstr = common_args.get('format')
         
+        if self.DEBUG:
+            print(f'args: {args}')
+            print(f'common_args : {common_args}')
+            sys.__stderr__.flush()
+        
         if 'fld' in args:
             fldname = args['fld']
         else:
@@ -537,6 +546,11 @@ class GroupByRemakeCommand(PCommand):
                 colformat[i] = f'"{sub}"' 
 
         mcal_exp = '+'.join(colformat)
+        
+        if self.DEBUG:
+            print(f'finalcol_exp: {mcal_exp}')
+            sys.__stderr__.flush()
+            
         return mcal_exp
 
     def simplifyMsummary(self, msum_list):
@@ -747,26 +761,43 @@ class GroupByRemakeCommand(PCommand):
         ks = raw_args.get('k') 
         if ks:
             ks_list = ks.split(',')
-            for key in ks_list:
-                if key not in self.header:
-                    errmsg = self.generateCommandErrorMessage('FieldNotFoundError', 'k', key)
-                    raise Exception(errmsg)
-                    
-            if self.containsAny(ks, '%&'):
-                errmsg = self.generateCommandErrorMessage('KeyFieldForbiddenCharacterError', 'k', ks)
-                raise Exception(errmsg)
-
-            if len(ks_list) != len(set(ks_list)):
-                errmsg = self.generateCommandErrorMessage('KeyFieldConflictError', 'k', ks)
-                raise Exception(errmsg)
+            
 
             if '' in ks_list:
                 errmsg = self.generateCommandErrorMessage('EmptyKeyFieldError', 'k', ks)
                 raise Exception(errmsg)
 
+            expanded_k = []
+            
+            for k in ks_list:
+                
+                # check for forbidden characters
+                if self.containsAny(k, '%&'):
+                    errmsg = self.generateCommandErrorMessage('KeyFieldForbiddenCharacterError', 'k', ks)
+                    raise Exception(errmsg)
+            
+                exitcode, res = self.expandWildCards(k)
+                
+                if exitcode == 0:
+                    expanded_k += res
+                    continue
+                else:
+                    errmsg = self.generateCommandErrorMessage('FieldNotFoundError', 'k', ks)
+                    raise Exception(errmsg)
+
+            if self.DEBUG:
+                print(f'expanded_k: {expanded_k}')
+                sys.__stderr__.flush()
+                
+            dupes_list = self.findDuplicates(expanded_k)
+            if len(dupes_list) > 0: # if duplicates are found
+                dupes_str = ','.join(dupes_list)
+                errmsg = self.generateCommandErrorMessage('KeyFieldConflictError', 'k', dupes_str)
+                raise Exception(errmsg)
+
             # set manual k input flag
             common_args['manual_k'] = True
-            common_args['k'] = ks
+            common_args['k'] = ','.join(expanded_k)
         
         else: # if k is empty
             ks_list = []
@@ -778,7 +809,7 @@ class GroupByRemakeCommand(PCommand):
         # format errors
         formatstr = raw_args.get('format')
 
-        if self.containsAny(formatstr, '*?[]'):
+        if self.containsAny(formatstr, '*?[],:\\\'\" '):
             errmsg = self.generateCommandErrorMessage('ResultsColForbiddenCharacterError', 'format', formatstr)
             raise Exception(errmsg)
 
@@ -816,7 +847,7 @@ class GroupByRemakeCommand(PCommand):
                 # if a dict contains 'fld', it is an operation on the whole
                 # data set. 
                
-                fld = row.pop('fld') 
+                fld = row.get('fld') 
                 # check if multiple flds specified
                 if ',' in fld:
                     errmsg = self.generateCommandErrorMessage('MultipleRowsTargetError', 'fld', row['fld'])
@@ -828,6 +859,8 @@ class GroupByRemakeCommand(PCommand):
                         c, a = c.split(':')
                     else:
                         a = c 
+                        
+                    row['a'] = a
                     
                     all_fs.add(fld)
                     
@@ -930,6 +963,12 @@ class GroupByRemakeCommand(PCommand):
                     if self.containsAny(x, '*?[],:\\&%'):
                         errmsg = self.generateCommandErrorMessage('TimeColForbiddenCharacterError', 'x', x)
                         raise Exception(errmsg)
+                    
+                    for x in xs_list:
+                        if x not in self.header:
+                            errmsg = self.generateCommandErrorMessage('FieldNotFoundError', 'x', x)
+                            raise Exception(errmsg)
+                            
 
                     if '' in xs_list:
                         errmsg = self.generateCommandErrorMessage('EmptyTimeColError', 'x', x)
@@ -1082,7 +1121,7 @@ class GroupByRemakeCommand(PCommand):
                 # cut out only relevant columns
                 cmd[i] = self.cutToRelevantCols(cmd[i], thiscalc, common_args)
 
-                calctype = thiscalc.get('type')
+                calctype = thiscalc.pop('type')
                 if calctype == 'msummary':
                     func = self.feature_msummary
                     # if thiscalc is a count calc, remove nonnumbers
@@ -1153,12 +1192,14 @@ class GroupByRemakeCommand(PCommand):
         k = opts['k']
         opts['precision'] = common_args['precision']
         formatstr = common_args['format']
+        
 
         # prepare list of output cols of msummary
         final_cs = [c.split(':')[-1] for c in args['c'].split(',')]
         
-        # prepare mcal-type string for final format
-
+        if self.DEBUG:
+            print(f'opts: {opts}')
+            
         # calculate
         subcmd <<= nm.msummary(**opts)
         
