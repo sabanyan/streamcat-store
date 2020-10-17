@@ -179,6 +179,7 @@ class GroupByRemakeCommand(PCommand):
                     'range_count',
                     'slope',
                     'slope_pearson',
+                    'slope_pattern',
                     'mean_second_derivative_central',
                     'mean_change',
                     'mean_abs_change',
@@ -242,6 +243,7 @@ class GroupByRemakeCommand(PCommand):
                 # 1 field + time (input k, a, f, x)
                 'slope' : self.feature_slope,
                 'slope_pearson' : self.feature_pearson,
+                'slope_pattern' : self.feature_pattern,
                 'mean_second_derivative_central' : self.feature_M2DC,
                 'mean_change' : self.feature_meanchange,
                 'mean_abs_change' : self.feature_meanabschange,
@@ -292,6 +294,9 @@ class GroupByRemakeCommand(PCommand):
             flow_obj = nm.m2tee(i = flow_obj, o = filepath.as_posix())
         else:
             flow_obj <<= nm.m2tee(o = filepath.as_posix())
+
+        if self.DEBUG:
+            flow_obj <<= nm.m2tee(o = f'debug_predump_{filepath.name}.csv')
 
         nysol_module = self.wrapFlow(flow_obj)
         self.do_runs(nysol_module)
@@ -1905,6 +1910,33 @@ class GroupByRemakeCommand(PCommand):
 
         return subcmd
         
+    def feature_pattern(self, subcmd, args, common_args):
+        '''
+        calculate feature slope_pattern
+        '''
+        fld = args.get('f')
+        x = args.get('x')
+        k = common_args.get('k')
+        precision = common_args.get('precision')
+
+        resultcolname = self.generateFinalColName(args, common_args)
+
+        subcmd <<= nm.mdelnull(f = fld)
+        subcmd <<= nm.mnumber(a = '__order__', I = 1, k = k, S = 0, q = True)
+
+        subcmd <<= nm.msim(k = k, c = 'pearson:__val__', 
+                           f = f'__order__,{fld}', a = 'fld2,fld',
+                           precision = precision)
+
+        subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
+        
+        if self.DEBUG:
+            subcmd <<= nm.m2tee(o = 'debug_end_of_feature_pattern.csv')
+
+        subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
+
+        return subcmd
+
     def feature_M2DC(self, subcmd, args, common_args):
         '''
         calculate fature mean second derivative (central approx)
@@ -2470,6 +2502,9 @@ class GroupByRemakeCommand(PCommand):
         
 
     def run(self, args, inputs):
+        # debug flag
+        self.DEBUG = False
+        
         # first off, make copies of the inputs
         args = copy.deepcopy(args)
         inputs = copy.deepcopy(inputs)
