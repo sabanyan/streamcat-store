@@ -445,7 +445,7 @@ class ProjectFolder(Folder):
         # 
 
         # AuthのTableオブジェクト
-        A = Auth.metadata.sorted_tables[0]
+        A = Auth.__table__
         
         exists_user_role = exists().where(and_(UserRole.user_id==User.id, UserRole.role_id==Auth.role_id))
 

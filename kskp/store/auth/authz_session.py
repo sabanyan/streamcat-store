@@ -169,7 +169,7 @@ class AuthzSession(Session):
         #                         filter(or_(UserRole.user_id!=None, User.id!=None)).label('')
 
         # AuthのTableオブジェクト
-        A = Auth.metadata.sorted_tables[0]
+        A = Auth.__table__
 
         # 操作ユーザが所属するロールであることを指定する条件
         exists_user_role = exists().where(and_(UserRole.role_id==A.c.role_id, UserRole.user_id==self.user.id))
@@ -263,7 +263,7 @@ class AuthzSession(Session):
             )
 
         # AuthのTableオブジェクト
-        A0 = Auth.metadata.sorted_tables[0]
+        A0 = Auth.__table__
 
         # 操作ユーザが所属するロールであることを指定する条件
         exists_user_role = exists().where(and_(UserRole.role_id==A0.c.role_id, UserRole.user_id==self.user.id))
@@ -418,13 +418,13 @@ class AuthzSession(Session):
                 raise NotAuthorizedException('no anthz!', str(obj))       
             self._session.add(obj)
 
-    def update(self, obj):
+    def update(self, obj, ignore_authz=False):
         from kskp.core import Datum
         from kskp.store.auth import User, Role, UserRole, Auth
 
         if isinstance(obj, Datum):
             # Datumの変更権限を判定する
-            if not self.writable(obj):
+            if not ignore_authz and not self.writable(obj):
                 raise NotAuthorizedException((f'{self.user.name}は更新権限がないため{obj.label}を更新できません'))
             if obj._data is not None:
                 # JSON列への変更はflag_modified()を使ってSQLAlchemyに知らせないとDBに反映されない
@@ -628,7 +628,7 @@ class AuthzSession(Session):
             #             filter(or_(UR0.user_id!=None, U0.id!=None)).label('')
 
             # AuthのTableオブジェクト
-            A0 = Auth.metadata.sorted_tables[0]
+            A0 = Auth.__table__
 
             # 操作ユーザが所属するロールであることを指定する条件
             exists_user_role0 = exists().where(and_(UserRole.role_id==A0.c.role_id, UserRole.user_id==self.user.id))

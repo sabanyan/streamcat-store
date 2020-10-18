@@ -315,6 +315,8 @@ class Frame(Datum):
         try:
             # ファイルが存在しなければ削除処理はしない
             if not self._path.exists():
+                import warnings
+                warnings.warn(f'Not Exists file path : {self._path}')
                 return
             # 自分以外で同じファイルを使用しているFrameがあれば削除しない
             if self._frame_path_exists(self._path, except_id=self.id):

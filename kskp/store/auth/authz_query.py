@@ -79,8 +79,8 @@ class Query():
         result = self._query.update(values, update_args=update_args)
         return result
 
-    def delete(self):
-        result = self._query.delete()
+    def delete(self, synchronize_session='evaluate'):
+        result = self._query.delete(synchronize_session)
         return result
 
 class AuthzDatumQuery(Query):
@@ -117,14 +117,14 @@ class AuthzDatumQuery(Query):
                 return None
         return result
 
-    def all(self):
+    def all(self, ignore_authz=False):
         from kskp.core import Datum
         results = self._query.all()
         if results is not None and len(results) > 0 and Query._is_base_model(results[0]):
             rets = []
             for result in results:
                 # 参照権限のないDatumは返さない
-                if isinstance(result, Datum) and not result.readable:
+                if not ignore_authz and isinstance(result, Datum) and not result.readable:
                     continue
                 result._session = self._session
                 rets.append(result)

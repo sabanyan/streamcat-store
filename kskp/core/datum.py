@@ -4,11 +4,11 @@
 import os
 import sqlalchemy.types
 from pathlib import Path
-from kskp.store import BaseModel
 from sqlalchemy import Column, String, text
 from sqlalchemy.sql import operators
 from sqlalchemy.orm import query_expression
 from sqlalchemy.dialects.postgresql import INTEGER, TIMESTAMP, JSONB, ENUM, UUID
+from kskp.store import BaseModel
 from .constraints import Constraints
 
 class Datum(BaseModel):
@@ -561,11 +561,11 @@ class Datum(BaseModel):
 
     def _update_same_path(self, old_path, new_path, modifier):
         # 同じファイルに対応するフォルダのpath列を、ファイル名の移動に合わせて変更する
-        results = self._session.query(Datum).filter(Datum._path == old_path).all()
+        results = self._session.query(Datum).filter(Datum._path == old_path).all(ignore_authz=True)
         for result in results:
             result._path = Datum._to_rel_path(new_path)
             result._modifier_id = (modifier or self._session.user).id
-            self._session.update(result)
+            self._session.update(result, ignore_authz=True)
 
     def _update_include_path(self, old_path, new_path, modifier=None):
         import re
@@ -576,7 +576,9 @@ class Datum(BaseModel):
         # SQLのワイルドカード%と_をエスケープする
         results = self._session.query(Datum)\
                          .filter(Datum._path!=None)\
-                         .filter(Datum._path.like(rel_old_path + '/' + '%')).all()
+                         .filter(Datum._path.like(rel_old_path + '/' + '%'))\
+                         .all(ignore_authz=True)
+
         for result in results:
             rel_new_path = Datum._to_rel_path(new_path).as_posix() + '/'
             rel_result_path = Datum._to_rel_path(result._path).as_posix()
@@ -584,7 +586,7 @@ class Datum(BaseModel):
 
             result._path = Path(replaced_path)
             result._modifier_id = (modifier or self._session.user).id
-            self._session.update(result)
+            self._session.update(result, ignore_authz=True)
 
     def get_flow_uuids_using_me(self):
         """      .......

@@ -493,13 +493,25 @@ class AuthFactory():
 
         return query.count() > 0
 
-    def delete_all_by_datum_id(self, datum_id):
+    def delete_all_by_datum_id(self, datum_id, except_role_uuid=None):
         """
         Authzテーブルから指定したDatumの権限情報を全て削除する
         """
-        from kskp.store.auth import Auth
+        from sqlalchemy import exists, and_
+        from kskp.store.auth import Auth, Role
+
+        query = self._session.query(Auth).filter(Auth.datum_id==datum_id)
+        if except_role_uuid is None:
+            synchronize_session = 'evaluate'
+        else:
+            not_exists_except_role = ~exists().where(and_(Role.id==Auth.role_id, Role.uuid==except_role_uuid))
+            query = query.filter(not_exists_except_role)
+            synchronize_session = 'fetch'
+
         try:
-            self._session.query(Auth).filter(Auth.datum_id==datum_id).delete()
+            # 抽出条件にサブクエリなどを使ってDELETEする場合は
+            # synchronize_sessionにFalseか'fetch'の指定が必要
+            query.delete(synchronize_session=synchronize_session)
         except Exception as e:
             self._session.rollback()
             raise e

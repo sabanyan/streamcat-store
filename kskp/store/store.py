@@ -78,6 +78,11 @@ class Store(Datum):
 
         return data
 
+    def count_children(self):
+        # 参照権限が無ければ直下の子Datumは取得できない
+        self._readable_or_raise()
+        return self._session.query(Datum).filter(Datum.parent_id==self.id).count()
+
     def make_unique_label(self, label, except_uuid=None):
         """
         指定する親データストア内で、同じ名称のラベルがすでにある場合、末尾に数字を付加したラベル名を返す
