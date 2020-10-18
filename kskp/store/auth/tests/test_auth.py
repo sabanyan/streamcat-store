@@ -1614,6 +1614,62 @@ class AuthTest(TestCaseBase):
         with self.assertRaises(NotAuthorizedException):
             flow.delete()
 
+    def test_count_readless_datum(self):
+        """
+        参照権限のないDatumでもcount()できること
+        """
+        # ルートフォルダを取得する
+        root = self.factory.data.load_root()
+        # ルートフォルダの下にフォルダ1を作成する
+        folder1 = root.create_folder('フォルダ1')
+        folder1.save()
+        # フォルダ1の下にフローを作成する
+        flow = folder1.create_flow('myFlow', {})
+        flow.save()
+
+        # フローを参照不可にする
+        everyone_role = self.factory.role.load_everyone_role()
+        everyone_role.init_authz(flow.id, False, True)
+
+        # フローは参照不可なので取得できない
+        self.assertEqual(len(folder1.find_children()), 0)
+
+        # ただし、参照不可であってもcount()によって件数の取得は可能としている
+        result = self.factory._session.query(Datum).filter(Datum.parent_id==folder1.id).count()
+        self.assertEqual(result, 1)
+
+        # フローとフォルダ1を削除する
+        flow.delete()
+        folder1.delete()
+
+    def test_exists_readless_datum(self):
+        """
+        参照権限のないDatumでもexists()=Trueであること
+        """
+        # ルートフォルダを取得する
+        root = self.factory.data.load_root()
+        # ルートフォルダの下にフォルダ1を作成する
+        folder1 = root.create_folder('フォルダ1')
+        folder1.save()
+        # フォルダ1の下にフレームを作成する
+        frame = folder1.create_frame('フレーム！', io.BytesIO(b'frame0frame0'))
+        frame.save()
+
+        # フローを参照不可にする
+        everyone_role = self.factory.role.load_everyone_role()
+        everyone_role.init_authz(frame.id, False, True)
+
+        # フローは参照不可なので取得できない
+        self.assertEqual(len(folder1.find_children()), 0)
+
+        # ただし、参照不可であってもexists()によってその存在の判定は可能としている
+        self.assertTrue(self.factory.data.exists(frame.uuid))
+        self.assertTrue(self.factory.data.exists_by_id(frame.id))
+
+        # フレームとフォルダ1を削除する
+        frame.delete()
+        folder1.delete()
+
     # 
     # Projects
     # 
@@ -2269,7 +2325,7 @@ class AuthTest(TestCaseBase):
     def test_everyone_has_permissions(self):
         """
         everyoneは、プロジェクト以外の全てのDatumの
-        参照・更新・実行権限を付与されていること
+        参照・更新・実行・所有権限を付与されていること
         """
         # ルートフォルダを取得する
         root = self.factory3.data.load_root()
@@ -2289,13 +2345,14 @@ class AuthTest(TestCaseBase):
 
         # フォルダにeveryoneロールの参照・更新・実行権限が付与されていること
         self.assertTrue(self.factory3.auth.exists(everyone_role.id, folder.id))
-        self.assertFalse(self.factory3.auth.exists(everyone_role.id, folder.id, Auth.OWN_OP))
         read_auth = self.factory3.auth.find_by_id(everyone_role.id, folder.id, Auth.READ_OP)
         self.assertTrue(read_auth.permission)
         write_auth = self.factory3.auth.find_by_id(everyone_role.id, folder.id, Auth.WRITE_OP)
         self.assertTrue(write_auth.permission)
         exec_auth = self.factory3.auth.find_by_id(everyone_role.id, folder.id, Auth.EXEC_OP)
         self.assertTrue(exec_auth.permission)
+        own_auth = self.factory3.auth.find_by_id(everyone_role.id, folder.id, Auth.OWN_OP)
+        self.assertTrue(own_auth.permission)
 
         # フォルダの下にフローを作成する
         flow = folder.create_flow('Mac pro', {})
@@ -2304,27 +2361,29 @@ class AuthTest(TestCaseBase):
 
         # フローにeveryoneロールの参照・更新・実行権限が付与されていること
         self.assertTrue(self.factory3.auth.exists(everyone_role.id, flow.id))
-        self.assertFalse(self.factory3.auth.exists(everyone_role.id, flow.id, Auth.OWN_OP))
         read_auth = self.factory3.auth.find_by_id(everyone_role.id, flow.id, Auth.READ_OP)
         self.assertTrue(read_auth.permission)
         write_auth = self.factory3.auth.find_by_id(everyone_role.id, flow.id, Auth.WRITE_OP)
         self.assertTrue(write_auth.permission)
         exec_auth = self.factory3.auth.find_by_id(everyone_role.id, flow.id, Auth.EXEC_OP)
         self.assertTrue(exec_auth.permission)
+        own_auth = self.factory3.auth.find_by_id(everyone_role.id, flow.id, Auth.OWN_OP)
+        self.assertTrue(own_auth.permission)
 
         # フォルダの下にフレームを作成する
         frame = folder.create_frame('iMac', io.BytesIO(b'mac'))
         frame.save()
         frame = frame.reload()
 
-        # フローにeveryoneロールの参照・更新権限が付与されていること
+        # フレームにeveryoneロールの参照・更新権限が付与されていること
         self.assertTrue(self.factory3.auth.exists(everyone_role.id, frame.id))
         self.assertFalse(self.factory3.auth.exists(everyone_role.id, frame.id, Auth.EXEC_OP))
-        self.assertFalse(self.factory3.auth.exists(everyone_role.id, frame.id, Auth.OWN_OP))
         read_auth = self.factory3.auth.find_by_id(everyone_role.id, frame.id, Auth.READ_OP)
         self.assertTrue(read_auth.permission)
         write_auth = self.factory3.auth.find_by_id(everyone_role.id, frame.id, Auth.WRITE_OP)
         self.assertTrue(write_auth.permission)
+        own_auth = self.factory3.auth.find_by_id(everyone_role.id, frame.id, Auth.OWN_OP)
+        self.assertTrue(own_auth.permission)
 
         # プロジェクトをほかす
         project.throw_away()
@@ -2761,6 +2820,46 @@ class AuthTest(TestCaseBase):
 
         # プロジェクトを削除する
         project.delete()
+
+    def test_move_from_root_to_project(self):
+        """
+        ルートフォルダからプロジェクトへファイルを移動した場合、
+        ファイルの権限は移動先プロジェクトの権限に従うこと
+        """
+        # ルートフォルダを取得する
+        root = self.factory2.data.load_root()
+        # ルートフォルダの下にプロジェクトAを作成する
+        project_a = root.create_project_folder('何奴！')
+        project_a.save()
+        project_a = project_a.reload()
+
+        # ルートフォルダの下にフォルダを作成する
+        root = self.factory.data.load_root()
+        folder = root.create_folder('欲に目が眩んで主君の顔も忘れたか')
+        folder.save()
+        folder = folder.reload()
+
+        # フォルダの下にフレームを作成する
+        frame = folder.create_frame('何ぃ？！', io.BytesIO(b'ABARENBOU'))
+        frame.save()
+        frame = frame.reload()
+
+        # フォルダをプロジェクトAに移動できること
+        folder.move(project_a.uuid)
+        self.assertEqual(folder.parent_id, project_a.id)
+
+        # プロジェクトAのプロジェクト管理者はフォルダを参照できること
+        folder = self.factory2.data.find_by_uuid(folder.uuid)
+
+        # フォルダ内のフレームは移動後も権限は変わらない
+        # そもそもルートフォルダでフォルダやファイルは作る想定ではないので、この仕様でよしとする
+        with self.assertRaises(NotAuthorizedException):
+            self.factory2.data.find_by_uuid(frame.uuid)
+
+        # プロジェクトを削除する
+        frame.delete()
+        folder.delete()
+        project_a.delete()
 
     def test_move_inter_projects(self):
         """

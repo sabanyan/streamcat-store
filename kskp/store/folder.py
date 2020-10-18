@@ -187,8 +187,8 @@ class Folder(Store):
         Folderを削除する
         """
         # 削除対象のフォルダの下にフォルダまたはファイルが存在する場合は例外を送出する
-        if len(self.find_children()) > 0:
-            raise Exception('空でないフォルダは削除できません')
+        if self.count_children() > 0:
+            raise Exception(f'空でないフォルダは削除できません')
         try:
             # フォルダレコードを削除する
             self._session.delete(self)
@@ -278,11 +278,10 @@ class Folder(Store):
         Folderに対応するディレクトリを削除する
         """
         from kskp.store import Mountable
-        
-        try:
-            # 全てのフォルダから紐づかないディレクトリは物理削除する
-            dir_path = path
 
+        # 全てのフォルダから紐づかないディレクトリは物理削除する
+        dir_path = path
+        try:
             while dir_path != '' and dir_path != '/':
                 # 自分以外で同じディレクトリパス(相対パス)を使用しているフォルダの有無を確認する
                 if self._dir_path_exists(dir_path, except_id=self.id):
@@ -298,6 +297,10 @@ class Folder(Store):
             # ディレクトリに対する権限がない場合
             raise e
         except OSError as e:
+            if e.errno == 39:
+                # [Errno 39] Directory not empty
+                file_path = next(dir_path.glob('*'))
+                raise OSError(f'Directory({dir_path}) is not removed. File({file_path}) exists in Directory')
             raise e
 
     def _dir_path_exists(self, dir_path, except_id):
