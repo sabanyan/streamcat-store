@@ -850,8 +850,13 @@ class GroupByRemakeCommand(PCommand):
                 fld = row.get('fld') 
                 # check if multiple flds specified
                 if ',' in fld:
-                    errmsg = self.generateCommandErrorMessage('MultipleRowsTargetError', 'fld', row['fld'])
+                    errmsg = self.generateCommandErrorMessage('MultipleRowsTargetError', 'fld', fld)
                     raise Exception(errmsg)
+
+                if self.containsAny(fld, '%&'):
+                    errmsg = self.generateCommandErrorMessage('TargetFieldForbiddenCharacterError', 'fld', fld)
+                    raise Exception(errmsg)
+
                 
                 # check for newname setting
                 for c in cs_list:
@@ -1077,9 +1082,9 @@ class GroupByRemakeCommand(PCommand):
         gets the relevant columns
         '''
         relevant_cols = common_args['k'].split(',')
-        if 'fld' in args:
-            relevant_cols.append(args['fld'])
-        else:
+        if 'f' in args:
+            # relevant_cols.append(args['fld'])
+        # else:
             relevant_cols.extend(args['f'].split(','))
 
         if 'x' in args:
@@ -1179,6 +1184,9 @@ class GroupByRemakeCommand(PCommand):
         subcmd <<= nm.mcount(k = k, a = '__val__')
         subcmd <<= nm.msetstr(a = 'final_cols', v = resultcolname)
         subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
+
+        if self.DEBUG:
+            subcmd <<= nm.m2tee(o = 'end_of_rows.csv')
 
         return subcmd
 
@@ -1638,7 +1646,7 @@ class GroupByRemakeCommand(PCommand):
                             
         mediancalc = None
 
-        mediancalc <<= nm.msummary(c = 'median:__median', f = fld, k = k)
+        mediancalc <<= nm.msummary(i = subcmd, c = 'median:__median', f = fld, k = k)
 
         subcmd <<= nm.mnjoin(k = k, f = '__median', m = mediancalc)
 
@@ -1666,7 +1674,7 @@ class GroupByRemakeCommand(PCommand):
                             
         meancalc = None
 
-        meancalc <<= nm.msummary(c = 'mean:__mean', f = fld, k = k)
+        meancalc <<= nm.msummary(i = subcmd, c = 'mean:__mean', f = fld, k = k)
 
         subcmd <<= nm.mnjoin(k = k, f = '__mean', m = meancalc)
 
@@ -2544,7 +2552,7 @@ class GroupByRemakeCommand(PCommand):
 
     def run(self, args, inputs):
         # debug flag
-        self.DEBUG = False
+        self.DEBUG = True
         
         # first off, make copies of the inputs
         args = copy.deepcopy(args)
@@ -2577,9 +2585,9 @@ class GroupByRemakeCommand(PCommand):
         # take only required columns
         relevant_cols = set(common_args['k'].split(','))
         for calc in all_calcs:
-            if 'fld' in calc:
-                relevant_cols.add(calc['fld'])
-            else:
+            if 'f' in calc:
+            #     relevant_cols.add(calc['fld'])
+            # else:
                 for fld in calc['f'].split(','):
                     relevant_cols.add(fld)
 
