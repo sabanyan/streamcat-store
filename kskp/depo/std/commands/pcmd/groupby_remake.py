@@ -1721,7 +1721,19 @@ class GroupByRemakeCommand(PCommand):
 
         resultcolname = self.generateFinalColName(args, common_args)
 
-        subcmd <<= nm.mcal(a = '__eq', c = f'$s{{{fld}}}=="{n}"')
+        strparam = False
+        try:
+            n = float(n)
+            if n%1 == 0:
+                n = int(n)
+        except ValueError:
+            strparam = True
+
+        if strparam:
+            subcmd <<= nm.mcal(a = '__eq', c = f'$s{{{fld}}}=="{n}"')
+        else:
+            subcmd <<= nm.mcal(a = '__eq', c = f'${{{fld}}}=={n}')
+            
 
         subcmd <<= nm.msum(k = k, f = f'__eq:__val__')
 
