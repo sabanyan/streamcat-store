@@ -301,8 +301,8 @@ class Role(BaseModel):
         factory = UserRoleFactory(self._session)
 
         if factory.exists(member.user.id, self.id):
-            # システム系ロールが、この所属によって、ロールに所有者が居なくなる場合はエラーとする
-            if self.is_system_role and member.owner == False and self.is_last_owner(member.user):
+            # ユーザ管理ロールが、この所属によって、ロールに所有者が居なくなる場合はエラーとする
+            if self.is_usr_admin and member.owner == False and self.is_last_owner(member.user):
                 self.raise_no_role_owner_exception()
 
             # 既にメンバの場合は所有権フラグを更新する
@@ -324,8 +324,8 @@ class Role(BaseModel):
         factory = UserRoleFactory(self._session)
 
         if factory.exists(user.id, self.id):
-            # システム系ロールが、この脱退によって、ロールに所有者が居なくなる場合はエラーとする
-            if self.is_system_role and self.is_last_owner(user):
+            # ユーザ管理ロールが、この脱退によって、ロールに所有者が居なくなる場合はエラーとする
+            if self.is_usr_admin and self.is_last_owner(user):
                 self.raise_no_role_owner_exception()
             # ロールからメンバを削除する
             user_role = factory.find_by_id(user.id, self.id)
@@ -338,8 +338,8 @@ class Role(BaseModel):
         if self.is_self_role():
             raise Exception('本人ロールからユーザを脱退させることはできません')
 
-        # システム系ロールが、この脱退によって、ロールに所有者が居なくなる場合はエラーとする
-        if self.is_system_role and not self.is_owner(except_user):
+        # ユーザ管理ロールが、この脱退によって、ロールに所有者が居なくなる場合はエラーとする
+        if self.is_usr_admin and not self.is_owner(except_user):
             self.raise_no_role_owner_exception()
 
         from kskp.store.factory import UserRoleFactory
@@ -367,14 +367,14 @@ class Role(BaseModel):
             else:
                 users.add(member.user)
 
-        # システム系ロールが、この初期化によって、ロールに所有者が居なくなる場合はエラーとする
-        if self.is_system_role and not owner_exists:
+        # ユーザ管理ロールが、この初期化によって、ロールに所有者が居なくなる場合はエラーとする
+        if self.is_usr_admin and not owner_exists:
             self.raise_no_role_owner_exception()
 
-        # 操作ユーザがロール所有者以外の場合はエラーとする
+        # 操作ユーザがロール所有者やユーザ管理者以外の場合はエラーとする
         self_user = self._session.user
-        if not self.is_owner(self_user):
-            raise NotAuthorizedException(f'ロール所有者以外のユーザ({self_user})は所属ユーザの初期化をできません')
+        if not self.is_owner(self_user) and not self._session.has_usr_admin:
+            raise NotAuthorizedException(f'ロール所有者またはユーザ管理者以外のユーザ({self_user})は所属ユーザの初期化をできません')
 
         # ロールから、自分以外のユーザを全て削除する
         for user in self.get_joined_users():
