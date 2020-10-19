@@ -190,7 +190,7 @@ class User(BaseModel):
 
         # 削除ユーザが全てのロールから脱退できるか確認する(本人ロールを除く)
         for role in self.get_joined_roles():
-            if role.is_system_role and role.is_last_owner(self):
+            if role.is_usr_admin and role.is_last_owner(self):
                 role.raise_no_role_owner_exception()
 
     @property

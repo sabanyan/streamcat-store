@@ -113,8 +113,10 @@ with UnAuthzFactory() as unauthz_factory:
     usr_admin_user = unauthz_factory.load_usr_admin_user()
 
     with Factory(sys_admin_user) as factory:
+        from kskp.store.auth import Role
         # システム管理者ロールを作成する
         sys_admin_role = factory.role.load_sys_admin_role()
+        sys_admin_role.join_member(Role.Member(sys_admin_user, owner=False))
 
     with Factory(usr_admin_user) as factory:
         # ユーザ管理者ロールを作成する

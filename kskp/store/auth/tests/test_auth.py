@@ -627,19 +627,6 @@ class AuthTest(TestCaseBase):
         with self.assertRaises(NotAuthorizedException):
             new_role.leave_member(self.USER2)
 
-    def test_join_role_without_owner(self):
-        """
-        システム管理者ロールの所有者は必ず指定すること
-        """
-        # システム管理者ロールを取得する
-        usr_admin_role = self.factory.role.load_sys_admin_role()
-
-        # メンバを設定する
-        member1 = Role.Member(self.USER2)
-        member2 = Role.Member(self.USER3, owner=False)
-        with self.assertRaises(NoRoleOwnerException):
-            usr_admin_role.init_members([member1, member2])
-
     def test_cannot_delete_system_role(self):
         """
         システムロールは削除できないこと
@@ -657,7 +644,20 @@ class AuthTest(TestCaseBase):
         with self.assertRaises(Exception):
             everyone_role.delete()
 
-    def test_update_role_owner_to_false(self):
+    def test_join_usr_admin_role_without_owner(self):
+        """
+        ユーザ管理者ロールの所有者は必ず指定すること
+        """
+        # ユーザ管理者ロールを取得する
+        usr_admin_role = self.factory.role.load_usr_admin_role()
+
+        # メンバを設定する
+        member1 = Role.Member(self.USER2)
+        member2 = Role.Member(self.USER3, owner=False)
+        with self.assertRaises(NoRoleOwnerException):
+            usr_admin_role.init_members([member1, member2])
+
+    def test_update_usr_admin_role_owner_to_false(self):
         """
         ユーザ管理者ロールの所属処理によってロール所有者が不在にならないこと
         """
@@ -669,15 +669,41 @@ class AuthTest(TestCaseBase):
         with self.assertRaises(NoRoleOwnerException):
             usr_admin_role.join_member(member1)
 
-    def test_cannot_delete_system_role_owner(self):
+    def test_cannot_delete_usr_admin_role_owner(self):
         """
-        ユーザがシステムロールの唯一の所有者の場合、そのユーザを削除できないこと
+        ユーザがユーザ管理者ロールの唯一の所有者の場合、そのユーザを削除できないこと
         """
-        # システム管理者ロールの所有者を削除できないこと
+        # ユーザ管理者ロールの所有者を削除できないこと
         with self.assertRaises(NoRoleOwnerException):
             self.USER1.throw_away()
         with self.assertRaises(NoRoleOwnerException):
             self.USER1.delete()
+
+    def test_join_sys_admin_role_without_owner(self):
+        """
+        システム管理者ロールの所有者は指定する必要はない
+        """
+        # システム管理者ロールを取得する
+        sys_admin_role = self.factory.role.load_sys_admin_role()
+
+        # メンバを設定する
+        member1 = Role.Member(self.USER2)
+        member2 = Role.Member(self.USER3, owner=False)
+        sys_admin_role.init_members([member1, member2])
+
+        # メンバ設定を戻す
+        sys_admin_role.init_members([Role.Member(self.USER0, owner=True)])
+
+    def test_update_sys_admin_role_owner_to_false(self):
+        """
+        システム管理者ロールの所属処理によってロール所有者が不在でも良い
+        """
+        # システム管理者ロールを取得する
+        sys_admin_role = self.factory.role.load_sys_admin_role()
+
+        # 所有権が不在になるようなメンバの更新もできること
+        member1 = Role.Member(self.USER0, owner=False)
+        sys_admin_role.join_member(member1)
 
     # 
     # Auths
