@@ -432,12 +432,12 @@ class ProjectFolder(Folder):
             # 自分がプロジェクト管理者に指定されている場合、何もしない
             pass
 
-    def get_joined_members(self):
+    def get_joined_members(self, except_role_uuid=None):
         """
         所属する全てのユーザを返す
         """
         from sqlalchemy import select, func, case, exists, and_, or_, false
-        from kskp.store.auth import User, Auth, UserRole
+        from kskp.store.auth import User, Auth, Role, UserRole
 
         # 
         # プロジェクトの権限判定にのみ対応している(フォルダ権限をオーバーライドしない仕様)
@@ -447,7 +447,8 @@ class ProjectFolder(Folder):
         # AuthのTableオブジェクト
         A = Auth.__table__
         
-        exists_user_role = exists().where(and_(UserRole.user_id==User.id, UserRole.role_id==Auth.role_id))
+        exists_user_role = exists().where(and_(UserRole.user_id==User.id, UserRole.role_id==A.c.role_id))
+        not_exists_role = ~exists().where(and_(Role.id==A.c.role_id, Role.uuid==except_role_uuid))
 
         AU = select([
                 A.c.datum_id,
@@ -458,8 +459,14 @@ class ProjectFolder(Folder):
              select_from(
                 A.outerjoin(User, or_(exists_user_role, User.self_role_id==A.c.role_id))
              ).\
-             where(A.c.datum_id==self.id).\
-             group_by(A.c.datum_id, A.c.operation, User.id).alias('AU')
+             where(A.c.datum_id==self.id)
+
+        if except_role_uuid is None:
+            AU = AU.where(A.c.datum_id==self.id)
+        else:
+            AU = AU.where(and_(A.c.datum_id==self.id, not_exists_role))
+
+        AU = AU.group_by(A.c.datum_id, A.c.operation, User.id).alias('AU')
 
         query = self._session.query(
                     User,
