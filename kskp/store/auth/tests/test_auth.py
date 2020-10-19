@@ -1846,6 +1846,13 @@ class AuthTest(TestCaseBase):
         self.assertEqual(len(members), 2)
         self.assertEqual(members, [member1, usr_admin_member])
 
+        # ユーザ管理者を除外して、メンバを取得する
+        members = project.get_joined_members(except_role_uuid=Role.USR_ADMIN_ROLE_UUID)
+
+        # 期待する結果が返ることを確認する
+        self.assertEqual(len(members), 1)
+        self.assertEqual(members, [member1])
+
         # 元のプロジェクト管理者は、プロジェクトを更新できないこと
         with self.assertRaises(NotAuthorizedException):
             project.update_data('ぷろじぇくと1')
@@ -1874,6 +1881,13 @@ class AuthTest(TestCaseBase):
         usr_admin_member = ProjectFolder.Member(self.USER1, ProjectFolder.OWNER_MEMBER_TYPE)
         self.assertEqual(len(members), 3)
         self.assertEqual(members, [member2, usr_admin_member, member1])
+
+        # ユーザ管理者を除外して、メンバを取得する
+        members = project.get_joined_members(except_role_uuid=Role.USR_ADMIN_ROLE_UUID)
+
+        # 期待する結果が返ることを確認する
+        self.assertEqual(len(members), 2)
+        self.assertEqual(members, [member2, member1])
 
         # 元のプロジェクト管理者は、プロジェクトを更新できないこと
         with self.assertRaises(NotAuthorizedException):
@@ -1904,6 +1918,13 @@ class AuthTest(TestCaseBase):
         usr_admin_member = ProjectFolder.Member(self.USER1, ProjectFolder.OWNER_MEMBER_TYPE)
         self.assertEqual(len(members), 3)
         self.assertEqual(members, [member1, usr_admin_member, member2])
+
+        # ユーザ管理者を除外して、メンバを取得する
+        members = project.get_joined_members(except_role_uuid=Role.USR_ADMIN_ROLE_UUID)
+
+        # 期待する結果が返ることを確認する
+        self.assertEqual(len(members), 2)
+        self.assertEqual(members, [member1, member2])
 
         # ユーザ管理者は、プロジェクトは更新できること
         project.update_data('ぷろじぇくと1')
@@ -1936,6 +1957,13 @@ class AuthTest(TestCaseBase):
         usr_admin_member = ProjectFolder.Member(self.USER1, ProjectFolder.OWNER_MEMBER_TYPE)
         self.assertEqual(len(members), 2)
         self.assertEqual(members, [member2, usr_admin_member])
+
+        # ユーザ管理者を除外して、メンバを取得する
+        members = project.get_joined_members(except_role_uuid=Role.USR_ADMIN_ROLE_UUID)
+
+        # 期待する結果が返ることを確認する
+        self.assertEqual(len(members), 2)
+        self.assertEqual(members, [member2, member1])
 
         # ユーザ管理者は、プロジェクトは更新できること
         project.update_data('ぷろじぇくと2')
