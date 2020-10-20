@@ -517,6 +517,18 @@ class AuthTest(TestCaseBase):
         # ユーザを削除する
         new_user.delete()
 
+    def test_system_user_id(self):
+        """
+        システム管理者とユーザ管理者に付番されるIDを検証する
+        (保守性向上のためシステムが用意するユーザのIDは固定したい)
+        """
+        sys_user = self.factory.user.find_by_email('Admin@kskp.io')
+        usr_user = self.factory.user.find_by_email('admin@kskp.io')
+
+        # システム管理者のIDは1、ユーザ管理者のIDは2
+        self.assertEqual(sys_user.id, 1)
+        self.assertEqual(usr_user.id, 2)
+
     # 
     # Roles
     # 
@@ -704,6 +716,20 @@ class AuthTest(TestCaseBase):
         # 所有権が不在になるようなメンバの更新もできること
         member1 = Role.Member(self.USER0, owner=False)
         sys_admin_role.join_member(member1)
+
+    def test_system_role_id(self):
+        """
+        everyoneと管理者ロールに付番されるIDを検証する
+        (保守性向上のためシステムが用意するロールのIDは固定したい)
+        """
+        everyone_role = self.factory.role.load_everyone_role()
+        sys_admin_role = self.factory.role.load_sys_admin_role()
+        usr_admin_role = self.factory.role.load_usr_admin_role()
+
+        # everyoneは1、システム管理者は2、ユーザ管理者は3
+        self.assertEqual(everyone_role.id, 1)
+        self.assertEqual(sys_admin_role.id, 2)
+        self.assertEqual(usr_admin_role.id, 3)
 
     # 
     # Auths

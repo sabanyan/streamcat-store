@@ -196,7 +196,7 @@ class DatumFactory():
 
         return datum
 
-    def find_all(self, type=None) -> Datum:
+    def find_all(self, type=None, except_label=None) -> Datum:
         """
         全てのDatumを取得する
         """
@@ -204,6 +204,8 @@ class DatumFactory():
         query = self._session.query(Datum)
         if type is not None:
             query = query.filter(Datum.type==type)
+        if except_label is not None:
+            query = query.filter(Datum._label!=except_label)
         return query.order_by(Datum.type, desc(Datum.created_at)).all()
 
     def count_root(self) -> int:
