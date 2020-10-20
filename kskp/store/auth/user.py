@@ -15,6 +15,7 @@ class User(BaseModel):
         # テスト環境用のスキーマ
         __table_args__ = {'schema': os.environ['KSKP_POSTGRESQL_SCHEMA_NAME']}
 
+    INIT_STATE     = 'init'     # 初期状態
     TMP_STATE      = 'tmp'      # 仮登録状態
     ACTIVE_STATE   = 'active'   # 登録状態
     INACTIVE_STATE = 'inactive' # 論理削除状態
@@ -30,7 +31,7 @@ class User(BaseModel):
     name          = Column(String, nullable=False)
     password      = Column(String, nullable=False)
     # ユーザ状態
-    state         = Column(ENUM(TMP_STATE, ACTIVE_STATE, INACTIVE_STATE, name='user_state'), nullable=False)
+    state         = Column(ENUM(INIT_STATE, TMP_STATE, ACTIVE_STATE, INACTIVE_STATE, name='user_state'), nullable=False)
     # 本人ロールのRoleId
     self_role_id  = Column(INTEGER, nullable=True)
     _creator_id   = Column('creator', INTEGER)
@@ -62,8 +63,8 @@ class User(BaseModel):
         self._valid_password_or_raise(new_password)
         self.password = self._get_encrypt_password(new_password)
 
-        # 本パスワードに変更する前は仮登録状態である
-        self.state = User.TMP_STATE
+        # 本パスワードに変更する前は初期状態である
+        self.state = User.INIT_STATE
 
         # creator, modifier
         if session is not None and session.user is not None:
@@ -97,7 +98,7 @@ class User(BaseModel):
         if not re.search(r'^[\x21-\x7E]+$', password):
             raise InvalidPassword('パスワードに使用できる文字は英数・記号(空白を除く)です')
 
-        if self.is_temp:
+        if self.is_init_or_temp:
             if self._get_encrypt_password(password) == self.password:
                 raise InvalidPassword('同じパスワードに変更できません')
         else:
@@ -152,10 +153,12 @@ class User(BaseModel):
         # if self.state == User.TMP_STATE and next_state == User.INACTIVE_STATE:
         #     raise Exception('誤ったユーザの状態遷移が指定されました')
         if self.state == User.INACTIVE_STATE and next_state == User.TMP_STATE:
-            raise Exception('誤ったユーザの状態遷移が指定されました')
+            raise Exception('誤ったユーザの状態遷移が指定されました1')
+        elif next_state == User.INIT_STATE:
+            raise Exception('誤ったユーザの状態遷移が指定されました2')
 
-        if self.state == User.TMP_STATE and next_state == User.ACTIVE_STATE:
-            # 仮登録状態から登録状態へ遷移する場合
+        if self.state == User.INIT_STATE and next_state == User.ACTIVE_STATE:
+            # 初期状態から登録状態へ遷移する場合
             self._init_on_activation()
 
         self.state = next_state
@@ -194,8 +197,12 @@ class User(BaseModel):
                 role.raise_no_role_owner_exception()
 
     @property
-    def is_temp(self):
-        return self.state == User.TMP_STATE
+    def is_init(self):
+        return self.state==User.INIT_STATE
+
+    @property
+    def is_init_or_temp(self):
+        return self.state in (User.INIT_STATE, User.TMP_STATE)
 
     @property
     def is_inactive(self):
@@ -365,7 +372,7 @@ class User(BaseModel):
         登録Userを論理削除する
         """
         # 仮登録Userで、本人ロールと(everyoneを除く)自分が属するロールが存在していなければ物理削除する
-        if self.is_temp and self.self_role_id is None:
+        if self.is_init_or_temp and self.self_role_id is None:
             from kskp.store.factory import RoleFactory, UserRoleFactory
             everyone_role = RoleFactory(self._session).load_everyone_role()
             user_roles = UserRoleFactory(self._session).find_all_by_user_id(self.id)
@@ -404,7 +411,7 @@ class User(BaseModel):
         """
         論理削除Userを復帰する
         """
-        if self.is_temp:
+        if self.is_init_or_temp:
             raise Exception('仮登録ユーザを復帰させることはできません')
 
         try:
@@ -432,7 +439,7 @@ class User(BaseModel):
             # 論理削除ユーザは認証できない
             return False
         # パスワード判定処理
-        elif self.is_temp:
+        elif self.is_init_or_temp:
             return password == self._get_decrypt_password(self.password)
         else:
             return self._get_password_hash(self.uuid, password) == self.password
@@ -513,13 +520,14 @@ class User(BaseModel):
             'uuid'     : self.uuid,
             'email'    : self.email,
             'name'     : self.name,
-            'state'    : self.state,
+            # 初期状態は仮登録状態と表示する
+            'state'    : User.TMP_STATE if self.state==User.INIT_STATE else self.state,
             'creator'  : self.creator_str,
             'createdAt': self.created_at_str
         }
 
         # 仮登録状態、かつ操作ユーザがユーザ管理者権限を持つ場合は仮パスワードも返す
-        if self.is_temp and self._session.has_usr_admin():
+        if self.is_init_or_temp and self._session.has_usr_admin():
             ret.update({'password': self._get_decrypt_password(self.password)})
 
         return ret
