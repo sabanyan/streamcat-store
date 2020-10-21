@@ -88,7 +88,7 @@ class GroupByRemakeCommand(PCommand):
             'binned_entropy' : {'correct_type' : '数値', 
                                 'correct_value' : '２以上の整数',
                                 'checks' : [[self.checkParamIsInteger, {}],
-                                            [self.checkParamOOB,{'low' : 2}]]},
+                                            [self.checkParamOOB,{'low_inc' : 2}]]},
             'quantile' : {'correct_type' : '数値', 
                           'correct_value' : '０−１の数値',
                           'checks' : [[self.checkParamOOB, {'low_inc' : 0,
@@ -100,13 +100,13 @@ class GroupByRemakeCommand(PCommand):
             'autocorr' : {'correct_type' : '数値', 
                           'correct_value' : '１以上の整数',
                           'checks' : [[self.checkParamIsInteger, {}],
-                                      [self.checkParamOOB,{'low' : 1}]]},
+                                      [self.checkParamOOB,{'low_inc' : 1}]]},
             'crossing_m' : {'correct_type' : '数値', 
                             'correct_value' : '全ての数値',
                             'checks' : [[self.checkParamIsNumber, {}]]},
             'peaks' : {'correct_type' : '数値', 
                        'correct_value' : '１以上の整数',
-                       'checks' : [[self.checkParamOOB, {'low' : 1}],
+                       'checks' : [[self.checkParamOOB, {'low_inc' : 1}],
                                    [self.checkParamIsInteger, {}]]},
             'imq' : {'correct_type' : '数値', 
                      'correct_value' : '０−１の数値',
@@ -218,7 +218,7 @@ class GroupByRemakeCommand(PCommand):
                 'strmin' : self.feature_strmin,
                 'has_dup' : self.feature_hasdup,
                 'repeatdata' : self.feature_repeatdata,
-                'repeatvalues' : self.feature_repeatdata,
+                'repeatvalues' : self.feature_repeatvalues,
                 'sum_repeatdata' : self.feature_sumrepeatdata,
                 'sum_repeatvalues' : self.feature_sumrepeatvalues,
                 'ratio_unique' : self.feature_ratiounique,
@@ -1103,6 +1103,9 @@ class GroupByRemakeCommand(PCommand):
 
         batch_size = int(common_args.pop('batch_size'))
         batches = ceil(len(all_calcs) / batch_size)
+
+        if self.DEBUG:
+            print(f'all_calcs before running: {all_calcs}')
         
         # run each batch
         # calculate each from a formatted command list
@@ -1130,7 +1133,7 @@ class GroupByRemakeCommand(PCommand):
                 if calctype == 'msummary':
                     func = self.feature_msummary
                     # if thiscalc is a count calc, remove nonnumbers
-                    if thiscalc['c'].startswith('count'):
+                    if not thiscalc['c'].startswith('count'):
                         cmd[i] = self.nullifyNonNumber(cmd[i], thiscalc['f'])
                     
                 else:
@@ -1168,6 +1171,11 @@ class GroupByRemakeCommand(PCommand):
         '''
         func = self.const('runfunc_calcs')[args['c']]
         
+        # cross-reference with keys (needed for all features with time column)
+        if 'x' in args:
+            subcmd = nm.mnjoin(i = self.keys_filename, k = common_args['k'], 
+                                m = subcmd, n = True)
+
         subcmd <<= nm.runfunc(func, subcmd=subcmd, args=args, common_args=common_args)
         
         return subcmd
@@ -1944,6 +1952,10 @@ class GroupByRemakeCommand(PCommand):
         subcmd <<= nm.mcal(c = '${__covar}/${__Sxx}', a = '__val__',
                            precision = precision)
 
+        # cross-reference with keys (needed for all features with time column)
+        subcmd = nm.mnjoin(i = self.keys_filename, k = common_args['k'], 
+                              m = subcmd, n = True)
+
         subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
 
         subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
@@ -1964,6 +1976,10 @@ class GroupByRemakeCommand(PCommand):
         subcmd <<= nm.msim(k = k, c = 'pearson:__val__', 
                            f = f'{x},{fld}', a = 'fld2,fld',
                            precision = precision)
+
+        # cross-reference with keys (needed for all features with time column)
+        subcmd = nm.mnjoin(i = self.keys_filename, k = common_args['k'], 
+                              m = subcmd, n = True)
 
         subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
 
@@ -1988,6 +2004,10 @@ class GroupByRemakeCommand(PCommand):
         subcmd <<= nm.msim(k = k, c = 'pearson:__val__', 
                            f = f'__order__,{fld}', a = 'fld2,fld',
                            precision = precision)
+
+        # cross-reference with keys (needed for all features with time column)
+        subcmd = nm.mnjoin(i = self.keys_filename, k = common_args['k'], 
+                              m = subcmd, n = True)
 
         subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
         
@@ -2015,6 +2035,10 @@ class GroupByRemakeCommand(PCommand):
                            a = '__val__')
         subcmd <<= nm.mavg(k = k, f = '__val__', precision = precision)
 
+        # cross-reference with keys (needed for all features with time column)
+        subcmd = nm.mnjoin(i = self.keys_filename, k = common_args['k'], 
+                              m = subcmd, n = True)
+
         subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
 
         subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
@@ -2035,6 +2059,10 @@ class GroupByRemakeCommand(PCommand):
         subcmd <<= nm.mslide(k = k, s = f'{x}%n', f = f'{fld}:__shifted{fld}')
         subcmd <<= nm.mcal(c = f'${{__shifted{fld}}}-${{{fld}}}', a = '__val__')
         subcmd <<= nm.mavg(k = k, f = '__val__', precision = precision)
+
+        # cross-reference with keys (needed for all features with time column)
+        subcmd = nm.mnjoin(i = self.keys_filename, k = common_args['k'], 
+                              m = subcmd, n = True)
 
         subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
 
@@ -2057,6 +2085,10 @@ class GroupByRemakeCommand(PCommand):
         subcmd <<= nm.mcal(c = f'abs(${{__shifted{fld}}}-${{{fld}}})', a = '__val__')
         subcmd <<= nm.mavg(k = k, f = '__val__', precision = precision)
 
+        # cross-reference with keys (needed for all features with time column)
+        subcmd = nm.mnjoin(i = self.keys_filename, k = common_args['k'], 
+                              m = subcmd, n = True)
+
         subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
 
         subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
@@ -2074,15 +2106,29 @@ class GroupByRemakeCommand(PCommand):
 
         resultcolname = self.generateFinalColName(args, common_args)
 
+        if self.DEBUG:
+            subcmd <<= nm.m2tee(o = f'start_of_abssumchanges_{resultcolname}.csv')
+
         subcmd <<= nm.msortf(f = f'{k},{x}%n')
         subcmd <<= nm.mcal(c = f'abs(${{{fld}}}-#{{{fld}}})', a = f'__absdiff')
             
         subcmd <<= nm.msum(k = k, f = '__absdiff:__val__', 
                            precision = precision) 
 
+        # cross-reference with keys (needed for all features with time column)
+        subcmd = nm.mnjoin(i = self.keys_filename, k = common_args['k'], 
+                              m = subcmd, n = True)
+
+        # cross-reference with keys (needed for all features with time column)
+        subcmd = nm.mnjoin(i = self.keys_filename, k = common_args['k'], 
+                              m = subcmd, n = True)
+
         subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
 
         subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
+
+        if self.DEBUG:
+            subcmd <<= nm.m2tee(o = f'end_of_abssumchanges_{resultcolname}.csv')
 
         return subcmd
 
@@ -2116,6 +2162,10 @@ class GroupByRemakeCommand(PCommand):
         # sum over each key
         subcmd <<= nm.msum(k = k, f = f'{fld}_trap:__val__', 
                            precision = precision)
+
+        # cross-reference with keys (needed for all features with time column)
+        subcmd = nm.mnjoin(i = self.keys_filename, k = common_args['k'], 
+                              m = subcmd, n = True)
 
         subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
 
@@ -2281,6 +2331,10 @@ class GroupByRemakeCommand(PCommand):
         subcmd <<= nm.mcal(c = f'(${{{x}}}-${{_mintime}})/${{_timerange}}', 
                            a = '__val__', precision = precision)
 
+        # cross-reference with keys (needed for all features with time column)
+        subcmd = nm.mnjoin(i = self.keys_filename, k = common_args['k'], 
+                           m = subcmd, n = True)
+
         subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
 
         subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
@@ -2306,6 +2360,10 @@ class GroupByRemakeCommand(PCommand):
         subcmd <<= nm.mjoin(k = k, m = msum, f = f'_mintime,_timerange')
         subcmd <<= nm.mcal(c = f'(${{{x}}}-${{_mintime}})/${{_timerange}}', 
                            a = '__val__', precision = precision)
+
+        # cross-reference with keys (needed for all features with time column)
+        subcmd = nm.mnjoin(i = self.keys_filename, k = common_args['k'], 
+                              m = subcmd, n = True)
 
         subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
 
@@ -2333,6 +2391,10 @@ class GroupByRemakeCommand(PCommand):
         subcmd <<= nm.mcal(c = f'(${{{x}}}-${{_mintime}})/${{_timerange}}', 
                            a = '__val__', precision = precision)
 
+        # cross-reference with keys (needed for all features with time column)
+        subcmd = nm.mnjoin(i = self.keys_filename, k = common_args['k'], 
+                              m = subcmd, n = True)
+
         subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
 
         subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
@@ -2358,6 +2420,10 @@ class GroupByRemakeCommand(PCommand):
         subcmd <<= nm.mjoin(k = k, m = msum, f = f'_mintime,_timerange')
         subcmd <<= nm.mcal(c = f'(${{{x}}}-${{_mintime}})/${{_timerange}}', 
                            a = '__val__', precision = precision)
+
+        # cross-reference with keys (needed for all features with time column)
+        subcmd = nm.mnjoin(i = self.keys_filename, k = common_args['k'], 
+                              m = subcmd, n = True)
 
         subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
 
@@ -2385,6 +2451,10 @@ class GroupByRemakeCommand(PCommand):
         subcmd <<= nm.mbest(k = k, s = '__above%nr,__a_count%nr', size = 1)
         subcmd <<= nm.mcal(c = 'if(${__above}==0,0,${__a_count})', a = '__val__')
 
+        # cross-reference with keys (needed for all features with time column)
+        subcmd = nm.mnjoin(i = self.keys_filename, k = common_args['k'], 
+                              m = subcmd, n = True)
+
         subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
 
         subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
@@ -2410,6 +2480,10 @@ class GroupByRemakeCommand(PCommand):
         subcmd <<= nm.mcount(q = True, k = f'{k},__below', a = '__b_count')
         subcmd <<= nm.mbest(k = k, s = '__below%nr,__b_count%nr', size = 1)
         subcmd <<= nm.mcal(c = 'if(${__below}==0,0,${__b_count})', a = '__val__')
+
+        # cross-reference with keys (needed for all features with time column)
+        subcmd = nm.mnjoin(i = self.keys_filename, k = common_args['k'], 
+                              m = subcmd, n = True)
 
         subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
 
@@ -2444,6 +2518,10 @@ class GroupByRemakeCommand(PCommand):
         subcmd <<= nm.mcal(a = '__val__', precision = precision,
             c = f'${{__{fld}_m}}/(${{__count}}-${{__lag}})/${{__var}}')
 
+        # cross-reference with keys (needed for all features with time column)
+        subcmd = nm.mnjoin(i = self.keys_filename, k = common_args['k'], 
+                              m = subcmd, n = True)
+
         subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
 
         subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
@@ -2467,6 +2545,10 @@ class GroupByRemakeCommand(PCommand):
         subcmd <<= nm.mcount(k = k + ',__diffT', a = '__cnt')
         subcmd <<= nm.mbest(k = k, s = '__diffT%nr', size = 1)
         subcmd <<= nm.mcal(c = 'if(${__diffT}==0,0,${__cnt})', a = '__val__')
+
+        # cross-reference with keys (needed for all features with time column)
+        subcmd = nm.mnjoin(i = self.keys_filename, k = common_args['k'], 
+                              m = subcmd, n = True)
 
         subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
 
@@ -2500,6 +2582,10 @@ class GroupByRemakeCommand(PCommand):
                                 a = '__val__')
 
         subcmd <<= nm.msum(k = k, f = '__val__')
+
+        # cross-reference with keys (needed for all features with time column)
+        subcmd = nm.mnjoin(i = self.keys_filename, k = common_args['k'], 
+                              m = subcmd, n = True)
 
         subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
 
@@ -2537,6 +2623,10 @@ class GroupByRemakeCommand(PCommand):
         subcmd_o <<= nm.mcal(c = f'(${{{x}}})/${{__count}}', a = '__val__', 
                              precision = precision)
 
+        # cross-reference with keys (needed for all features with time column)
+        subcmd_o = nm.mnjoin(i = self.keys_filename, k = common_args['k'], 
+                              m = subcmd_o, n = True)
+
         subcmd_o <<= nm.msetstr(v = resultcolname, a = 'final_cols')
 
         subcmd_o <<= nm.mcut(f = f'{k},final_cols,__val__')
@@ -2564,7 +2654,7 @@ class GroupByRemakeCommand(PCommand):
 
     def run(self, args, inputs):
         # debug flag
-        self.DEBUG = True
+        self.DEBUG = False
         
         # first off, make copies of the inputs
         args = copy.deepcopy(args)
@@ -2613,6 +2703,18 @@ class GroupByRemakeCommand(PCommand):
         tmpfile = Tmp.create_file()
         self.dumpToFile(cmd, tmpfile)
         
+
+        # get original key columns
+        keys = None
+        keys <<= nm.m2tee(i = tmpfile.as_posix())
+        keys <<= nm.mcut(f = common_args['k'])
+        keys <<= nm.muniq(k = common_args['k'])
+        keys_file = Tmp.create_file()
+        self.dumpToFile(keys, keys_file)
+        
+        self.keys_filename = keys_file.as_posix()
+
+
         
         # schedule the batches and calculations
         # get list of tmpfiles made per batch
@@ -2626,15 +2728,11 @@ class GroupByRemakeCommand(PCommand):
         cmd <<= nm.mcut(r = True, f = 'fld')
 
         # cross reference with original key columns (join)
-        # get original key columns
-        keys = None
-        keys <<= nm.m2tee(i = tmpfile.as_posix())
-        keys <<= nm.mcut(f = common_args['k'])
-        keys <<= nm.muniq(k = common_args['k'])
 
         # join original keys with current
         cmd_out = None
-        cmd_out <<= nm.mnjoin(i = keys, k = common_args['k'], m = cmd, N = True)
+        cmd_out <<= nm.mnjoin(i = self.keys_filename, k = common_args['k'], 
+                              m = cmd, n = True)
         
         # TODO revert tmp_key back to null
         cmd_out <<= nm.mchgstr(f = common_args['k'], c = f'{tmp_key}:', F = True)
