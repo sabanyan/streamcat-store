@@ -547,13 +547,13 @@ class Datum(BaseModel):
                 'label'     : self.label,
                 'allowlist' : {
                     'read'   : self.readable,
-                    'update' : self.writable,
-                    'delete' : self.writable,
+                    'update' : not self.is_root and self.writable,
+                    'delete' : not self.is_root and self.writable,
                     'execute': False,
-                    'move'   : self.writable,
-                    'copy'   : self.writable,
+                    'move'   : not self.is_root and self.writable,
+                    'copy'   : not self.is_root and self.writable,
                     # 閲覧者以外はDownload可能なのでwritableで判定する
-                    'download'    : self.writable,
+                    'download'    : not self.is_root and self.writable,
                     'findMember'  : False,
                     'updateMember': False,
                     'lock'   : False,

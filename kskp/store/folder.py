@@ -256,8 +256,12 @@ class Folder(Store):
 
     def to_json(self):
         ret = super().to_json()
-        ret['allowlist']['create'] = self.writable
-        ret['allowlist']['upload'] = self.writable
+        # ルートフォルダ直下はプロジェクトのみが作成できる
+        # それ以外ではプロジェクト以外が作成できる
+        ret['allowlist']['createProject'] = self.is_root and self.writable
+        ret['allowlist']['createFolder'] = not self.is_root and self.writable
+        ret['allowlist']['createFile'] = not self.is_root and self.writable
+        ret['allowlist']['upload'] = not self.is_root and self.writable
         return ret
 
     def _make_dir(self, path):
