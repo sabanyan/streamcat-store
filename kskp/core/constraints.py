@@ -212,6 +212,11 @@ class Constraints():
                 writers_role = my_project._load_writers_role()
                 writers_role.init_authz(myself.id, read=None, write=True, exec=None, own=True)
 
+                # ユーザ管理者は全てのDatumの参照・更新・実行、及び権限の変更ができること
+                # (everyoneロールの更新権限を削除するとユーザ管理者は移動処理ができないので、移動処理の前に行う)
+                usr_admin_role = RoleFactory(myself._session).load_usr_admin_role()
+                usr_admin_role.init_authz(myself.id, True, True, exec=folder_or_flow, own=True)
+
                 # everyoneロールからDatumの所有権以外を全て削除する
                 # (移動処理とeveryoneロールの削除の間隙に全ユーザから丸見えになるので、移動処理の前に行う)
                 # (移動処理の失敗時に権限設定を戻せるよう所有権はTrueのままにしておく)
@@ -224,6 +229,7 @@ class Constraints():
                 except Exception:
                     # 移動処理に失敗したらeveryoneとwriters_roleロールを戻す
                     everyone_role.init_authz(myself.id, True, True, exec=folder_or_flow, own=True)
+                    usr_admin_role.clear_authz(myself.id)
                     writers_role.clear_authz(myself.id)
                     # 例外は再送出する
                     raise
@@ -234,10 +240,6 @@ class Constraints():
                 # Datumにプロジェクトロールを設定する
                 readers_role = my_project._load_readers_role()
                 readers_role.init_authz(myself.id, read=True, write=None, exec=folder_or_flow)
-
-                # ユーザ管理者は全てのDatumの参照・更新・実行、及び権限の変更ができること
-                usr_admin_role = RoleFactory(myself._session).load_usr_admin_role()
-                usr_admin_role.init_authz(myself.id, True, True, exec=folder_or_flow, own=True)
 
                 return result
 

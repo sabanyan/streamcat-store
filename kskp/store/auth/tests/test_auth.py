@@ -2471,6 +2471,70 @@ class AuthTest(TestCaseBase):
         # ゴミ箱を空にする
         self.factory3.data.find_trashcan().trash_all()
 
+    def test_user_admin_has_permissoins(self):
+        """
+        ユーザ管理者は、全てのDatumの参照・更新ができること
+        """
+        # ルートフォルダを取得する
+        root = self.factory3.data.load_root()
+        # ルートフォルダの下にプロジェクトを作成する
+        project = root.create_project_folder('そうだ！そうだ！金さんをだせ！')
+        project.save()
+        project = project.reload()
+
+        # プロジェクトにユーザ管理者ロールの権限を付与されていること
+        usr_admin_role = self.factory3.role.load_usr_admin_role()
+        self.assertTrue(self.factory3.auth.exists(usr_admin_role.id, project.id))
+        read_auth = self.factory3.auth.find_by_id(usr_admin_role.id, project.id, Auth.READ_OP)
+        self.assertTrue(read_auth.permission)
+        write_auth = self.factory3.auth.find_by_id(usr_admin_role.id, project.id, Auth.WRITE_OP)
+        self.assertTrue(write_auth.permission)
+        exec_auth = self.factory3.auth.find_by_id(usr_admin_role.id, project.id, Auth.EXEC_OP)
+        self.assertTrue(exec_auth.permission)
+        own_auth = self.factory3.auth.find_by_id(usr_admin_role.id, project.id, Auth.OWN_OP)
+        self.assertTrue(own_auth.permission)
+
+        # プロジェクトの下にフォルダを作成する
+        folder = project.create_folder('おうおうおう、さっきから黙って聞いてりゃ、金さんだとぉ？')
+        folder.save()
+        folder = folder.reload()
+
+        # フォルダにユーザ管理者ロールの参照・更新・実行権限が付与されていないこと
+        self.assertFalse(self.factory3.auth.exists(usr_admin_role.id, folder.id))
+
+        # フォルダの下にフローを作成する
+        flow = folder.create_flow('テメエらの所業は御天道様がちゃーんと見ているぜ', {})
+        flow.save()
+        flow = flow.reload()
+
+        # フローにユーザ管理者ロールの参照・更新・実行権限が付与されていないこと
+        self.assertFalse(self.factory3.auth.exists(usr_admin_role.id, flow.id))
+
+        # フォルダの下にフレームを作成する
+        frame = folder.create_frame('この桜吹雪散らせるもんなら散らしてみろおぃ！', io.BytesIO(b'babaaaan'))
+        frame.save()
+        frame = frame.reload()
+
+        # フレームにユーザ管理者ロールの参照・更新・実行権限が付与されていないこと
+        self.assertFalse(self.factory3.auth.exists(usr_admin_role.id, frame.id))
+
+        # ユーザ管理者はフローの参照・更新ができること
+        flow = self.factory.data.find_by_uuid(flow.uuid)
+        flow.update_data('越後屋久兵衛、市中引き回しの上獄門！その他の者は終生遠島とする！ひったてい！', {})
+
+        # ユーザ管理者はフローをほかせること
+        flow.throw_away()
+
+        # ユーザ管理者はプロジェクトの参照・更新ができること
+        project = self.factory.data.find_by_uuid(project.uuid)
+        project.update_data('これにて一件落着')
+
+        # ユーザ管理者はプロジェクトをほかせること
+        project.throw_away()
+
+        # ゴミ箱を空にする
+        self.factory.data.find_trashcan().trash_all()
+
     def test_cannot_read_trash_by_other_user(self):
         """
         プロジェクトから捨てたゴミを、
