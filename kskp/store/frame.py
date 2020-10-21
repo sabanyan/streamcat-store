@@ -413,6 +413,7 @@ class Frame(Datum):
         ret = super().to_json()
         ret['encoding'] = self.encoding_str
         ret['newline'] = self.newline_str
+        ret['fileSize'] = self.file_size
         return ret
 
     def load_as_data_frame(self, offset, limit):
