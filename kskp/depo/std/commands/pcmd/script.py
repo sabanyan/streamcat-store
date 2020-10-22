@@ -3863,6 +3863,84 @@ class ConvToUtf8(Command):
     
         return {'o': NysolModule(cmd)}
 
+class AlignColumns(Command):
+    """
+    CSVのデータ列数をCSVヘッダの列数に揃える
+    """
+    def __init__(self):
+        super().__init__()
+        self.i_ports = [Port('i', 'frame')]
+        self.o_ports = [Port('o', 'frame')]
+
+    def run(self, args, inputs):
+        cmd = inputs['i'].content
+        cmd <<= nm.runfunc(AlignColumns._align_columns)
+        return {'o': NysolModule(cmd)}
+
+    def _align_columns():
+        """
+        データ列数をCSVヘッダの列数に揃える
+        """
+        import sys
+        try:
+
+            with open(sys.stdin.fileno(), mode='r', newline='', closefd=False) as sys_stdin:
+                # ヘッダ行を出力する
+                header = sys_stdin.readline()
+                print(header, end='')
+
+                # ヘッダの列数を取得する
+                num_columns = AlignColumns._count_columns(header)
+
+                for line in sys_stdin:
+                    # データ行をヘッダの列数に揃える
+                    line = AlignColumns._align_line(line, num_columns)
+                    print(line, end='')
+
+            # flushをする
+            sys.stdout.flush()
+        except Exception as e:
+            with open('/dev/stderr', 'w') as fpe:
+                import traceback
+                traceback.print_exc(file=fpe)
+
+    def _count_columns(header):
+        """
+        CSV行の列数を数える
+        """
+        return len(AlignColumns._line_to_list(header))
+
+    def _align_line(line, num_columns):
+        """
+        CSV行の列を指定列数に揃える
+        """
+        line_list = AlignColumns._line_to_list(line)
+        len_line = len(line_list)
+
+        if len_line == num_columns:
+            return line
+        elif len_line < num_columns:
+            # CSV行の最後に空文字を追加する
+            line_list[len_line:len_line] = [''] * (num_columns-len_line)
+            # listをCSV行の文字列に変換する
+            return AlignColumns._list_to_line(line_list)
+        else:
+            return AlignColumns._list_to_line(line_list[0:num_columns])
+
+    def _line_to_list(line):
+        import csv
+        reader = csv.reader([line], delimiter=",", doublequote=True, quotechar='"', skipinitialspace=False)
+        return next(reader)
+
+    def _list_to_line(line_list):
+        import csv
+        from io import StringIO
+        # listをCSV行の文字列に変換する
+        ret = StringIO()
+        writer = csv.writer(ret, lineterminator='\n')
+        writer.writerow(line_list)
+        return ret.getvalue()
+
 class ToListCommand(Command):
     """
     入力データをPython Listに出力する
