@@ -1147,7 +1147,7 @@ class GroupByRemakeCommand(PCommand):
                     # if the calc has a time column, clean up the rows with
                     # invalid time
                     if 'x' in thiscalc:
-                        cmd[i] = self.nullifyBadTime(cmd[i], thiscalc['f'],
+                        cmd[i] = self.nullifyBadTime(cmd[i], thiscalc['x'],
                                                      common_args['dateformat'])
 
                 # run the desired function
