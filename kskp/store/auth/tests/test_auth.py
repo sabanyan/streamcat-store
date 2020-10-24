@@ -1725,6 +1725,83 @@ class AuthTest(TestCaseBase):
     # 
     # Projects
     # 
+    def test_create_get_delete_project(self):
+        """
+        Projectの作成・取得・削除を検証する
+        """
+        # ルートフォルダを取得する
+        root = self.factory2.data.load_root()
+
+        # ルートフォルダの下にプロジェクトを作成する
+        project = root.create_project_folder('京阪乗る人おけいはん')
+        project.save()
+        project = project.reload()
+
+        # 3つのプロジェクトロールが作成されていること
+        readers_role = project._find_readers_role()
+        writers_role = project._find_writers_role()
+        owners_role = project._find_owners_role()
+        self.assertIsInstance(readers_role.id, int)
+        self.assertTrue(readers_role.delete_on_isolated)
+        self.assertEqual(readers_role.name, '京阪乗る人おけい_readers')
+        self.assertIsInstance(writers_role.id, int)
+        self.assertTrue(writers_role.delete_on_isolated)
+        self.assertEqual(writers_role.name, '京阪乗る人おけい_writers')
+        self.assertTrue(owners_role.delete_on_isolated)
+        self.assertIsInstance(owners_role.id, int)
+        self.assertEqual(owners_role.name, '京阪乗る人おけい_owners')
+
+        # users_rolesテーブルを検証する
+        everyone_role = self.factory2.role.load_everyone_role()
+        usr_admin_role = self.factory2.role.load_usr_admin_role()
+        self_role = self.factory2.role.find_by_id(self.USER1.self_role_id)
+
+        # ユーザ管理者に関係するusers_rolesテーブルのレコードを検証する
+        user_roles = self.factory2.user_role.find_all_by_user_id(self.USER1.id)
+        self.assertGreaterEqual(len(user_roles), 2)
+        # everyoneロール
+        user_role = self.factory2.user_role.find_by_id(self.USER1.id, everyone_role.id)
+        self.assertTrue(user_role.owner)
+        # ユーザ管理者ロール
+        user_role = self.factory2.user_role.find_by_id(self.USER1.id, usr_admin_role.id)
+        self.assertTrue(user_role.owner)
+        # 本人ロールがusers_rolesテーブルに関係を持つことはない
+        self.assertFalse(self.factory2.user_role.exists(self.USER1.id, self_role.id))
+
+        # プロジェクト管理者(USER2)に関係するusers_rolesテーブルのレコードを検証する
+        user_roles = self.factory2.user_role.find_all_by_user_id(self.USER2.id)
+        self.assertGreaterEqual(len(user_roles), 4)
+        # everyoneロール
+        user_role = self.factory2.user_role.find_by_id(self.USER2.id, everyone_role.id)
+        self.assertFalse(user_role.owner)
+        # プロジェクトロール1
+        user_role = self.factory2.user_role.find_by_id(self.USER2.id, readers_role.id)
+        self.assertTrue(user_role.owner)
+        # プロジェクトロール2
+        user_role = self.factory2.user_role.find_by_id(self.USER2.id, writers_role.id)
+        self.assertTrue(user_role.owner)
+        # プロジェクトロール3
+        user_role = self.factory2.user_role.find_by_id(self.USER2.id, owners_role.id)
+        self.assertTrue(user_role.owner)
+        # 本人ロールがusers_rolesテーブルに関係を持つことはない
+        self.assertFalse(self.factory2.user_role.exists(self.USER2.id, self_role.id))
+        
+        # プロジェクトに関係するauthsテーブルのレコードを検証する
+        auths = self.factory2.auth.find_all_by_datum_id(project.id)
+        self.assertEqual(len(auths), 8)
+
+        self.assertTrue(self.factory2.auth.find_by_id(usr_admin_role.id, project.id, Auth.READ_OP))
+        self.assertTrue(self.factory2.auth.find_by_id(usr_admin_role.id, project.id, Auth.WRITE_OP))
+        self.assertTrue(self.factory2.auth.find_by_id(usr_admin_role.id, project.id, Auth.EXEC_OP))
+        self.assertTrue(self.factory2.auth.find_by_id(usr_admin_role.id, project.id, Auth.OWN_OP))
+        self.assertTrue(self.factory2.auth.find_by_id(readers_role.id, project.id, Auth.READ_OP))
+        self.assertTrue(self.factory2.auth.find_by_id(readers_role.id, project.id, Auth.EXEC_OP))
+        self.assertTrue(self.factory2.auth.find_by_id(writers_role.id, project.id, Auth.WRITE_OP))
+        self.assertTrue(self.factory2.auth.find_by_id(owners_role.id, project.id, Auth.OWN_OP))
+
+        # プロジェクトを再度ほかして、ゴミ箱を空にする
+        project.throw_away()
+        self.factory.data.find_trashcan().trash_all()
 
     def test_cannot_save_project_outside_root(self):
         """

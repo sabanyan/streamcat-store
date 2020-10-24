@@ -461,7 +461,7 @@ class User(BaseModel):
         if self.self_role_id is None:
             # 本人ロールを作成する
             self_role = role_factory.create(self.name)
-            self_role.save()
+            self_role.save(for_self_role=True)
             # 本人ロールを設定する
             self.update_self_role_id(self_role.id)
         else:

@@ -143,7 +143,7 @@ class Role(BaseModel):
         else:
             raise NoRoleOwnerException('ロール所有者がいなくなるのでこの操作はできません')
 
-    def save(self):
+    def save(self, for_self_role=False):
         """
         Roleを保存する
         """
@@ -155,6 +155,12 @@ class Role(BaseModel):
             raise e
         finally:
             self._session.commit()
+
+        # 本人ロール以外のロールを新規作成したユーザにはロールの所有権を付与する
+        if not for_self_role and self._session.user is not None:
+            from .user_role import UserRole
+            user_role = UserRole(self._session, self._session.user.id, self.id, owner=True)
+            user_role.save(ignore_authz=True)
 
     def update_name(self, new_name, modifier=None):
         try:
