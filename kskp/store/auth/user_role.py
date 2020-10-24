@@ -59,12 +59,12 @@ class UserRole(BaseModel):
             return None
         return UserFactory(self._session).find_by_id(self._modifier_id, allow_no_result=True)
 
-    def save(self):
+    def save(self, ignore_authz=False):
         """
         UserRoleを保存する
         """
         try:
-            self._session.add(self)
+            self._session.add(self, ignore_authz=ignore_authz)
         except Exception as e:
             self._session.rollback()
             raise e

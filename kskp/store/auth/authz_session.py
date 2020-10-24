@@ -62,7 +62,7 @@ class Session():
         query = self._session.query(datum_type, *args)
         return Query(query, self)
 
-    def add(self, obj):
+    def add(self, obj, ignore_authz=False):
         self._session.add(obj)
 
     def update(self, obj):
@@ -340,7 +340,7 @@ class AuthzSession(Session):
                             )
         return select_stmt
 
-    def add(self, obj):
+    def add(self, obj, ignore_authz=False):
         from kskp.core import Datum
         from kskp.store import Folder, Flow
         from kskp.store.auth import User, Role, UserRole, Auth
@@ -385,7 +385,7 @@ class AuthzSession(Session):
 
         elif isinstance(obj, UserRole):
             # ユーザ管理者かロールの所有者のみ、ロールにユーザを追加できる
-            if not self.is_role_owner(obj.role_id) and not self.has_usr_admin():
+            if not ignore_authz and not self.is_role_owner(obj.role_id) and not self.has_usr_admin():
                 from kskp.store.factory import UserFactory, RoleFactory
                 role = RoleFactory(self).find_by_id(obj.role_id)
                 user = UserFactory(self).find_by_id(obj.user_id)
@@ -396,14 +396,14 @@ class AuthzSession(Session):
             # ロールの新規作成は誰でもできる
             self._session.add(obj)
 
-            # 新規追加したロールをDBに反映する
-            self._session.flush([obj])
-            self._session.expire(obj)
+            # # 新規追加したロールをDBに反映する
+            # self._session.flush([obj])
+            # self._session.expire(obj)
 
-            # ロールを新規作成したユーザには無条件にロールの所有権を付与する
-            from .user_role import UserRole
-            user_role = UserRole(self, obj.creator.id, obj.id, owner=True)
-            self._session.add(user_role)
+            # # ロールを新規作成したユーザには無条件にロールの所有権を付与する
+            # from .user_role import UserRole
+            # user_role = UserRole(self, obj.creator.id, obj.id, owner=True)
+            # self._session.add(user_role)
 
         elif isinstance(obj, Auth):
             # ユーザ管理者かデータの所有者のみ、その権限を追加できる
