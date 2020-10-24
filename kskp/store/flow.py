@@ -230,8 +230,7 @@ class Flow(Datum):
 
     @staticmethod
     def _get_select_stmt_for_nodes():
-        from sqlalchemy import select, literal_column, table, text, String
-        from sqlalchemy.sql import alias
+        from sqlalchemy import select, literal_column, text, String
         from sqlalchemy.dialects.postgresql import TIMESTAMP, UUID
 
         """
@@ -247,6 +246,10 @@ class Flow(Datum):
                 where type='flow') F0
         )
         """
+
+        # DatumのTableオブジェクト
+        D = Datum.__table__
+
         sql = select([literal_column("label as label", type_=String),
                       literal_column("node ->> 'uuid' as uuid", type_=UUID),
                       literal_column("node ->> 'type' as type", type_=String),
@@ -257,9 +260,9 @@ class Flow(Datum):
                     select([literal_column("label"),
                             literal_column("uuid"),
                             literal_column("jsonb_array_elements(data #> '{flow,nodes}') as node")
-                           ],
-                           table('data'))
-                    .where(text("type='flow'")).alias('F0')
+                           ])
+                    .select_from(D)
+                    .where(Datum.type==Datum.FLOW_TYPE).alias('F0')
               )
 
         return sql

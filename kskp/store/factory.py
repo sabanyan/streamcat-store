@@ -85,11 +85,11 @@ class UnAuthzFactory():
     def find_user_by_id(self, user_id):
         return UserFactory(self._session).find_by_id(user_id)
 
-    def load_sys_admin_user(self):
+    def load_sys_admin_user(self, activate_if_inactive=False):
         """
         システム管理者を取得する、存在しない場合は作成する
         """
-        from kskp.store.auth import Role
+        from kskp.store.auth import User, Role
 
         SYS_ADMIN_USER_EMAIL = 'Admin@kskp.io'
         SYS_ADMIN_USER_NAME = 'システム管理者'
@@ -98,20 +98,28 @@ class UnAuthzFactory():
         role_factory = RoleFactory(self._session)
 
         # 管理者ユーザが存在する場合は、それを返す
-        if user_factory.exists_by_email(SYS_ADMIN_USER_EMAIL):
-            return user_factory.find_by_email(SYS_ADMIN_USER_EMAIL)
+        if user_factory.exists_by_email(SYS_ADMIN_USER_EMAIL, except_states=[User.INACTIVE_STATE]):
+            return user_factory.find_by_email(SYS_ADMIN_USER_EMAIL, except_states=[User.INACTIVE_STATE])
 
         # 管理者ロールが存在する場合は、そのロールの中でidが最も小さいユーザを取得する
         if role_factory.exists(Role.SYS_ADMIN_ROLE_UUID):
             sys_admin_role = role_factory.find_by_uuid(Role.SYS_ADMIN_ROLE_UUID)
-            return sys_admin_role.get_joined_users()[0]
+            joined_users = sys_admin_role.get_joined_users(except_states=[User.INACTIVE_STATE])
+            if len(joined_users) > 0:
+                return joined_users[0]
+
+        # デフォルトの管理者ユーザが論理削除されている場合は、そのまま返すか、登録状態に戻して返す
+        if user_factory.exists_by_email(SYS_ADMIN_USER_EMAIL):
+            sys_admin_user = user_factory.find_by_email(SYS_ADMIN_USER_EMAIL)
+            activate_if_inactive and sys_admin_user.put_back()
+            return sys_admin_user
 
         # 管理者ロールが無い場合は、デフォルトの管理者ユーザを作成する
         sys_admin_user = user_factory.create(SYS_ADMIN_USER_EMAIL, SYS_ADMIN_USER_NAME, 'adminpass0')
         sys_admin_user.save()
         return sys_admin_user
 
-    def load_usr_admin_user(self):
+    def load_usr_admin_user(self, activate_if_inactive=False):
         """
         ユーザ管理者を取得する、存在しない場合は作成する
         """
@@ -123,12 +131,19 @@ class UnAuthzFactory():
         user_factory = UserFactory(self._session)
         role_factory = RoleFactory(self._session)
 
-        if user_factory.exists_by_email(USR_ADMIN_USER_EMAIL):
-            return user_factory.find_by_email(USR_ADMIN_USER_EMAIL)
+        if user_factory.exists_by_email(USR_ADMIN_USER_EMAIL, except_states=[User.INACTIVE_STATE]):
+            return user_factory.find_by_email(USR_ADMIN_USER_EMAIL, except_states=[User.INACTIVE_STATE])
 
         if role_factory.exists(Role.USR_ADMIN_ROLE_UUID):
             usr_admin_role = role_factory.find_by_uuid(Role.USR_ADMIN_ROLE_UUID)
-            return usr_admin_role.get_joined_users()[0]
+            joined_users = usr_admin_role.get_joined_users(except_states=[User.INACTIVE_STATE])
+            if len(joined_users) > 0:
+                return joined_users[0]
+
+        if user_factory.exists_by_email(USR_ADMIN_USER_EMAIL):
+            usr_admin_user = user_factory.find_by_email(USR_ADMIN_USER_EMAIL)
+            activate_if_inactive and usr_admin_user.put_back()
+            return usr_admin_user
 
         usr_admin_user = user_factory.create(USR_ADMIN_USER_EMAIL, USR_ADMIN_USER_NAME, 'adminpass0')
         usr_admin_user.save()
@@ -270,9 +285,13 @@ class DatumFactory():
         ルートデータストアを取得する、存在しない場合は作成する
         """
         root = self.find_root()
-        # ルートフォルダが存在しない場合はルートフォルダを作成する
-        # (最初にライブラリ画面にアクセスする時はルートフォルダ自身も存在しません)
         if root is None:
+            # find_root()はルートフォルダの参照権限が無いとNoneを返すので、
+            # 参照権限を無視するcount_root()で参照権限の無いルートフォルダが無いことを確認する
+            if self.count_root() > 0:
+                raise Exception(f'{self._session.user} has no authz of root.')
+            # ルートフォルダが存在しない場合はルートフォルダを作成する
+            # (最初にライブラリ画面にアクセスする時はルートフォルダ自身も存在しません)
             new_root = self.create_root(label='ライブラリ')
             # folderレコードをDBに格納する
             new_root.save()
@@ -659,36 +678,50 @@ class UserFactory():
         from kskp.store.auth import User
         return User(self._session, email, name,  password)
 
-    def find_all(self):
-        return self._session.query(User).order_by(User.email).all()
+    def find_all(self, except_states=None):
+        query = self._session.query(User).order_by(User.email)
+        query = UserFactory._add_except_states_criteria(query, except_states)
+        return query.all()
 
-    def find_by_id(self, user_id, allow_no_result=False) -> User:
+    def find_by_id(self, user_id, except_states=None, allow_no_result=False) -> User:
         # SQLAlchemyのidentity mapにキャッシュされていればそれを返す
         user = self._session.query(User).get(user_id)
+
         if user is None and not allow_no_result:
-            raise Exception(f'No user is found by designated user_id({user_id})')
+            raise Exception(f'指定したUser({user_id})は存在しませんでした')
+
+        if except_states is not None:
+            if isinstance(except_states, list) and user.state in except_states:
+                raise Exception(f'指定したUser({user_id})は論理削除されています')
+            else:
+                raise Exception(f'except_statesにはNoneかlist型を指定してください')
+        
         return user
 
-    def find_by_uuid(self, uuid) -> User:
+    def find_by_uuid(self, uuid, except_states=None) -> User:
         # UUID値の形式チェックをする
         Datum.valid_uuid_or_raise(uuid)
         # 結果が1件以外の場合はNoResultFoundが送出される
         try:
-            return self._session.query(User).filter(User.uuid==uuid).one()
+            query = self._session.query(User).filter(User.uuid==uuid)
+            query = UserFactory._add_except_states_criteria(query, except_states)
+            return query.one()
         except NoResultFound:
             raise Exception(f'指定したUser({uuid})は存在しませんでした')
 
-    def find_by_email(self, email) -> User:
+    def find_by_email(self, email, except_states=None) -> User:
         """
         指定されたuuidを持つUserを取得する
         """
         # 結果が1件以外の場合はNoResultFoundが送出される
         try:
-            return self._session.query(User).filter(User.email==email).one()
+            query = self._session.query(User).filter(User.email==email)
+            query = UserFactory._add_except_states_criteria(query, except_states)
+            return query.one()
         except NoResultFound:
             raise Exception(f'指定したUser({email})は存在しませんでした')
 
-    def find_by_keyword(self, keyword):
+    def find_by_keyword(self, keyword, except_states=None):
         """
         キーワードを含むユーザ名またはE-MailのUserを取得する
         """
@@ -710,12 +743,25 @@ class UserFactory():
                                        User.email.like(search_keyword, escape='\\')))
         query = query.filter(and_(*like_predicates))
 
+        query = UserFactory._add_except_states_criteria(query, except_states)
+
         return query.order_by(User.email).all()
 
-    def exists(self, uuid) -> bool:
-        count = self._session.query(User).filter(User.uuid==uuid).count()
-        return count > 0
+    def exists(self, uuid, except_states=None) -> bool:
+        query = self._session.query(User).filter(User.uuid==uuid)
+        query = UserFactory._add_except_states_criteria(query, except_states)
+        return query.count() > 0
 
-    def exists_by_email(self, email) -> bool:
-        count = self._session.query(User).filter(User.email==email).count()
-        return count > 0
+    def exists_by_email(self, email, except_states=None) -> bool:
+        query = self._session.query(User).filter(User.email==email)
+        query = UserFactory._add_except_states_criteria(query, except_states)
+        return query.count() > 0
+
+    @staticmethod
+    def _add_except_states_criteria(query, except_states):
+        if except_states is None:
+            return query
+        elif isinstance(except_states, list):
+            return query.filter(User.state.notin_(except_states))
+        else:
+            raise Exception(f'except_statesにはNoneかlist型を指定してください')

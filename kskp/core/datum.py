@@ -602,14 +602,26 @@ class Datum(BaseModel):
         """      .......
         指定されたDatumのuuidを参照するFlowを取得する
         """
+        from sqlalchemy.sql.expression import select, func, and_
+
         sql = f"""
         select uuid from data
         where type='flow'
           and uuid<>'{self.uuid}'
           and to_tsvector(data) @@ to_tsquery('{self.uuid}')
         """
+
+        # AuthのTableオブジェクト
+        D = Datum.__table__
+
+        select_stmt = select([Datum.uuid]).\
+                      select_from(D).\
+                      where(and_(Datum.type==Datum.FLOW_TYPE,
+                                 Datum.uuid!=self.uuid, 
+                                 func.to_tsvector(Datum._data).match(self.uuid)))
+
         # SQLを発行する
-        results = self._session.execute(sql)
+        results = self._session.execute(select_stmt)
         return [str(result[0]) for result in results]
 
     @staticmethod

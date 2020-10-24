@@ -196,6 +196,14 @@ class User(BaseModel):
             if role.is_usr_admin and role.is_last_owner(self):
                 role.raise_no_role_owner_exception()
 
+    def _join_everyone_role(self):
+        # everyoneロールに所属させる
+        # (everyoneロールの作成者であるユーザ管理者のみがユーザを追加できる)
+        from kskp.store.auth import Role
+        from kskp.store.factory import RoleFactory
+        everyone_role = RoleFactory(self._session).load_everyone_role()
+        everyone_role.join_member(Role.Member(self, False))
+
     @property
     def is_init(self):
         return self.state==User.INIT_STATE
@@ -247,11 +255,7 @@ class User(BaseModel):
             self._session.commit()
 
         # everyoneロールに所属させる
-        # (everyoneロールの作成者であるユーザ管理者のみがユーザを追加できる)
-        from kskp.store.auth import Role
-        from kskp.store.factory import RoleFactory
-        everyone_role = RoleFactory(self._session).load_everyone_role()
-        everyone_role.join_member(Role.Member(self, False))
+        self._join_everyone_role()
 
     def update_email(self, new_email, modifier=None):
         """
@@ -413,6 +417,9 @@ class User(BaseModel):
         """
         if self.is_init_or_temp:
             raise Exception('仮登録ユーザを復帰させることはできません')
+
+        # everyoneロールに復帰させる
+        self._join_everyone_role()
 
         try:
             # 登録状態に変更する

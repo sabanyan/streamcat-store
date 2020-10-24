@@ -11,10 +11,20 @@ class Query():
         # パラメタに値をバインドした後のSQL文を返す
         return str(self._query.statement.compile(compile_kwargs={"literal_binds": True}))
 
+    # @staticmethod
+    # def _is_base_model(obj):
+    #     from kskp.store import BaseModel
+    #     return obj is not None and isinstance(obj, BaseModel)
+
     @staticmethod
     def _is_base_model(obj):
-        from kskp.store import BaseModel
-        return obj is not None and isinstance(obj, BaseModel)
+        from sqlalchemy.orm.base import object_mapper
+        from sqlalchemy.orm.exc import UnmappedInstanceError
+        try:
+            object_mapper(obj)
+        except UnmappedInstanceError:
+            return False
+        return True
 
     def _create_query(self, query, session):
         return Query(query, session)
