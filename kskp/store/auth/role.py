@@ -239,31 +239,36 @@ class Role(BaseModel):
     def has_joined_user(self) -> bool:
         return self.count_joined_users() > 0
 
-    def get_joined_users(self):
+    def get_joined_users(self, except_states=None):
         """
         ロールに所属する全てのユーザを返す
         (ユーザID順で返す)
         """
         from sqlalchemy import exists, and_, or_
+        from kskp.store.factory import UserFactory
         from .user import User
 
         exists_user_role = exists().where(and_(UserRole.role_id==self.id, UserRole.user_id==User.id))
 
         query = self._session.query(User).\
                               filter(or_(exists_user_role, User.self_role_id==self.id))
+        query = UserFactory(self._session)._add_except_states_criteria(query, except_states)
                               
         return query.order_by(User.id).all()
 
-    def get_joined_members(self):
+    def get_joined_members(self, except_states=None):
         """
         ロールに所属する全てのメンバを返す
         (ユーザID順で返す)
         """
+        from kskp.store.factory import UserFactory
         from .user import User
 
         query = self._session.query(User, UserRole.owner).\
                               outerjoin(UserRole, UserRole.user_id==User.id).\
                               filter(UserRole.role_id==self.id)
+        query = UserFactory(self._session)._add_except_states_criteria(query, except_states)
+
         results =  query.order_by(User.id).all()
 
         members = []

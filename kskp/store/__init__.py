@@ -64,8 +64,13 @@ if _is_unittest():
     engine.execute(sql)
 
 # ベースクラスをつくる
+class MyBase(object):
+    @property
+    def is_base_model(self):
+        return True
+
 from sqlalchemy.ext.declarative import declarative_base
-BaseModel = declarative_base()
+BaseModel = declarative_base(cls=MyBase)
 
 from kskp.core import Datum, Port, Command
 
@@ -108,25 +113,29 @@ BaseModel.metadata.create_all(bind=engine, checkfirst=True)
 
 from kskp.store.factory import UnAuthzFactory, Factory
 with UnAuthzFactory() as unauthz_factory:
+    from kskp.store.auth import Role
+
     # システム管理者とユーザ管理者を作成する
     sys_admin_user = unauthz_factory.load_sys_admin_user()
-    usr_admin_user = unauthz_factory.load_usr_admin_user()
+    usr_admin_user = unauthz_factory.load_usr_admin_user(activate_if_inactive=True)
 
     with Factory(sys_admin_user) as factory:
-        from kskp.store.auth import Role
-        # システム管理者ロールを作成する
         sys_admin_role = factory.role.load_sys_admin_role()
-        sys_admin_role.join_member(Role.Member(sys_admin_user, owner=False))
+        if sys_admin_user.is_init:
+            # システム管理者を新規作成した場合は、システム管理者ロールの一般メンバに加える
+            sys_admin_role.join_member(Role.Member(sys_admin_user, owner=False))
 
     with Factory(usr_admin_user) as factory:
         # ユーザ管理者ロールを作成する
-        usr_admin_role = factory.role.load_usr_admin_role()
+        # (ロールを新規作成した場合は作成者がロールの所有者になる)
+        factory.role.load_usr_admin_role()
         # everyoneロールにユーザ管理者を所有者として参加させる
-        # (unauthz_factoryからロールを新規追加された場合、作成者がロールに参加されない)
+        # (unauthz_factoryからロールを新規追加された場合、作成者はロールに参加されない)
         # (ユーザ管理者ロールを作成した後に処理すること)
-        from kskp.store.auth import Role
         everyone_role = factory.role.load_everyone_role()
-        everyone_role.join_member(Role.Member(usr_admin_user, owner=True))
+        if usr_admin_user.is_init:
+            # ユーザ管理者を新規作成した場合は、ユーザ管理者ロールの所有者メンバに加える
+            everyone_role.join_member(Role.Member(usr_admin_user, owner=True))
         # システムフォルダを作成する
         factory.data.load_cache_folder()
         factory.data.load_trash_folder()

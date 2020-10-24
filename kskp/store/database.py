@@ -67,41 +67,6 @@ class Database(Store):
 
         return self
 
-    # def move(self, parent_uuid, modifier=None):
-    #     """
-    #     指定されたStoreの直下に移動する
-    #     """
-    #     # UUID値の形式チェックをする
-    #     Datum.valid_uuid_or_raise(parent_uuid)
-
-    #     from kskp.store.factory import DatumFactory
-    #     to_folder = DatumFactory(self.session).find_by_uuid(parent_uuid)
-    #     if to_folder.type != Datum.FOLDER_TYPE and to_folder.type != Datum.TRASH_TYPE:
-    #         raise Exception('移動先の指定はフォルダまたはゴミ箱のUUIDしか許可していません')
-
-    #     if parent_uuid == self.uuid:
-    #         raise Exception('移動先と移動元の指定が同じです')
-
-    #     # 移動元フォルダのidを覚えておく
-    #     data = self.data.copy()
-    #     data['prev_parent_id'] = self.parent_id
-
-    #     try:
-    #         # レコードを更新する
-    #         # self.session.query(Datum).filter(Datum.id==self.id).update({'parent_id'   :to_folder.id
-    #         #                                                       ,'_modifier_id':modifier.id})
-    #         self.parent_id = to_folder.id
-    #         self._data = data
-    #         self._modifier_id = (modifier or self.session.user).id
-    #         self.session.update(self)
-    #     except Exception as e:
-    #         self.session.rollback()
-    #         raise e
-    #     finally:
-    #         self.session.commit()
-
-    #     return self
-
     @Constraints.delete_role_when_isolated     
     def delete(self):
         """
