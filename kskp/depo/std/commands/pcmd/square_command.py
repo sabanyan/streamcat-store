@@ -24,7 +24,7 @@ class Integer(Datum):
     下記のSquareCommandで使うdatumをラップするためのもの
     """
     def __init__(self):
-        super().__init__(None, 'test', None)
+        super().__init__(None, None, 'test', None)
         self._content = None
 
     def set_content(self, module):

@@ -36,7 +36,7 @@ class CsvToTableCommand(VisualizersHtml):
         from kskp.store import Vis
         column_names = inputs['i'][0] if len(inputs['i']) > 0 else []
         matrix = inputs['i'][1:] if len(inputs['i']) > 1 else [[]]
-        vis = Vis(None, 'csv_to_table', column_names, matrix)
+        vis = Vis(None, None, 'csv_to_table', column_names, matrix)
 
         return {'o': vis}  
 
@@ -55,7 +55,7 @@ class VisualizersBokehPlot(VisualizersCommand):
 
         from kskp.store import BokehPlotVis
         label = self.__class__.__name__
-        vis = BokehPlotVis(None, label, column_names, script1, div1)
+        vis = BokehPlotVis(None, None, label, column_names, script1, div1)
 
         # とりあえず動くようにするため
         # vis.data = nm.runfunc(lambda : None)

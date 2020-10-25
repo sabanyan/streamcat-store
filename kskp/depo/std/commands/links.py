@@ -123,6 +123,7 @@ class CommandLink:
         'plaintext2csv': PlainText2Csv(),
         'rowrange': RowRangeCommand(),
         'convtoutf8' : ConvToUtf8(),
+        'align' : AlignColumns(),
         'to_list' : ToListCommand(),
         # ビジュアライズ
         'csvtohtmltable': CsvToTableCommand(),
