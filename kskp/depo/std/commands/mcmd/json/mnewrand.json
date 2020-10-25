@@ -11,38 +11,43 @@
     {
       "name": "a",
       "type": "string",
-      "label": "新規作成する連番行の項目名(必須)"
+      "label": "項目名の設定 (必須)",
+      "description": "複数項目の指定は不可"
     },
     {
       "name": "max",
       "type": "string",
-      "label": "乱数の最大値",
+      "label": "最大値",
       "optional": true
     },
     {
       "name": "min",
       "type": "string",
-      "label": "乱数の最小値",
-      "optional": true
+      "label": "最小値",
+      "optional": true,
+      "description": "デフォルト値: 0"
     },
     {
       "name": "S",
       "type": "string",
-      "label": "乱数の種を指定する",
-      "optional": true
+      "label": "乱数のシード値",
+      "optional": true,
+      "description": "同じ乱数系列を発生させたい場合に指定する\nデフォルトは時刻値なので、実行の都度変化する"
     },
     {
       "name": "l",
       "type": "string",
-      "label": "作成するデータ行数",
+      "label": "生成データの行数 (必須)",
       "optional": true,
-      "default": "10"
+      "default": "10",
+      "description": "正の整数で設定する"
     },
     {
       "name": "int",
       "type": "boolean",
-      "label": "整数乱数を生成する",
-      "optional": true
+      "label": "少数ではなく、整数乱数を生成する",
+      "optional": true,
+      "description": "このOptにチェックすると、最大値と最小値が有効化される"
     },
     {
       "name": "nfn",
@@ -59,8 +64,9 @@
     {
       "name": "x",
       "type": "boolean",
-      "label": "項目番号による指定",
-      "optional": true
+      "label": "項目名ではなく、項目番号で指定する",
+      "optional": true,
+      "description": "・0始まりの項目番号で指定する\n・Lをつけると、右端起点の項目番号とみなす(例:3L)\n・複数入力可能なOptの場合は、列範囲としての指定も可能(例: 0-5)"
     },
     {
       "name": "tmpPath",
@@ -82,5 +88,48 @@
   "label": "乱数データの新規生成",
   "classification": "data_source",
   "description": "実数/整数の乱数で、指定した行数を作成する",
-  "url": ""
+  "url": "",
+  "groups": [
+    {
+      "name": "abstract",
+      "label": "乱数データの新規生成",
+      "description": "実数/整数の乱数で、指定した行数を作成する",
+      "params": []
+    },
+    {
+      "name": "cmd_main",
+      "label": "データ生成の設定 (必須)",
+      "params": [
+        "a",
+        "l"
+      ]
+    },
+    {
+      "name": "cmd_main_1",
+      "label": "整数乱数生成時の設定 (省略可)",
+      "params": [
+        "int",
+        "max",
+        "min"
+      ],
+      "hide_background": true
+    },
+    {
+      "name": "cmd_sub",
+      "label": "その他 (省略可)",
+      "params": [
+        "nfn",
+        "nfno",
+        "x",
+        "S"
+      ]
+    },
+    {
+      "name": "system",
+      "label": "システム管理用設定（作業領域・ログ出力）",
+      "params": [
+        "tmpPath"
+      ]
+    }
+  ]
 }

@@ -2,19 +2,26 @@
   "id": "mvjoin",
   "groups": [
     {
-      "name": "group1",
-      "label": "グループの設定 (省略可)",
+      "name": "abstract",
+      "label": "ベクトル要素の参照結合",
+      "description": "・入力i の対象ベクトルの要素と、入力m の要素キーを照合して、対応する追加要素からベクトルを生成する\n・生成するベクトルは、対象ベクトルと結合して出力される",
       "params": []
     },
     {
       "name": "group5",
-      "label": "〇〇の設定 (必須)",
+      "label": "結合キーの設定 (必須)",
+      "params": [
+        "vf",
+        "A",
+        "K",
+        "delim"
+      ]
+    },
+    {
+      "name": "group6",
+      "label": "追加要素の設定 (必須)",
       "params": [
         "f",
-        "K",
-        "A",
-        "delim",
-        "vf",
         "n"
       ]
     },
@@ -22,26 +29,20 @@
       "name": "group10",
       "label": "その他 (省略可)",
       "params": [
-        "q"
-      ]
-    },
-    {
-      "name": "group15",
-      "label": "項目名・項目番号についての設定（省略可）",
-      "params": [
-        "x",
         "nfn",
-        "nfno"
+        "nfno",
+        "x",
+        "q"
       ]
     },
     {
       "name": "group20",
       "label": "システム管理用設定（作業領域・ログ出力）",
       "params": [
-        "tmpPath",
         "assert_diffSize",
-        "assert_nullout",
-        "assert_nullin"
+        "tmpPath",
+        "assert_nullin",
+        "assert_nullout"
       ]
     }
   ],
@@ -119,35 +120,41 @@
     {
       "name": "vf",
       "type": "string",
-      "label": "結合キーとなるベクトル列名(必須)"
+      "label": "入力i の対象ベクトル項目名 (必須)",
+      "description": "・カンマ区切りで複数指定可\n・ワイルドカード(*,？ )使用可"
     },
     {
       "name": "K",
       "type": "string",
-      "label": "参照ファイル上の結合キーとなるベクトル要素の列名(必須)"
+      "label": "入力m の要素キー項目名 (必須)",
+      "description": "・項目名を1つ指定する"
     },
     {
       "name": "f",
       "type": "string",
-      "label": "結合ベクトル列名(必須)"
+      "label": "入力m の追加要素の項目名 (必須)",
+      "description": "・項目名を1つ指定する"
     },
     {
       "name": "A",
       "type": "boolean",
-      "label": "vf=で:(コロン) に続けて指定した項目名で、新たな項目が追加される。",
-      "optional": true
+      "label": "置換ではなく、項目を追加して出力する",
+      "optional": true,
+      "description": "追加する項目名は、対象ベクトル項目名の後に、コロン区切りで入力する"
     },
     {
       "name": "n",
       "type": "string",
-      "label": "vf=とk=がマッチしなかった場合に結合する文字列",
-      "optional": true
+      "label": "入力m にない要素に対応する追加要素 (省略可)",
+      "optional": true,
+      "description": "省略時は、マッチしない値はNULLで置換される"
     },
     {
       "name": "delim",
       "type": "string",
-      "label": "ベクトル要素の区切り文字を指定",
-      "optional": true
+      "label": "ベクトル要素の区切り文字　(省略可)",
+      "optional": true,
+      "description": "省略時は半角スペース"
     },
     {
       "name": "assert_diffSize",
@@ -158,7 +165,7 @@
     {
       "name": "assert_nullin",
       "type": "boolean",
-      "label": "入力項目のf=またはvf=で指定された項目のNULL値チェックを行う",
+      "label": "2",
       "optional": true
     },
     {
@@ -182,14 +189,16 @@
     {
       "name": "x",
       "type": "boolean",
-      "label": "項目番号による指定",
-      "optional": true
+      "label": "項目名ではなく、項目番号で指定する",
+      "optional": true,
+      "description": "・0始まりの項目番号で指定する\n・Lをつけると、右端起点の項目番号とみなす(例:3L)\n・複数入力可能なOptの場合は、列範囲としての指定も可能(例: 0-5)"
     },
     {
       "name": "q",
       "type": "boolean",
       "label": "自動並べ替えの無効化",
-      "optional": true
+      "optional": true,
+      "description": "入力i と入力m ともにキー項目でソート済みの場合、指定すると処理速度が向上"
     },
     {
       "name": "tmpPath",

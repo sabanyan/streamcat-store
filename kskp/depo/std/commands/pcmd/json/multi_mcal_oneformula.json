@@ -1,16 +1,18 @@
 {
-  "id": "mcal",
+  "id": "multi_mcal_oneformula",
   "groups": [
     {
       "name": "abstract",
-      "label": "計算",
-      "description": "項目間の演算を行い、1つの結果を追加する",
+      "label": "複数項目の計算 (共通式)",
+      "description": "同一の式を、複数の項目に適用し、複数の結果を追加する",
       "params": []
     },
     {
       "name": "group1",
       "label": "計算式の設定（必須）",
+      "description": "対象項目名に対して、同じ計算を行う\n計算式と、結果項目の書式設定では、元項目名を記号 & で記述する",
       "params": [
+        "targets",
         "a",
         "c"
       ]
@@ -36,6 +38,11 @@
     }
   ],
   "rules": {
+    "targets": {
+      "presence": {
+        "allowEmpty": false
+      }
+    },
     "a": {
       "presence": {
         "allowEmpty": false
@@ -49,15 +56,24 @@
   },
   "params": [
     {
+      "name": "targets",
+      "type": "string",
+      "label": "対象項目名 (必須)",
+      "description": "・カンマ区切りで複数指定可\n・ワイルドカード(*,？ )使用可"
+    },
+    {
       "name": "a",
       "type": "string",
-      "label": "追加する項目名 (必須)"
+      "label": "結果項目名の設定 (必須)",
+      "description": "元項目名の記号 & を使って、書式として記述する",
+      "default": "new_&"
     },
     {
       "name": "c",
       "type": "string",
-      "label": "計算式",
+      "label": "計算式　(必須)",
       "description": "・項目値および定数を指定し、関数、演算子を組合せて計算式を設定する\n・項目値は、項目名とデータ型を組合せて指定する",
+      "default": "${&}",
       "helper": {
         "c": {
           "label": "計算式の設定について",
@@ -1965,16 +1981,19 @@
       }
     },
     {
-      "name": "assert_diffSize",
-      "type": "boolean",
-      "label": "入力、出力件数比較を行う",
-      "optional": true
+      "name": "precision",
+      "type": "string",
+      "label": "有効桁数",
+      "description": "1〜16の整数",
+      "optional": true,
+      "default": 10
     },
     {
-      "name": "assert_nullout",
+      "name": "x",
       "type": "boolean",
-      "label": "出力項目の NULL 値チェックを行う",
-      "optional": true
+      "label": "項目名ではなく、項目番号で指定する",
+      "optional": true,
+      "description": "・0始まりの項目番号で指定する\n・Lをつけると、右端起点の項目番号とみなす(例:3L)\n・複数入力可能なOptの場合は、列範囲としての指定も可能(例: 0-5)"
     },
     {
       "name": "nfn",
@@ -1989,25 +2008,22 @@
       "optional": true
     },
     {
-      "name": "x",
+      "name": "assert_diffSize",
       "type": "boolean",
-      "label": "項目名ではなく、項目番号で指定する",
-      "optional": true,
-      "description": "・0始まりの項目番号で指定する\n・Lをつけると、右端起点の項目番号とみなす(例:3L)\n・複数入力可能なOptの場合は、列範囲としての指定も可能(例: 0-5)"
+      "label": "入力、出力件数比較を行う",
+      "optional": true
+    },
+    {
+      "name": "assert_nullout",
+      "type": "boolean",
+      "label": "出力項目の NULL 値チェックを行う",
+      "optional": true
     },
     {
       "name": "tmpPath",
       "type": "string",
       "label": "作業ファイル格納パス名",
       "optional": true
-    },
-    {
-      "name": "precision",
-      "type": "string",
-      "label": "有効桁数",
-      "optional": true,
-      "description": "1〜16の整数",
-      "default": 10
     }
   ],
   "ports": [
@@ -2025,8 +2041,8 @@
     ]
   ],
   "version": "0.7.0",
-  "label": "計算",
+  "label": "複数項目の計算 (共通式)",
   "classification": "calculation",
-  "description": "項目間の演算を行い、1つの結果を追加する",
+  "description": "同一の式を、複数の項目に適用し、複数の結果を追加する",
   "url": "./static/pdf/mcmd/calculation/mcal.pdf"
 }

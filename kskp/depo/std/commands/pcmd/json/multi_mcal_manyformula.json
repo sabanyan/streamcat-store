@@ -1,18 +1,17 @@
 {
-  "id": "mcal",
+  "id": "multi_mcal_manyformula",
   "groups": [
     {
       "name": "abstract",
-      "label": "計算",
-      "description": "項目間の演算を行い、1つの結果を追加する",
+      "label": "複数項目の計算 (個別式)",
+      "description": "個別の式で、項目間の演算を行い、複数の結果を追加する",
       "params": []
     },
     {
       "name": "group1",
       "label": "計算式の設定（必須）",
       "params": [
-        "a",
-        "c"
+        "arglist"
       ]
     },
     {
@@ -35,29 +34,24 @@
       ]
     }
   ],
-  "rules": {
-    "a": {
-      "presence": {
-        "allowEmpty": false
-      }
-    },
-    "c": {
-      "presence": {
-        "allowEmpty": false
-      }
-    }
-  },
   "params": [
     {
-      "name": "a",
-      "type": "string",
-      "label": "追加する項目名 (必須)"
-    },
-    {
-      "name": "c",
-      "type": "string",
-      "label": "計算式",
-      "description": "・項目値および定数を指定し、関数、演算子を組合せて計算式を設定する\n・項目値は、項目名とデータ型を組合せて指定する",
+      "name": "arglist",
+      "type": "list",
+      "label": "結果項目と計算式 (必須)",
+      "description": "【計算式】\n・項目値および定数を指定し、関数、演算子を組合せて計算式を設定する\n・項目値は、項目名とデータ型を組合せて指定する",
+      "elements": [
+        {
+          "name": "a",
+          "type": "string",
+          "label": "結果項目名"
+        },
+        {
+          "name": "c",
+          "type": "string",
+          "label": "計算式"
+        }
+      ],
       "helper": {
         "c": {
           "label": "計算式の設定について",
@@ -1962,7 +1956,40 @@
             }
           ]
         }
-      }
+      },
+      "default": [
+        {
+          "a": "",
+          "c": ""
+        }
+      ]
+    },
+    {
+      "name": "precision",
+      "type": "string",
+      "label": "有効桁数",
+      "description": "1〜16の整数",
+      "optional": true,
+      "default": 10
+    },
+    {
+      "name": "x",
+      "type": "boolean",
+      "label": "項目名ではなく、項目番号で指定する",
+      "optional": true,
+      "description": "・0始まりの項目番号で指定する\n・Lをつけると、右端起点の項目番号とみなす(例:3L)\n・複数入力可能なOptの場合は、列範囲としての指定も可能(例: 0-5)"
+    },
+    {
+      "name": "nfn",
+      "type": "boolean",
+      "label": "入力データの 1 行目を項目名行とみなさない。",
+      "optional": true
+    },
+    {
+      "name": "nfno",
+      "type": "boolean",
+      "label": "出力データに項目名行を出力しない。",
+      "optional": true
     },
     {
       "name": "assert_diffSize",
@@ -1977,37 +2004,10 @@
       "optional": true
     },
     {
-      "name": "nfn",
-      "type": "boolean",
-      "label": "入力データの 1 行目を項目名行とみなさない。",
-      "optional": true
-    },
-    {
-      "name": "nfno",
-      "type": "boolean",
-      "label": "出力データに項目名行を出力しない。",
-      "optional": true
-    },
-    {
-      "name": "x",
-      "type": "boolean",
-      "label": "項目名ではなく、項目番号で指定する",
-      "optional": true,
-      "description": "・0始まりの項目番号で指定する\n・Lをつけると、右端起点の項目番号とみなす(例:3L)\n・複数入力可能なOptの場合は、列範囲としての指定も可能(例: 0-5)"
-    },
-    {
       "name": "tmpPath",
       "type": "string",
       "label": "作業ファイル格納パス名",
       "optional": true
-    },
-    {
-      "name": "precision",
-      "type": "string",
-      "label": "有効桁数",
-      "optional": true,
-      "description": "1〜16の整数",
-      "default": 10
     }
   ],
   "ports": [
@@ -2025,8 +2025,8 @@
     ]
   ],
   "version": "0.7.0",
-  "label": "計算",
+  "label": "複数項目の計算 (個別式)",
   "classification": "calculation",
-  "description": "項目間の演算を行い、1つの結果を追加する",
+  "description": "個別の式で、項目間の演算を行い、複数の結果を追加する",
   "url": "./static/pdf/mcmd/calculation/mcal.pdf"
 }

@@ -22,14 +22,9 @@
     {
       "name": "x",
       "type": "boolean",
-      "label": "項目番号による指定",
-      "optional": true
-    },
-    {
-      "name": "q",
-      "type": "boolean",
-      "label": "自動並べ替えの無効化",
-      "optional": true
+      "label": "項目名ではなく、項目番号で指定する",
+      "optional": true,
+      "description": "・0始まりの項目番号で指定する\n・Lをつけると、右端起点の項目番号とみなす(例:3L)\n・複数入力可能なOptの場合は、列範囲としての指定も可能(例: 0-5)"
     },
     {
       "name": "tmpPath",
@@ -56,5 +51,30 @@
   "label": "データのコピー",
   "classification": "data_source",
   "description": "入力データをそのまま出力する",
-  "url": "./static/pdf/mcmd/data_source/mtee.pdf"
+  "url": "./static/pdf/mcmd/data_source/mtee.pdf",
+  "groups": [
+    {
+      "name": "abstract",
+      "label": "データのコピー",
+      "description": "入力データをそのまま出力する",
+      "params": []
+    },
+    {
+      "name": "cmd_sub",
+      "label": "その他 (省略可)",
+      "params": [
+        "nostdout",
+        "nfn",
+        "nfno",
+        "x"
+      ]
+    },
+    {
+      "name": "system",
+      "label": "システム管理用設定（作業領域・ログ出力）",
+      "params": [
+        "tmpPath"
+      ]
+    }
+  ]
 }
