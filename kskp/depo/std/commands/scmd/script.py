@@ -3,7 +3,7 @@ import os
 import sys
 import nysol.mcmd as nm
 
-from kskp.store import NysolModule, Datum, Store, Folder, Frame, Cache
+from kskp.store import NysolModule, Datum, Store, Frame
 from kskp.core import Command, Port
 
 class SCommand(Command):
@@ -32,11 +32,11 @@ class SaverCommand(SCommand):
         start_time_str1 = start_time.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
         start_time_str2 = start_time.strftime('%Y%m%d.%H%M%S.%f')[:-3]
         folder = self.make_folder(store, flow_label, start_time_str1, start_time_str2)
-        frame = self.make_frame(folder, point_label + '.csv')
+        frame = self.make_frame(folder, point_label)
         # ラベル名とファイル名はコンストラクタで別々に指定できるようにすれば
         # 改めてupdate_label_only()を行う必要はなくなる
         # もしくは、実行ログ一覧画面さえできれば別々に指定する必要もなくなるか？
-        Frame.update_label_only(frame.uuid, point_label, None)
+        # frame.update_label_only(point_label)
 
         # NYSOLコマンドを作成する
         # if not isinstance(inputs['i'], NysolModule):
@@ -47,33 +47,30 @@ class SaverCommand(SCommand):
         return {'o': NysolModule(cmd), 'u': frame}
 
     def append_writecsv_cmd(self, cmd, frame_path):
-        abs_frame_path = Datum._to_abs_path(frame_path.as_posix())
+        abs_frame_path = frame_path.as_posix()
         # リストが渡されても処理できるようi=に入力値を渡している
         # writecsvは0Byteデータが入力されるとエラーになるのでm2teeを使う
         return nm.m2tee(i=cmd, o=abs_frame_path)
 
     def make_folder(self, store, folder1_label, folder2_label, folder2_file_name):
-        from kskp.store import Datum, AwsS3
-
         # フロー名フォルダがなければ作成する
-        results1 = Datum.find_by_parent_uuid_and_label(store.uuid, folder1_label)
+        results1 = store.find_children_by_label(folder1_label, type=Datum.FOLDER_TYPE)
         if results1 is None or len(results1)==0:
-            folder1 = Folder(store.uuid, folder1_label, None)
+            folder1 = store.create_folder(folder1_label)
             folder1.save()
+            folder1 = folder1.reload()
         else:
             folder1 = results1[0]
 
         # 開始時間フォルダがなければ作成する
-        results2 = Datum.find_by_parent_uuid_and_label(folder1.uuid, folder2_label)
+        results2 = folder1.find_children_by_label(folder2_label, type=Datum.FOLDER_TYPE)
         if results2 is None or len(results2)==0:
-            folder2 = Folder(folder1.uuid, folder2_label, None)
-            folder2.path = folder2.path.parent / folder2_file_name
-            folder2.save()
+            folder2 = folder1.create_folder(folder2_label)
+            folder2.save(file_path = folder2.path.parent / folder2_file_name)
+            folder2 = folder2.reload()
         else:
-            if results2[0].type == Datum.FOLDER_TYPE:
-                folder2 = Folder.convert_to_folder(results2[0])
-            elif results2[0].type == Datum.AWSS3_TYPE:
-                folder2 = AwsS3.convert_to_awss3(results2[0])
+            if isinstance(results2[0], Store):
+                folder2 = results2[0]
             else:
                 # 開始時間フォルダを作成できなかった場合はフロー名フォルダ直下に結果を作成する
                 folder2 = folder1
@@ -83,10 +80,10 @@ class SaverCommand(SCommand):
     def make_frame(self, store, label):
         import io
         f = io.BytesIO(b'')
-        frame = Frame(store.uuid, label, f)
+        frame = store.create_frame(label, f)
         # RunsCommandの実行前にFrameを登録する
         frame.save()
-        return frame
+        return frame.reload()
 
 class CacheSaverCommand(SaverCommand):
     """
@@ -118,12 +115,12 @@ class CacheSaverCommand(SaverCommand):
         # FlowのキャッシュUUIDを変更する
         # テスト実行の場合は実行するFlowをDBに保存していない
         from kskp.store import Flow
-        if Flow.exists(args['flow_uuid']):
-            flow = Flow.find_by_uuid(args['flow_uuid'])
+        if args['flow'] is not None:
+            flow = args['flow']
             node_id = args['datum_id']
             # TODO: RunsCommand実行前にFlowにキャッシュありの情報を更新すると、同じフローの同時実行に支障があるだろう
-            flow.set_cache(node_id, cache.uuid, None)
-            Flow.update_data(flow.uuid, flow.label, flow.flow_data, None)
+            flow.set_cache(node_id, cache)
+            flow.update_data(flow.label, flow.flow_data.to_json())
 
         # NYSOLコマンドを作成する
         cmd = inputs['i'].content
@@ -134,9 +131,12 @@ class CacheSaverCommand(SaverCommand):
     def make_frame(self, store, label):
         import io
         f = io.BytesIO(b'')
-        cache = Cache(store.uuid, label, f)
+        cache = store.create_cache(label, f)
         # RunsCommandの実行前にCacheを登録する
         cache.save()
+        cache = cache.reload()
+        # FrameとCacheを区別するためのフラグ
+        cache.is_cache = True
         return cache
 
 # 1つ保存のsaverはどうなる？
@@ -155,16 +155,16 @@ class LoaderCommand(SCommand):
         if not isinstance(inputs['store'], Store):
             t = type(inputs['store'])
             raise Exception(f'Loaderの入力にStore以外のデータ型({t})が入力されました')
-        folder = Folder.convert_to_folder(inputs['store'])
+        folder = inputs['store']
         if not folder.path_exists:
             raise Exception(f'ディレクトリ({folder.path})が存在しません')
 
         # 指定したuuidのframeを取得する
         frame_uuid = args['uuid']
-        frame = Frame.find_by_uuid(frame_uuid)
+        frame = folder.find_child_by_uuid(frame_uuid)
         if frame is None:
             raise Exception('No frame(%s) is found !' % frame_uuid)
-        path = Datum._to_abs_path(frame.path.as_posix())
+        path = frame.path.as_posix()
 
         if frame.encoding is None:
             # frameの文字コードが未判定の場合はここで判定する
@@ -175,7 +175,7 @@ class LoaderCommand(SCommand):
             encoding = frame.encoding
 
         cmd = nm.m2tee(i=path)
-        # mreadで存在しないファイルパスを指定するとDockerごと落ちる ->　
+        # mreadで存在しないファイルパスを指定するとDockerごと落ちる -> 0.3.10で修正済
         # mreadは巨大ファイルの読み込みが遅い(全行入力してる?)
         # cmd = nm.mread({'i':path, 'n':65535})
         nysol_module = NysolModule(cmd)
@@ -196,12 +196,12 @@ class DbLoaderCommand(SCommand):
     def run(self, args, inputs):
         DbLoaderCommand._write_log('START')
 
-        from kskp.store import Datum, Database
+        from kskp.store import Datum
         if inputs['i'].type != Datum.DATABASE_TYPE:
             t = type(inputs['i'])
             raise Exception(f'DbLoaderの入力にDatabase Store以外のデータ型({t})が入力されました')
         else:
-            database = Database.convert_to_database(inputs['i'])
+            database = inputs['i']
 
         # DB接続情報に漏れがないか確認し、漏れがあれば例外を送出する
         database.valid_or_raise()
@@ -349,18 +349,18 @@ class DbSaverCommand(SaverCommand):
     def run(self, args, inputs):
         DbSaverCommand._write_log('START')
 
-        from kskp.store import Datum, Database
+        from kskp.store import Datum
         if inputs['store'].type != Datum.DATABASE_TYPE:
             t = type(inputs['store'])
             raise Exception(f'DbSaverの入力にDatabase Store以外のデータ型({t})が入力されました')
         else:
-            database = Database.convert_to_database(inputs['store'])
+            database = inputs['store']
 
         if inputs['folder'].type != Datum.FOLDER_TYPE:
             t = type(inputs['folder'])
             raise Exception(f'DbSaverの入力にFolder以外のデータ型({t})が入力されました')
         else:
-            folder = Folder.convert_to_folder(inputs['folder'])
+            folder = inputs['folder']
 
         # DB接続情報に漏れがないか確認し、漏れがあれば例外を送出する
         database.valid_or_raise()
@@ -420,7 +420,7 @@ class DbSaverCommand(SaverCommand):
 
         # 出力結果を取得するDataSourceをライブラリに登録する
         # TODO: point_idどっからとってこよう
-        datasource = self._create_data_source(result_folder.uuid, database, 'point_id', schema_name, table_name, args['activity_uuid'])
+        datasource = self._create_data_source(result_folder, database, 'point_id', schema_name, table_name, args['activity_uuid'])
         datasource.save()
 
         return {'o': NysolModule(cmd), 'u': datasource}  
@@ -571,14 +571,13 @@ class DbSaverCommand(SaverCommand):
             conn.commit()
 
     @staticmethod
-    def _create_data_source(parent_uuid, database, label, schema_name, table_name, activity_uuid):
+    def _create_data_source(parent, database, label, schema_name, table_name, activity_uuid):
         import uuid
         from kskp.engine import Step
         from kskp.depo.std.commands import CommandLink
-        from kskp.store import DataSource
         args = {'schema_name':schema_name, 'table_name':table_name, 'activity_uuid_kskp':activity_uuid}
         loader_step = Step(str(uuid.uuid4()), CommandLink('db_loader').resolve(), args)
-        return DataSource(parent_uuid, label, database, loader_step)
+        return parent.create_datasource(label, database, loader_step)
 
     @staticmethod
     def _get_tmp_file_name():
@@ -614,12 +613,12 @@ class RemoteFolderLoaderCommand(SCommand):
         self.name = 'remotefolder_loader'
 
     def run(self, args, inputs):
-        from kskp.store import Datum, RemoteFolder
+        from kskp.store import Datum
         if inputs['i'].type != Datum.RFOLDER_TYPE:
             t = type(inputs['i'])
             raise Exception(f'Remotefolder_loaderの入力にRemote Folder Store以外のデータ型({t})が入力されました')
         else:
-            folder = RemoteFolder.convert_to_remote_folder(inputs['i'])
+            folder = inputs['i']
 
         # 接続情報に漏れがないか確認し、漏れがあれば例外を送出する
         folder.valid_or_raise()
@@ -631,7 +630,7 @@ class RemoteFolderLoaderCommand(SCommand):
 
         # ファイルパスを取得する
         path = folder.path / file_path.lstrip('/')
-        path_str = Datum._to_abs_path(path.as_posix())
+        path_str = path.as_posix()
 
         cmd = nm.m2tee({'i':path_str})
         # mreadで存在しないファイルパスを指定するとDockerごと落ちる ->　
@@ -648,18 +647,18 @@ class RemoteFolderSaverCommand(SaverCommand):
         self.o_ports = [Port('o', 'mcmd'), Port('u', 'frame')]
 
     def run(self, args, inputs):
-        from kskp.store import Datum, RemoteFolder
+        from kskp.store import Datum
         if inputs['store'].type != Datum.RFOLDER_TYPE:
             t = type(inputs['store'])
             raise Exception(f'RemoteFolderSaverの入力にRemoteFolderStore以外のデータ型({t})が入力されました')
         else:
-            rfolder = RemoteFolder.convert_to_remote_folder(inputs['store'])
+            rfolder = inputs['store']
 
         if inputs['folder'].type != Datum.FOLDER_TYPE:
             t = type(inputs['folder'])
             raise Exception(f'RemoteFolderSaverの入力にFolder以外のデータ型({t})が入力されました')
         else:
-            folder = Folder.convert_to_folder(inputs['folder'])
+            folder = inputs['folder']
 
         # 接続情報に漏れがないか確認し、漏れがあれば例外を送出する
         rfolder.valid_or_raise()
@@ -671,8 +670,8 @@ class RemoteFolderSaverCommand(SaverCommand):
 
         # 出力ファイルパスを作成する
         file_path = rfolder.path / dir_path.strip('/') / 'point_id' 
-        file_path = Datum.get_another_file_path(file_path.as_posix())
-        path_str = Datum._to_abs_path(file_path)
+        file_path = Datum.make_unique_path(file_path)
+        path_str = file_path.as_posix()
 
         # Nysol Python
         cmd = inputs['i'].content
@@ -687,20 +686,19 @@ class RemoteFolderSaverCommand(SaverCommand):
 
         # 出力結果を取得するDataSourceをライブラリに登録する
         # TODO: point_idどっからとってこよう
-        datasource = self._create_data_source(result_folder.uuid, rfolder, 'point_id', path_str)
+        datasource = self._create_data_source(result_folder, rfolder, 'point_id', path_str)
         datasource.save()
 
         return {'o': NysolModule(cmd), 'u': datasource}  
 
     @staticmethod
-    def _create_data_source(parent_uuid, rfolder, label, file_path):
+    def _create_data_source(parent, rfolder, label, file_path_str):
         import uuid
         from kskp.engine import Step
         from kskp.depo.std.commands import CommandLink
-        from kskp.store import DataSource
-        args = {'file_path':file_path}
+        args = {'file_path':file_path_str}
         loader_step = Step(str(uuid.uuid4()), CommandLink('remotefolder_loader').resolve(), args)
-        return DataSource(parent_uuid, label, rfolder, loader_step)
+        return parent.create_datasource(label, rfolder, loader_step)
 
 class RunsCommand(SCommand):
 
@@ -785,6 +783,7 @@ class RunsCommand(SCommand):
                     #  recv_connオブジェクトでcloseするのでclosefd=Falseとする)
                     for line in open(recv_conn.fileno(), mode='r', closefd=False):
                         print(line, end='', file=sys.stderr)
+                        sys.stderr.flush()
                         if line.startswith('#ERROR#') and 'script RUN KGERROR runmain on kgshell' not in line:
                             mcmd_errors.append(line)
 

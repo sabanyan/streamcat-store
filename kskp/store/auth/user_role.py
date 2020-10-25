@@ -1,22 +1,15 @@
 import os
-from kskp.store import BaseModel
 from sqlalchemy import Column, text, PrimaryKeyConstraint
-from sqlalchemy.dialects.postgresql import INTEGER, BOOLEAN, TIMESTAMP, ENUM
+from sqlalchemy.dialects.postgresql import INTEGER, BOOLEAN, TIMESTAMP
+from kskp.store import BaseModel
 
-class Auth(BaseModel):
-    FIND_OP = 'find'
-    READ_OP = 'read'
-    WRITE_OP = 'write'
-    DELETE_OP = 'delete'
-    EXEC_OP = 'exec'
-    OWN_OP = 'own'
-
+class UserRole(BaseModel):
     # テーブル名の定義
-    __tablename__ = 'auths'
+    __tablename__ = 'users_roles'
 
     # テーブルの制約
     __table_args__ = (
-        PrimaryKeyConstraint('role_id', 'datum_id', 'operation'),
+        PrimaryKeyConstraint('user_id', 'role_id'),
     )
 
     # 定義先スキーマ
@@ -25,27 +18,27 @@ class Auth(BaseModel):
         __table_args__ = __table_args__ + ({'schema': os.environ['KSKP_POSTGRESQL_SCHEMA_NAME']} ,)
 
     # 列名と列のデータ型等の定義
-    # ProjectFolder.get_joined_members()で発行するSQLでdatum_idへのインデックスを利用するため、datum_idを1列目に配置する
-    datum_id     = Column(INTEGER, primary_key=True)
+    user_id      = Column(INTEGER, primary_key=True)
     role_id      = Column(INTEGER, primary_key=True)
-    operation    = Column(ENUM(FIND_OP, READ_OP, WRITE_OP, DELETE_OP, EXEC_OP, OWN_OP, name='op_type'), primary_key=True)
-    permission   = Column(BOOLEAN, nullable=False)
+    # ロールの所有権の有無
+    owner        = Column(BOOLEAN, nullable=False)
     _creator_id  = Column('creator', INTEGER)
     _modifier_id = Column('modifier', INTEGER)
     created_at   = Column(TIMESTAMP, default=text('statement_timestamp()'))
     modified_at  = Column(TIMESTAMP, default=text('statement_timestamp()'), onupdate=text('statement_timestamp()'))
 
-    def __init__(self, session, role_id, datum_id, operation, permission):
+    def __init__(self, session, user_id, role_id, owner=False):
         """
         コンストラクタ
         """
         # SQLAlchemy Session
         self._session = session
 
+        self.user_id = user_id
         self.role_id = role_id
-        self.datum_id = datum_id
-        self.operation = operation
-        self.permission = permission
+
+        # UserがRoleの所有権を持つ場合はTrue
+        self.owner = owner
 
         # creator, modifier
         if session is not None and session.user is not None:
@@ -65,29 +58,30 @@ class Auth(BaseModel):
         if self._modifier_id is None:
             return None
         return UserFactory(self._session).find_by_id(self._modifier_id, allow_no_result=True)
-        
-    def save(self):
+
+    def save(self, ignore_authz=False):
         """
-        Authを保存する
+        UserRoleを保存する
         """
         try:
-            # Authテーブルにレコードを新規追加する
-            self._session.add(self)
+            self._session.add(self, ignore_authz=ignore_authz)
         except Exception as e:
             self._session.rollback()
             raise e
         finally:
             self._session.commit()
 
-    def update(self, permission):
+    def update_owner(self, owner, modifier=None):
+        """
+        UserRoleの所有権フラグを更新する
+        """
         # 同じ値への更新であれば何もしない
-        if permission == self.permission:
+        if owner == self.owner:
             return self
 
         try:
-            # レコードを更新する
-            self.permission = permission
-            self._modifier_id = self._session.user and self._session.user.id
+            self.owner = owner
+            self._modifier_id = (modifier or self._session.user).id
             self._session.update(self)
         except Exception as e:
             self._session.rollback()
@@ -99,7 +93,7 @@ class Auth(BaseModel):
 
     def delete(self):
         """
-        Authを削除する
+        UserRoleを削除する
         """
         try:
             self._session.delete(self)
@@ -110,4 +104,4 @@ class Auth(BaseModel):
             self._session.commit()
 
     def __repr__(self):
-        return f'Auth(role:{self.role_id}, datum:{self.datum_id}, {self.operation}, {self.permission})'
+        return f'UserRole(user:{self.user_id}, role:{self.role_id}, owner:{self.owner})'
