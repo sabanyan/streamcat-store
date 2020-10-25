@@ -771,7 +771,7 @@ class RunsCommand(SCommand):
                 p = Process(target=do_runs, kwargs={'nm_list':nm_list, 'results':results, 'exs':exs, 'out':send_conn})
                 # サブプロセスを開始する
                 p.start()
-                
+
                 mcmd_errors = []
                 while True:
                     # サブプロセスが終了するまで待つ(単位は秒)

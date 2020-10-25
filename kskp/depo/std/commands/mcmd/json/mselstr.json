@@ -61,67 +61,69 @@
     {
       "name": "f",
       "type": "string",
-      "label": "対象列名"
+      "label": "対象とする項目名 (必須)",
+      "description": "・カンマ区切りで複数指定可\n・ワイルドカード(*,？ )使用可"
     },
     {
       "name": "v",
       "type": "string",
-      "label": "絞込条件値（文字列）"
+      "label": "選択する値のリスト　(必須)",
+      "description": "カンマ区切りで複数指定可"
     },
     {
       "name": "k",
       "type": "string",
-      "label": "選択単位となるキー列名",
-      "optional": true
+      "label": "グループ化する項目名",
+      "optional": true,
+      "description": "・カンマ区切りで複数指定可\n・省略時は全ての行を同じグループとみなして処理される"
     },
     {
       "name": "F",
       "type": "boolean",
-      "label": "f= パラメータで複数項目を指定した場合、その全ての値がマッチする行を撰択する。",
-      "optional": true
+      "label": "対象とする項目全てがマッチする行のみ選択する",
+      "optional": true,
+      "description": "選択された行は、o に出力されます"
     },
     {
       "name": "r",
       "type": "boolean",
-      "label": "選択ではなく削除する。",
-      "optional": true
+      "label": "条件の反転",
+      "optional": true,
+      "description": "マッチした行を、o　ではなく u　に出力します"
     },
     {
       "name": "R",
       "type": "boolean",
-      "label": "k= パラメータを指定した場合、その全ての行がマッチすれば行を撰択する。",
-      "optional": true
+      "label": "行ではなく、グループ単位で判定する",
+      "optional": true,
+      "description": "グループ内の全ての行が条件にあてはまる場合のみマッチとみなします"
     },
     {
       "name": "sub",
       "type": "boolean",
-      "label": "検索を完全一致ではなく部分文字列マッチで比較する。",
-      "optional": true
+      "label": "部分マッチング",
+      "optional": true,
+      "description": "値全体ではなく、部分文字列として一致すれば選択します"
     },
     {
       "name": "head",
       "type": "boolean",
-      "label": "先頭文字列マッチオプション",
+      "label": "先頭でマッチング",
       "optional": true
     },
     {
       "name": "tail",
       "type": "boolean",
-      "label": "末尾文字列マッチオプション",
-      "optional": true
-    },
-    {
-      "name": "W",
-      "type": "boolean",
-      "label": "sub,head,tail オプションが指定されているときにワイド文字として部分文字列マッチをおこなう。",
+      "label": "末尾でマッチング",
       "optional": true
     },
     {
       "name": "bufcount",
       "type": "string",
-      "label": "バッファの数",
+      "label": "バッファのブロック数",
       "optional": true,
-      "default": 10
+      "default": 10,
+      "description": "デフォルト:10 (40MB)"
     },
     {
       "name": "assert_diffSize",
@@ -138,7 +140,7 @@
     {
       "name": "assert_nullin",
       "type": "boolean",
-      "label": "入力項目のf=またはvf=で指定された項目のNULL値チェックを行う",
+      "label": "対象とする項目名で指定された項目のNULL値チェックを行う",
       "optional": true
     },
     {
@@ -156,14 +158,16 @@
     {
       "name": "x",
       "type": "boolean",
-      "label": "項目番号による指定",
-      "optional": true
+      "label": "項目名ではなく、項目番号で指定する",
+      "optional": true,
+      "description": "・0始まりの項目番号で指定する\n・Lをつけると、右端起点の項目番号とみなす(例:3L)\n・複数入力可能なOptの場合は、列範囲としての指定も可能(例: 0-5)"
     },
     {
       "name": "q",
       "type": "boolean",
       "label": "自動並べ替えの無効化",
-      "optional": true
+      "optional": true,
+      "description": "入力データがグループ単位でソート済みの場合、指定すると処理速度が向上"
     },
     {
       "name": "tmpPath",
@@ -194,5 +198,63 @@
   "label": "文字列による行選択",
   "classification": "row_edit",
   "description": "指定した文字列に一致する行を選択する",
-  "url": "./static/pdf/mcmd/row_edit/mselstr.pdf"
+  "url": "./static/pdf/mcmd/row_edit/mselstr.pdf",
+  "groups": [
+    {
+      "name": "abstract",
+      "label": "文字列による行選択",
+      "description": "指定した文字列に一致する行を選択する",
+      "params": []
+    },
+    {
+      "name": "grouping",
+      "label": "グループの設定 (省略可)",
+      "params": [
+        "k"
+      ]
+    },
+    {
+      "name": "cmd_main",
+      "label": "文字列による行選択の設定　(必須)",
+      "description": "選択する値のリストにマッチした行を o に、それ以外を u に出力する",
+      "params": [
+        "f",
+        "v",
+        "F",
+        "R",
+        "r"
+      ]
+    },
+    {
+      "name": "cmd_main_2",
+      "label": "部分文字列マッチング",
+      "params": [
+        "sub",
+        "head",
+        "tail"
+      ],
+      "hide_background": true
+    },
+    {
+      "name": "cmd_sub",
+      "label": "その他 (省略可)",
+      "params": [
+        "q",
+        "nfn",
+        "nfno",
+        "x",
+        "bufcount"
+      ]
+    },
+    {
+      "name": "system",
+      "label": "システム管理用設定（作業領域・ログ出力）",
+      "params": [
+        "assert_diffSize",
+        "assert_nullkey",
+        "assert_nullin",
+        "tmpPath"
+      ]
+    }
+  ]
 }

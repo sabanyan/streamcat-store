@@ -4,6 +4,7 @@ import copy
 import uuid
 import nysol.mcmd as nm
 import numpy as np
+import fnmatch as fn
 import nysol.util.mtemp as mtemp
 from nysol.util._utillib import mcsvout as mcsvout
 from pathlib import Path
@@ -12,6 +13,82 @@ from kskp.store import NysolModule
 from kskp.core import Command, Port
 
 PCMD_DIR = Path(__file__).resolve().parent
+
+
+class CsvHeader:
+    """
+    class for processing nysol-format wildcard matching (*,?) on data headers
+    Takes header list as argument for constructor
+
+    Essentially a wrapper class for the header row of a CSV file, with added
+    functionality.
+    """
+    def __init__(self,col_list, allow_multimatch = False):
+        """
+        Takes the list of column names.
+        """
+        self._header = col_list
+        self._matched = []
+        self.allow_multimatch = allow_multimatch
+        self._unmatched = copy.copy(self._header)
+
+    @property
+    def header(self):
+        """
+        Returns the unmodified header of the CSV file.
+        """
+        return self._header
+
+    @property
+    def matched(self):
+        """
+        Returns the list of columns that have ALREADY BEEN matched.
+        """
+        return self._matched
+
+    
+    @property
+    def unmatched(self):
+        """
+        Returns the column names in the list that have NOT YET been matched to
+        any patterns.
+
+        Done to ensure that each column only matches to the 
+        first pattern it matches.
+        """
+        return self._unmatched
+    
+    def reset_unmatched(self):
+        """
+        Resets the unmatched list back to the original header.
+        
+        Used in commands where different operations are done on different sets
+        of columns (i.e, groupby2)
+        """
+        self._umatched = self._header
+
+    def match(self, pattern):
+        """
+        Takes a query pattern and matches it to the YET UNMATCHED columns.
+        Returns the list of columns that match the pattern, and updates the 
+        matched and unmatched lists accordingly.
+        """
+        
+        # exclude [] from matching
+        _pat = pattern.translate(str.maketrans({'[':'[[]',
+                                                ']':'[]]'}))
+        
+        _matched = fn.filter(self._header, _pat)
+
+        # update matched and unmatched lists
+        self._matched.extend(_matched)
+        self._unmatched = [col for col in self._unmatched if col not in _matched]
+        
+        if not self.allow_multimatch:
+            pass
+
+        return _matched
+
 
 class PCommand(Command):
     """
@@ -156,17 +233,136 @@ class ColumnUniqueNameCommand(PCommand):
 
 
 class ColumnNameCommand(PCommand):
+
+    commandname = '項目順の変更'
+    errormessages = {
+        
+        # キー列に対するエラー
+        'FieldNotFoundError' : '指定した項目名は存在しません。${fieldinput}',
+    }
+    
     def __init__(self):
         super().__init__()
+        self.i_ports = [Port('i', 'frame')]
+        self.o_ports = [Port('o', 'frame')]
+
+    def expandWildCards(self, to_expand):
+        """
+        takes a comma separated string and parses wildcard expressions within.
+        
+        """
+        import fnmatch as fn
+        expanded = []
+        
+        for elem in to_expand.split(','):
+            pattern = elem.translate(str.maketrans({'[':'[[]', 
+                                                    ']':'[]]'}))
+
+            matched = fn.filter(self.header, pattern)
+            
+            if not matched:
+                # notfound error
+                return {'error': 'FieldNotFoundError',
+                        'unmatched' : pattern}
+            
+            expanded.extend(matched)
+                    
+        
+        return expanded
+
+    def containsAny(self, exp, str):
+        return any(char in exp for char in str)
+
+    def generateCommandErrorMessage(self, *args):
+        # とりあえず、エラー処理機能は特徴量の計算のコマンドの実装を参照する
+        # TODO：　親コマンドレベルに機能の実装を移動する
+        errhandler = GroupBy2Command()
+        errhandler.commandname = self.commandname
+        errhandler.errormessages = self.errormessages
+
+        return errhandler.generateCommandErrorMessage(*args)
 
     def run(self, args, inputs):
-        f = None
-        f <<= inputs['i'].content
+        f = inputs['i'].content
 
-        args_string = (PCMD_DIR / 'src/column_name.sh').as_posix()
-        args_string += self.replace_args(args)
+        self.header = self.get_field_names(inputs['i'])
 
-        return {'o': self.module(f, args_string)}
+        _args = copy.deepcopy(args)
+        
+        _left = _args.get('head')
+        _right = _args.get('tail')
+        
+        if _left:
+            for col in _left.split(','):
+                if self.containsAny(col, ':%&\\'):
+                    err = self.generateCommandErrorMessage('ForbiddenCharacterError',
+                                                           'head', col)
+                    raise Exception(err)
+
+            _left_list = self.expandWildCards(_left)
+            if type(_left_list) == dict:
+                err = self.generateCommandErrorMessage(_left_list['error'], 
+                                                       'head', 
+                                                       _left_list['unmatched'])
+                raise Exception(err)
+
+            if len(_left_list) != len(set(_left_list)):
+                err = self.generateCommandErrorMessage('FieldConflictError',
+                                                        'head', _left)
+                raise Exception(err)
+        else:
+            _left_list = []
+            
+            
+            
+        if _right:
+            for col in _right.split(','):
+                if self.containsAny(col, ':%&\\'):
+                    err = self.generateCommandErrorMessage('ForbiddenCharacterError',
+                                                           'tail', col)
+                    raise Exception(err)
+
+            _right_list = self.expandWildCards(_right)
+            if type(_right_list) == dict:
+                err = self.generateCommandErrorMessage(_right_list['error'], 
+                                                       'tail', 
+                                                       _right_list['unmatched'])
+                raise Exception(err)
+            
+            if len(_right_list) != len(set(_right_list)):
+                err = self.generateCommandErrorMessage('FieldConflictError',
+                                                        'tail', _right)
+                raise Exception(err)
+        else:
+            _right_list = []
+
+        
+        # if overlap, error
+        if _left and _right:
+            for col in _left_list:
+                if col in _right_list:
+                    err = self.generateCommandErrorMessage('FieldConflictError',
+                                                           'head, tail', col)
+                    raise Exception(err)
+        
+        if (not _left) and (not _right):
+            err = self.generateCommanErrorMessage('NoInputError',
+                                                  'head,tail')
+
+
+
+
+        _middle = [col for col in self.header if col not in _left_list + _right_list] 
+
+
+        _final = _left_list + _middle + _right_list
+
+
+        f <<= nm.mcut(f = _final)
+
+        nysol_module_o= NysolModule()
+        nysol_module_o.set_content(f)
+        return {'o': nysol_module_o}
 
 
 class GroupbyCommand(PCommand):
@@ -198,17 +394,137 @@ class GroupbyColumnsCommand(PCommand):
 
 
 class CheckDuplicateRowsCommand(PCommand):
+
+    commandname = '重複行の抽出'
+    errormessages = {
+        '' : '',
+        'FieldNotFoundError' : '指定した項目名は存在しません。${fieldinput}',
+        'ForbiddenCharacterError' : '半角の（ :　%　&　\\ ）は、項目名の指定に使用できません。 ${fieldinput}',
+        'FieldConflictError' : '同じ項目名が複数回指定されています。${fieldinput}',
+        'EmptyFieldNameError' : '空文字列の項目名は指定できません。${fieldinput}',
+        'UnknownError' : '項目名の指定は正しくありません。${fieldinput}'
+    }
+    
     def __init__(self):
         super().__init__()
 
+    def expandWildCards(self, to_expand):
+        """
+        takes a comma separated string and parses wildcard expressions within.
+        
+        """
+        import fnmatch as fn
+        expanded = []
+        
+        for elem in to_expand.split(','):
+            matched = False
+            for col in self.header:
+                if fn.fnmatch(col, elem):
+                    expanded += [col]
+                    matched = True
+                    
+            if not matched:
+                # notfound error
+                return {'error': 'FieldNotFoundError',
+                        'unmatched' : elem}
+        
+        return expanded
+
+    def containsAny(self, exp, str):
+        """
+        check for presence of any char in str from input exp. 
+        Returns True if anything exists
+        """
+        return any(char in exp for char in str)
+
+    def generateCommandErrorMessage(self, *args):
+        # とりあえず、エラー処理機能は特徴量の計算のコマンドの実装を参照する
+        # TODO：　親コマンドレベルに機能の実装を移動する
+        errhandler = GroupBy2Command()
+        errhandler.commandname = self.commandname
+        errhandler.errormessages = self.errormessages
+
+        return errhandler.generateCommandErrorMessage(*args)
+
     def run(self, args, inputs):
-        f = None
-        f <<= inputs['i'].content
 
-        args_string = (PCMD_DIR / 'src/check_duplicate_rows.sh').as_posix()
-        args_string += self.replace_args(args)
+        COLNUM = '__RowNo_BeginWith1__'
+        DUPCOUNT = '__dup_total__'
+        DUPNUM = '__dup_no__'
+        
+        targetcols = args.get('k')
+        
+        # error checks go here:
+        self.header = self.get_field_names(inputs['i'])
+        expanded_list = self.expandWildCards(targetcols)
+        targets_list = []
 
-        return {'o': self.module(f, args_string)}
+        # check if expandWildCards returned a dict (error signature)
+        if type(expanded_list) == dict:
+            err = self.generateCommandErrorMessage(expanded_list['error'], 'k',
+                                                   expanded_list['unmatched'])
+            raise Exception(err)
+            
+        for col in expanded_list:
+            # ForbiddenCharacterError
+            if self.containsAny(col, ':%&\\'):
+                err = self.generateCommandErrorMessage('ForbiddenCharacterError', 'k', col)
+                raise Exception(err)
+            
+            # EmptyFieldNameError
+            if col == '':
+                err = self.generateCommandErrorMessage('EmptyFieldNameError', 'k', col)
+                raise Exception(err)
+            
+            # FieldNotFoundError
+            if col not in self.header:
+                err = self.generateCommandErrorMessage('FieldNotFoundError', 'k', col)
+                raise Exception(err)
+
+            # FieldConflictError
+            if col in targets_list:
+                err = self.generateCommandErrorMessage('FieldConflictError', 'k', targetcols)
+                raise Exception(err)
+            else:
+                targets_list.append(col)
+                
+        
+        cmd_i = None
+        cmd_i <<= inputs['i'].content
+
+        # number each line
+        cmd_i <<= nm.mcal(a = COLNUM, c = 'line()+1')
+        
+        cmd = None
+        cmd <<= nm.mcut(i = cmd_i, f = targetcols)
+        
+        # count dupes
+        cmd <<= nm.mnumber(k = targetcols, s = targetcols, a = DUPCOUNT, S = 1)
+        
+        # select rows with more than one instance
+        cmd <<= nm.msel(c = f'${{{DUPCOUNT}}}>=2')
+        
+        cmd <<= nm.mstats(k = targetcols, f = DUPCOUNT, c = 'max')
+        
+
+        cmd_o = None
+        cmd_o <<= nm.mnjoin(i = cmd_i, m = cmd, k = targetcols)
+        cmd_o <<= nm.mnumber(k = targetcols, s = targetcols, a = DUPNUM, S = 1)
+
+        cmd_o <<= nm.mfldname(q = True)
+        
+        # pass output
+        nysol_module_o = NysolModule()
+        nysol_module_o.set_content(cmd_o)
+        return {'o': nysol_module_o}
+        
+        # f = None
+        # f <<= inputs['i'].content
+
+        # args_string = (PCMD_DIR / 'src/check_duplicate_rows.sh').as_posix()
+        # args_string += self.replace_args(args)
+
+        # return {'o': self.module(f, args_string)}
 
 
 class MergeFSCommand(PCommand):
@@ -343,6 +659,86 @@ class RunfuncCommand(Command):
 
 
 class GroupBy2Command(PCommand):
+
+    # クラス変数
+    commandname = '特徴量の計算' # 将来、コマンド名はCmdJSONから取得（？）
+    errormessages = {
+        'FieldNotFoundError' : '指定した項目名は存在しません。${fieldinput}',
+
+        # キー項目指定に関わるエラー
+        'KeyFieldForbiddenCharacterError' : '半角の%と&は、キー項目名に使用できません。 ${fieldinput} ',
+        'KeyFieldConflictError' : 'キー項目名が重複しています。${fieldinput}',
+        'EmptyKeyFieldError' : '空文字列でキー項目名が指定されています。${fieldinput}',
+        'KeyTargetConflictError' : 'キー項目名と計算対項目名が重複しています。計算対象項目には、キー項目を指定できません。${fieldinput}',
+        'UnknownKeyFieldError' : 'キー項目の指定は正しくありません。${fieldinput}',
+        
+        # 時間軸に関わるエラー
+        'TimecolForbiddenCharacterError' : '半角の（ *　?　[　]　,　:　\\　&　％ ）は、時間軸の項目の指定に使用できません。${fieldinput}',
+        'EmptyTimecolFieldError' : '空文字列で時間軸の項目名が指定されています。${fieldinput}',
+        'UnknownTimecolFieldError' : 'キー項目の指定は正しくありません。${fieldinput}',
+
+        # 項目名指定に関わるエラー
+        'TargetFieldForbiddenCharacterError':'半角の%と&は、項目名に使用できません。 ${fieldinput} ',
+        'TargetFieldConflictError' : '項目名が重複しています。 ${fieldinput}',
+        'EmptyTargetFieldError' : '空文字列で項目名が指定されています。 ${fieldinput}',
+        'MultipleRowsTargetError' : '複数の項目名は指定できません。 ${fieldinput}',
+        'UnknownTargetFieldError' : '項目名の指定が正しくありません。${fieldinput}',
+        
+        # 結果列指定に関わるエラー
+        'ResultsColForbiddenCharacterError' : '半角の（ *　?　[　]　,　:　\\ \' \"）は、項目名に使用できません。${fieldinput}',
+        'ResultsColConflictError' : '出力項目名が重複しています。%指定、&指定、ワイルドカード指定など、重複する出力項目名となる設定がないかを、確認してください。${fieldinput}',
+        'UnknownResultsColError' : '名前付けルールの設定の指定が正しくありません。${fieldinput}',
+        
+        # 統計量指定に関わるエラー
+        'CalcNotFoundError' : '指定は、有効な統計量指定子ではありません。${fieldinput}',
+        # 'CalcNotFoundError' : '＜その値＞は、有効な統計量指定子ではありません。${fieldinput}',
+        'CalcConflictError' : '統計量が重複しています。${fieldinput}',
+        'EmptyCalcNewNameError' : ':指定で、別名が指定されましたが、別名が空文字列です。${fieldinput}',
+        'EmptyCalcError' : '空文字列で統計量が指定されています。${fieldinput}',
+        'MultipleParamCalcError' : 'パラメータ有りの統計量では、複数の統計量は指定できません。${fieldinput}',
+        'UnknownCalcError' : '統計量の指定が正しくありません。${fieldinput}',
+        
+        # パラメータ指定に関わるエラー
+        'ParameterConflictError' : 'パラメータが重複しています。${fieldinput}',
+        'ParameterTypeError'  : '${calc} のパラメータへの ${fieldinput} 指定が正しくありません。${correct_type} を指定してください',
+        'ParameterOutOfBoundsError' : '${calc} のパラメータへの ${fieldinput} 指定が正しくありません。 ${correct_value} で指定してください',
+        'ParameterFormatError' : '${calc} のパラメータへの ${fieldinput} 指定が正しくありません。${correct_format}で指定してください',
+        'UnknownParameterError' : '${calc} のパラメータへの ${fieldinput} 指定が正しくありません'
+        }
+
+    # このdictは、パラメータの情報が入ってる
+    # {
+    # '統計量キー' : { 'correct_type' : パラメータの正しいデータ型,
+    #                'correct_value' : パラメータの正しい範囲,
+    #                'correct_format' : パラメータの正しい書き方が（ある場合）
+    #               }
+    # }
+    param_info = {
+        'value_count' : {'correct_type' : '全ての文字列',
+                            'correct_value' : '数値か文字列'},
+        'sym_looking' : {'correct_type' : '数値', 
+                            'correct_value' : '正の数値'},
+        'large_sd' : {'correct_type' : '数値', 
+                        'correct_value' : '正の数値'},
+        'ratio_beyond_rsigma' : {'correct_type' : '数値', 
+                                    'correct_value' : '正の数値'},
+        'binned_entropy' : {'correct_type' : '数値', 
+                            'correct_value' : '２以上の整数'},
+        'quantile' : {'correct_type' : '数値', 
+                        'correct_value' : '０−１の数値'},
+        'range_count' : {'correct_type' : '数値;数値', 
+                            'correct_value' : '全ての数値', 
+                            'correct_format' : '開始＜終了の;区切り'},
+        'autocorr' : {'correct_type' : '数値', 
+                        'correct_value' : '１以上の整数' },
+        'crossing_m' : {'correct_type' : '数値', 
+                        'correct_value' : '全ての数値'},
+        'peaks' : {'correct_type' : '数値', 
+                    'correct_value' : '１以上の整数'},
+        'imq' : {'correct_type' : '数値', 
+                    'correct_value' : '０−１の数値'}
+    }
+
     def __init__(self):
         super().__init__()
         self.i_ports = [Port('i', 'frame')]
@@ -354,96 +750,16 @@ class GroupBy2Command(PCommand):
         '''
         from string import Template
 
-        commandname = '特徴量の計算' # 将来、コマンド名はCmdJSONから取得（？）
-
-        errormessages = {
-            'FieldNotFoundError' : '指定した項目名は存在しません。${fieldinput}',
-
-            # キー項目指定に関わるエラー
-            'KeyFieldForbiddenCharacterError' : '半角の%と&は、キー項目名に使用できません。 ${fieldinput} ',
-            'KeyFieldConflictError' : 'キー項目名が重複しています。${fieldinput}',
-            'EmptyKeyFieldError' : '空文字列でキー項目名が指定されています。${fieldinput}',
-            'KeyTargetConflictError' : 'キー項目名と計算対項目名が重複しています。計算対象項目には、キー項目を指定できません。${fieldinput}',
-            'UnknownKeyFieldError' : 'キー項目の指定は正しくありません。${fieldinput}',
-            
-            # 時間軸に関わるエラー
-            'TimecolForbiddenCharacterError' : '半角の（ *　?　[　]　,　:　\\　&　％ ）は、時間軸の項目の指定に使用できません。${fieldinput}',
-            'EmptyTimecolFieldError' : '空文字列で時間軸の項目名が指定されています。${fieldinput}',
-            'UnknownTimecolFieldError' : 'キー項目の指定は正しくありません。${fieldinput}',
-
-            # 項目名指定に関わるエラー
-            'TargetFieldForbiddenCharacterError':'半角の%と&は、項目名に使用できません。 ${fieldinput} ',
-            'TargetFieldConflictError' : '項目名が重複しています。 ${fieldinput}',
-            'EmptyTargetFieldError' : '空文字列で項目名が指定されています。 ${fieldinput}',
-            'MultipleRowsTargetError' : '複数の項目名は指定できません。 ${fieldinput}',
-            'UnknownTargetFieldError' : '項目名の指定が正しくありません。${fieldinput}',
-            
-            # 結果列指定に関わるエラー
-            'ResultsColForbiddenCharacterError' : '半角の（ *　?　[　]　,　:　\\ \' \"）は、項目名に使用できません。${fieldinput}',
-            'ResultsColConflictError' : '出力項目名が重複しています。%指定、&指定、ワイルドカード指定など、重複する出力項目名となる設定がないかを、確認してください。${fieldinput}',
-            'UnknownResultsColError' : '名前付けルールの設定の指定が正しくありません。${fieldinput}',
-            
-            # 統計量指定に関わるエラー
-            'CalcNotFoundError' : '指定は、有効な統計量指定子ではありません。${fieldinput}',
-            # 'CalcNotFoundError' : '＜その値＞は、有効な統計量指定子ではありません。${fieldinput}',
-            'CalcConflictError' : '統計量が重複しています。${fieldinput}',
-            'EmptyCalcNewNameError' : ':指定で、別名が指定されましたが、別名が空文字列です。${fieldinput}',
-            'EmptyCalcError' : '空文字列で統計量が指定されています。${fieldinput}',
-            'MultipleParamCalcError' : 'パラメータ有りの統計量では、複数の統計量は指定できません。${fieldinput}',
-            'UnknownCalcError' : '統計量の指定が正しくありません。${fieldinput}',
-            
-            # パラメータ指定に関わるエラー
-            'ParameterConflictError' : 'パラメータが重複しています。${fieldinput}',
-            'ParameterTypeError'  : '${calc} のパラメータへの ${fieldinput} 指定が正しくありません。${correct_type} を指定してください',
-            'ParameterOutOfBoundsError' : '${calc} のパラメータへの ${fieldinput} 指定が正しくありません。 ${correct_value} で指定してください',
-            'ParameterFormatError' : '${calc} のパラメータへの ${fieldinput} 指定が正しくありません。${correct_format}で指定してください',
-            'UnknownParameterError' : '${calc} のパラメータへの ${fieldinput} 指定が正しくありません'
-        }
-
-        # このdictは、パラメータの情報が入ってる
-        # {
-        # '統計量キー' : { 'correct_type' : パラメータの正しいデータ型,
-        #                'correct_value' : パラメータの正しい範囲,
-        #                'correct_format' : パラメータの正しい書き方が（ある場合）
-        #               }
-        # }
-
-        param_info = {
-            'value_count' : {'correct_type' : '全ての文字列',
-                             'correct_value' : '数値か文字列'},
-            'sym_looking' : {'correct_type' : '数値', 
-                             'correct_value' : '正の数値'},
-            'large_sd' : {'correct_type' : '数値', 
-                          'correct_value' : '正の数値'},
-            'ratio_beyond_rsigma' : {'correct_type' : '数値', 
-                                     'correct_value' : '正の数値'},
-            'binned_entropy' : {'correct_type' : '数値', 
-                                'correct_value' : '２以上の整数'},
-            'quantile' : {'correct_type' : '数値', 
-                          'correct_value' : '０−１の数値'},
-            'range_count' : {'correct_type' : '数値;数値', 
-                             'correct_value' : '全ての数値', 
-                             'correct_format' : '開始＜終了の;区切り'},
-            'autocorr' : {'correct_type' : '数値', 
-                          'correct_value' : '１以上の整数' },
-            'crossing_m' : {'correct_type' : '数値', 
-                            'correct_value' : '全ての数値'},
-            'peaks' : {'correct_type' : '数値', 
-                       'correct_value' : '１以上の整数'},
-            'imq' : {'correct_type' : '数値', 
-                     'correct_value' : '０−１の数値'}
-        }
-
         if param_calc != '':
             # パラメータに関わるエラーの場合、パラメータの情報もエラーメッセージに含む
-            template_strings = {'fieldinput' : errinput, 'calc' : param_calc, **param_info[param_calc]}
+            template_strings = {'fieldinput' : errinput, 'calc' : param_calc, **self.param_info[param_calc]}
         else:
             template_strings = {'fieldinput' : errinput}
 
 
-        message = Template(errormessages[errcode]).safe_substitute(template_strings)
+        message = Template(self.errormessages[errcode]).safe_substitute(template_strings)
 
-        return f'【コマンド：{commandname}】【オプション欄：{errfield}】{message}'
+        return f'【コマンド：{self.commandname}】【オプション欄：{errfield}】{message}'
 
     def expandWildCards(self, to_expand):
         """
@@ -2999,7 +3315,7 @@ class GroupBy2Command(PCommand):
                                 raise Exception(errmsg)
                         
                     # expand wildcard
-                    fs = self.expandWildCards(arglist['f'])
+                    fs = self.expandWildCards(fs)
                     
                     if type(fs) == str:
                         errmsg = self.generateCommandErrorMessage('FieldNotFoundError', 'f', arglist['f'])
@@ -3009,6 +3325,10 @@ class GroupBy2Command(PCommand):
                     arglist['f'] = ','.join(fs)
 
                 cs = arglist.pop('c').split(',')
+                
+                if '' in cs:
+                    errmsg = self.generateCommandErrorMessage('EmptyCalcError', 'c', ','.join(cs))
+                    raise Exception(errmsg)
                 
                 if len(cs) > len(set(cs)):
                     errmsg = self.generateCommandErrorMessage('CalcConflictError', 'c', ','.join(cs))
@@ -3139,13 +3459,18 @@ class GroupBy2Command(PCommand):
                     calcname = calcdict['c'].split(':')[1]
                 else:
                     calcname = calcdict['c']
-                
+                    
+                if calcdict.get('x'):
+                    fldname = calcdict['f'] + '_' + calcdict['x'] 
+                else:
+                    fldname = calcdict['f']
+                    
                 # if calc has parameter, append to end
                 if calcdict.get('n'):
                     # set string for calcname (& substitution)
                     calcname += f'_{calcdict["n"]}'
                     
-                finalname = formatstring.replace('%', calcname).replace('&', calcdict['f'])
+                finalname = formatstring.replace('%', calcname).replace('&', fldname)
                 resultcols.append(finalname)
                 
             elif optype == 'aggregate':
@@ -3155,12 +3480,17 @@ class GroupBy2Command(PCommand):
                     else:
                         calcname = c_opt
 
+                    if calcdict.get('x'):
+                        fldname = calcdict['f'] + '_' + calcdict['x'] 
+                    else:
+                        fldname = calcdict['f']
+
                     # if calc has parameter, append to end
                     if calcdict.get('n'):
                         # set string for calcname (& substitution)
                         calcname += f'_{calcdict["n"]}'
                         
-                    finalname = formatstring.replace('%', calcname).replace('&', calcdict['f'])
+                    finalname = formatstring.replace('%', calcname).replace('&', fldname)
                     resultcols.append(finalname)
 
         
@@ -3303,6 +3633,14 @@ class GroupBy2Command(PCommand):
 
             cmd[i] <<= nm.m2cross(k = expanded_k, f= final_cs, 
                     a = '__type__,__val__')
+            
+            if calcdict.get('x'):
+                #add timecol to fld
+                x = calcdict['x']
+                cmd[i] <<= nm.mcal(a = 'fldname', c = f'$s{{fld}}+"_{x}"')
+                cmd[i] <<= nm.mcut(f = 'fld', r = True)
+                cmd[i] <<= nm.mfldname(f = 'fldname:fld')
+                
 
         
         # cmd_o <<= nm.m2cat(i = cmd)
@@ -3622,10 +3960,72 @@ class MvStatsCommand(PCommand):
 
 
 class MvSimCommand(PCommand):
+    
+    commandname = '複数の移動窓の類似度の計算'
+    errormessages = {
+        
+        # キー列に対するエラー
+        'KeyConflictError' : '項目名が重複しています。${fieldinput}',
+        'KeyNumberConflictError' : '項目番号が重複しています。${fieldinput}',
+        'KeyNumberSettingError' : 'キー項目番号の指定は正しくありません。${fieldinput}',
+        'KeyFieldNotFoundError' : '指定した項目名は存在しません。${fieldinput}',
+        'KeyFieldNumberNotFoundError' : '指定した項目番号は存在しません。${fieldinput}',
+        'EmptyKeyFieldError' : '空文字列でキー項目名が指定されています。${fieldinput}',
+        'KeyFieldForbiddenCharacterError' : '半角の（ :　\　&　％　＃ ）は、キー項目の指定に使用できません。${fieldinput}',
+        
+        # ソート設定に対するエラー
+        'SortFieldConflictError' : '項目名が重複しています。${fieldinput}',
+        'SortFieldNumberConflictError' : '項目番号が重複しています。${fieldinput}',
+        'SortFieldNumberSettingError' : 'ソート項目番号の指定は正しくありません。${fieldinput}',
+        'SortFieldNotFoundError' : '指定した項目名は存在しません。${fieldinput}',
+        'SortFieldNumberNotFoundError' : '指定した項目番号は存在しません。${fieldinput}',
+        'SortFieldForbiddenCharacterError': '半角の（ :　\　&　＃ ）は、ソートの項目名の指定に使用できません。${fieldinput}',
+        'EmptySortFieldError' : '空文字列でソートが指定されています。${fieldinput}',
+        'SortFieldOrderError' : 'ソート順の指定は正しくありません。指定可能なのは、（%n、%r、%nr）です。${fieldinput}',
+        
+        # 結果列名設定に対するエラー
+        'EmptyResultsColNameError' : '空文字列で結果項目名が指定されてます。${fieldinput}',
+        'ResultsColNameForbiddenCharacterError': '半角の（ :　\　,　*　?　[　] ）は、結果項目名の指定に使用できません。${fieldinput}',
+        
+        # 計算対象列に対するエラー
+        'Target1FieldNotFoundError' : '指定した項目名は存在しません。${fieldinput}',
+        'Target1FieldNumberNotFoundError' : '指定した項目番号は存在しません。${fieldinput}',
+        'Target1MultipleFieldError' : '１つ目の計算対象項目指定で、複数の項目名を指定できません。${fieldinput}',
+        'Target1MultipleFieldNumberError' : '１つ目の計算対象項目指定で、複数の項目番号を指定できません。${fieldinput}',
+        'Target1ForbiddenCharacterError' : '半角の（ :　\　&　％　＃ ）は、計算対象項目の指定に使用できません。${fieldinput}',
+        'Target1FieldNumberSettingError' : '計算対象項目番号の指定は正しくありません。${fieldinput}',
+        'Target1EmptyError' : '空文字列で計算対象項目が指定されています。${fieldinput}',
+        
+        'Target2ConflictError' : '項目名が重複しています。${fieldinput}',
+        'Target2FieldNotFoundError' : '指定した項目名は存在しません。${fieldinput}',
+        'Target2FieldNumberNotFoundError' : '指定した項目番号は存在しません。${fieldinput}',
+        'Target2FieldNumberSettingError' : '計算対象項目番号の指定は正しくありません。${fieldinput}',
+        'Target2ForbiddenCharacterError' : '半角の（ :　\　&　％　＃ ）は、計算対象項目の指定に使用できません。${fieldinput}',
+        'Target2EmptyError' : '空文字列で計算対象項目が指定されています。${fieldinput}',
+        
+        # 類似度指定に対するエラー
+        'SimConflictError': '類似度が重複しています。${fieldinput}',
+        'SimNotFoundError' : '${fieldinput} は、有効な類似度指定子ではありません。',
+        'SimEmptyError' : '空文字列で類似度が指定されています。${fieldinput}',
+        
+        # 期間数指定に対するエラー
+        'WindowSizeConflictError' : '対象行数が重複しています。${fieldinput}',
+        'WindowSizeFormatError' : '対象行数への ${fieldinput} 指定が正しくありません。２以上の整数を指定してください',
+        'WindowSizeValueError' : '対象行数への ${fieldinput} 指定が正しくありません。２以上の整数で指定してください',
+        'WindowSizeEmptyError' : '空文字列で対象行数が指定されています。${fieldinput}',
+
+        # 結果列重複エラー
+        'ResultsColConflictError' : '出力項目名が重複しています。%指定、&指定、#指定、ワイルドカード指定など、重複する出力項目名となる設定がないかを、確認してください。${fieldinput}',
+        
+        
+        'TestError' : 'This is a test'
+    }
+    
     def __init__(self):
         super().__init__()
         self.i_ports = [Port('i', 'frame')]
         self.o_ports = [Port('o', 'frame')]
+        
 
     def parse(self, exp):
         if '-' in exp:
@@ -3639,58 +4039,334 @@ class MvSimCommand(PCommand):
         else:
             return int(exp)
 
+    def numberExpIsValid(self, exp):
+        allowed = set('0123456789-L')
+        return set(exp) <= allowed
+    
+    def numberExpOutOfRange(self, exp):
+        keynums = exp.strip('L').split('-')
+        for num in keynums:
+            if int(num) > len(self.header):
+                return True
+        
+        return False
+
+    def containsAny(self, exp, str):
+        return any(char in exp for char in str)
+
+    def generateCommandErrorMessage(self, *args):
+        # とりあえず、エラー処理機能は特徴量の計算のコマンドの実装を参照する
+        # TODO：　親コマンドレベルに機能の実装を移動する
+        errhandler = GroupBy2Command()
+        errhandler.commandname = self.commandname
+        errhandler.errormessages = self.errormessages
+
+        return errhandler.generateCommandErrorMessage(*args)
 
     def run(self, args, inputs):
         import fnmatch as fn
         _args = copy.deepcopy(args)
+
         
         cmd_o = None
         cmd_o <<= inputs['i'].content
-            
-        # sorting parameters
-        if 's' not in _args or (_args['s'] == ''):
-            _args['q'] = True
 
         # ヘッダ行を取得する
         self.header = self.get_field_names(inputs['i'])
 
-        xoption = _args.pop('x') if 'x' in _args else False
+        xoption = _args.get('x')
+
+        # 共通オプションの処理・エラー処理
+        # 集計キー指定
+        
+        # if key setting is not empty
+        k = _args.get('k')
+        if k:
+            k_list = k.split(',')
+            
+            if xoption:
+                for key in k_list:
+                    if not self.numberExpIsValid(key):
+                        errmsg = self.generateCommandErrorMessage('KeyNumberSettingError', 'k', key)
+                        raise Exception(errmsg)
+                    
+                    if key == '':
+                        errmsg = self.generateCommandErrorMessage('EmptyKeyFieldError', 'k', key)
+                        raise Exception(errmsg)
+
+                    if self.numberExpOutOfRange(key):
+                        errmsg = self.generateCommandErrorMessage('KeyFieldNumberNotFoundError', 'k', key)
+                        raise Exception(errmsg)
+                    
+                if len(k_list) != len(set(k_list)):
+                    errmsg = self.generateCommandErrorMessage('KeyNumberConflictError', 'k', k)
+                    raise Exception(errmsg)
+                
+            else:
+                if len(k_list) != len(set(k_list)):
+                    errmsg = self.generateCommandErrorMessage('KeyConflictError', 'k', k)
+                    raise Exception(errmsg)
+                
+                for key in k_list:
+                    # forbidden characters
+                    if self.containsAny(key, ':\\%&#'):
+                        errmsg = self.generateCommandErrorMessage('KeyFieldForbiddenCharacterError', 'k', key)
+                        raise Exception(errmsg)
+                    
+                    if key == '':
+                        errmsg = self.generateCommandErrorMessage('EmptyKeyFieldError', 'k', key)
+                        raise Exception(errmsg)
+                        
+                    if key not in self.header:
+                        errmsg = self.generateCommandErrorMessage('KeyFieldNotFoundError', 'k', key)
+                        raise Exception(errmsg)
+        
+        
+        # ソートする列指定
+        # if no sort column setting, set q flag (no sort) to true 
+        if 's' not in _args or (_args['s'] == ''):
+            _args['q'] = True
+        else:
+            s_opt = _args['s']
+            
+            s_list = []
+            s_columns = []
+            
+            # separate column and sort order input
+            for elem in s_opt.split(','):
+                parts = elem.split('%')
+                
+                s_columns.append(parts[0])
+                
+                if parts[0] == '':
+                    errmsg = self.generateCommandErrorMessage('EmptySortFieldError', 's', s_opt)
+                    raise Exception(errmsg)
+
+                if xoption:
+                    if not self.numberExpIsValid(parts[0]):
+                        errmsg = self.generateCommandErrorMessage('SortFieldNumberSettingError', 's', s_opt)
+                        raise Exception(errmsg)
+                    
+                    if self.numberExpOutOfRange(parts[0]):
+                        errmsg = self.generateCommandErrorMessage('SortFieldNumberNotFoundError', 's', s_opt)
+                        raise Exception(errmsg)
+                else:
+                    if self.containsAny(parts[0], ':\\&#'):
+                        errmsg = self.generateCommandErrorMessage('SortFieldForbiddenCharacterError', 's', s_opt)
+                        raise Exception(errmsg)
+                        
+                    if parts[0] not in self.header:
+                        errmsg = self.generateCommandErrorMessage('SortFieldNotFoundError', 's', s_opt)
+                        raise Exception(errmsg)
+                
+                if len(parts) > 1:
+                    if parts[1] not in ['', 'n', 'r', 'nr']:
+                        errmsg = self.generateCommandErrorMessage('SortFieldOrderError', 's', s_opt)
+                        raise Exception(errmsg)
+                    
+                
+
+                if len(parts) == 2:
+                    # there is both column and sort order
+                    s_list.append(parts)
+                elif len(parts) == 1:
+                    # there is only column
+                    s_list.append(parts + [''])
+                else:
+                    pass # format error
+            
+            # check for duplicates
+            if len(s_columns) != len(set(s_columns)):
+                if xoption:
+                    errmsg = self.generateCommandErrorMessage('SortFieldConflictError', 's', s_opt)
+                else:
+                    errmsg = self.generateCommandErrorMessage('SortFieldNumberConflictError', 's', s_opt)
+                raise Exception(errmsg)
+                
+
+            # s_list is now a list of lists containing the column and sort order
+            # user inputs:
+            # s_list = [['col1', 'n'], ['col2', ''], ...]
+            
+            _args['s'] = ['%'.join(elem) for elem in s_list]
+            # _args['s'] = ['col1%n', 'col2', ...]
+            
 
         # f is a wildcard/number expression
         # a is a colname that may have & in it
         # c specifies the statistic to be taken 
         factlist = []
-        for arglist in _args.pop('factlist'):
-            fs = arglist.pop('f').split(',')
-            aexp = arglist.pop('a')
-            ops = arglist.pop('c').split(',')
-            ts = arglist.pop('t').split(',')
-
+        final_cols = []
+        
+        # errmsg = self.generateCommandErrorMessage('TestError', 'x')
+        # raise Exception(errmsg)
+        
+        try:
+            output_rule = _args.pop('a')
+            
+            if self.containsAny(output_rule, ':\\,*?[]'):
+                errmsg = self.generateCommandErrorMessage('ResultsColNameForbiddenCharacterError', 'a', output_rule)
+                raise Exception(errmsg)
+                
+        except KeyError:
+            errmsg = self.generateCommandErrorMessage('EmptyResultsColNameError', 'a')
+            raise Exception(errmsg)
+        
+        
+        for arglist in _args.pop('fctlist'):
+            f1 = arglist.get('f1')
+            
+            if not f1:
+                errmsg = self.generateCommandErrorMessage('Target1EmptyError', 'f1', f1)
+                raise Exception(errmsg)
+                
+            if xoption:
+                if 'L' in f1:
+                    f1_loc = len(self.header) - int(f1.strip('L')) - 1
+                elif self.containsAny(f1, '-,'):
+                    errmsg = self.generateCommandErrorMessage('Target1MultipleFieldNumberError', 'f1', f1)
+                    raise Exception(errmsg)
+                else:
+                    if self.numberExpIsValid(f1):
+                        f1_loc = int(f1)
+                    else:
+                        errmsg = self.generateCommandErrorMessage('Target1FieldNumberSettingError', 'f1', f1)
+                        raise Exception(errmsg)
+                    
+                try:
+                    f1_name = self.header[f1_loc]
+                except IndexError:
+                    errmsg = self.generateCommandErrorMessage('Target1FieldNumberNotFoundError', 'f1', f1)
+                    raise Exception(errmsg)                
+            else: 
+                if self.containsAny(f1, ',?*[]'):
+                    errmsg = self.generateCommandErrorMessage('Target1MultipleFieldError', 'f1', f1)
+                    raise Exception(errmsg)
+                    
+                if self.containsAny(f1, ':\\&%#'):
+                    errmsg = self.generateCommandErrorMessage('Target1ForbiddenCharacterError', 'f1', f1)
+                    raise Exception(errmsg)
+                
+                if f1 not in self.header:
+                    errmsg = self.generateCommandErrorMessage('Target1FieldNotFoundError', 'f1', f1)
+                    raise Exception(errmsg)
+                
+                
+                f1_name = f1
+            
+            f2s = arglist.get('f2')
+            f2_list = f2s.split(',')
+            
+            if '' in f2_list:
+                errmsg = self.generateCommandErrorMessage('Target2EmptyError', 'f2', f2s)
+                raise Exception(errmsg)
+            
+            if self.containsAny(f2s, ':\\&%#'):
+                errmsg = self.generateCommandErrorMessage('Target2ForbiddenCharacterError', 'f2', f2s)
+                raise Exception(errmsg)
+            
+            if len(f2_list) != len(set(f2_list)):
+                errmsg = self.generateCommandErrorMessage('Target2ConflictError', 'f2', f2s)
+                raise Exception(errmsg)
+            
             if xoption:
                 # parse number expression
                 targets = []
-                for f in fs:
+                for f in f2_list:
+                    if not self.numberExpIsValid(f):
+                        errmsg = self.generateCommandErrorMessage('Target2FieldNumberSettingError', 'f2', f)
+                        raise Exception(errmsg)
+                        
                     f = self.parse(f)
                     targets += list(f) if type(f) is range else [f]
 
-                colnames = [self.header[num] for num in targets]
+                try:
+                    f2cols = [(num,self.header[num]) for num in targets]
+                except IndexError:
+                    errmsg = self.generateCommandErrorMessage('Target2FieldNumberNotFoundError', 'f2', f2s)
+                    raise Exception(errmsg)
 
             else:
-                # parse wildcard, list expression
-                colnames = [a for a in self.header for f in fs 
-                    if fn.fnmatch(a, f)]
+                f2cols = []
                 
-            for op in ops:
-                for t in ts:
-                    factlist.append({'f': ','.join(colnames), 
-                        'a': aexp.replace('#',t).replace('%',op), 
-                        'c': op,
-                        't': t})
+                for elem in f2_list:
+                    matched = False
+                    for col in self.header:
+                        if fn.fnmatch(col, elem):
+                            f2cols.append((col, col))
+                            matched = True
+                            
+                    if not matched:
+                        errmsg = self.generateCommandErrorMessage('Target2FieldNotFoundError', 'f2', elem)
+                        raise Exception(errmsg)
+                
+                
+            ops = arglist.get('c')
+            op_list = ops.split(',')
+            
+            allowed_ops = ['covar', 'ucovar', 'pearson', 'spearman', 'kendall', 
+                           'euclid', 'cosine', 'cityblock', 'hamming', 'chi', 
+                           'phi', 'jaccard', 'support', 'lift']
+            
+            if '' in op_list:
+                errmsg = self.generateCommandErrorMessage('SimEmptyError', 'c', ops)
+                raise Exception(errmsg)
+                
+            for op in op_list:
+                if op not in allowed_ops:
+                    errmsg = self.generateCommandErrorMessage('SimNotFoundError', 'c', op)
+                    raise Exception(errmsg)
+            
+            if len(op_list) != len(set(op_list)):
+                errmsg = self.generateCommandErrorMessage('SimConflictError', 'c', ops)
+                raise Exception(errmsg)
+            
+                
+            
+            ts = arglist.pop('t')
+            ts_list = ts.split(',')
+            
+            if '' in ts_list:
+                errmsg = self.generateCommandErrorMessage('WindowSizeEmptyError', 't', ts)
+                raise Exception(errmsg)
+            
+            if len(ts_list) != len(set(ts_list)):
+                errmsg = self.generateCommandErrorMessage('WindowSizeConflictError', 't', ts)
+                raise Exception(errmsg)
+            
+            for t in ts_list:
+                
+                try:
+                    _t = float(t)
+                    
+                    if (not _t.is_integer()) or (_t < 2):
+                        errmsg = self.generateCommandErrorMessage('WindowSizeValueError', 't', t)
+                        raise Exception(errmsg)
+                    
+                except ValueError:
+                    errmsg = self.generateCommandErrorMessage('WindowSizeFormatError', 't', t)
+                    raise Exception(errmsg)
+                
+                
+            for op in op_list:
+                for t in ts_list:
+                    for f2col in f2cols:
+                        final_colname = output_rule.replace('&', f'{f1_name}_{f2col[1]}').replace('#',t).replace('%',op)
+                        final_cols.append(final_colname)
+                        
+                        factlist.append({'f': f'{f1},{f2col[0]}', 
+                            'a': final_colname, 
+                            'c': op,
+                            't': t})
 
+
+        if len(final_cols) != len(set(final_cols)):
+            errmsg = self.generateCommandErrorMessage('ResultsColConflictError', 'a, c, f1, f2, t')
+            raise Exception(errmsg)
 
         # factlist is now a list of dictionaries of the fact options:
-        # [{'f': 'f1', 'a': 'a1', 'c': 'c1', 't':, 't1'},
-        #  {'f': 'f2', 'a': 'a2', 'c': 'c2', 't':, 't2'},
+        # [{'f': 'f1,f2', 'a': 'a1', 'c': 'c1', 't':, 't1'},
+        #  {'f': 'f3,f4', 'a': 'a2', 'c': 'c2', 't':, 't2'},
         #  ...]
         for factdict in factlist:
             # arg = args.copy()

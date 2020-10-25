@@ -4,57 +4,60 @@
     {
       "name": "s",
       "type": "string",
-      "label": "ソート対象列名"
+      "label": "グループ内ソートの設定 (必須)",
+      "description": "・ソートのキー項目を、カンマ区切りで複数指定可\n・ソートの種類は変更可能　(デフォルト: 文字列昇順)\n 　方法: 項目名末尾に記号を付与 (数値昇順：%n,  文字列降順： %r,  数値降順：%nr)\n・注意 グループ化する項目名と同じ項目名があると、不整合になり、ソートされません"
     },
     {
       "name": "from",
       "type": "string",
-      "label": "選択する開始行番号",
+      "label": "開始行番号(必須)",
       "optional": true,
-      "default": 0
+      "default": "0"
     },
     {
       "name": "to",
       "type": "string",
-      "label": "選択する終了行番号",
-      "optional": true,
-      "default": 0
+      "label": "終了行番号",
+      "optional": true
     },
     {
       "name": "size",
       "type": "string",
-      "label": "選択する行数",
+      "label": "開始行からの行数",
       "optional": true,
-      "default": 1
+      "default": "1"
     },
     {
       "name": "k",
       "type": "string",
-      "label": "指定列が同じ値の行ごとにfrom=,to=,sizeで指定した行番号の行を選択",
-      "optional": true
+      "label": "グループ化する項目名 (省略可)",
+      "optional": true,
+      "description": "・カンマ区切りで複数指定可\n・省略時は全ての行を1つのグループとみなして処理する"
     },
     {
       "name": "r",
       "type": "boolean",
-      "label": "from=,to=(size=) パラメータで指定した行番号以外の行を選択する",
+      "label": "条件にマッチした行を、 o ではなく、 uに出力する",
       "optional": true
     },
     {
       "name": "R",
       "type": "string",
-      "label": "行番号範囲リスト (複数項目指定可)",
-      "optional": true
+      "label": "行番号リスト",
+      "optional": true,
+      "description": "・カンマ区切りで複数指定可\n・範囲指定も可能\n   方法: 開始と終了の行番号を _ 区切りで指定する"
     },
     {
       "name": "assert_diffSize",
       "type": "boolean",
-      "label": "入力、出力件数比較を行う",
-      "optional": true
+      "label": "入力、出力件数比較結果をログに出す",
+      "optional": true,
+      "description": "ログにWarningが表示される"
     },
     {
       "name": "assert_nullkey",
       "type": "boolean",
-      "label": "キー項目に NULL 値が含まれているかどうかのチェックを行う",
+      "label": "グループ項目にNULL 値が含まれている場合はログに出す",
       "optional": true
     },
     {
@@ -72,14 +75,16 @@
     {
       "name": "x",
       "type": "boolean",
-      "label": "項目番号による指定",
-      "optional": true
+      "label": "項目名ではなく、項目番号で指定する",
+      "optional": true,
+      "description": "・0始まりの項目番号で指定する\n・Lをつけると、右端起点の項目番号とみなす(例:3L)\n・複数入力可能なOptの場合は、列範囲としての指定も可能(例: 0-5)"
     },
     {
       "name": "q",
       "type": "boolean",
       "label": "自動並べ替えの無効化",
-      "optional": true
+      "optional": true,
+      "description": "入力データがグループ単位でソート済みの場合、指定すると処理速度が向上"
     },
     {
       "name": "tmpPath",
@@ -110,5 +115,73 @@
   "label": "指定行の選択",
   "classification": "row_edit",
   "description": "ランキングによる抽出を行う",
-  "url": "./static/pdf/mcmd/row_edit/mbest.pdf"
+  "url": "./static/pdf/mcmd/row_edit/mbest.pdf",
+  "groups": [
+    {
+      "name": "abstract",
+      "label": "指定行の選択",
+      "description": "・ソートした結果の順番で行を選択する\n・選択した行は o　に、それ以外は u　に出力される",
+      "params": []
+    },
+    {
+      "name": "grouping",
+      "label": "グループの設定　(必須)",
+      "params": [
+        "k",
+        "s"
+      ]
+    },
+    {
+      "name": "cmd_main",
+      "label": "行番号による選択の設定 (必須)",
+      "description": "・グループ内の行番号(0始まり)で指定する\n・行番号の範囲、およびリストによる指定が可能",
+      "params": []
+    },
+    {
+      "name": "cmd_main_1",
+      "label": "範囲で選択",
+      "description": "終了条件は、終了行番号か、開始行からの行数で指定する",
+      "params": [
+        "from",
+        "to",
+        "size"
+      ],
+      "hide_background": true
+    },
+    {
+      "name": "cmd_main_2",
+      "label": "リストで選択",
+      "params": [
+        "R"
+      ],
+      "hide_background": true
+    },
+    {
+      "name": "cmd_main_3",
+      "label": "条件反転",
+      "params": [
+        "r"
+      ],
+      "hide_background": true
+    },
+    {
+      "name": "cmd_sub",
+      "label": "その他 (省略可)",
+      "params": [
+        "nfn",
+        "q",
+        "nfno",
+        "x"
+      ]
+    },
+    {
+      "name": "system",
+      "label": "システム管理用設定（作業領域・ログ出力）",
+      "params": [
+        "assert_diffSize",
+        "assert_nullkey",
+        "tmpPath"
+      ]
+    }
+  ]
 }

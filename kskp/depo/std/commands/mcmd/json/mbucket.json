@@ -41,26 +41,26 @@
   },
   "groups": [
     {
-      "name": "group1",
-      "label": "グループの設定 (省略可)",
+      "name": "abstract",
+      "label": "一次元均等化バケット分割",
+      "description": "・対象項目の値でグループ内を区間になるべく均等に分割したバケット値を付与する\n・件数の均等化分割と、区間範囲の均等化分割が選択可能",
+      "params": []
+    },
+    {
+      "name": "grouping",
+      "label": "グループの設定",
       "params": [
         "k"
       ]
     },
     {
       "name": "group2",
-      "label": "バケット分割の設定",
+      "label": "バケット分割の設定　(必須)",
       "params": [
         "f",
         "n",
-        "rng"
-      ]
-    },
-    {
-      "name": "group4",
-      "label": "出力の設定",
-      "params": [
         "F",
+        "rng",
         "r"
       ]
     },
@@ -68,14 +68,8 @@
       "name": "group9",
       "label": "その他 (省略可)",
       "params": [
-        "q"
-      ]
-    },
-    {
-      "name": "group10",
-      "label": "項目名・項目番号についての設定（省略可）",
-      "params": [
         "x",
+        "q",
         "nfn",
         "nfno"
       ]
@@ -89,8 +83,7 @@
         "bufcount",
         "assert_diffSize",
         "assert_nullout",
-        "assert_nullkey",
-        "assert_nullin"
+        "assert_nullkey"
       ]
     }
   ],
@@ -98,19 +91,20 @@
     {
       "name": "f",
       "type": "string",
-      "label": "対象とする項目名と追加項目名の指定(必須)",
-      "description": "対象列名、追加列名の順で コロン区切りで指定\nカンマ区切りで複数指定可"
+      "label": "対象項目名とバケット項目名の指定 (必須)",
+      "description": "・対象列名、追加列名の順で コロン区切りで指定\n・カンマ区切りで複数指定可"
     },
     {
       "name": "n",
       "type": "string",
-      "label": "バケット分割の数(必須)",
-      "description": "2以上の整数を指定する"
+      "label": "バケット分割数 (必須)",
+      "description": "2以上の整数を指定する",
+      "default": "2"
     },
     {
       "name": "rng",
       "type": "boolean",
-      "label": "件数ではなく、範囲が均等になるように分割する",
+      "label": "件数ではなく、範囲を均等化して分割する",
       "optional": true
     },
     {
@@ -122,13 +116,12 @@
     {
       "name": "F",
       "type": "select",
-      "label": "バケットの値の出力形式の設定",
-      "description": "番号、範囲の指定が可能(省略時は番号が値となる)",
+      "label": "バケット値の形式の設定 (必須)",
       "options": {
         "labels": [
-          "パケット番号　(例　1,2,...)",
-          "パケット範囲　(例　_1.5,1.5_3,...)",
-          "パケット番号と範囲　(例　1:_1.5,2:1.5_3,...)"
+          "番号 (例 1, 2, ...)",
+          "範囲 (例 _1.5, 1.5_3, ...)",
+          "番号と範囲 (例 1:_1.5, 2:1.5_3, ...)"
         ],
         "values": [
           "0",
@@ -136,21 +129,23 @@
           "2"
         ]
       },
-      "optional": true
+      "optional": true,
+      "default": "0"
     },
     {
       "name": "k",
       "type": "string",
       "label": "グループ化する項目名",
-      "description": "カンマ区切りで複数指定可",
+      "description": "・カンマ区切りで複数指定可\n・省略時は全ての行を同じグループとみなして処理される",
       "optional": true
     },
     {
       "name": "bufcount",
       "type": "string",
-      "label": "バッファの数",
+      "label": "バッファのブロック数",
       "optional": true,
-      "default": 10
+      "default": 10,
+      "description": "デフォルト:10 (40MB)"
     },
     {
       "name": "assert_diffSize",
@@ -185,14 +180,16 @@
     {
       "name": "x",
       "type": "boolean",
-      "label": "項目番号による指定",
-      "optional": true
+      "label": "項目名ではなく、項目番号で指定する",
+      "optional": true,
+      "description": "・0始まりの項目番号で指定する\n・Lをつけると、右端起点の項目番号とみなす(例:3L)\n・複数入力可能なOptの場合は、列範囲としての指定も可能(例: 0-5)"
     },
     {
       "name": "q",
       "type": "boolean",
       "label": "自動並べ替えの無効化",
-      "optional": true
+      "optional": true,
+      "description": "入力データがグループ単位でソート済みの場合、指定すると処理速度が向上"
     },
     {
       "name": "tmpPath",
