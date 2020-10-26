@@ -256,12 +256,24 @@ class Folder(Store):
 
     def to_json(self):
         ret = super().to_json()
-        # ルートフォルダ直下はプロジェクトのみが作成できる
-        # それ以外ではプロジェクト以外が作成できる
-        ret['allowlist']['createProject'] = self.is_root and self.writable
-        ret['allowlist']['createFolder'] = not self.is_root and self.writable
-        ret['allowlist']['createFile'] = not self.is_root and self.writable
-        ret['allowlist']['upload'] = not self.is_root and self.writable
+
+        if self.is_cache_folder():
+            # キャッシュフォルダ直下では新規作成はできない
+            # キャッシュフォルダの変更・削除・移動もできない
+            ret['allowlist']['createProject'] = False
+            ret['allowlist']['createFolder'] = False
+            ret['allowlist']['createFile'] = False
+            ret['allowlist']['upload'] = False
+            ret['allowlist']['update'] = False
+            ret['allowlist']['delete'] = False
+            ret['allowlist']['move'] = False
+        else:
+            # ルートフォルダ直下はプロジェクトのみが作成できる
+            # それ以外ではプロジェクト以外が作成できる
+            ret['allowlist']['createProject'] = self.is_root and self.writable
+            ret['allowlist']['createFolder'] = not self.is_root and self.writable
+            ret['allowlist']['createFile'] = not self.is_root and self.writable
+            ret['allowlist']['upload'] = not self.is_root and self.writable
         return ret
 
     def _make_dir(self, path):

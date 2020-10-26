@@ -260,6 +260,8 @@ class User(BaseModel):
         """
         Userのemail列を更新する
         """
+        from sqlalchemy.exc import IntegrityError
+
         # 妥当なE-Mailでない場合は例外を送出する
         self._valid_email_or_raise(new_email)
 
@@ -267,6 +269,9 @@ class User(BaseModel):
             self.email = new_email
             self._modifier_id = (modifier or self._session.user).id
             self._session.update(self)
+        except IntegrityError:
+            self._session.rollback()
+            raise Exception(f'メールアドレス({new_email})は他のユーザーが使用中です')
         except Exception as e:
             self._session.rollback()
             raise e
