@@ -51,7 +51,7 @@ class GroupByRemakeCommand(PCommand):
 
             # 結果列指定に関わるエラー
             'ResultsColForbiddenCharacterError' : '半角の（ *　?　[　]　,　:　\\ \' \"）は、項目名に使用できません。${fieldinput}',
-            'ResultsColConflictError' : '出力項目名が重複しています。%指定、&指定、ワイルドカード指定など、重複する出力項目名となる設定がないかを、確認してください。${fieldinput}',
+            'ResultsColConflictError' : '出力項目名が重複しています。%指定、&指定、ワイルドカード指定など、重複する出力項目名となる設定がないかを、確認してください。',
             'UnknownResultsColError' : '名前付けルールの設定の指定が正しくありません。${fieldinput}',
 
             # 統計量指定に関わるエラー
@@ -68,7 +68,7 @@ class GroupByRemakeCommand(PCommand):
             'ParameterConflictError' : 'パラメータが重複しています。${fieldinput}',
             'ParameterTypeError'  : '${calc} のパラメータへの ${fieldinput} 指定が正しくありません。${correct_type} を指定してください',
             'ParameterOutOfBoundsError' : '${calc} のパラメータへの ${fieldinput} 指定が正しくありません。 ${correct_value} で指定してください',
-            'ParameterFormatError' : '${calc} のパラメータへの ${fieldinput} 指定が正しくありません。${correct_format}で指定してください',
+            'ParameterFormatError' : '${calc} のパラメータへの ${fieldinput} 指定が正しくありません。${correct_format} を指定してください',
             'UnknownParameterError' : '${calc} のパラメータへの ${fieldinput} 指定が正しくありません'
             }
         elif s == 'paraminfo':
@@ -88,29 +88,30 @@ class GroupByRemakeCommand(PCommand):
             'binned_entropy' : {'correct_type' : '数値', 
                                 'correct_value' : '２以上の整数',
                                 'checks' : [[self.checkParamIsInteger, {}],
-                                            [self.checkParamOOB,{'low' : 2}]]},
+                                            [self.checkParamOOB,{'low_inc' : 2}]]},
             'quantile' : {'correct_type' : '数値', 
                           'correct_value' : '０−１の数値',
-                          'checks' : [[self.checkParamOOB, {'low' : 0,
-                                                            'high': 1}]]},
+                          'checks' : [[self.checkParamOOB, {'low_inc' : 0,
+                                                            'high_inc': 1}]]},
             'range_count' : {'correct_type' : '数値;数値', 
                              'correct_value' : '全ての数値', 
-                             'correct_format' : '開始＜終了の;区切り',
+                             'correct_format' : '数値;数値',
                              'checks': [[self.checkParamGTLT, {}]]},
             'autocorr' : {'correct_type' : '数値', 
                           'correct_value' : '１以上の整数',
                           'checks' : [[self.checkParamIsInteger, {}],
-                                      [self.checkParamOOB,{'low' : 1}]]},
+                                      [self.checkParamOOB,{'low_inc' : 1}]]},
             'crossing_m' : {'correct_type' : '数値', 
                             'correct_value' : '全ての数値',
                             'checks' : [[self.checkParamIsNumber, {}]]},
             'peaks' : {'correct_type' : '数値', 
                        'correct_value' : '１以上の整数',
-                       'checks' : [[self.checkParamOOB, {'low' : 1}]]},
+                       'checks' : [[self.checkParamOOB, {'low_inc' : 1}],
+                                   [self.checkParamIsInteger, {}]]},
             'imq' : {'correct_type' : '数値', 
                      'correct_value' : '０−１の数値',
-                     'checks' : [[self.checkParamOOB, {'low' : 0,
-                                                       'high': 1}]]},
+                     'checks' : [[self.checkParamOOB, {'low_inc' : 0,
+                                                       'high_inc': 1}]]},
             }
         elif s == 'supports_str':
             return [
@@ -179,6 +180,7 @@ class GroupByRemakeCommand(PCommand):
                     'range_count',
                     'slope',
                     'slope_pearson',
+                    'slope_pattern',
                     'mean_second_derivative_central',
                     'mean_change',
                     'mean_abs_change',
@@ -216,7 +218,7 @@ class GroupByRemakeCommand(PCommand):
                 'strmin' : self.feature_strmin,
                 'has_dup' : self.feature_hasdup,
                 'repeatdata' : self.feature_repeatdata,
-                'repeatvalues' : self.feature_repeatdata,
+                'repeatvalues' : self.feature_repeatvalues,
                 'sum_repeatdata' : self.feature_sumrepeatdata,
                 'sum_repeatvalues' : self.feature_sumrepeatvalues,
                 'ratio_unique' : self.feature_ratiounique,
@@ -242,6 +244,7 @@ class GroupByRemakeCommand(PCommand):
                 # 1 field + time (input k, a, f, x)
                 'slope' : self.feature_slope,
                 'slope_pearson' : self.feature_pearson,
+                'slope_pattern' : self.feature_pattern,
                 'mean_second_derivative_central' : self.feature_M2DC,
                 'mean_change' : self.feature_meanchange,
                 'mean_abs_change' : self.feature_meanabschange,
@@ -293,6 +296,9 @@ class GroupByRemakeCommand(PCommand):
         else:
             flow_obj <<= nm.m2tee(o = filepath.as_posix())
 
+        if self.DEBUG:
+            flow_obj <<= nm.m2tee(o = f'debug_predump_{filepath.name}.csv')
+
         nysol_module = self.wrapFlow(flow_obj)
         self.do_runs(nysol_module)
 
@@ -304,7 +310,6 @@ class GroupByRemakeCommand(PCommand):
         code 0: executed properly, no errors
         code 1: no match in entire header (FieldNotfoundError)
         """
-        exitcode = 0
         expanded = []
         
         for elem in to_expand.split(','):
@@ -352,7 +357,8 @@ class GroupByRemakeCommand(PCommand):
 
         return None
 
-    def checkParamOOB(self, param, low = None, high = None):
+    def checkParamOOB(self, param, low = None, low_inc = None, 
+                      high = None, high_inc = None):
         '''
         checks if a param is outside the given bounds
         
@@ -365,21 +371,22 @@ class GroupByRemakeCommand(PCommand):
             return not_a_number
 
         param = float(param)
+        
+        if low_inc is not None:
+            if param < low_inc:
+                return 'ParameterOutOfBoundsError'
 
-        if isinstance(low, int):
-            if isinstance(high, int):
-                if not(low < param < high):
-                    return 'ParameterOutOfBoundsError'
-            
-            else:
-                if param < low:
-                    return 'ParameterOutOfBoundsError'
-        else:
-            if isinstance(high, int):
-                if high < param:
-                    return 'ParameterOutOfBoundsError'
-            else:
-                return 'BadBoundDefinition' # internal error for debugging
+        if low is not None:
+            if param <= low:
+                return 'ParameterOutOfBoundsError'
+
+        if high_inc is not None:
+            if param > high_inc:
+                return 'ParameterOutOfBoundsError'
+
+        if high is not None:
+            if param >= high:
+                return 'ParameterOutOfBoundsError'
         
         return None
             
@@ -404,7 +411,9 @@ class GroupByRemakeCommand(PCommand):
         contains paramformat check, and raises ParameterFormatError on fail
         '''
 
-        bad_format = self.checkParamFormat(param, '-?[0-9]+;-?[0-9]+')
+        valid_number = '[+,-]?([0-9]+|(([0-9]+[.][0-9]*)|([0-9]*[.][0-9]+))([E,e][+,-]?[0-9]*)?)'
+
+        bad_format = self.checkParamFormat(param, f'^{valid_number};{valid_number}$')
         if bad_format is not None:
             return bad_format
 
@@ -497,6 +506,11 @@ class GroupByRemakeCommand(PCommand):
         '''
         formatstr = common_args.get('format')
         
+        if self.DEBUG:
+            print(f'args: {args}')
+            print(f'common_args : {common_args}')
+            sys.__stderr__.flush()
+        
         if 'fld' in args:
             fldname = args['fld']
         else:
@@ -532,6 +546,11 @@ class GroupByRemakeCommand(PCommand):
                 colformat[i] = f'"{sub}"' 
 
         mcal_exp = '+'.join(colformat)
+        
+        if self.DEBUG:
+            print(f'finalcol_exp: {mcal_exp}')
+            sys.__stderr__.flush()
+            
         return mcal_exp
 
     def simplifyMsummary(self, msum_list):
@@ -731,6 +750,8 @@ class GroupByRemakeCommand(PCommand):
         common_args['dateformat'] = raw_args.get('dateformat')
         common_args['precision'] = raw_args.get('precision')
         common_args['batch_size'] = raw_args.get('batch_size')
+        
+        # for backwards compatibility, assign default value of batch size
         if common_args['batch_size'] == None:
             common_args['batch_size'] = 5
 
@@ -741,26 +762,42 @@ class GroupByRemakeCommand(PCommand):
         if ks:
             ks_list = ks.split(',')
             
-            for key in ks_list:
-                if key not in self.header:
-                    errmsg = self.generateCommandErrorMessage('FieldNotFoundError', 'k', key)
-                    raise Exception(errmsg)
-                    
-            if self.containsAny(ks, '%&'):
-                errmsg = self.generateCommandErrorMessage('KeyFieldForbiddenCharacterError', 'k', ks)
-                raise Exception(errmsg)
-
-            if len(ks_list) != len(set(ks_list)):
-                errmsg = self.generateCommandErrorMessage('KeyFieldConflictError', 'k', ks)
-                raise Exception(errmsg)
 
             if '' in ks_list:
                 errmsg = self.generateCommandErrorMessage('EmptyKeyFieldError', 'k', ks)
                 raise Exception(errmsg)
 
+            expanded_k = []
+            
+            for k in ks_list:
+                
+                # check for forbidden characters
+                if self.containsAny(k, '%&'):
+                    errmsg = self.generateCommandErrorMessage('KeyFieldForbiddenCharacterError', 'k', ks)
+                    raise Exception(errmsg)
+            
+                exitcode, res = self.expandWildCards(k)
+                
+                if exitcode == 0:
+                    expanded_k += res
+                    continue
+                else:
+                    errmsg = self.generateCommandErrorMessage('FieldNotFoundError', 'k', ks)
+                    raise Exception(errmsg)
+
+            if self.DEBUG:
+                print(f'expanded_k: {expanded_k}')
+                sys.__stderr__.flush()
+                
+            dupes_list = self.findDuplicates(expanded_k)
+            if len(dupes_list) > 0: # if duplicates are found
+                dupes_str = ','.join(dupes_list)
+                errmsg = self.generateCommandErrorMessage('KeyFieldConflictError', 'k', dupes_str)
+                raise Exception(errmsg)
+
             # set manual k input flag
             common_args['manual_k'] = True
-            common_args['k'] = ks
+            common_args['k'] = ','.join(expanded_k)
         
         else: # if k is empty
             ks_list = []
@@ -772,7 +809,7 @@ class GroupByRemakeCommand(PCommand):
         # format errors
         formatstr = raw_args.get('format')
 
-        if self.containsAny(formatstr, '*?[]'):
+        if self.containsAny(formatstr, '*?[],:\\\'\" '):
             errmsg = self.generateCommandErrorMessage('ResultsColForbiddenCharacterError', 'format', formatstr)
             raise Exception(errmsg)
 
@@ -810,11 +847,16 @@ class GroupByRemakeCommand(PCommand):
                 # if a dict contains 'fld', it is an operation on the whole
                 # data set. 
                
-                fld = row.pop('fld') 
+                fld = row.get('fld') 
                 # check if multiple flds specified
                 if ',' in fld:
-                    errmsg = self.generateCommandErrorMessage('MultipleRowsTargetError', 'fld', row['fld'])
+                    errmsg = self.generateCommandErrorMessage('MultipleRowsTargetError', 'fld', fld)
                     raise Exception(errmsg)
+
+                if self.containsAny(fld, '%&'):
+                    errmsg = self.generateCommandErrorMessage('TargetFieldForbiddenCharacterError', 'fld', fld)
+                    raise Exception(errmsg)
+
                 
                 # check for newname setting
                 for c in cs_list:
@@ -822,6 +864,8 @@ class GroupByRemakeCommand(PCommand):
                         c, a = c.split(':')
                     else:
                         a = c 
+                        
+                    row['a'] = a
                     
                     all_fs.add(fld)
                     
@@ -924,6 +968,12 @@ class GroupByRemakeCommand(PCommand):
                     if self.containsAny(x, '*?[],:\\&%'):
                         errmsg = self.generateCommandErrorMessage('TimeColForbiddenCharacterError', 'x', x)
                         raise Exception(errmsg)
+                    
+                    for x in xs_list:
+                        if x not in self.header:
+                            errmsg = self.generateCommandErrorMessage('FieldNotFoundError', 'x', x)
+                            raise Exception(errmsg)
+                            
 
                     if '' in xs_list:
                         errmsg = self.generateCommandErrorMessage('EmptyTimeColError', 'x', x)
@@ -1032,9 +1082,9 @@ class GroupByRemakeCommand(PCommand):
         gets the relevant columns
         '''
         relevant_cols = common_args['k'].split(',')
-        if 'fld' in args:
-            relevant_cols.append(args['fld'])
-        else:
+        if 'f' in args:
+            # relevant_cols.append(args['fld'])
+        # else:
             relevant_cols.extend(args['f'].split(','))
 
         if 'x' in args:
@@ -1053,6 +1103,9 @@ class GroupByRemakeCommand(PCommand):
 
         batch_size = int(common_args.pop('batch_size'))
         batches = ceil(len(all_calcs) / batch_size)
+
+        if self.DEBUG:
+            print(f'all_calcs before running: {all_calcs}')
         
         # run each batch
         # calculate each from a formatted command list
@@ -1080,7 +1133,7 @@ class GroupByRemakeCommand(PCommand):
                 if calctype == 'msummary':
                     func = self.feature_msummary
                     # if thiscalc is a count calc, remove nonnumbers
-                    if thiscalc['c'].startswith('count'):
+                    if not thiscalc['c'].startswith('count'):
                         cmd[i] = self.nullifyNonNumber(cmd[i], thiscalc['f'])
                     
                 else:
@@ -1118,6 +1171,11 @@ class GroupByRemakeCommand(PCommand):
         '''
         func = self.const('runfunc_calcs')[args['c']]
         
+        # cross-reference with keys (needed for all features with time column)
+        if 'x' in args:
+            subcmd = nm.mnjoin(i = self.keys_filename, k = common_args['k'], 
+                                m = subcmd, n = True)
+
         subcmd <<= nm.runfunc(func, subcmd=subcmd, args=args, common_args=common_args)
         
         return subcmd
@@ -1135,6 +1193,9 @@ class GroupByRemakeCommand(PCommand):
         subcmd <<= nm.msetstr(a = 'final_cols', v = resultcolname)
         subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
 
+        if self.DEBUG:
+            subcmd <<= nm.m2tee(o = 'end_of_rows.csv')
+
         return subcmd
 
     # １つの変数に対する特徴量
@@ -1147,12 +1208,14 @@ class GroupByRemakeCommand(PCommand):
         k = opts['k']
         opts['precision'] = common_args['precision']
         formatstr = common_args['format']
+        
 
         # prepare list of output cols of msummary
         final_cs = [c.split(':')[-1] for c in args['c'].split(',')]
         
-        # prepare mcal-type string for final format
-
+        if self.DEBUG:
+            print(f'opts: {opts}')
+            
         # calculate
         subcmd <<= nm.msummary(**opts)
         
@@ -1591,7 +1654,7 @@ class GroupByRemakeCommand(PCommand):
                             
         mediancalc = None
 
-        mediancalc <<= nm.msummary(c = 'median:__median', f = fld, k = k)
+        mediancalc <<= nm.msummary(i = subcmd, c = 'median:__median', f = fld, k = k)
 
         subcmd <<= nm.mnjoin(k = k, f = '__median', m = mediancalc)
 
@@ -1619,7 +1682,7 @@ class GroupByRemakeCommand(PCommand):
                             
         meancalc = None
 
-        meancalc <<= nm.msummary(c = 'mean:__mean', f = fld, k = k)
+        meancalc <<= nm.msummary(i = subcmd, c = 'mean:__mean', f = fld, k = k)
 
         subcmd <<= nm.mnjoin(k = k, f = '__mean', m = meancalc)
 
@@ -1666,7 +1729,19 @@ class GroupByRemakeCommand(PCommand):
 
         resultcolname = self.generateFinalColName(args, common_args)
 
-        subcmd <<= nm.mcal(a = '__eq', c = f'$s{{{fld}}}=="{n}"')
+        strparam = False
+        try:
+            n = float(n)
+            if n%1 == 0:
+                n = int(n)
+        except ValueError:
+            strparam = True
+
+        if strparam:
+            subcmd <<= nm.mcal(a = '__eq', c = f'$s{{{fld}}}=="{n}"')
+        else:
+            subcmd <<= nm.mcal(a = '__eq', c = f'${{{fld}}}=={n}')
+            
 
         subcmd <<= nm.msum(k = k, f = f'__eq:__val__')
 
@@ -1877,6 +1952,10 @@ class GroupByRemakeCommand(PCommand):
         subcmd <<= nm.mcal(c = '${__covar}/${__Sxx}', a = '__val__',
                            precision = precision)
 
+        # cross-reference with keys (needed for all features with time column)
+        subcmd = nm.mnjoin(i = self.keys_filename, k = common_args['k'], 
+                              m = subcmd, n = True)
+
         subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
 
         subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
@@ -1898,12 +1977,47 @@ class GroupByRemakeCommand(PCommand):
                            f = f'{x},{fld}', a = 'fld2,fld',
                            precision = precision)
 
+        # cross-reference with keys (needed for all features with time column)
+        subcmd = nm.mnjoin(i = self.keys_filename, k = common_args['k'], 
+                              m = subcmd, n = True)
+
         subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
 
         subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
 
         return subcmd
         
+    def feature_pattern(self, subcmd, args, common_args):
+        '''
+        calculate feature slope_pattern
+        '''
+        fld = args.get('f')
+        x = args.get('x')
+        k = common_args.get('k')
+        precision = common_args.get('precision')
+
+        resultcolname = self.generateFinalColName(args, common_args)
+
+        subcmd <<= nm.mdelnull(f = fld)
+        subcmd <<= nm.mnumber(a = '__order__', I = 1, k = k, S = 0, q = True)
+
+        subcmd <<= nm.msim(k = k, c = 'pearson:__val__', 
+                           f = f'__order__,{fld}', a = 'fld2,fld',
+                           precision = precision)
+
+        # cross-reference with keys (needed for all features with time column)
+        subcmd = nm.mnjoin(i = self.keys_filename, k = common_args['k'], 
+                              m = subcmd, n = True)
+
+        subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
+        
+        if self.DEBUG:
+            subcmd <<= nm.m2tee(o = 'debug_end_of_feature_pattern.csv')
+
+        subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
+
+        return subcmd
+
     def feature_M2DC(self, subcmd, args, common_args):
         '''
         calculate fature mean second derivative (central approx)
@@ -1920,6 +2034,10 @@ class GroupByRemakeCommand(PCommand):
         subcmd <<= nm.mcal(c = f'(${{__shifted{fld}2}}-2*${{__shifted{fld}1}}+${{{fld}}})', 
                            a = '__val__')
         subcmd <<= nm.mavg(k = k, f = '__val__', precision = precision)
+
+        # cross-reference with keys (needed for all features with time column)
+        subcmd = nm.mnjoin(i = self.keys_filename, k = common_args['k'], 
+                              m = subcmd, n = True)
 
         subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
 
@@ -1942,6 +2060,10 @@ class GroupByRemakeCommand(PCommand):
         subcmd <<= nm.mcal(c = f'${{__shifted{fld}}}-${{{fld}}}', a = '__val__')
         subcmd <<= nm.mavg(k = k, f = '__val__', precision = precision)
 
+        # cross-reference with keys (needed for all features with time column)
+        subcmd = nm.mnjoin(i = self.keys_filename, k = common_args['k'], 
+                              m = subcmd, n = True)
+
         subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
 
         subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
@@ -1963,6 +2085,10 @@ class GroupByRemakeCommand(PCommand):
         subcmd <<= nm.mcal(c = f'abs(${{__shifted{fld}}}-${{{fld}}})', a = '__val__')
         subcmd <<= nm.mavg(k = k, f = '__val__', precision = precision)
 
+        # cross-reference with keys (needed for all features with time column)
+        subcmd = nm.mnjoin(i = self.keys_filename, k = common_args['k'], 
+                              m = subcmd, n = True)
+
         subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
 
         subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
@@ -1980,15 +2106,29 @@ class GroupByRemakeCommand(PCommand):
 
         resultcolname = self.generateFinalColName(args, common_args)
 
+        if self.DEBUG:
+            subcmd <<= nm.m2tee(o = f'start_of_abssumchanges_{resultcolname}.csv')
+
         subcmd <<= nm.msortf(f = f'{k},{x}%n')
         subcmd <<= nm.mcal(c = f'abs(${{{fld}}}-#{{{fld}}})', a = f'__absdiff')
             
         subcmd <<= nm.msum(k = k, f = '__absdiff:__val__', 
                            precision = precision) 
 
+        # cross-reference with keys (needed for all features with time column)
+        subcmd = nm.mnjoin(i = self.keys_filename, k = common_args['k'], 
+                              m = subcmd, n = True)
+
+        # cross-reference with keys (needed for all features with time column)
+        subcmd = nm.mnjoin(i = self.keys_filename, k = common_args['k'], 
+                              m = subcmd, n = True)
+
         subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
 
         subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
+
+        if self.DEBUG:
+            subcmd <<= nm.m2tee(o = f'end_of_abssumchanges_{resultcolname}.csv')
 
         return subcmd
 
@@ -2022,6 +2162,10 @@ class GroupByRemakeCommand(PCommand):
         # sum over each key
         subcmd <<= nm.msum(k = k, f = f'{fld}_trap:__val__', 
                            precision = precision)
+
+        # cross-reference with keys (needed for all features with time column)
+        subcmd = nm.mnjoin(i = self.keys_filename, k = common_args['k'], 
+                              m = subcmd, n = True)
 
         subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
 
@@ -2187,6 +2331,10 @@ class GroupByRemakeCommand(PCommand):
         subcmd <<= nm.mcal(c = f'(${{{x}}}-${{_mintime}})/${{_timerange}}', 
                            a = '__val__', precision = precision)
 
+        # cross-reference with keys (needed for all features with time column)
+        subcmd = nm.mnjoin(i = self.keys_filename, k = common_args['k'], 
+                           m = subcmd, n = True)
+
         subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
 
         subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
@@ -2212,6 +2360,10 @@ class GroupByRemakeCommand(PCommand):
         subcmd <<= nm.mjoin(k = k, m = msum, f = f'_mintime,_timerange')
         subcmd <<= nm.mcal(c = f'(${{{x}}}-${{_mintime}})/${{_timerange}}', 
                            a = '__val__', precision = precision)
+
+        # cross-reference with keys (needed for all features with time column)
+        subcmd = nm.mnjoin(i = self.keys_filename, k = common_args['k'], 
+                              m = subcmd, n = True)
 
         subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
 
@@ -2239,6 +2391,10 @@ class GroupByRemakeCommand(PCommand):
         subcmd <<= nm.mcal(c = f'(${{{x}}}-${{_mintime}})/${{_timerange}}', 
                            a = '__val__', precision = precision)
 
+        # cross-reference with keys (needed for all features with time column)
+        subcmd = nm.mnjoin(i = self.keys_filename, k = common_args['k'], 
+                              m = subcmd, n = True)
+
         subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
 
         subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
@@ -2264,6 +2420,10 @@ class GroupByRemakeCommand(PCommand):
         subcmd <<= nm.mjoin(k = k, m = msum, f = f'_mintime,_timerange')
         subcmd <<= nm.mcal(c = f'(${{{x}}}-${{_mintime}})/${{_timerange}}', 
                            a = '__val__', precision = precision)
+
+        # cross-reference with keys (needed for all features with time column)
+        subcmd = nm.mnjoin(i = self.keys_filename, k = common_args['k'], 
+                              m = subcmd, n = True)
 
         subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
 
@@ -2291,6 +2451,10 @@ class GroupByRemakeCommand(PCommand):
         subcmd <<= nm.mbest(k = k, s = '__above%nr,__a_count%nr', size = 1)
         subcmd <<= nm.mcal(c = 'if(${__above}==0,0,${__a_count})', a = '__val__')
 
+        # cross-reference with keys (needed for all features with time column)
+        subcmd = nm.mnjoin(i = self.keys_filename, k = common_args['k'], 
+                              m = subcmd, n = True)
+
         subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
 
         subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
@@ -2316,6 +2480,10 @@ class GroupByRemakeCommand(PCommand):
         subcmd <<= nm.mcount(q = True, k = f'{k},__below', a = '__b_count')
         subcmd <<= nm.mbest(k = k, s = '__below%nr,__b_count%nr', size = 1)
         subcmd <<= nm.mcal(c = 'if(${__below}==0,0,${__b_count})', a = '__val__')
+
+        # cross-reference with keys (needed for all features with time column)
+        subcmd = nm.mnjoin(i = self.keys_filename, k = common_args['k'], 
+                              m = subcmd, n = True)
 
         subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
 
@@ -2350,6 +2518,10 @@ class GroupByRemakeCommand(PCommand):
         subcmd <<= nm.mcal(a = '__val__', precision = precision,
             c = f'${{__{fld}_m}}/(${{__count}}-${{__lag}})/${{__var}}')
 
+        # cross-reference with keys (needed for all features with time column)
+        subcmd = nm.mnjoin(i = self.keys_filename, k = common_args['k'], 
+                              m = subcmd, n = True)
+
         subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
 
         subcmd <<= nm.mcut(f = f'{k},final_cols,__val__')
@@ -2373,6 +2545,10 @@ class GroupByRemakeCommand(PCommand):
         subcmd <<= nm.mcount(k = k + ',__diffT', a = '__cnt')
         subcmd <<= nm.mbest(k = k, s = '__diffT%nr', size = 1)
         subcmd <<= nm.mcal(c = 'if(${__diffT}==0,0,${__cnt})', a = '__val__')
+
+        # cross-reference with keys (needed for all features with time column)
+        subcmd = nm.mnjoin(i = self.keys_filename, k = common_args['k'], 
+                              m = subcmd, n = True)
 
         subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
 
@@ -2406,6 +2582,10 @@ class GroupByRemakeCommand(PCommand):
                                 a = '__val__')
 
         subcmd <<= nm.msum(k = k, f = '__val__')
+
+        # cross-reference with keys (needed for all features with time column)
+        subcmd = nm.mnjoin(i = self.keys_filename, k = common_args['k'], 
+                              m = subcmd, n = True)
 
         subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
 
@@ -2443,6 +2623,10 @@ class GroupByRemakeCommand(PCommand):
         subcmd_o <<= nm.mcal(c = f'(${{{x}}})/${{__count}}', a = '__val__', 
                              precision = precision)
 
+        # cross-reference with keys (needed for all features with time column)
+        subcmd_o = nm.mnjoin(i = self.keys_filename, k = common_args['k'], 
+                              m = subcmd_o, n = True)
+
         subcmd_o <<= nm.msetstr(v = resultcolname, a = 'final_cols')
 
         subcmd_o <<= nm.mcut(f = f'{k},final_cols,__val__')
@@ -2469,6 +2653,9 @@ class GroupByRemakeCommand(PCommand):
         
 
     def run(self, args, inputs):
+        # debug flag
+        self.DEBUG = False
+        
         # first off, make copies of the inputs
         args = copy.deepcopy(args)
         inputs = copy.deepcopy(inputs)
@@ -2500,9 +2687,9 @@ class GroupByRemakeCommand(PCommand):
         # take only required columns
         relevant_cols = set(common_args['k'].split(','))
         for calc in all_calcs:
-            if 'fld' in calc:
-                relevant_cols.add(calc['fld'])
-            else:
+            if 'f' in calc:
+            #     relevant_cols.add(calc['fld'])
+            # else:
                 for fld in calc['f'].split(','):
                     relevant_cols.add(fld)
 
@@ -2516,6 +2703,18 @@ class GroupByRemakeCommand(PCommand):
         tmpfile = Tmp.create_file()
         self.dumpToFile(cmd, tmpfile)
         
+
+        # get original key columns
+        keys = None
+        keys <<= nm.m2tee(i = tmpfile.as_posix())
+        keys <<= nm.mcut(f = common_args['k'])
+        keys <<= nm.muniq(k = common_args['k'])
+        keys_file = Tmp.create_file()
+        self.dumpToFile(keys, keys_file)
+        
+        self.keys_filename = keys_file.as_posix()
+
+
         
         # schedule the batches and calculations
         # get list of tmpfiles made per batch
@@ -2529,15 +2728,11 @@ class GroupByRemakeCommand(PCommand):
         cmd <<= nm.mcut(r = True, f = 'fld')
 
         # cross reference with original key columns (join)
-        # get original key columns
-        keys = None
-        keys <<= nm.m2tee(i = tmpfile.as_posix())
-        keys <<= nm.mcut(f = common_args['k'])
-        keys <<= nm.muniq(k = common_args['k'])
 
         # join original keys with current
         cmd_out = None
-        cmd_out <<= nm.mnjoin(i = keys, k = common_args['k'], m = cmd, N = True)
+        cmd_out <<= nm.mnjoin(i = self.keys_filename, k = common_args['k'], 
+                              m = cmd, n = True)
         
         # TODO revert tmp_key back to null
         cmd_out <<= nm.mchgstr(f = common_args['k'], c = f'{tmp_key}:', F = True)

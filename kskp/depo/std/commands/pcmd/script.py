@@ -9,7 +9,7 @@ import nysol.util.mtemp as mtemp
 from nysol.util._utillib import mcsvout as mcsvout
 from pathlib import Path
 
-from kskp.store import NysolModule, FieldNotFoundException
+from kskp.store import NysolModule, FieldForbiddenCharacterException, EmptyFieldException, FieldConflictException, FieldNotFoundException, ColumnNameException
 from kskp.core import Command, Port
 
 PCMD_DIR = Path(__file__).resolve().parent
@@ -240,10 +240,7 @@ class ColumnUniqueNameCommand(PCommand):
 
 
 class ColumnNameCommand(PCommand):
-
-    commandname = '項目順の変更'
     errormessages = {
-        
         # キー列に対するエラー
         'FieldNotFoundError' : '指定した項目名は存在しません。${fieldinput}',
     }
@@ -253,6 +250,14 @@ class ColumnNameCommand(PCommand):
         self.i_ports = [Port('i', 'frame')]
         self.o_ports = [Port('o', 'frame')]
 
+    def const(self, s):
+        if s == 'commandname':
+            return '項目順の変更'
+        elif s == 'errmsgs':
+            return {
+                'NoInputError' : '同時に２つの指定欄を省略することはできません。'
+            }
+         
     def expandWildCards(self, to_expand):
         """
         takes a comma separated string and parses wildcard expressions within.
@@ -280,14 +285,21 @@ class ColumnNameCommand(PCommand):
     def containsAny(self, exp, str):
         return any(char in exp for char in str)
 
-    def generateCommandErrorMessage(self, *args):
-        # とりあえず、エラー処理機能は特徴量の計算のコマンドの実装を参照する
-        # TODO：　親コマンドレベルに機能の実装を移動する
-        errhandler = GroupBy2Command()
-        errhandler.commandname = self.commandname
-        errhandler.errormessages = self.errormessages
+    def generateCommandErrorMessage(self, error_type, mistaken_input = '', command_name = '', option_id = ''):
+        msg = ''
+        if command_name != '':
+            msg +=  f'【コマンド：{command_name}】'
+        if option_id != '':
+            msg += f'【オプションID：{option_id}】'
 
-        return errhandler.generateCommandErrorMessage(*args)
+        msg += self.const('errmsgs')[error_type]
+        
+        if mistaken_input == '':
+            msg += mistaken_input
+        
+        return msg
+        
+
 
     def run(self, args, inputs):
         f = inputs['i'].content
@@ -302,21 +314,20 @@ class ColumnNameCommand(PCommand):
         if _left:
             for col in _left.split(','):
                 if self.containsAny(col, ':%&\\'):
-                    err = self.generateCommandErrorMessage('ForbiddenCharacterError',
-                                                           'head', col)
-                    raise Exception(err)
+                    raise FieldForbiddenCharacterException(col,
+                                                           command_name = self.const('commandname'),
+                                                           option_id = 'head')
 
             _left_list = self.expandWildCards(_left)
             if type(_left_list) == dict:
-                err = self.generateCommandErrorMessage(_left_list['error'], 
-                                                       'head', 
-                                                       _left_list['unmatched'])
-                raise Exception(err)
+                raise FieldNotFoundException(_left,
+                                            command_name = self.const('commandname'),
+                                            option_id = 'head')
 
             if len(_left_list) != len(set(_left_list)):
-                err = self.generateCommandErrorMessage('FieldConflictError',
-                                                        'head', _left)
-                raise Exception(err)
+                raise FieldConflictException(_left,
+                                            command_name = self.const('commandname'),
+                                            option_id = 'head')
         else:
             _left_list = []
             
@@ -325,21 +336,20 @@ class ColumnNameCommand(PCommand):
         if _right:
             for col in _right.split(','):
                 if self.containsAny(col, ':%&\\'):
-                    err = self.generateCommandErrorMessage('ForbiddenCharacterError',
-                                                           'tail', col)
-                    raise Exception(err)
+                    raise FieldForbiddenCharacterException(col,
+                                                           command_name = self.const('commandname'),
+                                                           option_id = 'tail')
 
             _right_list = self.expandWildCards(_right)
             if type(_right_list) == dict:
-                err = self.generateCommandErrorMessage(_right_list['error'], 
-                                                       'tail', 
-                                                       _right_list['unmatched'])
-                raise Exception(err)
+                raise FieldNotFoundException(_right,
+                                            command_name = self.const('commandname'),
+                                            option_id = 'head')
             
             if len(_right_list) != len(set(_right_list)):
-                err = self.generateCommandErrorMessage('FieldConflictError',
-                                                        'tail', _right)
-                raise Exception(err)
+                raise FieldConflictException(_left,
+                                            command_name = self.const('commandname'),
+                                            option_id = 'head')
         else:
             _right_list = []
 
@@ -348,13 +358,15 @@ class ColumnNameCommand(PCommand):
         if _left and _right:
             for col in _left_list:
                 if col in _right_list:
-                    err = self.generateCommandErrorMessage('FieldConflictError',
-                                                           'head, tail', col)
-                    raise Exception(err)
+                    raise FieldConflictException(col,
+                                                command_name = self.const('commandname'),
+                                                option_id = 'head, tail')
         
         if (not _left) and (not _right):
             err = self.generateCommanErrorMessage('NoInputError',
-                                                  'head,tail')
+                                                  command_name = self.const('commandname'),
+                                                  option_id = 'head, tail')
+            raise ColumnNameException(err)
 
 
 
@@ -401,17 +413,6 @@ class GroupbyColumnsCommand(PCommand):
 
 
 class CheckDuplicateRowsCommand(PCommand):
-
-    commandname = '重複行の抽出'
-    errormessages = {
-        '' : '',
-        'FieldNotFoundError' : '指定した項目名は存在しません。${fieldinput}',
-        'ForbiddenCharacterError' : '半角の（ :　%　&　\\ ）は、項目名の指定に使用できません。 ${fieldinput}',
-        'FieldConflictError' : '同じ項目名が複数回指定されています。${fieldinput}',
-        'EmptyFieldNameError' : '空文字列の項目名は指定できません。${fieldinput}',
-        'UnknownError' : '項目名の指定は正しくありません。${fieldinput}'
-    }
-    
     def const(self, s):
         if s == 'commandname':
             return '重複行の抽出'
@@ -467,36 +468,34 @@ class CheckDuplicateRowsCommand(PCommand):
         
         # error checks go here:
         self.header = self.get_field_names(inputs['i'])
-        expanded_list = self.expandWildCards(targetcols)
         targets_list = []
 
-        # check if expandWildCards returned a dict (error signature)
-        if type(expanded_list) == dict:
-            raise FieldNotFoundException(expanded_list['unmatched'], 
-                                         command_name = self.const('commandname'),
-                                         option_id = 'k')
             
-        for col in expanded_list:
+        for col in targetcols.split(','):
+            expanded_list = self.expandWildCards(targetcols)
+
             # ForbiddenCharacterError
             if self.containsAny(col, ':%&\\'):
-                err = self.generateCommandErrorMessage('ForbiddenCharacterError', 'k', col)
-                raise Exception(err)
+                raise FieldForbiddenCharacterException(col,
+                                                       command_name = self.const('commandname'),
+                                                       option_id = 'k')
             
             # EmptyFieldNameError
             if col == '':
-                err = self.generateCommandErrorMessage('EmptyFieldNameError', 'k', col)
-                raise Exception(err)
-            
-            # FieldNotFoundError
-            if col not in self.header:
-                raise FieldNotFoundException(col, 
+                raise EmptyFieldException(command_name = self.const('commandname'), 
+                                          option_id = 'k')
+
+            # check if expandWildCards returned a dict (error signature)
+            if type(expanded_list) == dict:
+                raise FieldNotFoundException(expanded_list['unmatched'], 
                                             command_name = self.const('commandname'),
                                             option_id = 'k')
-
+                                            
             # FieldConflictError
             if col in targets_list:
-                err = self.generateCommandErrorMessage('FieldConflictError', 'k', targetcols)
-                raise Exception(err)
+                raise FieldConflictException(col,
+                                            command_name = self.const('commandname'),
+                                            option_id = 'k')
             else:
                 targets_list.append(col)
                 

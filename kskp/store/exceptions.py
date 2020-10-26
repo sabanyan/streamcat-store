@@ -51,7 +51,7 @@ class FieldConflictException(CommandException):
     exception class for Field Conflict error
     
     inputs:
-    conflict_field    field that was not found
+    conflict_field     field that was conflicted
     command_name       name of command (optional)
     option_id          input field id (optional)
     """
@@ -92,8 +92,39 @@ class EmptyFieldException(CommandException):
         msg += f'空文字列の項目名は指定できません。'
         return msg
     
+class FieldForbiddenCharacterException(CommandException):
+    """
+    exception class for Forbidden Character (Field) Error
+    Forbidden Characters for field setting are % & \ :
+    
+    inputs:
+    bad_field          field setting with forbidden character
+    command_name       name of command (optional)
+    option_id          input field id (optional)
+    """
+    def __init__(self, bad_field, command_name = '', option_id = ''):
+        self._bad_field = bad_field
+        self._command_name = command_name
+        self._option_id = option_id
+        
+    def __str__(self):
+        msg = ''
+        if self._command_name != '':
+            msg +=  f'【コマンド：{self._command_name}】'
+        if self._option_id != '':
+            msg += f'【オプションID：{self._option_id}】'
+
+        msg += f'半角の（ :　%　&　\ ）は、項目名の指定に使用できません。{self._bad_field}'
+        return msg
+
 class GroupBy2Exception(CommandException):
     """
-    class for exceptions in the GroupBy2 Command
+    class for unique exceptions in the GroupBy2 Command
+    """
+    pass
+
+class ColumnNameException(CommandException):
+    """
+    class for unique exceptions in the Column Name Command
     """
     pass
