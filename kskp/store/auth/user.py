@@ -3,7 +3,6 @@ import uuid
 from sqlalchemy import Column, String, text
 from sqlalchemy.dialects.postgresql import INTEGER, TIMESTAMP, UUID, ENUM
 from .exceptions import NotAuthorizedException
-from kskp.core import Constraints
 from .. import BaseModel
 
 class User(BaseModel):
