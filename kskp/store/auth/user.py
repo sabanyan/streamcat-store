@@ -3,7 +3,6 @@ import uuid
 from sqlalchemy import Column, String, text
 from sqlalchemy.dialects.postgresql import INTEGER, TIMESTAMP, UUID, ENUM
 from .exceptions import NotAuthorizedException
-from kskp.core import Constraints
 from .. import BaseModel
 
 class User(BaseModel):
@@ -418,9 +417,6 @@ class User(BaseModel):
         if self.is_init_or_temp:
             raise Exception('仮登録ユーザを復帰させることはできません')
 
-        # everyoneロールに復帰させる
-        self._join_everyone_role()
-
         try:
             # 登録状態に変更する
             self._set_state(User.ACTIVE_STATE)
@@ -431,6 +427,9 @@ class User(BaseModel):
             raise e
         finally:
             self._session.commit()
+
+        # everyoneロールに復帰させる
+        self._join_everyone_role()
 
         return self
 
