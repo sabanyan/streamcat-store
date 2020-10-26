@@ -308,6 +308,9 @@ class Role(BaseModel):
         if self.is_self_role():
             raise Exception('本人ロールに本人以外のユーザを所属させることはできません')
 
+        if member.user.is_inactive:
+            raise Exception('削除状態のユーザを所属させることはできません')
+
         from kskp.store.factory import UserRoleFactory
         factory = UserRoleFactory(self._session)
 
@@ -368,15 +371,18 @@ class Role(BaseModel):
         users = set()
         owner_exists = False
         for member in members:
-            # ロール所有者が設定されない場合はエラーとする
-            if member.owner:
-                owner_exists = True
+            if member.user.is_inactive:
+                raise Exception('削除状態のユーザを所属させることはできません')
 
             # 1人のUserが重複指定された場合はエラーとする
             if member.user in users:
                 raise Exception(f'ユーザ({member.user.name})が重複して指定されました')
             else:
                 users.add(member.user)
+
+            # ロール所有者が設定されない場合はエラーとする
+            if member.owner:
+                owner_exists = True
 
         # ユーザ管理ロールが、この初期化によって、ロールに所有者が居なくなる場合はエラーとする
         if self.is_usr_admin and not owner_exists:

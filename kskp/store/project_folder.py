@@ -353,6 +353,9 @@ class ProjectFolder(Folder):
         # 
         users = set()
         for member in members:
+            if member.user.is_inactive:
+                raise Exception(f'削除状態のユーザ({member.user.name})が指定されました')
+
             if member.type not in (ProjectFolder.OWNER_MEMBER_TYPE, ProjectFolder.READER_MEMBER_TYPE, ProjectFolder.WRITER_MEMBER_TYPE):
                 raise Exception(f'無効なmember.type({member.type})が指定されました')
 
