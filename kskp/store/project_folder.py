@@ -505,8 +505,11 @@ class ProjectFolder(Folder):
 
     def to_json(self):
         ret = super().to_json()
-        # 楽観的排他制御に最終更新時刻を用いる
+        # メンバ設定の楽観的排他制御に最終更新時刻を用いる
         ret['modifiedAt'] = self.modified_at.strftime('%Y-%m-%d %H:%M:%S.%f')
+        # プロジェクトの削除とメンバ設定はプロジェクト管理者のみである
+        ret['allowlist']['delete'] = self.ownership
+        ret['allowlist']['move'] = self.ownership
         ret['allowlist']['findMember'] = self.ownership
         ret['allowlist']['updateMember'] = self.ownership
         return ret

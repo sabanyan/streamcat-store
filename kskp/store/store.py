@@ -183,6 +183,10 @@ class Store(Datum):
         from kskp.core import Datum
         return self.uuid in (Datum.FLOW_FOLDER_UUID, Datum.RESULT_FOLDER_UUID, Datum.CACHE_FOLDER_UUID)
 
+    def is_cache_folder(self):
+        from kskp.core import Datum
+        return self.uuid == Datum.CACHE_FOLDER_UUID
+        
     # def save(self, datum):
     #     """
     #     override用
