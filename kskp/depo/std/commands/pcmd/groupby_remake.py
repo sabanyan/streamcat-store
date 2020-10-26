@@ -68,7 +68,7 @@ class GroupByRemakeCommand(PCommand):
             'ParameterConflictError' : 'パラメータが重複しています。${fieldinput}',
             'ParameterTypeError'  : '${calc} のパラメータへの ${fieldinput} 指定が正しくありません。${correct_type} を指定してください',
             'ParameterOutOfBoundsError' : '${calc} のパラメータへの ${fieldinput} 指定が正しくありません。 ${correct_value} で指定してください',
-            'ParameterFormatError' : '${calc} のパラメータへの ${fieldinput} 指定が正しくありません。${correct_format} を指定してください',
+            'ParameterFormatError' : '${calc} のパラメータへの ${fieldinput} 指定が正しくありません。${correct_format} で指定してください',
             'UnknownParameterError' : '${calc} のパラメータへの ${fieldinput} 指定が正しくありません'
             }
         elif s == 'paraminfo':
@@ -95,7 +95,7 @@ class GroupByRemakeCommand(PCommand):
                                                             'high_inc': 1}]]},
             'range_count' : {'correct_type' : '数値;数値', 
                              'correct_value' : '全ての数値', 
-                             'correct_format' : '数値;数値',
+                             'correct_format' : '開始＜終了の;区切り',
                              'checks': [[self.checkParamGTLT, {}]]},
             'autocorr' : {'correct_type' : '数値', 
                           'correct_value' : '１以上の整数',
@@ -419,7 +419,7 @@ class GroupByRemakeCommand(PCommand):
 
         a, b = param.split(';')
         
-        if float(b) < float(a):
+        if float(b) <= float(a):
             return 'ParameterFormatError'
         
         return None
@@ -1147,7 +1147,7 @@ class GroupByRemakeCommand(PCommand):
                     # if the calc has a time column, clean up the rows with
                     # invalid time
                     if 'x' in thiscalc:
-                        cmd[i] = self.nullifyBadTime(cmd[i], thiscalc['f'],
+                        cmd[i] = self.nullifyBadTime(cmd[i], thiscalc['x'],
                                                      common_args['dateformat'])
 
                 # run the desired function
