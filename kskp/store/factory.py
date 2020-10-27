@@ -739,8 +739,9 @@ class UserFactory():
         like_predicates = []
         for k in split_keyword(keyword):
             search_keyword = '%' + k.translate(self.escape_table) + '%'
-            like_predicates.append(or_(User.name.like(search_keyword, escape='\\'),
-                                       User.email.like(search_keyword, escape='\\')))
+            # ilikeで検索語の大文字小文字の区別をしない
+            like_predicates.append(or_(User.name.ilike(search_keyword, escape='\\'),
+                                       User.email.ilike(search_keyword, escape='\\')))
         query = query.filter(and_(*like_predicates))
 
         query = UserFactory._add_except_states_criteria(query, except_states)
