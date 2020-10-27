@@ -598,7 +598,7 @@ class Datum(BaseModel):
             result._modifier_id = (modifier or self._session.user).id
             self._session.update(result, ignore_authz=True)
 
-    def get_flow_uuids_using_me(self):
+    def get_flow_uuids_using_me_old(self):
         """      .......
         指定されたDatumのuuidを参照するFlowを取得する
         """
@@ -611,7 +611,7 @@ class Datum(BaseModel):
           and to_tsvector(data) @@ to_tsquery('{self.uuid}')
         """
 
-        # AuthのTableオブジェクト
+        # DataのTableオブジェクト
         D = Datum.__table__
 
         select_stmt = select([Datum.uuid]).\
@@ -623,6 +623,102 @@ class Datum(BaseModel):
         # SQLを発行する
         results = self._session.execute(select_stmt)
         return [str(result[0]) for result in results]
+
+    def get_flow_uuids_using_me(self):
+        """
+        自身のエントリ以下にあるDatumが、自身のエントリ以下以外にあるFlowから参照される、
+        そのようなFlowを全て返す
+        """
+        from sqlalchemy.orm import aliased
+        from sqlalchemy.sql.expression import select, func, exists, and_, cast
+
+        sql = """
+        WITH RECURSIVE
+            R AS (
+                SELECT id, uuid FROM data WHERE id = self.id
+                UNION ALL
+                SELECT data.id, data.uuid FROM data JOIN R ON data.parent_id = R.id
+            ),
+            T AS (
+                SELECT id, uuid FROM data WHERE type = 'trash'
+                UNION ALL
+                SELECT data.id, data.uuid FROM data JOIN T ON data.parent_id = T.id
+            )
+        SELECT U.uuid, U.label
+        FROM (SELECT D.uuid as uuid,
+                     D.label as label,
+                     jsonb_path_query(
+                         D.data,
+                         '$.flow.nodes?(@.type != "command" && @.type != "note").uuid'
+                     ) AS ref_uuid
+              FROM data D
+              WHERE D.type = 'flow'
+                AND NOT EXISTS (SELECT * FROM R WHERE R.id = D.id)) U
+        WHERE EXISTS (SELECT * FROM R
+                      WHERE U.ref_uuid #>> '{}' = CAST(R.uuid AS VARCHAR))
+        """
+
+        # id : 検索対象Datumから葉ノードへの経路の全てのDatumのid
+        D0 = aliased(Datum, name='D0')
+        R = select([D0.id, D0.uuid]).\
+            select_from(D0).\
+            where(D0.id==self.id).\
+            cte(name='R', recursive=True) 
+            # cte: Common Table Expression WITH句のこと
+
+        # WITH句にUNION ALLを用いて再帰クエリとする
+        D1 = aliased(Datum, name='D1')
+        R = R.union_all(
+                select([D1.id, D1.uuid]).\
+                select_from(R.join(D1, D1.parent_id==R.c.id))
+            )
+
+        # ゴミ箱の中のDatumを全て取得する再帰クエリ
+        T = select([D0.id, D0.uuid]).\
+            select_from(D0).\
+            where(D0.type==Datum.TRASH_TYPE).\
+            cte(name='T', recursive=True)
+        T = T.union_all(
+                select([D1.id, D1.uuid]).\
+                select_from(T.join(D1, D1.parent_id==T.c.id))
+            )
+
+        # DataのTableオブジェクト
+        D = Datum.__table__
+
+        # 自分と自分の子孫は抽出対象外である
+        not_exists_inner = ~exists().where(R.c.id==D.c.id)
+
+        # 参照元がゴミ箱内のフローの場合は抽出対象外である
+        not_exists_trash = ~exists().where(T.c.id==D.c.id)
+
+        # 自分と自分の子孫以外のFlowから参照する、自分と自分の子孫のuuidのリストを取得する
+        #  R : 自分と自分の子孫
+        #  U : 自分と自分の子孫以外のFlow
+        #  U.ref_uuid : 自分と自分の子孫以外のFlowが参照しているuuid
+        jsonpath = '$.flow.nodes?(@.type != "command" && @.type != "note").uuid'
+        U = select([D.c.uuid,
+                    D.c.label,
+                    func.jsonb_path_query(D.c.data, jsonpath).label('ref_uuid')]).\
+            select_from(D).\
+            where(and_(D.c.type==Datum.FLOW_TYPE, not_exists_inner, not_exists_trash)).\
+            alias('U')
+
+        # 自分の子孫以外のFlowから参照する、自分と自分の子孫
+        U_ref_uuid = str(U.c.ref_uuid.compile())
+        predicate = text("%s #>> '{}'" % U_ref_uuid)==cast(R.c.uuid, String)
+        exists_inner = exists().where(predicate)
+
+        # メインSQL
+        select_stmt = select([U.c.uuid,U.c.label,U.c.ref_uuid]).\
+                      select_from(U).\
+                      where(exists_inner)
+        
+        # SQLを発行する
+        results = self._session.execute(select_stmt)
+        return [{'reference_uuid' :result[0],
+                 'reference_label':result[1],
+                 'referenced_uuid':result[2]} for result in results]
 
     @staticmethod
     def move_file(old_path, new_path):

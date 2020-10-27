@@ -75,9 +75,7 @@ class Database(Store):
         # 削除しようとするDatabaseが、DBに格納されているフローで使用されている場合は例外を送出する
         using_flow_uuids = self.get_flow_uuids_using_me()
         if len(using_flow_uuids) > 0:
-            from kskp.store.factory import DatumFactory
-            using_flow_label = DatumFactory(self._session).find_by_uuid(using_flow_uuids[0]).label
-            raise Exception('このStoreはローダ・セーバ(%s)で使用しているため削除できません' % using_flow_label)
+            raise Exception(f"このStoreはローダ・セーバ({using_flow_uuids[0]['reference_label']})で使用しているため削除できません")
 
         try:
             # Databaseレコードを削除する
