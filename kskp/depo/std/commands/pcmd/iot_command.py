@@ -692,7 +692,7 @@ class MissingValueInterpolateCommand(PCommand):
         
         return res
 
-    def make_iplist(self, args_iplist, ipflds, header):
+    def make_iplist(self, args_iplist, ipflds, header, parent_command = ''):
         import fnmatch
         
         dm = '_'            # 補間値の出力項目名作成時の区切り文字
@@ -701,13 +701,18 @@ class MissingValueInterpolateCommand(PCommand):
         ipoutlist = []      # 出力項目名：補間値  [f1,f2,f3,...]  ※ 項目名__method
         ipaddlist = []      # 出力項目名：補間式  [f1,f2,f3,...]
 
+        if parent_command != '':
+            commandname = parent_command
+        else:
+            commandname = self.commandname
+
         for el in range(len(args_iplist)):
             fs = []
             for field in args_iplist[el]['ip_f'].split(','):
                 matched = fnmatch.filter(header, field)
                 
                 if matched == []:
-                    msg = GenerateErrorMessage(self.commandname,
+                    msg = GenerateErrorMessage(commandname,
                                     'FieldNotFoundError',
                                     'ip_f', field)
                     raise Exception(msg)
@@ -715,7 +720,7 @@ class MissingValueInterpolateCommand(PCommand):
                 fs = fs + matched
             
             if len(fs) != len(set(fs)):
-                msg = GenerateErrorMessage(self.commandname,
+                msg = GenerateErrorMessage(commandname,
                                 'TargetFieldConflictError',
                                 'ip_f', args_iplist[el]['ip_f'])
                 raise Exception(msg)
@@ -725,7 +730,7 @@ class MissingValueInterpolateCommand(PCommand):
             ip_outfn  = args_iplist[el]['ip_a']  # 文字列
             
             if any(char in ip_outfn for char in '*?[],:\\ '):
-                msg = GenerateErrorMessage(self.commandname,
+                msg = GenerateErrorMessage(commandname,
                                 'FieldNameForbiddenCharacterError',
                                 'ip_a', ip_outfn)
                 raise Exception(msg)
@@ -740,7 +745,7 @@ class MissingValueInterpolateCommand(PCommand):
                     
                     # check if final col already exists
                     if tmp in header:
-                        msg = GenerateErrorMessage(self.commandname,
+                        msg = GenerateErrorMessage(commandname,
                                         'FieldNameConflictError',
                                         'ip_a', tmp)
                         raise Exception(msg)
@@ -1719,6 +1724,14 @@ class TimeSeriesDataJoinCommand(PCommand):
         keys_i = []
         keys_m = []
 
+
+        # if parent command exists, take that name
+        commandname = args.get('parent_command')
+        if commandname is None:
+            # if parent command does not exist, this is the parent command
+            commandname = 'センサ時系列結合'
+            args['parent_command'] = commandname
+
         # --- 処理の流れ ---
         # 入力m ： 補間式の作成  <args へ規定のものをセットする>
         # 入力i ： 時間軸の作成
@@ -1732,58 +1745,52 @@ class TimeSeriesDataJoinCommand(PCommand):
 
         # header_m = nm.mread(i=inputs['m']).getline(header=True)
         # header_m = next(header_m)
-        header_m = self.get_field_names(inputs['m'])
-        header_i = self.get_field_names(inputs['i'])
+        # header_m = self.get_field_names(inputs['m'])
+        # header_i = self.get_field_names(inputs['i'])
+
 
         # TODO encapsulate this
-        header = args.get('header')
-        if header is None:
-            # get all of the flow before this
-            prev_flow_i = copy.deepcopy(inputs['i'].content)
-            prev_flow_m = copy.deepcopy(inputs['m'].content)
-            
-            # put this into a tmpfile
-            input_file_i = Tmp.create_file()
-            input_filename_i = input_file_i.as_posix()
-            input_file_m = Tmp.create_file()
-            input_filename_m = input_file_m.as_posix()
-            
-            prev_flow_i <<= nm.m2tee(o = input_filename_i)
-            prev_flow_m <<= nm.m2tee(o = input_filename_m)
-            
-            prev_flow_obj_i = NysolModule()
-            prev_flow_obj_i.set_content(prev_flow_i)
-            self.do_runs(prev_flow_obj_i) # run savetotmpfile
+        # get all of the flow before this
+        prev_flow_i = copy.deepcopy(inputs['i'].content)
+        prev_flow_m = copy.deepcopy(inputs['m'].content)
+        
+        # put this into a tmpfile
+        input_file_i = Tmp.create_file()
+        input_filename_i = input_file_i.as_posix()
+        input_file_m = Tmp.create_file()
+        input_filename_m = input_file_m.as_posix()
+        
+        prev_flow_i <<= nm.m2tee(o = input_filename_i)
+        prev_flow_m <<= nm.m2tee(o = input_filename_m)
+        
+        prev_flow_obj_i = NysolModule()
+        prev_flow_obj_i.set_content(prev_flow_i)
+        self.do_runs(prev_flow_obj_i) # run savetotmpfile
 
-            prev_flow_obj_m = NysolModule()
-            prev_flow_obj_m.set_content(prev_flow_m)
-            self.do_runs(prev_flow_obj_m) # run savetotmpfile
-            
-            # get headers
-            # get header for i input
-            get_header_i = nm.m2tee(i = input_filename_i)
-            
-            get_header_module_i = NysolModule()
-            get_header_module_i.set_content(get_header_i)
-            header_i = self.get_field_names(get_header_module_i)
+        prev_flow_obj_m = NysolModule()
+        prev_flow_obj_m.set_content(prev_flow_m)
+        self.do_runs(prev_flow_obj_m) # run savetotmpfile
+        
+        # get headers
+        # get header for i input
+        get_header_i = nm.m2tee(i = input_filename_i)
+        
+        get_header_module_i = NysolModule()
+        get_header_module_i.set_content(get_header_i)
+        header_i = self.get_field_names(get_header_module_i)
 
-            # get header for m input
-            get_header_m = nm.m2tee(i = input_filename_m)
-            
-            get_header_module_m = NysolModule()
-            get_header_module_m.set_content(get_header_m)
-            header_m = self.get_field_names(get_header_module_m)
+        # get header for m input
+        get_header_m = nm.m2tee(i = input_filename_m)
+        
+        get_header_module_m = NysolModule()
+        get_header_module_m.set_content(get_header_m)
+        header_m = self.get_field_names(get_header_module_m)
 
-            fi = nm.m2tee(i = input_filename_i)
-            
-            fm_mtee = nm.m2tee(i = input_filename_m)
-            fm = NysolModule()
-            fm.set_content(fm_mtee)
-        else:
-            # if header is passed just read from input
-            # f <<= nm.mread(inputs)
-            fi <<= copy.deepcopy(inputs['i'].content)
-            fm = inputs['m']
+        fi = nm.m2tee(i = input_filename_i)
+        
+        fm_mtee = nm.m2tee(i = input_filename_m)
+        fm = NysolModule()
+        fm.set_content(fm_mtee)
 
 
         if debug:
@@ -1798,7 +1805,12 @@ class TimeSeriesDataJoinCommand(PCommand):
         cmd = MissingValueInterpolateCommand()
         ipflds = cmd.const('ipflds')
         iplist, ipoutlist, ipaddlist = cmd.make_iplist(
-                args_iplist=args['iplist'], ipflds=ipflds, header=header_m)
+                args_iplist=args['iplist'], ipflds=ipflds, header=header_m,
+                parent_command=commandname)
+
+        if debug:
+            print(f'iplist: {iplist} \n')
+            # sys.stderr.write( 'iplist : ' + iplist + '\n' )
 
 
         # --- 引数チェック ---  補間の設定: 辞書のリスト型
@@ -1814,6 +1826,35 @@ class TimeSeriesDataJoinCommand(PCommand):
         # key項目作成
         keys_m = [ x['Km'] for x in args['join_keys'] ]
         keys_i = [ x['Ki'] for x in args['join_keys'] ]
+        
+        if keys_m != ['']:
+            for key in keys_m:
+                if key not in header_m:
+                    msg = GenerateErrorMessage(commandname,
+                                    'FieldNotFoundError',
+                                    'Km', key)
+                    raise Exception(msg)
+            
+            if len(keys_m) != len(set(keys_m)):
+                msg = GenerateErrorMessage(commandname,
+                                'TargetFieldConflictError',
+                                'Km', '')
+                raise Exception(msg)
+
+        if keys_i != ['']:
+            for key in keys_i:
+                if key not in header_i:
+                    msg = GenerateErrorMessage(commandname,
+                                    'FieldNotFoundError',
+                                    'Ki', key)
+                    raise Exception(msg)
+
+            if len(keys_i) != len(set(keys_i)):
+                msg = GenerateErrorMessage(commandname,
+                                'TargetFieldConflictError',
+                                'Ki', '')
+                raise Exception(msg)
+
 
         if debug:
             sys.stderr.write( 'keys_i : ' + ','.join(keys_i) + '\n' )
@@ -1834,7 +1875,21 @@ class TimeSeriesDataJoinCommand(PCommand):
         fm  = res['o'].content
 
         # unix時間の項目名取得
-        time_m = args['time']
+        time_m = args.get('time')
+        if time_m is None:
+            msg = GenerateErrorMessage(commandname,
+                            'EmptyFieldNameError',
+                            'time', '')
+            raise Exception(msg)
+        else:
+            if time_m not in header_m:
+                msg = GenerateErrorMessage(commandname,
+                                'FieldNotFoundError',
+                                'time', time_m)
+                raise Exception(msg)
+        #pass
+
+        
         time_type = args['time_type']        
 
         if time_type == 'datetime':
@@ -1852,7 +1907,18 @@ class TimeSeriesDataJoinCommand(PCommand):
         # fi = inputs['i'].content
 
         # unix時間の項目作成
-        time_i = args['TIME']
+        time_i = args.get('TIME')
+        if time_i is None:
+            msg = GenerateErrorMessage(commandname,
+                            'EmptyFieldNameError',
+                            'TIME', '')
+            raise Exception(msg)
+        else:
+            if time_i not in header_i:
+                msg = GenerateErrorMessage(commandname,
+                                'FieldNotFoundError',
+                                'TIME', time_i)
+                raise Exception(msg)
 
         if time_type == 'datetime':
             unix_time_i = time_i + cmd.const('tmpflds')['uxt_sfx']
@@ -1898,7 +1964,7 @@ class TimeSeriesDataJoinCommand(PCommand):
         now_time = unix_time_i  # 補間値を求める時間
         top_time = unix_time_m  # 区間の先頭の時間
 
-
+        all_outnames = []
         for el in range(len(iplist)):
             method  = iplist[el][1]
             outname = iplist[el][2] # &の置換していない        
@@ -1907,6 +1973,8 @@ class TimeSeriesDataJoinCommand(PCommand):
                 mcal_c_opt = None
                 tmp_name = outname
                 tmp_name = tmp_name.replace('&', fld + dm + method)  # 文字列
+
+                all_outnames.append(tmp_name)
 
                 if method == 'previous':
                     ip_0_pre = fld + ipflds['ip_0_pre']
@@ -1938,6 +2006,12 @@ class TimeSeriesDataJoinCommand(PCommand):
                     ip_3_1 = fld + ipflds['ip_3_1']  # 1次係数
                     ip_3_0 = fld + ipflds['ip_3_0']  # 定数項
                     mcal_c_opt = f'${{{ip_3_3}}}*${{{now_time}}}^3+${{{ip_3_2}}}*${{{now_time}}}^2+${{{ip_3_1}}}*${{{now_time}}}+${{{ip_3_0}}}'
+
+                if len(all_outnames) != len(set(all_outnames)):
+                    msg = GenerateErrorMessage(commandname,
+                                    'InterpolateResultsConflictError',
+                                    'ip_f,ip_c,ip_a', '')
+                    raise Exception(msg) 
 
                 fi <<= nm.mcal(
                     a= tmp_name,
@@ -2434,12 +2508,58 @@ class TimeAxisDataGenerateIn1Command(PCommand):
         t_dynamic_interval_num = None
         t_fixed_time = None
 
+        # get header
+        f = None
+        header = args.get('header')
+        if header is None:
+            # get all of the flow before this
+            prev_flow = copy.deepcopy(inputs['i'].content)
+            
+            # put this into a tmpfile
+            input_file = Tmp.create_file()
+            input_filename = input_file.as_posix()
+            
+            prev_flow <<= nm.m2tee(o = input_filename)
+            
+            prev_flow_obj = NysolModule()
+            prev_flow_obj.set_content(prev_flow)
+            self.do_runs(prev_flow_obj) # run savetotmpfile
+            
+            # get header
+            get_header = nm.m2tee(i = input_filename)
+            
+            get_header_module = NysolModule()
+            get_header_module.set_content(get_header)
+            header = self.get_field_names(get_header_module)
+
+            f <<= nm.m2tee(i = input_filename)
+        else:
+            # if header is passed just read from input
+            # f <<= nm.mread(inputs)
+            f <<= copy.deepcopy(inputs['i'].content)
+            
+            
         # --- 引数チェック ---         
+        # if parent command exists, take that name
+        commandname = args.get('parent_command')
+        if commandname is None:
+            # if parent command does not exist, this is the parent command
+            commandname = 'センサ時系列生成（1入力）'
+            args['parent_command'] = commandname
+
         # 必須の引数
         if 'time' not in args:
-            raise Exception( 'time:' + err_msg['input'] )
+            msg = GenerateErrorMessage(commandname,
+                            'EmptyFieldNameError',
+                            'time', '')
+            raise Exception(msg)
         else:
-            time = args['time']
+            time = args.get('time')
+            if time not in header:
+                msg = GenerateErrorMessage(commandname,
+                                'FieldNotFoundError',
+                                'time', time)
+                raise Exception(msg)
         
         if 'time_type' not in args:
             raise Exception( 'time_type:' + err_msg['input'] )
@@ -2447,22 +2567,42 @@ class TimeAxisDataGenerateIn1Command(PCommand):
             time_type = args['time_type']
 
         if 'interval' not in args:
-            raise Exception( 'interval:' + err_msg['input'] )
+            msg = GenerateErrorMessage(commandname,
+                            'EmptyParamError',
+                            'interval', '')
+            raise Exception(msg)
         else:
+            interval = args['interval']
             try:
                 interval = float(args['interval'].replace(',',''))
+
                 if time_type in ['date','year_month']:
                     interval = round(interval)
-                    if interval <= 0:
-                        raise Exception( 'interval:' + err_msg['input'] + ' ' + err_msg['val'] + args['interval'])
+
+                if interval <= 0:
+                    raise Exception()
             except Exception as e:
-                raise Exception( 'interval:' + err_msg['input'] + ' ' + err_msg['val'] + args['interval'])
-            finally:
-                pass
+                msg = GenerateErrorMessage(commandname,
+                                'OutOfBoundsError',
+                                'interval', args['interval'])
+                raise Exception(msg)
 
         # 省略可の引数
-        if 'k' in args:
-            k = args['k']
+        k = args.get('k')
+        if k is not None:
+            k_list = k.split(',')
+            for key in k_list:
+                if key not in header: 
+                    msg = GenerateErrorMessage(commandname,
+                                    'FieldNotFoundError',
+                                    'k', key)
+                    raise Exception(msg)
+
+            if len(k_list) != len(set(k_list)):
+                msg = GenerateErrorMessage(commandname,
+                                'TargetFieldConflictError',
+                                'k', k)
+                raise Exception(msg)
 
         if 'q' in args:
             q = True
@@ -2477,23 +2617,26 @@ class TimeAxisDataGenerateIn1Command(PCommand):
         if 'c' in args:
             c = args['c']
 
-        if 't_dynamic_interval_num' in args:
-            t_dynamic_interval_num = args['t_dynamic_interval_num']
-            try:
-                t_dynamic_interval_num = float(t_dynamic_interval_num.replace(',',''))
-            except Exception as e:
-                raise Exception( 't_dynamic_interval_num:' + err_msg['input'] + ' ' + err_msg['val'] + args['t_dynamic_interval_num'] ) 
-            finally:
-                pass
+        # checks for t_dynamic_interval_num and t_fixed time will be done
+        # by the internal command
+        
+        # if 't_dynamic_interval_num' in args:
+        #     t_dynamic_interval_num = args['t_dynamic_interval_num']
+        #     try:
+        #         t_dynamic_interval_num = float(t_dynamic_interval_num.replace(',',''))
+        #     except Exception as e:
+        #         raise Exception( 't_dynamic_interval_num:' + err_msg['input'] + ' ' + err_msg['val'] + args['t_dynamic_interval_num'] ) 
+        #     finally:
+        #         pass
 
-        if 't_fixed_time' in args:
-            t_fixed_time = args['t_fixed_time']
-            try:
-                t_fixed_time = float(t_fixed_time.replace(',',''))
-            except Exception as e:
-                raise Exception( 't_fixed_time:' + err_msg['input'] + ' ' + err_msg['val'] + args['t_fixed_time'] ) 
-            finally:
-                pass
+        # if 't_fixed_time' in args:
+        #     t_fixed_time = args['t_fixed_time']
+        #     try:
+        #         t_fixed_time = float(t_fixed_time.replace(',',''))
+        #     except Exception as e:
+        #         raise Exception( 't_fixed_time:' + err_msg['input'] + ' ' + err_msg['val'] + args['t_fixed_time'] ) 
+        #     finally:
+        #         pass
 
         # if debug:
         #     pprint.pprint(k, stream=sys.stderr)
@@ -2508,8 +2651,8 @@ class TimeAxisDataGenerateIn1Command(PCommand):
                mslideで、2行の情報を1行に集約し、1行のみを抽出する  ※稼働開始フラグ=1
         Step3: グループ別に、区間単位と指定間隔で、一定間隔の、時系列単位のデータ作成
         """
-        f = None
-        f = inputs['i'].content
+        # f = None
+        # f = inputs['i'].content
 
         t_end_suffix = f'{time}_2'      
 
