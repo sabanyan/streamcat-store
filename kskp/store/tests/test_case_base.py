@@ -29,8 +29,8 @@ class TestCaseBase(unittest.TestCase):
         test_user = cls.factory2.user.find_by_id(test_user.id)
         test_user2 = cls.factory3.user.find_by_id(test_user2.id)
         # 仮登録状態から登録状態にする
-        sys_admin_user.update_password('adminpass0')
-        usr_admin_user.update_password('adminpass0')
+        sys_admin_user.update_password('adminpass1')
+        usr_admin_user.update_password('adminpass1')
         test_user.update_password('testpass00')
         test_user2.update_password('testpass20')
         # クラス変数に設定する

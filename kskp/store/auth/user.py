@@ -98,7 +98,7 @@ class User(BaseModel):
             raise InvalidPassword('パスワードに使用できる文字は英数・記号(空白を除く)です')
 
         if self.is_init_or_temp:
-            if self._get_encrypt_password(password) == self.password:
+            if password == self._get_decrypt_password(self.password):
                 raise InvalidPassword('同じパスワードに変更できません')
         else:
             if self._get_password_hash(self.uuid, password) == self.password:
