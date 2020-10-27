@@ -12,6 +12,57 @@ from kskp.store import NysolModule
 from kskp.core import Command, Port, Tmp
 from .script import PCommand
 
+# shared functions for all IoT Commands
+def GenerateErrorMessage(commandname, errcode, errfield, fieldinput, template_params={}):
+    '''
+    Function for creating error messages. 
+    Pulls out error message templates, command name, and parameter info from
+    self.const and then uses input to fill in templates
+
+    generateCommanErrorMessage(command name, errcode, errfield, errinput, calcname)
+    '''
+    from string import Template
+
+    errors = {
+        # Field Name Errors
+        'EmptyFieldNameError': '空文字列の項目名は指定できません。${fieldinput}',
+        'FieldNameForbiddenCharacterError' : '半角の（ *　?　[　]　,　:　\ ）は、項目名に使用できません。${fieldinput}',
+
+        # Time setting errors
+        'TimeSettingMismatchError': '時間の指定は、時間軸のデータ型と一致しません。${correct_timeformat} で設定してください　${fieldinput}',
+
+        # parameter errors
+        'OutOfBoundsError' : '${errfield} への ${fieldinput} 指定が正しくありません。${correct_bounds} で指定してください',
+        'ParameterTypeError' : '${errfield} への ${fieldinput} 指定が正しくありません。${correct_type} を指定してください',
+        'EmptyParamError' : '空文字列の指定はできません。',
+        
+        # spans format error
+        'SpansFormatError' : '時系列生成設定への指定が正しくありません。[開始1,終了1],[開始2,終了2],... で指定してください ${fieldinput}'
+        
+    }
+    
+    option_params = {
+        'interval' : {
+            'correct_bounds' : '正の整数',
+            'correct_type' : '数値'
+        },
+        'start' : {
+            'correct_type' : '数値'
+        },
+        'num' : {
+            'correct_bounds' : '正の整数',
+            'correct_type' : '数値'
+        }
+    }
+    
+    template_strings = {'fieldinput' : fieldinput,
+                        'errfield' : errfield,
+                        **option_params.get(errfield, {}),
+                        **template_params}
+
+    message = Template(errors[errcode]).safe_substitute(template_strings)
+
+    return f'【コマンド：{commandname}】【オプション欄：{errfield}】{message}'
 
 class MeasurementPeriodIdentifyCommand(PCommand):
     def __init__(self):
@@ -1663,8 +1714,23 @@ class TimeAxisDataGenerateIn0Command(PCommand):
                 'input'             : '値が入力がされていないか、不正です',
                 'same field name'   : '追加項目と同名のものが存在します',
                 'config duplication': '設定内容に重複が存在します',
-                'val'               : '[不正な値]='
+                'val'               : '[不正な値]=',
+                'EmptyFieldNameError': '空文字列の項目名は指定できません。${fieldinput}',
+                'FieldNameForbiddenCharacterError' : '半角の（ *　?　[　]　,　:　\ ）は、項目名に使用できません。${fieldinput}',
+                'TimeSettingMismatchError': '時間の指定は、時間軸のデータ型と一致しません。${correct_timeformat} で設定してください　${fieldinput}',
+                'OutOfBoundsError' : '${errfield} への ${fieldinput} 指定が正しくありません。${correct_bounds} で指定してください',
+                'EmptyParamError' : '空文字列の指定はできません。'
                 }
+        elif s == 'timeformats':
+            res = {
+                'datetime'    : '暦型(YYYYMMDDhhmmss.小数6桁まで)',
+                'date'        : '暦型(YYYYMMDD)',
+                'year_month'  : '暦型(YYYMM)'
+            }
+        elif s == 'bounds':
+            res = {
+                'interval' : '正の整数'
+            }
         return res
 
     def datetime_nysol2py(self, t, time_type='datetime'):
@@ -1688,19 +1754,19 @@ class TimeAxisDataGenerateIn0Command(PCommand):
             if time_type == 'datetime':
                 if l == 14:
                     res = datetime.datetime.strptime(t, '%Y%m%d%H%M%S')
-                elif l > 15:
-                    res = datetime.datetime.strptime(t[0:21], '%Y%m%d%H%M%S.%f')
                 elif l == 15:
                     res = datetime.datetime.strptime(t, '%Y%m%d%H%M%S.')
+                elif 21 >= l:
+                    res = datetime.datetime.strptime(t[0:21], '%Y%m%d%H%M%S.%f')
                 elif l < 14:
                     res = None
             elif time_type == 'date':
-                if l >= 8:
+                if l == 8:
                     res = datetime.datetime.strptime(t[0:8], '%Y%m%d')
                 else:
                     res = None
             elif time_type == 'year_month':
-                if l >= 6:
+                if l == 6:
                     res = datetime.datetime.strptime(t[0:6], '%Y%m')
                 else:
                     res = None                
@@ -1790,8 +1856,9 @@ class TimeAxisDataGenerateIn0Command(PCommand):
         if debug:
             import pprint
 
-
         err_msg = self.const('err')         # エラーメッセージ     
+        bounds = self.const('bounds')
+        timeformats = self.const('timeformats')
         in0_args = {}   # time_axis_generator_in0 への引数辞書
         """
         time        文字    引数a で指定された、出力する、時間軸の項目名
@@ -1807,10 +1874,20 @@ class TimeAxisDataGenerateIn0Command(PCommand):
         interval = None
         num = None
         span_list = []
+        commandname = 'センサ時系列生成（0入力）'
 
         # --- 引数チェック ----
         if 'a' not in args:
-            raise Exception( 'a:' + err_msg['input'] )
+            msg = GenerateErrorMessage(commandname, 
+                                       'EmptyFieldNameError',
+                                       'a', '')
+            # raise Exception( 'a:' + err_msg['input'])
+            raise Exception(msg)
+        elif any(char in args['a'] for char in '*?[],:\\ '):
+            msg = GenerateErrorMessage(commandname, 
+                                    'FieldNameForbiddenCharacterError',
+                                    'a', args['a'])
+            raise Exception(msg)
         else:
             time = args['a']
         
@@ -1820,59 +1897,102 @@ class TimeAxisDataGenerateIn0Command(PCommand):
             time_type = args['time_type']
 
         if 'interval' not in args:
-            raise Exception( 'interval:' + err_msg['input'] )
+            msg = GenerateErrorMessage(commandname,
+                            'EmptyParamError',
+                            'interval', '')
+            raise Exception(msg)
         else:
+            interval = args['interval']
             try:
                 interval = float(args['interval'].replace(',',''))
+
                 if time_type in ['date','year_month']:
                     interval = round(interval)
-                    if interval <= 0:
-                        raise Exception( 'interval:' + err_msg['input'] + ' ' + err_msg['val'] + args['interval'])
+
+                if interval <= 0:
+                    raise Exception()
             except Exception as e:
-                raise Exception( 'interval:' + err_msg['input'] + ' ' + err_msg['val'] + args['interval'])
-            finally:
-                pass
+                msg = GenerateErrorMessage(commandname,
+                                'OutOfBoundsError',
+                                'interval', args['interval'])
+                raise Exception(msg)
+
+            
 
         # 開始・間隔・件数 指定時
         if 'r' not in args:
             if 'start' not in args:
-                raise Exception( 'start:' + err_msg['input'] )
+                msg = GenerateErrorMessage(commandname,
+                                'EmptyParamError',
+                                'start', '')
+                raise Exception(msg)
             else:
                 start = args['start']
                 if time_type in ['number']:
                     try:
                         start = float(args['start'].replace(',',''))
                     except Exception as e:
-                        raise Exception( 'start:' + err_msg['input'] + ' ' + err_msg['val'] + args['start'] ) 
+                        msg = GenerateErrorMessage(commandname,
+                                        'ParameterTypeError',
+                                        'start', args['start'])
+                        raise Exception(msg)
                     finally:
                         pass
                 elif self.datetime_nysol2py(start,time_type=time_type) is None:
-                    raise Exception( 'start:' + err_msg['input'] + ' ' + err_msg['val'] + args['start'] ) 
+                    msg = GenerateErrorMessage(commandname,
+                                    'TimeSettingMismatchError',
+                                    'start', args['start'],
+                                    {'correct_timeformat': timeformats[time_type]})
+                    raise Exception(msg)
 
             if 'num' not in args:
-                raise Exception( 'num:' + err_msg['input'] )
+                msg = GenerateErrorMessage(commandname,
+                                'EmptyParamError',
+                                'num', '')
+                raise Exception(msg)
             else:
                 try:
                     num = round(float(args['num'].replace(',','')))
-                    if num <= 0:
-                        raise Exception( 'num:' + err_msg['input'] + ' ' + err_msg['val'] + args['num'])
                 except Exception as e:
-                    raise Exception( 'num:' + err_msg['input'] + ' ' + err_msg['val'] + args['num'])
-                finally:
-                    pass
+                    msg = GenerateErrorMessage(commandname,
+                        'ParameterTypeError',
+                        'num', args['num'])
+                    raise Exception(msg)
+                if num <= 0:
+                    msg = GenerateErrorMessage(commandname,
+                        'OutOfBoundsError',
+                        'num', args['num'])
+                    raise Exception(msg)
 
             span_list = []
             span_list.append( [start,interval,num] )
         else:
         # 開始・終了・間隔 指定時 のパース
             if 'spans' not in args:
-                raise Exception( 'spans:' + err_msg['input'] )
+                msg = GenerateErrorMessage(commandname,
+                                'EmptyParamError',
+                                'spans', '')
+                raise Exception(msg)
 
             # spans : [開始,終了],[開始,終了],...
             # 各要素の先頭、末尾の空白は除去する
+            
+            # testing format of spans
+            # regex ^\[[^,]+?,[^,]+?\](,\[[^,]+?,[^,]+?\])*$
+            
+            import re
+            if not re.match(r'^\[[^,]+?,[^,]+?\](,\[[^,]+?,[^,]+?\])*$', 
+                            args['spans']):
+                msg = GenerateErrorMessage(commandname,
+                            'SpansFormatError',
+                            'spans', args['spans'])
+                raise Exception(msg) 
+            
             tmp = None
             tmp = [ x.strip('[] ') for x in args['spans'].split('],') ]
             tmp = sorted( [ x.split(',') for x in tmp ] )
+            
+            
 
             # 件数計算
             for k in tmp:
@@ -1890,7 +2010,11 @@ class TimeAxisDataGenerateIn0Command(PCommand):
                     for ke in k:
                         res = self.datetime_nysol2py(ke, time_type=time_type)
                         if res is None:
-                            raise Exception( 'spans:' + err_msg['input'] + ' ' + err_msg['val'] + ke )
+                            msg = GenerateErrorMessage(commandname,
+                                            'TimeSettingMismatchError',
+                                            'spans', ke,
+                                            {'correct_timeformat': timeformats[time_type]})
+                            raise Exception(msg)
                         else:
                             dt.append(res)
                     # 制限： timedelta.total_seconds()  270年以上で、マイクロ秒の精度を失う
