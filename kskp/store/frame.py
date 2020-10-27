@@ -256,7 +256,12 @@ class Frame(Datum):
 
     @property
     def file_size(self):
-        return self._path.stat().st_size
+        if self.file_exists:
+            return self._path.stat().st_size
+        else:
+            import warnings
+            warnings.warn(f'Not Exists file path : {self._path}')
+            return 0
 
     @property
     def file_exists(self):
