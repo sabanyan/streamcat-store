@@ -26,7 +26,11 @@ def GenerateErrorMessage(commandname, errcode, errfield, fieldinput, template_pa
     errors = {
         # Field Name Errors
         'EmptyFieldNameError': '空文字列の項目名は指定できません。${fieldinput}',
-        'FieldNameForbiddenCharacterError' : '半角の（ *　?　[　]　,　:　\ ）は、項目名に使用できません。${fieldinput}',
+        'FieldNameForbiddenCharacterError' : '半角の（ *　?　[　]　,　:　\\ ）は、項目名に使用できません。${fieldinput}',
+        'FieldNotFoundError' : '指定した項目名は存在しません。${fieldinput}',
+        'TargetFieldConflictError' : '同じ項目名が複数回指定されています。${fieldinput}',
+        'FieldNameConflictError' : '追加する項目名は、すでに存在します。既存項目を置き換えていい場合は、上書きのチェックをONにします。置き換えない場合は、重複のない項目名を指定してください。${fieldinput}',
+        'OutputNamesFormatError' : '指定された追加する項目の数は9個ではありません。9個の項目名をカンマ区切りで指定してください。${fieldinput}',
 
         # Time setting errors
         'TimeSettingMismatchError': '時間の指定は、時間軸のデータ型と一致しません。${correct_timeformat} で設定してください　${fieldinput}',
@@ -36,6 +40,8 @@ def GenerateErrorMessage(commandname, errcode, errfield, fieldinput, template_pa
         'ParameterTypeError' : '${errfield} への ${fieldinput} 指定が正しくありません。${correct_type} を指定してください',
         'EmptyParamError' : '空文字列の指定はできません。',
         
+        # interpolation results error
+        'InterpolateResultsConflictError' : '出力項目名が重複しています。対象項目、補間方法、結果項目で定まる出力項目名で、重複となる設定がないかを、確認してください。',
         # spans format error
         'SpansFormatError' : '時系列生成設定への指定が正しくありません。[開始1,終了1],[開始2,終了2],... で指定してください ${fieldinput}'
         
@@ -43,7 +49,7 @@ def GenerateErrorMessage(commandname, errcode, errfield, fieldinput, template_pa
     
     option_params = {
         'interval' : {
-            'correct_bounds' : '正の整数',
+            'correct_bounds' : '正の数値',
             'correct_type' : '数値'
         },
         'start' : {
@@ -51,6 +57,22 @@ def GenerateErrorMessage(commandname, errcode, errfield, fieldinput, template_pa
         },
         'num' : {
             'correct_bounds' : '正の整数',
+            'correct_type' : '数値'
+        },
+        't_dynamic_interval_num' : {
+            'correct_bounds' : '正の数値',
+            'correct_type' : '数値'
+        },
+        't_fixed_time' : {
+            'correct_bounds' : '正の数値',
+            'correct_type' : '数値'
+        },
+        'max_num' : {
+            'correct_bounds' : '正の数値',
+            'correct_type' : '数値'
+        },
+        'trim_num' : {
+            'correct_bounds' : '正の数値',
             'correct_type' : '数値'
         }
     }
@@ -184,32 +206,114 @@ class MeasurementPeriodIdentifyCommand(PCommand):
         aflds_tmp = self.const('tmpflds')   # 内部で一時的に作成する項目名
         a_opt_seq = self.const('a_opt_seq') # Opt欄 a= で入力される項目名の順序
 
+
         remove_fields = []          # 後始末用項目名
         args = copy.deepcopy(args)
 
         # --- 引数チェック ---
+        # if parent command exists, take that name
+        commandname = args.get('parent_command')
+        if commandname is None:
+            # if parent command does not exist, this is the parent command
+            commandname = 'センサ時系列稼働停止判定'
+            args['parent_command'] = commandname
+
         if 'c' not in args:
             raise Exception( 'c:' + err_msg['input'] )
 
         if args['c'] == 'dynamic_ave':
             if ('t_dynamic_interval_num' not in args) or (args['t_dynamic_interval_num'] == ''):
-                raise Exception( 't_dynamic_interval_num:' + err_msg['input'] )
+                msg = GenerateErrorMessage(commandname,
+                                'EmptyParamError',
+                                't_dynamic_interval_num', '')
+                raise Exception(msg)
+            
+            dynamic_interval = args.get('t_dynamic_interval_num')
+            try:
+                dynamic_interval = float(dynamic_interval)
+            except:
+                msg = GenerateErrorMessage(commandname,
+                                'ParameterTypeError',
+                                't_dynamic_interval_num', 
+                                args['t_dynamic_interval_num'])
+                raise Exception(msg)
+
+            if dynamic_interval <= 0:
+                msg = GenerateErrorMessage(commandname,
+                                'OutOfBoundsError',
+                                't_dynamic_interval_num', 
+                                args['t_dynamic_interval_num'])
+                raise Exception(msg)
+                
+                
         
         if args['c'] == 'fix':
             if ('t_fixed_time' not in args) or (args['t_fixed_time'] == ''):
-                raise Exception( 't_fixed_time:' + err_msg['input'] )
+                msg = GenerateErrorMessage(commandname,
+                                'EmptyParamError',
+                                't_fixed_time', '')
+                raise Exception(msg)
+
+            fixed_interval = args.get('t_fixed_time')
+            try:
+                fixed_interval = float(fixed_interval)
+            except:
+                msg = GenerateErrorMessage(commandname,
+                                'ParameterTypeError',
+                                't_fixed_time', 
+                                args['t_fixed_time'])
+                raise Exception(msg)
+
+            if fixed_interval <= 0:
+                msg = GenerateErrorMessage(commandname,
+                                'OutOfBoundsError',
+                                't_fixed_time', 
+                                args['t_fixed_time'])
+                raise Exception(msg)
 
         if 'a' in args:
             a_list = args['a'].split(",")
+            
             if len(a_list) == 9:
                 for i, key in enumerate( a_opt_seq ):
-                    aflds[key] = a_list[i]
-            elif 'overwrite' in args:
-                raise Exception( 'a:' + err_msg['input'] )
+                    this_a = a_list[i]
+                    
+                    # check for empty
+                    if this_a == '':
+                        msg = GenerateErrorMessage(commandname,
+                                        'EmptyFieldNameError',
+                                        'a', args['a'])
+                        raise Exception(msg)
+                        
+                    # check for forbidden char
+                    elif any(char in this_a for char in '*?[],:\\ '):
+                        msg = GenerateErrorMessage(commandname, 
+                                                'FieldNameForbiddenCharacterError',
+                                                'a', this_a)
+                        raise Exception(msg)
+
+                    aflds[key] = this_a
+
+                # check for conflicts (same column specified)
+                if len(a_list) != len(set(a_list)):
+                    msg = GenerateErrorMessage(commandname,
+                                    'TargetFieldConflictError',
+                                    'a', args['a'])
+                    raise Exception(msg)
+                    
+                    
+            else:
+                msg = GenerateErrorMessage(commandname,
+                                'OutputNamesFormatError',
+                                'a', args['a'])
+                raise Exception(msg)
+
+            # if 'overwrite' not in args:
+            #     raise Exception( 'a:' + err_msg['input'] )
 
         # --- データ処理開始 ---
         # args['i'] = inputs['i']
-        time = args['time']
+        time = args.get('time')
         time_type = args['time_type']
 
         f = None
@@ -246,19 +350,49 @@ class MeasurementPeriodIdentifyCommand(PCommand):
             # f <<= nm.mread(inputs)
             f <<= copy.deepcopy(inputs['i'].content)
             
-        
+        # --- ヘッダー情報が必要なチェック ---
+        if 'k' in args:
+            keys_list = args['k'].split(',')
+           
+            # key not found
+            for key in keys_list:
+                if key not in header:
+                    msg = GenerateErrorMessage(commandname,
+                                    'FieldNotFoundError',
+                                    'k', key)
+                    raise Exception(msg)
 
+            if len(keys_list) != len(set(keys_list)):
+                msg = GenerateErrorMessage(commandname,
+                                'TargetFieldConflictError',
+                                'k', args['k'])
+                raise Exception(msg)
+
+        if time is None:
+            msg = GenerateErrorMessage(commandname,
+                            'EmptyFieldNameError',
+                            'time', time)
+            raise Exception(msg)
+        else:
+            if time not in header:
+                msg = GenerateErrorMessage(commandname,
+                                'FieldNotFoundError',
+                                'time', time)
+                raise Exception(msg)
 
         # --- 出力項目の上書きモード ---
         tg_overwrite = list(aflds.values()) + list(aflds_tmp.values()) + [ time + aflds_tmp['uxt_sfx'] ]
         tg_overwrite = list( set(header) & set(tg_overwrite) )
-        header = None
+        # header = None
 
         if 'overwrite' in args and args['overwrite']:
             f <<= nm.mcut(f= ','.join(tg_overwrite), r= True)
         elif len(tg_overwrite) > 0:
-            raise Exception( err_msg['same field name'] )
-
+            # raise Exception( err_msg['same field name'] )
+            msg = GenerateErrorMessage(commandname,
+                            'FieldNameConflictError',
+                            'a', ','.join(tg_overwrite))
+            raise Exception(msg)
 
         # --- keybreak処理・sort処理 ---
         if 'k' in args:
@@ -570,16 +704,47 @@ class MissingValueInterpolateCommand(PCommand):
         for el in range(len(args_iplist)):
             fs = []
             for field in args_iplist[el]['ip_f'].split(','):
-                fs = fs + fnmatch.filter(header, field)
+                matched = fnmatch.filter(header, field)
+                
+                if matched == []:
+                    msg = GenerateErrorMessage(self.commandname,
+                                    'FieldNotFoundError',
+                                    'ip_f', field)
+                    raise Exception(msg)
+                
+                fs = fs + matched
+            
+            if len(fs) != len(set(fs)):
+                msg = GenerateErrorMessage(self.commandname,
+                                'TargetFieldConflictError',
+                                'ip_f', args_iplist[el]['ip_f'])
+                raise Exception(msg)
+                
 
             ip_method = args_iplist[el]['ip_c']  # 文字列
             ip_outfn  = args_iplist[el]['ip_a']  # 文字列
+            
+            if any(char in ip_outfn for char in '*?[],:\\ '):
+                msg = GenerateErrorMessage(self.commandname,
+                                'FieldNameForbiddenCharacterError',
+                                'ip_a', ip_outfn)
+                raise Exception(msg)
+
+            
             iplist.append( [el, ip_method, ip_outfn, fs] )
 
 
             for i in fs:
                 if ip_outfn != '':
                     tmp = args_iplist[el]['ip_a'].replace('&', i + dm + ip_method)  # 文字列
+                    
+                    # check if final col already exists
+                    if tmp in header:
+                        msg = GenerateErrorMessage(self.commandname,
+                                        'FieldNameConflictError',
+                                        'ip_a', tmp)
+                        raise Exception(msg)
+                        
                     ipoutlist.append( tmp )
 
                 if   ip_method == 'cubic_spline':
@@ -655,6 +820,16 @@ class MissingValueInterpolateCommand(PCommand):
         method_type_b = ['linear', 'next', 'nearest']
         method_type_c = ['cubic_spline']
 
+        
+        # initialize command name
+        args = copy.deepcopy(args)
+        
+        # if parent command exists, take that name
+        self.commandname = args.get('parent_command')
+        if self.commandname is None:
+            # if parent command does not exist, this is the parent command
+            self.commandname = 'センサ時系列欠損値補間'
+            args['parent_command'] = self.commandname
 
         # --- 出力する項目名 辞書 ---
         # 固定のキー  MeasurementPeriodIdentifyCommand.const('addflds')で定義
@@ -669,20 +844,6 @@ class MissingValueInterpolateCommand(PCommand):
         cmd = MeasurementPeriodIdentifyCommand()
         aflds = cmd.const('addflds')
            
-        # --- 引数チェック ---  補間の設定: 辞書のリスト型
-        if 'iplist' in args and len(args['iplist']) > 0:
-            for el in range( len(args['iplist']) ):
-                if args['iplist'][el]['ip_f'] == '':
-                    raise Exception( 'ip_f:' + err_msg['input'] )
-
-                if 'non_ip' not in args and  args['iplist'][el]['ip_a'] == '':
-                    raise Exception( 'ip_a:' + err_msg['input'] )
-        else:
-            raise Exception( 'iplist:' + err_msg['input'] )
-        
-        if debug:
-           sys.stderr.write( 'ip_c[0]: ' + args['iplist'][0]['ip_c'] + '\n' )
- 
         # --- ヘッダー行だけ取得 ---
         # header = nm.mread(inputs).getline(header=True)
         # header = next(header)
@@ -717,12 +878,60 @@ class MissingValueInterpolateCommand(PCommand):
             # f <<= nm.mread(inputs)
             f <<= copy.deepcopy(inputs['i'].content)
 
-
         if debug:
             sys.stderr.write( 'header : ' + ','.join(header) + '\n' )
 
+        # --- 引数チェック ---  補間の設定: 辞書のリスト型
+        if 'iplist' in args and len(args['iplist']) > 0:
+            for el in range( len(args['iplist']) ):
+                if args['iplist'][el]['ip_f'] == '':
+                    msg = GenerateErrorMessage(self.commandname,
+                                    'EmptyFieldNameError',
+                                    'ip_f', '')
+                    raise Exception(msg)
+                
+                if 'non_ip' not in args and  args['iplist'][el]['ip_a'] == '':
+                    msg = GenerateErrorMessage(self.commandname,
+                                    'EmptyFieldNameError',
+                                    'ip_a', '')
+                    raise Exception(msg)
+        else:
+            raise Exception( 'iplist:' + err_msg['input'] )
+        
+        if debug:
+           sys.stderr.write( 'ip_c[0]: ' + args['iplist'][0]['ip_c'] + '\n' )
+ 
+        if 'k' in args:
+            key_list = args.get('k').split(',')
+            for key in key_list:
+                if key not in header:
+                    msg = GenerateErrorMessage(self.commandname,
+                                    'FieldNotFoundError',
+                                    'k', key)
+                    raise Exception(msg)
+            if len(key_list) != len(set(key_list)):
+                msg = GenerateErrorMessage(self.commandname,
+                                'TargetFieldConflictError',
+                                'k', args['k'])
+                raise Exception(msg)
+                 
+                    
+        time = args.get('time')
+        if time is None:
+            msg = GenerateErrorMessage(self.commandname,
+                            'EmptyFieldNameError',
+                            'time', '')
+            raise Exception(msg)
+        elif time not in header:
+            msg = GenerateErrorMessage(self.commandname,
+                            'FieldNotFoundError',
+                            'time', time)
+            raise Exception(msg)
+            
+            
+            
+
         # 出力項目名： 動的に追加  unix_time
-        time = args['time']
         time_type = args['time_type']        
 
         if time_type == 'datetime':
@@ -759,7 +968,11 @@ class MissingValueInterpolateCommand(PCommand):
             # 補間式を出力
             if len( set(aflds['ipformulas']) ) != len( aflds['ipformulas'] ):
                 sys.stderr.write( 'ipformulas: ' + ','.join(aflds['ipformulas']) + '\n' )
-                raise Exception( 'iplist:' + err_msg['config duplication'] )
+                msg = GenerateErrorMessage(self.commandname,
+                                'InterpolateResultsConflictError',
+                                'ip_f,ip_c,ip_a', '')
+                raise Exception(msg)
+                # raise Exception( 'iplist:' + err_msg['config duplication'] )
 
             if 'overwrite' in args:
                 # 稼働停止判定の出力項目以外を、削除する
@@ -780,7 +993,11 @@ class MissingValueInterpolateCommand(PCommand):
             # 補間値を出力
             if len( set(ipoutlist) ) != len( ipoutlist ):
                 sys.stderr.write( 'ipoutlist: ' + ','.join(ipoutlist) + '\n' )
-                raise Exception( 'iplist:' + err_msg['config duplication'] )
+                msg = GenerateErrorMessage(self.commandname,
+                                'InterpolateResultsConflictError',
+                                'ip_f,ip_c,ip_a', '')
+                raise Exception(msg)
+                # raise Exception( 'iplist:' + err_msg['config duplication'] )
 
             if 'overwrite' in args:
                 # 稼働停止判定の出力項目以外を、削除する
@@ -902,7 +1119,13 @@ class MissingValueInterpolateCommand(PCommand):
             # pb_id_xxx
             top  = aflds_tmp['top']
             bot  = aflds_tmp['bot']
-            max_num = args['max_num']
+            max_num = args.get('max_num')
+
+            if max_num is None:
+                msg = GenerateErrorMessage(self.commandname,
+                                'EmptyParamError',
+                                'max_num', '')
+                raise Exception(msg)
 
             params = [ x for x in iplist if x[1] in method_type_b ]
             fields = list( set( [x for y in params for x in y[3]] ) )   # 重複なしの対象項目リスト
@@ -1000,23 +1223,54 @@ class MissingValueInterpolateCommand(PCommand):
             trim_num = None
 
             if 'max_num' in args: 
+                max_num = args.get('max_num')
                 try:
-                    max_num = int( float(args['max_num'].replace(',','')) )
+                    max_num = int( float(max_num.replace(',','')) )
                 except Exception as e:
-                    raise Exception( 'max_num:' + err_msg['input'] + ' ' + err_msg['val'] + args['max_num'])
-                finally:
-                    pass
+                    msg = GenerateErrorMessage(self.commandname,
+                                    'ParameterTypeError',
+                                    'max_num', args['max_num'])
+                    raise Exception(msg)
+
+                if max_num <= 0:
+                    msg = GenerateErrorMessage(self.commandname,
+                                    'OutOfBoundsError',
+                                    'max_num', args['max_num'])
+                    raise Exception(msg)
+                    
+
+            else:
+                msg = GenerateErrorMessage(self.commandname,
+                                'EmptyParamError',
+                                'max_num', '')
+                raise Exception(msg)
 
             if 'trim_num' in args: 
                 try:
                     trim_num = int( float(args['trim_num'].replace(',','')) )
                 except Exception as e:
-                    raise Exception( 'trim_num:' + err_msg['input'] + ' ' + err_msg['val'] + args['trim_num'])
+                    msg = GenerateErrorMessage(self.commandname,
+                                    'ParameterTypeError',
+                                    'trim_num', args['trim_num'])
+                    raise Exception(msg)
                 finally:
                     pass
+
+                if trim_num <= 0:
+                    msg = GenerateErrorMessage(self.commandname,
+                                    'OutOfBoundsError',
+                                    'max_num', args['max_num'])
+                    raise Exception(msg)
+
+            else:
+                msg = GenerateErrorMessage(self.commandname,
+                                'EmptyParamError',
+                                'trim_num', '')
+                raise Exception(msg)
             
-            if max_num < trim_num * 2:
-                raise Exception( 'max_num > 2 * trim_num:' + err_msg['input'] + ' ' + err_msg['val'] + args['max_num'] + ' . ' + args['trim_num']  )
+            
+            # if max_num < trim_num * 2:
+            #     raise Exception( 'max_num > 2 * trim_num:' + err_msg['input'] + ' ' + err_msg['val'] + args['max_num'] + ' . ' + args['trim_num']  )
 
 
             params = [ x for x in iplist if x[1] in methods_input ]
