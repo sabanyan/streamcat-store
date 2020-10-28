@@ -517,6 +517,39 @@ class AuthTest(TestCaseBase):
         # ユーザを削除する
         new_user.delete()
 
+    def test_cannot_set_same_password(self):
+        """
+        変更前と同じパスワードに変更できないこと
+        """
+        # 新規ユーザを追加する
+        new_user = self.factory.user.create('hato@love-and-peace.com', '鳩山 由紀夫', 'hatopoppo?_%')
+        new_user.save()
+
+        # 変更前と同じパスワードに変更できないこと(初期状態)
+        with self.assertRaises(InvalidPassword):
+            new_user.update_password('hatopoppo?_%')
+
+        # ユーザを登録状態にする
+        new_user.update_password('poppoppo?_%')
+
+        # 変更前と同じパスワードに変更できないこと(登録状態)
+        with self.assertRaises(InvalidPassword):
+            new_user.update_password('poppoppo?_%')
+
+        # ユーザを仮登録状態にする
+        new_user.reset_password()
+
+        # 変更前と同じパスワードに変更できないこと(仮登録状態)
+        tmp_pass = new_user._get_decrypt_password(new_user.password)
+        with self.assertRaises(InvalidPassword):
+            new_user.update_password(tmp_pass)
+
+        # ユーザを登録状態にする
+        new_user.update_password('mamegahosiika?_%')
+
+        # ユーザを削除する
+        new_user.delete()
+
     def test_system_user_id(self):
         """
         システム管理者とユーザ管理者に付番されるIDを検証する

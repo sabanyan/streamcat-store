@@ -206,9 +206,9 @@ class Frame(Datum):
         trash_folder = factory.load_trash_folder()
 
         # 削除しようとするframeが、フローで使用されている場合は例外を送出する
-        flow_labels = factory.get_flows_referencing_frame(self.uuid)
-        if len(flow_labels) > 0:
-            raise Exception(f'このCSVファイルはフロー({flow_labels[0]})で使用しているため削除できません')
+        using_flow_uuids = self.get_flow_uuids_using_me()
+        if len(using_flow_uuids) > 0:
+            raise Exception(f"このCSVファイルはフロー({using_flow_uuids[0]['reference_label']})で使用しているため削除できません")
 
         return self.move(trash_folder.uuid)
 
@@ -256,7 +256,12 @@ class Frame(Datum):
 
     @property
     def file_size(self):
-        return self._path.stat().st_size
+        if self.file_exists:
+            return self._path.stat().st_size
+        else:
+            import warnings
+            warnings.warn(f'Not Exists file path : {self._path}')
+            return 0
 
     @property
     def file_exists(self):

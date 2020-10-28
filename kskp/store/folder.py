@@ -110,6 +110,9 @@ class Folder(Store):
         if self.parent_id is None:
             raise Exception('ルートフォルダは削除できません')
 
+        # if self.get_flow_uuids_using_me():
+        #     raise Exception('別のフローで使用しているため削除できませんでした')
+
         thrown_count, obstacle_count, trashed_folder = self._throw_away_inner(trash_folder, self)
 
         if obstacle_count == 0 and not self.is_system_folder():
@@ -170,10 +173,11 @@ class Folder(Store):
             # 削除しようとするフレーム/サブフローの更新権限がない場合は削除できない
             if not self._session.writable(datum):
                 return 0, 1, None
-            # 削除しようとするフレーム/サブフローが、フローで使用されてる場合は削除できない
-            using_flow_uuids = datum.get_flow_uuids_using_me()
-            if len(using_flow_uuids) > 0:
-                return 0, 1, None
+            # 削除しようとするフレーム/サブフローが、削除対象のフォルダ外のフローで使用されてる場合は削除できない
+            using_flow_uuids = self.get_flow_uuids_using_me()
+            for using_flow_uuid in using_flow_uuids:
+                if datum.uuid == using_flow_uuid['referenced_uuid']:
+                    return 0, 1, None
             # 削除可能!
             return 0, 0, None
 
