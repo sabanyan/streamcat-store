@@ -157,8 +157,7 @@ class Flow(Datum):
         # 削除しようとするflowが、フローで使用されている場合は例外を送出する
         using_flow_uuids = self.get_flow_uuids_using_me()
         if len(using_flow_uuids) > 0:
-            flow = factory.find_by_uuid(using_flow_uuids[0])
-            raise Exception(f'このフローは別のフロー({flow.label})で使用しているため削除できません')
+            raise Exception(f"このフローは別のフロー({using_flow_uuids[0]['reference_label']})で使用しているため削除できません")
 
         return self.move(trash_folder.uuid)
 
@@ -171,9 +170,7 @@ class Flow(Datum):
         # 2019/07/29現在下記のコードはpostgres9.6では動かない、postgres11.1では動作確認している
         using_flow_uuids = self.get_flow_uuids_using_me()
         if len(using_flow_uuids) > 0:
-            from kskp.store.factory import DatumFactory
-            using_flow_label= DatumFactory(self._session).find_by_uuid(using_flow_uuids[0]).label
-            raise Exception('このフローはフロー(%s)でサブフローとして使用しているため削除できません' % using_flow_label)
+            raise Exception(f"このフローは別のフロー({using_flow_uuids[0]['reference_label']})で使用しているため削除できません")
 
         try:
             # フレームレコードを削除する

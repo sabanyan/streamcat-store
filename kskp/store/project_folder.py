@@ -509,7 +509,7 @@ class ProjectFolder(Folder):
         ret['modifiedAt'] = self.modified_at.strftime('%Y-%m-%d %H:%M:%S.%f')
         # プロジェクトの削除とメンバ設定はプロジェクト管理者のみである
         ret['allowlist']['delete'] = self.ownership
-        ret['allowlist']['move'] = self.ownership
+        ret['allowlist']['move'] = False
         ret['allowlist']['findMember'] = self.ownership
         ret['allowlist']['updateMember'] = self.ownership
         return ret
