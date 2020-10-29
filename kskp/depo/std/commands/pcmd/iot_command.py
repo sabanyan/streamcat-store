@@ -2404,12 +2404,17 @@ class TimeAxisDataGenerateIn1Command(PCommand):
             time_type = args['time_type']
             interval = args['interval']
             k = args['k']
-
-
+            
+# 修正：ここから
+            # 追加・修正：2020.10.28
+            k_num = 0
             if k is not None:
                 header = [k,time]
+                k_num  = len( k.split(",") )
             else:
                 header = [time]
+
+# 修正：ここまで   
 
 
             headerflg = True
@@ -2422,12 +2427,24 @@ class TimeAxisDataGenerateIn1Command(PCommand):
                     dt = []
                     num = 0
 
+                    # 修正：ここから
+                    # 追加：2020.10.28
+                    k_val  = line[:k_num]     # list型  グループ項目の値
+                    time_s = line[k_num]      # 数値型   そのグループの開始時刻
+                    time_e = line[k_num+1]    # 数値型   そのグループの終了時刻
+                    # 修正：ここまで
+
                     if time_type == 'number':
-                        num = 1.0 + (float(line[1]) - float(line[0])) // float(interval)   # 開始の1件 + 切捨ての件数                        
+                        # 修正：ここから                    
+                        # 修正：2020.10.28
+                        num = 1.0 + (float(time_e) - float(time_s)) // float(interval)   # 開始の1件 + 切捨ての件数                        
+                        # 修正：ここまで                 
                     elif time_type in ['datetime','date','year_month']:
                         dt = []
-
-                        for ke in line:
+                        # 修正：ここから
+                        # 修正：2020.10.28
+                        for ke in [time_s,time_e]:
+                        # 修正：ここまで
                             res = cmd.datetime_nysol2py(ke, time_type=time_type)
                             if res is None:
                                 pass
@@ -2443,7 +2460,10 @@ class TimeAxisDataGenerateIn1Command(PCommand):
                     num = int(num)
                     for n in range(num):
                         if time_type == 'number':
-                            val = str( float(line[0]) + interval * n )
+                        # 修正：ここから
+                            # 修正：2020.10.28
+                            val = str( float(time_s) + interval * n )
+                        # 修正：ここまで      
                         elif time_type == 'datetime':
                             val = dt[0] + datetime.timedelta(seconds= interval * n)
                             val = val.strftime('%Y%m%d%H%M%S.%f') 
@@ -2455,14 +2475,18 @@ class TimeAxisDataGenerateIn1Command(PCommand):
                             val = val.strftime('%Y%m') 
                         else:
                             pass
-                        
+                        # 修正：ここから
+                        # 修正：2020.10.28
+                        print_list = None
                         if k is not None:
-                            val = [k,val]
+                            print_list = k_val[:]   # deepcopy
+                            print_list.append(val)
                         else:
-                            val = [val]
-                        
-                        if val != []:
-                            print(','.join(val))
+                            print_list = [val]
+
+                        if print_list != []:
+                            print(','.join(print_list))
+                        # 修正：ここまで
 
         except Exception as e:
             with open('/dev/stderr', 'w') as fpe:
