@@ -36,7 +36,7 @@ class Datum(BaseModel):
 
         # _pathに対してLike式を用いる時に必要
         def coerce_compared_value(self, op, value):
-            if op in (operators.like_op, operators.notlike_op):
+            if op in (operators.like_op, operators.notlike_op, operators.startswith_op):
                 return String()
             else:
                 return self
@@ -583,11 +583,11 @@ class Datum(BaseModel):
         rel_old_path = Datum._to_rel_path(old_path).as_posix()
         # ファイルパスに正規表現文字が含まれていればエスケープする
         old_path_pattern = '^' + re.escape(rel_old_path) + '/'
-        # SQLのワイルドカード%と_をエスケープする
+        # autoescape=True : LIKEのワイルドカード%と_をエスケープする
         results = self._session.query(Datum)\
-                         .filter(Datum._path!=None)\
-                         .filter(Datum._path.like(rel_old_path + '/' + '%'))\
-                         .all(ignore_authz=True)
+                      .filter(Datum._path!=None)\
+                      .filter(Datum._path.startswith(rel_old_path, autoescape=True))\
+                      .all(ignore_authz=True)
 
         for result in results:
             rel_new_path = Datum._to_rel_path(new_path).as_posix() + '/'
