@@ -667,12 +667,6 @@ from kskp.store.auth import User
 class UserFactory():
     def __init__(self, session):
         self._session = session
-        # LIKE検索語のエスケープ変換テーブル
-        self.escape_table = str.maketrans({
-            '%': '\%',
-            '_': '\_',
-            '\\': '\\\\'
-        })
 
     def create(self, email, name, password):
         from kskp.store.auth import User
@@ -730,20 +724,23 @@ class UserFactory():
             空白区切りの検索語をリストに分割する
             """
             import csv
-            ret = csv.reader([keyword.strip()], delimiter=" ", doublequote=True, quotechar='"', skipinitialspace=True)
+            striped_keyword = keyword.strip()
+            # 検索語が空白のみの場合はその空白を検索語とする
+            if striped_keyword == '':
+                return [keyword]
+            ret = csv.reader([striped_keyword], delimiter=" ", doublequote=True, quotechar='"', skipinitialspace=True)
             return next(ret)
 
         from sqlalchemy.sql.expression import and_, or_
         query = self._session.query(User)
 
         like_predicates = []
-        for k in split_keyword(keyword):
-            search_keyword = '%' + k.translate(self.escape_table) + '%'
-            # ilikeで検索語の大文字小文字の区別をしない
-            like_predicates.append(or_(User.name.ilike(search_keyword, escape='\\'),
-                                       User.email.ilike(search_keyword, escape='\\')))
-        query = query.filter(and_(*like_predicates))
+        for search_keyword in split_keyword(keyword):
+            # 検索語の大文字小文字の区別はしない
+            like_predicates.append(or_(User.name.icontains(search_keyword),
+                                       User.email.icontains(search_keyword)))
 
+        query = query.filter(and_(*like_predicates))
         query = UserFactory._add_except_states_criteria(query, except_states)
 
         return query.order_by(User.email).all()

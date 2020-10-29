@@ -1,6 +1,8 @@
 import os
 import uuid
+import sqlalchemy.types
 from sqlalchemy import Column, String, text
+from sqlalchemy.sql import operators
 from sqlalchemy.dialects.postgresql import INTEGER, TIMESTAMP, UUID, ENUM
 from .exceptions import NotAuthorizedException
 from .. import BaseModel
@@ -14,6 +16,29 @@ class User(BaseModel):
         # テスト環境用のスキーマ
         __table_args__ = {'schema': os.environ['KSKP_POSTGRESQL_SCHEMA_NAME']}
 
+    class MyString(sqlalchemy.types.TypeDecorator):
+        """
+        SQLAlchemyにおいてString列のlike/ilike演算で検索語をエスケープする
+        """
+        impl = sqlalchemy.types.String
+
+        class comparator_factory(String.Comparator):
+
+            # LIKE検索語のエスケープ変換テーブル
+            ESCAPE_TABLE = str.maketrans({
+                                '%' : '\%',
+                                '_' : '\_',
+                                '\\': '\\\\'
+                           })
+
+            def icontains(self, other):
+                """
+                検索語を含むか否か判定する(大文字小文字の違いを無視する)
+                """
+                # 検索語をエスケープする
+                escaped_search_str = other.translate(self.ESCAPE_TABLE)
+                return self.operate(operators.ilike_op, '%' + escaped_search_str + '%', escape='\\')
+
     INIT_STATE     = 'init'     # 初期状態
     TMP_STATE      = 'tmp'      # 仮登録状態
     ACTIVE_STATE   = 'active'   # 登録状態
@@ -26,8 +51,8 @@ class User(BaseModel):
     # 列名と列のデータ型等の定義
     id            = Column(INTEGER, primary_key=True, autoincrement=True)
     uuid          = Column(UUID, nullable=False, unique=True)
-    email         = Column(String, nullable=False, unique=True)
-    name          = Column(String, nullable=False)
+    email         = Column(MyString, nullable=False, unique=True)
+    name          = Column(MyString, nullable=False)
     password      = Column(String, nullable=False)
     # ユーザ状態
     state         = Column(ENUM(INIT_STATE, TMP_STATE, ACTIVE_STATE, INACTIVE_STATE, name='user_state'), nullable=False)
