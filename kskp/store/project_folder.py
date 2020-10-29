@@ -97,6 +97,17 @@ class ProjectFolder(Folder):
         self_role = self.creator.load_self_role()
         self_role.clear_authz(self.id)
 
+    def update_data(self, label, modifier=None):
+        """
+        Projectのlabel列を更新する
+        """
+        from kskp.store.auth import NotAuthorizedException
+        if not self._session.ownership(self.id):
+            raise NotAuthorizedException(f'プロジェクト管理者以外のメンバはプロジェクト({self.label})の名称を変更できません')
+
+        # 更新処理はFolderクラスと同じ
+        super().update_data(label, modifier=modifier)
+
     def _find_readers_role(self):
         """
         Readersロールを取得する
@@ -507,7 +518,8 @@ class ProjectFolder(Folder):
         ret = super().to_json()
         # メンバ設定の楽観的排他制御に最終更新時刻を用いる
         ret['modifiedAt'] = self.modified_at.strftime('%Y-%m-%d %H:%M:%S.%f')
-        # プロジェクトの削除とメンバ設定はプロジェクト管理者のみである
+        # プロジェクト管理者だけがプロジェクトの更新と削除とメンバ設定ができる
+        ret['allowlist']['update'] = self.ownership
         ret['allowlist']['delete'] = self.ownership
         ret['allowlist']['move'] = False
         ret['allowlist']['findMember'] = self.ownership

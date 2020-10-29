@@ -269,9 +269,14 @@ class User(BaseModel):
         """
         Userを保存する
         """
+        from sqlalchemy.exc import IntegrityError
+
         try:
             # Usersテーブルにレコードを新規追加する
             self._session.add(self)
+        except IntegrityError:
+            self._session.rollback()
+            raise Exception(f'メールアドレス({self.email})は他のユーザーが使用中です')
         except Exception as e:
             self._session.rollback()
             raise e

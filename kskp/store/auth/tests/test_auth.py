@@ -471,6 +471,33 @@ class AuthTest(TestCaseBase):
         new_user = self.factory.user.find_by_email('test-man4@kskp.io')
         self.assertIsNotNone(new_user)
 
+    def test_cannot_set_same_email(self):
+        """
+        既に登録済みのemailと同じemailのユーザは作成できないこと
+        既に登録済みのemailと同じemailに変更できないこと
+        """
+        # 新規ユーザを追加する
+        new_user1 = self.factory.user.create('wow@kskp.io', 'I AM TEST', '123abc(*)C')
+        new_user1.save()
+
+        # 他のユーザと同じメールアドレスでユーザを作成できないこと
+        with self.assertRaises(Exception):
+            new_user2 = self.factory.user.create('wow@kskp.io', 'I AM TEST 2', None)
+            new_user2.save()
+
+        # 他のユーザと同じメールアドレスに変更できないこと
+        with self.assertRaises(Exception):
+            new_user1.update_email('wow@kskp.io')
+
+        # ユーザを削除する
+        new_user1.delete()
+
+    def test_validate_email(self):
+        """
+        emailの妥当性が検証されること
+        """
+        pass
+
     def test_validate_password(self):
         """
         パスワードの妥当性が検証されること
@@ -1860,6 +1887,41 @@ class AuthTest(TestCaseBase):
         with self.assertRaises(Exception):
             sub_project0 = folder.create_project_folder('Subプロジェクト0')
             sub_project0.save()
+
+    def test_update_project(self):
+        """
+        プロジェクトのラベル名はプロジェクト管理者のみが変更できること
+        """
+        # ルートフォルダを取得する
+        root = self.factory.data.load_root()
+
+        # ルートフォルダの下にプロジェクトを作成する
+        project = root.create_project_folder('半休電車')
+        project.save()
+        project = project.reload()
+
+        # メンバを設定する
+        member1 = ProjectFolder.Member(self.USER2, ProjectFolder.WRITER_MEMBER_TYPE)
+        member2 = ProjectFolder.Member(self.USER3, ProjectFolder.READER_MEMBER_TYPE)
+        project.init_members([member1, member2], last_modified_at=project.modified_at)
+
+        # 編集者は、プロジェクトのラベルを変更できること
+        project = self.factory2.data.find_by_uuid(project.uuid)
+        with self.assertRaises(NotAuthorizedException):
+            project.update_data('阪神電車')
+        self.assertEqual(project.label, '半休電車')
+
+        # 閲覧者は、プロジェクトのラベルを変更できないこと
+        project = self.factory3.data.find_by_uuid(project.uuid)
+        with self.assertRaises(NotAuthorizedException):
+            project.update_data('近鉄電車')
+        self.assertEqual(project.label, '半休電車')
+
+        # プロジェクトをほかして、ゴミ箱を空にする
+        project = self.factory.data.find_by_uuid(project.uuid)
+        self.assertEqual(project.label, '半休電車')
+        project.throw_away()
+        self.factory.data.find_trashcan().trash_all()
 
     def test_cannot_move_project(self):
         """
