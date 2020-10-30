@@ -352,7 +352,8 @@ class Datum(BaseModel):
         return factory.find_by_id(self.id)
 
     @Constraints.prohibit_move_to_root
-    @Constraints.set_role_on_moving
+    @Constraints.set_project_role_on_moving
+    @Constraints.set_project_role_on_moving_flow
     def move(self, parent_uuid, modifier=None):
         """
         指定されたStoreの直下に移動する

@@ -128,7 +128,7 @@ class Constraints():
                 raise Exception('このDecoratorはset_cache()以外をデコレートできません')
 
             # self
-            myself = args[0]
+            myflow = args[0]
             # node_id
             node_id = args[1]
             # cache_uuid
@@ -136,7 +136,7 @@ class Constraints():
 
             try:
                 # 自分のプロジェクトを取得する
-                my_project = myself.find_my_project()
+                my_project = myflow.find_my_project()
             except NoResultFound:
                 # 自分のプロジェクトがない場合はプロジェクトロールを設定しない
                 return func(*args, **kwargs)
@@ -149,12 +149,16 @@ class Constraints():
 
             # ユーザ管理者は全てのDatumの参照・更新・実行、及び権限の変更ができること
             from kskp.store.factory import RoleFactory
-            usr_admin_role = RoleFactory(myself._session).load_usr_admin_role()
+            usr_admin_role = RoleFactory(myflow._session).load_usr_admin_role()
             usr_admin_role.init_authz(cache.id, True, True, own=True)
 
             # everyoneロールからキャッシュの権限を全て削除する
-            everyone_role = RoleFactory(myself._session).load_everyone_role()
+            everyone_role = RoleFactory(myflow._session).load_everyone_role()
             everyone_role.clear_authz(cache.id)
+
+            # 本人ロールからキャッシュの権限を削除する
+            creator_role = cache.creator.load_self_role()
+            creator_role.clear_authz(cache.id)
 
             # キャッシュフォルダへ行ってらっしゃい! 頑張るんだぞ
             return func(*args, **kwargs)
@@ -162,7 +166,7 @@ class Constraints():
         return wrapper
 
     @staticmethod
-    def set_role_on_moving(func):
+    def set_project_role_on_moving(func):
         """
         Datumをプロジェクトを跨いで移動する場合、プロジェクトロール等の設定をする
         """
@@ -258,7 +262,7 @@ class Constraints():
                 everyone_role.init_authz(myself.id, True, True, exec=folder_or_flow, own=True)
 
                 # everyoneロール以外の全ての権限を削除する
-                AuthFactory(myself._session).delete_all_by_datum_id(myself.id, except_role_uuid=everyone_role.uuid)
+                AuthFactory(myself._session).delete_all_by_datum_id(myself.id, except_role_uuids=[everyone_role.uuid])
 
                 return result
 
@@ -276,6 +280,99 @@ class Constraints():
                 return func(*args, **kwargs)
 
         return wrapper
+
+    @staticmethod
+    def set_project_role_on_moving_flow(func):
+        """
+        Flowをプロジェクトを跨いで移動する場合、紐づくキャッシュのプロジェクトロールの設定をする
+        """
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            from sqlalchemy.orm.exc import NoResultFound
+            from kskp.core import Datum
+            from kskp.store.factory import DatumFactory, RoleFactory, AuthFactory
+
+            if func.__name__ != 'move':
+                raise Exception('このDecoratorはmove()以外をデコレートできません')
+
+            # self
+            myflow = args[0]
+            # parent_uuid
+            to_folder_uuid = args[1]
+
+            # フロー以外の移動の場合、何もしない
+            if myflow.type != Datum.FLOW_TYPE:
+                return func(*args, **kwargs)
+
+            try:
+                # 自分のプロジェクトを取得する
+                my_project = myflow.find_my_project()
+            except NoResultFound:
+                # 自分のプロジェクトがない場合はプロジェクトロールを設定しない
+                my_project = None
+
+            datumFactory = DatumFactory(myflow._session)
+            to_folder = datumFactory.find_by_uuid(to_folder_uuid)
+
+            try:
+                # 移動先のプロジェクトを取得する
+                to_project = to_folder.find_my_project()
+            except NoResultFound:
+                # 移動先がプロジェクトでない場合
+                to_project = None
+
+            # 
+            # フローの移動元がProject内で、移動先がProject外の場合、移動元の権限設定を引き継ぐ
+            # 
+            if my_project is not None and to_project is None:
+                # キャッシュの権限設定は変更する必要がない
+                return func(*args, **kwargs)
+            # 
+            # フローの移動元がProject外で、移動先がProject内の場合、移動先のProjectの権限設定に変更する
+            # フローの移動元がProject内で、移動先が他のProject内の場合、移動先のProjectの権限設定に変更する
+            # 
+            elif my_project is None and to_project is not None or \
+                 my_project is not None and to_project is not None and my_project != to_project:
+
+                # ごめん臭い
+                result = func(*args, **kwargs)
+
+                # フローに紐づく全てのキャッシュの権限設定を変更する
+                readers_role = to_project._load_readers_role()
+                writers_role = to_project._load_writers_role()
+                usr_admin_role = RoleFactory(myflow._session).load_usr_admin_role()
+                for cache_uuid in myflow.get_cache_frame_uuids():
+                    # キャッシュが存在しない場合、キャッシュの権限設定は変更できない
+                    if not datumFactory.exists(cache_uuid):
+                        continue
+
+                    # キャッシュの所有権がない場合も、キャッシュの権限設定は変更できない
+                    cache = datumFactory.find_by_uuid(cache_uuid)
+                    if not cache.ownership:
+                        continue
+
+                    # キャッシュに移動先のプロジェクトロールを設定する
+                    readers_role.init_authz(cache.id, read=True, write=None)
+                    writers_role.init_authz(cache.id, read=None, write=True, exec=None, own=True)
+
+                    # ユーザ管理者は全てのDatumの参照・更新・実行、及び権限の変更ができること
+                    usr_admin_role.init_authz(cache.id, True, True, own=True)
+
+                    # ここで新たに設定したプロジェクトロールとユーザ管理者ロール以外の全ての権限を削除する
+                    except_role_uuids = [readers_role.uuid, writers_role.uuid, usr_admin_role.uuid]
+                    AuthFactory(myflow._session).delete_all_by_datum_id(cache.id, except_role_uuids=except_role_uuids)
+
+                return result
+
+            # 
+            # フローの同じプロジェクト内での移動、または移動元と移動先がプロジェクト外での移動の場合、権限設定は必要ない
+            # 
+            else:
+                return func(*args, **kwargs)
+       
+
+        return wrapper
+
 
     @staticmethod
     def set_role_to_trashed_folder(func):
