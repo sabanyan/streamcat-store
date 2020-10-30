@@ -2500,6 +2500,220 @@ class AuthTest(TestCaseBase):
         # プロジェクトは削除する
         project.delete()
 
+    def test_move_flow_with_cache1(self):
+        """
+        フローをプロジェクトを跨いで移動する場合は、
+        紐づくキャッシュの権限も再設定されること
+        """
+        # ルートフォルダを取得する
+        root = self.factory2.data.load_root()
+
+        # ルートフォルダの下にプロジェクト1を作成する
+        project1 = root.create_project_folder('UFO')
+        project1.save()
+        project1 = project1.reload()
+
+        # ルートフォルダの下にプロジェクト2を作成する
+        project2 = root.create_project_folder('ペヤング')
+        project2.save()
+        project2 = project2.reload()
+
+        # プロジェクトの下にフローを作成する
+        import copy
+        flow = project1.create_flow('どん兵衛', copy.deepcopy(self.flow_json))
+        flow.save()
+        flow = flow.reload() 
+
+        # フローを実行する
+        from kskp.engine import execute, FlowJsonLink
+        link = FlowJsonLink(flow, self.factory2)
+        activity = execute(link=link, args={}, inputs={})
+        # フローの実行結果を取得する
+        out_frame = activity.result[0][1]
+
+        # プロジェクト管理者は、フローのキャッシュを参照できること
+        cache_frame_uuid = flow.get_cache_frame_uuids()[0]
+        cache_frame = self.factory2.data.find_by_uuid(cache_frame_uuid)
+
+        # フローをプロジェクト2に移動する
+        flow.move(project2.uuid)
+
+        # キャッシュの権限設定を検証する
+        auths = self.factory.auth.find_all_by_datum_id(cache_frame.id)
+        self.assertEqual(len(auths), 6)
+        # 取得した権限を検証する
+        usr_admin_role = self.factory.role.load_usr_admin_role()
+        readers_role = project2._find_readers_role()
+        writers_role = project2._find_writers_role()
+        # ユーザ管理者ロールの参照権限
+        self.assertEqual(auths[0].role_id, usr_admin_role.id)
+        self.assertEqual(auths[0].datum_id, cache_frame.id)
+        self.assertEqual(auths[0].operation, Auth.READ_OP)
+        self.assertEqual(auths[0].permission, True)
+        self.assertEqual(auths[0].creator, self.USER2)
+        self.assertEqual(auths[0].modifier, self.USER2)
+        self.assertIsNotNone(auths[0].created_at)
+        self.assertIsNotNone(auths[0].modified_at)
+        # ユーザ管理者ロールの更新権限
+        self.assertEqual(auths[1].role_id, usr_admin_role.id)
+        self.assertEqual(auths[1].datum_id, cache_frame.id)
+        self.assertEqual(auths[1].operation, Auth.WRITE_OP)
+        self.assertEqual(auths[1].permission, True)
+        self.assertEqual(auths[1].creator, self.USER2)
+        self.assertEqual(auths[1].modifier, self.USER2)
+        self.assertIsNotNone(auths[1].created_at)
+        self.assertIsNotNone(auths[1].modified_at)
+        # ユーザ管理者ロールの所有権限
+        self.assertEqual(auths[2].role_id, usr_admin_role.id)
+        self.assertEqual(auths[2].datum_id, cache_frame.id)
+        self.assertEqual(auths[2].operation, Auth.OWN_OP)
+        self.assertEqual(auths[2].permission, True)
+        self.assertEqual(auths[2].creator, self.USER2)
+        self.assertEqual(auths[2].modifier, self.USER2)
+        self.assertIsNotNone(auths[1].created_at)
+        self.assertIsNotNone(auths[1].modified_at)
+        # プロジェクト2のReadersロールの参照権限
+        self.assertEqual(auths[3].role_id, readers_role.id)
+        self.assertEqual(auths[3].datum_id, cache_frame.id)
+        self.assertEqual(auths[3].operation, Auth.READ_OP)
+        self.assertEqual(auths[3].permission, True)
+        self.assertEqual(auths[3].creator, self.USER2)
+        self.assertEqual(auths[3].modifier, self.USER2)
+        self.assertIsNotNone(auths[1].created_at)
+        self.assertIsNotNone(auths[1].modified_at)
+        # プロジェクト2のWritersロールの更新権限
+        self.assertEqual(auths[4].role_id, writers_role.id)
+        self.assertEqual(auths[4].datum_id, cache_frame.id)
+        self.assertEqual(auths[4].operation, Auth.WRITE_OP)
+        self.assertEqual(auths[4].permission, True)
+        self.assertEqual(auths[4].creator, self.USER2)
+        self.assertEqual(auths[4].modifier, self.USER2)
+        self.assertIsNotNone(auths[1].created_at)
+        self.assertIsNotNone(auths[1].modified_at)
+        # プロジェクト2のWritersロールの所有権限
+        self.assertEqual(auths[5].role_id, writers_role.id)
+        self.assertEqual(auths[5].datum_id, cache_frame.id)
+        self.assertEqual(auths[5].operation, Auth.OWN_OP)
+        self.assertEqual(auths[5].permission, True)
+        self.assertEqual(auths[5].creator, self.USER2)
+        self.assertEqual(auths[5].modifier, self.USER2)
+        self.assertIsNotNone(auths[1].created_at)
+        self.assertIsNotNone(auths[1].modified_at)
+
+        # プロジェクトとキャッシュを削除する
+        project1.throw_away()
+        project2.throw_away()
+
+        # ゴミ箱を空にする
+        self.factory2.data.find_trashcan().trash_all()
+
+        # 最後にキャッシュを削除する
+        cache_frame.delete()
+
+    def test_move_flow_with_cache2(self):
+        """
+        フローをプロジェクト内からプロジェクト外へ移動する場合は、
+        紐づくキャッシュの権限も再設定されること
+        """
+        # ルートフォルダを取得する
+        root = self.factory2.data.load_root()
+
+        # ルートフォルダの下にプロジェクト1を作成する
+        project1 = root.create_project_folder('ラ王')
+        project1.save()
+        project1 = project1.reload()
+
+        # プロジェクトの下にフローを作成する
+        import copy
+        flow = project1.create_flow('辛ラーメン', copy.deepcopy(self.flow_json))
+        flow.save()
+        flow = flow.reload() 
+
+        # フローを実行する
+        from kskp.engine import execute, FlowJsonLink
+        link = FlowJsonLink(flow, self.factory2)
+        activity = execute(link=link, args={}, inputs={})
+        # フローの実行結果を取得する
+        out_frame = activity.result[0][1]
+
+        # プロジェクト管理者は、フローのキャッシュを参照できること
+        cache_frame_uuid = flow.get_cache_frame_uuids()[0]
+        cache_frame = self.factory2.data.find_by_uuid(cache_frame_uuid)
+
+        # フローをキャッシュフォルダに移動する
+        flow.move(Datum.CACHE_FOLDER_UUID)
+
+        # キャッシュの権限設定を検証する
+        auths = self.factory.auth.find_all_by_datum_id(cache_frame.id)
+        self.assertEqual(len(auths), 6)
+        # 取得した権限を検証する
+        usr_admin_role = self.factory.role.load_usr_admin_role()
+        readers_role = project1._find_readers_role()
+        writers_role = project1._find_writers_role()
+        # ユーザ管理者ロールの参照権限
+        self.assertEqual(auths[0].role_id, usr_admin_role.id)
+        self.assertEqual(auths[0].datum_id, cache_frame.id)
+        self.assertEqual(auths[0].operation, Auth.READ_OP)
+        self.assertEqual(auths[0].permission, True)
+        self.assertEqual(auths[0].creator, self.USER2)
+        self.assertEqual(auths[0].modifier, self.USER2)
+        self.assertIsNotNone(auths[0].created_at)
+        self.assertIsNotNone(auths[0].modified_at)
+        # ユーザ管理者ロールの更新権限
+        self.assertEqual(auths[1].role_id, usr_admin_role.id)
+        self.assertEqual(auths[1].datum_id, cache_frame.id)
+        self.assertEqual(auths[1].operation, Auth.WRITE_OP)
+        self.assertEqual(auths[1].permission, True)
+        self.assertEqual(auths[1].creator, self.USER2)
+        self.assertEqual(auths[1].modifier, self.USER2)
+        self.assertIsNotNone(auths[1].created_at)
+        self.assertIsNotNone(auths[1].modified_at)
+        # ユーザ管理者ロールの所有権限
+        self.assertEqual(auths[2].role_id, usr_admin_role.id)
+        self.assertEqual(auths[2].datum_id, cache_frame.id)
+        self.assertEqual(auths[2].operation, Auth.OWN_OP)
+        self.assertEqual(auths[2].permission, True)
+        self.assertEqual(auths[2].creator, self.USER2)
+        self.assertEqual(auths[2].modifier, self.USER2)
+        self.assertIsNotNone(auths[1].created_at)
+        self.assertIsNotNone(auths[1].modified_at)
+        # プロジェクト2のReadersロールの参照権限
+        self.assertEqual(auths[3].role_id, readers_role.id)
+        self.assertEqual(auths[3].datum_id, cache_frame.id)
+        self.assertEqual(auths[3].operation, Auth.READ_OP)
+        self.assertEqual(auths[3].permission, True)
+        self.assertEqual(auths[3].creator, self.USER2)
+        self.assertEqual(auths[3].modifier, self.USER2)
+        self.assertIsNotNone(auths[1].created_at)
+        self.assertIsNotNone(auths[1].modified_at)
+        # プロジェクト2のWritersロールの更新権限
+        self.assertEqual(auths[4].role_id, writers_role.id)
+        self.assertEqual(auths[4].datum_id, cache_frame.id)
+        self.assertEqual(auths[4].operation, Auth.WRITE_OP)
+        self.assertEqual(auths[4].permission, True)
+        self.assertEqual(auths[4].creator, self.USER2)
+        self.assertEqual(auths[4].modifier, self.USER2)
+        self.assertIsNotNone(auths[1].created_at)
+        self.assertIsNotNone(auths[1].modified_at)
+        # プロジェクト2のWritersロールの所有権限
+        self.assertEqual(auths[5].role_id, writers_role.id)
+        self.assertEqual(auths[5].datum_id, cache_frame.id)
+        self.assertEqual(auths[5].operation, Auth.OWN_OP)
+        self.assertEqual(auths[5].permission, True)
+        self.assertEqual(auths[5].creator, self.USER2)
+        self.assertEqual(auths[5].modifier, self.USER2)
+        self.assertIsNotNone(auths[1].created_at)
+        self.assertIsNotNone(auths[1].modified_at)
+
+        # プロジェクトとキャッシュを削除する
+        project1.throw_away()
+
+        # ゴミ箱を空にする
+        self.factory2.data.find_trashcan().trash_all()
+
+        # 最後にキャッシュを削除する
+        cache_frame.delete()
+
     #
     # Other Datum
     # 

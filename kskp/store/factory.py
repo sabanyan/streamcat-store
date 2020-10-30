@@ -514,7 +514,7 @@ class AuthFactory():
 
         return query.count() > 0
 
-    def delete_all_by_datum_id(self, datum_id, except_role_uuid=None):
+    def delete_all_by_datum_id(self, datum_id, except_role_uuids=None):
         """
         Authzテーブルから指定したDatumの権限情報を全て削除する
         """
@@ -522,10 +522,10 @@ class AuthFactory():
         from kskp.store.auth import Auth, Role
 
         query = self._session.query(Auth).filter(Auth.datum_id==datum_id)
-        if except_role_uuid is None:
+        if except_role_uuids is None or len(except_role_uuids) == 0:
             synchronize_session = 'evaluate'
         else:
-            not_exists_except_role = ~exists().where(and_(Role.id==Auth.role_id, Role.uuid==except_role_uuid))
+            not_exists_except_role = ~exists().where(and_(Role.id==Auth.role_id, Role.uuid.in_(except_role_uuids)))
             query = query.filter(not_exists_except_role)
             synchronize_session = 'fetch'
 
