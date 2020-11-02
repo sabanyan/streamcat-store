@@ -237,12 +237,13 @@ class AuthzSession(Session):
         return exists().select_from(text(select_stmt_str + ' RA1')).\
                         where(text('RA1.permissions') >= literal(0b1000))
 
-    def _make_select_permissions_inner(self, datum_id_column):
+    def _make_select_permissions_inner(self, datum_id_column, ignore_self_edit_lock=False):
         from sqlalchemy.orm import aliased
-        from sqlalchemy.sql.expression import select, func, case, exists, literal, false, and_, or_
+        from sqlalchemy.sql.expression import select, func, case, exists, literal, true, false, and_, or_
         from kskp.core import Datum
         from .auth import Auth
         from .user import User
+        from .role import Role
         from .user_role import UserRole
 
         # leaf_id : 検索対象Datumのid
@@ -265,6 +266,15 @@ class AuthzSession(Session):
         # AuthのTableオブジェクト
         A0 = Auth.__table__
 
+        if ignore_self_edit_lock:
+            # 検索対象のDatumの編集ロックを権限の判定条件に含めない場合
+            not_exists_edit_lock = ~exists().where(and_(A0.c.datum_id==datum_id_column,
+                                                        A0.c.role_id==Role.id,
+                                                        Role.uuid==Role.EDIT_LOCK_ROLE_UUID))
+            criteria = not_exists_edit_lock
+        else:
+            criteria = true()
+
         # 操作ユーザが所属するロールであることを指定する条件
         exists_user_role = exists().where(and_(UserRole.role_id==A0.c.role_id, UserRole.user_id==self.user.id))
         exists_user = exists().where(and_(User.self_role_id==A0.c.role_id, User.id==self.user.id))
@@ -279,7 +289,8 @@ class AuthzSession(Session):
             where(
                 and_(
                     A0.c.operation.in_([Auth.READ_OP, Auth.WRITE_OP, Auth.EXEC_OP]),
-                    or_(exists_user_role, exists_user)
+                    or_(exists_user_role, exists_user),
+                    criteria
                 )
             ).\
             group_by(A0.c.datum_id, A0.c.operation).\
@@ -520,7 +531,7 @@ class AuthzSession(Session):
         
         return (query.scalar() & 0b1000) > 0
 
-    def writable(self, datum) -> bool:
+    def writable(self, datum, ignore_self_edit_lock=False) -> bool:
         """
         UserによるDatumの更新権限の有無を判定する
         """
@@ -530,7 +541,7 @@ class AuthzSession(Session):
         else:
             datum_id = datum.id
 
-        select_permissions = self._make_select_permissions_inner(datum_id).alias('permissions')
+        select_permissions = self._make_select_permissions_inner(datum_id, ignore_self_edit_lock).alias('permissions')
         query = self._session.query(select_permissions)
 
         return (query.scalar() & 0b0100) > 0

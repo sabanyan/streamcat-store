@@ -54,6 +54,8 @@ class Role(BaseModel):
     USR_ADMIN_ROLE_LABEL = 'USR_ADMIN'    
     EVERYONE_ROLE_UUID   = 'ee16239b-5ffd-447c-9d05-411906ad7364'
     EVERYONE_ROLE_LABEL  = 'EVERYONE'
+    EDIT_LOCK_ROLE_UUID  = 'e1743f1e-24c0-4022-9de3-e607637c30fe'
+    EDIT_LOCK_ROLE_LABEL = 'EDIT_LOCK'
 
     def __init__(self, session, name, delete_on_isolated=False):
         """
@@ -119,8 +121,12 @@ class Role(BaseModel):
         return self.uuid == Role.EVERYONE_ROLE_UUID
 
     @property
+    def is_edit_lock(self):
+        return self.uuid == Role.EDIT_LOCK_ROLE_UUID
+
+    @property
     def is_system_role(self):
-        return self.is_sys_admin or self.is_usr_admin or self.is_everyone
+        return self.is_sys_admin or self.is_usr_admin or self.is_everyone or self.is_edit_lock
 
     def _get_system_role_label(self):
         if self.is_sys_admin:
@@ -129,6 +135,8 @@ class Role(BaseModel):
             return Role.USR_ADMIN_ROLE_LABEL
         elif self.is_everyone:
             return Role.EVERYONE_ROLE_LABEL
+        elif self.is_edit_lock:
+            return Role.EDIT_LOCK_ROLE_LABEL
         else:
             return ''
 
@@ -139,6 +147,8 @@ class Role(BaseModel):
         elif self.is_usr_admin:
             raise NoRoleOwnerException('ユーザ管理者権限を持つユーザがいなくなるのでこの操作はできません')
         elif self.is_everyone:
+            raise NoRoleOwnerException('ユーザ管理者権限を持つユーザがいなくなるのでこの操作はできません')
+        elif self.is_edit_lock:
             raise NoRoleOwnerException('ユーザ管理者権限を持つユーザがいなくなるのでこの操作はできません')
         else:
             raise NoRoleOwnerException('ロール所有者がいなくなるのでこの操作はできません')

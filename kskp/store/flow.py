@@ -57,7 +57,12 @@ class Flow(Datum):
             self._session.add(self)
         except Exception as e:
             self._session.rollback()
-            raise e
+            if self.edit_lock:
+                # 編集ロックにより更新できなかった場合
+                from kskp.store import EditLockedException
+                raise EditLockedException('編集ロックが掛かっているため新規追加できません')
+            else:
+                raise e
         finally:
             self._session.commit()
 
@@ -106,45 +111,30 @@ class Flow(Datum):
             self._session.update(self)
         except Exception as e:
             self._session.rollback()
-            raise e
+            if self.edit_lock:
+                # 編集ロックにより更新できなかった場合
+                from kskp.store import EditLockedException
+                raise EditLockedException('編集ロックが掛かっているため更新できません')
+            else:
+                raise e
         finally:
             self._session.commit()
 
         # ここでflowを返すとtest_model.pyでテストが通らない
         return self
 
-    # def move(self, parent_uuid, modifier=None):
-    #     """
-    #     指定されたStoreの直下に移動する
-    #     """
-    #     # UUID値の形式チェックをする
-    #     Datum.valid_uuid_or_raise(parent_uuid)
+    def move(self, parent_uuid, modifier=None):
+        from kskp.store.auth import NotAuthorizedException
 
-    #     from kskp.store.factory import DatumFactory
-    #     to_folder = DatumFactory(self.session).find_by_uuid(parent_uuid)
-    #     if to_folder.type != Datum.FOLDER_TYPE and to_folder.type != Datum.TRASH_TYPE:
-    #         raise Exception('移動先の指定はフォルダまたはゴミ箱のUUIDしか許可していません')
-
-    #     if parent_uuid == self.uuid:
-    #         raise Exception('移動先と移動元の指定が同じです')
-
-    #     # 移動元フォルダのidを覚えておく
-    #     data = self.data.copy()
-    #     data['prev_parent_id'] = self.parent_id
-
-    #     try:
-    #         # レコードを更新する
-    #         self.parent_id = to_folder.id
-    #         self._data = data
-    #         self._modifier_id = (modifier or self.session.user).id
-    #         self.session.update(self)
-    #     except Exception as e:
-    #         self.session.rollback()
-    #         raise e
-    #     finally:
-    #         self.session.commit()
-
-    #     return self
+        try:
+            return super().move(parent_uuid, modifier)
+        except NotAuthorizedException as e:
+            if self.edit_lock:
+                # 編集ロックにより移動できなかった場合
+                from kskp.store import EditLockedException
+                raise EditLockedException('編集ロックが掛かっているため移動できません')
+            else:
+                raise e
 
     def throw_away(self):
         """
@@ -159,7 +149,15 @@ class Flow(Datum):
         if len(using_flow_uuids) > 0:
             raise Exception(f"このフローは別のフロー({using_flow_uuids[0]['reference_label']})で使用しているため削除できません")
 
-        return self.move(trash_folder.uuid)
+        try:
+            return self.move(trash_folder.uuid)
+        except Exception as e:
+            if self.edit_lock:
+                # 編集ロックにより更新できなかった場合
+                from kskp.store import EditLockedException
+                raise EditLockedException('編集ロックが掛かっているため削除できません')
+            else:
+                raise e
 
     @Constraints.delete_role_when_isolated
     def delete(self):
@@ -177,7 +175,12 @@ class Flow(Datum):
             self._session.delete(self)
         except Exception as e:
             self._session.rollback()
-            raise e
+            if self.edit_lock:
+                # 編集ロックにより更新できなかった場合
+                from kskp.store import EditLockedException
+                raise EditLockedException('編集ロックが掛かっているため削除できません')
+            else:
+                raise e
         finally:
             self._session.commit()
             
@@ -224,6 +227,41 @@ class Flow(Datum):
         new_flow.replace_uuids(old_new_uuid_pairs)
 
         return new_flow
+
+    @property
+    def edit_lock(self):
+        """
+        編集ロックの値を取得する
+        """
+        from kskp.store.factory import RoleFactory, AuthFactory
+        from kskp.store.auth import Auth
+        role_factory = RoleFactory(self._session)
+        auth_factory = AuthFactory(self._session)
+        edit_lock_role = role_factory.load_edit_lock_role()
+
+        if auth_factory.exists(edit_lock_role.id, self.id, Auth.WRITE_OP):
+            auth = auth_factory.find_by_id(edit_lock_role.id, self.id, Auth.WRITE_OP)
+            # permission=Falseであれば編集ロックが掛かっている
+            return not auth.permission
+        else:
+            # 権限レコードが存在しなければ編集ロックは掛かっていない
+            return False
+
+    @edit_lock.setter
+    def edit_lock(self, value:bool):
+        """
+        編集ロックを設定する
+        """
+        from kskp.store.auth import NotAuthorizedException
+        if not self._session.writable(self, ignore_self_edit_lock=True):
+            raise NotAuthorizedException(f'({self.user})は{self.label}の編集ロックの更新権限がありません')
+
+        from kskp.store.factory import RoleFactory
+        factory = RoleFactory(self._session)
+        edit_lock_role = factory.load_edit_lock_role()
+        # write=Falseでedit_lock_roleに参加する全てのユーザはこのフローの更新権限を失う
+        edit_lock_value = not value and None
+        edit_lock_role.init_authz(self.id, read=None, write=edit_lock_value)
 
     @staticmethod
     def _get_select_stmt_for_nodes():
@@ -278,76 +316,6 @@ class Flow(Datum):
             if factory.trashed(flow_uuid):
                 flow = factory.find_by_uuid(flow_uuid)
                 raise Exception(f'ゴミ箱にあるフロー({flow.label})は使用できません')
-
-    # def get_src_frame_uuids(self):
-    #     """
-    #     参照する入力frameを全て取得する
-    #     """
-    #     from sqlalchemy import select, column, text, String
-    #     from sqlalchemy.sql import alias
-
-    #     inner_sql = Flow._get_select_stmt_for_nodes().\
-    #                      where(text(f"uuid = '{self.uuid}' ")).\
-    #                      alias('F')
-    #     sql = select([column('uuid', String)], distinct=True).select_from(inner_sql).\
-    #           where(text(f"type = 'frame'")).\
-    #           where(text(f"(cacheCreatedAt is null or cacheCreatedAt = '' )")).\
-    #           where(text(f"uuid is not null and uuid <> '' "))
-
-    #     results = self.session.execute(sql)
-    #     return [str(result['uuid']) for result in results]
-
-    # def get_cache_frame_uuids(self):
-    #     """
-    #     参照するキャッシュframeを全て取得する
-    #     """
-    #     from sqlalchemy import select, column, text, String
-    #     from sqlalchemy.sql import alias
-
-    #     inner_sql = Flow._get_select_stmt_for_nodes().\
-    #                      where(text(f"uuid = '{self.uuid}' ")).\
-    #                      alias('F')
-    #     sql = select([column('uuid', String)], distinct=True).select_from(inner_sql).\
-    #           where(text(f"type = 'frame'")).\
-    #           where(text(f"(cacheCreatedAt is not null and cacheCreatedAt <> '' )")).\
-    #           where(text(f"uuid is not null and uuid <> '' "))
-
-    #     results = self.session.execute(sql)
-    #     return [str(result['uuid']) for result in results]
-
-    # def get_sub_flow_uuids(self):
-    #     """
-    #     参照するSub Flowを全て取得する
-    #     """
-    #     from sqlalchemy import select, column, text, String
-    #     from sqlalchemy.sql import alias
-
-    #     inner_sql = Flow._get_select_stmt_for_nodes().\
-    #                      where(text(f"uuid = '{self.uuid}' ")).\
-    #                      alias('F')
-    #     sql = select([column('uuid', String)], distinct=True).select_from(inner_sql).\
-    #           where(text(f"type = 'flow'")).\
-    #           where(text(f"uuid is not null and uuid <> '' "))
-
-    #     results = self.session.execute(sql)
-    #     return [str(result['uuid']) for result in results]
-
-    # def get_store_uuids(self):
-    #     """
-    #     参照するStoreを全て取得する
-    #     """
-    #     from sqlalchemy import select, column, text, String
-    #     from sqlalchemy.sql import alias
-
-    #     inner_sql = Flow._get_select_stmt_for_nodes().\
-    #                      where(text(f"uuid = '{self.uuid}' ")).\
-    #                      alias('F')
-    #     sql = select([column('uuid', String)], distinct=True).select_from(inner_sql).\
-    #           where(text(f"type = 'store'")).\
-    #           where(text(f"uuid is not null and uuid <> '' "))
-
-    #     results = self.session.execute(sql)
-    #     return [str(result['uuid']) for result in results]
 
     def get_src_frame_uuids(self):
         """
@@ -482,6 +450,7 @@ class Flow(Datum):
 
     def to_json(self):
         ret = super().to_json()
+        ret['editLock'] = self.edit_lock
         ret['allowlist']['execute'] = self.executable
         ret['allowlist']['lock'] = self.writable
         return ret
