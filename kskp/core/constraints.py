@@ -175,6 +175,7 @@ class Constraints():
             from sqlalchemy.orm.exc import NoResultFound
             from kskp.core import Datum
             from kskp.store import Folder, Flow
+            from kskp.store.auth import Role
             from kskp.store.factory import DatumFactory, RoleFactory, AuthFactory
 
             if func.__name__ != 'move':
@@ -261,8 +262,9 @@ class Constraints():
                 everyone_role = RoleFactory(myself._session).load_everyone_role()
                 everyone_role.init_authz(myself.id, True, True, exec=folder_or_flow, own=True)
 
-                # everyoneロール以外の全ての権限を削除する
-                AuthFactory(myself._session).delete_all_by_datum_id(myself.id, except_role_uuids=[everyone_role.uuid])
+                # everyoneロールとedit_lock_role以外の全ての権限を削除する
+                except_role_uuids = [Role.EVERYONE_ROLE_UUID, Role.EDIT_LOCK_ROLE_UUID]
+                AuthFactory(myself._session).delete_all_by_datum_id(myself.id, except_role_uuids=except_role_uuids)
 
                 return result
 

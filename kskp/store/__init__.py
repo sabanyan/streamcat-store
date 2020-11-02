@@ -74,7 +74,7 @@ BaseModel = declarative_base(cls=MyBase)
 
 from kskp.core import Datum, Port, Command
 
-from .exceptions import NothingToPutbackException, NoResultsException, OptimisticLockException
+from .exceptions import NothingToPutbackException, NoResultsException, OptimisticLockException, EditLockedException
 from .store import Store, NysolModule, ModuleStore, List
 from .database_conn import DatabaseConn
 from .remote_folder_conn import RemoteFolderConn
@@ -129,13 +129,19 @@ with UnAuthzFactory() as unauthz_factory:
         # ユーザ管理者ロールを作成する
         # (ロールを新規作成した場合は作成者がロールの所有者になる)
         factory.role.load_usr_admin_role()
+
         # everyoneロールにユーザ管理者を所有者として参加させる
         # (unauthz_factoryからロールを新規追加された場合、作成者はロールに参加されない)
         # (ユーザ管理者ロールを作成した後に処理すること)
         everyone_role = factory.role.load_everyone_role()
+        # edit_lock_roleロールにユーザ管理者を所有者として参加させる
+        edit_lock_role = factory.role.load_edit_lock_role()
         if usr_admin_user.is_init:
             # ユーザ管理者を新規作成した場合は、ユーザ管理者ロールの所有者メンバに加える
             everyone_role.join_member(Role.Member(usr_admin_user, owner=True))
+            # 編集ロックロールの所有者メンバに加える
+            edit_lock_role.join_member(Role.Member(usr_admin_user, owner=True))
+
         # システムフォルダを作成する
         factory.data.load_cache_folder()
         factory.data.load_trash_folder()

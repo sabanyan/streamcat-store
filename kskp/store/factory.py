@@ -588,13 +588,13 @@ class RoleFactory():
 
     def load_usr_admin_role(self):
         if self.exists(Role.USR_ADMIN_ROLE_UUID):
-            sys_admin_role = self.find_by_uuid(Role.USR_ADMIN_ROLE_UUID)
+            usr_admin_role = self.find_by_uuid(Role.USR_ADMIN_ROLE_UUID)
         else:
-            sys_admin_role = Role(self._session, Role.USR_ADMIN_ROLE_LABEL)
+            usr_admin_role = Role(self._session, Role.USR_ADMIN_ROLE_LABEL)
             # コンストラクタで付番したUUIDを捨てて、特定用途のUUIDを格納する
-            sys_admin_role.uuid = Role.USR_ADMIN_ROLE_UUID
-            sys_admin_role.save()
-        return sys_admin_role
+            usr_admin_role.uuid = Role.USR_ADMIN_ROLE_UUID
+            usr_admin_role.save()
+        return usr_admin_role
 
     def load_everyone_role(self):
         if self.exists(Role.EVERYONE_ROLE_UUID):
@@ -606,6 +606,16 @@ class RoleFactory():
             everyone_role.save()
 
         return everyone_role
+
+    def load_edit_lock_role(self):
+        if self.exists(Role.EDIT_LOCK_ROLE_UUID):
+            edit_lock_role = self.find_by_uuid(Role.EDIT_LOCK_ROLE_UUID)
+        else:
+            edit_lock_role = Role(self._session, Role.EDIT_LOCK_ROLE_LABEL)
+            # コンストラクタで付番したUUIDを捨てて、特定用途のUUIDを格納する
+            edit_lock_role.uuid = Role.EDIT_LOCK_ROLE_UUID
+            edit_lock_role.save()
+        return edit_lock_role
 
     def exists(self, uuid) -> bool:
         count = self._session.query(Role).filter(Role.uuid==uuid).count()
@@ -623,8 +633,13 @@ class UserRoleFactory():
                        filter(UserRole.role_id==role_id).\
                        one()
 
-    def find_all_by_user_id(self, user_id):
-        return self._session.query(UserRole).filter(UserRole.user_id==user_id).all()
+    def find_all_by_user_id(self, user_id, except_role_uuids=None):
+        query = self._session.query(UserRole).filter(UserRole.user_id==user_id)
+        if except_role_uuids is not None and len(except_role_uuids) > 0:
+            from sqlalchemy import exists, and_
+            not_exists_role = ~exists().where(and_(Role.id==UserRole.role_id, Role.uuid.in_(except_role_uuids)))
+            query = query.filter(not_exists_role)
+        return query.all()
 
     def exists(self, user_id, role_id=None) -> bool:
         query = self._session.query(UserRole).filter(UserRole.user_id==user_id)

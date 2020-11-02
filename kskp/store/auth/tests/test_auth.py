@@ -1,9 +1,10 @@
 import io
+import copy
 import unittest
 import pprint
 from sqlalchemy.orm.exc import NoResultFound
 from kskp.core import Datum
-from kskp.store import ProjectFolder, OptimisticLockException
+from kskp.store import ProjectFolder, OptimisticLockException, EditLockedException
 from kskp.store.auth import Auth, Role, InvalidPassword, NotAuthorizedException, NoRoleOwnerException
 from ...tests.test_case_base import TestCaseBase
 
@@ -707,6 +708,7 @@ class AuthTest(TestCaseBase):
         sys_admin_role = self.factory.role.load_sys_admin_role()
         usr_admin_role = self.factory.role.load_usr_admin_role()
         everyone_role = self.factory.role.load_everyone_role()
+        edit_lock_role = self.factory.role.load_edit_lock_role()
 
         # システムロールは削除できないこと
         with self.assertRaises(Exception):
@@ -715,6 +717,8 @@ class AuthTest(TestCaseBase):
             usr_admin_role.delete()
         with self.assertRaises(Exception):
             everyone_role.delete()
+        with self.assertRaises(Exception):
+            edit_lock_role.delete()
 
     def test_join_usr_admin_role_without_owner(self):
         """
@@ -2519,7 +2523,6 @@ class AuthTest(TestCaseBase):
         project2 = project2.reload()
 
         # プロジェクトの下にフローを作成する
-        import copy
         flow = project1.create_flow('どん兵衛', copy.deepcopy(self.flow_json))
         flow.save()
         flow = flow.reload() 
@@ -2624,7 +2627,6 @@ class AuthTest(TestCaseBase):
         project1 = project1.reload()
 
         # プロジェクトの下にフローを作成する
-        import copy
         flow = project1.create_flow('辛ラーメン', copy.deepcopy(self.flow_json))
         flow.save()
         flow = flow.reload() 
@@ -2713,6 +2715,152 @@ class AuthTest(TestCaseBase):
 
         # 最後にキャッシュを削除する
         cache_frame.delete()
+
+    # 
+    # Edit Lock
+    # 
+
+    def test_edit_lock_on_root(self):
+        """
+        Flowの編集ロックをONにすると更新できないこと
+        """
+        # ルートフォルダを取得する
+        root = self.factory.data.load_root()
+        # ルートフォルダの下にフレームを作成する
+        frame = root.create_frame('だーれが', io.BytesIO(b''))
+        frame.save()
+        # ルートフォルダの下にフローを作成する
+        flow = root.create_simple_flow('殺した', frame)
+        flow.save()
+
+        # フローを再取得する
+        flow = flow.reload()
+
+        # フローJSONのうちnodes以外のキーは取得できること
+        self.assertEqual(flow.flow_data.label, '殺した')
+        self.assertEqual(flow.flow_data.description, '')
+        self.assertEqual(flow.flow_data.ports, [[],[]])
+        self.assertTrue(flow.flow_data.has_nodes)
+        self.assertEqual(len(flow.flow_data.get_nodes()), 1)
+
+        # フローを編集ロックする
+        flow.edit_lock = True
+        self.assertTrue(flow.edit_lock)
+
+        # 編集ロックされたフローは更新できないこと
+        with self.assertRaises(EditLockedException):
+            flow.update_data('ククロビン', copy.deepcopy(self.flow_json))
+
+        # 編集ロックされたフローは削除できないこと
+        with self.assertRaises(EditLockedException):
+            flow.delete()
+
+        # Rollback後のpermissionはNoneになるのでフローを再取得する
+        flow = flow.reload()
+
+        # 編集ロックを解除する
+        flow.edit_lock = False
+        self.assertFalse(flow.edit_lock)
+
+        # 編集ロックが解除されたフローは更新できること
+        flow.update_data('だーれが殺したククロビン', copy.deepcopy(self.flow_json))
+        self.assertEqual(flow.label, 'だーれが殺したククロビン')
+
+        # フローとフレームを削除する
+        frame.delete()
+        flow.delete()
+
+    def test_cannot_turn_edit_lock_by_reader(self):
+        """
+        閲覧者は編集ロックの値を変更できないこと
+        """
+        # ルートフォルダを取得する
+        root = self.factory2.data.load_root()
+
+        # ルートフォルダの下にプロジェクトを作成する
+        project = root.create_project_folder('花は爛漫咲き誇りー')
+        project.save()
+        project = project.reload()
+
+        # プロジェクトの下にフローを作成する
+        flow = project.create_flow('天下太平マリネラじゃー', copy.deepcopy(self.flow_json))
+        flow.save()
+
+        # メンバを設定する
+        member1 = ProjectFolder.Member(self.USER2, ProjectFolder.OWNER_MEMBER_TYPE)
+        member2 = ProjectFolder.Member(self.USER3, ProjectFolder.READER_MEMBER_TYPE)
+        project.init_members([member1, member2], last_modified_at=project.modified_at)
+
+        # フローを編集ロックする
+        flow.edit_lock = True
+        self.assertTrue(flow.edit_lock)
+
+        # 編集ロックを解除する
+        flow.edit_lock = False
+        self.assertFalse(flow.edit_lock)
+
+        # 閲覧者は編集ロックの値を変更できないこと
+        flow = self.factory3.data.find_by_uuid(flow.uuid)
+        with self.assertRaises(NotAuthorizedException):
+            flow.edit_lock = True
+        with self.assertRaises(NotAuthorizedException):
+            flow.edit_lock = False
+        
+        # 閲覧者でも編集ロックの値を参照できること
+        self.assertFalse(flow.edit_lock)
+
+        # プロジェクトを削除する
+        project.throw_away()
+
+        # ゴミ箱を空にする
+        self.factory2.data.find_trashcan().trash_all()
+
+    def test_cannot_move_edit_locked_flow(self):
+        """
+        編集ロックがONのFlowは移動できないこと
+        """
+        # ルートフォルダを取得する
+        root = self.factory2.data.load_root()
+
+        # ルートフォルダの下にプロジェクト1を作成する
+        project1 = root.create_project_folder('あーの顔見ーたらどうしても')
+        project1.save()
+        project1 = project1.reload()
+
+        # ルートフォルダの下にプロジェクト2を作成する
+        project2 = root.create_project_folder('つぶれアンマン')
+        project2.save()
+        project2 = project1.reload()
+
+        # プロジェクト1の下にフローを作成する
+        flow = project1.create_flow('どうした、どうした', copy.deepcopy(self.flow_json))
+        flow.save()
+
+        # メンバを設定する
+        member1 = ProjectFolder.Member(self.USER2, ProjectFolder.OWNER_MEMBER_TYPE)
+        member2 = ProjectFolder.Member(self.USER3, ProjectFolder.WRITER_MEMBER_TYPE)
+        project1.init_members([member1, member2], last_modified_at=project1.modified_at)
+
+        # フローを編集ロックする
+        flow.edit_lock = True
+        self.assertTrue(flow.edit_lock)
+
+        # 編集ロックされたフローは移動できないこと
+        with self.assertRaises(EditLockedException):
+            flow.move(project2.uuid)
+
+        # 編集ロックを解除する
+        flow.edit_lock = False
+        self.assertFalse(flow.edit_lock)
+        
+        # 閲覧者でも編集ロックの値を参照できること
+        self.assertFalse(flow.edit_lock)
+
+        # プロジェクトを削除する
+        project1.throw_away()
+
+        # ゴミ箱を空にする
+        self.factory2.data.find_trashcan().trash_all()
 
     #
     # Other Datum
@@ -3330,7 +3478,7 @@ class AuthTest(TestCaseBase):
         project = project.reload()
 
         # プロジェクトの下にフローを作成する
-        flow = project.create_flow('iPad', self.flow_json)
+        flow = project.create_flow('iPad', copy.deepcopy(self.flow_json))
         flow.save()
         flow = flow.reload()
 

@@ -228,6 +228,14 @@ class User(BaseModel):
         everyone_role = RoleFactory(self._session).load_everyone_role()
         everyone_role.join_member(Role.Member(self, False))
 
+    def _join_edit_lock_role(self):
+        # edit_lockロールに所属させる
+        # (edit_lockロールの作成者であるユーザ管理者のみがユーザを追加できる)
+        from kskp.store.auth import Role
+        from kskp.store.factory import RoleFactory
+        edit_lock_role = RoleFactory(self._session).load_edit_lock_role()
+        edit_lock_role.join_member(Role.Member(self, False))
+
     @property
     def is_init(self):
         return self.state==User.INIT_STATE
@@ -285,6 +293,8 @@ class User(BaseModel):
 
         # everyoneロールに所属させる
         self._join_everyone_role()
+        # edit_lock_roleに所属させる
+        self._join_edit_lock_role()
 
     def update_email(self, new_email, modifier=None):
         """
@@ -393,9 +403,9 @@ class User(BaseModel):
         self._able_to_delete_user_or_raise()
 
         try:
-            # 全てのロールから脱退する(本人ロールを除く)
+            # 全てのロールから脱退する(本人ロールと編集ロックロールを除く)
             for role in self.get_joined_roles():
-                if not role.is_self_role():
+                if not role.is_self_role() and not role.is_edit_lock:
                     role.leave_member(self)
             # usersテーブルから削除ユーザの行を削除する
             self._session.delete(self)
@@ -409,21 +419,15 @@ class User(BaseModel):
         """
         登録Userを論理削除する
         """
-        # 仮登録Userで、本人ロールと(everyoneを除く)自分が属するロールが存在していなければ物理削除する
+        # 仮登録Userで、本人ロールと(everyoneとedit_lockを除く)自分が属するロールが存在していなければ物理削除する
         if self.is_init_or_temp and self.self_role_id is None:
-            from kskp.store.factory import RoleFactory, UserRoleFactory
-            everyone_role = RoleFactory(self._session).load_everyone_role()
-            user_roles = UserRoleFactory(self._session).find_all_by_user_id(self.id)
+            from kskp.store.auth import Role
+            from kskp.store.factory import UserRoleFactory
+            except_role_uuids = [Role.EVERYONE_ROLE_UUID, Role.EDIT_LOCK_ROLE_UUID]
+            user_roles = UserRoleFactory(self._session).find_all_by_user_id(self.id, except_role_uuids)
 
-            # everyone以外の所属ロールを探す
-            user_join_in_other_than_everyone_role = False
-            for user_role in user_roles:
-                if user_role.role_id != everyone_role.id:
-                    user_join_in_other_than_everyone_role = True
-                    break
-
-            # everyone以外の所属ロールが無ければ、Userを物理削除する
-            if not user_join_in_other_than_everyone_role:
+            # everyoneとedit_lock以外の所属ロールが無ければ、Userを物理削除する
+            if len(user_roles) == 0:
                 self.delete()
                 return
 
@@ -431,9 +435,9 @@ class User(BaseModel):
         self._able_to_delete_user_or_raise()
 
         try:
-            # 全てのロールから脱退する(本人ロールを除く)
+            # 全てのロールから脱退する(本人ロールと編集ロックロールを除く)
             for role in self.get_joined_roles():
-                if not role.is_self_role():
+                if not role.is_self_role() and not role.is_edit_lock:
                     role.leave_member(self)
             # 論理削除状態に変更する
             self._set_state(User.INACTIVE_STATE)

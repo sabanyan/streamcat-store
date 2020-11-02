@@ -15,3 +15,9 @@ class OptimisticLockException(Exception):
     楽観的排他制御によりDatumの更新に失敗したことを通知する例外
     """
     pass
+
+class EditLockedException(Exception):
+    """
+    Datumが編集ロックされているため編集できないことを通知する
+    """
+    pass
