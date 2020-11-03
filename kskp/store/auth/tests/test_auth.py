@@ -4,7 +4,7 @@ import unittest
 import pprint
 from sqlalchemy.orm.exc import NoResultFound
 from kskp.core import Datum
-from kskp.store import ProjectFolder, OptimisticLockException, EditLockedException
+from kskp.store import ProjectFolder, OptimisticLockException, EditLockedException, CommandException
 from kskp.store.auth import Auth, Role, InvalidPassword, NotAuthorizedException, NoRoleOwnerException
 from ...tests.test_case_base import TestCaseBase
 
@@ -91,6 +91,16 @@ class AuthTest(TestCaseBase):
         "projectId": None, 
         "description": ""
     }
+
+    def get_frame_from_lasts(lasts):
+        """
+        lastsから出力結果Frameを1つ返す
+        """
+        from kskp.store import Activity
+        activities = [ datum for point_id, datum in lasts.items() if isinstance(datum, Activity)]
+        # Engineの実行により例外が発生した場合は送出する
+        activities[0].raise_one()
+        return activities[0].lasts[0][1]
 
     # 
     # SQLAlchemy Session
@@ -2530,9 +2540,9 @@ class AuthTest(TestCaseBase):
         # フローを実行する
         from kskp.engine import execute, FlowJsonLink
         link = FlowJsonLink(flow, self.factory2)
-        activity = execute(link=link, args={}, inputs={})
+        lasts = execute(link=link, args={}, inputs={})
         # フローの実行結果を取得する
-        out_frame = activity.result[0][1]
+        out_frame = AuthTest.get_frame_from_lasts(lasts)
 
         # プロジェクト管理者は、フローのキャッシュを参照できること
         cache_frame_uuid = flow.get_cache_frame_uuids()[0]
@@ -2634,9 +2644,9 @@ class AuthTest(TestCaseBase):
         # フローを実行する
         from kskp.engine import execute, FlowJsonLink
         link = FlowJsonLink(flow, self.factory2)
-        activity = execute(link=link, args={}, inputs={})
+        lasts = execute(link=link, args={}, inputs={})
         # フローの実行結果を取得する
-        out_frame = activity.result[0][1]
+        out_frame = AuthTest.get_frame_from_lasts(lasts)
 
         # プロジェクト管理者は、フローのキャッシュを参照できること
         cache_frame_uuid = flow.get_cache_frame_uuids()[0]
@@ -3373,9 +3383,9 @@ class AuthTest(TestCaseBase):
         # フローを実行する
         from kskp.engine import execute, FlowJsonLink
         link = FlowJsonLink(flow, self.factory2)
-        activity = execute(link=link, args={}, inputs={})
+        lasts = execute(link=link, args={}, inputs={})
         # フローの実行結果を取得する
-        out_frame = activity.result[0][1]
+        out_frame = AuthTest.get_frame_from_lasts(lasts)
 
         # プロジェクト管理者は、フローの実行結果を参照できること
         out_frame = self.factory2.data.find_by_uuid(out_frame.uuid)
@@ -3423,9 +3433,9 @@ class AuthTest(TestCaseBase):
         # フローを実行する
         from kskp.engine import execute, FlowJsonLink
         link = FlowJsonLink(flow, self.factory2)
-        activity = execute(link=link, args={}, inputs={})
+        lasts = execute(link=link, args={}, inputs={})
         # フローの実行結果を取得する
-        out_frame = activity.result[0][1]
+        out_frame = AuthTest.get_frame_from_lasts(lasts)
 
         # プロジェクト管理者は、フローの実行結果を参照できること
         out_frame = self.factory2.data.find_by_uuid(out_frame.uuid)
@@ -3489,8 +3499,11 @@ class AuthTest(TestCaseBase):
         from kskp.engine import execute, FlowJsonLink
         flow = self.factory3.data.find_by_uuid(flow.uuid)
         link = FlowJsonLink(flow, self.factory3)
-        with self.assertRaises(NotAuthorizedException):
-            activity = execute(link=link, args={}, inputs={})
+        with self.assertRaises(CommandException) as e:
+            lasts = execute(link=link, args={}, inputs={})
+            AuthTest.get_frame_from_lasts(lasts)
+        # CommandExceptionはNotAuthorizedExceptionを再送出していること
+        self.assertIsInstance(e.exception.innerException, NotAuthorizedException)
             
         # フローを削除する
         flow = self.factory2.data.find_by_uuid(flow.uuid)
