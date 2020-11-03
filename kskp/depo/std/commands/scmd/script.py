@@ -17,7 +17,7 @@ class SaverCommand(SCommand):
     def __init__(self):
         super().__init__()
         self.i_ports = [Port('i', 'frame'), Port('store', 'store')]
-        self.o_ports = [Port('o', 'mcmd'), Port('u', 'frame')]
+        self.o_ports = [Port('o', 'mcmd')]
 
     def run(self, args, inputs):
         # Frameを作成する
@@ -43,8 +43,11 @@ class SaverCommand(SCommand):
         #     raise Exception(f"Illegal type : {type(inputs['i'])}")
         cmd = inputs['i'].content
         cmd = self.append_writecsv_cmd(cmd, frame.path)
- 
-        return {'o': NysolModule(cmd), 'u': frame}
+        # 出力フレームをRunsCommandに渡す
+        nysol_module = NysolModule(cmd)
+        nysol_module.context['frame'] = frame
+
+        return {'o': nysol_module}
 
     def append_writecsv_cmd(self, cmd, frame_path):
         abs_frame_path = frame_path.as_posix()
@@ -125,8 +128,11 @@ class CacheSaverCommand(SaverCommand):
         # NYSOLコマンドを作成する
         cmd = inputs['i'].content
         cmd = self.append_writecsv_cmd(cmd, cache.path)
+        # 出力フレームをRunsCommandに渡す
+        nysol_module = NysolModule(cmd)
+        nysol_module.context['frame'] = cache
 
-        return {'o': NysolModule(cmd), 'u': cache}
+        return {'o': nysol_module}
 
     def make_frame(self, store, label):
         import io
@@ -332,7 +338,7 @@ class DbLoaderCommand(SCommand):
         sys.__stderr__.write(indent + '  ' + message + '\n')
         sys.__stderr__.write(indent + '>\n')
 
-    def dtor(self):
+    def dtor(self, args):
         DbLoaderCommand._write_log('DTOR!')
 
 
@@ -343,7 +349,7 @@ class DbSaverCommand(SaverCommand):
     def __init__(self):
         super().__init__()
         self.i_ports = [Port('i', 'frame'), Port('store', 'store'), Port('folder', 'store')]
-        self.o_ports = [Port('o', 'mcmd'), Port('u', 'frame')]
+        self.o_ports = [Port('o', 'mcmd')]
         self._tmp_file_path = None
 
     def run(self, args, inputs):
@@ -423,7 +429,11 @@ class DbSaverCommand(SaverCommand):
         datasource = self._create_data_source(result_folder, database, 'point_id', schema_name, table_name, args['activity_uuid'])
         datasource.save()
 
-        return {'o': NysolModule(cmd), 'u': datasource}  
+        # 出力DataSourceをRunsCommandに渡す
+        nysol_module = NysolModule(cmd)
+        nysol_module.context['frame'] = datasource
+
+        return {'o': nysol_module}  
         
     @staticmethod
     def _connect_to_db(db_uri):
@@ -594,7 +604,7 @@ class DbSaverCommand(SaverCommand):
         sys.__stderr__.write(indent + '  ' + message + '\n')
         sys.__stderr__.write(indent + '>\n')
 
-    def dtor(self):
+    def dtor(self, args):
         DbSaverCommand._write_log('DTOR!')
         # Tmpファイルを削除する
         import os
@@ -644,7 +654,7 @@ class RemoteFolderSaverCommand(SaverCommand):
     def __init__(self):
         super().__init__()
         self.i_ports = [Port('i', 'frame'), Port('store', 'store'), Port('folder', 'store')]
-        self.o_ports = [Port('o', 'mcmd'), Port('u', 'frame')]
+        self.o_ports = [Port('o', 'mcmd')]
 
     def run(self, args, inputs):
         from kskp.store import Datum
@@ -689,7 +699,11 @@ class RemoteFolderSaverCommand(SaverCommand):
         datasource = self._create_data_source(result_folder, rfolder, 'point_id', path_str)
         datasource.save()
 
-        return {'o': NysolModule(cmd), 'u': datasource}  
+        # 出力DataSourceをRunsCommandに渡す
+        nysol_module = NysolModule(cmd)
+        nysol_module.context['frame'] = datasource
+
+        return {'o': NysolModule(cmd)}  
 
     @staticmethod
     def _create_data_source(parent, rfolder, label, file_path_str):
@@ -718,6 +732,7 @@ class RunsCommand(SCommand):
     def run(self, args, inputs):
         import psutil
         from multiprocessing import Process, Manager, Pipe
+        from kskp.store import List, ApparentLast, CommandException
 
         def do_runs(nm_list, results, exs, out):
             """
@@ -742,6 +757,25 @@ class RunsCommand(SCommand):
                     import traceback
                     traceback.print_exc(file=fpe)
                 exs.append(e)
+
+        # 
+        # CommandExceptionが1つでも入力された場合は処理を中断する
+        # (例外が入力されたら対応する出力ポートに渡す)
+        # 
+        rets = {}
+        exception_exists = False
+        for i_port_name, input in inputs.items():
+            if isinstance(input, CommandException):
+                rets[i_port_name] = ApparentLast(None, None, [input])
+                exception_exists = True
+            elif isinstance(input,  (NysolModule, List)):
+                rets[i_port_name] = ApparentLast(None, input.context.get('frame'))
+            else:
+                raise Exception('RunsCommandにNysolModuleまたはCommandException以外のデータ型が入力されました')
+
+        if exception_exists:
+            # ActivityCommandにSaverが生成したFrameと例外を渡す
+            return rets
 
         # ディスクの空き容量を確認する
         # (Managerがtmpファイルを作成するが容量不足の時にその旨の例外を返さないので事前に確認する)
@@ -800,31 +834,38 @@ class RunsCommand(SCommand):
                 recv_conn.close()
                 send_conn.close()
 
-            # NYSOL Pythonのエラー処理
-            if len(mcmd_errors) > 0:
-                from .mcmd_error_info import MCMDErrorInfo, MCMDError
-                mcmd_error_info = MCMDErrorInfo.parse_stderr(mcmd_errors[0])
-                raise MCMDError(mcmd_error_info)
+            # 例外リスト
+            exs_list = []
 
-            if len(exs) > 0:
-                # writelistコマンドにCSV形式以外のデータが入力されると例外が送出されるようである
-                raise Exception('データを表示できませんでした。次の原因が考えられます ' + \
-                                '(データが空です / ' + \
-                                'データがCSV形式ではありません / ' + \
-                                '最終行が改行コードのみ)')
+            # NYSOL-Pythonから"#ERROR#"形式のエラーが出力された場合
+            from .mcmd_error_info import MCMDErrorInfo, MCMDError
+            for mcmd_error in mcmd_errors:
+                mcmd_error_info = MCMDErrorInfo.parse_stderr(mcmd_error)
+                exs_list.append(MCMDError(mcmd_error_info))
 
-            if len(results) != len(inputs):
-                raise Exception('RunsCommandの入力ポートと出力ポートの数が異なります')
+            # "#ERROR#"形式のエラーは無く、例外が送出された場合
+            if len(exs_list) == 0:
+                exs_list.extend(exs)
+
+            # NYSOL-Pythonからエラーは無く、期待する結果数が返らなかった場合
+            if len(exs_list) == 0 and len(results) != len(inputs):
+                exs_list.append(Exception(f'RunsCommandの入力ポート数({len(inputs)})と出力ポート数({len(results)})が異なります'))
 
             # resultsの要素はnm_listへのappend順に対応している?ため
             # 入力ポートと出力ポートは同じキーで対応付ける
             i = 0
-            ret = {}
-            for i_port_name in inputs.keys():
-                ret[i_port_name] = results[i]
+            rets = {}
+            for i_port_name, nysol_module in inputs.items():
+                # プレビューの場合はframe=Noneである
+                frame = nysol_module.context.get('frame')
+                if len(exs_list) == 0:
+                    list = List(results[i])
+                    rets[i_port_name] = ApparentLast(None, frame or list)
+                else:
+                    rets[i_port_name] = ApparentLast(None, frame, exs_list)
                 i += 1
 
-            return ret
+            return rets
 
 
 class FieldNamesCommand(RunsCommand):
@@ -840,7 +881,6 @@ class FieldNamesCommand(RunsCommand):
             ret.append(nm_flow.fldname())
         return ret
 
-from kskp.store import Activity
 
 class ActivityCommand(SCommand):
     def __init__(self):
@@ -849,16 +889,45 @@ class ActivityCommand(SCommand):
         self.o_ports = [Port('o', 'activity')]
 
     def run(self, args, inputs):
+        from kskp.store import ApparentLast
+        from kskp.store import CommandException
+
         activity = args['activity']
         points = args['points']
 
-        for port_id, datum in inputs.items():
-            point = points[port_id]
-            activity.add(point, datum)
+        for port_id, input in inputs.items():
+            # 出力ポイント
+            out_point = points[port_id]
 
-        if activity.count_result() == len(points):
-            # Activityを全て集め終えたら結果を出力Pointに渡し、処理を終了する
+            if isinstance(input, CommandException):
+                # RunsCommandの前のコマンドで例外が送出された場合はframeは生成されない
+                last = ApparentLast(out_point, None, [input])
+            elif isinstance(input, ApparentLast):
+                last = input
+                last.out_point = out_point
+            else:
+                raise Exception('ActivityCommandにApparentLastまたはCommandException以外のデータ型が入力されました')
+
+            # Activityにlastを追加する
+            activity.add(last)
+
+        if activity.count_lasts() == len(points):
+            # Activityを全て集め終えたら実行結果情報を保存する
+            # (今は出力ファイル名にその情報を刻んでいる)
+            activity.save()
+            # Activityを出力Pointに渡し、処理を終了する
             return {'o': activity}
         else:
             # Noneを渡して、再びrun()を実行してもらう
             return {'o': None}
+
+    def dtor(self, args):
+        activity = args['activity']
+
+        # フローの実行に成功した場合は、何もしない
+        if activity.is_success:
+            return
+
+        # フローの実行に失敗した場合は、ここでSaverが出力したファイルを削除する
+        # (本当はSaver自身が削除すべきだが、Saverは作成したファイルを自身で覚えていない)
+        activity.delete_all_frames()

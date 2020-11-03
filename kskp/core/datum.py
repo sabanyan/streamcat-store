@@ -54,6 +54,7 @@ class Datum(BaseModel):
     COMMAND_TYPE = 'command'
     ACTIVITY_TYPE = 'activity'
     TRASH_TYPE = 'trash'
+    ACTIVITY_TYPE = 'activity'
 
     RESULT_FOLDER_UUID  = 'aacb4914-0695-40fc-b14b-95b7f1f81707'
     RESULT_FOLDER_LABEL = '実行結果'
