@@ -74,8 +74,8 @@ BaseModel = declarative_base(cls=MyBase)
 
 from kskp.core import Datum, Port, Command
 
-from .exceptions import NothingToPutbackException, NoResultsException, OptimisticLockException, EditLockedException
-from .store import Store, NysolModule, ModuleStore, List
+from .exceptions import NothingToPutbackException, NoResultsException, CommandException, OptimisticLockException, EditLockedException
+from .store import Store, NysolModule, ModuleStore, List, ApparentLast
 from .database_conn import DatabaseConn
 from .remote_folder_conn import RemoteFolderConn
 from .mountable import Mountable

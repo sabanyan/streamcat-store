@@ -236,10 +236,9 @@ class NysolModule(Datum):
 class List(Datum):
     """
     リスト構造のデータを表す
-    現在はテストのみで用いる
     """
     def __init__(self, content=None):
-        super().__init__(None, None, 'list', None)
+        super().__init__(None, None, 'list', 'list')
         self._content = content
         self._encoding = None
 
@@ -264,3 +263,35 @@ class List(Datum):
 
     def __getitem__(self, index):
         return self._content[index]
+
+    def __len__(self):
+        return len(self._content)
+
+class ApparentLast(Store):
+    """
+    フローの出力ポートと出力結果を保持する
+    (フローエディタから見た見かけのlast)
+    """
+    def __init__(self, out_point, datum, exs=None):
+        super().__init__(None, None, 'last', 'last')
+        self.out_point = out_point
+        self.datum = datum
+        self.exs = exs
+
+    @property
+    def has_exs(self):
+        return self.exs is not None and len(self.exs) > 0
+
+    @property
+    def has_list(self):
+        return self.datum is not None and isinstance(self.datum, List)
+
+    @property
+    def has_frame(self):
+        from kskp.store import Frame
+        return self.datum is not None and isinstance(self.datum, Frame)
+
+    @property
+    def has_cache(self):
+        from kskp.store import Frame
+        return self.datum is not None and isinstance(self.datum, Frame) and self.datum.is_cache

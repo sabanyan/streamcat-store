@@ -10,6 +10,16 @@ class NoResultsException(Exception):
     """
     pass
 
+class CommandException(Exception):
+    """
+    コマンドが送出する例外
+    """
+    def __init__(self, ex):
+        self._ex = ex
+
+    def __str__(self):
+        return self._ex.__str__()
+
 class OptimisticLockException(Exception):
     """
     楽観的排他制御によりDatumの更新に失敗したことを通知する例外
