@@ -17,6 +17,10 @@ class CommandException(Exception):
     def __init__(self, ex):
         self._ex = ex
 
+    @property
+    def innerException(self):
+        return self._ex
+
     def __str__(self):
         return self._ex.__str__()
 
