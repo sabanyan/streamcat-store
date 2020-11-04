@@ -298,8 +298,6 @@ class ColumnNameCommand(PCommand):
             msg += mistaken_input
         
         return msg
-        
-
 
     def run(self, args, inputs):
         f = inputs['i'].content
@@ -344,12 +342,12 @@ class ColumnNameCommand(PCommand):
             if type(_right_list) == dict:
                 raise FieldNotFoundException(_right,
                                             command_name = self.const('commandname'),
-                                            option_id = 'head')
+                                            option_id = 'tail')
             
             if len(_right_list) != len(set(_right_list)):
                 raise FieldConflictException(_left,
                                             command_name = self.const('commandname'),
-                                            option_id = 'head')
+                                            option_id = 'tail')
         else:
             _right_list = []
 
@@ -363,7 +361,7 @@ class ColumnNameCommand(PCommand):
                                                 option_id = 'head, tail')
         
         if (not _left) and (not _right):
-            err = self.generateCommanErrorMessage('NoInputError',
+            err = self.generateCommandErrorMessage('NoInputError',
                                                   command_name = self.const('commandname'),
                                                   option_id = 'head, tail')
             raise ColumnNameException(err)
@@ -449,15 +447,6 @@ class CheckDuplicateRowsCommand(PCommand):
         """
         return any(char in exp for char in str)
 
-    def generateCommandErrorMessage(self, *args):
-        # とりあえず、エラー処理機能は特徴量の計算のコマンドの実装を参照する
-        # TODO：　親コマンドレベルに機能の実装を移動する
-        errhandler = GroupBy2Command()
-        errhandler.commandname = self.commandname
-        errhandler.errormessages = self.errormessages
-
-        return errhandler.generateCommandErrorMessage(*args)
-
     def run(self, args, inputs):
 
         COLNUM = '__RowNo_BeginWith1__'
@@ -470,6 +459,9 @@ class CheckDuplicateRowsCommand(PCommand):
         self.header = self.get_field_names(inputs['i'])
         targets_list = []
 
+        if targetcols is None:
+            raise EmptyFieldException(command_name = self.const('commandname'), 
+                                        option_id = 'k')
             
         for col in targetcols.split(','):
             expanded_list = self.expandWildCards(targetcols)
@@ -480,11 +472,6 @@ class CheckDuplicateRowsCommand(PCommand):
                                                        command_name = self.const('commandname'),
                                                        option_id = 'k')
             
-            # EmptyFieldNameError
-            if col == '':
-                raise EmptyFieldException(command_name = self.const('commandname'), 
-                                          option_id = 'k')
-
             # check if expandWildCards returned a dict (error signature)
             if type(expanded_list) == dict:
                 raise FieldNotFoundException(expanded_list['unmatched'], 
@@ -953,65 +940,68 @@ class MvStatsCommand(PCommand):
 
 class MvSimCommand(PCommand):
     
-    commandname = '複数の移動窓の類似度の計算'
-    errormessages = {
-        
-        # キー列に対するエラー
-        'KeyConflictError' : '項目名が重複しています。${fieldinput}',
-        'KeyNumberConflictError' : '項目番号が重複しています。${fieldinput}',
-        'KeyNumberSettingError' : 'キー項目番号の指定は正しくありません。${fieldinput}',
-        'KeyFieldNotFoundError' : '指定した項目名は存在しません。${fieldinput}',
-        'KeyFieldNumberNotFoundError' : '指定した項目番号は存在しません。${fieldinput}',
-        'EmptyKeyFieldError' : '空文字列でキー項目名が指定されています。${fieldinput}',
-        'KeyFieldForbiddenCharacterError' : '半角の（ :　\　&　％　＃ ）は、キー項目の指定に使用できません。${fieldinput}',
-        
-        # ソート設定に対するエラー
-        'SortFieldConflictError' : '項目名が重複しています。${fieldinput}',
-        'SortFieldNumberConflictError' : '項目番号が重複しています。${fieldinput}',
-        'SortFieldNumberSettingError' : 'ソート項目番号の指定は正しくありません。${fieldinput}',
-        'SortFieldNotFoundError' : '指定した項目名は存在しません。${fieldinput}',
-        'SortFieldNumberNotFoundError' : '指定した項目番号は存在しません。${fieldinput}',
-        'SortFieldForbiddenCharacterError': '半角の（ :　\　&　＃ ）は、ソートの項目名の指定に使用できません。${fieldinput}',
-        'EmptySortFieldError' : '空文字列でソートが指定されています。${fieldinput}',
-        'SortFieldOrderError' : 'ソート順の指定は正しくありません。指定可能なのは、（%n、%r、%nr）です。${fieldinput}',
-        
-        # 結果列名設定に対するエラー
-        'EmptyResultsColNameError' : '空文字列で結果項目名が指定されてます。${fieldinput}',
-        'ResultsColNameForbiddenCharacterError': '半角の（ :　\　,　*　?　[　] ）は、結果項目名の指定に使用できません。${fieldinput}',
-        
-        # 計算対象列に対するエラー
-        'Target1FieldNotFoundError' : '指定した項目名は存在しません。${fieldinput}',
-        'Target1FieldNumberNotFoundError' : '指定した項目番号は存在しません。${fieldinput}',
-        'Target1MultipleFieldError' : '１つ目の計算対象項目指定で、複数の項目名を指定できません。${fieldinput}',
-        'Target1MultipleFieldNumberError' : '１つ目の計算対象項目指定で、複数の項目番号を指定できません。${fieldinput}',
-        'Target1ForbiddenCharacterError' : '半角の（ :　\　&　％　＃ ）は、計算対象項目の指定に使用できません。${fieldinput}',
-        'Target1FieldNumberSettingError' : '計算対象項目番号の指定は正しくありません。${fieldinput}',
-        'Target1EmptyError' : '空文字列で計算対象項目が指定されています。${fieldinput}',
-        
-        'Target2ConflictError' : '項目名が重複しています。${fieldinput}',
-        'Target2FieldNotFoundError' : '指定した項目名は存在しません。${fieldinput}',
-        'Target2FieldNumberNotFoundError' : '指定した項目番号は存在しません。${fieldinput}',
-        'Target2FieldNumberSettingError' : '計算対象項目番号の指定は正しくありません。${fieldinput}',
-        'Target2ForbiddenCharacterError' : '半角の（ :　\　&　％　＃ ）は、計算対象項目の指定に使用できません。${fieldinput}',
-        'Target2EmptyError' : '空文字列で計算対象項目が指定されています。${fieldinput}',
-        
-        # 類似度指定に対するエラー
-        'SimConflictError': '類似度が重複しています。${fieldinput}',
-        'SimNotFoundError' : '${fieldinput} は、有効な類似度指定子ではありません。',
-        'SimEmptyError' : '空文字列で類似度が指定されています。${fieldinput}',
-        
-        # 期間数指定に対するエラー
-        'WindowSizeConflictError' : '対象行数が重複しています。${fieldinput}',
-        'WindowSizeFormatError' : '対象行数への ${fieldinput} 指定が正しくありません。２以上の整数を指定してください',
-        'WindowSizeValueError' : '対象行数への ${fieldinput} 指定が正しくありません。２以上の整数で指定してください',
-        'WindowSizeEmptyError' : '空文字列で対象行数が指定されています。${fieldinput}',
+    def const(self, s):
+        if s == 'commandname':
+            return '複数の移動窓の類似度の計算'
+        elif s == 'errmsgs':
+            return {
+                
+                # キー列に対するエラー
+                'KeyConflictError' : '項目名が重複しています。${fieldinput}',
+                'KeyNumberConflictError' : '項目番号が重複しています。${fieldinput}',
+                'KeyNumberSettingError' : 'キー項目番号の指定は正しくありません。${fieldinput}',
+                'KeyFieldNotFoundError' : '指定した項目名は存在しません。${fieldinput}',
+                'KeyFieldNumberNotFoundError' : '指定した項目番号は存在しません。${fieldinput}',
+                'EmptyKeyFieldError' : '空文字列でキー項目名が指定されています。${fieldinput}',
+                'KeyFieldForbiddenCharacterError' : '半角の（ :　\　&　％　＃ ）は、キー項目の指定に使用できません。${fieldinput}',
+                
+                # ソート設定に対するエラー
+                'SortFieldConflictError' : '項目名が重複しています。${fieldinput}',
+                'SortFieldNumberConflictError' : '項目番号が重複しています。${fieldinput}',
+                'SortFieldNumberSettingError' : 'ソート項目番号の指定は正しくありません。${fieldinput}',
+                'SortFieldNotFoundError' : '指定した項目名は存在しません。${fieldinput}',
+                'SortFieldNumberNotFoundError' : '指定した項目番号は存在しません。${fieldinput}',
+                'SortFieldForbiddenCharacterError': '半角の（ :　\　&　＃ ）は、ソートの項目名の指定に使用できません。${fieldinput}',
+                'EmptySortFieldError' : '空文字列でソートが指定されています。${fieldinput}',
+                'SortFieldOrderError' : 'ソート順の指定は正しくありません。指定可能なのは、（%n、%r、%nr）です。${fieldinput}',
+                
+                # 結果列名設定に対するエラー
+                'EmptyResultsColNameError' : '空文字列で結果項目名が指定されてます。${fieldinput}',
+                'ResultsColNameForbiddenCharacterError': '半角の（ :　\　,　*　?　[　] ）は、結果項目名の指定に使用できません。${fieldinput}',
+                
+                # 計算対象列に対するエラー
+                'Target1FieldNotFoundError' : '指定した項目名は存在しません。${fieldinput}',
+                'Target1FieldNumberNotFoundError' : '指定した項目番号は存在しません。${fieldinput}',
+                'Target1MultipleFieldError' : '１つ目の計算対象項目指定で、複数の項目名を指定できません。${fieldinput}',
+                'Target1MultipleFieldNumberError' : '１つ目の計算対象項目指定で、複数の項目番号を指定できません。${fieldinput}',
+                'Target1ForbiddenCharacterError' : '半角の（ :　\　&　％　＃ ）は、計算対象項目の指定に使用できません。${fieldinput}',
+                'Target1FieldNumberSettingError' : '計算対象項目番号の指定は正しくありません。${fieldinput}',
+                'Target1EmptyError' : '空文字列で計算対象項目が指定されています。${fieldinput}',
+                
+                'Target2ConflictError' : '項目名が重複しています。${fieldinput}',
+                'Target2FieldNotFoundError' : '指定した項目名は存在しません。${fieldinput}',
+                'Target2FieldNumberNotFoundError' : '指定した項目番号は存在しません。${fieldinput}',
+                'Target2FieldNumberSettingError' : '計算対象項目番号の指定は正しくありません。${fieldinput}',
+                'Target2ForbiddenCharacterError' : '半角の（ :　\　&　％　＃ ）は、計算対象項目の指定に使用できません。${fieldinput}',
+                'Target2EmptyError' : '空文字列で計算対象項目が指定されています。${fieldinput}',
+                
+                # 類似度指定に対するエラー
+                'SimConflictError': '類似度が重複しています。${fieldinput}',
+                'SimNotFoundError' : '${fieldinput} は、有効な類似度指定子ではありません。',
+                'SimEmptyError' : '空文字列で類似度が指定されています。${fieldinput}',
+                
+                # 期間数指定に対するエラー
+                'WindowSizeConflictError' : '対象行数が重複しています。${fieldinput}',
+                'WindowSizeFormatError' : '対象行数への ${fieldinput} 指定が正しくありません。２以上の整数を指定してください',
+                'WindowSizeValueError' : '対象行数への ${fieldinput} 指定が正しくありません。２以上の整数で指定してください',
+                'WindowSizeEmptyError' : '空文字列で対象行数が指定されています。${fieldinput}',
 
-        # 結果列重複エラー
-        'ResultsColConflictError' : '出力項目名が重複しています。%指定、&指定、#指定、ワイルドカード指定など、重複する出力項目名となる設定がないかを、確認してください。${fieldinput}',
-        
-        
-        'TestError' : 'This is a test'
-    }
+                # 結果列重複エラー
+                'ResultsColConflictError' : '出力項目名が重複しています。%指定、&指定、#指定、ワイルドカード指定など、重複する出力項目名となる設定がないかを、確認してください。${fieldinput}',
+                
+                
+                'TestError' : 'This is a test'
+            }
     
     def __init__(self):
         super().__init__()
@@ -1046,14 +1036,30 @@ class MvSimCommand(PCommand):
     def containsAny(self, exp, str):
         return any(char in exp for char in str)
 
-    def generateCommandErrorMessage(self, *args):
-        # とりあえず、エラー処理機能は特徴量の計算のコマンドの実装を参照する
-        # TODO：　親コマンドレベルに機能の実装を移動する
-        errhandler = GroupBy2Command()
-        errhandler.commandname = self.commandname
-        errhandler.errormessages = self.errormessages
+    # def generateCommandErrorMessage(self, *args):
+    #     # とりあえず、エラー処理機能は特徴量の計算のコマンドの実装を参照する
+    #     # TODO：　親コマンドレベルに機能の実装を移動する
+    #     errhandler = GroupBy2Command()
+    #     errhandler.commandname = self.commandname
+    #     errhandler.errormessages = self.errormessages
 
-        return errhandler.generateCommandErrorMessage(*args)
+    #     return errhandler.generateCommandErrorMessage(*args)
+
+    def generateCommandErrorMessage(self, error_type, option_id = '', mistaken_input = '', command_name = ''):
+        from string import Template
+
+        command_name = self.const('commandname')
+        
+        msg =  f'【コマンド：{command_name}】'
+        msg += f'【オプションID：{option_id}】'
+
+        template = self.const('errmsgs')[error_type]
+
+        template_strings = {'fieldinput' : mistaken_input}
+
+        msg += Template(template).safe_substitute(template_strings)
+        
+        return msg
 
     def run(self, args, inputs):
         import fnmatch as fn
