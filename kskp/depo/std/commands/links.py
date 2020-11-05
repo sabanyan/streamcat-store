@@ -14,6 +14,7 @@ class CommandLink:
     コマンド名を解決するリンク
     """
     from kskp.depo.std.commands.pcmd.square_command import Square
+    from kskp.depo.std.commands.pcmd.groupby2_command import GroupBy2Command
 
     COMMAND_TABLE = {
         # テスト用コマンド
