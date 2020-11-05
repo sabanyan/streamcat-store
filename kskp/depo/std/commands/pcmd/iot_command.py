@@ -7,6 +7,7 @@ import fnmatch as fn
 import nysol.util.mtemp as mtemp
 from nysol.util._utillib import mcsvout as mcsvout
 from pathlib import Path
+from decimal import Decimal
 
 from kskp.store import NysolModule
 from kskp.core import Command, Port, Tmp
@@ -2123,8 +2124,6 @@ class TimeAxisDataGenerateIn0Command(PCommand):
         try:
             # sys.__stdin__.flush()#not needed for bigger data                    
 
-            from decimal import Decimal
-            # header            
             print(args['time'])
 
             for l in args['span_list']:
@@ -2135,9 +2134,6 @@ class TimeAxisDataGenerateIn0Command(PCommand):
                 if args['time_type'] in ['datetime','date','year_month']:
                     start_py = self.datetime_nysol2py(start, time_type=args['time_type'])
                     interval = float(interval)
-                elif args['time_type'] == 'number':
-                    interval = Decimal(str(interval))
-                    start = Decimal(start)
 
                 for n in range(num):
                     if args['time_type'] == 'number':
@@ -2235,15 +2231,17 @@ class TimeAxisDataGenerateIn0Command(PCommand):
                             'EmptyParamError',
                             'interval', '')
             raise Exception(msg)
+
         else:
-            interval = args['interval']
             try:
-                interval = float(args['interval'].replace(',',''))
+                interval = args['interval'].replace(',','')
 
                 if time_type in ['date','year_month']:
-                    interval = round(interval)
+                    interval = round(float(interval))
+                elif time_type == 'number':
+                    interval = Decimal(interval)
 
-                if interval <= 0:
+                if float(interval) <= 0:
                     raise Exception()
             except Exception as e:
                 msg = GenerateErrorMessage(commandname,
@@ -2264,7 +2262,8 @@ class TimeAxisDataGenerateIn0Command(PCommand):
                 start = args['start']
                 if time_type in ['number']:
                     try:
-                        start = float(args['start'].replace(',',''))
+                        start = Decimal(args['start'].replace(',',''))
+                        
                     except Exception as e:
                         msg = GenerateErrorMessage(commandname,
                                         'ParameterTypeError',
