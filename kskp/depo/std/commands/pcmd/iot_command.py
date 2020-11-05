@@ -2123,31 +2123,37 @@ class TimeAxisDataGenerateIn0Command(PCommand):
         try:
             # sys.__stdin__.flush()#not needed for bigger data                    
 
+            from decimal import Decimal
             # header            
             print(args['time'])
 
             for l in args['span_list']:
                 start    = l[0]
-                interval = float(l[1])
+                interval = l[1]
                 num      = int(l[2])
-
+                
                 if args['time_type'] in ['datetime','date','year_month']:
                     start_py = self.datetime_nysol2py(start, time_type=args['time_type'])
+                    interval = float(interval)
+                elif args['time_type'] == 'number':
+                    interval = Decimal(str(interval))
+                    start = Decimal(start)
 
                 for n in range(num):
                     if args['time_type'] == 'number':
-                        val = float(start) + interval * n
-                    elif args['time_type'] == 'datetime':
-                        val = start_py + datetime.timedelta(seconds= interval * n)
-                        val = val.strftime('%Y%m%d%H%M%S.%f') 
-                    elif args['time_type'] == 'date':
-                        val = start_py + datetime.timedelta(days= interval * n)
-                        val = val.strftime('%Y%m%d') 
-                    elif args['time_type'] == 'year_month':
-                        val = start_py + relativedelta(months= interval * n)
-                        val = val.strftime('%Y%m') 
+                        val = start + (interval * n)
                     else:
-                        pass
+                        if args['time_type'] == 'datetime':
+                            val = start_py + datetime.timedelta(seconds= interval * n)
+                            val = val.strftime('%Y%m%d%H%M%S.%f') 
+                        elif args['time_type'] == 'date':
+                            val = start_py + datetime.timedelta(days= interval * n)
+                            val = val.strftime('%Y%m%d') 
+                        elif args['time_type'] == 'year_month':
+                            val = start_py + relativedelta(months= interval * n)
+                            val = val.strftime('%Y%m') 
+                        else:
+                            pass
 
                     print(val)
 
@@ -2359,6 +2365,7 @@ class TimeAxisDataGenerateIn0Command(PCommand):
         in0_args['time']        = time
         in0_args['time_type']   = time_type
         in0_args['span_list']   = span_list
+
 
         f <<= nm.runfunc(self.time_axis_generator_in0, args=in0_args)
 
