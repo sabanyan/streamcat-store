@@ -8,7 +8,7 @@ import fnmatch as fn
 import nysol.util.mtemp as mtemp
 
 from math import ceil
-from kskp.store import NysolModule
+from kskp.store import NysolModule, GroupBy2Exception
 from kskp.core import Command, Port, Tmp
 
 from .script import PCommand
@@ -588,7 +588,7 @@ class GroupBy2Command(PCommand):
                     else:
                         # raise error
                         errmsg = self.generateCommandErrorMessage('CalcConflictError', 'c', c_option)
-                        raise Exception(errmsg)
+                        raise GroupBy2Exception(errmsg)
                     continue
                 else:
                     # initialize list
@@ -765,7 +765,7 @@ class GroupBy2Command(PCommand):
 
             if '' in ks_list:
                 errmsg = self.generateCommandErrorMessage('EmptyKeyFieldError', 'k', ks)
-                raise Exception(errmsg)
+                raise GroupBy2Exception(errmsg)
 
             expanded_k = []
             
@@ -774,7 +774,7 @@ class GroupBy2Command(PCommand):
                 # check for forbidden characters
                 if self.containsAny(k, '%&'):
                     errmsg = self.generateCommandErrorMessage('KeyFieldForbiddenCharacterError', 'k', ks)
-                    raise Exception(errmsg)
+                    raise GroupBy2Exception(errmsg)
             
                 exitcode, res = self.expandWildCards(k)
                 
@@ -783,7 +783,7 @@ class GroupBy2Command(PCommand):
                     continue
                 else:
                     errmsg = self.generateCommandErrorMessage('FieldNotFoundError', 'k', ks)
-                    raise Exception(errmsg)
+                    raise GroupBy2Exception(errmsg)
 
             if self.DEBUG:
                 print(f'expanded_k: {expanded_k}')
@@ -793,7 +793,7 @@ class GroupBy2Command(PCommand):
             if len(dupes_list) > 0: # if duplicates are found
                 dupes_str = ','.join(dupes_list)
                 errmsg = self.generateCommandErrorMessage('KeyFieldConflictError', 'k', dupes_str)
-                raise Exception(errmsg)
+                raise GroupBy2Exception(errmsg)
 
             # set manual k input flag
             common_args['manual_k'] = True
@@ -811,7 +811,7 @@ class GroupBy2Command(PCommand):
 
         if self.containsAny(formatstr, '*?[],:\\\'\" '):
             errmsg = self.generateCommandErrorMessage('ResultsColForbiddenCharacterError', 'format', formatstr)
-            raise Exception(errmsg)
+            raise GroupBy2Exception(errmsg)
 
         common_args['format'] = formatstr
 
@@ -837,7 +837,7 @@ class GroupBy2Command(PCommand):
             
             if cs == '':
                 errmsg = self.generateCommandErrorMessage('EmptyCalcError', 'c', cs)
-                raise Exception(errmsg)
+                raise GroupBy2Exception(errmsg)
             
             cs_list = cs.split(',')
                 
@@ -851,11 +851,11 @@ class GroupBy2Command(PCommand):
                 # check if multiple flds specified
                 if ',' in fld:
                     errmsg = self.generateCommandErrorMessage('MultipleRowsTargetError', 'fld', fld)
-                    raise Exception(errmsg)
+                    raise GroupBy2Exception(errmsg)
 
                 if self.containsAny(fld, '%&'):
                     errmsg = self.generateCommandErrorMessage('TargetFieldForbiddenCharacterError', 'fld', fld)
-                    raise Exception(errmsg)
+                    raise GroupBy2Exception(errmsg)
 
                 
                 # check for newname setting
@@ -883,7 +883,7 @@ class GroupBy2Command(PCommand):
                 # check for empty fs
                 if '' in fs_list:
                     errmsg = self.generateCommandErrorMessage('EmptyTargetFieldError', 'f', fs)
-                    raise Exception(errmsg)
+                    raise GroupBy2Exception(errmsg)
                 
                 expanded_f = []
                 
@@ -893,14 +893,14 @@ class GroupBy2Command(PCommand):
                     # check for forbidden characters in f
                     if self.containsAny(f, '%&'):
                         errmsg = self.generateCommandErrorMessage('TargetFieldForbiddenCharacterError', 'f', f)
-                        raise Exception(errmsg)
+                        raise GroupBy2Exception(errmsg)
 
                     if code == 0: # no error
                         expanded_f += res
                         continue
                     elif code == 1: # no match in wildcards
                         errmsg = self.generateCommandErrorMessage(res, 'f', f)
-                        raise Exception(errmsg)
+                        raise GroupBy2Exception(errmsg)
                 
                 # f wildcards for this row are now expanded into list form
                 # add expanded wildcard expression to the set of all fs
@@ -911,7 +911,7 @@ class GroupBy2Command(PCommand):
                 if len(dupes_list) > 0: # if duplicates are found
                     dupes_str = ','.join(dupes_list)
                     errmsg = self.generateCommandErrorMessage('TargetFieldConflictError', 'f', dupes_str)
-                    raise Exception(errmsg)
+                    raise GroupBy2Exception(errmsg)
 
 
                 # check if any element in c requires params
@@ -920,45 +920,45 @@ class GroupBy2Command(PCommand):
                         # Multiple ParamCalc error
                         if len(cs_list) > 1:
                             errmsg = self.generateCommandErrorMessage('MultipleParamCalcError', 'c', cs)
-                            raise Exception(errmsg)
+                            raise GroupBy2Exception(errmsg)
 
                         # check param values
                         params = row.get('n')
                         # empty param error
                         if not params:
                             errmsg = self.generateCommandErrorMessage('EmptyParamError', 'n', params)
-                            raise Exception(errmsg)
+                            raise GroupBy2Exception(errmsg)
 
                         params_list = params.split(',')
                         if '' in params_list:
                             errmsg = self.generateCommandErrorMessage('EmptyParamError', 'n', params)
-                            raise Exception(errmsg)
+                            raise GroupBy2Exception(errmsg)
                         
                         # check for duplicates here
                         dupes_list = self.findDuplicates(params_list)
                         if len(dupes_list) > 0: # if duplicates are found
                             dupes_str = ','.join(dupes_list)
                             errmsg = self.generateCommandErrorMessage('ParamConflictError', 'n', dupes_str)
-                            raise Exception(errmsg)
+                            raise GroupBy2Exception(errmsg)
                         
                         # check param values here
                         for n in params_list:
                             errcode = self.checkParams(c, n)
                             if errcode:
                                 errmsg = self.generateCommandErrorMessage(errcode, 'n', n, c)
-                                raise Exception(errmsg)
+                                raise GroupBy2Exception(errmsg)
                         
                 # check for empty strings in c
                 if '' in cs_list:
                     errmsg = self.generateCommandErrorMessage('EmptyCalcError', 'c', c)
-                    raise Exception(errmsg)
+                    raise GroupBy2Exception(errmsg)
                 
                 # check for duplicates in c
                 dupes_list = self.findDuplicates(cs_list)
                 if len(dupes_list) > 0: # if duplicates are found
                     dupes_str = ','.join(dupes_list)
                     errmsg = self.generateCommandErrorMessage('CalcConflictError', 'c', dupes_str)
-                    raise Exception(errmsg)
+                    raise GroupBy2Exception(errmsg)
 
                 # if x exists, catch errors
                 if 'x' in row:
@@ -967,17 +967,17 @@ class GroupBy2Command(PCommand):
 
                     if self.containsAny(x, '*?[],:\\&%'):
                         errmsg = self.generateCommandErrorMessage('TimeColForbiddenCharacterError', 'x', x)
-                        raise Exception(errmsg)
+                        raise GroupBy2Exception(errmsg)
                     
                     for x in xs_list:
                         if x not in self.header:
                             errmsg = self.generateCommandErrorMessage('FieldNotFoundError', 'x', x)
-                            raise Exception(errmsg)
+                            raise GroupBy2Exception(errmsg)
                             
 
                     if '' in xs_list:
                         errmsg = self.generateCommandErrorMessage('EmptyTimeColError', 'x', x)
-                        raise Exception(errmsg)
+                        raise GroupBy2Exception(errmsg)
                         
 
 
@@ -990,7 +990,7 @@ class GroupBy2Command(PCommand):
                             c, a = c.split(':')
                             if a == '':
                                 errmsg = self.generateCommandErrorMessage('EmptyCalcNewNameError', 'c', c)
-                                raise Exception(errmsg)
+                                raise GroupBy2Exception(errmsg)
                         else:
                             a = c
                             
@@ -1018,7 +1018,7 @@ class GroupBy2Command(PCommand):
                                 python_calcs.append(thiscalc)
                             else: # c is not in any list, therefore does not exist
                                 errmsg = self.generateCommandErrorMessage('CalcNotFoundError', 'c', c)
-                                raise Exception(errmsg) 
+                                raise GroupBy2Exception(errmsg) 
                             
                             final_columns.append(self.generateFinalColName(thiscalc, common_args))
                         
@@ -1031,14 +1031,14 @@ class GroupBy2Command(PCommand):
         if len(kf_overlap) > 0:
             ks_overlapstr = ','.join(kf_overlap)
             errmsg = self.generateCommandErrorMessage('KeyTargetConflictError', 'k', ks_overlapstr)
-            raise Exception(errmsg)
+            raise GroupBy2Exception(errmsg)
             
         # check if there is an overlap of final columns
         dupes_list = self.findDuplicates(final_columns)
         if len(dupes_list) > 0:
             dupes_str = ','.join(dupes_list)
             errmsg = self.generateCommandErrorMessage('ResultsColConflictError', 'format, c, f, n', dupes_str)
-            raise Exception(errmsg)
+            raise GroupBy2Exception(errmsg)
             
         # reduce/simplify msummary 
         msummary_calcs = self.simplifyMsummary(msummary_calcs)
