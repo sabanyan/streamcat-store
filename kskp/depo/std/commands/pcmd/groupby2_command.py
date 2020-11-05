@@ -1,15 +1,10 @@
 import sys
 import copy
 import uuid
-import os
 import nysol.mcmd as nm
-import numpy as np
-import fnmatch as fn 
-import nysol.util.mtemp as mtemp
 
-from math import ceil
+from kskp.core import Port, Tmp
 from kskp.store import NysolModule, GroupBy2Exception
-from kskp.core import Command, Port, Tmp
 
 from .script import PCommand
 
@@ -310,6 +305,8 @@ class GroupBy2Command(PCommand):
         code 0: executed properly, no errors
         code 1: no match in entire header (FieldNotfoundError)
         """
+        import fnmatch as fn 
+
         expanded = []
         
         for elem in to_expand.split(','):
@@ -1099,6 +1096,8 @@ class GroupBy2Command(PCommand):
         given the batch size, distributes the operations into batches, and 
         runs each batch, taking note of all the batches filenames
         '''
+        from math import ceil
+
         file_list = []
 
         batch_size = int(common_args.pop('batch_size'))
@@ -2181,7 +2180,6 @@ class GroupBy2Command(PCommand):
         # body of this method adapted from:
         # github.com/nysol/nysol_python/blob/master/scripts/sample/mkfeature.py
         try:
-            import math
             import numpy as np
             
             f = args.get('f')
@@ -2247,7 +2245,6 @@ class GroupBy2Command(PCommand):
         # body of this method adapted from:
         # github.com/nysol/nysol_python/blob/master/scripts/sample/mkfeature.py
         try:
-            import math
             import numpy as np
 
             print(args, file = sys.stderr)
