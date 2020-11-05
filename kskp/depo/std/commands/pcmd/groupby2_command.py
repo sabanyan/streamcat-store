@@ -73,39 +73,39 @@ class GroupBy2Command(PCommand):
                              'checks': []},
             'sym_looking' : {'correct_type' : '数値', 
                              'correct_value' : '正の数値',
-                             'checks': [[self.checkParamOOB, {'low' : 0}]]},
+                             'checks': [[self.check_param_OOB, {'low' : 0}]]},
             'large_sd' : {'correct_type' : '数値', 
                           'correct_value' : '正の数値',
-                          'checks' : [[self.checkParamOOB, {'low' : 0}]]},
+                          'checks' : [[self.check_param_OOB, {'low' : 0}]]},
             'ratio_beyond_rsigma' : {'correct_type' : '数値', 
                                      'correct_value' : '正の数値',
-                                     'checks' : [[self.checkParamOOB, {'low' : 0}]]},
+                                     'checks' : [[self.check_param_OOB, {'low' : 0}]]},
             'binned_entropy' : {'correct_type' : '数値', 
                                 'correct_value' : '２以上の整数',
-                                'checks' : [[self.checkParamIsInteger, {}],
-                                            [self.checkParamOOB,{'low_inc' : 2}]]},
+                                'checks' : [[self.check_param_is_integer, {}],
+                                            [self.check_param_OOB,{'low_inc' : 2}]]},
             'quantile' : {'correct_type' : '数値', 
                           'correct_value' : '０−１の数値',
-                          'checks' : [[self.checkParamOOB, {'low_inc' : 0,
+                          'checks' : [[self.check_param_OOB, {'low_inc' : 0,
                                                             'high_inc': 1}]]},
             'range_count' : {'correct_type' : '数値;数値', 
                              'correct_value' : '全ての数値', 
                              'correct_format' : '開始＜終了の;区切り',
-                             'checks': [[self.checkParamGTLT, {}]]},
+                             'checks': [[self.check_param_GTLT, {}]]},
             'autocorr' : {'correct_type' : '数値', 
                           'correct_value' : '１以上の整数',
-                          'checks' : [[self.checkParamIsInteger, {}],
-                                      [self.checkParamOOB,{'low_inc' : 1}]]},
+                          'checks' : [[self.check_param_is_integer, {}],
+                                      [self.check_param_OOB,{'low_inc' : 1}]]},
             'crossing_m' : {'correct_type' : '数値', 
                             'correct_value' : '全ての数値',
-                            'checks' : [[self.checkParamIsNumber, {}]]},
+                            'checks' : [[self.check_param_is_number, {}]]},
             'peaks' : {'correct_type' : '数値', 
                        'correct_value' : '１以上の整数',
-                       'checks' : [[self.checkParamOOB, {'low_inc' : 1}],
-                                   [self.checkParamIsInteger, {}]]},
+                       'checks' : [[self.check_param_OOB, {'low_inc' : 1}],
+                                   [self.check_param_is_integer, {}]]},
             'imq' : {'correct_type' : '数値', 
                      'correct_value' : '０−１の数値',
-                     'checks' : [[self.checkParamOOB, {'low_inc' : 0,
+                     'checks' : [[self.check_param_OOB, {'low_inc' : 0,
                                                        'high_inc': 1}]]},
             }
         elif s == 'supports_str':
@@ -199,8 +199,8 @@ class GroupBy2Command(PCommand):
             ] 
         elif s == 'runfunc_calcs':
             return {
-                'varf' : self.feature_frequencyvar,
-                'meanf': self.feature_meanfrequency
+                'varf' : self.feature_frequency_var,
+                'meanf': self.feature_mean_frequency
             }
         elif s == 'funcs':
             return {
@@ -208,51 +208,51 @@ class GroupBy2Command(PCommand):
                 'rows' : self.feature_rows,
                 # 1 field (input k, a, f)
                 'miss' : self.feature_miss,
-                'strucount' : self.feature_strucount,
-                'strmax' : self.feature_strmax,
-                'strmin' : self.feature_strmin,
-                'has_dup' : self.feature_hasdup,
-                'repeatdata' : self.feature_repeatdata,
-                'repeatvalues' : self.feature_repeatvalues,
-                'sum_repeatdata' : self.feature_sumrepeatdata,
-                'sum_repeatvalues' : self.feature_sumrepeatvalues,
-                'ratio_unique' : self.feature_ratiounique,
-                'count_above_mean' : self.feature_countabovemean,
-                'count_below_mean' : self.feature_countbelowmean,
-                'has_dup_max' : self.feature_hasdupmin,
-                'has_dup_min' : self.feature_hasdupmax,
+                'strucount' : self.feature_str_ucount,
+                'strmax' : self.feature_str_max,
+                'strmin' : self.feature_str_min,
+                'has_dup' : self.feature_has_dup,
+                'repeatdata' : self.feature_repeat_data,
+                'repeatvalues' : self.feature_repeat_values,
+                'sum_repeatdata' : self.feature_sum_repeat_data,
+                'sum_repeatvalues' : self.feature_sum_repeat_values,
+                'ratio_unique' : self.feature_ratio_unique,
+                'count_above_mean' : self.feature_count_above_mean,
+                'count_below_mean' : self.feature_count_below_mean,
+                'has_dup_max' : self.feature_has_dup_min,
+                'has_dup_min' : self.feature_has_dup_max,
                 'hmean' : self.feature_hmean,
                 'gmean' : self.feature_gmean,
-                'abs_energy' : self.feature_absenergy, 
+                'abs_energy' : self.feature_abs_energy,
                 'rms' : self.feature_rms,
-                'median_ad' : self.feature_medianad,
-                'mean_ad' : self.feature_meanad,
-                'var_gt_sd' : self.feature_vargtsd,
+                'median_ad' : self.feature_median_ad,
+                'mean_ad' : self.feature_mean_ad,
+                'var_gt_sd' : self.feature_var_gt_sd,
                 # 1 field + parameter (k, n, a ,f)
-                'value_count' : self.feature_valuecount,
-                'sym_looking' : self.feature_symlooking,
-                'large_sd' : self.feature_largesd,
-                'ratio_beyond_rsigma' : self.feature_ratiogtrsigma,
-                'binned_entropy' : self.feature_binnedentropy,
+                'value_count' : self.feature_value_count,
+                'sym_looking' : self.feature_sym_looking,
+                'large_sd' : self.feature_large_sd,
+                'ratio_beyond_rsigma' : self.feature_ratio_gt_rsigma,
+                'binned_entropy' : self.feature_binned_entropy,
                 'quantile' : self.feature_quantile,
-                'range_count': self.feature_rangecount,
+                'range_count': self.feature_range_count,
                 # 1 field + time (input k, a, f, x)
                 'slope' : self.feature_slope,
                 'slope_pearson' : self.feature_pearson,
                 'slope_pattern' : self.feature_pattern,
                 'mean_second_derivative_central' : self.feature_M2DC,
-                'mean_change' : self.feature_meanchange,
-                'mean_abs_change' : self.feature_meanabschange,
-                'abs_sum_changes' : self.feature_abssumchanges,
+                'mean_change' : self.feature_mean_change,
+                'mean_abs_change' : self.feature_mean_abs_change,
+                'abs_sum_changes' : self.feature_abs_sum_changes,
                 'integral' : self.feature_integral,
-                'meanf' : self.feature_runfuncwrapper,
-                'varf' : self.feature_runfuncwrapper,
-                'firstmin' : self.feature_firstmin,
-                'firstmax' : self.feature_firstmax,
-                'lastmin' : self.feature_lastmin,
-                'lastmax' : self.feature_lastmax,
-                'longest_strike_above_mean' : self.feature_longeststrikeabovemean,
-                'longest_strike_below_mean' : self.feature_longeststrikebelowmean,
+                'meanf' : self.feature_runfunc_wrapper,
+                'varf' : self.feature_runfunc_wrapper,
+                'firstmin' : self.feature_first_min,
+                'firstmax' : self.feature_first_max,
+                'lastmin' : self.feature_last_min,
+                'lastmax' : self.feature_last_max,
+                'longest_strike_above_mean' : self.feature_longest_strike_above_mean,
+                'longest_strike_below_mean' : self.feature_longest_strike_below_mean,
                 # 2+1 fields
                 'autocorr' : self.feature_autocorrelation,
                 'crossing_m' : self.feature_crossingm,
@@ -271,7 +271,7 @@ class GroupBy2Command(PCommand):
         self.i_ports = [Port('i', 'frame')]
         self.o_ports = [Port('o', 'frame')]
  
-    def wrapFlow(self, flow_obj):
+    def wrap_flow(self, flow_obj):
         '''
         wrap a nysol flow object in a NysolModule object
         '''
@@ -281,7 +281,7 @@ class GroupBy2Command(PCommand):
 
         return nysol_module
         
-    def dumpToFile(self, flow_obj, filepath):
+    def dump_to_file(self, flow_obj, filepath):
         '''
         Takes a nysol flow object (or list of flow objects) and uses m2tee to 
         dump into a file specified by filepath
@@ -294,10 +294,10 @@ class GroupBy2Command(PCommand):
         if self.DEBUG:
             flow_obj <<= nm.m2tee(o = f'debug_predump_{filepath.name}.csv')
 
-        nysol_module = self.wrapFlow(flow_obj)
+        nysol_module = self.wrap_flow(flow_obj)
         self.do_runs(nysol_module)
 
-    def expandWildCards(self, to_expand):
+    def expand_wild_cards(self, to_expand):
         """
         takes a comma separated string and parses wildcard expressions within.
         
@@ -305,7 +305,7 @@ class GroupBy2Command(PCommand):
         code 0: executed properly, no errors
         code 1: no match in entire header (FieldNotfoundError)
         """
-        import fnmatch as fn 
+        import fnmatch as fn
 
         expanded = []
         
@@ -322,7 +322,7 @@ class GroupBy2Command(PCommand):
         
         return 0, expanded
     
-    def checkParamIsNumber(self,param):
+    def check_param_is_number(self,param):
         '''
         checks if param is a number
         
@@ -334,14 +334,14 @@ class GroupBy2Command(PCommand):
         except ValueError:
             return 'ParameterTypeError'
 
-    def checkParamIsInteger(self, param):
+    def check_param_is_integer(self, param):
         '''
         checks if a given param is an integer
 
         if an integer, returns None, otherwise, returns 'ParameterOutOfBoundsError'
         contains the isnumber check, so if not a number, returns 'ParameterTypeError'
         '''
-        not_a_number = self.checkParamIsNumber(param)
+        not_a_number = self.check_param_is_number(param)
         
         if not_a_number is not None: # do the isnumber check
             return not_a_number
@@ -354,7 +354,7 @@ class GroupBy2Command(PCommand):
 
         return None
 
-    def checkParamOOB(self, param, low = None, low_inc = None, 
+    def check_param_OOB(self, param, low = None, low_inc = None, 
                       high = None, high_inc = None):
         '''
         checks if a param is outside the given bounds
@@ -362,7 +362,7 @@ class GroupBy2Command(PCommand):
         returns None if in bounds, otherwise 'ParameterOutOfBoundsError'
         contains the isnumber check, so if not a number, returns 'ParameterTypeError'
         '''
-        not_a_number = self.checkParamIsNumber(param)
+        not_a_number = self.check_param_is_number(param)
         
         if not_a_number is not None: # do the isnumber check
             return not_a_number
@@ -387,7 +387,7 @@ class GroupBy2Command(PCommand):
         
         return None
             
-    def checkParamFormat(self, param, pat):
+    def check_param_format(self, param, pat):
         '''
         checks if a param matces a regexp format
         
@@ -400,7 +400,7 @@ class GroupBy2Command(PCommand):
 
         return 'ParameterFormatError'
 
-    def checkParamGTLT(self, param):
+    def check_param_GTLT(self, param):
         '''
         takes param of the format a;b and checks if b > a
         
@@ -410,7 +410,7 @@ class GroupBy2Command(PCommand):
 
         valid_number = '[+,-]?([0-9]+|(([0-9]+[.][0-9]*)|([0-9]*[.][0-9]+))([E,e][+,-]?[0-9]*)?)'
 
-        bad_format = self.checkParamFormat(param, f'^{valid_number};{valid_number}$')
+        bad_format = self.check_param_format(param, f'^{valid_number};{valid_number}$')
         if bad_format is not None:
             return bad_format
 
@@ -421,7 +421,7 @@ class GroupBy2Command(PCommand):
         
         return None
 
-    def checkParams(self, calc, param):
+    def check_params(self, calc, param):
         '''
         Takes a calc and a parameter value and runs checks to see if the param
         is within limits. 
@@ -442,13 +442,13 @@ class GroupBy2Command(PCommand):
         
         return None
     
-    def containsAny(self, exp, str):
+    def contains_any(self, exp, str):
         '''
         returns True if exp contains any characters in str
         '''
         return any(char in exp for char in str)
 
-    def findDuplicates(self, raw_list):
+    def find_duplicates(self, raw_list):
         '''
         from a list, find the elements that are repeated
         returns list of repeated elements
@@ -466,7 +466,7 @@ class GroupBy2Command(PCommand):
                 
         return dupes 
 
-    def generateCommandErrorMessage(self, errcode, errfield, errinput = '', calc = ''):
+    def generate_command_error_message(self, errcode, errfield, errinput = '', calc = ''):
         '''
         Function for creating error messages. 
         Pulls out error message templates, command name, and parameter info from
@@ -496,7 +496,7 @@ class GroupBy2Command(PCommand):
 
         return f'【コマンド：{commandname}】【オプション欄：{errfield}】{message}'
 
-    def generateFinalColName(self, args, common_args):
+    def generate_final_col_name(self, args, common_args):
         '''
         given the formatstring and the set of args for the calculation,
         returns the final output column name
@@ -524,7 +524,7 @@ class GroupBy2Command(PCommand):
         
         return finalname
 
-    def generateFinalColMcatExp(self, formatstr):
+    def generate_final_col_mcat_exp(self, formatstr):
         # construct mcal expression to make the finalcol name
         colformat = ['']
 
@@ -550,7 +550,7 @@ class GroupBy2Command(PCommand):
             
         return mcal_exp
 
-    def simplifyMsummary(self, msum_list):
+    def simplify_msummary(self, msum_list):
         '''
         takes the parsed list of msummary calculations from raw arguments, and 
         reduces it to the minimum length list,
@@ -584,7 +584,7 @@ class GroupBy2Command(PCommand):
                         operations[targetcol].append(c_option)
                     else:
                         # raise error
-                        errmsg = self.generateCommandErrorMessage('CalcConflictError', 'c', c_option)
+                        errmsg = self.generate_command_error_message('CalcConflictError', 'c', c_option)
                         raise GroupBy2Exception(errmsg)
                     continue
                 else:
@@ -624,7 +624,7 @@ class GroupBy2Command(PCommand):
         
         return final_list
 
-    def nullifyNonNumber(self, flow, cols):
+    def nullify_nonnumber(self, flow, cols):
         """
         ●NYSOLの数値の表記の仕様
         KSKP全体でみたときに不整合な状態にならないように
@@ -678,7 +678,7 @@ class GroupBy2Command(PCommand):
 
         return flow
 
-    def nullifyBadTime(self, flow, col, dateformat = 'date'):
+    def nullify_bad_time(self, flow, col, dateformat = 'date'):
         '''
         takes a data with time column, and deletes all rows with a time value
         that does not pass the date format 
@@ -717,7 +717,7 @@ class GroupBy2Command(PCommand):
         
         return flow
 
-    def parseArgs(self, raw_args):
+    def parse_args(self, raw_args):
         """
         Function for parsing the raw inputs for use.
         
@@ -761,7 +761,7 @@ class GroupBy2Command(PCommand):
             
 
             if '' in ks_list:
-                errmsg = self.generateCommandErrorMessage('EmptyKeyFieldError', 'k', ks)
+                errmsg = self.generate_command_error_message('EmptyKeyFieldError', 'k', ks)
                 raise GroupBy2Exception(errmsg)
 
             expanded_k = []
@@ -769,27 +769,27 @@ class GroupBy2Command(PCommand):
             for k in ks_list:
                 
                 # check for forbidden characters
-                if self.containsAny(k, '%&'):
-                    errmsg = self.generateCommandErrorMessage('KeyFieldForbiddenCharacterError', 'k', ks)
+                if self.contains_any(k, '%&'):
+                    errmsg = self.generate_command_error_message('KeyFieldForbiddenCharacterError', 'k', ks)
                     raise GroupBy2Exception(errmsg)
             
-                exitcode, res = self.expandWildCards(k)
+                exitcode, res = self.expand_wild_cards(k)
                 
                 if exitcode == 0:
                     expanded_k += res
                     continue
                 else:
-                    errmsg = self.generateCommandErrorMessage('FieldNotFoundError', 'k', ks)
+                    errmsg = self.generate_command_error_message('FieldNotFoundError', 'k', ks)
                     raise GroupBy2Exception(errmsg)
 
             if self.DEBUG:
                 print(f'expanded_k: {expanded_k}')
                 sys.__stderr__.flush()
                 
-            dupes_list = self.findDuplicates(expanded_k)
+            dupes_list = self.find_duplicates(expanded_k)
             if len(dupes_list) > 0: # if duplicates are found
                 dupes_str = ','.join(dupes_list)
-                errmsg = self.generateCommandErrorMessage('KeyFieldConflictError', 'k', dupes_str)
+                errmsg = self.generate_command_error_message('KeyFieldConflictError', 'k', dupes_str)
                 raise GroupBy2Exception(errmsg)
 
             # set manual k input flag
@@ -806,8 +806,8 @@ class GroupBy2Command(PCommand):
         # format errors
         formatstr = raw_args.get('format')
 
-        if self.containsAny(formatstr, '*?[],:\\\'\" '):
-            errmsg = self.generateCommandErrorMessage('ResultsColForbiddenCharacterError', 'format', formatstr)
+        if self.contains_any(formatstr, '*?[],:\\\'\" '):
+            errmsg = self.generate_command_error_message('ResultsColForbiddenCharacterError', 'format', formatstr)
             raise GroupBy2Exception(errmsg)
 
         common_args['format'] = formatstr
@@ -833,7 +833,7 @@ class GroupBy2Command(PCommand):
             cs = row.pop('c')
             
             if cs == '':
-                errmsg = self.generateCommandErrorMessage('EmptyCalcError', 'c', cs)
+                errmsg = self.generate_command_error_message('EmptyCalcError', 'c', cs)
                 raise GroupBy2Exception(errmsg)
             
             cs_list = cs.split(',')
@@ -847,11 +847,11 @@ class GroupBy2Command(PCommand):
                 fld = row.get('fld') 
                 # check if multiple flds specified
                 if ',' in fld:
-                    errmsg = self.generateCommandErrorMessage('MultipleRowsTargetError', 'fld', fld)
+                    errmsg = self.generate_command_error_message('MultipleRowsTargetError', 'fld', fld)
                     raise GroupBy2Exception(errmsg)
 
-                if self.containsAny(fld, '%&'):
-                    errmsg = self.generateCommandErrorMessage('TargetFieldForbiddenCharacterError', 'fld', fld)
+                if self.contains_any(fld, '%&'):
+                    errmsg = self.generate_command_error_message('TargetFieldForbiddenCharacterError', 'fld', fld)
                     raise GroupBy2Exception(errmsg)
 
                 
@@ -866,7 +866,7 @@ class GroupBy2Command(PCommand):
                     
                     all_fs.add(fld)
                     
-                    final_columns.append(self.generateFinalColName(row, common_args))
+                    final_columns.append(self.generate_final_col_name(row, common_args))
                     
                     nysol_calcs.append({'fld' : fld, 'c' : c, 'a' : a})
                 continue
@@ -879,24 +879,24 @@ class GroupBy2Command(PCommand):
 
                 # check for empty fs
                 if '' in fs_list:
-                    errmsg = self.generateCommandErrorMessage('EmptyTargetFieldError', 'f', fs)
+                    errmsg = self.generate_command_error_message('EmptyTargetFieldError', 'f', fs)
                     raise GroupBy2Exception(errmsg)
                 
                 expanded_f = []
                 
                 for f in fs_list:
-                    code, res = self.expandWildCards(f)
+                    code, res = self.expand_wild_cards(f)
 
                     # check for forbidden characters in f
-                    if self.containsAny(f, '%&'):
-                        errmsg = self.generateCommandErrorMessage('TargetFieldForbiddenCharacterError', 'f', f)
+                    if self.contains_any(f, '%&'):
+                        errmsg = self.generate_command_error_message('TargetFieldForbiddenCharacterError', 'f', f)
                         raise GroupBy2Exception(errmsg)
 
                     if code == 0: # no error
                         expanded_f += res
                         continue
                     elif code == 1: # no match in wildcards
-                        errmsg = self.generateCommandErrorMessage(res, 'f', f)
+                        errmsg = self.generate_command_error_message(res, 'f', f)
                         raise GroupBy2Exception(errmsg)
                 
                 # f wildcards for this row are now expanded into list form
@@ -904,10 +904,10 @@ class GroupBy2Command(PCommand):
                 all_fs.update(expanded_f)
 
                 # check for duplicates in f
-                dupes_list = self.findDuplicates(expanded_f)
+                dupes_list = self.find_duplicates(expanded_f)
                 if len(dupes_list) > 0: # if duplicates are found
                     dupes_str = ','.join(dupes_list)
-                    errmsg = self.generateCommandErrorMessage('TargetFieldConflictError', 'f', dupes_str)
+                    errmsg = self.generate_command_error_message('TargetFieldConflictError', 'f', dupes_str)
                     raise GroupBy2Exception(errmsg)
 
 
@@ -916,45 +916,45 @@ class GroupBy2Command(PCommand):
                     if c in self.const('paraminfo'):
                         # Multiple ParamCalc error
                         if len(cs_list) > 1:
-                            errmsg = self.generateCommandErrorMessage('MultipleParamCalcError', 'c', cs)
+                            errmsg = self.generate_command_error_message('MultipleParamCalcError', 'c', cs)
                             raise GroupBy2Exception(errmsg)
 
                         # check param values
                         params = row.get('n')
                         # empty param error
                         if not params:
-                            errmsg = self.generateCommandErrorMessage('EmptyParamError', 'n', params)
+                            errmsg = self.generate_command_error_message('EmptyParamError', 'n', params)
                             raise GroupBy2Exception(errmsg)
 
                         params_list = params.split(',')
                         if '' in params_list:
-                            errmsg = self.generateCommandErrorMessage('EmptyParamError', 'n', params)
+                            errmsg = self.generate_command_error_message('EmptyParamError', 'n', params)
                             raise GroupBy2Exception(errmsg)
                         
                         # check for duplicates here
-                        dupes_list = self.findDuplicates(params_list)
+                        dupes_list = self.find_duplicates(params_list)
                         if len(dupes_list) > 0: # if duplicates are found
                             dupes_str = ','.join(dupes_list)
-                            errmsg = self.generateCommandErrorMessage('ParamConflictError', 'n', dupes_str)
+                            errmsg = self.generate_command_error_message('ParamConflictError', 'n', dupes_str)
                             raise GroupBy2Exception(errmsg)
                         
                         # check param values here
                         for n in params_list:
-                            errcode = self.checkParams(c, n)
+                            errcode = self.check_params(c, n)
                             if errcode:
-                                errmsg = self.generateCommandErrorMessage(errcode, 'n', n, c)
+                                errmsg = self.generate_command_error_message(errcode, 'n', n, c)
                                 raise GroupBy2Exception(errmsg)
                         
                 # check for empty strings in c
                 if '' in cs_list:
-                    errmsg = self.generateCommandErrorMessage('EmptyCalcError', 'c', c)
+                    errmsg = self.generate_command_error_message('EmptyCalcError', 'c', c)
                     raise GroupBy2Exception(errmsg)
                 
                 # check for duplicates in c
-                dupes_list = self.findDuplicates(cs_list)
+                dupes_list = self.find_duplicates(cs_list)
                 if len(dupes_list) > 0: # if duplicates are found
                     dupes_str = ','.join(dupes_list)
-                    errmsg = self.generateCommandErrorMessage('CalcConflictError', 'c', dupes_str)
+                    errmsg = self.generate_command_error_message('CalcConflictError', 'c', dupes_str)
                     raise GroupBy2Exception(errmsg)
 
                 # if x exists, catch errors
@@ -962,18 +962,18 @@ class GroupBy2Command(PCommand):
                     x = row.get('x')
                     xs_list = x.split(',')
 
-                    if self.containsAny(x, '*?[],:\\&%'):
-                        errmsg = self.generateCommandErrorMessage('TimeColForbiddenCharacterError', 'x', x)
+                    if self.contains_any(x, '*?[],:\\&%'):
+                        errmsg = self.generate_command_error_message('TimeColForbiddenCharacterError', 'x', x)
                         raise GroupBy2Exception(errmsg)
                     
                     for x in xs_list:
                         if x not in self.header:
-                            errmsg = self.generateCommandErrorMessage('FieldNotFoundError', 'x', x)
+                            errmsg = self.generate_command_error_message('FieldNotFoundError', 'x', x)
                             raise GroupBy2Exception(errmsg)
                             
 
                     if '' in xs_list:
-                        errmsg = self.generateCommandErrorMessage('EmptyTimeColError', 'x', x)
+                        errmsg = self.generate_command_error_message('EmptyTimeColError', 'x', x)
                         raise GroupBy2Exception(errmsg)
                         
 
@@ -986,7 +986,7 @@ class GroupBy2Command(PCommand):
                         if ':' in c:
                             c, a = c.split(':')
                             if a == '':
-                                errmsg = self.generateCommandErrorMessage('EmptyCalcNewNameError', 'c', c)
+                                errmsg = self.generate_command_error_message('EmptyCalcNewNameError', 'c', c)
                                 raise GroupBy2Exception(errmsg)
                         else:
                             a = c
@@ -1014,10 +1014,10 @@ class GroupBy2Command(PCommand):
                             elif c in self.const('python_calcs'):
                                 python_calcs.append(thiscalc)
                             else: # c is not in any list, therefore does not exist
-                                errmsg = self.generateCommandErrorMessage('CalcNotFoundError', 'c', c)
+                                errmsg = self.generate_command_error_message('CalcNotFoundError', 'c', c)
                                 raise GroupBy2Exception(errmsg) 
                             
-                            final_columns.append(self.generateFinalColName(thiscalc, common_args))
+                            final_columns.append(self.generate_final_col_name(thiscalc, common_args))
                         
         # check if k and fs are overlapping
         kf_overlap = []
@@ -1027,18 +1027,18 @@ class GroupBy2Command(PCommand):
 
         if len(kf_overlap) > 0:
             ks_overlapstr = ','.join(kf_overlap)
-            errmsg = self.generateCommandErrorMessage('KeyTargetConflictError', 'k', ks_overlapstr)
+            errmsg = self.generate_command_error_message('KeyTargetConflictError', 'k', ks_overlapstr)
             raise GroupBy2Exception(errmsg)
             
         # check if there is an overlap of final columns
-        dupes_list = self.findDuplicates(final_columns)
+        dupes_list = self.find_duplicates(final_columns)
         if len(dupes_list) > 0:
             dupes_str = ','.join(dupes_list)
-            errmsg = self.generateCommandErrorMessage('ResultsColConflictError', 'format, c, f, n', dupes_str)
+            errmsg = self.generate_command_error_message('ResultsColConflictError', 'format, c, f, n', dupes_str)
             raise GroupBy2Exception(errmsg)
             
         # reduce/simplify msummary 
-        msummary_calcs = self.simplifyMsummary(msummary_calcs)
+        msummary_calcs = self.simplify_msummary(msummary_calcs)
 
         # finally, combine the three lists into one 
         parsed_args = []
@@ -1057,7 +1057,7 @@ class GroupBy2Command(PCommand):
 
         return parsed_args, common_args
 
-    def transformToVertical(self, subcmd, formatstr, k, cols):
+    def transform_to_vertical(self, subcmd, formatstr, k, cols):
         '''
         takes data of the form:
         keys, fld, cols[0], cols[1], ...
@@ -1065,7 +1065,7 @@ class GroupBy2Command(PCommand):
         and transforms it to
         keys, final_cols, __val__ 
         '''
-        colformat = self.generateFinalColMcatExp(formatstr)
+        colformat = self.generate_final_col_mcat_exp(formatstr)
     
         subcmd <<= nm.m2cross(k = f'{k},fld', f= cols, 
                 a = '__calcname__,__val__')
@@ -1074,7 +1074,7 @@ class GroupBy2Command(PCommand):
 
         return subcmd
         
-    def cutToRelevantCols(self, subcmd, args, common_args):
+    def cut_to_relevant_cols(self, subcmd, args, common_args):
         '''
         gets the relevant columns
         '''
@@ -1126,14 +1126,14 @@ class GroupBy2Command(PCommand):
                 cmd[i] <<= nm.m2tee(i = file_to_read.as_posix())
 
                 # cut out only relevant columns
-                cmd[i] = self.cutToRelevantCols(cmd[i], thiscalc, common_args)
+                cmd[i] = self.cut_to_relevant_cols(cmd[i], thiscalc, common_args)
 
                 calctype = thiscalc.pop('type')
                 if calctype == 'msummary':
                     func = self.feature_msummary
                     # if thiscalc is a count calc, remove nonnumbers
                     if not thiscalc['c'].startswith('count'):
-                        cmd[i] = self.nullifyNonNumber(cmd[i], thiscalc['f'])
+                        cmd[i] = self.nullify_nonnumber(cmd[i], thiscalc['f'])
                     
                 else:
                     func = self.const('funcs')[thiscalc['c']]
@@ -1141,12 +1141,12 @@ class GroupBy2Command(PCommand):
                     # if the calc does not support strings (numbers only),
                     # nullify all the nonnumber rows
                     if thiscalc['c'] not in self.const('supports_str'):
-                        cmd[i] = self.nullifyNonNumber(cmd[i], thiscalc['f'])
+                        cmd[i] = self.nullify_nonnumber(cmd[i], thiscalc['f'])
 
                     # if the calc has a time column, clean up the rows with
                     # invalid time
                     if 'x' in thiscalc:
-                        cmd[i] = self.nullifyBadTime(cmd[i], thiscalc['x'],
+                        cmd[i] = self.nullify_bad_time(cmd[i], thiscalc['x'],
                                                      common_args['dateformat'])
 
                 # run the desired function
@@ -1156,7 +1156,7 @@ class GroupBy2Command(PCommand):
                 
             CALC_RES_TMP = Tmp.create_file()
             
-            self.dumpToFile(cmd, CALC_RES_TMP)
+            self.dump_to_file(cmd, CALC_RES_TMP)
             
             file_list.append(CALC_RES_TMP.as_posix())
 
@@ -1164,7 +1164,7 @@ class GroupBy2Command(PCommand):
         return file_list
 
         
-    def feature_runfuncwrapper(self, subcmd, args, common_args):
+    def feature_runfunc_wrapper(self, subcmd, args, common_args):
         '''
         wrapper function for runfunc features
         '''
@@ -1186,7 +1186,7 @@ class GroupBy2Command(PCommand):
         '''
         k = common_args.get('k')
         
-        resultcolname = self.generateFinalColName(args, common_args)
+        resultcolname = self.generate_final_col_name(args, common_args)
         
         subcmd <<= nm.mcount(k = k, a = '__val__')
         subcmd <<= nm.msetstr(a = 'final_cols', v = resultcolname)
@@ -1218,7 +1218,7 @@ class GroupBy2Command(PCommand):
         # calculate
         subcmd <<= nm.msummary(**opts)
         
-        subcmd = self.transformToVertical(subcmd, formatstr, k, final_cs)
+        subcmd = self.transform_to_vertical(subcmd, formatstr, k, final_cs)
 
         
         return subcmd 
@@ -1230,7 +1230,7 @@ class GroupBy2Command(PCommand):
         f = args.get('f')
         k = common_args.get('k')
 
-        resultcolname = self.generateFinalColName(args, common_args)
+        resultcolname = self.generate_final_col_name(args, common_args)
 
         allrows = None
         
@@ -1247,14 +1247,14 @@ class GroupBy2Command(PCommand):
 
         return subcmd
 
-    def feature_strucount(self, subcmd, args, common_args):
+    def feature_str_ucount(self, subcmd, args, common_args):
         '''
         calculates feature strucount
         '''
         fld = args.get('f')
         k = common_args.get('k')
 
-        resultcolname = self.generateFinalColName(args, common_args)
+        resultcolname = self.generate_final_col_name(args, common_args)
 
         subcmd <<= nm.muniq(k = f'{k},{fld}') 
         subcmd <<= nm.mcount(k = k, a = '__val__')
@@ -1263,14 +1263,14 @@ class GroupBy2Command(PCommand):
 
         return subcmd
 
-    def feature_strmin(self, subcmd, args, common_args):
+    def feature_str_min(self, subcmd, args, common_args):
         '''
         calculate feature strmin
         '''
         fld = args.get('f')
         k = common_args.get('k')
 
-        resultcolname = self.generateFinalColName(args, common_args)
+        resultcolname = self.generate_final_col_name(args, common_args)
 
         subcmd <<= nm.mkeybreak(k = k, s = fld)
         subcmd <<= nm.mcal(a = 'fld', c = f'if($s{{top}}=="1","{fld}",nulls())')
@@ -1283,14 +1283,14 @@ class GroupBy2Command(PCommand):
 
         return subcmd
 
-    def feature_strmax(self, subcmd, args, common_args):
+    def feature_str_max(self, subcmd, args, common_args):
         '''
         calculate feature strmax
         '''
         fld = args.get('f')
         k = common_args.get('k')
 
-        resultcolname = self.generateFinalColName(args, common_args)
+        resultcolname = self.generate_final_col_name(args, common_args)
 
         subcmd <<= nm.mkeybreak(k = k, s = fld)
         subcmd <<= nm.mcal(a = 'fld', c = f'if($s{{bot}}=="1","{fld}",nulls())')
@@ -1303,14 +1303,14 @@ class GroupBy2Command(PCommand):
 
         return subcmd
     
-    def feature_hasdup(self, subcmd, args, common_args):
+    def feature_has_dup(self, subcmd, args, common_args):
         '''
         calculates the flag feature has duplicate 
         '''
         fld = args.get('f')
         k = common_args.get('k')
 
-        resultcolname = self.generateFinalColName(args, common_args)
+        resultcolname = self.generate_final_col_name(args, common_args)
         subcmd_o = None
 
         total = nm.mcount(k = f'{k},{fld}', a = '__dcnt', i = subcmd)
@@ -1329,7 +1329,7 @@ class GroupBy2Command(PCommand):
 
         return subcmd_o
 
-    def feature_repeatdata(self, subcmd, args, common_args):
+    def feature_repeat_data(self, subcmd, args, common_args):
         '''
         calculates feature repeatdata
         '''
@@ -1338,7 +1338,7 @@ class GroupBy2Command(PCommand):
         k = common_args.get('k')
         precision = common_args.get('precision')
 
-        resultcolname = self.generateFinalColName(args, common_args)
+        resultcolname = self.generate_final_col_name(args, common_args)
 
         subcmd <<= nm.mcount(k = f'{k},{fld}', a = '__count__')
         subcmd <<= nm.mfldname(f = f'{fld}:___')
@@ -1353,7 +1353,7 @@ class GroupBy2Command(PCommand):
 
         return subcmd
 
-    def feature_repeatvalues(self, subcmd, args, common_args):
+    def feature_repeat_values(self, subcmd, args, common_args):
         '''
         calculate feature repeatvalues
         '''
@@ -1361,7 +1361,7 @@ class GroupBy2Command(PCommand):
         k = common_args.get('k')
         precision = common_args.get('precision')
 
-        resultcolname = self.generateFinalColName(args, common_args)
+        resultcolname = self.generate_final_col_name(args, common_args)
 
         mcount = None 
 
@@ -1381,7 +1381,7 @@ class GroupBy2Command(PCommand):
 
         return subcmd
 
-    def feature_sumrepeatdata(self, subcmd, args, common_args):
+    def feature_sum_repeat_data(self, subcmd, args, common_args):
         '''
         calculate feature sum_repeatdata
         '''
@@ -1389,7 +1389,7 @@ class GroupBy2Command(PCommand):
         k = common_args.get('k')
         precision = common_args.get('precision')
 
-        resultcolname = self.generateFinalColName(args, common_args)
+        resultcolname = self.generate_final_col_name(args, common_args)
 
         subcmd <<= nm.mcount(k = f'{k},{fld}', a = '__count__')
         subcmd <<= nm.mcal(c = f'if(${{__count__}}==1,0,${{__count__}}*${{{fld}}})', 
@@ -1402,7 +1402,7 @@ class GroupBy2Command(PCommand):
 
         return subcmd
 
-    def feature_sumrepeatvalues(self, subcmd, args, common_args):
+    def feature_sum_repeat_values(self, subcmd, args, common_args):
         '''
         calculate feature sum_repeatvalues
         '''
@@ -1410,7 +1410,7 @@ class GroupBy2Command(PCommand):
         k = common_args.get('k')
         precision = common_args.get('precision')
 
-        resultcolname = self.generateFinalColName(args, common_args)
+        resultcolname = self.generate_final_col_name(args, common_args)
 
         subcmd <<= nm.mcount(k = f'{k},{fld}', a = '__count__')
         subcmd <<= nm.mcal(c = f'if(${{__count__}}==1,0,${{{fld}}})', a = '__val__')
@@ -1422,7 +1422,7 @@ class GroupBy2Command(PCommand):
 
         return subcmd
     
-    def feature_ratiounique(self, subcmd, args, common_args):
+    def feature_ratio_unique(self, subcmd, args, common_args):
         '''
         calculate feature ratio_unique
         '''
@@ -1430,7 +1430,7 @@ class GroupBy2Command(PCommand):
         k = common_args.get('k')
         precision = common_args.get('precision')
 
-        resultcolname = self.generateFinalColName(args, common_args)
+        resultcolname = self.generate_final_col_name(args, common_args)
 
         msums = None
         
@@ -1445,14 +1445,14 @@ class GroupBy2Command(PCommand):
 
         return subcmd
     
-    def feature_countabovemean(self, subcmd, args, common_args):
+    def feature_count_above_mean(self, subcmd, args, common_args):
         '''
         calculate feature count_above_mean
         '''
         fld = args.get('f')
         k = common_args.get('k')
 
-        resultcolname = self.generateFinalColName(args, common_args)
+        resultcolname = self.generate_final_col_name(args, common_args)
 
         msums = None
         
@@ -1469,14 +1469,14 @@ class GroupBy2Command(PCommand):
 
         return subcmd
 
-    def feature_countbelowmean(self, subcmd, args, common_args):
+    def feature_count_below_mean(self, subcmd, args, common_args):
         '''
         calculate feature count_below_mean
         '''
         fld = args.get('f')
         k = common_args.get('k')
 
-        resultcolname = self.generateFinalColName(args, common_args)
+        resultcolname = self.generate_final_col_name(args, common_args)
 
         msums = None
         
@@ -1493,14 +1493,14 @@ class GroupBy2Command(PCommand):
 
         return subcmd
 
-    def feature_hasdupmin(self, subcmd, args, common_args):
+    def feature_has_dup_min(self, subcmd, args, common_args):
         '''
         calculates feature has_dup_min
         '''
         fld = args.get('f')
         k = common_args.get('k')
 
-        resultcolname = self.generateFinalColName(args, common_args)
+        resultcolname = self.generate_final_col_name(args, common_args)
 
         subcmd <<= nm.mcount(k = f'{k},{fld}', a = '__dcnt')
 
@@ -1513,14 +1513,14 @@ class GroupBy2Command(PCommand):
 
         return subcmd
 
-    def feature_hasdupmax(self, subcmd, args, common_args):
+    def feature_has_dup_max(self, subcmd, args, common_args):
         '''
         calculates feature has_dup_max
         '''
         fld = args.get('f')
         k = common_args.get('k')
 
-        resultcolname = self.generateFinalColName(args, common_args)
+        resultcolname = self.generate_final_col_name(args, common_args)
 
         subcmd <<= nm.mcount(k = f'{k},{fld}', a = '__dcnt')
 
@@ -1541,7 +1541,7 @@ class GroupBy2Command(PCommand):
         k = common_args.get('k')
         precision = common_args.get('precision')
 
-        resultcolname = self.generateFinalColName(args, common_args)
+        resultcolname = self.generate_final_col_name(args, common_args)
             
         flags = None 
 
@@ -1572,7 +1572,7 @@ class GroupBy2Command(PCommand):
         k = common_args.get('k')
         precision = common_args.get('precision')
 
-        resultcolname = self.generateFinalColName(args, common_args)
+        resultcolname = self.generate_final_col_name(args, common_args)
 
         flags = None
         flags <<= nm.msummary(i = subcmd, c = 'min', k = k, f = fld)
@@ -1594,7 +1594,7 @@ class GroupBy2Command(PCommand):
 
         return subcmd
 
-    def feature_absenergy(self, subcmd, args, common_args):
+    def feature_abs_energy(self, subcmd, args, common_args):
         '''
         calculates feature abs_energy
         '''
@@ -1602,7 +1602,7 @@ class GroupBy2Command(PCommand):
         k = common_args.get('k')
         precision = common_args.get('precision')
 
-        resultcolname = self.generateFinalColName(args, common_args)
+        resultcolname = self.generate_final_col_name(args, common_args)
 
         subcmd <<= nm.mcal(c = f'${{{fld}}}*${{{fld}}}', a = f'__tmp{fld}')
         subcmd <<= nm.mcut(f = fld, r = True)
@@ -1624,7 +1624,7 @@ class GroupBy2Command(PCommand):
         k = common_args.get('k')
         precision = common_args.get('precision')
 
-        resultcolname = self.generateFinalColName(args, common_args)
+        resultcolname = self.generate_final_col_name(args, common_args)
 
         subcmd <<= nm.mcal(a = f'{fld}_sq', c = f'${{{fld}}}^2')
         
@@ -1641,7 +1641,7 @@ class GroupBy2Command(PCommand):
 
         return subcmd
 
-    def feature_medianad(self, subcmd, args, common_args):
+    def feature_median_ad(self, subcmd, args, common_args):
         '''
         calculate feature median_ad
         '''
@@ -1649,7 +1649,7 @@ class GroupBy2Command(PCommand):
         k = common_args.get('k')
         precision = common_args.get('precision')
 
-        resultcolname = self.generateFinalColName(args, common_args)
+        resultcolname = self.generate_final_col_name(args, common_args)
                             
         mediancalc = None
 
@@ -1669,7 +1669,7 @@ class GroupBy2Command(PCommand):
 
         return subcmd
 
-    def feature_meanad(self, subcmd, args, common_args):
+    def feature_mean_ad(self, subcmd, args, common_args):
         '''
         calculate feature mean_ad
         '''
@@ -1677,7 +1677,7 @@ class GroupBy2Command(PCommand):
         k = common_args.get('k')
         precision = common_args.get('precision')
 
-        resultcolname = self.generateFinalColName(args, common_args)
+        resultcolname = self.generate_final_col_name(args, common_args)
                             
         meancalc = None
 
@@ -1697,14 +1697,14 @@ class GroupBy2Command(PCommand):
 
         return subcmd
     
-    def feature_vargtsd(self, subcmd, args, common_args):
+    def feature_var_gt_sd(self, subcmd, args, common_args):
         '''
         calculate feature var_gt_sd
         '''
         fld = args.get('f')
         k = common_args.get('k')
 
-        resultcolname = self.generateFinalColName(args, common_args)
+        resultcolname = self.generate_final_col_name(args, common_args)
         
         subcmd <<= nm.msummary(k = k, f = fld, c = 'var:__var,sd:__sd')
             
@@ -1717,7 +1717,7 @@ class GroupBy2Command(PCommand):
         return subcmd
 
     # １つの変数に対する特徴量（パラメータあり）
-    def feature_valuecount(self, subcmd, args, common_args):
+    def feature_value_count(self, subcmd, args, common_args):
         '''
         calculate feature value_count
         '''
@@ -1726,7 +1726,7 @@ class GroupBy2Command(PCommand):
         k = common_args.get('k')
         precision = common_args.get('precision')
 
-        resultcolname = self.generateFinalColName(args, common_args)
+        resultcolname = self.generate_final_col_name(args, common_args)
 
         strparam = False
         try:
@@ -1751,7 +1751,7 @@ class GroupBy2Command(PCommand):
 
         return subcmd
 
-    def feature_symlooking(self, subcmd, args, common_args):
+    def feature_sym_looking(self, subcmd, args, common_args):
         '''
         calculate feature summetry_looking
         '''
@@ -1760,7 +1760,7 @@ class GroupBy2Command(PCommand):
         k = common_args.get('k')
         precision = common_args.get('precision')
 
-        resultcolname = self.generateFinalColName(args, common_args)
+        resultcolname = self.generate_final_col_name(args, common_args)
 
 
         msumres = None
@@ -1784,7 +1784,7 @@ class GroupBy2Command(PCommand):
 
         return subcmd
 
-    def feature_largesd(self, subcmd, args, common_args):
+    def feature_large_sd(self, subcmd, args, common_args):
         '''
         calculate feature large_sd
         '''
@@ -1792,7 +1792,7 @@ class GroupBy2Command(PCommand):
         n = args.get('n')
         k = common_args.get('k')
 
-        resultcolname = self.generateFinalColName(args, common_args)
+        resultcolname = self.generate_final_col_name(args, common_args)
 
         subcmd <<= nm.msummary(f = fld, k = k, 
                     c = 'sd:__sd,max:__max,min:__min')
@@ -1806,7 +1806,7 @@ class GroupBy2Command(PCommand):
 
         return subcmd
 
-    def feature_ratiogtrsigma(self, subcmd, args, common_args):
+    def feature_ratio_gt_rsigma(self, subcmd, args, common_args):
         '''
         calculate feature ratio_beyond_rsigma
         '''
@@ -1815,7 +1815,7 @@ class GroupBy2Command(PCommand):
         k = common_args.get('k')
         precision = common_args.get('precision')
 
-        resultcolname = self.generateFinalColName(args, common_args)
+        resultcolname = self.generate_final_col_name(args, common_args)
 
         msums = None
         msums <<= nm.msummary(k = k, f = fld, i = subcmd,
@@ -1837,7 +1837,7 @@ class GroupBy2Command(PCommand):
 
         return subcmd
 
-    def feature_binnedentropy(self, subcmd, args, common_args):
+    def feature_binned_entropy(self, subcmd, args, common_args):
         '''
         calculate feature binned_entropy
         '''
@@ -1846,7 +1846,7 @@ class GroupBy2Command(PCommand):
         k = common_args.get('k')
         precision = common_args.get('precision')
 
-        resultcolname = self.generateFinalColName(args, common_args)
+        resultcolname = self.generate_final_col_name(args, common_args)
 
         msums = nm.msummary(i = subcmd, f = fld, k = k, 
                             c = 'count:__count')
@@ -1881,7 +1881,7 @@ class GroupBy2Command(PCommand):
         k = common_args.get('k')
         precision = common_args.get('precision')
 
-        resultcolname = self.generateFinalColName(args, common_args)
+        resultcolname = self.generate_final_col_name(args, common_args)
 
         precalcs = None
         subcmd_o = None
@@ -1909,7 +1909,7 @@ class GroupBy2Command(PCommand):
 
         return subcmd_o
 
-    def feature_rangecount(self, subcmd, args, common_args):
+    def feature_range_count(self, subcmd, args, common_args):
         '''
         calculate feature range_count
         '''
@@ -1917,7 +1917,7 @@ class GroupBy2Command(PCommand):
         nmin, nmax = args.get('n').split(';')
         k = common_args.get('k')
 
-        resultcolname = self.generateFinalColName(args, common_args)
+        resultcolname = self.generate_final_col_name(args, common_args)
 
         subcmd <<= nm.mcal(a = '__inrange',
             c = f'${{{fld}}}>={float(nmin)} && ${{{fld}}} < {float(nmax)}')
@@ -1939,7 +1939,7 @@ class GroupBy2Command(PCommand):
         k = common_args.get('k')
         precision = common_args.get('precision')
 
-        resultcolname = self.generateFinalColName(args, common_args)
+        resultcolname = self.generate_final_col_name(args, common_args)
 
         xy_covar = nm.msim(k = k, i = subcmd, f = f'{x},{fld}', 
                            c = 'covar:__covar')
@@ -1970,7 +1970,7 @@ class GroupBy2Command(PCommand):
         k = common_args.get('k')
         precision = common_args.get('precision')
 
-        resultcolname = self.generateFinalColName(args, common_args)
+        resultcolname = self.generate_final_col_name(args, common_args)
 
         subcmd <<= nm.msim(k = k, c = 'pearson:__val__', 
                            f = f'{x},{fld}', a = 'fld2,fld',
@@ -1995,7 +1995,7 @@ class GroupBy2Command(PCommand):
         k = common_args.get('k')
         precision = common_args.get('precision')
 
-        resultcolname = self.generateFinalColName(args, common_args)
+        resultcolname = self.generate_final_col_name(args, common_args)
 
         subcmd <<= nm.mdelnull(f = fld)
         subcmd <<= nm.mnumber(a = '__order__', I = 1, k = k, S = 0, q = True)
@@ -2026,7 +2026,7 @@ class GroupBy2Command(PCommand):
         k = common_args.get('k')
         precision = common_args.get('precision')
 
-        resultcolname = self.generateFinalColName(args, common_args)
+        resultcolname = self.generate_final_col_name(args, common_args)
 
         subcmd <<= nm.mslide(k = k, s = f'{x}%n', f = f'{fld}:__shifted{fld}',
                              t = 2)
@@ -2044,7 +2044,7 @@ class GroupBy2Command(PCommand):
 
         return subcmd
         
-    def feature_meanchange(self, subcmd, args, common_args):
+    def feature_mean_change(self, subcmd, args, common_args):
         '''
         calculate feature mean_change
         '''
@@ -2053,7 +2053,7 @@ class GroupBy2Command(PCommand):
         k = common_args.get('k')
         precision = common_args.get('precision')
 
-        resultcolname = self.generateFinalColName(args, common_args)
+        resultcolname = self.generate_final_col_name(args, common_args)
 
         subcmd <<= nm.mslide(k = k, s = f'{x}%n', f = f'{fld}:__shifted{fld}')
         subcmd <<= nm.mcal(c = f'${{__shifted{fld}}}-${{{fld}}}', a = '__val__')
@@ -2069,7 +2069,7 @@ class GroupBy2Command(PCommand):
 
         return subcmd
 
-    def feature_meanabschange(self, subcmd, args, common_args):
+    def feature_mean_abs_change(self, subcmd, args, common_args):
         '''
         calculate feature mean_abs_change
         '''
@@ -2078,7 +2078,7 @@ class GroupBy2Command(PCommand):
         k = common_args.get('k')
         precision = common_args.get('precision')
 
-        resultcolname = self.generateFinalColName(args, common_args)
+        resultcolname = self.generate_final_col_name(args, common_args)
 
         subcmd <<= nm.mslide(k = k, s = f'{x}%n', f = f'{fld}:__shifted{fld}')
         subcmd <<= nm.mcal(c = f'abs(${{__shifted{fld}}}-${{{fld}}})', a = '__val__')
@@ -2094,7 +2094,7 @@ class GroupBy2Command(PCommand):
 
         return subcmd
 
-    def feature_abssumchanges(self, subcmd, args, common_args):
+    def feature_abs_sum_changes(self, subcmd, args, common_args):
         '''
         calculate feature abs_sum_changes
         '''
@@ -2103,7 +2103,7 @@ class GroupBy2Command(PCommand):
         k = common_args.get('k')
         precision = common_args.get('precision')
 
-        resultcolname = self.generateFinalColName(args, common_args)
+        resultcolname = self.generate_final_col_name(args, common_args)
 
         if self.DEBUG:
             subcmd <<= nm.m2tee(o = f'start_of_abssumchanges_{resultcolname}.csv')
@@ -2140,7 +2140,7 @@ class GroupBy2Command(PCommand):
         k = common_args.get('k')
         precision = common_args.get('precision')
 
-        resultcolname = self.generateFinalColName(args, common_args)
+        resultcolname = self.generate_final_col_name(args, common_args)
 
         # get keybreak points
         subcmd <<= nm.msortf(f = k)
@@ -2173,7 +2173,7 @@ class GroupBy2Command(PCommand):
         return subcmd
 
     # TODO figure out how to decorate these instead? 
-    def feature_meanfrequency(self, subcmd, args, common_args):
+    def feature_mean_frequency(self, subcmd, args, common_args):
         '''
         calculate meanfrequency
         '''
@@ -2187,7 +2187,7 @@ class GroupBy2Command(PCommand):
             k = common_args.get('k')
             precision = common_args.get('precision')
             
-            resultcolname = self.generateFinalColName(args, common_args)
+            resultcolname = self.generate_final_col_name(args, common_args)
 
             headerline = True
 
@@ -2238,7 +2238,7 @@ class GroupBy2Command(PCommand):
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
                 
-    def feature_frequencyvar(self, subcmd, args, common_args):
+    def feature_frequency_var(self, subcmd, args, common_args):
         '''
         calculate frequencyvariance
         '''
@@ -2254,7 +2254,7 @@ class GroupBy2Command(PCommand):
             k = common_args.get('k')
             precision = common_args.get('precision')
             
-            resultcolname = self.generateFinalColName(args, common_args)
+            resultcolname = self.generate_final_col_name(args, common_args)
 
             headerline = True
 
@@ -2308,7 +2308,7 @@ class GroupBy2Command(PCommand):
             with open('/dev/stderr', 'w') as fpe:
                 traceback.print_exc(file=fpe)
 
-    def feature_firstmin(self, subcmd, args, common_args):
+    def feature_first_min(self, subcmd, args, common_args):
         '''
         calculate feature firstmin
         '''
@@ -2317,7 +2317,7 @@ class GroupBy2Command(PCommand):
         k = common_args.get('k')
         precision = common_args.get('precision')
 
-        resultcolname = self.generateFinalColName(args, common_args)
+        resultcolname = self.generate_final_col_name(args, common_args)
 
         msum = nm.msummary(c = 'min:_mintime,range:_timerange', k = k, f = x, 
                              i = subcmd)
@@ -2338,7 +2338,7 @@ class GroupBy2Command(PCommand):
 
         return subcmd
 
-    def feature_firstmax(self, subcmd, args, common_args):
+    def feature_first_max(self, subcmd, args, common_args):
         '''
         calculate feature firstmax
         '''
@@ -2347,7 +2347,7 @@ class GroupBy2Command(PCommand):
         k = common_args.get('k')
         precision = common_args.get('precision')
 
-        resultcolname = self.generateFinalColName(args, common_args)
+        resultcolname = self.generate_final_col_name(args, common_args)
 
         msum = nm.msummary(c = 'min:_mintime,range:_timerange', k = k, f = x, 
                              i = subcmd)
@@ -2368,7 +2368,7 @@ class GroupBy2Command(PCommand):
 
         return subcmd
 
-    def feature_lastmin(self, subcmd, args, common_args):
+    def feature_last_min(self, subcmd, args, common_args):
         '''
         calculate feature lastmin
         '''
@@ -2377,7 +2377,7 @@ class GroupBy2Command(PCommand):
         k = common_args.get('k')
         precision = common_args.get('precision')
 
-        resultcolname = self.generateFinalColName(args, common_args)
+        resultcolname = self.generate_final_col_name(args, common_args)
 
         msum = nm.msummary(c = 'min:_mintime,range:_timerange', k = k, f = x, 
                              i = subcmd)
@@ -2398,7 +2398,7 @@ class GroupBy2Command(PCommand):
 
         return subcmd
 
-    def feature_lastmax(self, subcmd, args, common_args):
+    def feature_last_max(self, subcmd, args, common_args):
         '''
         calculate feature lastmin
         '''
@@ -2407,7 +2407,7 @@ class GroupBy2Command(PCommand):
         k = common_args.get('k')
         precision = common_args.get('precision')
 
-        resultcolname = self.generateFinalColName(args, common_args)
+        resultcolname = self.generate_final_col_name(args, common_args)
 
         msum = nm.msummary(c = 'min:_mintime,range:_timerange', k = k, f = x, 
                              i = subcmd)
@@ -2428,7 +2428,7 @@ class GroupBy2Command(PCommand):
 
         return subcmd
 
-    def feature_longeststrikeabovemean(self, subcmd, args, common_args):
+    def feature_longest_strike_above_mean(self, subcmd, args, common_args):
         '''
         calculate feature longest strike above mean
         '''
@@ -2436,7 +2436,7 @@ class GroupBy2Command(PCommand):
         x = args.get('x')
         k = common_args.get('k')
 
-        resultcolname = self.generateFinalColName(args, common_args)
+        resultcolname = self.generate_final_col_name(args, common_args)
 
         msum = nm.msummary(k = k, f = fld, c = 'mean:__mean', i = subcmd)
 
@@ -2458,7 +2458,7 @@ class GroupBy2Command(PCommand):
 
         return subcmd
 
-    def feature_longeststrikebelowmean(self, subcmd, args, common_args):
+    def feature_longest_strike_below_mean(self, subcmd, args, common_args):
         '''
         calculate feature longest strike below mean
         '''
@@ -2466,7 +2466,7 @@ class GroupBy2Command(PCommand):
         x = args.get('x')
         k = common_args.get('k')
 
-        resultcolname = self.generateFinalColName(args, common_args)
+        resultcolname = self.generate_final_col_name(args, common_args)
 
         msum = nm.msummary(k = k, f = fld, c = 'mean:__mean', i = subcmd)
 
@@ -2499,7 +2499,7 @@ class GroupBy2Command(PCommand):
         k = common_args.get('k')
         precision = common_args.get('precision')
 
-        resultcolname = self.generateFinalColName(args, common_args)
+        resultcolname = self.generate_final_col_name(args, common_args)
 
         msum = nm.msummary(i = subcmd, k = k, f = fld,
                             c = f'mean:__mean,var:__var,count:__count')
@@ -2534,7 +2534,7 @@ class GroupBy2Command(PCommand):
         x = args.get('x')
         k = common_args.get('k')
 
-        resultcolname = self.generateFinalColName(args, common_args)
+        resultcolname = self.generate_final_col_name(args, common_args)
 
         subcmd <<= nm.mcal(c = f'${{{fld}}}>{n}', a = '__pos')
         subcmd <<= nm.mslide(k = k, s = f'{x}%n', f = '__pos:__posN')
@@ -2562,7 +2562,7 @@ class GroupBy2Command(PCommand):
         x = args.get('x')
         k = common_args.get('k')
 
-        resultcolname = self.generateFinalColName(args, common_args)
+        resultcolname = self.generate_final_col_name(args, common_args)
 
         
         mslide = nm.mslide(k = k, s = f'{x}%n', t = n, r = True, 
@@ -2600,7 +2600,7 @@ class GroupBy2Command(PCommand):
         k = common_args.get('k')
         precision = common_args.get('precision')
 
-        resultcolname = self.generateFinalColName(args, common_args)
+        resultcolname = self.generate_final_col_name(args, common_args)
 
         mcal = None 
         sumabs = None
@@ -2640,7 +2640,7 @@ class GroupBy2Command(PCommand):
         k = common_args.get('k')
         precision = common_args.get('precision')
 
-        resultcolname = self.generateFinalColName(args, common_args)
+        resultcolname = self.generate_final_col_name(args, common_args)
 
         subcmd <<= nm.msetstr(v = resultcolname, a = 'final_cols')
 
@@ -2660,17 +2660,17 @@ class GroupBy2Command(PCommand):
         # TODO fix tmpfile handling
         initialfile = Tmp.create_file()
         # run everything up til now, and then save into the file
-        self.dumpToFile(inputs['i'].content, initialfile)
+        self.dump_to_file(inputs['i'].content, initialfile)
 
         # ヘッダ行を取得する
         cmd = nm.m2tee(i = initialfile.as_posix())
-        cmd = self.wrapFlow(cmd)
+        cmd = self.wrap_flow(cmd)
         self.header = self.get_field_names(cmd)
 
         cmd = nm.m2tee(i = initialfile.as_posix())
 
         # parse the inputs
-        all_calcs, common_args = self.parseArgs(args)
+        all_calcs, common_args = self.parse_args(args)
 
         # if manual_key is False, make new key column 
         manual_key = common_args.get('manual_k')
@@ -2698,7 +2698,7 @@ class GroupBy2Command(PCommand):
         
         # TODO fix tmpfile handling
         tmpfile = Tmp.create_file()
-        self.dumpToFile(cmd, tmpfile)
+        self.dump_to_file(cmd, tmpfile)
         
 
         # get original key columns
@@ -2707,7 +2707,7 @@ class GroupBy2Command(PCommand):
         keys <<= nm.mcut(f = common_args['k'])
         keys <<= nm.muniq(k = common_args['k'])
         keys_file = Tmp.create_file()
-        self.dumpToFile(keys, keys_file)
+        self.dump_to_file(keys, keys_file)
         
         self.keys_filename = keys_file.as_posix()
 
@@ -2735,6 +2735,6 @@ class GroupBy2Command(PCommand):
         cmd_out <<= nm.mchgstr(f = common_args['k'], c = f'{tmp_key}:', F = True)
         
 
-        cmd_out = self.wrapFlow(cmd_out)
+        cmd_out = self.wrap_flow(cmd_out)
         
         return {'o' : cmd_out}
