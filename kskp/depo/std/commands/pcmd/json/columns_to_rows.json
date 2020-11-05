@@ -1,0 +1,63 @@
+{
+  "version": "0.7.0",
+  "id": "columns_to_rows",
+  "label": "項目の行展開",
+  "classification": "col_edit",
+  "description": "f=で指定した複数の列項目に対して、各項目の行を連結した新たな項目をa=で指定した名前で作成する",
+  "ports": [
+    [
+      {
+        "name": "i",
+        "type": "frame"
+      }
+    ],
+    [
+      {
+        "name": "o",
+        "type": "frame"
+      }
+    ]
+  ],
+  "params": [
+    {
+      "name": "f",
+      "type": "string",
+      "label": "複数の列項目を、カンマ区切りで指定する"
+    },
+    {
+      "name": "a",
+      "type": "string",
+      "label": "1つの新規項目名を指定する"
+    },
+    {
+      "name": "k",
+      "type": "string",
+      "label": "グループ化する項目名(必須)",
+      "description": "カンマ区切りで複数指定可"
+    }
+  ],
+  "url": "",
+  "groups": [
+    {
+      "name": "abstract",
+      "label": "項目の行展開",
+      "description": "f=で指定した複数の列項目に対して、各項目の行を連結した新たな項目をa=で指定した名前で作成する",
+      "params": []
+    },
+    {
+      "name": "grouping",
+      "label": "グループの設定 (必須)",
+      "params": [
+        "k"
+      ]
+    },
+    {
+      "name": "cmd_main",
+      "label": "行展開の設定 (必須)",
+      "params": [
+        "f",
+        "a"
+      ]
+    }
+  ]
+}

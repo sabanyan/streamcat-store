@@ -57,44 +57,62 @@
     {
       "name": "a",
       "type": "string",
-      "label": "追加列名"
+      "label": "連番の項目名 (必須)"
     },
     {
       "name": "e",
-      "type": "string",
-      "label": "同一キー同一ソート項目値への処理方法を指定する。",
+      "type": "select",
+      "label": "連番または順位の選択 (必須)",
       "optional": true,
-      "default": "seq"
+      "default": "seq",
+      "options": {
+        "labels": [
+          "連番",
+          "順位",
+          "順位 (同順位に複数あれば、その数だけ次の順位をずらす)"
+        ],
+        "values": [
+          "seq",
+          "same",
+          "skip"
+        ]
+      }
     },
     {
       "name": "I",
       "type": "string",
-      "label": "連番の間隔を指定する。",
-      "optional": true
+      "label": "間隔 (必須)",
+      "optional": true,
+      "default": "1"
     },
     {
       "name": "k",
       "type": "string",
-      "label": "項目名リスト",
-      "optional": true
+      "label": "グループ化する項目名 (省略可)",
+      "optional": true,
+      "description": "・カンマ区切りで複数指定可\n・省略時は全ての行を同じグループとみなして処理される"
     },
     {
       "name": "s",
       "type": "string",
-      "label": "ソート対象列名",
-      "optional": true
+      "label": "グループ内ソートの設定 (必須)",
+      "optional": true,
+      "description": "・ソートのキー項目を、カンマ区切りで複数指定可\n・ソートの種類は変更可能　(デフォルト: 文字列昇順)\n 　方法: 項目名末尾に記号を付与 (数値昇順：%n,  文字列降順： %r,  数値降順：%nr)\n・注意 グループ化する項目名と同じ項目名があると、不整合になり、ソートされません"
     },
     {
       "name": "S",
       "type": "string",
-      "label": "開始No",
-      "optional": true
+      "label": "開始値 (必須)",
+      "optional": true,
+      "description": "・整数連番とアルファベット連番が選択可能\n・アルファベット連番の場合は、大文字で指定する",
+      "default": "1"
     },
     {
       "name": "B",
       "type": "boolean",
-      "label": "キー毎に連番もしくはアルファベット連番をふる。",
-      "optional": true
+      "label": "グループ内ではなく、グループに連番を付与する",
+      "optional": true,
+      "description": "同じグループには同じ値を付与する"
     },
     {
       "name": "assert_diffSize",
@@ -123,14 +141,16 @@
     {
       "name": "x",
       "type": "boolean",
-      "label": "項目番号による指定",
-      "optional": true
+      "label": "項目名ではなく、項目番号で指定する",
+      "optional": true,
+      "description": "・0始まりの項目番号で指定する\n・Lをつけると、右端起点の項目番号とみなす(例:3L)\n・複数入力可能なOptの場合は、列範囲としての指定も可能(例: 0-5)"
     },
     {
       "name": "q",
       "type": "boolean",
       "label": "自動並べ替えの無効化",
-      "optional": true
+      "optional": true,
+      "description": "入力データがグループ単位でソート済みの場合、指定すると処理速度が向上"
     },
     {
       "name": "tmpPath",
@@ -157,5 +177,58 @@
   "label": "連番の付与",
   "classification": "col_edit",
   "description": "数字、英字の連番を付与する",
-  "url": "./static/pdf/mcmd/col_edit/mnumber.pdf"
+  "url": "./static/pdf/mcmd/col_edit/mnumber.pdf",
+  "groups": [
+    {
+      "name": "abstract",
+      "label": "連番の付与",
+      "description": "数字、英字の連番を付与する",
+      "params": []
+    },
+    {
+      "name": "grouping",
+      "label": "グループの設定 (必須)",
+      "params": [
+        "k",
+        "s"
+      ]
+    },
+    {
+      "name": "cmd_main",
+      "label": "連番の設定 (必須)",
+      "description": "ソート順に連番または順位を付与することが可能",
+      "params": [
+        "a",
+        "S",
+        "I",
+        "e",
+        "B"
+      ]
+    },
+    {
+      "name": "cmd_sub",
+      "label": "その他 (省略可)",
+      "params": [
+        "nfno",
+        "nfn",
+        "q"
+      ]
+    },
+    {
+      "name": "fields",
+      "label": "項目名・項目番号についての設定（省略可）",
+      "params": [
+        "x"
+      ]
+    },
+    {
+      "name": "system",
+      "label": "システム管理用設定（作業領域・ログ出力）",
+      "params": [
+        "assert_diffSize",
+        "assert_nullkey",
+        "tmpPath"
+      ]
+    }
+  ]
 }

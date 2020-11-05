@@ -1,0 +1,311 @@
+{
+  "id": "multi_mvstats",
+  "groups": [
+    {
+      "name": "abstract",
+      "label": "複数項目の移動窓の統計量の計算",
+      "description": "複数項目、複数の統計量を複数の期間に対して、算出する",
+      "params": []
+    },
+    {
+      "name": "grouping",
+      "label": "グループの設定 (必須)",
+      "params": [
+        "k",
+        "s"
+      ]
+    },
+    {
+      "name": "group3",
+      "label": "移動窓の統計量の計算の設定 (必須)",
+      "description": "統計量の計算は、対象項目と、統計量で設定する\n移動窓は、期間数で窓の幅を設定する",
+      "params": [
+        "factlist"
+      ]
+    },
+    {
+      "name": "group6",
+      "label": "その他（省略可）",
+      "params": [
+        "nfn",
+        "nfno",
+        "x",
+        "precision"
+      ]
+    },
+    {
+      "name": "group7",
+      "label": "システム管理用設定（作業領域・ログ出力）",
+      "params": [
+        "tmpPath",
+        "assert_diffSize",
+        "assert_nullkey",
+        "assert_nullin",
+        "assert_nullout"
+      ]
+    }
+  ],
+  "params": [
+    {
+      "name": "s",
+      "type": "string",
+      "label": "グループ内ソートの設定 (必須)",
+      "description": "・ソートのキー項目を、カンマ区切りで複数指定可\n・ソートの種類は変更可能　(デフォルト: 文字列昇順)\n 　方法: 項目名末尾に記号を付与 (数値昇順：%n,  文字列降順： %r,  数値降順：%nr)\n・注意 グループ化する項目名と同じ項目名があると、不整合になり、ソートされません"
+    },
+    {
+      "name": "k",
+      "type": "string",
+      "label": "グループ化する項目名 (省略可)",
+      "description": "・カンマ区切りで複数指定可\n・省略時は全ての行を同じグループとみなして処理される"
+    },
+    {
+      "name": "factlist",
+      "type": "list",
+      "label": "統計量の計算と結果の項目名の設定",
+      "description": "【対象項目】項目名時:*,？,[...] 使用可\n【統計量】カンマ区切りで複数指定可\n【期間数】 カンマ区切りで複数指定可. 1以上の整数で設定する\n【結果項目】記号を組合せて書式を設定する\n     (記号) &:元の二つの項目名,  %:類似度名,   #:期間数",
+      "elements": [
+        {
+          "name": "f",
+          "type": "string",
+          "label": "対象項目"
+        },
+        {
+          "name": "c",
+          "type": "string",
+          "label": "統計量"
+        },
+        {
+          "name": "t",
+          "type": "string",
+          "label": "期間数"
+        },
+        {
+          "name": "a",
+          "type": "string",
+          "label": "結果項目"
+        }
+      ],
+      "default": [
+        {
+          "f": "",
+          "c": "",
+          "t": "2",
+          "a": "&_%_#"
+        }
+      ],
+      "helper": {
+        "c": {
+          "label": "移動窓で計算可能な統計量の一覧",
+          "tabs": [
+            {
+              "label": "統計量の一覧",
+              "data": [
+                {
+                  "label": "分布の中央",
+                  "shortcuts": [
+                    {
+                      "value": "mean",
+                      "label": "算術平均",
+                      "link": "mean",
+                      "delimiter": ","
+                    }
+                  ]
+                },
+                {
+                  "label": "極値",
+                  "shortcuts": [
+                    {
+                      "value": "min",
+                      "label": "最小値",
+                      "link": "min",
+                      "delimiter": ","
+                    },
+                    {
+                      "value": "max",
+                      "label": "最大値",
+                      "link": "max",
+                      "delimiter": ","
+                    }
+                  ]
+                },
+                {
+                  "label": "合計",
+                  "shortcuts": [
+                    {
+                      "value": "sum",
+                      "label": "合計",
+                      "link": "sum",
+                      "delimiter": ","
+                    }
+                  ]
+                },
+                {
+                  "label": "偏差",
+                  "shortcuts": [
+                    {
+                      "value": "devsq",
+                      "label": "偏差平方和",
+                      "link": "devsq",
+                      "delimiter": ","
+                    }
+                  ]
+                },
+                {
+                  "label": "分散・標準偏差",
+                  "shortcuts": [
+                    {
+                      "value": "var",
+                      "label": "標本分散",
+                      "link": "var",
+                      "delimiter": ","
+                    },
+                    {
+                      "value": "uvar",
+                      "label": "不偏分散",
+                      "link": "uvar",
+                      "delimiter": ","
+                    },
+                    {
+                      "value": "sd",
+                      "label": "標準偏差",
+                      "link": "sd",
+                      "delimiter": ","
+                    },
+                    {
+                      "value": "usd",
+                      "label": "不偏標準偏差",
+                      "link": "usd",
+                      "delimiter": ","
+                    },
+                    {
+                      "value": "cv",
+                      "label": "変動係数 (標準偏差/平均値)",
+                      "link": "cv",
+                      "delimiter": ","
+                    }
+                  ]
+                },
+                {
+                  "label": "範囲",
+                  "shortcuts": [
+                    {
+                      "value": "range",
+                      "label": "範囲",
+                      "link": "range",
+                      "delimiter": ","
+                    }
+                  ]
+                },
+                {
+                  "label": "尖度/歪度",
+                  "shortcuts": [
+                    {
+                      "value": "skew",
+                      "label": "歪度",
+                      "link": "skew",
+                      "delimiter": ","
+                    },
+                    {
+                      "value": "uskew",
+                      "label": "歪度(不偏推定値)",
+                      "link": "uskew",
+                      "delimiter": ","
+                    },
+                    {
+                      "value": "kurt",
+                      "label": "尖度",
+                      "link": "kurt",
+                      "delimiter": ","
+                    },
+                    {
+                      "value": "ukurt",
+                      "label": "尖度(不偏推定値)",
+                      "link": "ukurt",
+                      "delimiter": ","
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "precision",
+      "type": "string",
+      "label": "有効桁数",
+      "description": "1〜16の整数",
+      "optional": true,
+      "default": 10
+    },
+    {
+      "name": "x",
+      "type": "boolean",
+      "label": "項目名ではなく、項目番号で指定する",
+      "optional": true,
+      "description": "・0始まりの項目番号で指定する\n・Lをつけると、右端起点の項目番号とみなす(例:3L)\n・複数入力可能なOptの場合は、列範囲としての指定も可能(例: 0-5)"
+    },
+    {
+      "name": "nfn",
+      "type": "boolean",
+      "label": "入力データの 1 行目を項目名行とみなさない。",
+      "optional": true
+    },
+    {
+      "name": "nfno",
+      "type": "boolean",
+      "label": "出力データに項目名行を出力しない。",
+      "optional": true
+    },
+    {
+      "name": "assert_diffSize",
+      "type": "boolean",
+      "label": "入力、出力件数比較を行う",
+      "optional": true
+    },
+    {
+      "name": "assert_nullkey",
+      "type": "boolean",
+      "label": "キー項目にNULL値が含まれているかどうかのチェックを行う",
+      "optional": true
+    },
+    {
+      "name": "assert_nullin",
+      "type": "boolean",
+      "label": "対象項目で指定された項目のNULL値チェックを行う",
+      "optional": true
+    },
+    {
+      "name": "assert_nullout",
+      "type": "boolean",
+      "label": "出力項目の NULL 値チェックを行う",
+      "optional": true
+    },
+    {
+      "name": "tmpPath",
+      "type": "string",
+      "label": "作業ファイル格納パス名",
+      "optional": true
+    }
+  ],
+  "ports": [
+    [
+      {
+        "name": "i",
+        "type": "frame"
+      }
+    ],
+    [
+      {
+        "name": "o",
+        "type": "frame"
+      }
+    ]
+  ],
+  "version": "0.7.0",
+  "label": "複数項目の移動窓の統計量の計算",
+  "classification": "calculation",
+  "description": "複数項目、複数の統計量を複数の期間に対して、算出する",
+  "url": ""
+}

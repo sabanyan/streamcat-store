@@ -55,15 +55,21 @@
   },
   "groups": [
     {
-      "name": "group1",
-      "label": "グループの設定 (省略可)",
+      "name": "abstract",
+      "label": "基準化",
+      "description": "基準化（z得点、偏差値、0-1への線形変換）する",
+      "params": []
+    },
+    {
+      "name": "grouping",
+      "label": "グループの設定 (省略可)",
       "params": [
         "k"
       ]
     },
     {
       "name": "group5",
-      "label": "グループ単位の基準化の設定 (必須)",
+      "label": "基準化の設定 (必須)",
       "params": [
         "f",
         "c"
@@ -73,29 +79,23 @@
       "name": "group10",
       "label": "その他 (省略可)",
       "params": [
-        "precision",
-        "q"
-      ]
-    },
-    {
-      "name": "group15",
-      "label": "項目名・項目番号についての設定（省略可）",
-      "params": [
-        "x",
+        "q",
         "nfn",
-        "nfno"
+        "nfno",
+        "x",
+        "precision"
       ]
     },
     {
       "name": "group20",
       "label": "システム管理用設定（作業領域・ログ出力）",
       "params": [
-        "tmpPath",
-        "bufcount",
         "assert_diffSize",
-        "assert_nullout",
         "assert_nullkey",
-        "assert_nullin"
+        "assert_nullin",
+        "assert_nullout",
+        "tmpPath",
+        "bufcount"
       ]
     }
   ],
@@ -103,13 +103,13 @@
     {
       "name": "c",
       "type": "select",
-      "label": "基準化方法の指定",
-      "description": "【基準値：標準偏差】\n    ●z得点（平均値との差を標準偏差で割った値）\n    ●偏差値\n【基準値：値の範囲】\n    ●最小値を 0, 最大値を 1 に線形変換",
+      "label": "基準化方法 (必須)",
+      "default": "z",
       "options": {
         "labels": [
-          "z得点",
-          "偏差値",
-          "最小値を 0, 最大値を 1 に線形変換"
+          "z得点: (対象値 - 平均) / 標準偏差",
+          "偏差値: z得点 × 10 + 50",
+          "範囲で基準化: 最小値を0, 最大値を1 に線形変換"
         ],
         "values": [
           "z",
@@ -121,22 +121,23 @@
     {
       "name": "f",
       "type": "string",
-      "label": "対象とする項目名と追加項目名の指定",
-      "description": "●対象列名、追加列名の順で コロン区切りで指定\n●カンマ区切りで複数指定可"
+      "label": "対象項目名と基準化項目名の指定 (必須)",
+      "description": "・対象項目名、基準化項目名の順で コロン区切りで指定する\n・カンマ区切りで複数指定可"
     },
     {
       "name": "k",
       "type": "string",
       "label": "グループ化する項目名",
-      "description": "●カンマ区切りで複数指定可",
+      "description": "・カンマ区切りで複数指定可\n・省略時は全ての行を同じグループとみなして処理される",
       "optional": true
     },
     {
       "name": "bufcount",
       "type": "string",
-      "label": "バッファの数",
+      "label": "バッファのブロック数",
       "optional": true,
-      "default": 10
+      "default": 10,
+      "description": "デフォルト:10 (40MB)"
     },
     {
       "name": "assert_diffSize",
@@ -177,8 +178,9 @@
     {
       "name": "x",
       "type": "boolean",
-      "label": "項目番号による指定",
-      "optional": true
+      "label": "項目名ではなく、項目番号で指定する",
+      "optional": true,
+      "description": "・0始まりの項目番号で指定する\n・Lをつけると、右端起点の項目番号とみなす(例:3L)\n・複数入力可能なOptの場合は、列範囲としての指定も可能(例: 0-5)"
     },
     {
       "name": "q",
