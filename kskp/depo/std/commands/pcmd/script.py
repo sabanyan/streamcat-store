@@ -186,7 +186,7 @@ class ColumnNameCommand(PCommand):
                 'NoInputError' : '同時に２つの指定欄を省略することはできません。'
             }
          
-    def expandWildCards(self, to_expand):
+    def expand_wild_cards(self, to_expand):
         """
         takes a comma separated string and parses wildcard expressions within.
         
@@ -209,13 +209,13 @@ class ColumnNameCommand(PCommand):
         
         return expanded
 
-    def containsAny(self, exp, str):
+    def contains_any(self, exp, str):
         return any(char in exp for char in str)
 
-    def generateCommandErrorMessage(self, error_type, mistaken_input = '', command_name = '', option_id = ''):
+    def generate_command_error_message(self, error_type, mistaken_input = '', command_name = '', option_id = ''):
         msg = ''
         if command_name != '':
-            msg +=  f'【コマンド：{command_name}】'
+            msg += f'【コマンド：{command_name}】'
         if option_id != '':
             msg += f'【オプションID：{option_id}】'
 
@@ -238,12 +238,12 @@ class ColumnNameCommand(PCommand):
         
         if _left:
             for col in _left.split(','):
-                if self.containsAny(col, ':%&\\'):
+                if self.contains_any(col, ':%&\\'):
                     raise FieldForbiddenCharacterException(col,
                                                            command_name = self.const('commandname'),
                                                            option_id = 'head')
 
-            _left_list = self.expandWildCards(_left)
+            _left_list = self.expand_wild_cards(_left)
             if type(_left_list) == dict:
                 raise FieldNotFoundException(_left,
                                             command_name = self.const('commandname'),
@@ -260,12 +260,12 @@ class ColumnNameCommand(PCommand):
             
         if _right:
             for col in _right.split(','):
-                if self.containsAny(col, ':%&\\'):
+                if self.contains_any(col, ':%&\\'):
                     raise FieldForbiddenCharacterException(col,
                                                            command_name = self.const('commandname'),
                                                            option_id = 'tail')
 
-            _right_list = self.expandWildCards(_right)
+            _right_list = self.expand_wild_cards(_right)
             if type(_right_list) == dict:
                 raise FieldNotFoundException(_right,
                                             command_name = self.const('commandname'),
@@ -288,23 +288,16 @@ class ColumnNameCommand(PCommand):
                                                 option_id = 'head, tail')
         
         if (not _left) and (not _right):
-            err = self.generateCommandErrorMessage('NoInputError',
+            err = self.generate_command_error_message('NoInputError',
                                                   command_name = self.const('commandname'),
                                                   option_id = 'head, tail')
             raise ColumnNameException(err)
 
-
-
-
         _middle = [col for col in self.header if col not in _left_list + _right_list] 
-
-
         _final = _left_list + _middle + _right_list
-
-
         f <<= nm.mcut(f = _final)
 
-        nysol_module_o= NysolModule()
+        nysol_module_o = NysolModule()
         nysol_module_o.set_content(f)
         return {'o': nysol_module_o}
 
@@ -345,7 +338,7 @@ class CheckDuplicateRowsCommand(PCommand):
     def __init__(self):
         super().__init__()
 
-    def expandWildCards(self, to_expand):
+    def expand_wild_cards(self, to_expand):
         """
         takes a comma separated string and parses wildcard expressions within.
         
@@ -366,7 +359,7 @@ class CheckDuplicateRowsCommand(PCommand):
         
         return expanded
 
-    def containsAny(self, exp, str):
+    def contains_any(self, exp, str):
         """
         check for presence of any char in str from input exp. 
         Returns True if anything exists
@@ -390,10 +383,10 @@ class CheckDuplicateRowsCommand(PCommand):
                                         option_id = 'k')
             
         for col in targetcols.split(','):
-            expanded_list = self.expandWildCards(targetcols)
+            expanded_list = self.expand_wild_cards(targetcols)
 
             # ForbiddenCharacterError
-            if self.containsAny(col, ':%&\\'):
+            if self.contains_any(col, ':%&\\'):
                 raise FieldForbiddenCharacterException(col,
                                                        command_name = self.const('commandname'),
                                                        option_id = 'k')
@@ -944,11 +937,11 @@ class MvSimCommand(PCommand):
         else:
             return int(exp)
 
-    def numberExpIsValid(self, exp):
+    def number_exp_is_valid(self, exp):
         allowed = set('0123456789-L')
         return set(exp) <= allowed
     
-    def numberExpOutOfRange(self, exp):
+    def number_exp_out_of_range(self, exp):
         keynums = exp.strip('L').split('-')
         for num in keynums:
             if int(num) > len(self.header):
@@ -956,7 +949,7 @@ class MvSimCommand(PCommand):
         
         return False
 
-    def containsAny(self, exp, str):
+    def contains_any(self, exp, str):
         return any(char in exp for char in str)
 
     # def generateCommandErrorMessage(self, *args):
@@ -968,7 +961,7 @@ class MvSimCommand(PCommand):
 
     #     return errhandler.generateCommandErrorMessage(*args)
 
-    def generateCommandErrorMessage(self, error_type, option_id = '', mistaken_input = '', command_name = ''):
+    def generate_command_error_message(self, error_type, option_id = '', mistaken_input = '', command_name = ''):
         from string import Template
 
         command_name = self.const('commandname')
@@ -1006,39 +999,39 @@ class MvSimCommand(PCommand):
             
             if xoption:
                 for key in k_list:
-                    if not self.numberExpIsValid(key):
-                        errmsg = self.generateCommandErrorMessage('KeyNumberSettingError', 'k', key)
+                    if not self.number_exp_is_valid(key):
+                        errmsg = self.generate_command_error_message('KeyNumberSettingError', 'k', key)
                         raise Exception(errmsg)
                     
                     if key == '':
-                        errmsg = self.generateCommandErrorMessage('EmptyKeyFieldError', 'k', key)
+                        errmsg = self.generate_command_error_message('EmptyKeyFieldError', 'k', key)
                         raise Exception(errmsg)
 
-                    if self.numberExpOutOfRange(key):
-                        errmsg = self.generateCommandErrorMessage('KeyFieldNumberNotFoundError', 'k', key)
+                    if self.number_exp_out_of_range(key):
+                        errmsg = self.generate_command_error_message('KeyFieldNumberNotFoundError', 'k', key)
                         raise Exception(errmsg)
                     
                 if len(k_list) != len(set(k_list)):
-                    errmsg = self.generateCommandErrorMessage('KeyNumberConflictError', 'k', k)
+                    errmsg = self.generate_command_error_message('KeyNumberConflictError', 'k', k)
                     raise Exception(errmsg)
                 
             else:
                 if len(k_list) != len(set(k_list)):
-                    errmsg = self.generateCommandErrorMessage('KeyConflictError', 'k', k)
+                    errmsg = self.generate_command_error_message('KeyConflictError', 'k', k)
                     raise Exception(errmsg)
                 
                 for key in k_list:
                     # forbidden characters
-                    if self.containsAny(key, ':\\%&#'):
-                        errmsg = self.generateCommandErrorMessage('KeyFieldForbiddenCharacterError', 'k', key)
+                    if self.contains_any(key, ':\\%&#'):
+                        errmsg = self.generate_command_error_message('KeyFieldForbiddenCharacterError', 'k', key)
                         raise Exception(errmsg)
                     
                     if key == '':
-                        errmsg = self.generateCommandErrorMessage('EmptyKeyFieldError', 'k', key)
+                        errmsg = self.generate_command_error_message('EmptyKeyFieldError', 'k', key)
                         raise Exception(errmsg)
                         
                     if key not in self.header:
-                        errmsg = self.generateCommandErrorMessage('KeyFieldNotFoundError', 'k', key)
+                        errmsg = self.generate_command_error_message('KeyFieldNotFoundError', 'k', key)
                         raise Exception(errmsg)
         
         
@@ -1059,29 +1052,29 @@ class MvSimCommand(PCommand):
                 s_columns.append(parts[0])
                 
                 if parts[0] == '':
-                    errmsg = self.generateCommandErrorMessage('EmptySortFieldError', 's', s_opt)
+                    errmsg = self.generate_command_error_message('EmptySortFieldError', 's', s_opt)
                     raise Exception(errmsg)
 
                 if xoption:
-                    if not self.numberExpIsValid(parts[0]):
-                        errmsg = self.generateCommandErrorMessage('SortFieldNumberSettingError', 's', s_opt)
+                    if not self.number_exp_is_valid(parts[0]):
+                        errmsg = self.generate_command_error_message('SortFieldNumberSettingError', 's', s_opt)
                         raise Exception(errmsg)
                     
-                    if self.numberExpOutOfRange(parts[0]):
-                        errmsg = self.generateCommandErrorMessage('SortFieldNumberNotFoundError', 's', s_opt)
+                    if self.number_exp_out_of_range(parts[0]):
+                        errmsg = self.generate_command_error_message('SortFieldNumberNotFoundError', 's', s_opt)
                         raise Exception(errmsg)
                 else:
-                    if self.containsAny(parts[0], ':\\&#'):
-                        errmsg = self.generateCommandErrorMessage('SortFieldForbiddenCharacterError', 's', s_opt)
+                    if self.contains_any(parts[0], ':\\&#'):
+                        errmsg = self.generate_command_error_message('SortFieldForbiddenCharacterError', 's', s_opt)
                         raise Exception(errmsg)
                         
                     if parts[0] not in self.header:
-                        errmsg = self.generateCommandErrorMessage('SortFieldNotFoundError', 's', s_opt)
+                        errmsg = self.generate_command_error_message('SortFieldNotFoundError', 's', s_opt)
                         raise Exception(errmsg)
                 
                 if len(parts) > 1:
                     if parts[1] not in ['', 'n', 'r', 'nr']:
-                        errmsg = self.generateCommandErrorMessage('SortFieldOrderError', 's', s_opt)
+                        errmsg = self.generate_command_error_message('SortFieldOrderError', 's', s_opt)
                         raise Exception(errmsg)
                     
                 
@@ -1098,9 +1091,9 @@ class MvSimCommand(PCommand):
             # check for duplicates
             if len(s_columns) != len(set(s_columns)):
                 if xoption:
-                    errmsg = self.generateCommandErrorMessage('SortFieldConflictError', 's', s_opt)
+                    errmsg = self.generate_command_error_message('SortFieldConflictError', 's', s_opt)
                 else:
-                    errmsg = self.generateCommandErrorMessage('SortFieldNumberConflictError', 's', s_opt)
+                    errmsg = self.generate_command_error_message('SortFieldNumberConflictError', 's', s_opt)
                 raise Exception(errmsg)
                 
 
@@ -1124,12 +1117,12 @@ class MvSimCommand(PCommand):
         try:
             output_rule = _args.pop('a')
             
-            if self.containsAny(output_rule, ':\\,*?[]'):
-                errmsg = self.generateCommandErrorMessage('ResultsColNameForbiddenCharacterError', 'a', output_rule)
+            if self.contains_any(output_rule, ':\\,*?[]'):
+                errmsg = self.generate_command_error_message('ResultsColNameForbiddenCharacterError', 'a', output_rule)
                 raise Exception(errmsg)
                 
         except KeyError:
-            errmsg = self.generateCommandErrorMessage('EmptyResultsColNameError', 'a')
+            errmsg = self.generate_command_error_message('EmptyResultsColNameError', 'a')
             raise Exception(errmsg)
         
         
@@ -1137,38 +1130,38 @@ class MvSimCommand(PCommand):
             f1 = arglist.get('f1')
             
             if not f1:
-                errmsg = self.generateCommandErrorMessage('Target1EmptyError', 'f1', f1)
+                errmsg = self.generate_command_error_message('Target1EmptyError', 'f1', f1)
                 raise Exception(errmsg)
                 
             if xoption:
                 if 'L' in f1:
                     f1_loc = len(self.header) - int(f1.strip('L')) - 1
-                elif self.containsAny(f1, '-,'):
-                    errmsg = self.generateCommandErrorMessage('Target1MultipleFieldNumberError', 'f1', f1)
+                elif self.contains_any(f1, '-,'):
+                    errmsg = self.generate_command_error_message('Target1MultipleFieldNumberError', 'f1', f1)
                     raise Exception(errmsg)
                 else:
-                    if self.numberExpIsValid(f1):
+                    if self.number_exp_is_valid(f1):
                         f1_loc = int(f1)
                     else:
-                        errmsg = self.generateCommandErrorMessage('Target1FieldNumberSettingError', 'f1', f1)
+                        errmsg = self.generate_command_error_message('Target1FieldNumberSettingError', 'f1', f1)
                         raise Exception(errmsg)
                     
                 try:
                     f1_name = self.header[f1_loc]
                 except IndexError:
-                    errmsg = self.generateCommandErrorMessage('Target1FieldNumberNotFoundError', 'f1', f1)
+                    errmsg = self.generate_command_error_message('Target1FieldNumberNotFoundError', 'f1', f1)
                     raise Exception(errmsg)                
             else: 
-                if self.containsAny(f1, ',?*[]'):
-                    errmsg = self.generateCommandErrorMessage('Target1MultipleFieldError', 'f1', f1)
+                if self.contains_any(f1, ',?*[]'):
+                    errmsg = self.generate_command_error_message('Target1MultipleFieldError', 'f1', f1)
                     raise Exception(errmsg)
                     
-                if self.containsAny(f1, ':\\&%#'):
-                    errmsg = self.generateCommandErrorMessage('Target1ForbiddenCharacterError', 'f1', f1)
+                if self.contains_any(f1, ':\\&%#'):
+                    errmsg = self.generate_command_error_message('Target1ForbiddenCharacterError', 'f1', f1)
                     raise Exception(errmsg)
                 
                 if f1 not in self.header:
-                    errmsg = self.generateCommandErrorMessage('Target1FieldNotFoundError', 'f1', f1)
+                    errmsg = self.generate_command_error_message('Target1FieldNotFoundError', 'f1', f1)
                     raise Exception(errmsg)
                 
                 
@@ -1178,23 +1171,23 @@ class MvSimCommand(PCommand):
             f2_list = f2s.split(',')
             
             if '' in f2_list:
-                errmsg = self.generateCommandErrorMessage('Target2EmptyError', 'f2', f2s)
+                errmsg = self.generate_command_error_message('Target2EmptyError', 'f2', f2s)
                 raise Exception(errmsg)
             
-            if self.containsAny(f2s, ':\\&%#'):
-                errmsg = self.generateCommandErrorMessage('Target2ForbiddenCharacterError', 'f2', f2s)
+            if self.contains_any(f2s, ':\\&%#'):
+                errmsg = self.generate_command_error_message('Target2ForbiddenCharacterError', 'f2', f2s)
                 raise Exception(errmsg)
             
             if len(f2_list) != len(set(f2_list)):
-                errmsg = self.generateCommandErrorMessage('Target2ConflictError', 'f2', f2s)
+                errmsg = self.generate_command_error_message('Target2ConflictError', 'f2', f2s)
                 raise Exception(errmsg)
             
             if xoption:
                 # parse number expression
                 targets = []
                 for f in f2_list:
-                    if not self.numberExpIsValid(f):
-                        errmsg = self.generateCommandErrorMessage('Target2FieldNumberSettingError', 'f2', f)
+                    if not self.number_exp_is_valid(f):
+                        errmsg = self.generate_command_error_message('Target2FieldNumberSettingError', 'f2', f)
                         raise Exception(errmsg)
                         
                     f = self.parse(f)
@@ -1203,7 +1196,7 @@ class MvSimCommand(PCommand):
                 try:
                     f2cols = [(num,self.header[num]) for num in targets]
                 except IndexError:
-                    errmsg = self.generateCommandErrorMessage('Target2FieldNumberNotFoundError', 'f2', f2s)
+                    errmsg = self.generate_command_error_message('Target2FieldNumberNotFoundError', 'f2', f2s)
                     raise Exception(errmsg)
 
             else:
@@ -1217,7 +1210,7 @@ class MvSimCommand(PCommand):
                             matched = True
                             
                     if not matched:
-                        errmsg = self.generateCommandErrorMessage('Target2FieldNotFoundError', 'f2', elem)
+                        errmsg = self.generate_command_error_message('Target2FieldNotFoundError', 'f2', elem)
                         raise Exception(errmsg)
                 
                 
@@ -1229,16 +1222,16 @@ class MvSimCommand(PCommand):
                            'phi', 'jaccard', 'support', 'lift']
             
             if '' in op_list:
-                errmsg = self.generateCommandErrorMessage('SimEmptyError', 'c', ops)
+                errmsg = self.generate_command_error_message('SimEmptyError', 'c', ops)
                 raise Exception(errmsg)
                 
             for op in op_list:
                 if op not in allowed_ops:
-                    errmsg = self.generateCommandErrorMessage('SimNotFoundError', 'c', op)
+                    errmsg = self.generate_command_error_message('SimNotFoundError', 'c', op)
                     raise Exception(errmsg)
             
             if len(op_list) != len(set(op_list)):
-                errmsg = self.generateCommandErrorMessage('SimConflictError', 'c', ops)
+                errmsg = self.generate_command_error_message('SimConflictError', 'c', ops)
                 raise Exception(errmsg)
             
                 
@@ -1247,11 +1240,11 @@ class MvSimCommand(PCommand):
             ts_list = ts.split(',')
             
             if '' in ts_list:
-                errmsg = self.generateCommandErrorMessage('WindowSizeEmptyError', 't', ts)
+                errmsg = self.generate_command_error_message('WindowSizeEmptyError', 't', ts)
                 raise Exception(errmsg)
             
             if len(ts_list) != len(set(ts_list)):
-                errmsg = self.generateCommandErrorMessage('WindowSizeConflictError', 't', ts)
+                errmsg = self.generate_command_error_message('WindowSizeConflictError', 't', ts)
                 raise Exception(errmsg)
             
             for t in ts_list:
@@ -1260,11 +1253,11 @@ class MvSimCommand(PCommand):
                     _t = float(t)
                     
                     if (not _t.is_integer()) or (_t < 2):
-                        errmsg = self.generateCommandErrorMessage('WindowSizeValueError', 't', t)
+                        errmsg = self.generate_command_error_message('WindowSizeValueError', 't', t)
                         raise Exception(errmsg)
                     
                 except ValueError:
-                    errmsg = self.generateCommandErrorMessage('WindowSizeFormatError', 't', t)
+                    errmsg = self.generate_command_error_message('WindowSizeFormatError', 't', t)
                     raise Exception(errmsg)
                 
                 
@@ -1281,7 +1274,7 @@ class MvSimCommand(PCommand):
 
 
         if len(final_cols) != len(set(final_cols)):
-            errmsg = self.generateCommandErrorMessage('ResultsColConflictError', 'a, c, f1, f2, t')
+            errmsg = self.generate_command_error_message('ResultsColConflictError', 'a, c, f1, f2, t')
             raise Exception(errmsg)
 
         # factlist is now a list of dictionaries of the fact options:
