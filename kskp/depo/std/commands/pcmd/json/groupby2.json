@@ -79,7 +79,8 @@
       "label": "その他（省略可）",
       "params": [
         "nfno",
-        "precision"
+        "precision",
+        "batch_size"
       ]
     }
   ],
@@ -875,6 +876,13 @@
       "optional": true
     },
     {
+      "name": "batch_size",
+      "type": "string",
+      "label": "batch size",
+      "optional": true,
+      "default": "5"
+    },
+    {
       "name": "precision",
       "type": "string",
       "label": "有効桁数",
@@ -897,7 +905,7 @@
     ]
   ],
   "version": "0.7.0",
-  "label": "特徴量の計算",
+  "label": "【プロト】特徴量の計算",
   "classification": "col_edit",
   "description": "複数項目に対して、複数の特徴量を一括算出する  (特徴量: 70種類)",
   "url": ""
