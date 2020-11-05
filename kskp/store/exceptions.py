@@ -1,0 +1,37 @@
+class NothingToPutbackException(Exception):
+    """
+    ゴミ箱から0個のDatumを戻した場合にお知らせする
+    """
+    pass
+
+class NoResultsException(Exception):
+    """
+    実行結果がなかった場合にお知らせする
+    """
+    pass
+
+class CommandException(Exception):
+    """
+    コマンドが送出する例外
+    """
+    def __init__(self, ex):
+        self._ex = ex
+
+    @property
+    def innerException(self):
+        return self._ex
+
+    def __str__(self):
+        return self._ex.__str__()
+
+class OptimisticLockException(Exception):
+    """
+    楽観的排他制御によりDatumの更新に失敗したことを通知する例外
+    """
+    pass
+
+class EditLockedException(Exception):
+    """
+    Datumが編集ロックされているため編集できないことを通知する
+    """
+    pass

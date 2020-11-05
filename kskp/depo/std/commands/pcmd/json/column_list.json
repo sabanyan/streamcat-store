@@ -22,18 +22,36 @@
     {
       "name": "n",
       "type": "string",
-      "label": "出力したいデータの行数を指定する。最大100行まで出力可能、デフォルトは0件で先頭行のみ。100行以上を指定した場合、100行までを出力"
+      "label": "出力するデータの行数の指定",
+      "description": "上限は100行(上限を超えた指定の場合は、上限までを出力する)"
     },
     {
       "name": "no",
       "type": "boolean",
-      "label": "出力データの先頭列に連番を出力する"
+      "label": "列番号の項目を、先頭に追加する"
     },
     {
       "name": "-nfno",
       "type": "boolean",
-      "label": "出力データの項目名行を出力しない(No Field Names for Outputの略)"
+      "label": "項目名行を除外して出力する"
     }
   ],
-  "url": ""
+  "url": "",
+  "groups": [
+    {
+      "name": "abstract",
+      "label": "項目名リストの取得",
+      "description": "指定した行数だけ、項目名と値を行方向へ展開した縦型データで出力する",
+      "params": []
+    },
+    {
+      "name": "cmd_sub",
+      "label": "その他 (省略可)",
+      "params": [
+        "n",
+        "no",
+        "-nfno"
+      ]
+    }
+  ]
 }
