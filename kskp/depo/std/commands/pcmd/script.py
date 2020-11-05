@@ -188,7 +188,6 @@ class ColumnNameCommand(PCommand):
         takes a comma separated string and parses wildcard expressions within.
         
         """
-        import fnmatch as fn
         expanded = []
         
         for elem in to_expand.split(','):
@@ -348,7 +347,6 @@ class CheckDuplicateRowsCommand(PCommand):
         takes a comma separated string and parses wildcard expressions within.
         
         """
-        import fnmatch as fn
         expanded = []
         
         for elem in to_expand.split(','):
@@ -641,7 +639,6 @@ class MultiMcalWCCommand(PCommand):
         #     c: operation to be done on each column, operations to be done per target columns should use the token &, which represents the old column name 
         #     a: output column name (string must include &, default is 'new&')
 
-        import fnmatch as fn
         _args = copy.deepcopy(args)
         cmd_o = None
         first = True
@@ -710,7 +707,6 @@ class MvAvgCommand(PCommand):
             return int(exp)
 
     def run(self, args, inputs):
-        import fnmatch as fn
 
         _args = copy.deepcopy(args)
         
@@ -794,7 +790,6 @@ class MvStatsCommand(PCommand):
 
 
     def run(self, args, inputs):
-        import fnmatch as fn
 
         _args = copy.deepcopy(args)
         cmd_o = None
@@ -987,7 +982,6 @@ class MvSimCommand(PCommand):
         return msg
 
     def run(self, args, inputs):
-        import fnmatch as fn
         _args = copy.deepcopy(args)
 
         
