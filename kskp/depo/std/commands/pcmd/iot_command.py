@@ -809,7 +809,7 @@ class MissingValueInterpolateCommand(PCommand):
             補間値
                 ip_aの展開(複数項目)
         """
-        debug = True
+        debug = False
 
         # 定数定義
         dm2= '_'
@@ -1724,7 +1724,7 @@ class TimeSeriesDataJoinCommand(PCommand):
         """
         import fnmatch
 
-        debug = True
+        debug = False
 
         # 定数定義
         err_msg = self.const('err')     # エラーメッセージ
@@ -2537,7 +2537,7 @@ class TimeAxisDataGenerateIn1Command(PCommand):
         出力
             1つの項目、条件を満たす件数
         """
-        debug = True
+        debug = False
         if debug:
             import pprint
 
