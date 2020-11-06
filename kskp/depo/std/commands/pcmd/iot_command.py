@@ -1497,12 +1497,22 @@ class MissingValueInterpolateCommand(PCommand):
                                     valid_data   = df_target[  ~( df_target[fi].isnull()) == True ] 
                                     invalid_data = df_target[     df_target[fi].isnull()  == True ]  
 
-                                    cubic_formulas = CubicSpline( valid_data[time], valid_data[fi] ) 
-                                    df_coef = deforming_interpolation_coeff(cubic_formulas.x, cubic_formulas.c) 
+                                    # if there are enough points, use CubicSpline
+                                    if len(valid_data[time]) >= 2:
+                                        cubic_formulas = CubicSpline( valid_data[time], valid_data[fi] ) 
+                                        df_coef = deforming_interpolation_coeff(cubic_formulas.x, cubic_formulas.c) 
 
-                                    # スライスで、代入するために、インデック名を、代入先と同じものにする
-                                    # 注意： alid_data.index[:-1] ･･･spline補間では、最後のデータの係数は、出力されない  （入力件数 - 1）
-                                    df_coef.set_index( valid_data.index[:-1], drop=False, inplace=True)
+                                        # スライスで、代入するために、インデック名を、代入先と同じものにする
+                                        # 注意： alid_data.index[:-1] ･･･spline補間では、最後のデータの係数は、出力されない  （入力件数 - 1）
+                                        df_coef.set_index( valid_data.index[:-1], drop=False, inplace=True)
+                                    else:
+                                        # if not enough points, produce null output
+                                        # df_coef has the same shape as the output of 
+                                        # deforming_interpolation_coeff, but all null
+                                        df_coef = pd.DataFrame(
+                                            np.array( [[np.nan]]*5 ).T,
+                                            columns = ['x_p', 'coef_c0', 'coef_c1', 'coef_c2', 'coef_c3'])
+
 
                                     # 係数列を追加
                                     df[ header_adds[flds_num * fi_counter]   ] = float('nan')   # 3次係数
@@ -1538,7 +1548,12 @@ class MissingValueInterpolateCommand(PCommand):
                     
                     if df is not None:
                         # 出力範囲： rbid == rbid_l
+                        
+                        # replace inf, -inf, nan with ''
+                        df.replace([np.inf, -np.inf, np.nan], '', inplace = True)
+                        
                         list_df = df[ df[rbid] == df[rbid_l] ].values.tolist()
+
                         for i in range( len(list_df) ):
                             print(  ','.join( [ str(x) for x in list_df[i] ] ) )
 
@@ -2411,7 +2426,7 @@ class TimeAxisDataGenerateIn1Command(PCommand):
             interval = args['interval']
             k = args['k']
             
-# 修正：ここから
+            # 修正：ここから
             # 追加・修正：2020.10.28
             k_num = 0
             if k is not None:
@@ -2419,9 +2434,7 @@ class TimeAxisDataGenerateIn1Command(PCommand):
                 k_num  = len( k.split(",") )
             else:
                 header = [time]
-
-# 修正：ここまで   
-
+            # 修正：ここまで   
 
             headerflg = True
             for line in nm.mstdin().getline(header= True):
@@ -2468,7 +2481,7 @@ class TimeAxisDataGenerateIn1Command(PCommand):
                         if time_type == 'number':
                         # 修正：ここから
                             # 修正：2020.10.28
-                            val = str( float(time_s) + interval * n )
+                            val = str( Decimal(time_s) + interval * n )
                         # 修正：ここまで      
                         elif time_type == 'datetime':
                             val = dt[0] + datetime.timedelta(seconds= interval * n)
@@ -2604,10 +2617,12 @@ class TimeAxisDataGenerateIn1Command(PCommand):
         else:
             interval = args['interval']
             try:
-                interval = float(args['interval'].replace(',',''))
+                interval = args['interval'].replace(',','')
 
                 if time_type in ['date','year_month']:
-                    interval = round(interval)
+                    interval = round(float(interval))
+                elif time_type == 'number':
+                    interval = Decimal(interval)
 
                 if interval <= 0:
                     raise Exception()
