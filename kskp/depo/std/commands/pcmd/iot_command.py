@@ -2021,7 +2021,9 @@ class TimeSeriesDataJoinCommand(PCommand):
                     ip_3_2 = fld + ipflds['ip_3_2']  # 2次係数
                     ip_3_1 = fld + ipflds['ip_3_1']  # 1次係数
                     ip_3_0 = fld + ipflds['ip_3_0']  # 定数項
-                    mcal_c_opt = f'${{{ip_3_3}}}*${{{now_time}}}^3+${{{ip_3_2}}}*${{{now_time}}}^2+${{{ip_3_1}}}*${{{now_time}}}+${{{ip_3_0}}}'
+                    
+                    # 係数 * (時間^3)  のように、べき乗を先に計算するように明示する
+                    mcal_c_opt = f'${{{ip_3_3}}}*(${{{now_time}}}^3)+${{{ip_3_2}}}*(${{{now_time}}}^2)+${{{ip_3_1}}}*${{{now_time}}}+${{{ip_3_0}}}'
 
                 if len(all_outnames) != len(set(all_outnames)):
                     msg = GenerateErrorMessage(commandname,
@@ -2274,10 +2276,10 @@ class TimeAxisDataGenerateIn0Command(PCommand):
                                 'start', '')
                 raise Exception(msg)
             else:
-                start = args['start']
+                start = args['start'].replace(',','')
                 if time_type in ['number']:
                     try:
-                        start = Decimal(args['start'].replace(',',''))
+                        start = Decimal(start)
                         
                     except Exception as e:
                         msg = GenerateErrorMessage(commandname,
@@ -2352,6 +2354,8 @@ class TimeAxisDataGenerateIn0Command(PCommand):
                 #   
                 if time_type == 'number':
                     num = 1.0 + (float(k[1]) - float(k[0])) // float(interval)   # 開始の1件 + 切捨ての件数
+
+                    span_list.append( [Decimal(k[0]),interval,num] )
                 elif time_type in ['datetime','date','year_month']:
                     dt = []
 
@@ -2368,7 +2372,7 @@ class TimeAxisDataGenerateIn0Command(PCommand):
                     # 制限： timedelta.total_seconds()  270年以上で、マイクロ秒の精度を失う
                     num = 1.0 + (dt[1] - dt[0]).total_seconds() // float(interval)
 
-                span_list.append( [k[0],interval,num] )
+                    span_list.append( [k[0],interval,num] )
 
         if debug:
             pprint.pprint(span_list, stream=sys.stderr)
