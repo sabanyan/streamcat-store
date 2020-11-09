@@ -1018,11 +1018,11 @@ class MissingValueInterpolateCommand(PCommand):
 
         if 'mpi' in args:
             # 稼働停止判定
-            # nysol_module_o= NysolModule()
-            # nysol_module_o.set_content(f)
+            nysol_module_o= NysolModule()
+            nysol_module_o.set_content(f)
 
             cmd = MeasurementPeriodIdentifyCommand()
-            res = cmd.run(args=args,inputs={'i':f})  #{'i':nysol_module_o}
+            res = cmd.run(args=args,inputs={'i':nysol_module_o})
 
             f   = res['o'].content
 
