@@ -2257,18 +2257,6 @@ class TimeAxisDataGenerateIn0Command(PCommand):
 
                 if time_type in ['date','year_month']:
                     interval = round(float(interval))
-                elif time_type == 'datetime':
-                    _, decimal = interval.split('.')
-
-                    # if more than 7 digits, raise TimePrecisionError
-                    if len(decimal) > 7:
-                        msg = GenerateErrorMessage(commandname,
-                                        'TimePrecisionError',
-                                        'interval', args['interval'])
-                        raise Exception(msg)
-
-                elif time_type == 'number':
-                    interval = Decimal(interval)
 
                 if float(interval) <= 0:
                     raise Exception()
@@ -2277,7 +2265,18 @@ class TimeAxisDataGenerateIn0Command(PCommand):
                                 'OutOfBoundsError',
                                 'interval', args['interval'])
                 raise Exception(msg)
+            finally:
+                if time_type == 'datetime':
+                    _, decimal = interval.split('.')
 
+                    # if more than 7 digits, raise TimePrecisionError
+                    if len(decimal) >= 7:
+                        msg = GenerateErrorMessage(commandname,
+                                        'TimePrecisionError',
+                                        'interval', args['interval'])
+                        raise Exception(msg)
+                elif time_type == 'number':
+                    interval = Decimal(interval)
             
 
         # 開始・間隔・件数 指定時
