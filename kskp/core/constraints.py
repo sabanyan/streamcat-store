@@ -58,7 +58,7 @@ class Constraints():
                not myself.is_root and \
                    myself.find_parent().is_root and \
                not myself._session.has_usr_admin():
-                raise Exception('ユーザ管理者以外は、Rootフォルダにプロジェクト以外のDatumを新規追加できません')
+                raise Exception('ユーザー管理者以外は、Rootフォルダにプロジェクト以外のDatumを新規追加できません')
 
             return func(*args, **kwargs)
 

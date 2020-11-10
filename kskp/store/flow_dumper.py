@@ -12,7 +12,7 @@ class FlowDumper:
         self.factory = factory
 
         if not self.factory._session.has_usr_admin():
-            raise Exception('ユーザ管理者以外は、フローのエクスポート/インポートはできません')
+            raise Exception('ユーザー管理者以外は、フローのエクスポート/インポートはできません')
 
         import uuid
         self.tmp_path = Path('/tmp')

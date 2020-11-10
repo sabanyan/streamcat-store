@@ -86,7 +86,7 @@ class AuthTest(TestCaseBase):
         ]
         ], 
         "params": [], 
-        "creator": "ユーザ管理者", 
+        "creator": "ユーザー管理者", 
         "createdAt": "2020-10-04 17:45:16", 
         "projectId": None, 
         "description": ""
