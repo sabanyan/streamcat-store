@@ -126,7 +126,7 @@ class UnAuthzFactory():
         from kskp.store.auth import Role
 
         USR_ADMIN_USER_EMAIL = 'admin@kskp.io'
-        USR_ADMIN_USER_NAME = 'ユーザ管理者'
+        USR_ADMIN_USER_NAME = 'ユーザー管理者'
 
         user_factory = UserFactory(self._session)
         role_factory = RoleFactory(self._session)

@@ -145,11 +145,11 @@ class Role(BaseModel):
         if self.is_sys_admin:
             raise NoRoleOwnerException('システム管理者権限を持つユーザがいなくなるのでこの操作はできません')
         elif self.is_usr_admin:
-            raise NoRoleOwnerException('ユーザ管理者権限を持つユーザがいなくなるのでこの操作はできません')
+            raise NoRoleOwnerException('ユーザー管理者権限を持つユーザがいなくなるのでこの操作はできません')
         elif self.is_everyone:
-            raise NoRoleOwnerException('ユーザ管理者権限を持つユーザがいなくなるのでこの操作はできません')
+            raise NoRoleOwnerException('ユーザー管理者権限を持つユーザがいなくなるのでこの操作はできません')
         elif self.is_edit_lock:
-            raise NoRoleOwnerException('ユーザ管理者権限を持つユーザがいなくなるのでこの操作はできません')
+            raise NoRoleOwnerException('ユーザー管理者権限を持つユーザがいなくなるのでこの操作はできません')
         else:
             raise NoRoleOwnerException('ロール所有者がいなくなるのでこの操作はできません')
 
@@ -386,7 +386,7 @@ class Role(BaseModel):
 
             # 1人のUserが重複指定された場合はエラーとする
             if member.user in users:
-                raise Exception(f'ユーザ({member.user.name})が重複して指定されました')
+                raise Exception(f'ユーザー({member.user.name})が重複して指定されました')
             else:
                 users.add(member.user)
 

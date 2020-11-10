@@ -391,7 +391,7 @@ class AuthzSession(Session):
         elif isinstance(obj, User):
             # ユーザ管理者のみユーザを新規追加できる
             if not self.has_usr_admin():
-                raise NotAuthorizedException(f'ユーザ({obj})を作成できませんでした')
+                raise NotAuthorizedException(f'ユーザー({obj})を作成できませんでした')
             self._session.add(obj)
 
         elif isinstance(obj, UserRole):
@@ -400,7 +400,7 @@ class AuthzSession(Session):
                 from kskp.store.factory import UserFactory, RoleFactory
                 role = RoleFactory(self).find_by_id(obj.role_id)
                 user = UserFactory(self).find_by_id(obj.user_id)
-                raise NotAuthorizedException(f'{self.user}はロール({role})にユーザ({user})を追加できませんでした')
+                raise NotAuthorizedException(f'{self.user}はロール({role})にユーザー({user})を追加できませんでした')
             self._session.add(obj)
 
         elif isinstance(obj, Role):

@@ -365,14 +365,14 @@ class ProjectFolder(Folder):
         users = set()
         for member in members:
             if member.user.is_inactive:
-                raise Exception(f'削除状態のユーザ({member.user.name})が指定されました')
+                raise Exception(f'削除状態のユーザー({member.user.name})が指定されました')
 
             if member.type not in (ProjectFolder.OWNER_MEMBER_TYPE, ProjectFolder.READER_MEMBER_TYPE, ProjectFolder.WRITER_MEMBER_TYPE):
                 raise Exception(f'無効なmember.type({member.type})が指定されました')
 
             # 1人のUserが複数種のプロジェクトロールに所属する場合はエラーとする
             if member.user in users:
-                raise Exception(f'ユーザ({member.user.name})が重複して指定されました')
+                raise Exception(f'ユーザー({member.user.name})が重複して指定されました')
             else:
                 users.add(member.user)
 
@@ -391,7 +391,7 @@ class ProjectFolder(Folder):
         # 
         result = self._session.query(ProjectFolder.modified_at).filter(ProjectFolder.id==self.id).one_or_none()
         if result is None or last_modified_at != result[0]:
-            raise OptimisticLockException(f'プロジェクト({self.label})は他ユーザが編集しているため更新できませんでした')
+            raise OptimisticLockException(f'プロジェクト({self.label})は他ユーザーが編集しているため更新できませんでした')
         # 最終更新時刻を更新する
         self._update_timestamp()
 
