@@ -578,19 +578,15 @@ class MissingValueInterpolateCommand(PCommand):
                                         adds.append( '' if str(val) == 'nan' else str(val) )
 
                                     if m == 'nearest':
-                                        # if not all values are null
-                                        if True:
-                                            #追加順： 'ip_0_near', 'ip_0_near_pre', 'ip_0_near_next'
-                                            val = ave_uxt
-                                            adds.append( '' if str(val) == 'nan' else str(val) )
+                                        #追加順： 'ip_0_near', 'ip_0_near_pre', 'ip_0_near_next'
+                                        val = ave_uxt
+                                        adds.append( '' if str(val) == 'nan' else str(val) )
 
-                                            val = top_val
-                                            adds.append( '' if str(val) == 'nan' else str(val) )
+                                        val = top_val
+                                        adds.append( '' if str(val) == 'nan' else str(val) )
 
-                                            val = bot_val
-                                            adds.append( '' if str(val) == 'nan' else str(val) )
-                                        else: # if all values are null
-                                            adds.extend(['', '', ''])
+                                        val = bot_val
+                                        adds.append( '' if str(val) == 'nan' else str(val) )
 
                                     if m == 'linear':
                                         # 追加順： ['ip_1_1', 'ip_1_0']
