@@ -551,10 +551,16 @@ class MissingValueInterpolateCommand(PCommand):
                     bot_uxt = float('nan' if bot_uxt == '' else bot_uxt)
                     bot_pre_uxt = float('nan' if bot_pre_uxt == '' else bot_pre_uxt)
 
-                    if math.isnan(bot_uxt):
-                        ave_uxt = ( top_uxt + bot_pre_uxt ) / 2
+                    
+                    # ave_uxt should be null when values are all bad
+                    all_values = [x[ header.index(field)] for x in kb]
+                    if all(val == '' for val in all_values):
+                        ave_uxt = float('nan')
                     else:
-                        ave_uxt = ( top_uxt + bot_uxt ) / 2
+                        if math.isnan(bot_uxt):
+                            ave_uxt = ( top_uxt + bot_pre_uxt ) / 2
+                        else:
+                            ave_uxt = ( top_uxt + bot_uxt ) / 2
 
                     for rows in kb:
                         adds = []
@@ -572,15 +578,19 @@ class MissingValueInterpolateCommand(PCommand):
                                         adds.append( '' if str(val) == 'nan' else str(val) )
 
                                     if m == 'nearest':
-                                        #追加順： 'ip_0_near', 'ip_0_near_pre', 'ip_0_near_next'
-                                        val = ave_uxt
-                                        adds.append( '' if str(val) == 'nan' else str(val) )
+                                        # if not all values are null
+                                        if True:
+                                            #追加順： 'ip_0_near', 'ip_0_near_pre', 'ip_0_near_next'
+                                            val = ave_uxt
+                                            adds.append( '' if str(val) == 'nan' else str(val) )
 
-                                        val = top_val
-                                        adds.append( '' if str(val) == 'nan' else str(val) )
+                                            val = top_val
+                                            adds.append( '' if str(val) == 'nan' else str(val) )
 
-                                        val = bot_val
-                                        adds.append( '' if str(val) == 'nan' else str(val) )
+                                            val = bot_val
+                                            adds.append( '' if str(val) == 'nan' else str(val) )
+                                        else: # if all values are null
+                                            adds.extend(['', '', ''])
 
                                     if m == 'linear':
                                         # 追加順： ['ip_1_1', 'ip_1_0']
@@ -605,7 +615,7 @@ class MissingValueInterpolateCommand(PCommand):
                                             adds.append( '' )
                                             adds.append( '' )
                                 else:
-                                # 補間値を出力
+                                    # 補間値を出力
                                     if m == 'next':
                                         if now_val == '':
                                             val = bot_val
