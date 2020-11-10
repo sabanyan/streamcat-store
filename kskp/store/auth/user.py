@@ -165,7 +165,9 @@ class User(BaseModel):
         # 復号化
         cipher_suite = Fernet(self.KEY_OF_TMP_PASS)
         try:
-            return cipher_suite.decrypt(password.encode(),ttl=self.VALID_SECOND_OF_TMP_PASS).decode()
+            # TODO:仮パスワードの有効期間が切れた場合のUIの挙動を決めてなかったので、とりあえず有効期間を設定しない
+            # return cipher_suite.decrypt(password.encode(),ttl=self.VALID_SECOND_OF_TMP_PASS).decode()
+            return cipher_suite.decrypt(password.encode()).decode()
         except InvalidToken:
             raise Exception('仮パスワードの有効期間が切れました、仮パスワードをリセットして下さい')
 
