@@ -39,7 +39,8 @@ def GenerateErrorMessage(commandname, errcode, errfield, fieldinput, template_pa
         # parameter errors
         'OutOfBoundsError' : '${errfield} への ${fieldinput} 指定が正しくありません。${correct_bounds} で指定してください',
         'ParameterTypeError' : '${errfield} への ${fieldinput} 指定が正しくありません。${correct_type} を指定してください',
-        'EmptyParamError' : '空文字列の指定はできません。',
+        'EmptyParamError' : '空文字列の指定はできません',
+        'TimePrecisionError':'時間軸のデータ型が暦型(YYYYMMDDhhmmss.小数6桁まで)の場合の間隔は、小数6桁までの秒数を指定してください ${fieldinput}',
         
         # interpolation results error
         'InterpolateResultsConflictError' : '出力項目名が重複しています。対象項目、補間方法、結果項目で定まる出力項目名で、重複となる設定がないかを、確認してください。',
@@ -1326,6 +1327,7 @@ class MissingValueInterpolateCommand(PCommand):
 
 
         # --- 不要列の削除 ---
+        # comment out to see intermediate columns (to see pbid etc)
         if len( remove_fields ) > 0:
             f <<= nm.mcut(f= ','.join(remove_fields), r= True)
 
@@ -2255,6 +2257,16 @@ class TimeAxisDataGenerateIn0Command(PCommand):
 
                 if time_type in ['date','year_month']:
                     interval = round(float(interval))
+                elif time_type == 'datetime':
+                    _, decimal = interval.split('.')
+
+                    # if more than 7 digits, raise TimePrecisionError
+                    if len(decimal) > 7:
+                        msg = GenerateErrorMessage(commandname,
+                                        'TimePrecisionError',
+                                        'interval', args['interval'])
+                        raise Exception(msg)
+
                 elif time_type == 'number':
                     interval = Decimal(interval)
 
