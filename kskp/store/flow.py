@@ -40,7 +40,7 @@ class Flow(Datum):
         if self.executable is None:
             raise NotAuthorizedException(f'{self.label}の実行権限がNoneです(save後のDatumオブジェクトは実行権限がNoneになります)')
         if not self.executable:
-            raise NotAuthorizedException(f'{self._session.user.name} ({self.user})は{self.label}の実行権限がありません')
+            raise NotAuthorizedException(f'{self._session.user.name}は{self.label}の実行権限がありません')
 
     @Constraints.prohibit_save_on_root
     @Constraints.set_project_role_on_adding
@@ -254,7 +254,7 @@ class Flow(Datum):
         """
         from kskp.store.auth import NotAuthorizedException
         if not self._session.writable(self, ignore_self_edit_lock=True):
-            raise NotAuthorizedException(f'({self.user})は{self.label}の編集ロックの更新権限がありません')
+            raise NotAuthorizedException(f'({self._session.user.name})は{self.label}の編集ロックの更新権限がありません')
 
         from kskp.store.factory import RoleFactory
         factory = RoleFactory(self._session)
