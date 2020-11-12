@@ -1,19 +1,5 @@
 {
   "id": "mnewstr",
-  "rules": {
-    "a": {
-      "presence": {
-        "allowEmpty": false
-      }
-    },
-    "v": {
-      "lessValueListThanN": {
-        "target": "a",
-        "difference": "0",
-        "justValue": "-1"
-      }
-    }
-  },
   "params": [
     {
       "name": "a",

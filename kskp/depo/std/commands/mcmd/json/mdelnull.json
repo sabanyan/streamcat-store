@@ -1,53 +1,5 @@
 {
   "id": "mdelnull",
-  "rules": {
-    "f": {
-      "presence": {
-        "allowEmpty": false
-      },
-      "checkSeveralSpecifiedFormats": {
-        "defaultRule": {
-          "pattern": "^[^,]+(,[^,]+)*$",
-          "message": "一項目のみ入力してください"
-        },
-        "specialRules": [
-          {
-            "target": [
-              "x",
-              "nfn"
-            ],
-            "pattern": "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$",
-            "message": "項目の指定は数値のみ可能です。"
-          }
-        ]
-      }
-    },
-    "k": {
-      "checkSeveralSpecifiedFormats": {
-        "defaultRule": {
-          "pattern": "^[^,]+(,[^,]+)*$|^$",
-          "message": "一項目のみ入力してください"
-        },
-        "specialRules": [
-          {
-            "target": [
-              "x",
-              "nfn"
-            ],
-            "pattern": "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$|^$",
-            "message": "項目の指定は数値のみ可能です。"
-          }
-        ]
-      }
-    },
-    "bufcount": {
-      "specifiedFormatIfTargetInput": {
-        "target": "bufcount",
-        "pattern": "^[1-9]?[0-9]*$|^0$|^$",
-        "message": "0以上の整数を半角で入力してください"
-      }
-    }
-  },
   "params": [
     {
       "name": "f",
