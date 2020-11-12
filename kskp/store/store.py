@@ -19,21 +19,6 @@ class Store(Datum):
 
         data = self._session.query(Datum).filter(Datum.parent_id==self.id).\
                             order_by(Datum.type, desc(Datum.created_at)).all()
-
-        # 
-        # DatumについてEveryOneロールの権限設定がない場合、初期値を設定する
-        # (後方互換、一覧表示の速度を結構遅くしている)
-        # 
-        for datum in data:
-            from kskp.store.factory import RoleFactory, AuthFactory
-            everyone_role = RoleFactory(self._session).load_everyone_role()
-            everyone_role.join_user(self._session.user)
-            if not AuthFactory(self._session).exists(everyone_role.id, datum.id):
-                from kskp.store import Folder, Flow
-                # FolderまたはFlowの場合は実行権限を付与する
-                folder_or_flow = isinstance(datum, Folder) or isinstance(datum, Flow) or None
-                everyone_role.init_authz(datum.id, True, True, exec=folder_or_flow)
-
         return data
 
     def find_children_by_label(self, label, type=None):
@@ -76,6 +61,11 @@ class Store(Datum):
                             filter(Datum.uuid==uuid).one()
 
         return data
+
+    def count_children(self):
+        # 参照権限が無ければ直下の子Datumは取得できない
+        self._readable_or_raise()
+        return self._session.query(Datum).filter(Datum.parent_id==self.id).count()
 
     def make_unique_label(self, label, except_uuid=None):
         """
@@ -127,7 +117,7 @@ class Store(Datum):
         from kskp.store import Flow
         return Flow(self._session, self, label, flow_json)
 
-    def create_simple_flow(self, parent, label, data_source):
+    def create_simple_flow(self, label, data_source):
         from kskp.store import Flow
         flow_json = {
                         "label": label,
@@ -177,6 +167,10 @@ class Store(Datum):
         from kskp.core import Datum
         return self.uuid in (Datum.FLOW_FOLDER_UUID, Datum.RESULT_FOLDER_UUID, Datum.CACHE_FOLDER_UUID)
 
+    def is_cache_folder(self):
+        from kskp.core import Datum
+        return self.uuid == Datum.CACHE_FOLDER_UUID
+        
     # def save(self, datum):
     #     """
     #     override用

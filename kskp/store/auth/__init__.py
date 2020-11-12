@@ -2,7 +2,7 @@ from sqlalchemy import event, DDL
 
 from kskp.store import engine, BaseModel
 
-from .exceptions import NotAuthorizedException, InvalidPassword
+from .exceptions import NotAuthorizedException, InvalidPassword, NoRoleOwnerException
 from .auth import Auth
 from .user_role import UserRole
 from .role import Role
@@ -59,7 +59,7 @@ def admin_exists():
 
     sql = f"""
     select count(*) from roles G
-    where G.uuid = '{Role.ADMIN_ROLE_UUID}'
+    where G.uuid = '{Role.SYS_ADMIN_ROLE_UUID}'
       and exists (select * from users_roles UG
                   where UG.role_id = G.id
                     and exists (select * from users U
@@ -71,20 +71,4 @@ def admin_exists():
 
 # テーブルを作成する
 # BaseModel.metadata.create_all(bind=engine, checkfirst=True)
-
-def add_admin_user_and_role(factory):
-    """
-    デフォルト管理者ユーザと管理者ロールを作成する
-    """
-    # 管理者ロールが存在しない場合は作成する
-    admin_role = factory.load_admin_role()
-
-    # 管理者ユーザが存在しない場合はデフォルト管理者ユーザを作成する
-    if not admin_role.has_joined_user():
-        # 初期管理者ユーザを作成する
-        admin_user = factory.create_admin_user()
-        admin_user.save()
-        # 初期管理者ユーザを管理者ロールに参加させる
-        admin_role.join_user(admin_user)
-
 

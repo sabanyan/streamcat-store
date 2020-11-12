@@ -64,13 +64,29 @@ if _is_unittest():
     engine.execute(sql)
 
 # ベースクラスをつくる
+class MyBase(object):
+    @property
+    def is_base_model(self):
+        return True
+
 from sqlalchemy.ext.declarative import declarative_base
-BaseModel = declarative_base()
+BaseModel = declarative_base(cls=MyBase)
 
 from kskp.core import Datum, Port, Command
 
-# from .exceptions import NothingToPutbackException, NoResultsException, CommandException
-from .exceptions import *
+from .exceptions import (
+    NothingToPutbackException,
+    NoResultsException,
+    OptimisticLockException,
+    EditLockedException,
+    CommandException,
+    GroupBy2Exception,
+    ColumnNameException,
+    FieldNotFoundException,
+    FieldConflictException,
+    EmptyFieldException,
+    FieldForbiddenCharacterException
+)
 from .store import Store, NysolModule, ModuleStore, List, ApparentLast
 from .database_conn import DatabaseConn
 from .remote_folder_conn import RemoteFolderConn
@@ -100,26 +116,47 @@ from ..depo.std.commands import CommandLink, CommandsPathLink, CommandsPathFileS
 
 # factory.data.find_by_uuid()等で参照しているので、
 # 管理者ユーザの作成等の処理の前に記述する必要がある
-from sqlalchemy.orm.exc import NoResultFound
+# from sqlalchemy.orm.exc import NoResultFound
 
 
 # テーブルを作成する
 BaseModel.metadata.create_all(bind=engine, checkfirst=True)
 
-# 管理者ロールと管理者ユーザを作成する
+
 from kskp.store.factory import UnAuthzFactory, Factory
 with UnAuthzFactory() as unauthz_factory:
-    admin_user = unauthz_factory.load_admin_user()
+    from kskp.store.auth import Role
 
-    # User.load_self_role()でadmin_userオブジェクトを更新するため
-    # Factoryでamdin_userをリロードする
-    with Factory(admin_user) as factory:
-        admin_user = factory.user.find_by_id(admin_user.id)
+    # システム管理者とユーザ管理者を作成する
+    sys_admin_user = unauthz_factory.load_sys_admin_user()
+    usr_admin_user = unauthz_factory.load_usr_admin_user(activate_if_inactive=True)
+
+    with Factory(sys_admin_user) as factory:
+        sys_admin_role = factory.role.load_sys_admin_role()
+        if sys_admin_user.is_init:
+            # システム管理者を新規作成した場合は、システム管理者ロールの一般メンバに加える
+            sys_admin_role.join_member(Role.Member(sys_admin_user, owner=False))
+
+    with Factory(usr_admin_user) as factory:
+        # ユーザ管理者ロールを作成する
+        # (ロールを新規作成した場合は作成者がロールの所有者になる)
+        factory.role.load_usr_admin_role()
+
+        # everyoneロールにユーザ管理者を所有者として参加させる
+        # (unauthz_factoryからロールを新規追加された場合、作成者はロールに参加されない)
+        # (ユーザ管理者ロールを作成した後に処理すること)
+        everyone_role = factory.role.load_everyone_role()
+        # edit_lock_roleロールにユーザ管理者を所有者として参加させる
+        edit_lock_role = factory.role.load_edit_lock_role()
+        if usr_admin_user.is_init:
+            # ユーザ管理者を新規作成した場合は、ユーザ管理者ロールの所有者メンバに加える
+            everyone_role.join_member(Role.Member(usr_admin_user, owner=True))
+            # 編集ロックロールの所有者メンバに加える
+            edit_lock_role.join_member(Role.Member(usr_admin_user, owner=True))
 
         # システムフォルダを作成する
-        with Factory(admin_user) as factory:
-            factory.data.load_cache_folder()
-            factory.data.load_trash_folder()
+        factory.data.load_cache_folder()
+        factory.data.load_trash_folder()
 
 
 from sqlalchemy import event, DDL

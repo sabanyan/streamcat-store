@@ -1,4 +1,4 @@
-from kskp.core import Datum
+from kskp.core import Datum, Constraints
 from kskp.store import Folder, RemoteFolderConn, Mountable
 
 # 
@@ -25,6 +25,8 @@ class RemoteFolder(Folder, Mountable):
             raise Exception('remoteFolderConn引数がNoneです')
         self._data = {'conn' : remoteFolderConn.to_json()}
 
+    @Constraints.prohibit_save_on_root
+    @Constraints.set_project_role_on_adding
     def save(self):
         """
         共有フォルダを保存する
@@ -91,6 +93,7 @@ class RemoteFolder(Folder, Mountable):
 
         return self
 
+    @Constraints.delete_role_when_isolated
     def delete(self):
         """
         共有フォルダを削除する
@@ -130,15 +133,7 @@ class RemoteFolder(Folder, Mountable):
         return self.conn.get_mount_cmd(mount_point_path)
 
     def to_json(self):
-        ret =  {'uuid'      : self.uuid,
-                'type'      : Datum.RFOLDER_TYPE,
-                'label'     : self.label,
-                'readable'  : self.readable,
-                'prevFolderPath' : self.get_prev_folder_path(),
-                'creator'   : self.creator_str,
-                'createdAt' : self.created_at_str}
-
+        ret = super().to_json()
         if self.readable:
             ret.update(self.conn.to_json())
-
         return ret

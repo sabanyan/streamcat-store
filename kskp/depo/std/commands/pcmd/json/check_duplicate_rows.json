@@ -22,8 +22,24 @@
     {
       "name": "k",
       "type": "string",
-      "label": "キー項目名(必須)"
+      "label": "重複判定化する項目名(必須)",
+      "description": "・カンマ区切りで複数指定可\n・ワイルドカード(*,？ )使用可"
     }
   ],
-  "url": ""
+  "url": "",
+  "groups": [
+    {
+      "name": "grouping",
+      "label": "重複判定キーの設定 (必須)",
+      "params": [
+        "k"
+      ]
+    },
+    {
+      "name": "cmd_sub",
+      "label": "追加される項目名の説明",
+      "description": "__RowNo_BeginWith1__: 入力データの行番号(1始まり)\n__dup_total__ : 重複レコード数\n__dup_no_　：　重複内での連番(1始まり)",
+      "params": []
+    }
+  ]
 }

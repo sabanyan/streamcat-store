@@ -10,6 +10,18 @@ class NoResultsException(Exception):
     """
     pass
 
+class OptimisticLockException(Exception):
+    """
+    楽観的排他制御によりDatumの更新に失敗したことを通知する例外
+    """
+    pass
+
+class EditLockedException(Exception):
+    """
+    Datumが編集ロックされているため編集できないことを通知する
+    """
+    pass
+
 class CommandException(Exception):
     """
     コマンドが送出する例外
@@ -17,11 +29,25 @@ class CommandException(Exception):
     def __init__(self, ex):
         self._ex = ex
 
+    @property
+    def innerException(self):
+        return self._ex
+
     def __str__(self):
         return self._ex.__str__()
-        
-        
-        
+
+class GroupBy2Exception(CommandException):
+    """
+    class for unique exceptions in the GroupBy2 Command
+    """
+    pass
+
+class ColumnNameException(CommandException):
+    """
+    class for unique exceptions in the Column Name Command
+    """
+    pass
+
 class FieldNotFoundException(CommandException):
     """
     exception class for Field Not Found error
@@ -114,17 +140,6 @@ class FieldForbiddenCharacterException(CommandException):
         if self._option_id != '':
             msg += f'【オプションID：{self._option_id}】'
 
-        msg += f'半角の（ :　%　&　\ ）は、項目名の指定に使用できません。{self._bad_field}'
+        msg += f'半角の（ :　%　&　\\ ）は、項目名の指定に使用できません。{self._bad_field}'
         return msg
 
-class GroupBy2Exception(CommandException):
-    """
-    class for unique exceptions in the GroupBy2 Command
-    """
-    pass
-
-class ColumnNameException(CommandException):
-    """
-    class for unique exceptions in the Column Name Command
-    """
-    pass

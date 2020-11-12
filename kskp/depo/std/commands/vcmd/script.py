@@ -215,7 +215,7 @@ class CsvToLineGraphCommand(VisualizersBokehPlot):
         # 横軸：date
         # 縦軸：float
         # データ系列：string
-        timeseries_format_nysol = "%Y%m%d%H%M%S%f"
+        timeseries_format_nysol = "%Y%m%d%H%M%S.%f"
         timeseries_format_custom = args.get('x_axis_format_custom')
 
         if x_axis_format_select == "nysol":

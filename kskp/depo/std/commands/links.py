@@ -14,8 +14,7 @@ class CommandLink:
     コマンド名を解決するリンク
     """
     from kskp.depo.std.commands.pcmd.square_command import Square
-    from kskp.depo.std.commands.pcmd.groupby_command import GroupBy2Command
-    from kskp.depo.std.commands.pcmd.groupby_remake import GroupByRemakeCommand
+    from kskp.depo.std.commands.pcmd.groupby2_command import GroupBy2Command
 
     COMMAND_TABLE = {
         # テスト用コマンド
@@ -114,8 +113,7 @@ class CommandLink:
         'columns_to_rows': ColumnsToRowsCommand(),
         'groupby_columns': GroupbyColumnsCommand(),
         'groupby': GroupbyCommand(),
-        'groupbyold': GroupBy2Command(),
-        'groupby2': GroupByRemakeCommand(),
+        'groupby2': GroupBy2Command(),
         'utf8_to_cp932': Utf8ToCp932Command(),
         'sml_modeling': SmlModelingCommand(),
         'multi_mcal_manyformula': MultiMcalCommand(),
@@ -126,6 +124,7 @@ class CommandLink:
         'plaintext2csv': PlainText2Csv(),
         'rowrange': RowRangeCommand(),
         'convtoutf8' : ConvToUtf8(),
+        'align' : AlignColumns(),
         'to_list' : ToListCommand(),
         # ビジュアライズ
         'csvtohtmltable': CsvToTableCommand(),

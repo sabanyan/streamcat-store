@@ -6,6 +6,12 @@
   "description": "Windows形式(Shift-JIS, CRLF) データを、KSKPで処理できる文字改行コードに変換する",
   "groups": [
     {
+      "name": "abstract",
+      "label": "Windowsデータの文字改行コードの変換",
+      "description": "Windows形式(Shift-JIS, CRLF) データを、KSKPで処理できる文字改行コードに変換する",
+      "params": []
+    },
+    {
       "name": "group1",
       "label": "システム設定（省略可）",
       "params": [

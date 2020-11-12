@@ -1,9 +1,10 @@
 import os
 from kskp.store import BaseModel
-from sqlalchemy import Column, String, text, PrimaryKeyConstraint
+from sqlalchemy import Column, text, PrimaryKeyConstraint
 from sqlalchemy.dialects.postgresql import INTEGER, BOOLEAN, TIMESTAMP, ENUM
 
 class Auth(BaseModel):
+    FIND_OP = 'find'
     READ_OP = 'read'
     WRITE_OP = 'write'
     DELETE_OP = 'delete'
@@ -24,9 +25,10 @@ class Auth(BaseModel):
         __table_args__ = __table_args__ + ({'schema': os.environ['KSKP_POSTGRESQL_SCHEMA_NAME']} ,)
 
     # 列名と列のデータ型等の定義
-    role_id     = Column(INTEGER, primary_key=True)
+    # ProjectFolder.get_joined_members()で発行するSQLでdatum_idへのインデックスを利用するため、datum_idを1列目に配置する
     datum_id     = Column(INTEGER, primary_key=True)
-    operation    = Column(ENUM(READ_OP, WRITE_OP, DELETE_OP, EXEC_OP, OWN_OP, name='op_type'), primary_key=True)
+    role_id      = Column(INTEGER, primary_key=True)
+    operation    = Column(ENUM(FIND_OP, READ_OP, WRITE_OP, DELETE_OP, EXEC_OP, OWN_OP, name='op_type'), primary_key=True)
     permission   = Column(BOOLEAN, nullable=False)
     _creator_id  = Column('creator', INTEGER)
     _modifier_id = Column('modifier', INTEGER)
@@ -78,6 +80,10 @@ class Auth(BaseModel):
             self._session.commit()
 
     def update(self, permission):
+        # 同じ値への更新であれば何もしない
+        if permission == self.permission:
+            return self
+
         try:
             # レコードを更新する
             self.permission = permission
@@ -88,6 +94,8 @@ class Auth(BaseModel):
             raise e
         finally:
             self._session.commit()
+
+        return self
 
     def delete(self):
         """
@@ -100,3 +108,6 @@ class Auth(BaseModel):
             raise e
         finally:
             self._session.commit()
+
+    def __repr__(self):
+        return f'Auth(role:{self.role_id}, datum:{self.datum_id}, {self.operation}, {self.permission})'

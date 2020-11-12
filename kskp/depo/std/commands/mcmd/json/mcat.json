@@ -2,33 +2,9 @@
   "id": "mcat",
   "params": [
     {
-      "name": "f",
-      "type": "string",
-      "label": "併合する項目名を指定する。",
-      "optional": true
-    },
-    {
-      "name": "assert_nullin",
-      "type": "boolean",
-      "label": "入力項目の f=または vf=で指定された項目の NULL 値チェックを行う",
-      "optional": true
-    },
-    {
-      "name": "nfn",
-      "type": "boolean",
-      "label": "入力データの 1 行目を項目名行とみなさない。",
-      "optional": true
-    },
-    {
       "name": "nfno",
       "type": "boolean",
       "label": "出力データに項目名行を出力しない。",
-      "optional": true
-    },
-    {
-      "name": "x",
-      "type": "boolean",
-      "label": "項目番号による指定",
       "optional": true
     },
     {
@@ -56,5 +32,27 @@
   "label": "複数データの併合",
   "classification": "table_join",
   "description": "レコードを併合する",
-  "url": "./static/pdf/mcmd/table_join/mcat.pdf"
+  "url": "./static/pdf/mcmd/table_join/mcat.pdf",
+  "groups": [
+    {
+      "name": "abstract",
+      "label": "複数データの併合",
+      "description": "レコードを併合する",
+      "params": []
+    },
+    {
+      "name": "cmd_sub",
+      "label": "その他 (省略可)",
+      "params": [
+        "nfno"
+      ]
+    },
+    {
+      "name": "system",
+      "label": "システム管理用設定（作業領域・ログ出力）",
+      "params": [
+        "tmpPath"
+      ]
+    }
+  ]
 }

@@ -32,8 +32,32 @@
     {
       "name": "k",
       "type": "string",
-      "label": "入力項目よりf=指定以外の項目を出力に含めたい場合に、カンマ区切りで指定する"
+      "label": "グループ化する項目名(必須)",
+      "description": "カンマ区切りで複数指定可"
     }
   ],
-  "url": ""
+  "url": "",
+  "groups": [
+    {
+      "name": "abstract",
+      "label": "項目の行展開",
+      "description": "f=で指定した複数の列項目に対して、各項目の行を連結した新たな項目をa=で指定した名前で作成する",
+      "params": []
+    },
+    {
+      "name": "grouping",
+      "label": "グループの設定 (必須)",
+      "params": [
+        "k"
+      ]
+    },
+    {
+      "name": "cmd_main",
+      "label": "行展開の設定 (必須)",
+      "params": [
+        "f",
+        "a"
+      ]
+    }
+  ]
 }

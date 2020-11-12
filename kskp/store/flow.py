@@ -1,5 +1,4 @@
-
-from kskp.core import Datum
+from kskp.core import Datum, Constraints
 
 class Flow(Datum):
 
@@ -20,6 +19,9 @@ class Flow(Datum):
         # data列の値を作成する
         self._data = {'label' : label, 'flow' : flow_json}
 
+        # DBに保存する前のFlowへの参照と更新と実行権限は制限しない
+        self._permissions = 0b1110
+
         # フローデータの妥当性を検証する
         self.valid_uuids_in_flowdata_or_raise()
 
@@ -28,16 +30,20 @@ class Flow(Datum):
         from kskp.store import FlowData
         return FlowData(self._data['flow'], self._readable_or_raise, self._executable_or_raise)
 
-    @property
-    def executable(self) -> bool:
-        # DBに保存する前のFlowの実行権限は制限しない
-        return self.id is None or self._session.executable(self)
+    # @property
+    # def executable(self) -> bool:
+    #     # DBに保存する前のFlowの実行権限は制限しない
+    #     return self.id is None or self._session.executable(self)
 
     def _executable_or_raise(self):
         from kskp.store.auth import NotAuthorizedException
+        if self.executable is None:
+            raise NotAuthorizedException(f'{self.label}の実行権限がNoneです(save後のDatumオブジェクトは実行権限がNoneになります)')
         if not self.executable:
             raise NotAuthorizedException(f'{self._session.user.name} ({self.user})は{self.label}の実行権限がありません')
 
+    @Constraints.prohibit_save_on_root
+    @Constraints.set_project_role_on_adding
     def save(self):
         """
         Flowを保存する
@@ -51,7 +57,12 @@ class Flow(Datum):
             self._session.add(self)
         except Exception as e:
             self._session.rollback()
-            raise e
+            if self.edit_lock:
+                # 編集ロックにより更新できなかった場合
+                from kskp.store import EditLockedException
+                raise EditLockedException('編集ロックが掛かっているため新規追加できません')
+            else:
+                raise e
         finally:
             self._session.commit()
 
@@ -100,45 +111,30 @@ class Flow(Datum):
             self._session.update(self)
         except Exception as e:
             self._session.rollback()
-            raise e
+            if self.edit_lock:
+                # 編集ロックにより更新できなかった場合
+                from kskp.store import EditLockedException
+                raise EditLockedException('編集ロックが掛かっているため更新できません')
+            else:
+                raise e
         finally:
             self._session.commit()
 
         # ここでflowを返すとtest_model.pyでテストが通らない
         return self
 
-    # def move(self, parent_uuid, modifier=None):
-    #     """
-    #     指定されたStoreの直下に移動する
-    #     """
-    #     # UUID値の形式チェックをする
-    #     Datum.valid_uuid_or_raise(parent_uuid)
+    def move(self, parent_uuid, modifier=None):
+        from kskp.store.auth import NotAuthorizedException
 
-    #     from kskp.store.factory import DatumFactory
-    #     to_folder = DatumFactory(self.session).find_by_uuid(parent_uuid)
-    #     if to_folder.type != Datum.FOLDER_TYPE and to_folder.type != Datum.TRASH_TYPE:
-    #         raise Exception('移動先の指定はフォルダまたはゴミ箱のUUIDしか許可していません')
-
-    #     if parent_uuid == self.uuid:
-    #         raise Exception('移動先と移動元の指定が同じです')
-
-    #     # 移動元フォルダのidを覚えておく
-    #     data = self.data.copy()
-    #     data['prev_parent_id'] = self.parent_id
-
-    #     try:
-    #         # レコードを更新する
-    #         self.parent_id = to_folder.id
-    #         self._data = data
-    #         self._modifier_id = (modifier or self.session.user).id
-    #         self.session.update(self)
-    #     except Exception as e:
-    #         self.session.rollback()
-    #         raise e
-    #     finally:
-    #         self.session.commit()
-
-    #     return self
+        try:
+            return super().move(parent_uuid, modifier)
+        except NotAuthorizedException as e:
+            if self.edit_lock:
+                # 編集ロックにより移動できなかった場合
+                from kskp.store import EditLockedException
+                raise EditLockedException('編集ロックが掛かっているため移動できません')
+            else:
+                raise e
 
     def throw_away(self):
         """
@@ -151,11 +147,19 @@ class Flow(Datum):
         # 削除しようとするflowが、フローで使用されている場合は例外を送出する
         using_flow_uuids = self.get_flow_uuids_using_me()
         if len(using_flow_uuids) > 0:
-            flow = factory.find_by_uuid(using_flow_uuids[0])
-            raise Exception(f'このフローは別のフロー({flow.label})で使用しているため削除できません')
+            raise Exception(f"このフローは別のフロー({using_flow_uuids[0]['reference_label']})で使用しているため削除できません")
 
-        self.move(trash_folder.uuid)
+        try:
+            return self.move(trash_folder.uuid)
+        except Exception as e:
+            if self.edit_lock:
+                # 編集ロックにより更新できなかった場合
+                from kskp.store import EditLockedException
+                raise EditLockedException('編集ロックが掛かっているため削除できません')
+            else:
+                raise e
 
+    @Constraints.delete_role_when_isolated
     def delete(self):
         """
         Flowを削除する
@@ -164,16 +168,19 @@ class Flow(Datum):
         # 2019/07/29現在下記のコードはpostgres9.6では動かない、postgres11.1では動作確認している
         using_flow_uuids = self.get_flow_uuids_using_me()
         if len(using_flow_uuids) > 0:
-            from kskp.store.factory import DatumFactory
-            using_flow_label= DatumFactory(self._session).find_by_uuid(using_flow_uuids[0]).label
-            raise Exception('このフローはフロー(%s)でサブフローとして使用しているため削除できません' % using_flow_label)
+            raise Exception(f"このフローは別のフロー({using_flow_uuids[0]['reference_label']})で使用しているため削除できません")
 
         try:
             # フレームレコードを削除する
             self._session.delete(self)
         except Exception as e:
             self._session.rollback()
-            raise e
+            if self.edit_lock:
+                # 編集ロックにより更新できなかった場合
+                from kskp.store import EditLockedException
+                raise EditLockedException('編集ロックが掛かっているため削除できません')
+            else:
+                raise e
         finally:
             self._session.commit()
             
@@ -221,10 +228,44 @@ class Flow(Datum):
 
         return new_flow
 
+    @property
+    def edit_lock(self):
+        """
+        編集ロックの値を取得する
+        """
+        from kskp.store.factory import RoleFactory, AuthFactory
+        from kskp.store.auth import Auth
+        role_factory = RoleFactory(self._session)
+        auth_factory = AuthFactory(self._session)
+        edit_lock_role = role_factory.load_edit_lock_role()
+
+        if auth_factory.exists(edit_lock_role.id, self.id, Auth.WRITE_OP):
+            auth = auth_factory.find_by_id(edit_lock_role.id, self.id, Auth.WRITE_OP)
+            # permission=Falseであれば編集ロックが掛かっている
+            return not auth.permission
+        else:
+            # 権限レコードが存在しなければ編集ロックは掛かっていない
+            return False
+
+    @edit_lock.setter
+    def edit_lock(self, value:bool):
+        """
+        編集ロックを設定する
+        """
+        from kskp.store.auth import NotAuthorizedException
+        if not self._session.writable(self, ignore_self_edit_lock=True):
+            raise NotAuthorizedException(f'({self.user})は{self.label}の編集ロックの更新権限がありません')
+
+        from kskp.store.factory import RoleFactory
+        factory = RoleFactory(self._session)
+        edit_lock_role = factory.load_edit_lock_role()
+        # write=Falseでedit_lock_roleに参加する全てのユーザはこのフローの更新権限を失う
+        edit_lock_value = not value and None
+        edit_lock_role.init_authz(self.id, read=None, write=edit_lock_value)
+
     @staticmethod
     def _get_select_stmt_for_nodes():
-        from sqlalchemy import select, literal_column, table, text, String
-        from sqlalchemy.sql import alias
+        from sqlalchemy import select, literal_column, text, String
         from sqlalchemy.dialects.postgresql import TIMESTAMP, UUID
 
         """
@@ -240,6 +281,10 @@ class Flow(Datum):
                 where type='flow') F0
         )
         """
+
+        # DatumのTableオブジェクト
+        D = Datum.__table__
+
         sql = select([literal_column("label as label", type_=String),
                       literal_column("node ->> 'uuid' as uuid", type_=UUID),
                       literal_column("node ->> 'type' as type", type_=String),
@@ -250,9 +295,9 @@ class Flow(Datum):
                     select([literal_column("label"),
                             literal_column("uuid"),
                             literal_column("jsonb_array_elements(data #> '{flow,nodes}') as node")
-                           ],
-                           table('data'))
-                    .where(text("type='flow'")).alias('F0')
+                           ])
+                    .select_from(D)
+                    .where(Datum.type==Datum.FLOW_TYPE).alias('F0')
               )
 
         return sql
@@ -271,76 +316,6 @@ class Flow(Datum):
             if factory.trashed(flow_uuid):
                 flow = factory.find_by_uuid(flow_uuid)
                 raise Exception(f'ゴミ箱にあるフロー({flow.label})は使用できません')
-
-    # def get_src_frame_uuids(self):
-    #     """
-    #     参照する入力frameを全て取得する
-    #     """
-    #     from sqlalchemy import select, column, text, String
-    #     from sqlalchemy.sql import alias
-
-    #     inner_sql = Flow._get_select_stmt_for_nodes().\
-    #                      where(text(f"uuid = '{self.uuid}' ")).\
-    #                      alias('F')
-    #     sql = select([column('uuid', String)], distinct=True).select_from(inner_sql).\
-    #           where(text(f"type = 'frame'")).\
-    #           where(text(f"(cacheCreatedAt is null or cacheCreatedAt = '' )")).\
-    #           where(text(f"uuid is not null and uuid <> '' "))
-
-    #     results = self.session.execute(sql)
-    #     return [str(result['uuid']) for result in results]
-
-    # def get_cache_frame_uuids(self):
-    #     """
-    #     参照するキャッシュframeを全て取得する
-    #     """
-    #     from sqlalchemy import select, column, text, String
-    #     from sqlalchemy.sql import alias
-
-    #     inner_sql = Flow._get_select_stmt_for_nodes().\
-    #                      where(text(f"uuid = '{self.uuid}' ")).\
-    #                      alias('F')
-    #     sql = select([column('uuid', String)], distinct=True).select_from(inner_sql).\
-    #           where(text(f"type = 'frame'")).\
-    #           where(text(f"(cacheCreatedAt is not null and cacheCreatedAt <> '' )")).\
-    #           where(text(f"uuid is not null and uuid <> '' "))
-
-    #     results = self.session.execute(sql)
-    #     return [str(result['uuid']) for result in results]
-
-    # def get_sub_flow_uuids(self):
-    #     """
-    #     参照するSub Flowを全て取得する
-    #     """
-    #     from sqlalchemy import select, column, text, String
-    #     from sqlalchemy.sql import alias
-
-    #     inner_sql = Flow._get_select_stmt_for_nodes().\
-    #                      where(text(f"uuid = '{self.uuid}' ")).\
-    #                      alias('F')
-    #     sql = select([column('uuid', String)], distinct=True).select_from(inner_sql).\
-    #           where(text(f"type = 'flow'")).\
-    #           where(text(f"uuid is not null and uuid <> '' "))
-
-    #     results = self.session.execute(sql)
-    #     return [str(result['uuid']) for result in results]
-
-    # def get_store_uuids(self):
-    #     """
-    #     参照するStoreを全て取得する
-    #     """
-    #     from sqlalchemy import select, column, text, String
-    #     from sqlalchemy.sql import alias
-
-    #     inner_sql = Flow._get_select_stmt_for_nodes().\
-    #                      where(text(f"uuid = '{self.uuid}' ")).\
-    #                      alias('F')
-    #     sql = select([column('uuid', String)], distinct=True).select_from(inner_sql).\
-    #           where(text(f"type = 'store'")).\
-    #           where(text(f"uuid is not null and uuid <> '' "))
-
-    #     results = self.session.execute(sql)
-    #     return [str(result['uuid']) for result in results]
 
     def get_src_frame_uuids(self):
         """
@@ -457,7 +432,8 @@ class Flow(Datum):
                     node['uuid'] = new_uuid
                     break
 
-    def set_cache(self, node_id, cache_uuid):
+    @Constraints.set_project_role_on_set_cache
+    def set_cache(self, node_id, cache):
         from datetime import datetime, timedelta, timezone
 
         flow_data = self.flow_data
@@ -467,10 +443,17 @@ class Flow(Datum):
 
         for node in flow_data.get_nodes():
             if node['id'] == node_id:
-                node['uuid'] = cache_uuid
+                node['uuid'] = cache.uuid
                 # 記録時間はUTC、表示時間は現地時間にすべきでは？？
                 node['cacheCreatedAt'] = datetime.now(timezone(timedelta(hours=+9), 'JST')).strftime('%Y-%m-%d %H:%M:%S')
         # self.update_data(self.label, flow_data)
+
+    def to_json(self):
+        ret = super().to_json()
+        ret['editLock'] = self.edit_lock
+        ret['allowlist']['execute'] = self.executable
+        ret['allowlist']['lock'] = self.writable
+        return ret
 
     @staticmethod
     def create_flow(request_json, creator, data_source_name=None):
