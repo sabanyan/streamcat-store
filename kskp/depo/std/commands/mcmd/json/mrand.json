@@ -1,53 +1,5 @@
 {
   "id": "mrand",
-  "rules": {
-    "k": {
-      "format": {
-        "pattern": "^[^,]+(,[^,]+)*$|^$",
-        "message": "入力が正しくありません。"
-      }
-    },
-    "max": {
-      "format": {
-        "pattern": "^[1-9]?[0-9]*$|^$|^@\\[.+\\]$",
-        "message": "0以上の整数を半角で入力してください"
-      },
-      "compareNumbersLargerThan": {
-        "target": "min",
-        "message": "minより数値が大きくなるよう入力してください。"
-      }
-    },
-    "min": {
-      "format": {
-        "pattern": "^[1-9]?[0-9]*$|^$|^@\\[.+\\]$",
-        "message": "0以上の整数を半角で入力してください"
-      }
-    },
-    "a": {
-      "presencesIfTargetIsNotInput": [
-        "nfn",
-        "nfno"
-      ],
-      "specifiedFormatIfTargetInput": {
-        "target": "a",
-        "pattern": "^[^,]+$|^$",
-        "message": "入力が正しくありません。"
-      }
-    },
-    "int": {
-      "presencesIfTargetIsInput": [
-        "max",
-        "min"
-      ]
-    },
-    "S": {
-      "specifiedFormatIfTargetInput": {
-        "target": "S",
-        "pattern": "^[1-9]?[0-9]*$|^$|^@\\[.+\\]$",
-        "message": "入力が正しくありません。"
-      }
-    }
-  },
   "params": [
     {
       "name": "k",

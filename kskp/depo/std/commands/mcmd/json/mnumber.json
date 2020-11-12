@@ -1,58 +1,5 @@
 {
   "id": "mnumber",
-  "rules": {
-    "s": {
-      "checkSeveralSpecifiedFormats": {
-        "defaultRule": {
-          "pattern": "^[^,]+(%n|%r|%nr)?(,[^,]+(%n|%r|%nr)?)*$",
-          "message": "入力値が正しくありません。"
-        },
-        "specialRules": [
-          {
-            "target": [
-              "x",
-              "nfn"
-            ],
-            "pattern": "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(%n|%r|%nr)?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(%n|%r|%nr)?)*$|^@\\[.+\\](%n|%r|%nr)?$",
-            "message": "項目の指定は数値のみ可能です。"
-          },
-          {
-            "target": [
-              "B"
-            ],
-            "pattern": "^[^,]+(%n|%r|%nr)?(,[^,]+(%n|%r|%nr)?)*$|^$",
-            "message": "入力が正しくありません。"
-          }
-        ]
-      },
-      "presencesIfSpecifiedValueInput": {
-        "target": "e",
-        "value": [
-          "same",
-          "skip"
-        ],
-        "needOrNot": "1"
-      },
-      "presencesIfTargetIsNotInput": "B"
-    },
-    "I": {
-      "format": {
-        "pattern": "^[1-9]?[0-9]*$|^0$|^@\\[.+\\]$|^$",
-        "message": "0以上の整数を半角で入力してください"
-      }
-    },
-    "a": {
-      "presencesIfTargetIsNotInput": [
-        "nfn",
-        "nfno"
-      ],
-      "specifiedFormatIfTargetInput": {
-        "target": "a",
-        "pattern": "^[^,]+$|^$",
-        "message": "入力が正しくありません。"
-      }
-    }
-  },
   "params": [
     {
       "name": "a",
