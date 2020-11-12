@@ -79,8 +79,7 @@
       "label": "その他（省略可）",
       "params": [
         "nfno",
-        "precision",
-        "batch_size"
+        "precision"
       ]
     }
   ],
@@ -629,10 +628,10 @@
       ],
       "helper": {
         "c": {
-          "label": "特徴量の説明",
+          "label": "統計量の説明(仮)",
           "tabs": [
             {
-              "label": "特徴量の一覧",
+              "label": "統計量の一覧",
               "data": [
                 {
                   "label": "線形回帰",
@@ -645,8 +644,14 @@
                     },
                     {
                       "value": "slope_pearson",
-                      "label": "傾き（時系列順位と値の相関係数）",
+                      "label": "傾き（相関係数）",
                       "link": "slope_pearson",
+                      "delimiter": ","
+                    },
+                    {
+                      "value": "slope_pattern",
+                      "label": "傾き（時系列順位と値の相関係数）",
+                      "link": "slope_pattern",
                       "delimiter": ","
                     }
                   ]
@@ -876,13 +881,6 @@
       "optional": true
     },
     {
-      "name": "batch_size",
-      "type": "string",
-      "label": "batch size",
-      "optional": true,
-      "default": "5"
-    },
-    {
       "name": "precision",
       "type": "string",
       "label": "有効桁数",
@@ -905,7 +903,7 @@
     ]
   ],
   "version": "0.7.0",
-  "label": "【プロト】特徴量の計算",
+  "label": "特徴量の計算",
   "classification": "col_edit",
   "description": "複数項目に対して、複数の特徴量を一括算出する  (特徴量: 70種類)",
   "url": ""

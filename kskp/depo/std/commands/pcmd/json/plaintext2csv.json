@@ -85,12 +85,6 @@
       "description": "1始まりの行番号で、１行のみ指定する"
     },
     {
-      "name": "attr",
-      "type": "string",
-      "label": "属性の行範囲の指定(未実装)",
-      "description": "1始まりの行番号で、ハイフン(-)区切りで指定する(例:1-2)"
-    },
-    {
       "name": "observe",
       "type": "string",
       "label": "観測値の開始行 (必須)",
@@ -182,13 +176,6 @@
         "except_end_null"
       ],
       "hide_background": true
-    },
-    {
-      "name": "cmd_sub2",
-      "label": "その他 (省略可)",
-      "params": [
-        "attr"
-      ]
     }
   ]
 }
