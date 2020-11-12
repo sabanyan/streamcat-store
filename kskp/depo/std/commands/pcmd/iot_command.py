@@ -553,8 +553,7 @@ class MissingValueInterpolateCommand(PCommand):
 
                     
                     # ave_uxt should be null when values are all bad
-                    all_values = [x[ header.index(field)] for x in kb]
-                    if all(val == '' for val in all_values):
+                    if all(val == '' for val in (x[ header.index(field)] for x in kb)):
                         ave_uxt = float('nan')
                     else:
                         if math.isnan(bot_uxt):
@@ -1732,7 +1731,7 @@ class TimeSeriesDataJoinCommand(PCommand):
         """
         import fnmatch
 
-        debug = False
+        debug = True
 
         # 定数定義
         err_msg = self.const('err')     # エラーメッセージ
@@ -1818,6 +1817,7 @@ class TimeSeriesDataJoinCommand(PCommand):
 
 
         if debug:
+            sys.stderr.write( 'header_i : ' + ','.join(header_i) + '\n' )
             sys.stderr.write( 'header_m : ' + ','.join(header_m) + '\n' )
 
         iplist    = []      # ワイルドカード展開済補間設定：[ [ el, 'cubic_spline', '&_補間値', [fs1,fs2,...] ], [ ] ]
@@ -1969,6 +1969,10 @@ class TimeSeriesDataJoinCommand(PCommand):
             q_opt = True
         else:
             q_opt = False
+        
+        if debug:
+            fm <<= nm.m2tee(o = 'fm_before_mnrjoin.csv')
+            fi <<= nm.m2tee(o = 'fi_before_mnrjoin.csv')
 
         fi <<= nm.mnrjoin(
             m= fm, k= keys_i, K= keys_m, 
@@ -1978,6 +1982,11 @@ class TimeSeriesDataJoinCommand(PCommand):
             f= ','.join(ipaddlist),
             q= q_opt
             )
+
+        fi <<= nm.msortf(f= ','.join(keys_i)+  f',{unix_time_i}%n')
+
+        if debug:
+            fi <<= nm.m2tee(o = 'fi_after_mnrjoin.csv')
 
         # --- 補間値計算 ---
         dm = '_'            # 補間値の出力項目名作成時の区切り文字
