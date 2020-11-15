@@ -4,15 +4,30 @@ class FlowData():
     """
     Flowデータを表す
     """
-    def __init__(self, flow_json:dict, 
+    def __init__(self,
+                 flow_json:dict,
+                 is_readable:Callable[[str],bool] = None,
                  readable_or_raise:Callable[[],None] = None, 
                  executable_or_raise:Callable[[],None] = None):
         self._flow_json = flow_json
 
         # readable_or_raise()が指定されない場合は権限判定をしない
+        false_func = lambda: False
         empty_func = lambda: None
+        self._is_readable = is_readable or false_func
         self._readable_or_raise = readable_or_raise or empty_func
         self._executable_or_raise = executable_or_raise or empty_func
+
+    def _mask_unreadble_nodes(self, nodes):
+        if nodes is None:
+            return
+        for node in nodes:
+            node_uuid = node.get('uuid')
+            if node_uuid is None or node_uuid=='':
+                continue
+            if not self._is_readable(node_uuid):
+                node['uuid'] = None
+                node['label'] = '******'
 
     @property
     def label(self) -> str:
@@ -50,6 +65,10 @@ class FlowData():
             # 参照権限が無ければ例外を送出する
             self._readable_or_raise()
 
+            # 参照権限の無いサブフローやデータソースのラベルとuuidを秘匿する
+            nodes = self._flow_json.get('nodes')
+            self._mask_unreadble_nodes(nodes)
+
         return self._flow_json.get('nodes')
 
     def to_json(self, contains_nodes=True):
@@ -57,6 +76,11 @@ class FlowData():
         if contains_nodes:
             # 参照権限が無ければ例外を送出する
             self._readable_or_raise()
+
+            # 参照権限の無いサブフローやデータソースのラベルとuuidを秘匿する
+            nodes = self._flow_json.get('nodes')
+            self._mask_unreadble_nodes(nodes)
+
             return self._flow_json
         else:
             return {

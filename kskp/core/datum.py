@@ -360,6 +360,8 @@ class Datum(BaseModel):
         """
         from kskp.store.factory import DatumFactory
         factory = DatumFactory(self._session)
+        # Sessionにあるself._permissionsを期限切れ状態にしてDBからリロードされるようにする
+        factory._session._session.expire(self, ['_permissions'])
         return factory.find_by_id(self.id)
 
     @Constraints.prohibit_move_to_root

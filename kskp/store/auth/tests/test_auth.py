@@ -170,8 +170,12 @@ class AuthTest(TestCaseBase):
     def test_failure_after_update_data(self):
         """
         原因不明
-          save() -> update() -> reload()の順に実行すると
-          reload()で参照権限Noneのためエラーになる
+          save() -> update() -> find_by_id()/find_by_uuid()の順に実行すると
+          find_by_id()/find_by_uuid()で参照権限Noneのためエラーになる
+
+        AuthzSession.update()においてSession.exipre()を実行しても
+        _permissions(=None)はExpireされないので、find_by_id()を実行時に
+        Sessionにある_permissionsの値を参照している?
         """
         # ルートフォルダを取得する
         root = self.factory.data.load_root()
@@ -195,8 +199,8 @@ class AuthTest(TestCaseBase):
         self.assertIsNone(frame.writable)
         self.assertIsNone(frame.executable)
 
-        # ここでSELECTを発行すると、下のreload()は成功する
-        # frame.reload()
+        # ここでSELECTを発行すると、下のfind_by_id()は成功する
+        # self.factory.data.find_by_id(frame.id)
 
         # フレームを更新する
         # (SELECTを発行しない単純なUPDATE)
@@ -209,7 +213,7 @@ class AuthTest(TestCaseBase):
         # フォルダを再読み込みする
         # 参照権限がNoneのため、NotAuthorizedExceptionが送出される
         with self.assertRaises(NotAuthorizedException):
-            frame.reload()
+            self.factory.data.find_by_id(frame.id)
 
         # 
         # プロジェクトを新規作成する
@@ -224,13 +228,13 @@ class AuthTest(TestCaseBase):
 
         # プロジェクトを再読み込みする
         with self.assertRaises(NotAuthorizedException):
-            project.reload()
+            self.factory.data.find_by_uuid(project.uuid)
 
-    def test_success_after_update_data(self):
+    def test_success_after_update_data1(self):
         """
         原因不明
-          save() -> update() -> reload()の順に実行すると
-          reload()で参照権限Noneのためエラーになる
+          save() -> find_by_id() -> update() -> find_by_id()の順に実行すると
+          2回目のfind_by_id()で参照権限のエラーは送出されない
         """
         # ルートフォルダを取得する
         root = self.factory.data.load_root()
@@ -255,7 +259,7 @@ class AuthTest(TestCaseBase):
         self.assertIsNone(frame.executable)
 
         # ここでSELECTを発行すると、下のreload()は成功する
-        frame.reload()
+        self.factory.data.find_by_id(frame.id)
 
         # フレームを更新する
         # (SELECTを発行しない単純なUPDATE)
@@ -266,7 +270,7 @@ class AuthTest(TestCaseBase):
         self.assertFalse(frame.executable)
 
         # フォルダを再読み込みする
-        frame.reload()
+        self.factory.data.find_by_id(frame.id)
 
         # 
         # プロジェクトを新規作成する
@@ -277,7 +281,61 @@ class AuthTest(TestCaseBase):
         project.save()
 
         # ここでSELECTを発行すると、下のreload()は成功する
-        project.reload()
+        self.factory.data.find_by_uuid(project.uuid)
+
+        # プロジェクトの更新者IDと最終更新時刻を更新する
+        project._update_timestamp()
+
+        # プロジェクトを再読み込みする
+        self.factory.data.find_by_uuid(project.uuid)
+
+    def test_success_after_update_data2(self):
+        """
+        save() -> update() -> reload()の順に実行すると
+        reload()で参照権限のエラーは送出されないこと
+        """
+        # ルートフォルダを取得する
+        root = self.factory.data.load_root()
+
+        # 
+        # フレームを新規作成する
+        # 
+        frame = root.create_frame('Frame!!!!', io.BytesIO(b''))
+
+        # フレームの参照と更新権限は付与されていること
+        # (フレームなので実行権限はない)
+        self.assertTrue(frame.readable)
+        self.assertTrue(frame.writable)
+        self.assertFalse(frame.executable)
+
+        # フレームを保存する
+        frame.save()
+
+        # 保存後は全ての権限はNoneに設定される
+        self.assertIsNone(frame.readable)
+        self.assertIsNone(frame.writable)
+        self.assertIsNone(frame.executable)
+
+        # フレームを更新する
+        # (SELECTを発行しない単純なUPDATE)
+        frame.update_label_only('frame!!!!')
+
+        self.assertIsNone(frame.readable)
+        self.assertIsNone(frame.writable)
+        self.assertIsNone(frame.executable)
+
+        # フォルダを再読み込みする
+        #  reload()にて_permissionsをExpireしてからfind_by_id()を呼んでいるので、
+        #  NotAuthorizedExceptionは送出されない
+        frame.reload()
+
+        # 
+        # プロジェクトを新規作成する
+        # 
+        project = root.create_project_folder('Project!!!')
+
+        # プロジェクトを保存する
+        project.save()
 
         # プロジェクトの更新者IDと最終更新時刻を更新する
         project._update_timestamp()
@@ -1572,7 +1630,7 @@ class AuthTest(TestCaseBase):
         self_role.init_authz(frame_a.id, read=None, write=True)
         self_role.init_authz(frame_b.id, read=None, write=True)
 
-        # # フレームA,Bを削除する
+        # フレームA,Bを削除する
         frame_a.delete()
         frame_b.delete()
 

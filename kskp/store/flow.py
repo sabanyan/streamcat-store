@@ -27,8 +27,17 @@ class Flow(Datum):
 
     @property
     def flow_data(self):
+        def is_readable(uuid):
+            """
+            指定されたuuidのDatumのreadableの値を取得する
+            """
+            data = self._session.query(Datum).filter(Datum.uuid==uuid).all(ignore_authz=True)
+            if len(data) == 0:
+                return False
+            return data[0].readable
+
         from kskp.store import FlowData
-        return FlowData(self._data['flow'], self._readable_or_raise, self._executable_or_raise)
+        return FlowData(self._data['flow'], is_readable, self._readable_or_raise, self._executable_or_raise)
 
     # @property
     # def executable(self) -> bool:
