@@ -2652,7 +2652,11 @@ class GroupBy2Command(PCommand):
     def run(self, args, inputs):
         # debug flag
         self.DEBUG = False
-        
+
+        # raise recursion limit
+        # 全特徴量x1000列指定でrecursionlimitエラーがでたので、上げて動作確認を行う
+        sys.setrecursionlimit(2**20)
+
         # first off, make copies of the inputs
         args = copy.deepcopy(args)
         inputs = copy.deepcopy(inputs)
