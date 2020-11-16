@@ -1957,8 +1957,8 @@ class TimeSeriesDataJoinCommand(PCommand):
             unix_time_i = time_i
 
         if debug:
-            sys.stderr.write( 'k= keys_i : ' + ','.join(keys_i) + '\n' )
-            sys.stderr.write( 'K= keys_m : ' + ','.join(keys_m) + '\n' )
+            sys.stderr.write( 'k= keys_i : ' + repr(keys_i) + '\n' )
+            sys.stderr.write( 'K= keys_m : ' + repr(keys_m) + '\n' )
             sys.stderr.write( 'rf=: ' + unix_time_i + '%n' + '\n' )
             sys.stderr.write( 'R= : ' + unix_time_m + ',' + unix_time_m_next + '\n' )
             sys.stderr.write( 'f= : ' + ','.join(ipaddlist) + '\n' )
@@ -1983,7 +1983,12 @@ class TimeSeriesDataJoinCommand(PCommand):
             q= q_opt
             )
 
-        fi <<= nm.msortf(f= ','.join(keys_i)+  f',{unix_time_i}%n')
+        if not all(key == '' for key in keys_i):
+            sortkeys = ','.join(keys_i)+  f',{unix_time_i}%n'
+        else:
+            sortkeys = unix_time_i + '%n'
+
+        fi <<= nm.msortf(f= sortkeys)
 
         if debug:
             fi <<= nm.m2tee(o = 'fi_after_mnrjoin.csv')
