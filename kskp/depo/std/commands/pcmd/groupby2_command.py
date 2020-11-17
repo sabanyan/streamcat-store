@@ -2655,7 +2655,9 @@ class GroupBy2Command(PCommand):
 
         # raise recursion limit
         # 全特徴量x1000列指定でrecursionlimitエラーがでたので、上げて動作確認を行う
-        sys.setrecursionlimit(2**20)
+        # 出力列数=10万列、1列あたり100回の呼び出しと考えて、1000万回で設定する
+        # 2**24 = 1678万回
+        sys.setrecursionlimit(2**24)
 
         # first off, make copies of the inputs
         args = copy.deepcopy(args)
