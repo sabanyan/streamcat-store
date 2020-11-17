@@ -43,9 +43,13 @@ class User(BaseModel):
     TMP_STATE      = 'tmp'      # 仮登録状態
     ACTIVE_STATE   = 'active'   # 登録状態
     INACTIVE_STATE = 'inactive' # 論理削除状態
+    EXPIRED_STATE  = 'expired'  # 失効状態(表示のみに使用)
 
     # 仮パスワードの有効期間(14日間)
-    VALID_SECOND_OF_TMP_PASS = 14 * 24 * 60 * 60
+
+    # 環境変数から仮パスワードの有効日数を取得する
+    # (設定値がない場合は14日間とする)
+    TMP_PASS_EXPIRE_SECONDS = int(os.getenv('KSKP_TMP_PASS_EXPIRE_DAYS', 14)) * 24 * 60 * 60
     KEY_OF_TMP_PASS = b'yImzJql25MsreO5E1mQJfNh6ci-oIgSVCSamULEUOnA='
 
     # 列名と列のデータ型等の定義
@@ -165,11 +169,35 @@ class User(BaseModel):
         # 復号化
         cipher_suite = Fernet(self.KEY_OF_TMP_PASS)
         try:
-            # TODO:仮パスワードの有効期間が切れた場合のUIの挙動を決めてなかったので、とりあえず有効期間を設定しない
-            # return cipher_suite.decrypt(password.encode(),ttl=self.VALID_SECOND_OF_TMP_PASS).decode()
+            # 仮パスワードの有効期間が切れても復号化は可能である
             return cipher_suite.decrypt(password.encode()).decode()
         except InvalidToken:
-            raise Exception('仮パスワードの有効期間が切れました、仮パスワードをリセットして下さい')
+            # 復号に失敗しても処理は続行可能なので例外は送出しない
+            import warnings
+            warnings.warn(f'{self}の仮パスワードが無効です')
+            return None
+
+    def _is_expired_password(self, password):
+        """
+        仮パスワードが有効期限を過ぎている場合はTrueを返す
+        """
+        import time
+        from cryptography.fernet import Fernet, InvalidToken
+
+        cipher_suite = Fernet(self.KEY_OF_TMP_PASS)
+        try:
+            # 仮パスワードを暗号化した時刻(Epoch Time)
+            encrypted_at = cipher_suite.extract_timestamp(password.encode())
+        except InvalidToken:
+            # 復号に失敗しても処理は続行可能なので例外は送出しない
+            import warnings
+            warnings.warn(f'{self}の仮パスワードが無効なので有効期限を取得できませんでした')
+            # 例外が発生した場合は、有効期間が過ぎていると扱う
+            return True
+
+        # 現在時刻(Epoch Time)
+        current = time.time()
+        return encrypted_at + self.TMP_PASS_EXPIRE_SECONDS < current
 
     def _generate_password(self):
         # パスワードを自動生成する
@@ -249,6 +277,13 @@ class User(BaseModel):
     @property
     def is_inactive(self):
         return self.state == User.INACTIVE_STATE
+
+    def password_expired(self):
+        # 初期状態は仮登録状態と表示する
+        if self.state in (User.TMP_STATE, User.INIT_STATE):
+            return self._is_expired_password(self.password)
+        else:
+            return False
 
     @property
     def creator(self):
@@ -487,6 +522,9 @@ class User(BaseModel):
             return False
         # パスワード判定処理
         elif self.is_init_or_temp:
+            if self._is_expired_password(self.password):
+                # 仮パスワードの有効期間が過ぎている場合は認証できない
+                return False
             return password == self._get_decrypt_password(self.password)
         else:
             return self._get_password_hash(self.uuid, password) == self.password
@@ -563,12 +601,23 @@ class User(BaseModel):
         }
 
     def to_json(self):
+        def display_state():
+            """
+            self.stateを表示状態に変換する
+            """
+            if self.password_expired():
+                return self.EXPIRED_STATE
+            elif self.is_init_or_temp:
+                # 初期状態は仮登録状態と表示する
+                return self.TMP_STATE
+            else:
+                return self.state
+
         ret = {
             'uuid'     : self.uuid,
             'email'    : self.email,
             'name'     : self.name,
-            # 初期状態は仮登録状態と表示する
-            'state'    : User.TMP_STATE if self.state==User.INIT_STATE else self.state,
+            'state'    : display_state(),
             'creator'  : self.creator_str,
             'createdAt': self.created_at_str
         }
