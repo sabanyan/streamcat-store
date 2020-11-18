@@ -719,6 +719,9 @@ class RunsCommand(SCommand):
     # 最低必要ディスクサイズ(1Mbyte)
     MIN_REQUIRED_DISK_SIZE = 1024 * 1024
 
+    # 環境変数からPythonの再帰呼び出しの制限回数を取得する
+    RECURSION_LIMIT = int(os.getenv('KSKP_NYSOL_RECURSION_LIMIT', 2**20))
+
     def __init__(self):
         super().__init__()
         self.i_ports = [Port('*', 'mcmd')]
@@ -739,11 +742,16 @@ class RunsCommand(SCommand):
             NYSOL Pythonを実行する
             """
             try:
-                # multiprocessing.Processで閉じられる標準入力を開き直す
                 import sys
+
+                # NYSOL-Pythonは、処理フローのグラフを組み立てる時と、処理メソッドをスケジューリングする時に
+                # 再帰呼び出しの制限回数がPythonの初期制限値を超えるので、ここで制限値を上げる
+                # (サブプロセスの制限回数を上げても親プロセスの制限回数は変わらない)
+                sys.setrecursionlimit(self.RECURSION_LIMIT)
+
+                # multiprocessing.Processで閉じられる標準入力を開き直す
                 sys.stdin = open(0, closefd=False)
 
-                import nysol.mcmd as nm
                 # nm.drawModelsD3(fname='aaabbbccc.html', val=nm_list)
 
                 # 標準エラー出力のファイル記述子(No.2)を親プロセスへのPIPEに変更する
