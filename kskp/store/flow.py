@@ -66,6 +66,31 @@ class Flow(Datum):
         finally:
             self._session.commit()
 
+    def update_label(self, label, modifier=None):
+        """
+        Flowのラベルを更新する
+        """
+        # ラベルに'\0'が含まれていれば取り除く
+        new_label = Datum.escape_label(label)
+
+        try:
+            # レコードを更新する
+            self._label = new_label
+            self._modifier_id = (modifier or self._session.user).id
+            self._session.update(self)
+        except Exception as e:
+            self._session.rollback()
+            if self.edit_lock:
+                # 編集ロックにより更新できなかった場合
+                from kskp.store import EditLockedException
+                raise EditLockedException('編集ロックが掛かっているため更新できません')
+            else:
+                raise e
+        finally:
+            self._session.commit()
+
+        return self
+
     def update_data(self, label, flow_json, modifier=None):
         """
         Flowのdata列を更新する
