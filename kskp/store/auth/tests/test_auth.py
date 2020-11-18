@@ -4,7 +4,7 @@ import unittest
 import pprint
 from sqlalchemy.orm.exc import NoResultFound
 from kskp.core import Datum
-from kskp.store import ProjectFolder, OptimisticLockException, EditLockedException, CommandException
+from kskp.store import ProjectFolder, FlowData, OptimisticLockException, EditLockedException, CommandException
 from kskp.store.auth import Auth, Role, InvalidPassword, NotAuthorizedException, NoRoleOwnerException
 from ...tests.test_case_base import TestCaseBase
 
@@ -115,7 +115,7 @@ class AuthTest(TestCaseBase):
         # ルートフォルダの下にフォルダを作成する
         folder = root.create_folder('Folder!')
         # ルートフォルダの下にFlowを作成する
-        flow = root.create_flow('Flow!', {})
+        flow = root.create_flow('Flow!', FlowData())
         # ルートフォルダの下にフレームを作成する
         frame = root.create_frame('Frame!', io.BytesIO(b''))
 
@@ -1078,7 +1078,7 @@ class AuthTest(TestCaseBase):
         folder.save()
         folder = folder.reload()
         # フォルダの下にフローを作成する
-        flow = folder.create_flow('フロー', {})
+        flow = folder.create_flow('フロー', FlowData())
         flow.save()
         flow = flow.reload()
 
@@ -1119,7 +1119,7 @@ class AuthTest(TestCaseBase):
         folder.save()
         folder = folder.reload()
         # フォルダの下にフローを作成する
-        flow = folder.create_flow('フロー', {})
+        flow = folder.create_flow('フロー', FlowData())
         flow.save()
         flow = flow.reload()
 
@@ -1128,7 +1128,7 @@ class AuthTest(TestCaseBase):
 
         # フローは更新不可
         with self.assertRaises(NotAuthorizedException):
-            flow.update_data('WOW', {})
+            flow.update_data('WOW', FlowData())
 
         # フローは削除不可
         with self.assertRaises(NotAuthorizedException):
@@ -1148,7 +1148,7 @@ class AuthTest(TestCaseBase):
         everyone_role.init_authz(project.id, True, True, exec=True)
 
         # プロジェクトの下にフローを作成する
-        flow = project.create_flow('フロー', {})
+        flow = project.create_flow('フロー', FlowData())
         flow.save()
 
         # フローの参照権限を全て削除する
@@ -1184,7 +1184,7 @@ class AuthTest(TestCaseBase):
 
         # フローは更新不可
         with self.assertRaises(NotAuthorizedException):
-            flow.update_data('WOW!', {})
+            flow.update_data('WOW!', FlowData())
 
         # フローは削除不可
         with self.assertRaises(NotAuthorizedException):
@@ -1263,7 +1263,7 @@ class AuthTest(TestCaseBase):
         # ルートフォルダを取得する
         root = self.factory.data.load_root()
         # ルートフォルダの下にフローを作成する
-        flow = root.create_flow('所有者のみ参照できるフロー', {})
+        flow = root.create_flow('所有者のみ参照できるフロー', FlowData())
         flow.save()
         
         # フローの参照権限を全て削除する
@@ -1288,7 +1288,7 @@ class AuthTest(TestCaseBase):
         # ルートフォルダを取得する
         root = self.factory.data.load_root()
         # ルートフォルダの下にフローを作成する
-        flow = root.create_flow('所有者のみ参照できるフロー', {})
+        flow = root.create_flow('所有者のみ参照できるフロー', FlowData())
         flow.save()
 
         # フローの参照権限を全て削除する
@@ -1308,7 +1308,7 @@ class AuthTest(TestCaseBase):
         # ルートフォルダを取得する
         root = self.factory.data.load_root()
         # ルートフォルダの下にフローを作成する
-        flow = root.create_flow('所有者のみ更新できるフロー', {})
+        flow = root.create_flow('所有者のみ更新できるフロー', FlowData())
         flow.save()
         
         # フローの権限を全て削除する
@@ -1318,7 +1318,7 @@ class AuthTest(TestCaseBase):
         self.USER1.load_self_role().init_authz(flow.id, False, True)
 
         # フローは更新可能
-        flow.update_data('変更したフロー名', {})
+        flow.update_data('変更したフロー名', FlowData())
 
         # フローは更新されていること
         self.assertEqual(flow.label, '変更したフロー名')
@@ -1333,7 +1333,7 @@ class AuthTest(TestCaseBase):
         folder = root.create_folder('所有者のみ更新できるフォルダ')
         folder.save()
         # フォルダの下にフローを作成する
-        flow = folder.create_flow('フロー', {})
+        flow = folder.create_flow('フロー', FlowData())
         flow.save()
 
         # フォルダとフローの権限を全て削除する
@@ -1345,7 +1345,7 @@ class AuthTest(TestCaseBase):
         self.USER1.load_self_role().init_authz(flow.id, False, True)
 
         # フローは更新可能
-        flow.update_data('変更したフロー名2', {})
+        flow.update_data('変更したフロー名2', FlowData())
 
         # フローは更新されていること
         self.assertEqual(flow.label, '変更したフロー名2')        
@@ -1357,7 +1357,7 @@ class AuthTest(TestCaseBase):
         # ルートフォルダを取得する
         root = self.factory.data.load_root()
         # ルートフォルダの下にフローを作成する
-        flow = root.create_flow('所有者のみ更新できるフロー2', {})
+        flow = root.create_flow('所有者のみ更新できるフロー2', FlowData())
         flow.save()
         
         # フローの権限を全て削除する
@@ -1375,7 +1375,7 @@ class AuthTest(TestCaseBase):
 
         # フローは更新不可能
         with self.assertRaises(NotAuthorizedException):
-            flow.update_data('変更したフロー名2', {})
+            flow.update_data('変更したフロー名2', FlowData())
 
         # フローは更新されていないこと
         self.assertEqual(flow.label, '所有者のみ更新できるフロー2')
@@ -1393,7 +1393,7 @@ class AuthTest(TestCaseBase):
         to_folder = root.create_folder('移動先フォルダ')
         to_folder.save()
         # 移動元フォルダの直下にフローを作成する
-        flow = from_folder.create_flow('フローA', {})
+        flow = from_folder.create_flow('フローA', FlowData())
         flow.save()
 
         # 移動元フォルダを参照不可にする
@@ -1423,7 +1423,7 @@ class AuthTest(TestCaseBase):
         to_folder = root.create_folder('移動先フォルダ')
         to_folder.save()
         # 移動元フォルダの直下にフローを作成する
-        flow = from_folder.create_flow('フローB', {})
+        flow = from_folder.create_flow('フローB', FlowData())
         flow.save()
         
         # 移動元フォルダを更新不可にする
@@ -1455,7 +1455,7 @@ class AuthTest(TestCaseBase):
         to_folder = root.create_folder('移動先フォルダ')
         to_folder.save()
         # 移動元フォルダの直下にフローを作成する
-        flow = from_folder.create_flow('フローC', {})
+        flow = from_folder.create_flow('フローC', FlowData())
         flow.save()
 
         # 移動先フォルダを更新不可にする
@@ -1485,7 +1485,7 @@ class AuthTest(TestCaseBase):
         folder2 = folder1.create_folder('フォルダ2')
         folder2.save()
         # フォルダ2の下にフローを作成する
-        flow = folder2.create_flow('myFlow', {})
+        flow = folder2.create_flow('myFlow', FlowData())
         flow.save()
 
         # フォルダ1を更新不可にする
@@ -1502,10 +1502,10 @@ class AuthTest(TestCaseBase):
 
         # フローは更新できないこと
         with self.assertRaises(NotAuthorizedException):
-            flow.update_data('myFlow0', {})
+            flow.update_data('myFlow0', FlowData())
 
         # フォルダ2にフローを新規追加できないこと
-        flow2 = folder2.create_flow('myFlow1', {})
+        flow2 = folder2.create_flow('myFlow1', FlowData())
         with self.assertRaises(NotAuthorizedException):
             flow2.save()
 
@@ -1520,7 +1520,7 @@ class AuthTest(TestCaseBase):
         folder.save()
         folder = folder.reload()
         # フォルダAの下にフロー1を作成する
-        flow1 = folder.create_flow('更新できないフロー', {})
+        flow1 = folder.create_flow('更新できないフロー', FlowData())
         flow1.save()
 
         # フローを更新不可にする
@@ -1553,7 +1553,7 @@ class AuthTest(TestCaseBase):
         folder = root.create_folder('フォルダA')
         folder.save()
         # フォルダAの下にフロー1を作成する
-        flow = folder.create_flow('実行できないフロー', {})
+        flow = folder.create_flow('実行できないフロー', FlowData())
         flow.save()
 
         # フローを実行不可にする
@@ -1714,7 +1714,7 @@ class AuthTest(TestCaseBase):
 
         # フローの更新はできないこと
         with self.assertRaises(NotAuthorizedException):
-            flow.update_data('flame_file', {})
+            flow.update_data('flame_file', FlowData())
 
         # フローは削除できないこと
         with self.assertRaises(NotAuthorizedException):
@@ -1792,7 +1792,7 @@ class AuthTest(TestCaseBase):
 
         # フローの更新はできないこと
         with self.assertRaises(NotAuthorizedException):
-            flow.update_data('flame_file', {})
+            flow.update_data('flame_file', FlowData())
 
         # フローは削除できないこと
         with self.assertRaises(NotAuthorizedException):
@@ -1808,7 +1808,7 @@ class AuthTest(TestCaseBase):
         folder1 = root.create_folder('フォルダ1')
         folder1.save()
         # フォルダ1の下にフローを作成する
-        flow = folder1.create_flow('myFlow', {})
+        flow = folder1.create_flow('myFlow', FlowData())
         flow.save()
 
         # フローを参照不可にする
@@ -2029,7 +2029,7 @@ class AuthTest(TestCaseBase):
         project = project.reload()
 
         # プロジェクトの下にフローを作成する
-        flow = project.create_flow('フロー', {})
+        flow = project.create_flow('フロー', FlowData())
         flow.save()
         flow = flow.reload()
 
@@ -2345,7 +2345,7 @@ class AuthTest(TestCaseBase):
         folder = folder.reload()
 
         # USER3は、フォルダの下にフローを作成する
-        flow = folder.create_flow('シャミ子が悪いんだよ💘', {})
+        flow = folder.create_flow('シャミ子が悪いんだよ💘', FlowData())
         flow.save()
         flow = flow.reload()
 
@@ -2410,7 +2410,7 @@ class AuthTest(TestCaseBase):
         folder = folder.reload()
 
         # USER3は、フォルダの下にフローを作成する
-        flow = folder.create_flow('疾如風徐如林侵掠如火不動如山', {})
+        flow = folder.create_flow('疾如風徐如林侵掠如火不動如山', FlowData())
         flow.save()
         flow = flow.reload()
 
@@ -2430,7 +2430,7 @@ class AuthTest(TestCaseBase):
 
         # ユーザ管理者は、フローの参照・更新・実行ができること
         flow = self.factory.data.find_by_uuid(flow.uuid)
-        flow.update_data('武田晴信', {})
+        flow.update_data('武田晴信', FlowData())
         flow.flow_data.get_nodes(use_exec_auth=True)
 
         # ユーザ管理者は、フローの参照・更新・実行のプロパティがTrueであること
@@ -2591,7 +2591,8 @@ class AuthTest(TestCaseBase):
         project2 = project2.reload()
 
         # プロジェクトの下にフローを作成する
-        flow = project1.create_flow('どん兵衛', copy.deepcopy(self.flow_json))
+        flow_data = FlowData(copy.deepcopy(self.flow_json))
+        flow = project1.create_flow('どん兵衛', flow_data)
         flow.save()
         flow = flow.reload() 
 
@@ -2695,7 +2696,8 @@ class AuthTest(TestCaseBase):
         project1 = project1.reload()
 
         # プロジェクトの下にフローを作成する
-        flow = project1.create_flow('辛ラーメン', copy.deepcopy(self.flow_json))
+        flow_data = FlowData(copy.deepcopy(self.flow_json))
+        flow = project1.create_flow('辛ラーメン', flow_data)
         flow.save()
         flow = flow.reload() 
 
@@ -2817,7 +2819,8 @@ class AuthTest(TestCaseBase):
 
         # 編集ロックされたフローは更新できないこと
         with self.assertRaises(EditLockedException):
-            flow.update_data('ククロビン', copy.deepcopy(self.flow_json))
+            flow_data = FlowData(copy.deepcopy(self.flow_json))
+            flow.update_data('ククロビン', flow_data)
 
         # 編集ロックされたフローは削除できないこと
         with self.assertRaises(EditLockedException):
@@ -2831,7 +2834,8 @@ class AuthTest(TestCaseBase):
         self.assertFalse(flow.edit_lock)
 
         # 編集ロックが解除されたフローは更新できること
-        flow.update_data('だーれが殺したククロビン', copy.deepcopy(self.flow_json))
+        flow_data = FlowData(copy.deepcopy(self.flow_json))
+        flow.update_data('だーれが殺したククロビン', flow_data)
         self.assertEqual(flow.label, 'だーれが殺したククロビン')
 
         # フローとフレームを削除する
@@ -2851,7 +2855,8 @@ class AuthTest(TestCaseBase):
         project = project.reload()
 
         # プロジェクトの下にフローを作成する
-        flow = project.create_flow('天下太平マリネラじゃー', copy.deepcopy(self.flow_json))
+        flow_data = FlowData(copy.deepcopy(self.flow_json))
+        flow = project.create_flow('天下太平マリネラじゃー', flow_data)
         flow.save()
 
         # メンバを設定する
@@ -2901,7 +2906,8 @@ class AuthTest(TestCaseBase):
         project2 = project1.reload()
 
         # プロジェクト1の下にフローを作成する
-        flow = project1.create_flow('どうした、どうした', copy.deepcopy(self.flow_json))
+        flow_data = FlowData(copy.deepcopy(self.flow_json))
+        flow = project1.create_flow('どうした、どうした', flow_data)
         flow.save()
 
         # メンバを設定する
@@ -2986,7 +2992,7 @@ class AuthTest(TestCaseBase):
         root = self.factory3.data.load_root()
 
         # 一般ユーザは、ルートフォルダの下にフローを作成できないこと
-        flow = root.create_flow('ワオーン🐕‍🦺', {})
+        flow = root.create_flow('ワオーン🐕‍🦺', FlowData())
         with self.assertRaises(Exception):
             flow.save()
 
@@ -3037,7 +3043,7 @@ class AuthTest(TestCaseBase):
         self.assertTrue(own_auth.permission)
 
         # フォルダの下にフローを作成する
-        flow = folder.create_flow('Mac pro', {})
+        flow = folder.create_flow('Mac pro', FlowData())
         flow.save()
         flow = flow.reload()
 
@@ -3105,7 +3111,7 @@ class AuthTest(TestCaseBase):
         self.assertFalse(self.factory3.auth.exists(usr_admin_role.id, folder.id))
 
         # フォルダの下にフローを作成する
-        flow = folder.create_flow('テメエらの所業は御天道様がちゃーんと見ているぜ', {})
+        flow = folder.create_flow('テメエらの所業は御天道様がちゃーんと見ているぜ', FlowData())
         flow.save()
         flow = flow.reload()
 
@@ -3122,7 +3128,7 @@ class AuthTest(TestCaseBase):
 
         # ユーザ管理者はフローの参照・更新ができること
         flow = self.factory.data.find_by_uuid(flow.uuid)
-        flow.update_data('越後屋久兵衛、市中引き回しの上獄門！その他の者は終生遠島とする！ひったてい！', {})
+        flow.update_data('越後屋久兵衛、市中引き回しの上獄門！その他の者は終生遠島とする！ひったてい！', FlowData())
 
         # ユーザ管理者はフローをほかせること
         flow.throw_away()
@@ -3155,7 +3161,7 @@ class AuthTest(TestCaseBase):
         folder = folder.reload()
 
         # フォルダの下にフローを作成する
-        flow = folder.create_flow('かつお節', {})
+        flow = folder.create_flow('かつお節', FlowData())
         flow.save()
         flow = flow.reload() 
 
@@ -3207,7 +3213,7 @@ class AuthTest(TestCaseBase):
         folder = folder.reload()
 
         # フォルダの下にフローを作成する
-        flow = folder.create_flow('みっつ、醜い浮世の鬼を', {'label': '退治てくれよう桃太郎！'})
+        flow = folder.create_flow('みっつ、醜い浮世の鬼を', FlowData({'label': '退治てくれよう桃太郎！'}))
         flow.save()
         flow = flow.reload() 
 
@@ -3222,7 +3228,7 @@ class AuthTest(TestCaseBase):
         with self.assertRaises(NotAuthorizedException):
             folder.update_data('不埒な悪行三昧')
         with self.assertRaises(NotAuthorizedException):
-            flow.update_data('醜い浮き世の鬼を', {})
+            flow.update_data('醜い浮き世の鬼を', FlowData())
 
         # 閲覧者はゴミを元の場所に戻せないこと
         with self.assertRaises(NotAuthorizedException):
@@ -3389,7 +3395,7 @@ class AuthTest(TestCaseBase):
         folder = folder.reload()
 
         # フォルダの下にフローを作成する
-        flow = folder.create_flow('もうちょっとちーかづいちゃえ', {})
+        flow = folder.create_flow('もうちょっとちーかづいちゃえ', FlowData())
         flow.save()
         flow = flow.reload() 
 
@@ -3402,7 +3408,7 @@ class AuthTest(TestCaseBase):
 
         # 編集者はゴミを更新できること
         folder.update_data('簡単にはお〜しえないっ')
-        flow.update_data('こんなに素敵なことを〜', {})
+        flow.update_data('こんなに素敵なことを〜', FlowData())
 
         # 編集者はゴミを元の場所に戻せること
         folder.put_back()
@@ -3433,8 +3439,8 @@ class AuthTest(TestCaseBase):
         project = project.reload()
 
         # プロジェクトの下にフローを作成する
-        import copy
-        flow = project.create_flow('フロー🚅', copy.deepcopy(self.flow_json))
+        flow_data = FlowData(copy.deepcopy(self.flow_json))
+        flow = project.create_flow('フロー🚅', flow_data)
         flow.save()
         flow = flow.reload() 
 
@@ -3483,8 +3489,8 @@ class AuthTest(TestCaseBase):
         project = project.reload()
 
         # プロジェクトの下にフローを作成する
-        import copy
-        flow = project.create_flow('大阪🏯', copy.deepcopy(self.flow_json))
+        flow_data = FlowData(copy.deepcopy(self.flow_json))
+        flow = project.create_flow('大阪🏯', flow_data)
         flow.save()
         flow = flow.reload() 
 
@@ -3546,7 +3552,8 @@ class AuthTest(TestCaseBase):
         project = project.reload()
 
         # プロジェクトの下にフローを作成する
-        flow = project.create_flow('iPad', copy.deepcopy(self.flow_json))
+        flow_data = FlowData(copy.deepcopy(self.flow_json))
+        flow = project.create_flow('iPad', flow_data)
         flow.save()
         flow = flow.reload()
 

@@ -3,6 +3,7 @@ from pathlib import Path
 from kskp.store import (
     Datum,
     Folder,
+    FlowData,
     DatabaseConn,
 )
 
@@ -241,7 +242,7 @@ class FlowDumper:
                     with file.open('r') as f:
                         d = f.read()
                         flow_json = json.loads(d)
-                    flow = folder.create_flow(label, flow_json)
+                    flow = folder.create_flow(label, FlowData(flow_json))
                     flow_uuids[file.stem] = flow.uuid
                     uuids[file.stem] = flow.uuid
                     flow.save()
@@ -252,7 +253,7 @@ class FlowDumper:
         for new_flow_uuid in flow_uuids.values():
             flow = self.factory.data.find_by_uuid(new_flow_uuid, type=Datum.FLOW_TYPE)
             flow.replace_uuids(uuids)
-            flow.update_data(flow.label, flow.flow_data.to_json())
+            flow.update_data(flow.label, flow.flow_data)
 
         # 展開したファイルを削除する
         import shutil
