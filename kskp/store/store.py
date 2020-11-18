@@ -113,12 +113,12 @@ class Store(Datum):
         from kskp.store import RemoteFolder
         return RemoteFolder(self._session, self, label, remoteFolderConn)
 
-    def create_flow(self, label, flow_json):
+    def create_flow(self, label, flow_data):
         from kskp.store import Flow
-        return Flow(self._session, self, label, flow_json)
+        return Flow(self._session, self, label, flow_data)
 
     def create_simple_flow(self, label, data_source):
-        from kskp.store import Flow
+        from kskp.store import Flow, FlowData
         flow_json = {
                         "label": label,
                         "nodes": [
@@ -141,7 +141,8 @@ class Store(Datum):
                         "projectId": None,
                         "description": ""
                     }
-        return Flow(self._session, self, label, flow_json)
+        flow_data = FlowData(flow_json)
+        return Flow(self._session, self, label, flow_data)
 
     def create_datasource(self, label, store, loader_step):
         from kskp.store import DataSource

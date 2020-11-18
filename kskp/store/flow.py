@@ -1,4 +1,5 @@
 from kskp.core import Datum, Constraints
+from kskp.store import FlowData
 
 class Flow(Datum):
 
@@ -6,10 +7,10 @@ class Flow(Datum):
         'polymorphic_identity' : 'flow'
     }
 
-    def __init__(self, session, parent, label, flow_json):
+    def __init__(self, session, parent, label, flow_data):
         """
         コンストラクタ
-        flow_json : Flow JSONデータを指定する
+        flow_data : FlowDataオブジェクトを指定する
         """
         super().__init__(session, parent, Datum.FLOW_TYPE, label)
 
@@ -17,7 +18,9 @@ class Flow(Datum):
         self._path = None
 
         # data列の値を作成する
-        self._data = {'label' : label, 'flow' : flow_json}
+        if not isinstance(flow_data, FlowData):
+            raise Exception(f'flow_dataはFlowDataではありません')
+        self._data = {'label' : label, 'flow' : flow_data.to_json()}
 
         # DBに保存する前のFlowへの参照と更新と実行権限は制限しない
         self._permissions = 0b1110
@@ -36,7 +39,6 @@ class Flow(Datum):
                 return False
             return data[0].readable
 
-        from kskp.store import FlowData
         return FlowData(self._data['flow'], is_readable, self._readable_or_raise, self._executable_or_raise)
 
     # @property
@@ -75,10 +77,14 @@ class Flow(Datum):
         finally:
             self._session.commit()
 
-    def update_data(self, label, flow_json, modifier=None):
+    def update_data(self, label, flow_data, modifier=None):
         """
         Flowのdata列を更新する
         """
+
+        if not isinstance(flow_data, FlowData):
+            raise Exception(f'flow_dataはFlowDataではありません.')
+
         # # 参照するフレームがライブラリに存在することを確認する
         # for frame_uuid in self.get_src_frame_uuids():
         #     if not Frame.exists(frame_uuid):
@@ -115,7 +121,7 @@ class Flow(Datum):
         try:
             # レコードを更新する
             self._label = new_label
-            self._data['flow'] = flow_json
+            self._data['flow'] = flow_data.to_json()
             self._modifier_id = (modifier or self._session.user).id
             self._session.update(self)
         except Exception as e:
@@ -213,7 +219,7 @@ class Flow(Datum):
         new_flow_json['createdAt'] = datetime.now(JST).strftime('%Y-%m-%d %H:%M:%S')
         # 複製を作成する
         parent = self.find_parent()
-        new_flow = parent.create_flow(new_label, new_flow_json)
+        new_flow = parent.create_flow(new_label, FlowData(new_flow_json))
 
         # フロー間でキャッシュを共有すると、キャッシュ削除操作により不整合が発生する
         # そのためフローを複製する時はキャッシュも複製する
@@ -535,4 +541,4 @@ class Flow(Datum):
 
         data = make_flow_json()
 
-        return data
+        return FlowData(data)

@@ -76,7 +76,8 @@ class LibraryTest(TestCaseBase):
         return self.factory.data.find_by_uuid(new_folder.uuid)
 
     def save_flow(self, parent, label, flow_json):
-        new_flow = parent.create_flow(label, flow_json)
+        from kskp.store import FlowData
+        new_flow = parent.create_flow(label, FlowData(flow_json))
         new_flow.save()
         # save()によりreadable=Noneになるため再取得する
         return self.factory.data.find_by_uuid(new_flow.uuid)
@@ -861,7 +862,9 @@ class LibraryTest(TestCaseBase):
             'createdAt': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         }
         # 作成したフローを変更する
-        updated_flow = flow.update_data('新しいフロー', new_flow_json, self.USER2)
+        from kskp.store import FlowData
+        new_flow_data = FlowData(new_flow_json)
+        updated_flow = flow.update_data('新しいフロー', new_flow_data, self.USER2)
 
         # ラベルとディレクトリパスのみが変更されることを検証する
         self.assertEqual(updated_flow.id, flow.id)
@@ -870,7 +873,7 @@ class LibraryTest(TestCaseBase):
         self.assertIsNone(updated_flow.path)
         self.assertEqual(updated_flow.type, flow.type)
         self.assertEqual(updated_flow.label, '新しいフロー')
-        self.assertEqual(updated_flow.flow_data.to_json(), new_flow_json)
+        self.assertEqual(updated_flow.flow_data, new_flow_data)
         self.assertEqual(updated_flow.creator, self.USER1)
         self.assertEqual(updated_flow.modifier, self.USER2)
         self.assertEqual(updated_flow.created_at, flow.created_at)
