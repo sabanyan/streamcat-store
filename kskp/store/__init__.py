@@ -34,6 +34,7 @@ elif _is_unittest():
 else:
     # ローカル環境用の設定
     os.environ["SQLALCHEMY_DATABASE_URI"] = "postgresql://postgres:@db/kskp"
+    # os.environ["SQLALCHEMY_DATABASE_URI"] = "postgresql://kskp:ZQZtVgL6G32Vy6p6WJtG3C3K84yuJ4zz@db/kskp"
 
     # ローカルでpostgres専用コンテナを立ち上げる時のコマンド
     # docker run --name postgres -p 5432:5432 -e POSTGRES_USER=dev -e POSTGRES_DB=kskp -e POSTGRES_PASSWORD=secret -d postgres:11.1
@@ -63,12 +64,29 @@ if _is_unittest():
     engine.execute(sql)
 
 # ベースクラスをつくる
+class MyBase(object):
+    @property
+    def is_base_model(self):
+        return True
+
 from sqlalchemy.ext.declarative import declarative_base
-BaseModel = declarative_base()
+BaseModel = declarative_base(cls=MyBase)
 
 from kskp.core import Datum, Port, Command
 
-from .exceptions import NothingToPutbackException, NoResultsException, CommandException
+from .exceptions import (
+    NothingToPutbackException,
+    NoResultsException,
+    OptimisticLockException,
+    EditLockedException,
+    CommandException,
+    GroupBy2Exception,
+    ColumnNameException,
+    FieldNotFoundException,
+    FieldConflictException,
+    EmptyFieldException,
+    FieldForbiddenCharacterException
+)
 from .store import Store, NysolModule, ModuleStore, List, ApparentLast
 from .database_conn import DatabaseConn
 from .remote_folder_conn import RemoteFolderConn
@@ -96,17 +114,51 @@ from .store_model import Store as StoreModel
 
 from ..depo.std.commands import CommandLink, CommandsPathLink, CommandsPathFileSource, RunfuncCommand
 
-# 管理者グループと管理者ユーザを作成する
-# (とりあえず、権限管理のないsessionで作成する)
-from kskp.store.factory import UnAuthzFactory
-from kskp.store.auth import add_admin_user_and_group
-with UnAuthzFactory() as db_session:
-    add_admin_user_and_group(db_session)
+# factory.data.find_by_uuid()等で参照しているので、
+# 管理者ユーザの作成等の処理の前に記述する必要がある
+# from sqlalchemy.orm.exc import NoResultFound
+
 
 # テーブルを作成する
 BaseModel.metadata.create_all(bind=engine, checkfirst=True)
 
-from sqlalchemy.orm.exc import NoResultFound
+
+from kskp.store.factory import UnAuthzFactory, Factory
+with UnAuthzFactory() as unauthz_factory:
+    from kskp.store.auth import Role
+
+    # システム管理者とユーザ管理者を作成する
+    sys_admin_user = unauthz_factory.load_sys_admin_user()
+    usr_admin_user = unauthz_factory.load_usr_admin_user(activate_if_inactive=True)
+
+    with Factory(sys_admin_user) as factory:
+        sys_admin_role = factory.role.load_sys_admin_role()
+        if sys_admin_user.is_init:
+            # システム管理者を新規作成した場合は、システム管理者ロールの一般メンバに加える
+            sys_admin_role.join_member(Role.Member(sys_admin_user, owner=False))
+
+    with Factory(usr_admin_user) as factory:
+        # ユーザ管理者ロールを作成する
+        # (ロールを新規作成した場合は作成者がロールの所有者になる)
+        factory.role.load_usr_admin_role()
+
+        # everyoneロールにユーザ管理者を所有者として参加させる
+        # (unauthz_factoryからロールを新規追加された場合、作成者はロールに参加されない)
+        # (ユーザ管理者ロールを作成した後に処理すること)
+        everyone_role = factory.role.load_everyone_role()
+        # edit_lock_roleロールにユーザ管理者を所有者として参加させる
+        edit_lock_role = factory.role.load_edit_lock_role()
+        if usr_admin_user.is_init:
+            # ユーザ管理者を新規作成した場合は、ユーザ管理者ロールの所有者メンバに加える
+            everyone_role.join_member(Role.Member(usr_admin_user, owner=True))
+            # 編集ロックロールの所有者メンバに加える
+            edit_lock_role.join_member(Role.Member(usr_admin_user, owner=True))
+
+        # システムフォルダを作成する
+        factory.data.load_cache_folder()
+        factory.data.load_trash_folder()
+
+
 from sqlalchemy import event, DDL
 
 @event.listens_for(BaseModel.metadata, 'after_create')

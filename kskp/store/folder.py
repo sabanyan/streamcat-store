@@ -1,6 +1,6 @@
 import os
 
-from kskp.core import Datum
+from kskp.core import Datum, Constraints
 from kskp.store import Store
 
 class Folder(Store):
@@ -15,9 +15,11 @@ class Folder(Store):
         """
         super().__init__(session, parent, Datum.FOLDER_TYPE, label)
 
-        # data列の値を作成する
-        # self.data = {}
+        # DBに保存する前のFolderへの参照と更新と実行権限は制限しない
+        self._permissions = 0b1110
 
+    @Constraints.prohibit_save_on_root
+    @Constraints.set_project_role_on_adding
     def save(self, file_path=None):
         """
         Folderを保存する
@@ -96,7 +98,7 @@ class Folder(Store):
 
         return self
 
-
+    @Constraints.set_role_to_trashed_folder
     def throw_away(self):
         """
         Folderを中身のファイルも一緒にゴミ箱にほかす
@@ -108,7 +110,10 @@ class Folder(Store):
         if self.parent_id is None:
             raise Exception('ルートフォルダは削除できません')
 
-        thrown_count, obstacle_count = self._throw_away_inner(trash_folder, self)
+        # if self.get_flow_uuids_using_me():
+        #     raise Exception('別のフローで使用しているため削除できませんでした')
+
+        thrown_count, obstacle_count, trashed_folder = self._throw_away_inner(trash_folder, self)
 
         if obstacle_count == 0 and not self.is_system_folder():
             # 中のファイル全て削除可能であればフォルダ(ファイル)ごとゴミ箱へ移動する
@@ -117,6 +122,8 @@ class Folder(Store):
 
         if thrown_count == 0:
             raise Exception('削除できませんでした')
+
+        return trashed_folder
 
     def _throw_away_inner(self, parent, datum):
         if isinstance(datum, Folder):
@@ -133,7 +140,7 @@ class Folder(Store):
             obstacle_count = 0
 
             for child in children:
-                child_thrown_count, child_obstacle_count = self._throw_away_inner(trashed_folder, child)
+                child_thrown_count, child_obstacle_count, child_trashed_folder = self._throw_away_inner(trashed_folder, child)
                 # 削除可能リストの作成
                 if child_obstacle_count == 0:
                     throwables.append(child)
@@ -141,9 +148,14 @@ class Folder(Store):
                 thrown_count += child_thrown_count
                 obstacle_count += child_obstacle_count
 
+            # 形代フォルダの削除済みフラグ
+            trashed_folder_is_deleted = False
+
             if obstacle_count == 0 and not datum.is_system_folder():
                 # 全部捨る場合はフォルダごとゴミ箱へ移動する
                 trashed_folder.delete()
+                trashed_folder_is_deleted = True
+
             else:
                 # 一部捨てる場合はそれらを形代フォルダへ移動する
                 for throwable in throwables:
@@ -152,31 +164,35 @@ class Folder(Store):
                 # 捨るものがなかった場合は形代フォルダを作らない
                 if thrown_count == 0:
                     trashed_folder.delete()
+                    trashed_folder_is_deleted = True
 
-            return thrown_count, obstacle_count
+            # 形代フォルダを作る場合は返り値として返す、作らない場合はNoneを返す
+            return thrown_count, obstacle_count, None if trashed_folder_is_deleted else trashed_folder
 
         elif datum.type == Datum.FRAME_TYPE or datum.type == Datum.FLOW_TYPE:
             # 削除しようとするフレーム/サブフローの更新権限がない場合は削除できない
             if not self._session.writable(datum):
-                return 0, 1
-            # 削除しようとするフレーム/サブフローが、フローで使用されてる場合は削除できない
-            using_flow_uuids = datum.get_flow_uuids_using_me()
-            if len(using_flow_uuids) > 0:
-                return 0, 1
+                return 0, 1, None
+            # 削除しようとするフレーム/サブフローが、削除対象のフォルダ外のフローで使用されてる場合は削除できない
+            using_flow_uuids = self.get_flow_uuids_using_me()
+            for using_flow_uuid in using_flow_uuids:
+                if datum.uuid == using_flow_uuid['referenced_uuid']:
+                    return 0, 1, None
             # 削除可能!
-            return 0, 0
+            return 0, 0, None
 
         else:
             # データベース接続、リモートフォルダ接続
-            return 0, 0
+            return 0, 0, None
 
+    @Constraints.delete_role_when_isolated
     def delete(self):
         """
         Folderを削除する
         """
         # 削除対象のフォルダの下にフォルダまたはファイルが存在する場合は例外を送出する
-        if len(self.find_children()) > 0:
-            raise Exception('空でないフォルダは削除できません')
+        if self.count_children() > 0:
+            raise Exception(f'空でないフォルダは削除できません')
         try:
             # フォルダレコードを削除する
             self._session.delete(self)
@@ -224,19 +240,45 @@ class Folder(Store):
         """
         現在のフォルダ階層パスをリスト型で返す(APIのFolderPath属性の作成で用いる)
         """
-        # 指定されたUUIDのfolerレコードを取得する
-        datum = self._session.query(Datum).filter(Datum.uuid==self.uuid).one_or_none()
+        from kskp.store.auth import NotAuthorizedException
 
-        parent_id = datum.parent_id
+        datum = self
         path_to_root = [{'type':datum.type, 'uuid':datum.uuid, 'label':datum.label}]
-        # 取得したレコードから外部キー’parent_id’をたどり、途中のfolderレコードをリストに順に保存する
+        parent_id = datum.parent_id
+        # 自分からルートフォルダまでのfolderレコードをリストに順に保存する
         while parent_id != None:
-            datum = self._session.query(Datum).filter(Datum.id==parent_id).one_or_none()
+            try:
+                datum = datum.find_parent()
+            except NotAuthorizedException:
+                # 参照権限がないため親Datumが取得できない場合、空リストを返す
+                return []
             path_to_root.append({'type':datum.type, 'uuid':datum.uuid, 'label':datum.label})
             parent_id = datum.parent_id
         # 保存したリストの並びを逆にする
         path_to_root.reverse()
         return path_to_root
+
+    def to_json(self):
+        ret = super().to_json()
+
+        if self.is_cache_folder():
+            # キャッシュフォルダ直下では新規作成はできない
+            # キャッシュフォルダの変更・削除・移動もできない
+            ret['allowlist']['createProject'] = False
+            ret['allowlist']['createFolder'] = False
+            ret['allowlist']['createFile'] = False
+            ret['allowlist']['upload'] = False
+            ret['allowlist']['update'] = False
+            ret['allowlist']['delete'] = False
+            ret['allowlist']['move'] = False
+        else:
+            # ルートフォルダ直下はプロジェクトのみが作成できる
+            # それ以外ではプロジェクト以外が作成できる
+            ret['allowlist']['createProject'] = self.is_root and self.writable
+            ret['allowlist']['createFolder'] = not self.is_root and self.writable
+            ret['allowlist']['createFile'] = not self.is_root and self.writable
+            ret['allowlist']['upload'] = not self.is_root and self.writable
+        return ret
 
     def _make_dir(self, path):
         """
@@ -256,11 +298,10 @@ class Folder(Store):
         Folderに対応するディレクトリを削除する
         """
         from kskp.store import Mountable
-        
-        try:
-            # 全てのフォルダから紐づかないディレクトリは物理削除する
-            dir_path = path
 
+        # 全てのフォルダから紐づかないディレクトリは物理削除する
+        dir_path = path
+        try:
             while dir_path != '' and dir_path != '/':
                 # 自分以外で同じディレクトリパス(相対パス)を使用しているフォルダの有無を確認する
                 if self._dir_path_exists(dir_path, except_id=self.id):
@@ -276,6 +317,10 @@ class Folder(Store):
             # ディレクトリに対する権限がない場合
             raise e
         except OSError as e:
+            if e.errno == 39:
+                # [Errno 39] Directory not empty
+                file_path = next(dir_path.glob('*'))
+                raise OSError(f'Directory({dir_path}) is not removed. File({file_path}) exists in Directory')
             raise e
 
     def _dir_path_exists(self, dir_path, except_id):
@@ -292,9 +337,3 @@ class Folder(Store):
                 return True
         return False
 
-    # def to_json(self):
-    #     return {'uuid'      : self.uuid,
-    #             'type'      : Datum.FOLDER_TYPE,
-    #             'label'     : self.label,
-    #             'creator'   : self.creator_str,
-    #             'createdAt' : self.created_at_str}

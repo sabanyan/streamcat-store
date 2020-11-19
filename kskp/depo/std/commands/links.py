@@ -15,6 +15,8 @@ class CommandLink:
     """
     from kskp.depo.std.commands.pcmd.square_command import Square
     from kskp.depo.std.commands.pcmd.iot_command import MissingValueInterpolateCommand, MeasurementPeriodIdentifyCommand, TimeSeriesDataJoinCommand, TimeAxisDataGenerateIn1Command, TimeAxisDataGenerateIn0Command
+    from kskp.depo.std.commands.pcmd.groupby2_command import GroupBy2Command
+
     COMMAND_TABLE = {
         # テスト用コマンド
         'square': Square(),
@@ -123,6 +125,7 @@ class CommandLink:
         'plaintext2csv': PlainText2Csv(),
         'rowrange': RowRangeCommand(),
         'convtoutf8' : ConvToUtf8(),
+        'align' : AlignColumns(),
         'to_list' : ToListCommand(),
         # IoT コマンド
         'ts_polation' : MissingValueInterpolateCommand(),

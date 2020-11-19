@@ -11,7 +11,7 @@ update data set type = type1;
 drop type data_type cascade;
 
 /* data_typeを新規作成する */
-create type data_type as enum('folder','project','awss3','rfolder','database','flow','frame','trash');
+create type data_type as enum('folder','project','awss3','rfolder','database','flow','frame','trash','command');
 
 /* type列をdata_type型にキャストする */
 alter table data alter column "type" type data_type  using cast("type" as data_type) ;
