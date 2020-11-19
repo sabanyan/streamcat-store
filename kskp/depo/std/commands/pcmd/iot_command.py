@@ -109,8 +109,6 @@ class MeasurementPeriodIdentifyCommand(PCommand):
         import math
 
         try:
-            # sys.__stdin__.flush()#not needed for bigger data
-
             headerflg = True
 
             for line in nm.mstdin().getline(header=True):
@@ -166,11 +164,6 @@ class MeasurementPeriodIdentifyCommand(PCommand):
                 'fss' : '停止開始フラグ', 'fse' : '停止終了フラグ' ,
                 'ido' : '稼働区間ID'   , 'ids' : '停止区間ID'
                 }
-        elif s == 'err':
-            res = { 
-                'input'           : '値が入力がされていないか、不正です',
-                'same field name' : '追加項目と同名のものが存在します' 
-                }
         elif s == 'tmpflds':
             res = {
                 'top'     : '__top__', 'bot' : '__bot__',
@@ -203,7 +196,6 @@ class MeasurementPeriodIdentifyCommand(PCommand):
         # from .src import  xxxxxxxxx
 
         # 定数定義
-        err_msg = self.const('err')         # エラーメッセージ        
         aflds = self.const('addflds')       # 出力する項目名
         aflds_tmp = self.const('tmpflds')   # 内部で一時的に作成する項目名
         a_opt_seq = self.const('a_opt_seq') # Opt欄 a= で入力される項目名の順序
@@ -310,19 +302,11 @@ class MeasurementPeriodIdentifyCommand(PCommand):
                                 'a', args['a'])
                 raise Exception(msg)
 
-            # if 'overwrite' not in args:
-            #     raise Exception( 'a:' + err_msg['input'] )
-
         # --- データ処理開始 ---
-        # args['i'] = inputs['i']
         time = args.get('time')
         time_type = args['time_type']
 
         f = None
-
-        # header = nm.mread(inputs).getline(header=True)  #inputs
-        # header = next(header)
-        # header = self.get_field_names(inputs['i'])
 
         header = args.get('header')
         if header is None:
@@ -349,7 +333,6 @@ class MeasurementPeriodIdentifyCommand(PCommand):
             f <<= nm.m2tee(i = input_filename)
         else:
             # if header is passed just read from input
-            # f <<= nm.mread(inputs)
             f <<= copy.deepcopy(inputs['i'].content)
             
         # --- ヘッダー情報が必要なチェック ---
@@ -385,12 +368,10 @@ class MeasurementPeriodIdentifyCommand(PCommand):
         # --- 出力項目の上書きモード ---
         tg_overwrite = list(aflds.values()) + list(aflds_tmp.values()) + [ time + aflds_tmp['uxt_sfx'] ]
         tg_overwrite = list( set(header) & set(tg_overwrite) )
-        # header = None
 
         if 'overwrite' in args and args['overwrite']:
             f <<= nm.mcut(f= ','.join(tg_overwrite), r= True)
         elif len(tg_overwrite) > 0:
-            # raise Exception( err_msg['same field name'] )
             msg = generate_error_message(commandname,
                             'FieldNameConflictError',
                             'a', ','.join(tg_overwrite))
@@ -502,8 +483,6 @@ class MissingValueInterpolateCommand(PCommand):
         import numpy as np
 
         try:
-            # sys.__stdin__.flush()#not needed for bigger data
-
             headerflg = True
 
             # 追加する項目名の登録
@@ -596,9 +575,6 @@ class MissingValueInterpolateCommand(PCommand):
                                                 a = float('nan')
                                                 b = float('nan')
                                             else:
-                                                # a = (bot_val - top_val) / (bot_uxt - top_uxt)
-                                                # b = top_val - a * top_uxt
-                                                
                                                 # 桁落ち対策で式を変形
                                                 a = (bot_val**2 - top_val**2) / (bot_val + top_val)
                                                 a = a / ((bot_uxt**2 - top_uxt**2) / (bot_uxt + top_uxt))
@@ -644,7 +620,6 @@ class MissingValueInterpolateCommand(PCommand):
                                                 if bot_uxt - top_uxt == 0:
                                                     a = float('nan')
                                                 else:
-                                                    # a = (bot_val - top_val) / (bot_uxt - top_uxt)
                                                     # 桁落ち対策で式を変形
                                                     a = (bot_val**2 - top_val**2) / (bot_val + top_val)
                                                     a = a / ((bot_uxt**2 - top_uxt**2) / (bot_uxt + top_uxt))
@@ -680,13 +655,6 @@ class MissingValueInterpolateCommand(PCommand):
                 'ip_0_pre' : '__0次補間_前値'  ,
                 'ip_0_next': '__0次補間_後値'  , 'ip_0_next_pre' : '__0次補間_後値_前値',
                 'ip_0_near': '__0次補間_中間点', 'ip_0_near_pre' : '__0次補間_中間点_前値', 'ip_0_near_next' : '__0次補間_中間点_後値'
-                }
-        elif s == 'err':
-            res = {
-                'input'             : '値が入力がされていないか、不正です',
-                'same field name'   : '追加項目と同名のものが存在します',
-                'config duplication': '設定内容に重複が存在します',
-                'val'               : '[不正な値]='
                 }
         elif s == 'tmpflds':
             res = {
@@ -820,7 +788,6 @@ class MissingValueInterpolateCommand(PCommand):
         # 定数定義
         dm2= '_'
 
-        err_msg     = self.const('err')       # エラーメッセージ        
         ipflds      = self.const('ipflds')    # 補間式の要素名   対象項目に追加する
         aflds_tmp   = self.const('tmpflds')   # 内部で一時的に作成する項目名
 
@@ -857,10 +824,6 @@ class MissingValueInterpolateCommand(PCommand):
         aflds = cmd.const('addflds')
            
         # --- ヘッダー行だけ取得 ---
-        # header = nm.mread(inputs).getline(header=True)
-        # header = next(header)
-        # header = self.get_field_names(inputs['i'])
-
         f = None
         header = args.get('header')
         if header is None:
@@ -887,7 +850,6 @@ class MissingValueInterpolateCommand(PCommand):
             f <<= nm.m2tee(i = input_filename)
         else:
             # if header is passed just read from input
-            # f <<= nm.mread(inputs)
             f <<= copy.deepcopy(inputs['i'].content)
 
         if debug:
@@ -968,11 +930,6 @@ class MissingValueInterpolateCommand(PCommand):
         remove_fields = []          # 後始末用項目名
 
         sorted = False
-
-        # this is handld above, in get header block
-        # f = None
-        # f = inputs['i'].content
-
 
         # --- 出力項目名の重複処理 ---
         # header <-->  aflds['ipformulas'], ipoutlist
@@ -1082,7 +1039,6 @@ class MissingValueInterpolateCommand(PCommand):
         if debug:
             import pprint
             pprint.pprint(args['iplist'],stream=sys.stderr)
-            # sys.stderr.write( 'args[iplist]: ' + ','.join(args['iplist']) + '\n' )
 
 
         methods = [ x[1] for x in iplist ]
@@ -1279,10 +1235,6 @@ class MissingValueInterpolateCommand(PCommand):
                                 'EmptyParamError',
                                 'trim_num', '')
                 raise Exception(msg)
-            
-            
-            # if max_num < trim_num * 2:
-            #     raise Exception( 'max_num > 2 * trim_num:' + err_msg['input'] + ' ' + err_msg['val'] + args['max_num'] + ' . ' + args['trim_num']  )
 
 
             params = [ x for x in iplist if x[1] in methods_input ]
@@ -1390,8 +1342,6 @@ class MissingValueInterpolateCommand(PCommand):
             return res
 
         try:
-            # sys.__stdin__.flush()#not needed for bigger data
-
             header = None
             data = None
             
@@ -1564,9 +1514,6 @@ class MissingValueInterpolateCommand(PCommand):
                         for i in range( len(list_df) ):
                             print(  ','.join( [ str(x) for x in list_df[i] ] ) )
 
-                        # print( df.to_csv(index=False, header=False, na_rep='')  )  # 最後に改行が入るみたいで、上手くいかない
-
-
 
         except Exception as e:
             with open('/dev/stderr', 'w') as fpe:
@@ -1600,8 +1547,6 @@ class MissingValueInterpolateCommand(PCommand):
         import traceback
 
         try:
-            # sys.__stdin__.flush()#not needed for bigger data
-
             max_num  = args['max_num']
             trim_num = args['trim_num']
             top = args['top']
@@ -1688,16 +1633,6 @@ class TimeSeriesDataJoinCommand(PCommand):
         self.i_ports = [Port('i', 'frame'), Port('m', 'frame')]
         self.o_ports = [Port('o', 'frame')]
     
-    def const(self, s):
-        res = None
-        if s == 'err':
-            res = {
-                'input'             : '値が入力がされていないか、不正です',
-                'same field name'   : '追加項目と同名のものが存在します',
-                'config duplication': '設定内容に重複が存在します'
-                }
-        return res
-
     def run(self, args, inputs):
         """
         依存
@@ -1733,9 +1668,6 @@ class TimeSeriesDataJoinCommand(PCommand):
 
         debug = False
 
-        # 定数定義
-        err_msg = self.const('err')     # エラーメッセージ
-
         
         flds_tmplist_i = [] # 入力i の一時作成の項目名リスト
         flds_tmplist_m = [] # 入力m の一時作成の項目名リスト
@@ -1762,17 +1694,6 @@ class TimeSeriesDataJoinCommand(PCommand):
         # 補間値： 補間式より値を計算
 
         # --- Opt整合性チェック ---
-        # m の補間値の項目名が、既にi に存在する場合、エラーとする
-        # header_i = nm.mread(i=inputs['i']).getline(header=True)
-        # header_i = next(header_i)
-
-        # header_m = nm.mread(i=inputs['m']).getline(header=True)
-        # header_m = next(header_m)
-        # header_m = self.get_field_names(inputs['m'])
-        # header_i = self.get_field_names(inputs['i'])
-
-
-        # TODO encapsulate this
         # get all of the flow before this
         prev_flow_i = copy.deepcopy(inputs['i'].content)
         prev_flow_m = copy.deepcopy(inputs['m'].content)
@@ -1834,7 +1755,6 @@ class TimeSeriesDataJoinCommand(PCommand):
 
         if debug:
             print(f'iplist: {iplist} \n')
-            # sys.stderr.write( 'iplist : ' + iplist + '\n' )
 
 
         # --- 引数チェック ---  補間の設定: 辞書のリスト型
@@ -1886,10 +1806,6 @@ class TimeSeriesDataJoinCommand(PCommand):
 
         # --- 入力m の処理 ---  <区間の補間式を作成する>
 
-        # フロー開始
-        # fm = None
-        # fm = inputs['m']
-
         # 補間式算出： MissingValueInterpolateCommand()
         # 参照データm に対して補間式を算出し、mnrjoinで係数を、入力データiへ紐づけて、補間値を計算する
         # 引数
@@ -1911,7 +1827,6 @@ class TimeSeriesDataJoinCommand(PCommand):
                                 'FieldNotFoundError',
                                 'time', time_m)
                 raise Exception(msg)
-        #pass
 
         
         time_type = args['time_type']        
@@ -1927,9 +1842,6 @@ class TimeSeriesDataJoinCommand(PCommand):
                          n=True, q=True, l=True)
 
         # --- 入力i の処理 ---
-        # fi = None
-        # fi = inputs['i'].content
-
         # unix時間の項目作成
         time_i = args.get('TIME')
         if time_i is None:
@@ -2035,7 +1947,6 @@ class TimeSeriesDataJoinCommand(PCommand):
                     ip_1_1 = fld + ipflds['ip_1_1']     # 傾き
                     ip_1_0 = fld + ipflds['ip_1_0']     # 切片
                     mcal_c_opt = f'${{{now_time}}}*${{{ip_1_1}}}+${{{ip_1_0}}}'
-                    # mcal_c_opt = f'if(${{{now_time}}}==${{{top_time}}} && not(isnull(${{{fld}}})), ${{{fld}}} , ${{{now_time}}}*${{{ip_1_1}}}+${{{ip_1_0}}})   '
 
                 elif method == 'cubic_spline':                    
                     # now_time に対して、3次式 を計算する
@@ -2077,19 +1988,7 @@ class TimeAxisDataGenerateIn0Command(PCommand):
     
     def const(self, s):
         res = None
-        if s == 'err':
-            res = {
-                'input'             : '値が入力がされていないか、不正です',
-                'same field name'   : '追加項目と同名のものが存在します',
-                'config duplication': '設定内容に重複が存在します',
-                'val'               : '[不正な値]=',
-                'EmptyFieldNameError': '空文字列の項目名は指定できません。${fieldinput}',
-                'FieldNameForbiddenCharacterError' : '半角の（ *　?　[　]　,　:　\ ）は、項目名に使用できません。${fieldinput}',
-                'TimeSettingMismatchError': '時間の指定は、時間軸のデータ型と一致しません。${correct_timeformat} で設定してください　${fieldinput}',
-                'OutOfBoundsError' : '${errfield} への ${fieldinput} 指定が正しくありません。${correct_bounds} で指定してください',
-                'EmptyParamError' : '空文字列の指定はできません。'
-                }
-        elif s == 'timeformats':
+        if s == 'timeformats':
             res = {
                 'datetime'    : '暦型(YYYYMMDDhhmmss.小数6桁まで)',
                 'date'        : '暦型(YYYYMMDD)',
@@ -2161,8 +2060,6 @@ class TimeAxisDataGenerateIn0Command(PCommand):
         from dateutil.relativedelta import relativedelta
 
         try:
-            # sys.__stdin__.flush()#not needed for bigger data                    
-
             print(args['time'])
 
             for l in args['span_list']:
@@ -2225,7 +2122,6 @@ class TimeAxisDataGenerateIn0Command(PCommand):
         if debug:
             import pprint
 
-        err_msg = self.const('err')         # エラーメッセージ     
         bounds = self.const('bounds')
         timeformats = self.const('timeformats')
         in0_args = {}   # time_axis_generator_in0 への引数辞書
@@ -2260,10 +2156,7 @@ class TimeAxisDataGenerateIn0Command(PCommand):
         else:
             time = args['a']
         
-        if 'time_type' not in args:
-            raise Exception( 'time_type:' + err_msg['input'] )
-        else:
-            time_type = args['time_type']
+        time_type = args['time_type']
 
         if 'interval' not in args:
             msg = generate_error_message(commandname,
@@ -2430,16 +2323,6 @@ class TimeAxisDataGenerateIn1Command(PCommand):
         self.i_ports = [Port('i', 'frame')]
         self.o_ports = [Port('o', 'frame')]
     
-    def const(self, s):
-        res = None
-        if s == 'err':
-            res = {
-                'input'             : '値が入力がされていないか、不正です',
-                'same field name'   : '追加項目と同名のものが存在します',
-                'config duplication': '設定内容に重複が存在します',
-                'val'               : '[不正な値]='
-                }
-        return res
 
     def time_axis_generator_in1(self, args):
         """
@@ -2454,8 +2337,6 @@ class TimeAxisDataGenerateIn1Command(PCommand):
         from dateutil.relativedelta import relativedelta
 
         try:
-            # sys.__stdin__.flush()#not needed for bigger data
-
             time = args['time']
             time_type = args['time_type']
             interval = args['interval']
@@ -2571,8 +2452,6 @@ class TimeAxisDataGenerateIn1Command(PCommand):
         debug = False
         if debug:
             import pprint
-
-        err_msg = self.const('err')         # エラーメッセージ    
 
         time = None
         time_type = None
@@ -2697,30 +2576,6 @@ class TimeAxisDataGenerateIn1Command(PCommand):
         if 'c' in args:
             c = args['c']
 
-        # checks for t_dynamic_interval_num and t_fixed time will be done
-        # by the internal command
-        
-        # if 't_dynamic_interval_num' in args:
-        #     t_dynamic_interval_num = args['t_dynamic_interval_num']
-        #     try:
-        #         t_dynamic_interval_num = float(t_dynamic_interval_num.replace(',',''))
-        #     except Exception as e:
-        #         raise Exception( 't_dynamic_interval_num:' + err_msg['input'] + ' ' + err_msg['val'] + args['t_dynamic_interval_num'] ) 
-        #     finally:
-        #         pass
-
-        # if 't_fixed_time' in args:
-        #     t_fixed_time = args['t_fixed_time']
-        #     try:
-        #         t_fixed_time = float(t_fixed_time.replace(',',''))
-        #     except Exception as e:
-        #         raise Exception( 't_fixed_time:' + err_msg['input'] + ' ' + err_msg['val'] + args['t_fixed_time'] ) 
-        #     finally:
-        #         pass
-
-        # if debug:
-        #     pprint.pprint(k, stream=sys.stderr)
-
         # =======================
         # --- 入力i の処理 ---
         # =======================
@@ -2731,8 +2586,6 @@ class TimeAxisDataGenerateIn1Command(PCommand):
                mslideで、2行の情報を1行に集約し、1行のみを抽出する  ※稼働開始フラグ=1
         Step3: グループ別に、区間単位と指定間隔で、一定間隔の、時系列単位のデータ作成
         """
-        # f = None
-        # f = inputs['i'].content
 
         t_end_suffix = f'{time}_2'      
 
