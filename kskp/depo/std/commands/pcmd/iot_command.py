@@ -14,7 +14,7 @@ from kskp.core import Command, Port, Tmp
 from .script import PCommand
 
 # shared functions for all IoT Commands
-def GenerateErrorMessage(commandname, errcode, errfield, fieldinput, template_params={}):
+def generate_error_message(commandname, errcode, errfield, fieldinput, template_params={}):
     '''
     Function for creating error messages. 
     Pulls out error message templates, command name, and parameter info from
@@ -225,7 +225,7 @@ class MeasurementPeriodIdentifyCommand(PCommand):
 
         if args['c'] == 'dynamic_ave':
             if ('t_dynamic_interval_num' not in args) or (args['t_dynamic_interval_num'] == ''):
-                msg = GenerateErrorMessage(commandname,
+                msg = generate_error_message(commandname,
                                 'EmptyParamError',
                                 't_dynamic_interval_num', '')
                 raise Exception(msg)
@@ -234,14 +234,14 @@ class MeasurementPeriodIdentifyCommand(PCommand):
             try:
                 dynamic_interval = float(dynamic_interval)
             except:
-                msg = GenerateErrorMessage(commandname,
+                msg = generate_error_message(commandname,
                                 'ParameterTypeError',
                                 't_dynamic_interval_num', 
                                 args['t_dynamic_interval_num'])
                 raise Exception(msg)
 
             if dynamic_interval <= 0:
-                msg = GenerateErrorMessage(commandname,
+                msg = generate_error_message(commandname,
                                 'OutOfBoundsError',
                                 't_dynamic_interval_num', 
                                 args['t_dynamic_interval_num'])
@@ -251,7 +251,7 @@ class MeasurementPeriodIdentifyCommand(PCommand):
         
         if args['c'] == 'fix':
             if ('t_fixed_time' not in args) or (args['t_fixed_time'] == ''):
-                msg = GenerateErrorMessage(commandname,
+                msg = generate_error_message(commandname,
                                 'EmptyParamError',
                                 't_fixed_time', '')
                 raise Exception(msg)
@@ -260,14 +260,14 @@ class MeasurementPeriodIdentifyCommand(PCommand):
             try:
                 fixed_interval = float(fixed_interval)
             except:
-                msg = GenerateErrorMessage(commandname,
+                msg = generate_error_message(commandname,
                                 'ParameterTypeError',
                                 't_fixed_time', 
                                 args['t_fixed_time'])
                 raise Exception(msg)
 
             if fixed_interval <= 0:
-                msg = GenerateErrorMessage(commandname,
+                msg = generate_error_message(commandname,
                                 'OutOfBoundsError',
                                 't_fixed_time', 
                                 args['t_fixed_time'])
@@ -282,14 +282,14 @@ class MeasurementPeriodIdentifyCommand(PCommand):
                     
                     # check for empty
                     if this_a == '':
-                        msg = GenerateErrorMessage(commandname,
+                        msg = generate_error_message(commandname,
                                         'EmptyFieldNameError',
                                         'a', args['a'])
                         raise Exception(msg)
                         
                     # check for forbidden char
                     elif any(char in this_a for char in '*?[],:\\ '):
-                        msg = GenerateErrorMessage(commandname,
+                        msg = generate_error_message(commandname,
                                                 'FieldNameForbiddenCharacterError',
                                                 'a', this_a)
                         raise Exception(msg)
@@ -298,14 +298,14 @@ class MeasurementPeriodIdentifyCommand(PCommand):
 
                 # check for conflicts (same column specified)
                 if len(a_list) != len(set(a_list)):
-                    msg = GenerateErrorMessage(commandname,
+                    msg = generate_error_message(commandname,
                                     'TargetFieldConflictError',
                                     'a', args['a'])
                     raise Exception(msg)
                     
                     
             else:
-                msg = GenerateErrorMessage(commandname,
+                msg = generate_error_message(commandname,
                                 'OutputNamesFormatError',
                                 'a', args['a'])
                 raise Exception(msg)
@@ -359,25 +359,25 @@ class MeasurementPeriodIdentifyCommand(PCommand):
             # key not found
             for key in keys_list:
                 if key not in header:
-                    msg = GenerateErrorMessage(commandname,
+                    msg = generate_error_message(commandname,
                                     'FieldNotFoundError',
                                     'k', key)
                     raise Exception(msg)
 
             if len(keys_list) != len(set(keys_list)):
-                msg = GenerateErrorMessage(commandname,
+                msg = generate_error_message(commandname,
                                 'TargetFieldConflictError',
                                 'k', args['k'])
                 raise Exception(msg)
 
         if time is None:
-            msg = GenerateErrorMessage(commandname,
+            msg = generate_error_message(commandname,
                             'EmptyFieldNameError',
                             'time', time)
             raise Exception(msg)
         else:
             if time not in header:
-                msg = GenerateErrorMessage(commandname,
+                msg = generate_error_message(commandname,
                                 'FieldNotFoundError',
                                 'time', time)
                 raise Exception(msg)
@@ -391,7 +391,7 @@ class MeasurementPeriodIdentifyCommand(PCommand):
             f <<= nm.mcut(f= ','.join(tg_overwrite), r= True)
         elif len(tg_overwrite) > 0:
             # raise Exception( err_msg['same field name'] )
-            msg = GenerateErrorMessage(commandname,
+            msg = generate_error_message(commandname,
                             'FieldNameConflictError',
                             'a', ','.join(tg_overwrite))
             raise Exception(msg)
@@ -719,7 +719,7 @@ class MissingValueInterpolateCommand(PCommand):
                 matched = fnmatch.filter(header, field)
                 
                 if matched == []:
-                    msg = GenerateErrorMessage(commandname,
+                    msg = generate_error_message(commandname,
                                     'FieldNotFoundError',
                                     'ip_f', field)
                     raise Exception(msg)
@@ -727,7 +727,7 @@ class MissingValueInterpolateCommand(PCommand):
                 fs = fs + matched
             
             if len(fs) != len(set(fs)):
-                msg = GenerateErrorMessage(commandname,
+                msg = generate_error_message(commandname,
                                 'TargetFieldConflictError',
                                 'ip_f', args_iplist[el]['ip_f'])
                 raise Exception(msg)
@@ -737,7 +737,7 @@ class MissingValueInterpolateCommand(PCommand):
             ip_outfn  = args_iplist[el]['ip_a']  # 文字列
             
             if any(char in ip_outfn for char in '*?[],:\\ '):
-                msg = GenerateErrorMessage(commandname,
+                msg = generate_error_message(commandname,
                                 'FieldNameForbiddenCharacterError',
                                 'ip_a', ip_outfn)
                 raise Exception(msg)
@@ -752,7 +752,7 @@ class MissingValueInterpolateCommand(PCommand):
                     
                     # check if final col already exists
                     if tmp in header:
-                        msg = GenerateErrorMessage(commandname,
+                        msg = generate_error_message(commandname,
                                         'FieldNameConflictError',
                                         'ip_a', tmp)
                         raise Exception(msg)
@@ -897,13 +897,13 @@ class MissingValueInterpolateCommand(PCommand):
         if 'iplist' in args and len(args['iplist']) > 0:
             for el in range( len(args['iplist']) ):
                 if args['iplist'][el]['ip_f'] == '':
-                    msg = GenerateErrorMessage(self.commandname,
+                    msg = generate_error_message(self.commandname,
                                     'EmptyFieldNameError',
                                     'ip_f', '')
                     raise Exception(msg)
                 
                 if 'non_ip' not in args and  args['iplist'][el]['ip_a'] == '':
-                    msg = GenerateErrorMessage(self.commandname,
+                    msg = generate_error_message(self.commandname,
                                     'EmptyFieldNameError',
                                     'ip_a', '')
                     raise Exception(msg)
@@ -917,12 +917,12 @@ class MissingValueInterpolateCommand(PCommand):
             key_list = args.get('k').split(',')
             for key in key_list:
                 if key not in header:
-                    msg = GenerateErrorMessage(self.commandname,
+                    msg = generate_error_message(self.commandname,
                                     'FieldNotFoundError',
                                     'k', key)
                     raise Exception(msg)
             if len(key_list) != len(set(key_list)):
-                msg = GenerateErrorMessage(self.commandname,
+                msg = generate_error_message(self.commandname,
                                 'TargetFieldConflictError',
                                 'k', args['k'])
                 raise Exception(msg)
@@ -930,12 +930,12 @@ class MissingValueInterpolateCommand(PCommand):
                     
         time = args.get('time')
         if time is None:
-            msg = GenerateErrorMessage(self.commandname,
+            msg = generate_error_message(self.commandname,
                             'EmptyFieldNameError',
                             'time', '')
             raise Exception(msg)
         elif time not in header:
-            msg = GenerateErrorMessage(self.commandname,
+            msg = generate_error_message(self.commandname,
                             'FieldNotFoundError',
                             'time', time)
             raise Exception(msg)
@@ -980,7 +980,7 @@ class MissingValueInterpolateCommand(PCommand):
             # 補間式を出力
             if len( set(aflds['ipformulas']) ) != len( aflds['ipformulas'] ):
                 sys.stderr.write( 'ipformulas: ' + ','.join(aflds['ipformulas']) + '\n' )
-                msg = GenerateErrorMessage(self.commandname,
+                msg = generate_error_message(self.commandname,
                                 'InterpolateResultsConflictError',
                                 'ip_f,ip_c,ip_a', '')
                 raise Exception(msg)
@@ -1005,7 +1005,7 @@ class MissingValueInterpolateCommand(PCommand):
             # 補間値を出力
             if len( set(ipoutlist) ) != len( ipoutlist ):
                 sys.stderr.write( 'ipoutlist: ' + ','.join(ipoutlist) + '\n' )
-                msg = GenerateErrorMessage(self.commandname,
+                msg = generate_error_message(self.commandname,
                                 'InterpolateResultsConflictError',
                                 'ip_f,ip_c,ip_a', '')
                 raise Exception(msg)
@@ -1134,7 +1134,7 @@ class MissingValueInterpolateCommand(PCommand):
             max_num = args.get('max_num')
 
             if max_num is None:
-                msg = GenerateErrorMessage(self.commandname,
+                msg = generate_error_message(self.commandname,
                                 'EmptyParamError',
                                 'max_num', '')
                 raise Exception(msg)
@@ -1239,20 +1239,20 @@ class MissingValueInterpolateCommand(PCommand):
                 try:
                     max_num = int( float(max_num.replace(',','')) )
                 except Exception as e:
-                    msg = GenerateErrorMessage(self.commandname,
+                    msg = generate_error_message(self.commandname,
                                     'ParameterTypeError',
                                     'max_num', args['max_num'])
                     raise Exception(msg)
 
                 if max_num <= 0:
-                    msg = GenerateErrorMessage(self.commandname,
+                    msg = generate_error_message(self.commandname,
                                     'OutOfBoundsError',
                                     'max_num', args['max_num'])
                     raise Exception(msg)
                     
 
             else:
-                msg = GenerateErrorMessage(self.commandname,
+                msg = generate_error_message(self.commandname,
                                 'EmptyParamError',
                                 'max_num', '')
                 raise Exception(msg)
@@ -1261,7 +1261,7 @@ class MissingValueInterpolateCommand(PCommand):
                 try:
                     trim_num = int( float(args['trim_num'].replace(',','')) )
                 except Exception as e:
-                    msg = GenerateErrorMessage(self.commandname,
+                    msg = generate_error_message(self.commandname,
                                     'ParameterTypeError',
                                     'trim_num', args['trim_num'])
                     raise Exception(msg)
@@ -1269,13 +1269,13 @@ class MissingValueInterpolateCommand(PCommand):
                     pass
 
                 if trim_num <= 0:
-                    msg = GenerateErrorMessage(self.commandname,
+                    msg = generate_error_message(self.commandname,
                                     'OutOfBoundsError',
                                     'max_num', args['max_num'])
                     raise Exception(msg)
 
             else:
-                msg = GenerateErrorMessage(self.commandname,
+                msg = generate_error_message(self.commandname,
                                 'EmptyParamError',
                                 'trim_num', '')
                 raise Exception(msg)
@@ -1854,13 +1854,13 @@ class TimeSeriesDataJoinCommand(PCommand):
         if keys_m != ['']:
             for key in keys_m:
                 if key not in header_m:
-                    msg = GenerateErrorMessage(commandname,
+                    msg = generate_error_message(commandname,
                                     'FieldNotFoundError',
                                     'Km', key)
                     raise Exception(msg)
             
             if len(keys_m) != len(set(keys_m)):
-                msg = GenerateErrorMessage(commandname,
+                msg = generate_error_message(commandname,
                                 'TargetFieldConflictError',
                                 'Km', '')
                 raise Exception(msg)
@@ -1868,13 +1868,13 @@ class TimeSeriesDataJoinCommand(PCommand):
         if keys_i != ['']:
             for key in keys_i:
                 if key not in header_i:
-                    msg = GenerateErrorMessage(commandname,
+                    msg = generate_error_message(commandname,
                                     'FieldNotFoundError',
                                     'Ki', key)
                     raise Exception(msg)
 
             if len(keys_i) != len(set(keys_i)):
-                msg = GenerateErrorMessage(commandname,
+                msg = generate_error_message(commandname,
                                 'TargetFieldConflictError',
                                 'Ki', '')
                 raise Exception(msg)
@@ -1901,13 +1901,13 @@ class TimeSeriesDataJoinCommand(PCommand):
         # unix時間の項目名取得
         time_m = args.get('time')
         if time_m is None:
-            msg = GenerateErrorMessage(commandname,
+            msg = generate_error_message(commandname,
                             'EmptyFieldNameError',
                             'time', '')
             raise Exception(msg)
         else:
             if time_m not in header_m:
-                msg = GenerateErrorMessage(commandname,
+                msg = generate_error_message(commandname,
                                 'FieldNotFoundError',
                                 'time', time_m)
                 raise Exception(msg)
@@ -1933,13 +1933,13 @@ class TimeSeriesDataJoinCommand(PCommand):
         # unix時間の項目作成
         time_i = args.get('TIME')
         if time_i is None:
-            msg = GenerateErrorMessage(commandname,
+            msg = generate_error_message(commandname,
                             'EmptyFieldNameError',
                             'TIME', '')
             raise Exception(msg)
         else:
             if time_i not in header_i:
-                msg = GenerateErrorMessage(commandname,
+                msg = generate_error_message(commandname,
                                 'FieldNotFoundError',
                                 'TIME', time_i)
                 raise Exception(msg)
@@ -2048,7 +2048,7 @@ class TimeSeriesDataJoinCommand(PCommand):
                     mcal_c_opt = f'${{{ip_3_3}}}*(${{{now_time}}}^3)+${{{ip_3_2}}}*(${{{now_time}}}^2)+${{{ip_3_1}}}*${{{now_time}}}+${{{ip_3_0}}}'
 
                 if len(all_outnames) != len(set(all_outnames)):
-                    msg = GenerateErrorMessage(commandname,
+                    msg = generate_error_message(commandname,
                                     'InterpolateResultsConflictError',
                                     'ip_f,ip_c,ip_a', '')
                     raise Exception(msg) 
@@ -2247,13 +2247,13 @@ class TimeAxisDataGenerateIn0Command(PCommand):
 
         # --- 引数チェック ----
         if 'a' not in args:
-            msg = GenerateErrorMessage(commandname, 
+            msg = generate_error_message(commandname, 
                                        'EmptyFieldNameError',
                                        'a', '')
             # raise Exception( 'a:' + err_msg['input'])
             raise Exception(msg)
         elif any(char in args['a'] for char in '*?[],:\\ '):
-            msg = GenerateErrorMessage(commandname, 
+            msg = generate_error_message(commandname, 
                                     'FieldNameForbiddenCharacterError',
                                     'a', args['a'])
             raise Exception(msg)
@@ -2266,7 +2266,7 @@ class TimeAxisDataGenerateIn0Command(PCommand):
             time_type = args['time_type']
 
         if 'interval' not in args:
-            msg = GenerateErrorMessage(commandname,
+            msg = generate_error_message(commandname,
                             'EmptyParamError',
                             'interval', '')
             raise Exception(msg)
@@ -2281,7 +2281,7 @@ class TimeAxisDataGenerateIn0Command(PCommand):
                 if float(interval) <= 0:
                     raise Exception()
             except Exception as e:
-                msg = GenerateErrorMessage(commandname,
+                msg = generate_error_message(commandname,
                                 'OutOfBoundsError',
                                 'interval', args['interval'])
                 raise Exception(msg)
@@ -2291,7 +2291,7 @@ class TimeAxisDataGenerateIn0Command(PCommand):
 
                     # if more than 7 digits, raise TimePrecisionError
                     if len(decimal) >= 7:
-                        msg = GenerateErrorMessage(commandname,
+                        msg = generate_error_message(commandname,
                                         'TimePrecisionError',
                                         'interval', args['interval'])
                         raise Exception(msg)
@@ -2302,7 +2302,7 @@ class TimeAxisDataGenerateIn0Command(PCommand):
         # 開始・間隔・件数 指定時
         if 'r' not in args:
             if 'start' not in args:
-                msg = GenerateErrorMessage(commandname,
+                msg = generate_error_message(commandname,
                                 'EmptyParamError',
                                 'start', '')
                 raise Exception(msg)
@@ -2313,21 +2313,21 @@ class TimeAxisDataGenerateIn0Command(PCommand):
                         start = Decimal(start)
                         
                     except Exception as e:
-                        msg = GenerateErrorMessage(commandname,
+                        msg = generate_error_message(commandname,
                                         'ParameterTypeError',
                                         'start', args['start'])
                         raise Exception(msg)
                     finally:
                         pass
                 elif self.datetime_nysol2py(start,time_type=time_type) is None:
-                    msg = GenerateErrorMessage(commandname,
+                    msg = generate_error_message(commandname,
                                     'TimeSettingMismatchError',
                                     'start', args['start'],
                                     {'correct_timeformat': timeformats[time_type]})
                     raise Exception(msg)
 
             if 'num' not in args:
-                msg = GenerateErrorMessage(commandname,
+                msg = generate_error_message(commandname,
                                 'EmptyParamError',
                                 'num', '')
                 raise Exception(msg)
@@ -2335,12 +2335,12 @@ class TimeAxisDataGenerateIn0Command(PCommand):
                 try:
                     num = round(float(args['num'].replace(',','')))
                 except Exception as e:
-                    msg = GenerateErrorMessage(commandname,
+                    msg = generate_error_message(commandname,
                         'ParameterTypeError',
                         'num', args['num'])
                     raise Exception(msg)
                 if num <= 0:
-                    msg = GenerateErrorMessage(commandname,
+                    msg = generate_error_message(commandname,
                         'OutOfBoundsError',
                         'num', args['num'])
                     raise Exception(msg)
@@ -2350,7 +2350,7 @@ class TimeAxisDataGenerateIn0Command(PCommand):
         else:
         # 開始・終了・間隔 指定時 のパース
             if 'spans' not in args:
-                msg = GenerateErrorMessage(commandname,
+                msg = generate_error_message(commandname,
                                 'EmptyParamError',
                                 'spans', '')
                 raise Exception(msg)
@@ -2364,7 +2364,7 @@ class TimeAxisDataGenerateIn0Command(PCommand):
             import re
             if not re.match(r'^\[[^,]+?,[^,]+?\](,\[[^,]+?,[^,]+?\])*$', 
                             args['spans']):
-                msg = GenerateErrorMessage(commandname,
+                msg = generate_error_message(commandname,
                             'SpansFormatError',
                             'spans', args['spans'])
                 raise Exception(msg) 
@@ -2393,7 +2393,7 @@ class TimeAxisDataGenerateIn0Command(PCommand):
                     for ke in k:
                         res = self.datetime_nysol2py(ke, time_type=time_type)
                         if res is None:
-                            msg = GenerateErrorMessage(commandname,
+                            msg = generate_error_message(commandname,
                                             'TimeSettingMismatchError',
                                             'spans', ke,
                                             {'correct_timeformat': timeformats[time_type]})
@@ -2627,14 +2627,14 @@ class TimeAxisDataGenerateIn1Command(PCommand):
 
         # 必須の引数
         if 'time' not in args:
-            msg = GenerateErrorMessage(commandname,
+            msg = generate_error_message(commandname,
                             'EmptyFieldNameError',
                             'time', '')
             raise Exception(msg)
         else:
             time = args.get('time')
             if time not in header:
-                msg = GenerateErrorMessage(commandname,
+                msg = generate_error_message(commandname,
                                 'FieldNotFoundError',
                                 'time', time)
                 raise Exception(msg)
@@ -2645,7 +2645,7 @@ class TimeAxisDataGenerateIn1Command(PCommand):
             time_type = args['time_type']
 
         if 'interval' not in args:
-            msg = GenerateErrorMessage(commandname,
+            msg = generate_error_message(commandname,
                             'EmptyParamError',
                             'interval', '')
             raise Exception(msg)
@@ -2662,7 +2662,7 @@ class TimeAxisDataGenerateIn1Command(PCommand):
                 if interval <= 0:
                     raise Exception()
             except Exception as e:
-                msg = GenerateErrorMessage(commandname,
+                msg = generate_error_message(commandname,
                                 'OutOfBoundsError',
                                 'interval', args['interval'])
                 raise Exception(msg)
@@ -2673,13 +2673,13 @@ class TimeAxisDataGenerateIn1Command(PCommand):
             k_list = k.split(',')
             for key in k_list:
                 if key not in header: 
-                    msg = GenerateErrorMessage(commandname,
+                    msg = generate_error_message(commandname,
                                     'FieldNotFoundError',
                                     'k', key)
                     raise Exception(msg)
 
             if len(k_list) != len(set(k_list)):
-                msg = GenerateErrorMessage(commandname,
+                msg = generate_error_message(commandname,
                                 'TargetFieldConflictError',
                                 'k', k)
                 raise Exception(msg)

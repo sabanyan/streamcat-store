@@ -2,28 +2,36 @@
     "id": "ts_join",
     "groups": [
       {
+        "name": "abstract",
+        "label": "センサ時系列結合",
+        "description": "時系列iの時間軸に対して、時系列mの補間値を結合する。",
+        "params": []
+      },
+      {
+        "name": "group2",
+        "label": "センサー時系列の設定 (必須)",
+        "params": ["TIME","time","time_type","q"]
+      },
+
+      {
         "name": "group1",
         "label": "結合のキー項目の設定（省略可)",
         "params": ["join_keys"]
       },
       {
-        "name": "group2",
-        "label": "センサー時系列の設定",
-        "params": ["TIME","time","time_type","q"]
-      },
-      {
           "name": "group3",
-          "label": "補間の設定",
+          "label": "補間の設定 (必須)",
           "params": ["iplist"]
       },
       {
         "name": "group4",
-        "label": "停止判定の設定 (停止期間をまたがない補間は設定要)",
+        "label": "停止判定の設定 (省略可)",
+        "description" : "停止期間をまたがない補間は設定要",
         "params": ["mpi","c","t_dynamic_interval_num","t_fixed_time"]
       },
       {
           "name": "group6",
-          "label": "システム管理用設定",
+          "label": "システム管理用設定 (省略可)",
           "params": ["max_num","trim_num"]
       }
     ],
@@ -32,7 +40,7 @@
         "name": "join_keys",
         "type": "list",
         "label": "結合のキー項目の設定 (省略可)",
-        "description": "時間軸以外の項目を用いて結合したい場合に指定",
+        "description": "時間軸以外の項目をキーとして追加して結合したい場合に指定",
         "elements": [
             {
               "name": "Ki",
@@ -88,7 +96,7 @@
         "type": "select",
         "label": "計測の停止期間と見なす判定の方法 (必須)",
         "options": {
-        "labels": ["計測間隔(動的な推定値)で判定","指定間隔(固定時間)で判定"],
+        "labels": ["計測間隔(動的な推定値)で判定","計測間隔(固定時間)で判定"],
         "values": ["dynamic_ave","fix"]
         },
         "default": "dynamic_ave"
@@ -136,10 +144,10 @@
       {
         "name": "max_num",
         "type": "string",
-        "label": "3次スプラインの計算時に参照する最大の行数",
+        "label": "補間の計算時に参照する最大の行数",
         "description": "",
         "optional": true,
-        "default": "10000"
+        "default": "1000000"
       },
       {
         "name": "trim_num",

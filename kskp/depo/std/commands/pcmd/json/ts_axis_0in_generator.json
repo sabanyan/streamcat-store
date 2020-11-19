@@ -2,18 +2,24 @@
     "id": "ts_axis_0in_generator",
     "groups": [     
       {
+        "name": "abstract",
+        "label": "センサ時系列生成（0入力）",
+        "description": "指定した方法で、一定間隔の時系列データを生成する。",
+        "params": []
+      },
+      {
         "name": "group1",
-        "label": "時系列データ型の設定 (必須)",
+        "label": "時系列データの設定 (必須)",
         "params": ["a","time_type","interval"]
       },
       {
         "name": "group2",
-        "label": "開始・間隔・件数によるデータ生成",
+        "label": "開始・間隔・件数によるデータ生成の設定",
         "params": ["start","num"]
       },
       {
           "name": "group3",
-          "label": "開始・終了・間隔によるデータ生成",
+          "label": "開始・終了・間隔によるデータ生成の設定",
           "params": ["r","spans"]
       }   
     ],

@@ -2,33 +2,40 @@
     "id": "ts_polation",
     "groups": [
       {
+        "name": "abstract",
+        "label": "センサ時系列欠損値補間",
+        "description": "時系列の欠損値に対して、区分多項式により補間する。",
+        "params": []
+      },
+      {
         "name": "group1",
         "label": "グループの設定（省略可)",
         "params": ["k"]
       },
       {
         "name": "group2",
-        "label": "センサー時系列の設定",
+        "label": "センサー時系列の設定 (必須)",
         "params": ["time","time_type","q"]
       },
       {
           "name": "group3",
-          "label": "補間の設定",
+          "label": "補間の設定 (必須)",
           "params": ["iplist","non_ip"]
       },
       {
         "name": "group4",
-        "label": "停止判定の設定 (停止期間をまたがない補間は設定要)",
+        "label": "停止判定の設定 (省略可)",
+        "description" : "停止期間をまたがずに、補間したい場合に設定する",
         "params": ["mpi","c","t_dynamic_interval_num","t_fixed_time"]
       },
       {
         "name": "group5",
-        "label": "その他の設定",
+        "label": "その他の設定 (省略可)",
         "params": ["overwrite","a"]       
       },
       {
           "name": "group6",
-          "label": "システム管理用設定",
+          "label": "システム管理用設定 (省略可)",
           "params": ["max_num","trim_num"]
       }
     ],
@@ -75,7 +82,7 @@
         "type": "select",
         "label": "計測の停止期間と見なす判定の方法 (必須)",
         "options": {
-        "labels": ["計測間隔(動的な推定値)で判定","指定間隔(固定時間)で判定"],
+        "labels": ["計測間隔(動的な推定値)で判定","計測間隔(固定時間)で判定"],
         "values": ["dynamic_ave","fix"]
         },
         "default": "dynamic_ave"
@@ -130,10 +137,10 @@
       {
         "name": "max_num",
         "type": "string",
-        "label": "3次スプラインの計算時に参照する最大の行数",
+        "label": "補間の計算時に参照する最大の行数",
         "description": "",
         "optional": true,
-        "default": "10000"
+        "default": "1000000"
       },
       {
         "name": "trim_num",

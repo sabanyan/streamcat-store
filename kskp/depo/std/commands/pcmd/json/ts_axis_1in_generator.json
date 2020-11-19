@@ -2,23 +2,29 @@
     "id": "ts_axis_1in_generator",
     "groups": [     
         {
-          "name": "group1",
-          "label": "【出力設定】出力する時系列の間隔の設定 (必須)",
-          "params": ["interval"]
+          "name": "abstract",
+          "label": "センサ時系列生成（1入力）",
+          "description": "入力データの時系列範囲に対して、一定間隔の時系列データを生成する。",
+          "params": []
         },
         {
           "name": "group2",
-          "label": "【入力設定】入力データのキー項目の設定",
+          "label": "グループの設定 (省略可)",
           "params": ["k"]
         },
         {
-            "name": "group3",
-            "label": "【入力設定】入力データの時系列の設定",
-            "params": ["time","time_type","q"]
+          "name": "group3",
+          "label": "時系列の設定 (必須)",
+          "params": ["time","time_type","q"]
+        },
+        {
+          "name": "group1",
+          "label": "出力する時系列の間隔の設定 (必須)",
+          "params": ["interval"]
         },
         {
             "name": "group4",
-            "label": "【入力設定】入力データに対する停止判定の設定",
+            "label": "入力データに対する停止判定の設定 (省略可)",
             "params": ["mpi","c","t_dynamic_interval_num","t_fixed_time"]
         }
       ],
@@ -74,7 +80,7 @@
           "type": "select",
           "label": "計測の停止期間と見なす判定の方法 (必須)",
           "options": {
-          "labels": ["計測間隔(動的な推定値)で判定","指定間隔(固定時間)で判定"],
+          "labels": ["計測間隔(動的な推定値)で判定","計測間隔(固定時間)で判定"],
           "values": ["dynamic_ave","fix"]
           },
           "default": "dynamic_ave"
