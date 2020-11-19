@@ -289,7 +289,7 @@ class MeasurementPeriodIdentifyCommand(PCommand):
                         
                     # check for forbidden char
                     elif any(char in this_a for char in '*?[],:\\ '):
-                        msg = GenerateErrorMessage(commandname, 
+                        msg = GenerateErrorMessage(commandname,
                                                 'FieldNameForbiddenCharacterError',
                                                 'a', this_a)
                         raise Exception(msg)
@@ -1731,7 +1731,7 @@ class TimeSeriesDataJoinCommand(PCommand):
         """
         import fnmatch
 
-        debug = True
+        debug = False
 
         # 定数定義
         err_msg = self.const('err')     # エラーメッセージ
