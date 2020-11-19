@@ -2,23 +2,29 @@
     "id": "ts_mpid",
     "groups": [     
       {
+        "name": "abstract",
+        "label": "センサ時系列稼働停止判定",
+        "description": "時系列の間隔より計測停止期間を判定し、稼働・停止にIDを付与する。",
+        "params": []
+      },
+      {
         "name": "group1",
         "label": "グループの設定（省略可)",
         "params": ["k"]
       },
       {
         "name": "group2",
-        "label": "センサー時系列の設定",
+        "label": "センサー時系列の設定 (必須)",
         "params": ["time","time_type","q"]
       },
       {
           "name": "group3",
-          "label": "停止判定の設定",
+          "label": "停止判定の設定 (必須)",
           "params": ["c","t_dynamic_interval_num","t_fixed_time"]
       },
       {
         "name": "group4",
-        "label": "その他の設定",
+        "label": "その他の設定（省略可)",
         "params": ["overwrite","a"]       
       }      
     ],
@@ -73,7 +79,7 @@
         "type": "select",
         "label": "計測の停止期間と見なす判定の方法 (必須)",
         "options": {
-        "labels": ["計測間隔(動的な推定値)で判定","指定間隔(固定時間)で判定"],
+        "labels": ["計測間隔(動的な推定値)で判定","計測間隔(固定時間)で判定"],
         "values": ["dynamic_ave","fix"]
         },
         "default": "dynamic_ave"
