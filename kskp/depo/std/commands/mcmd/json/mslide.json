@@ -2,22 +2,23 @@
   "id": "mslide",
   "groups": [
     {
-      "name": "group1",
-      "label": "グループの設定 (省略可)",
-      "params": [
-        "k"
-      ]
+      "name": "abstract",
+      "label": "行ずらし",
+      "description": "項目の値を指定した行数ずらして出力する",
+      "params": []
     },
     {
-      "name": "group2",
-      "label": "グループ内のソートの設定（省略可)",
+      "name": "grouping",
+      "label": "グループの設定 (必須)",
       "params": [
+        "k",
         "s"
       ]
     },
     {
       "name": "group4",
       "label": "行ずらしの設定 (必須)",
+      "description": "・指定した行数先までの全ての値を、当行に持ってくる\n・追加列名は 元の列名と行数を組合せで自動生成される",
       "params": [
         "f",
         "t",
@@ -30,16 +31,10 @@
       "name": "group3",
       "label": "その他 (省略可)",
       "params": [
-        "q"
-      ]
-    },
-    {
-      "name": "group10",
-      "label": "項目名・項目番号についての設定（省略可）",
-      "params": [
-        "x",
+        "q",
         "nfn",
-        "nfno"
+        "nfno",
+        "x"
       ]
     },
     {
@@ -54,98 +49,32 @@
       ]
     }
   ],
-  "rules": {
-    "s": {
-      "presencesIfTargetIsNotInput": "q",
-      "checkSeveralSpecifiedFormats": {
-        "defaultRule": {
-          "pattern": "^[^,]+(,[^,]+)*$|^$",
-          "message": "入力が正しくありません"
-        },
-        "specialRules": [
-          {
-            "target": [
-              "x",
-              "nfn"
-            ],
-            "pattern": "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$|^$",
-            "message": "項目の指定は数値のみ可能です。"
-          }
-        ]
-      }
-    },
-    "f": {
-      "presence": {
-        "allowEmpty": false
-      },
-      "checkSeveralSpecifiedFormats": {
-        "defaultRule": {
-          "pattern": "^[^:,]+:[^:,]+(,[^:,]+:[^:,]+)*$|^@\\[.+\\]$",
-          "message": "入力値が正しくありません。"
-        },
-        "specialRules": [
-          {
-            "target": "t",
-            "pattern": "^[^,]+(,[^,]+)*$",
-            "message": "対象となる列名と新しい列名を、:(コロン)で区切って入力してください",
-            "looserPatternThanDefault": true
-          },
-          {
-            "target": [
-              "x",
-              "nfn"
-            ],
-            "pattern": "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$|^[1-9]?[0-9]+L?(:[^,:]+)?(,[1-9]?[0-9]+L?(:[^,:]+)?)*$ |^@\\[.+\\]$",
-            "message": "項目の指定は数値のみ可能です。"
-          }
-        ]
-      }
-    },
-    "k": {
-      "checkSeveralSpecifiedFormats": {
-        "defaultRule": {
-          "pattern": "^[^,]+(,[^,]+)*$|^$",
-          "message": "入力が正しくありません"
-        },
-        "specialRules": [
-          {
-            "target": [
-              "x",
-              "nfn"
-            ],
-            "pattern": "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$|^$",
-            "message": "項目の指定は数値のみ可能です。"
-          }
-        ]
-      }
-    }
-  },
   "params": [
     {
       "name": "s",
       "type": "string",
-      "label": "グループ内順序の指定",
-      "description": "●カンマ区切りで複数指定可\n●表記：【末尾に付与】無しは文字列の昇順、%nは数値の昇順、%rは文字列の降順、%nrは数値の降順\n●注意： グループ化に用いた項目を含めるとグループ内順序の指定が無効になるため、含めずに設定",
+      "label": "グループ内ソートの設定 (必須)",
+      "description": "・ソートのキー項目を、カンマ区切りで複数指定可\n・ソートの種類は変更可能　(デフォルト: 文字列昇順)\n 　方法: 項目名末尾に記号を付与 (数値昇順：%n,  文字列降順： %r,  数値降順：%nr)\n・注意 グループ化する項目名と同じ項目名があると、不整合になり、ソートされません",
       "optional": true
     },
     {
       "name": "k",
       "type": "string",
-      "label": "グループ化する項目名",
-      "description": "●カンマ区切りで複数指定可",
+      "label": "グループ化する項目名　(省略可)",
+      "description": "・カンマ区切りで複数指定可\n・省略時は全ての行を同じグループとみなして処理される",
       "optional": true
     },
     {
       "name": "f",
       "type": "string",
-      "label": "行ずらしの項目名(必須)",
-      "description": "●カンマ区切りで複数指定可\n  項目名時:*,？ 使用可\n  項目番号時:0−3,5,0L 等使用可"
+      "label": "対象とする項目名 (必須)",
+      "description": "・カンマ区切りで複数指定可\n・ワイルドカード(*,？ )使用可"
     },
     {
       "name": "t",
       "type": "string",
-      "label": "行数の指定",
-      "description": "●指定した行数全ての値を、当行に持ってくる  \n   追加列名は 元の列名と行数を組合せて自動作成される\n●1以上の整数で指定する 省略時は 1",
+      "label": "ずらし行数の指定 (必須)",
+      "description": "・1以上の整数で指定する \n",
       "optional": true,
       "default": 1
     },
@@ -182,7 +111,7 @@
     {
       "name": "assert_nullin",
       "type": "boolean",
-      "label": "入力項目のf=またはvf=で指定された項目のNULL値チェックを行う",
+      "label": "対象とする項目名で指定された項目のNULL値チェックを行う",
       "optional": true
     },
     {
@@ -206,8 +135,9 @@
     {
       "name": "x",
       "type": "boolean",
-      "label": "項目番号による指定",
-      "optional": true
+      "label": "項目名ではなく、項目番号で指定する",
+      "optional": true,
+      "description": "・0始まりの項目番号で指定する\n・Lをつけると、右端起点の項目番号とみなす(例:3L)\n・複数入力可能なOptの場合は、列範囲としての指定も可能(例: 0-5)"
     },
     {
       "name": "q",

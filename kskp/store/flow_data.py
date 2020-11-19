@@ -4,12 +4,15 @@ class FlowData():
     """
     Flowデータを表す
     """
-    def __init__(self, flow_json:dict, readable_or_raise:Callable[[],None] = None):
+    def __init__(self, flow_json:dict, 
+                 readable_or_raise:Callable[[],None] = None, 
+                 executable_or_raise:Callable[[],None] = None):
         self._flow_json = flow_json
 
         # readable_or_raise()が指定されない場合は権限判定をしない
         empty_func = lambda: None
         self._readable_or_raise = readable_or_raise or empty_func
+        self._executable_or_raise = executable_or_raise or empty_func
 
     @property
     def label(self) -> str:
@@ -39,10 +42,13 @@ class FlowData():
     def has_nodes(self):
         return 'nodes' in self._flow_json
 
-    @property
-    def nodes(self) -> list:
-        # 参照権限が無ければ例外を送出する
-        self._readable_or_raise()
+    def get_nodes(self, use_exec_auth=False) -> list:
+        if use_exec_auth:
+            # フロー実行のための参照であれば、実行権限で判定する
+            self._executable_or_raise()
+        else:
+            # 参照権限が無ければ例外を送出する
+            self._readable_or_raise()
 
         return self._flow_json.get('nodes')
 

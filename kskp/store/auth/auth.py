@@ -1,9 +1,10 @@
 import os
 from kskp.store import BaseModel
-from sqlalchemy import Column, String, text, PrimaryKeyConstraint
+from sqlalchemy import Column, text, PrimaryKeyConstraint
 from sqlalchemy.dialects.postgresql import INTEGER, BOOLEAN, TIMESTAMP, ENUM
 
 class Auth(BaseModel):
+    FIND_OP = 'find'
     READ_OP = 'read'
     WRITE_OP = 'write'
     DELETE_OP = 'delete'
@@ -15,7 +16,7 @@ class Auth(BaseModel):
 
     # テーブルの制約
     __table_args__ = (
-        PrimaryKeyConstraint('group_id', 'datum_id', 'operation'),
+        PrimaryKeyConstraint('role_id', 'datum_id', 'operation'),
     )
 
     # 定義先スキーマ
@@ -24,23 +25,24 @@ class Auth(BaseModel):
         __table_args__ = __table_args__ + ({'schema': os.environ['KSKP_POSTGRESQL_SCHEMA_NAME']} ,)
 
     # 列名と列のデータ型等の定義
-    group_id     = Column(INTEGER, primary_key=True)
+    # ProjectFolder.get_joined_members()で発行するSQLでdatum_idへのインデックスを利用するため、datum_idを1列目に配置する
     datum_id     = Column(INTEGER, primary_key=True)
-    operation    = Column(ENUM(READ_OP, WRITE_OP, DELETE_OP, EXEC_OP, OWN_OP, name='op_type'), primary_key=True)
+    role_id      = Column(INTEGER, primary_key=True)
+    operation    = Column(ENUM(FIND_OP, READ_OP, WRITE_OP, DELETE_OP, EXEC_OP, OWN_OP, name='op_type'), primary_key=True)
     permission   = Column(BOOLEAN, nullable=False)
     _creator_id  = Column('creator', INTEGER)
     _modifier_id = Column('modifier', INTEGER)
     created_at   = Column(TIMESTAMP, default=text('statement_timestamp()'))
     modified_at  = Column(TIMESTAMP, default=text('statement_timestamp()'), onupdate=text('statement_timestamp()'))
 
-    def __init__(self, session, group_id, datum_id, operation, permission):
+    def __init__(self, session, role_id, datum_id, operation, permission):
         """
         コンストラクタ
         """
         # SQLAlchemy Session
         self._session = session
 
-        self.group_id = group_id
+        self.role_id = role_id
         self.datum_id = datum_id
         self.operation = operation
         self.permission = permission
@@ -55,24 +57,33 @@ class Auth(BaseModel):
         from kskp.store.factory import UserFactory
         if self._creator_id is None:
             return None
-        return UserFactory(self._session).find_by_id(self._creator_id)
+        return UserFactory(self._session).find_by_id(self._creator_id, allow_no_result=True)
 
     @property
     def modifier(self):
         from kskp.store.factory import UserFactory
         if self._modifier_id is None:
             return None
-        return UserFactory(self._session).find_by_id(self._modifier_id)
+        return UserFactory(self._session).find_by_id(self._modifier_id, allow_no_result=True)
         
     def save(self):
         """
         Authを保存する
         """
-        # Authテーブルにレコードを新規追加する
-        self._session.add(self)
-        self._session.commit()
+        try:
+            # Authテーブルにレコードを新規追加する
+            self._session.add(self)
+        except Exception as e:
+            self._session.rollback()
+            raise e
+        finally:
+            self._session.commit()
 
     def update(self, permission):
+        # 同じ値への更新であれば何もしない
+        if permission == self.permission:
+            return self
+
         try:
             # レコードを更新する
             self.permission = permission
@@ -84,9 +95,19 @@ class Auth(BaseModel):
         finally:
             self._session.commit()
 
+        return self
+
     def delete(self):
         """
         Authを削除する
         """
-        self._session.delete(self)
-        self._session.commit()
+        try:
+            self._session.delete(self)
+        except Exception as e:
+            self._session.rollback()
+            raise e
+        finally:
+            self._session.commit()
+
+    def __repr__(self):
+        return f'Auth(role:{self.role_id}, datum:{self.datum_id}, {self.operation}, {self.permission})'
