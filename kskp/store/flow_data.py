@@ -29,25 +29,28 @@ class FlowData():
                 node['uuid'] = None
                 node['label'] = '******'
                 # ノードをマスクしたことを示すフラグを追加する
-                node['hidden'] = True
+                node['masked'] = True
 
     def _unmask_nodes(self, nodes, prev_ver_nodes):
         """
         prev_ver_nodesを参照してノードのマスクを外す
         """
-        if nodes is None:
+        if nodes is None or prev_ver_nodes is None:
             return
         for node in nodes:
-            if not node.get('hidden'):
+            if not node.get('masked'):
                 continue
+
             # 前の版のフローJsonから同じidのノードを取得する
-            original_node = FlowData._find_node(prev_ver_nodes)
-            # ノードをマスクしたことを示すフラグを削除する
-            del node['hidden']
-            if original_node is not None and not original_node.get('hidden'):
+            original_node = FlowData._find_node(prev_ver_nodes, node['id'])
+
+            if original_node is not None and not original_node.get('masked'):
                 # マスクを外す
                 node['uuid'] = original_node.get('uuid')
                 node['label'] = original_node.get('label')
+
+            # ノードをマスクしたことを示すフラグを削除する
+            del node['masked']
 
     @staticmethod
     def _find_node(nodes, node_id):
@@ -68,6 +71,10 @@ class FlowData():
     def label(self) -> str:
         return self._flow_json.get('label')
 
+    @label.setter
+    def label(self, label):
+        self._flow_json['label'] = label
+
     @property
     def description(self) -> str:
         return self._flow_json.get('description')
@@ -76,9 +83,17 @@ class FlowData():
     def creator(self) -> str:
         return self._flow_json.get('creator')
 
+    @creator.setter
+    def creator(self, creator):
+        self._flow_json['creator'] = creator
+
     @property
     def created_at(self) -> str:
         return self._flow_json.get('createdAt')
+
+    @created_at.setter
+    def created_at(self, created_at):
+        self._flow_json['createdAt'] = created_at
 
     @property
     def params(self) -> list:
@@ -92,6 +107,13 @@ class FlowData():
     def has_nodes(self):
         return 'nodes' in self._flow_json
 
+    def copy(self):
+        """
+        自身の複製を作成して返す
+        """
+        import copy
+        return FlowData(copy.deepcopy(self._flow_json))
+
     def get_nodes(self, use_exec_auth=False) -> list:
         # 権限を判定する
         self._has_auth_or_raise(use_exec_auth)
@@ -102,9 +124,9 @@ class FlowData():
 
         return self._flow_json.get('nodes')
 
-    def unmask_nodes(self, prev_flow_data):
+    def unmask_nodes(self, prev_flow_json):
         nodes = self._flow_json.get('nodes')
-        prev_ver_nodes = prev_flow_data._flow_json.get('nodes')
+        prev_ver_nodes = prev_flow_json.get('nodes')
         # マスクされたノードがあればマスクを外す
         self._unmask_nodes(nodes, prev_ver_nodes)
 
@@ -141,3 +163,9 @@ class FlowData():
 
     def __ne__(self, other):
         return self._flow_json != other._flow_json
+
+    def __getitem__(self, key):
+        raise Exception(f'FlowDataに"[]"演算子は使えません')
+
+    def __setitem__(self, key, value):
+        raise Exception(f'FlowDataに"[]"演算子は使えません')

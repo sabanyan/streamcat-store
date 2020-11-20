@@ -19,7 +19,8 @@ class Flow(Datum):
 
         # data列の値を作成する
         if not isinstance(flow_data, FlowData):
-            raise Exception(f'flow_dataはFlowDataではありません')
+            raise Exception(f'Flow.__init__()の引数flow_dataに{type(flow_data).__name__}型が渡されましたFlowData型を渡してください.')
+
         self._data = {'label' : label, 'flow' : flow_data.to_json()}
 
         # DBに保存する前のFlowへの参照と更新と実行権限は制限しない
@@ -39,7 +40,11 @@ class Flow(Datum):
                 return False
             return data[0].readable
 
-        return FlowData(self._data['flow'], is_readable, self._readable_or_raise, self._executable_or_raise)
+        # flow_jsonの変更によって、self._data['flow']が変更されないよう、flow_jsonのコピーを返す
+        import copy
+        flow_json = copy.deepcopy(self._data['flow'])
+
+        return FlowData(flow_json, is_readable, self._readable_or_raise, self._executable_or_raise)
 
     # @property
     # def executable(self) -> bool:
@@ -83,7 +88,7 @@ class Flow(Datum):
         """
 
         if not isinstance(flow_data, FlowData):
-            raise Exception(f'flow_dataはFlowDataではありません.')
+            raise Exception(f'Flow.update_data()の引数flow_dataに{type(flow_data).__name__}型が渡されましたFlowData型を渡してください.')
 
         # # 参照するフレームがライブラリに存在することを確認する
         # for frame_uuid in self.get_src_frame_uuids():
@@ -117,6 +122,9 @@ class Flow(Datum):
         # for flow_uuid in self.get_sub_flow_uuids():
         #     if not Flow.exists(flow_uuid):
         #         raise Exception(f'フロー({flow_uuid})がライブラリにありません')
+
+        # マスクされたノードがあればマスクを外す
+        flow_data.unmask_nodes(prev_flow_json=self._data['flow'])
 
         try:
             # レコードを更新する
@@ -210,16 +218,16 @@ class Flow(Datum):
         自身の複製を作成する
         """
         # ラベルと作成者については、指定された値を新たに設定する
-        new_flow_json = self.flow_data.to_json()
-        new_flow_json['label'] = new_label
-        new_flow_json['creator'] = self._session.user.name
+        new_flow_data = self.flow_data.copy()
+        new_flow_data.label = new_label
+        new_flow_data.creator = self._session.user.name
         # FIXIT : Dataテーブルのcreated_at列と時刻を合わせたい
         from datetime import datetime, timedelta, timezone
         JST = timezone(timedelta(hours=+9), 'JST')
-        new_flow_json['createdAt'] = datetime.now(JST).strftime('%Y-%m-%d %H:%M:%S')
+        new_flow_data.createdAt = datetime.now(JST).strftime('%Y-%m-%d %H:%M:%S')
         # 複製を作成する
         parent = self.find_parent()
-        new_flow = parent.create_flow(new_label, FlowData(new_flow_json))
+        new_flow = parent.create_flow(new_label, new_flow_data)
 
         # フロー間でキャッシュを共有すると、キャッシュ削除操作により不整合が発生する
         # そのためフローを複製する時はキャッシュも複製する
@@ -436,12 +444,12 @@ class Flow(Datum):
         """
         参照uuidを置き換える
         """
-        flow_data = self.flow_data
+        flow_json = self._data['flow']
 
-        if not flow_data.has_nodes:
+        if 'nodes' not in flow_json:
             return
 
-        for node in flow_data.get_nodes():
+        for node in flow_json['nodes']:
             for old_uuid, new_uuid in old_new_uuid_pairs.items():
                 if 'uuid' in node and node['uuid'] == old_uuid:
                     node['uuid'] = new_uuid
@@ -451,17 +459,16 @@ class Flow(Datum):
     def set_cache(self, node_id, cache):
         from datetime import datetime, timedelta, timezone
 
-        flow_data = self.flow_data
+        flow_json = self._data['flow']
 
-        if not flow_data.has_nodes:
+        if 'nodes' not in flow_json:
             return
 
-        for node in flow_data.get_nodes():
+        for node in flow_json['nodes']:
             if node['id'] == node_id:
                 node['uuid'] = cache.uuid
-                # 記録時間はUTC、表示時間は現地時間にすべきでは？？
+                # TODO: 記録時間はUTC、表示時間は現地時間にすべきでは？？
                 node['cacheCreatedAt'] = datetime.now(timezone(timedelta(hours=+9), 'JST')).strftime('%Y-%m-%d %H:%M:%S')
-        # self.update_data(self.label, flow_data)
 
     def to_json(self):
         ret = super().to_json()
