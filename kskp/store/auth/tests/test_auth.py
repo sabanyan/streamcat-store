@@ -92,6 +92,145 @@ class AuthTest(TestCaseBase):
         "description": ""
     }
 
+    # d(in=on) -> column_unique_name -> d1(out=on)
+    flow2_json = {
+        "label": "flow2", 
+        "nodes": [
+        {
+            "id": "d", 
+            "type": "frame", 
+            "value": [["顧客", "数量", "金額"],
+                      ["A", 1, 10],
+                      ["A", 2, 20],
+                      ["B", 1, 30],
+                      ["B", 3, 40],
+                      ["B", 1, 50]],
+            "label": "testData",
+            "makeCache": False, 
+            "dataSource": "csv", 
+            "cacheCreatedAt": None
+        }, 
+        {
+            "id": "d1", 
+            "type": "frame", 
+            "uuid": None, 
+            "label": "d1", 
+            "makeCache": False, 
+            "dataSource": "csv", 
+            "cacheCreatedAt": None
+        }, 
+        {
+            "id": "c1", 
+            "args": {
+                "d": "^^"
+            }, 
+            "dsts": {
+                "o": "d1"
+            }, 
+            "srcs": {
+                "i": "d"
+            }, 
+            "type": "command", 
+            "label": "c1", 
+            "commandId": "column_unique_name", 
+            "srcsOrder": [
+                "i"
+            ]
+        }
+        ], 
+        "ports": [
+        [
+            {
+                "type": "frame", 
+                "label": "testData", 
+                "nodeId": "d"
+            }
+        ], 
+        [
+            {
+                "type": "frame", 
+                "label": "d1", 
+                "nodeId": "d1"
+            }
+        ]
+        ], 
+        "params": [], 
+        "creator": "ユーザ管理者", 
+        "createdAt": "2020-11-19 11:31:10", 
+        "projectId": None, 
+        "description": ""
+    }
+
+    # d(in=on) -> sub_flow -> d1(out=on)
+    flow3_json = {
+        "label": "flow3",
+        "nodes": [
+            {
+                "id": "d",
+                "type": "frame",
+                "uuid": None,
+                "label": "0byte",
+                "makeCache": False,
+                "dataSource": "csv",
+                "cacheCreatedAt": None
+            },
+            {
+                "id": "d1",
+                "type": "frame",
+                "uuid": None,
+                "label": "d1",
+                "makeCache": False,
+                "dataSource": "csv",
+                "cacheCreatedAt": None
+            },
+            {
+                "id": "f1",
+                "args": {},
+                "dsts": {
+                    "d1": "d1"
+                },
+                "srcs": {
+                    "d": "d"
+                },
+                "type": "flow",
+                "uuid": None,
+                "label": "f1",
+                "srcsOrder": [
+                    "d"
+                ]
+            }
+        ],
+        "ports": [
+            [],
+            [
+                {
+                    "type": "frame",
+                    "label": "d1",
+                    "nodeId": "d1"
+                }
+            ]
+        ],
+        "params": [],
+        "creator": "ユーザー管理者",
+        "createdAt": "2020-11-20 09:20:50",
+        "projectId": None,
+        "description": ""
+    }
+
+    def get_flow3_json(self, subflow_uuid):
+        """
+        サブフローのUUIDを設定して、Flow3のJsonを取得する
+        """
+        flow3_json =  copy.deepcopy(self.flow3_json)
+
+        # サブフローを指定されたUUIDに設定する
+        for node in flow3_json['nodes']:
+            if node.get('id') == 'f1':
+                node['uuid'] = subflow_uuid
+                break
+
+        return flow3_json
+
     def get_frame_from_lasts(lasts):
         """
         lastsから出力結果Frameを1つ返す
@@ -3576,6 +3715,110 @@ class AuthTest(TestCaseBase):
 
         # プロジェクトを削除する
         project.delete()
+
+    def test_get_masked_flow(self):
+        """
+        参照権限のないサブフローノードやデータソースノードは、
+        ラベルとuuidがマスキングされること
+        """
+        # ルートフォルダを取得する
+        root = self.factory2.data.load_root()
+
+        # USER2は、ルートフォルダの下にプロジェクトを作成する
+        project1 = root.create_project_folder('プロジェクトX')
+        project1.save()
+        project1 = project1.reload()
+
+        # USER2は、プロジェクトの下に共有フローを作成する
+        flow_data = FlowData(copy.deepcopy(self.flow2_json))
+        flow1 = project1.create_flow('共有フロー', flow_data)
+        flow1.save()
+        flow1 = flow1.reload()
+
+        # USER2は、ルートフォルダの下にプロジェクトを作成する
+        project2 = root.create_project_folder('プロジェクトY')
+        project2.save()
+        project2 = project2.reload()
+
+        # USER2は、プロジェクトの下にメインフローを作成する
+        flow_data = FlowData(self.get_flow3_json(flow1.uuid))
+        flow2 = project2.create_flow('メインフロー', flow_data)
+        flow2.save()
+        flow2 = flow2.reload()
+
+        # USER2は、USER3をプロジェクト2の編集者に追加する
+        member1 = ProjectFolder.Member(self.USER3, ProjectFolder.OWNER_MEMBER_TYPE)
+        project2.join_member(member1)
+
+        # USER3は、メインフローを取得できるが、共有フローの参照権限がないので
+        # その共有フローノードのラベルとuuidはマスキングされていること
+        flow2 = self.factory3.data.find_by_uuid(flow2.uuid)
+        masked_flow_data = flow2.flow_data.to_json()
+        nodes = masked_flow_data['nodes']
+
+        # フローJsonを検証する
+        self.assertEqual(nodes[2]['id'], 'f1')
+        self.assertEqual(nodes[2]['type'], 'flow')
+        # uuidがマスキングされていること
+        self.assertIsNone(nodes[2]['uuid'])
+        # ラベルがマスキングされていること
+        self.assertEqual(nodes[2]['label'], '******')
+        self.assertEqual(nodes[2]['args'], {})
+        self.assertEqual(nodes[2]['srcs'], {'d':'d'})
+        self.assertEqual(nodes[2]['dsts'], {'d1':'d1'})
+        self.assertEqual(nodes[2]['srcsOrder'], ['d'])
+        # マスキングのフラグが設定されていること
+        self.assertEqual(nodes[2]['masked'], True)
+
+        # USER3は、マスキングされたフローJsonでも更新できること
+        flow2.update_data('更新したフロー', FlowData(masked_flow_data))
+
+        # USER2は、更新後のフローであってもマスキングされていないフローJsonを取得できること
+        flow2 = self.factory2.data.find_by_uuid(flow2.uuid)
+        masked_flow_data = flow2.flow_data.to_json()
+        nodes = masked_flow_data['nodes']
+
+        # 更新後のフローJsonを検証する
+        self.assertEqual(flow2.label, '更新したフロー')
+        self.assertEqual(nodes[2]['id'], 'f1')
+        self.assertEqual(nodes[2]['type'], 'flow')
+        # USER2は、参照権限があるのでマスキングされていないこと
+        self.assertEqual(nodes[2]['uuid'], flow1.uuid)
+        # USER2は、参照権限があるのでマスキングされていないこと
+        self.assertEqual(nodes[2]['label'], 'f1')
+        self.assertEqual(nodes[2]['args'], {})
+        self.assertEqual(nodes[2]['srcs'], {'d':'d'})
+        self.assertEqual(nodes[2]['dsts'], {'d1':'d1'})
+        self.assertEqual(nodes[2]['srcsOrder'], ['d'])
+        # マスキングのフラグが存在しないこと
+        self.assertNotIn('masked', nodes[2])
+
+        # USER3は、メインフローを実行できないこと
+        from kskp.engine import execute, FlowJsonLink
+        vis_args = {
+          "d1": {
+            "args": {
+              "visualizer": "csvtohtmltable",
+              "offset": 0,
+              "limit": 108
+            }
+          }
+        }
+        link = FlowJsonLink(flow2, self.factory3, vis_args)
+        with self.assertRaises(Exception):
+            execute(link=link, args={}, inputs={})
+
+        # USER2は、メインフローを実行できること
+        link = FlowJsonLink(flow2, self.factory2, vis_args)
+        last = execute(link=link, args={}, inputs={})
+
+        # フローを削除する
+        flow2.delete()
+        flow1.delete()
+
+        # プロジェクトを削除する
+        project1.delete()
+        project2.delete()
 
     def test_move_from_root_to_project(self):
         """
