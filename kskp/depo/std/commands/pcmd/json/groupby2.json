@@ -4,7 +4,7 @@
     {
       "name": "abstract",
       "label": "特徴量の計算",
-      "description": "複数項目に対して、複数の特徴量を一括算出する  (特徴量: 70種類)",
+      "description": "複数項目に対して、複数の特徴量を一括算出する  (特徴量: 71種類)",
       "params": []
     },
     {
@@ -376,9 +376,9 @@
                       "delimiter": ","
                     },
                     {
-                      "value": "strucouht",
+                      "value": "strucount",
                       "label": "文字列種類数",
-                      "link": "strucouht",
+                      "link": "strucount",
                       "delimiter": ","
                     },
                     {
