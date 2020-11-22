@@ -40,16 +40,7 @@ class Flow(Datum):
                 return False
             return data[0].readable
 
-        # flow_jsonの変更によって、self._data['flow']が変更されないよう、flow_jsonのコピーを返す
-        import copy
-        flow_json = copy.deepcopy(self._data['flow'])
-
-        return FlowData(flow_json, is_readable, self._readable_or_raise, self._executable_or_raise)
-
-    # @property
-    # def executable(self) -> bool:
-    #     # DBに保存する前のFlowの実行権限は制限しない
-    #     return self.id is None or self._session.executable(self)
+        return FlowData(self._data['flow'], is_readable, self._readable_or_raise, self._executable_or_raise)
 
     def _executable_or_raise(self):
         from kskp.store.auth import NotAuthorizedException
@@ -86,7 +77,6 @@ class Flow(Datum):
         """
         Flowのdata列を更新する
         """
-
         if not isinstance(flow_data, FlowData):
             raise Exception(f'Flow.update_data()の引数flow_dataに{type(flow_data).__name__}型が渡されましたFlowData型を渡してください.')
 
@@ -215,7 +205,9 @@ class Flow(Datum):
 
     def duplicate(self, new_label):
         """
-        自身の複製を作成する
+        自身の複製を作成して保存する
+        NOTE: 自分の複製をメモリに作成することをcopy、
+              ライブラリに作成することをduplicateと呼称する
         """
         # ラベルと作成者については、指定された値を新たに設定する
         new_flow_data = self.flow_data.copy()
@@ -228,13 +220,15 @@ class Flow(Datum):
         # 複製を作成する
         parent = self.find_parent()
         new_flow = parent.create_flow(new_label, new_flow_data)
+        # new_flow._replace_cache()のデコレータが機能するにはnew_flowのidを採番する必要がある
+        new_flow.save()
+        new_flow = new_flow.reload()
 
         # フロー間でキャッシュを共有すると、キャッシュ削除操作により不整合が発生する
         # そのためフローを複製する時はキャッシュも複製する
         import io
         from kskp.store.factory import DatumFactory
-        old_new_uuid_pairs = {}
-        for cache_uuid in new_flow.get_cache_frame_uuids():
+        for cache_uuid in new_flow.flow_data.get_cache_frame_uuids():
             factory = DatumFactory(self._session)
             if not factory.exists(cache_uuid):
                 continue
@@ -244,10 +238,8 @@ class Flow(Datum):
             new_cache = parent.create_frame(cache.label + ' のコピー', io.BytesIO(b''))
             # ファイルは複製元と共有する(浅いコピー)
             new_cache.save(file_path=cache.path)
-            # 新旧キャッシュの対応リストに記録する
-            old_new_uuid_pairs[cache_uuid] = new_cache.uuid
-        # フローのキャッシュUUIDを新しいキャッシュUUIDに置き換える
-        new_flow.replace_uuids(old_new_uuid_pairs)
+            # フローのキャッシュUUIDに新しいキャッシュを設定する
+            new_flow._replace_cache(cache_uuid, new_cache)
 
         return new_flow
 
@@ -329,146 +321,38 @@ class Flow(Datum):
         from kskp.store.factory import DatumFactory
         factory = DatumFactory(self._session)
         # 参照するフレームがゴミ箱に存在しないことを確認する
-        for frame_uuid in self.get_src_frame_uuids():
+        for frame_uuid in self.flow_data.get_src_frame_uuids():
             if factory.trashed(frame_uuid):
                 frame = factory.find_by_uuid(frame_uuid)
                 raise Exception(f'ゴミ箱にあるフレーム({frame.label})は使用できません')
 
         # 参照するサブフローがゴミ箱に存在しないことを確認する
-        for flow_uuid in self.get_sub_flow_uuids():
+        for flow_uuid in self.flow_data.get_sub_flow_uuids():
             if factory.trashed(flow_uuid):
                 flow = factory.find_by_uuid(flow_uuid)
                 raise Exception(f'ゴミ箱にあるフロー({flow.label})は使用できません')
 
-    def get_src_frame_uuids(self):
-        """
-        参照する入力frameを全て取得する
-        """
-        ret = []
-        flow_data = self.flow_data
-        
-        if not flow_data.has_nodes:
-            return ret
-
-        for node in flow_data.get_nodes():
-            if node['type'] != 'frame':
-                continue
-            if 'cacheCreatedAt' in node and\
-                node['cacheCreatedAt'] is not None and\
-                node['cacheCreatedAt'] != '':
-                # cacheCreatedAtに日時が入っている場合はキャッシュである
-                continue
-            if 'uuid' not in node or node['uuid'] is None or node['uuid'] == '':
-                continue
-            if node['uuid'] in ret:
-                continue
-            ret.append(node['uuid'])
-        return ret
-
-    def get_cache_frame_uuids(self):
-        """
-        参照するキャッシュframeを全て取得する
-        """
-        ret = []
-        flow_data = self.flow_data
-        
-        if not flow_data.has_nodes:
-            return ret
-
-        for node in flow_data.get_nodes():
-            if node['type'] != 'frame':
-                continue
-            if 'cacheCreatedAt' not in node or\
-                node['cacheCreatedAt'] is None or\
-                node['cacheCreatedAt'] == '':
-                # cacheCreatedAtに日時が入っていない場合は入力フレームである
-                continue
-            if 'uuid' not in node or node['uuid'] is None or node['uuid'] == '':
-                continue
-            if node['uuid'] in ret:
-                continue
-            ret.append(node['uuid'])
-        return ret
-
-    def get_sub_flow_uuids(self):
-        """
-        参照するSub Flowを全て取得する
-        """
-        ret = []
-        flow_data = self.flow_data
-
-        if not flow_data.has_nodes:
-            return ret
-
-        for node in flow_data.get_nodes():
-            if node['type'] != 'flow':
-                continue
-            if 'uuid' not in node or node['uuid'] is None or node['uuid'] == '':
-                continue
-            if node['uuid'] in ret:
-                continue
-            ret.append(node['uuid'])
-        return ret
-
-    def get_store_uuids(self):
-        """
-        参照するStoreを全て取得する
-        """
-        ret = []
-        flow_data = self.flow_data
-
-        if not flow_data.has_nodes:
-            return ret
-
-        for node in flow_data.get_nodes():
-            if node['type'] != 'store':
-                continue
-            if 'uuid' not in node or node['uuid'] is None or node['uuid'] == '':
-                continue
-            if node['uuid'] in ret:
-                continue
-            ret.append(node['uuid'])
-        return ret
-
-    # def replace_uuid(self, old_uuid, new_uuid):
-    #     """
-    #     参照uuidを置き換える
-    #     """
-    #     flow_data = self.flow_data
-    #     for node in flow_data['nodes']:
-    #         if 'uuid' in node and node['uuid'] == old_uuid:
-    #             node['uuid'] = new_uuid
-    #     self.update_data(self.label, flow_data)
-
-    def replace_uuids(self, old_new_uuid_pairs):
-        """
-        参照uuidを置き換える
-        """
-        flow_json = self._data['flow']
-
-        if 'nodes' not in flow_json:
-            return
-
-        for node in flow_json['nodes']:
-            for old_uuid, new_uuid in old_new_uuid_pairs.items():
-                if 'uuid' in node and node['uuid'] == old_uuid:
-                    node['uuid'] = new_uuid
-                    break
-
     @Constraints.set_project_role_on_set_cache
     def set_cache(self, node_id, cache):
-        from datetime import datetime, timedelta, timezone
+        """
+        指定するノードidにキャッシュを設定する
+        """
+        self.flow_data._set_cache(node_id, cache.uuid)
 
-        flow_json = self._data['flow']
+    @Constraints.set_project_role_on_set_cache
+    def _replace_cache(self, old_uuid, cache):
+        """
+        指定するuuidのノードにキャッシュを設定する
+        """
+        self.flow_data._replace_uuid(old_uuid, cache.uuid)
 
-        if 'nodes' not in flow_json:
-            return
-
-        for node in flow_json['nodes']:
-            if node['id'] == node_id:
-                node['uuid'] = cache.uuid
-                # TODO: 記録時間はUTC、表示時間は現地時間にすべきでは？？
-                node['cacheCreatedAt'] = datetime.now(timezone(timedelta(hours=+9), 'JST')).strftime('%Y-%m-%d %H:%M:%S')
+    def replace_uuids(self, uuid_conv_table):
+        """
+        指定するuuidのノードのuuidを置き換える
+        uuid_conv_table: {old_uuid : new_uuid}
+        """
+        for old_uuid, new_uuid in uuid_conv_table.items():
+            self.flow_data._replace_uuid(old_uuid, new_uuid)
 
     def to_json(self):
         ret = super().to_json()

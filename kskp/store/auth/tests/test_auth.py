@@ -2743,7 +2743,7 @@ class AuthTest(TestCaseBase):
         out_frame = AuthTest.get_frame_from_lasts(lasts)
 
         # プロジェクト管理者は、フローのキャッシュを参照できること
-        cache_frame_uuid = flow.get_cache_frame_uuids()[0]
+        cache_frame_uuid = flow.flow_data.get_cache_frame_uuids()[0]
         cache_frame = self.factory2.data.find_by_uuid(cache_frame_uuid)
 
         # フローをプロジェクト2に移動する
@@ -2781,8 +2781,8 @@ class AuthTest(TestCaseBase):
         self.assertEqual(auths[2].permission, True)
         self.assertEqual(auths[2].creator, self.USER2)
         self.assertEqual(auths[2].modifier, self.USER2)
-        self.assertIsNotNone(auths[1].created_at)
-        self.assertIsNotNone(auths[1].modified_at)
+        self.assertIsNotNone(auths[2].created_at)
+        self.assertIsNotNone(auths[2].modified_at)
         # プロジェクト2のReadersロールの参照権限
         self.assertEqual(auths[3].role_id, readers_role.id)
         self.assertEqual(auths[3].datum_id, cache_frame.id)
@@ -2790,8 +2790,8 @@ class AuthTest(TestCaseBase):
         self.assertEqual(auths[3].permission, True)
         self.assertEqual(auths[3].creator, self.USER2)
         self.assertEqual(auths[3].modifier, self.USER2)
-        self.assertIsNotNone(auths[1].created_at)
-        self.assertIsNotNone(auths[1].modified_at)
+        self.assertIsNotNone(auths[3].created_at)
+        self.assertIsNotNone(auths[3].modified_at)
         # プロジェクト2のWritersロールの更新権限
         self.assertEqual(auths[4].role_id, writers_role.id)
         self.assertEqual(auths[4].datum_id, cache_frame.id)
@@ -2799,8 +2799,8 @@ class AuthTest(TestCaseBase):
         self.assertEqual(auths[4].permission, True)
         self.assertEqual(auths[4].creator, self.USER2)
         self.assertEqual(auths[4].modifier, self.USER2)
-        self.assertIsNotNone(auths[1].created_at)
-        self.assertIsNotNone(auths[1].modified_at)
+        self.assertIsNotNone(auths[4].created_at)
+        self.assertIsNotNone(auths[4].modified_at)
         # プロジェクト2のWritersロールの所有権限
         self.assertEqual(auths[5].role_id, writers_role.id)
         self.assertEqual(auths[5].datum_id, cache_frame.id)
@@ -2808,8 +2808,8 @@ class AuthTest(TestCaseBase):
         self.assertEqual(auths[5].permission, True)
         self.assertEqual(auths[5].creator, self.USER2)
         self.assertEqual(auths[5].modifier, self.USER2)
-        self.assertIsNotNone(auths[1].created_at)
-        self.assertIsNotNone(auths[1].modified_at)
+        self.assertIsNotNone(auths[5].created_at)
+        self.assertIsNotNone(auths[5].modified_at)
 
         # プロジェクトとキャッシュを削除する
         project1.throw_away()
@@ -2848,7 +2848,7 @@ class AuthTest(TestCaseBase):
         out_frame = AuthTest.get_frame_from_lasts(lasts)
 
         # プロジェクト管理者は、フローのキャッシュを参照できること
-        cache_frame_uuid = flow.get_cache_frame_uuids()[0]
+        cache_frame_uuid = flow.flow_data.get_cache_frame_uuids()[0]
         cache_frame = self.factory2.data.find_by_uuid(cache_frame_uuid)
 
         # フローをキャッシュフォルダに移動する
@@ -2886,8 +2886,8 @@ class AuthTest(TestCaseBase):
         self.assertEqual(auths[2].permission, True)
         self.assertEqual(auths[2].creator, self.USER2)
         self.assertEqual(auths[2].modifier, self.USER2)
-        self.assertIsNotNone(auths[1].created_at)
-        self.assertIsNotNone(auths[1].modified_at)
+        self.assertIsNotNone(auths[2].created_at)
+        self.assertIsNotNone(auths[2].modified_at)
         # プロジェクト2のReadersロールの参照権限
         self.assertEqual(auths[3].role_id, readers_role.id)
         self.assertEqual(auths[3].datum_id, cache_frame.id)
@@ -2895,8 +2895,8 @@ class AuthTest(TestCaseBase):
         self.assertEqual(auths[3].permission, True)
         self.assertEqual(auths[3].creator, self.USER2)
         self.assertEqual(auths[3].modifier, self.USER2)
-        self.assertIsNotNone(auths[1].created_at)
-        self.assertIsNotNone(auths[1].modified_at)
+        self.assertIsNotNone(auths[3].created_at)
+        self.assertIsNotNone(auths[3].modified_at)
         # プロジェクト2のWritersロールの更新権限
         self.assertEqual(auths[4].role_id, writers_role.id)
         self.assertEqual(auths[4].datum_id, cache_frame.id)
@@ -2904,8 +2904,8 @@ class AuthTest(TestCaseBase):
         self.assertEqual(auths[4].permission, True)
         self.assertEqual(auths[4].creator, self.USER2)
         self.assertEqual(auths[4].modifier, self.USER2)
-        self.assertIsNotNone(auths[1].created_at)
-        self.assertIsNotNone(auths[1].modified_at)
+        self.assertIsNotNone(auths[4].created_at)
+        self.assertIsNotNone(auths[4].modified_at)
         # プロジェクト2のWritersロールの所有権限
         self.assertEqual(auths[5].role_id, writers_role.id)
         self.assertEqual(auths[5].datum_id, cache_frame.id)
@@ -2913,8 +2913,8 @@ class AuthTest(TestCaseBase):
         self.assertEqual(auths[5].permission, True)
         self.assertEqual(auths[5].creator, self.USER2)
         self.assertEqual(auths[5].modifier, self.USER2)
-        self.assertIsNotNone(auths[1].created_at)
-        self.assertIsNotNone(auths[1].modified_at)
+        self.assertIsNotNone(auths[5].created_at)
+        self.assertIsNotNone(auths[5].modified_at)
 
         # プロジェクトとキャッシュを削除する
         project1.throw_away()
@@ -3601,7 +3601,7 @@ class AuthTest(TestCaseBase):
             self.factory3.data.find_by_uuid(out_frame.uuid)
 
         # プロジェクト管理者は、フローのキャッシュを参照できること
-        cache_frame_uuid = flow.get_cache_frame_uuids()[0]
+        cache_frame_uuid = flow.flow_data.get_cache_frame_uuids()[0]
         cache_frame = self.factory2.data.find_by_uuid(cache_frame_uuid)
         # プロジェクト管理者は、フローのキャッシュを更新できること
         cache_frame.update_label('キャッシュ㊗')
@@ -3654,7 +3654,7 @@ class AuthTest(TestCaseBase):
         self.assertEqual(out_frame.label, '神戸⚓️')
 
         # プロジェクト管理者は、フローのキャッシュを参照できること
-        cache_frame_uuid = flow.get_cache_frame_uuids()[0]
+        cache_frame_uuid = flow.flow_data.get_cache_frame_uuids()[0]
         cache_frame = self.factory2.data.find_by_uuid(cache_frame_uuid)
         # プロジェクト管理者は、フローのキャッシュを更新できること
         cache_frame.update_label('琵琶湖🛥')
@@ -3716,6 +3716,138 @@ class AuthTest(TestCaseBase):
         # プロジェクトを削除する
         project.delete()
 
+    def test_duplicate_flow_with_cache(self):
+        """
+        キャッシュを持つフローを複製しても、
+        キャッシュの権限はフローのプロジェクトに紐づいていること
+        """
+        # ROOTを取得する
+        root = self.factory2.data.load_root()
+
+        # ルートフォルダの下にプロジェクトを作成する
+        project = root.create_project_folder('枕もシーツも')
+        project.save()
+        project = project.reload()
+
+        # プロジェクト管理者は、プロジェクトメンバを設定する
+        member1 = ProjectFolder.Member(self.USER2, ProjectFolder.OWNER_MEMBER_TYPE)
+        member2 = ProjectFolder.Member(self.USER3, ProjectFolder.WRITER_MEMBER_TYPE)
+        project.init_members([member1, member2], last_modified_at=project.modified_at)
+
+        # 編集者は、フローを作成する
+        flow_data = FlowData(copy.deepcopy(self.flow_json))
+        flow = project.create_flow('堅くて眠れない〜♪', flow_data)
+        flow.save()
+        flow = flow.reload()
+
+        # 編集者は、フローをプレビュー実行して、キャッシュファイルを作成する
+        from kskp.engine import execute, FlowJsonLink
+        vis_args = { "d1" : 
+                        {"args" :
+                            {"visualizer" : "csvtohtmltable",
+                             "offset" : 0,
+                             "limit"  : 100
+                            }
+                        }
+                    }
+        flow = self.factory3.data.find_by_uuid(flow.uuid)
+        link = FlowJsonLink(flow, self.factory3, vis_args)
+        lasts = execute(link=link, args={}, inputs={})
+
+        # キャッシュのUUIDを取得する
+        cache_frame_uuid = flow.flow_data.get_cache_frame_uuids()[0]
+        cache_frame = self.factory3.data.find_by_uuid(cache_frame_uuid)
+
+        # 編集者は、フローを複製する
+        flow = self.factory3.data.find_by_uuid(flow.uuid)
+        duplicated_flow = flow.duplicate('君も寝具にしてやろうか?😈')
+
+        # 複製したキャッシュのUUIDを取得する
+        duplicated_cache_frame_uuid = duplicated_flow.flow_data.get_cache_frame_uuids()[0]
+        duplicated_cache_frame = self.factory3.data.find_by_uuid(duplicated_cache_frame_uuid)
+
+        # キャッシュが複製されていることを検証する
+        # (フローJSONに記録されたキャッシュのUUIDが異なることを検証する)
+        self.assertNotEqual(duplicated_cache_frame_uuid, cache_frame_uuid)
+
+        # キャッシュの権限設定を検証する
+        auths = self.factory.auth.find_all_by_datum_id(duplicated_cache_frame.id)
+        self.assertEqual(len(auths), 6)
+        # 取得した権限を検証する
+        usr_admin_role = self.factory.role.load_usr_admin_role()
+        readers_role = project._find_readers_role()
+        writers_role = project._find_writers_role()
+        # ユーザ管理者ロールの参照権限
+        self.assertEqual(auths[0].role_id, usr_admin_role.id)
+        self.assertEqual(auths[0].datum_id, duplicated_cache_frame.id)
+        self.assertEqual(auths[0].operation, Auth.READ_OP)
+        self.assertEqual(auths[0].permission, True)
+        self.assertEqual(auths[0].creator, self.USER3)
+        self.assertEqual(auths[0].modifier, self.USER3)
+        self.assertIsNotNone(auths[0].created_at)
+        self.assertIsNotNone(auths[0].modified_at)
+        # ユーザ管理者ロールの更新権限
+        self.assertEqual(auths[1].role_id, usr_admin_role.id)
+        self.assertEqual(auths[1].datum_id, duplicated_cache_frame.id)
+        self.assertEqual(auths[1].operation, Auth.WRITE_OP)
+        self.assertEqual(auths[1].permission, True)
+        self.assertEqual(auths[1].creator, self.USER3)
+        self.assertEqual(auths[1].modifier, self.USER3)
+        self.assertIsNotNone(auths[1].created_at)
+        self.assertIsNotNone(auths[1].modified_at)
+        # ユーザ管理者ロールの所有権限
+        self.assertEqual(auths[2].role_id, usr_admin_role.id)
+        self.assertEqual(auths[2].datum_id, duplicated_cache_frame.id)
+        self.assertEqual(auths[2].operation, Auth.OWN_OP)
+        self.assertEqual(auths[2].permission, True)
+        self.assertEqual(auths[2].creator, self.USER3)
+        self.assertEqual(auths[2].modifier, self.USER3)
+        self.assertIsNotNone(auths[2].created_at)
+        self.assertIsNotNone(auths[2].modified_at)
+        # プロジェクトのReadersロールの参照権限
+        self.assertEqual(auths[3].role_id, readers_role.id)
+        self.assertEqual(auths[3].datum_id, duplicated_cache_frame.id)
+        self.assertEqual(auths[3].operation, Auth.READ_OP)
+        self.assertEqual(auths[3].permission, True)
+        self.assertEqual(auths[3].creator, self.USER3)
+        self.assertEqual(auths[3].modifier, self.USER3)
+        self.assertIsNotNone(auths[3].created_at)
+        self.assertIsNotNone(auths[3].modified_at)
+        # プロジェクトのWritersロールの更新権限
+        self.assertEqual(auths[4].role_id, writers_role.id)
+        self.assertEqual(auths[4].datum_id, duplicated_cache_frame.id)
+        self.assertEqual(auths[4].operation, Auth.WRITE_OP)
+        self.assertEqual(auths[4].permission, True)
+        self.assertEqual(auths[4].creator, self.USER3)
+        self.assertEqual(auths[4].modifier, self.USER3)
+        self.assertIsNotNone(auths[4].created_at)
+        self.assertIsNotNone(auths[4].modified_at)
+        # プロジェクトのWritersロールの所有権限
+        self.assertEqual(auths[5].role_id, writers_role.id)
+        self.assertEqual(auths[5].datum_id, duplicated_cache_frame.id)
+        self.assertEqual(auths[5].operation, Auth.OWN_OP)
+        self.assertEqual(auths[5].permission, True)
+        self.assertEqual(auths[5].creator, self.USER3)
+        self.assertEqual(auths[5].modifier, self.USER3)
+        self.assertIsNotNone(auths[5].created_at)
+        self.assertIsNotNone(auths[5].modified_at)
+
+        # 編集者は、複製したフローをプレビュー実行できること
+        link = FlowJsonLink(duplicated_flow, self.factory3, vis_args)
+        lasts = execute(link=link, args={}, inputs={})
+
+        # プロジェクトに属さないユーザは、複製したフローをプレビュー実行できないこと
+        with self.assertRaises(NotAuthorizedException):
+            link = FlowJsonLink(duplicated_flow, self.factory0, vis_args)
+            lasts = execute(link=link, args={}, inputs={})
+
+        # フローを削除する
+        flow.delete()
+        duplicated_flow.delete()
+
+        # プロジェクトを削除する
+        project.delete()
+     
     def test_get_masked_flow(self):
         """
         参照権限のないサブフローノードやデータソースノードは、
