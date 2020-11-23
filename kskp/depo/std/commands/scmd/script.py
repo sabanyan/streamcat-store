@@ -123,7 +123,11 @@ class CacheSaverCommand(SaverCommand):
             node_id = args['datum_id']
             # TODO: RunsCommand実行前にFlowにキャッシュありの情報を更新すると、同じフローの同時実行に支障があるだろう
             flow.set_cache(node_id, cache)
-            flow.update_data(flow.label, flow.flow_data.to_json())
+            # TODO: キャッシュのUUIDをフローJsonに設定するので、ロックによる排他制御をするべきだが
+            #       フロー実行とプレビュー実行のAPI引数に'lock'キーを追加する必要がある。
+            #       しかし、将来的にフローJsonにキャッシュのUUIDを設定しないようにする方針なので
+            #       APIのインタフェースの変更の手間を惜しんで、暫定的に排他制御を無視してキャッシュのUUIDを設定する。
+            flow.update_data(flow.label, flow.flow_data.to_json(), ignore_lock=True)
 
         # NYSOLコマンドを作成する
         cmd = inputs['i'].content
