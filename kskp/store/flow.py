@@ -1,4 +1,5 @@
 from kskp.core import Datum, Constraints
+from kskp.store import lock_required
 
 class Flow(Datum):
 
@@ -66,7 +67,8 @@ class Flow(Datum):
         finally:
             self._session.commit()
 
-    def update_label(self, label, modifier=None):
+    @lock_required
+    def update_label(self, label, lock_uuid=None, modifier=None):
         """
         Flowのラベルを更新する
         """
@@ -91,7 +93,8 @@ class Flow(Datum):
 
         return self
 
-    def update_data(self, label, flow_json, modifier=None):
+    @lock_required
+    def update_data(self, label, flow_json, ignore_lock=False, lock_uuid=None, modifier=None):
         """
         Flowのdata列を更新する
         """
@@ -148,7 +151,8 @@ class Flow(Datum):
         # ここでflowを返すとtest_model.pyでテストが通らない
         return self
 
-    def move(self, parent_uuid, modifier=None):
+    @lock_required
+    def move(self, parent_uuid, lock_uuid=None, modifier=None):
         from kskp.store.auth import NotAuthorizedException
 
         try:
@@ -161,7 +165,7 @@ class Flow(Datum):
             else:
                 raise e
 
-    def throw_away(self):
+    def throw_away(self, lock_uuid=None):
         """
         Flowをゴミ箱にほかす
         """
@@ -175,7 +179,7 @@ class Flow(Datum):
             raise Exception(f"このフローは別のフロー({using_flow_uuids[0]['reference_label']})で使用しているため削除できません")
 
         try:
-            return self.move(trash_folder.uuid)
+            return self.move(trash_folder.uuid ,lock_uuid=lock_uuid)
         except Exception as e:
             if self.edit_lock:
                 # 編集ロックにより更新できなかった場合
@@ -184,8 +188,9 @@ class Flow(Datum):
             else:
                 raise e
 
+    @lock_required
     @Constraints.delete_role_when_isolated
-    def delete(self):
+    def delete(self, lock_uuid=None):
         """
         Flowを削除する
         """
@@ -274,6 +279,13 @@ class Flow(Datum):
 
     @edit_lock.setter
     def edit_lock(self, value:bool):
+        """
+        編集ロックを設定する
+        """
+        self.set_edit_lock(value)        
+
+    @lock_required
+    def set_edit_lock(self, value:bool, lock_uuid=None):
         """
         編集ロックを設定する
         """
