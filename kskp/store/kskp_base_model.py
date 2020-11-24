@@ -10,11 +10,33 @@ class KSKPBaseModel(object):
 
     KEY_OF_TMP_PASS = b'yImzJql25MsreO5E1mQJfNh6ci-oIgSVCSamULEUOnA='
 
+    @declared_attr
+    def __table_args__(cls):
+        # 定義先スキーマ
+        if 'KSKP_POSTGRESQL_SCHEMA_NAME' in os.environ:
+            return ({'schema': os.environ['KSKP_POSTGRESQL_SCHEMA_NAME']},)
+        else:
+            return ()
+
+    # 
     # モデルクラスに共通の列を定義する
-    _creator_id  = Column('creator', INTEGER)
-    _modifier_id = Column('modifier', INTEGER)
-    created_at   = Column(TIMESTAMP, default=text('statement_timestamp()'))
-    modified_at  = Column(TIMESTAMP, default=text('statement_timestamp()'), onupdate=text('statement_timestamp()'))
+    # (@declared_attrを用いて列をテーブルの最後に配置する)
+    # 
+    @declared_attr
+    def _creator_id(cls):
+        return Column('creator', INTEGER)
+
+    @declared_attr
+    def _modifier_id(cls):
+        return Column('modifier', INTEGER)
+
+    @declared_attr
+    def created_at(cls):
+        return Column(TIMESTAMP, default=text('statement_timestamp()'))
+
+    @declared_attr
+    def modified_at(cls):
+        return Column(TIMESTAMP, default=text('statement_timestamp()'), onupdate=text('statement_timestamp()'))
 
     def __init__(self, session):
         # SQLAlchemy Session
@@ -24,14 +46,6 @@ class KSKPBaseModel(object):
         if session is not None and session.user is not None:
             self._creator_id = session.user.id
             self._modifier_id = session.user.id
-
-    @declared_attr
-    def __table_args__(cls):
-        # 定義先スキーマ
-        if 'KSKP_POSTGRESQL_SCHEMA_NAME' in os.environ:
-            return ({'schema': os.environ['KSKP_POSTGRESQL_SCHEMA_NAME']},)
-        else:
-            return ()
 
     @staticmethod
     def _get_encrypt_password(password):
