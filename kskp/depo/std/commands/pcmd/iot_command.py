@@ -1,12 +1,11 @@
 import sys
 import copy
 import uuid
-import nysol.mcmd as nm
 import numpy as np
 import fnmatch as fn
+import nysol.mcmd as nm
 import nysol.util.mtemp as mtemp
 from nysol.util._utillib import mcsvout as mcsvout
-from pathlib import Path
 from decimal import Decimal
 
 from kskp.store import NysolModule
@@ -27,25 +26,25 @@ def generate_error_message(commandname, errcode, errfield, fieldinput, template_
     errors = {
         # Field Name Errors
         'EmptyFieldNameError': '空文字列の項目名は指定できません。${fieldinput}',
-        'FieldNameForbiddenCharacterError' : '半角の（ *　?　[　]　,　:　\\ ）は、項目名に使用できません。${fieldinput}',
+        'FieldNameForbiddenCharacterError' : '半角の *　?　[　]　,　:　\\ は、項目名に使用できません。${fieldinput}',
         'FieldNotFoundError' : '指定した項目名は存在しません。${fieldinput}',
         'TargetFieldConflictError' : '同じ項目名が複数回指定されています。${fieldinput}',
         'FieldNameConflictError' : '追加する項目名は、すでに存在します。既存項目を置き換えていい場合は、上書きのチェックをONにします。置き換えない場合は、重複のない項目名を指定してください。${fieldinput}',
         'OutputNamesFormatError' : '指定された追加する項目の数は9個ではありません。9個の項目名をカンマ区切りで指定してください。${fieldinput}',
 
         # Time setting errors
-        'TimeSettingMismatchError': '時間の指定は、時間軸のデータ型と一致しません。${correct_timeformat} で設定してください　${fieldinput}',
+        'TimeSettingMismatchError': '時間の指定は、時間軸のデータ型と一致しません。${correct_timeformat} で設定してください。${fieldinput}',
 
         # parameter errors
-        'OutOfBoundsError' : '${errfield} への ${fieldinput} 指定が正しくありません。${correct_bounds} で指定してください',
-        'ParameterTypeError' : '${errfield} への ${fieldinput} 指定が正しくありません。${correct_type} を指定してください',
-        'EmptyParamError' : '空文字列の指定はできません',
-        'TimePrecisionError':'時間軸のデータ型が暦型(YYYYMMDDhhmmss.小数6桁まで)の場合の間隔は、小数6桁までの秒数を指定してください ${fieldinput}',
-        
+        'OutOfBoundsError' : '${errfield} への ${fieldinput} 指定が正しくありません。${correct_bounds} で指定してください。',
+        'ParameterTypeError' : '${errfield} への ${fieldinput} 指定が正しくありません。${correct_type} を指定してください。',
+        'EmptyParamError' : '空文字列の指定はできません。',
+        'TimePrecisionError':'時間軸のデータ型が暦型(YYYYMMDDhhmmss.小数6桁まで)の場合の間隔は、小数6桁までの秒数を指定してください。 ${fieldinput}',
+
         # interpolation results error
         'InterpolateResultsConflictError' : '出力項目名が重複しています。対象項目、補間方法、結果項目で定まる出力項目名で、重複となる設定がないかを、確認してください。',
         # spans format error
-        'SpansFormatError' : '時系列生成設定への指定が正しくありません。[開始1,終了1],[開始2,終了2],... で指定してください ${fieldinput}'
+        'SpansFormatError' : '時系列生成設定への指定が正しくありません。[開始1,終了1],[開始2,終了2],... で指定してください。 ${fieldinput}'
         
     }
     
@@ -193,15 +192,11 @@ class MeasurementPeriodIdentifyCommand(PCommand):
             if c = dynamic...  then  runfunc型  Python関数を使用
             if c = fix         then  Nysolのみ
         """
-        # from .src import  xxxxxxxxx
-
         # 定数定義
         aflds = self.const('addflds')       # 出力する項目名
         aflds_tmp = self.const('tmpflds')   # 内部で一時的に作成する項目名
         a_opt_seq = self.const('a_opt_seq') # Opt欄 a= で入力される項目名の順序
 
-
-        remove_fields = []          # 後始末用項目名
         args = copy.deepcopy(args)
 
         # --- 引数チェック ---
@@ -398,7 +393,7 @@ class MeasurementPeriodIdentifyCommand(PCommand):
             f <<= nm.mcal(a= f'{aflds_tmp["top"]}', c= 'if(top(), 1, nulln())')
             f <<= nm.mcal(a= f'{aflds_tmp["bot"]}', c= 'if(bottom(), 1, nulln())')
 
-        # ---- UNIX TIME変換 ---
+        # ---- UNIX TIMEに変換 ---
         uxt_fld_name = time
         if time_type == 'datetime':
             f <<= nm.mcal(a= aflds_tmp['int'], c= f'uxt( s2t(regexstr($s{{{time}}},"^[0-9]{{14,14}}|^[0-9]{{6,6}}") ) )')
@@ -480,7 +475,6 @@ class MissingValueInterpolateCommand(PCommand):
         """
         import traceback
         import math
-        import numpy as np
 
         try:
             headerflg = True
@@ -494,21 +488,21 @@ class MissingValueInterpolateCommand(PCommand):
                     if 'non_ip' in args:
                         if m == 'next':
                             for j in ['ip_0_next_pre', 'ip_0_next']:
-                                tmp_fn = field + ipflds[j]
-                                header_adds.append( tmp_fn )
+                                tmp_field_name = field + ipflds[j]
+                                header_adds.append( tmp_field_name )
 
                         if m == 'nearest':
                             for j in ['ip_0_near', 'ip_0_near_pre', 'ip_0_near_next']:
-                                tmp_fn = field + ipflds[j]
-                                header_adds.append( tmp_fn )                            
+                                tmp_field_name = field + ipflds[j]
+                                header_adds.append( tmp_field_name )                            
 
                         if m == 'linear':
                             for j in ['ip_1_1', 'ip_1_0']:
-                                tmp_fn = field + ipflds[j]
-                                header_adds.append( tmp_fn )
+                                tmp_field_name = field + ipflds[j]
+                                header_adds.append( tmp_field_name )
                     else:
-                        tmp_fn = i[2].replace('&', field + dm2 + m)
-                        header_adds.append(tmp_fn)
+                        tmp_field_name = i[2].replace('&', field + dm2 + m)
+                        header_adds.append(tmp_field_name)
 
 
             for kb in nm.mstdin().keyblock(keys, header= True, q= True):
@@ -681,9 +675,9 @@ class MissingValueInterpolateCommand(PCommand):
         else:
             commandname = self.commandname
 
-        for el in range(len(args_iplist)):
-            fs = []
-            for field in args_iplist[el]['ip_f'].split(','):
+        for elem in range(len(args_iplist)):
+            field_list = []
+            for field in args_iplist[elem]['ip_f'].split(','):
                 matched = fnmatch.filter(header, field)
                 
                 if matched == []:
@@ -692,31 +686,29 @@ class MissingValueInterpolateCommand(PCommand):
                                     'ip_f', field)
                     raise Exception(msg)
                 
-                fs = fs + matched
+                field_list = field_list + matched
             
-            if len(fs) != len(set(fs)):
+            if len(field_list) != len(set(field_list)):
                 msg = generate_error_message(commandname,
                                 'TargetFieldConflictError',
-                                'ip_f', args_iplist[el]['ip_f'])
+                                'ip_f', args_iplist[elem]['ip_f'])
                 raise Exception(msg)
                 
 
-            ip_method = args_iplist[el]['ip_c']  # 文字列
-            ip_outfn  = args_iplist[el]['ip_a']  # 文字列
+            ip_method = args_iplist[elem]['ip_c']  # 文字列
+            ip_outfn  = args_iplist[elem]['ip_a']  # 文字列
             
             if any(char in ip_outfn for char in '*?[],:\\ '):
                 msg = generate_error_message(commandname,
                                 'FieldNameForbiddenCharacterError',
                                 'ip_a', ip_outfn)
                 raise Exception(msg)
-
             
-            iplist.append( [el, ip_method, ip_outfn, fs] )
+            iplist.append( [elem, ip_method, ip_outfn, field_list] )
 
-
-            for i in fs:
+            for i in field_list:
                 if ip_outfn != '':
-                    tmp = args_iplist[el]['ip_a'].replace('&', i + dm + ip_method)  # 文字列
+                    tmp = args_iplist[elem]['ip_a'].replace('&', i + dm + ip_method)  # 文字列
                     
                     # check if final col already exists
                     if tmp in header:
@@ -1067,15 +1059,18 @@ class MissingValueInterpolateCommand(PCommand):
                 params = [ x for x in iplist if x[1] == this_method ]
                 # tmp_flds = [ x for y in params for x in y ]  # 多重の項目リストを、1次元リスト化
 
+                # i is one element in iplist, corresponding to a 'previous value'
+                # interpolation calculation
                 for i in params:
+                    # j refers to one set of output column names (list)
                     for j in i[3]:
                         if 'non_ip' in args:
-                            tmp_fn = ｊ + ipflds['ip_0_pre']
+                            tmp_field_name = ｊ + ipflds['ip_0_pre']
                         else:
-                            tmp_fn = i[2].replace('&', ｊ + dm2 + this_method)
+                            tmp_field_name = i[2].replace('&', ｊ + dm2 + this_method)
 
                         top = aflds_tmp['top']
-                        f <<= nm.mcal(a= tmp_fn,
+                        f <<= nm.mcal(a= tmp_field_name,
                                 c= f'if(isnull($s{{{j}}}), if($s{{{top}}}=="1","",#s{{}}), $s{{{j}}})')
 
         # Type B: 欠損値が連続する場合にストリーミング処理できないため、欠損値の連続行数に最大値を設定し、この単位内で処理する
@@ -1311,7 +1306,6 @@ class MissingValueInterpolateCommand(PCommand):
 
         """
         import traceback
-        import math
         import pandas as pd
         import numpy as np
         from scipy.interpolate import CubicSpline
@@ -1381,11 +1375,11 @@ class MissingValueInterpolateCommand(PCommand):
                         if non_ip:
                             if m == 'cubic_spline':
                                 for j in ['ip_3_3', 'ip_3_2', 'ip_3_1', 'ip_3_0']:
-                                    tmp_fn = f + ipflds[j]
-                                    header_adds.append( tmp_fn )
+                                    tmp_field_name = f + ipflds[j]
+                                    header_adds.append( tmp_field_name )
                         else:
-                            tmp_fn = i[2].replace('&', f + dm2 + m)
-                            header_adds.append(tmp_fn)
+                            tmp_field_name = i[2].replace('&', f + dm2 + m)
+                            header_adds.append(tmp_field_name)
 
             """
             データ構成： pandas
@@ -1579,8 +1573,6 @@ class MissingValueInterpolateCommand(PCommand):
                     val_gbn = line[ idx_gbn ]
                     val_rbid = line[ idx_rbid ]
 
-                    pre_gbn = val_gbn
-
                     if int(val_gbn)+1  - int(max_num) * int(val_rbid) <= trim_num:
                         if val_rbid == '0':
                             val_rbid_l = val_rbid
@@ -1664,10 +1656,7 @@ class TimeSeriesDataJoinCommand(PCommand):
             補間値
                 ip_aの展開(複数項目)
         """
-        import fnmatch
-
         debug = False
-
         
         flds_tmplist_i = [] # 入力i の一時作成の項目名リスト
         flds_tmplist_m = [] # 入力m の一時作成の項目名リスト
@@ -1915,11 +1904,11 @@ class TimeSeriesDataJoinCommand(PCommand):
         top_time = unix_time_m  # 区間の先頭の時間
 
         all_outnames = []
-        for el in range(len(iplist)):
-            method  = iplist[el][1]
-            outname = iplist[el][2] # &の置換していない        
+        for elem in range(len(iplist)):
+            method  = iplist[elem][1]
+            outname = iplist[elem][2] # &の置換していない        
 
-            for fld in iplist[el][3]:
+            for fld in iplist[elem][3]:
                 mcal_c_opt = None
                 tmp_name = outname
                 tmp_name = tmp_name.replace('&', fld + dm + method)  # 文字列
@@ -2251,25 +2240,21 @@ class TimeAxisDataGenerateIn0Command(PCommand):
             # spans : [開始,終了],[開始,終了],...
             # 各要素の先頭、末尾の空白は除去する
             
-            # testing format of spans
-            # regex ^\[[^,]+?,[^,]+?\](,\[[^,]+?,[^,]+?\])*$
-            
             import re
-            if not re.match(r'^\[[^,]+?,[^,]+?\](,\[[^,]+?,[^,]+?\])*$', 
-                            args['spans']):
+            # test for valid spans format
+            valid_spans = r'^\[[^,]+?,[^,]+?\](,\[[^,]+?,[^,]+?\])*$'
+            if not re.match(valid_spans, args['spans'].strip()):
                 msg = generate_error_message(commandname,
                             'SpansFormatError',
                             'spans', args['spans'])
                 raise Exception(msg) 
             
-            tmp = None
-            tmp = [ x.strip('[] ') for x in args['spans'].split('],') ]
-            tmp = sorted( [ x.split(',') for x in tmp ] )
-            
-            
+            tmp_span_list = None
+            tmp_span_list = [ x.strip('[] ') for x in args['spans'].split('],') ]
+            tmp_span_list = sorted( [ x.split(',') for x in tmp_span_list ] )
 
             # 件数計算
-            for k in tmp:
+            for k in tmp_span_list:
                 # 入力値のチェク
 
                 # 間隔より件数を計算
@@ -2342,15 +2327,12 @@ class TimeAxisDataGenerateIn1Command(PCommand):
             interval = args['interval']
             k = args['k']
             
-            # 修正：ここから
-            # 追加・修正：2020.10.28
             k_num = 0
             if k is not None:
                 header = [k,time]
                 k_num  = len( k.split(",") )
             else:
                 header = [time]
-            # 修正：ここまで   
 
             headerflg = True
             for line in nm.mstdin().getline(header= True):
@@ -2362,28 +2344,18 @@ class TimeAxisDataGenerateIn1Command(PCommand):
                     dt = []
                     num = 0
 
-                    # 修正：ここから
-                    # 追加：2020.10.28
                     k_val  = line[:k_num]     # list型  グループ項目の値
                     time_s = line[k_num]      # 数値型   そのグループの開始時刻
                     time_e = line[k_num+1]    # 数値型   そのグループの終了時刻
-                    # 修正：ここまで
 
                     if time_type == 'number':
-                        # 修正：ここから                    
-                        # 修正：2020.10.28
                         num = 1.0 + (float(time_e) - float(time_s)) // float(interval)   # 開始の1件 + 切捨ての件数                        
-                        # 修正：ここまで                 
                     elif time_type in ['datetime','date','year_month']:
                         dt = []
-                        # 修正：ここから
-                        # 修正：2020.10.28
                         for ke in [time_s,time_e]:
-                        # 修正：ここまで
                             res = cmd.datetime_nysol2py(ke, time_type=time_type)
                             if res is None:
                                 pass
-                                # raise Exception( 'spans:' + err_msg['input'] + ' ' + err_msg['val'] + ke )
                             else:
                                 dt.append(res)
                         
@@ -2395,10 +2367,7 @@ class TimeAxisDataGenerateIn1Command(PCommand):
                     num = int(num)
                     for n in range(num):
                         if time_type == 'number':
-                        # 修正：ここから
-                            # 修正：2020.10.28
                             val = str( Decimal(time_s) + interval * n )
-                        # 修正：ここまで      
                         elif time_type == 'datetime':
                             val = dt[0] + datetime.timedelta(seconds= interval * n)
                             val = val.strftime('%Y%m%d%H%M%S.%f') 
@@ -2410,8 +2379,6 @@ class TimeAxisDataGenerateIn1Command(PCommand):
                             val = val.strftime('%Y%m') 
                         else:
                             pass
-                        # 修正：ここから
-                        # 修正：2020.10.28
                         print_list = None
                         if k is not None:
                             print_list = k_val[:]   # deepcopy
@@ -2421,7 +2388,6 @@ class TimeAxisDataGenerateIn1Command(PCommand):
 
                         if print_list != []:
                             print(','.join(print_list))
-                        # 修正：ここまで
 
         except Exception as e:
             with open('/dev/stderr', 'w') as fpe:
@@ -2458,7 +2424,6 @@ class TimeAxisDataGenerateIn1Command(PCommand):
         interval = None
 
         k = None
-        merge = None
         q = None
         mpi = None
         c = None
@@ -2492,7 +2457,6 @@ class TimeAxisDataGenerateIn1Command(PCommand):
             f <<= nm.m2tee(i = input_filename)
         else:
             # if header is passed just read from input
-            # f <<= nm.mread(inputs)
             f <<= copy.deepcopy(inputs['i'].content)
             
             
@@ -2598,9 +2562,8 @@ class TimeAxisDataGenerateIn1Command(PCommand):
             if not q:
                 f <<= nm.msortf(f= f"{time}%n")
 
-        # Step1: グループ別に、時系列単位で、稼働停止判定
-        # Step2: グループ別に、区間単位のデータ作成
         if mpi:
+            # Step1: グループ別に、時系列単位で、稼働停止判定
             cmd = MeasurementPeriodIdentifyCommand()
 
             # NOTE command must be wrapped in NysolModule object before sent to
@@ -2620,6 +2583,7 @@ class TimeAxisDataGenerateIn1Command(PCommand):
             #   'ido' : '稼働区間ID'   , 'ids' : '停止区間ID'    
             f <<= nm.mselstr(f= f"{addflds['fos']},{addflds['foe']}", v= "1")
 
+            # Step2: グループ別に、区間単位のデータ作成
             if k is not None:
                 f <<= nm.mslide(f= f"{time}:{t_end_suffix}", q= True, k= f"{k}")
                 f <<= nm.mselstr(f= f"{addflds['fos']}", v= "1")
@@ -2630,6 +2594,8 @@ class TimeAxisDataGenerateIn1Command(PCommand):
                 f <<= nm.mcut(f= f"{time},{t_end_suffix}")
 
         else:
+            # 稼働停止判定をしない場合、Step1 をスキップ
+            # Step2: グループ別に、区間単位のデータ作成
             # グループ別の先頭と末行 2行ごと抽出し、2行の情報を1行に集約する
             if k is not None:
                 f <<= nm.mkeybreak(k= k, a= "top,bot", q= True)
