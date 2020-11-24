@@ -597,9 +597,11 @@ class MissingValueInterpolateCommand(PCommand):
                                             if now_uxt <= ave_uxt:
                                                 val = top_val
                                                 adds.append( '' if str(val) == 'nan' else str(val) )
-                                            else:
+                                            elif now_uxt > ave_uxt:
                                                 val = bot_val
                                                 adds.append( '' if str(val) == 'nan' else str(val) )
+                                            else:
+                                                adds.append('')
                                         else:
                                             val = now_val
                                             adds.append( '' if str(val) == 'nan' else str(val) )
