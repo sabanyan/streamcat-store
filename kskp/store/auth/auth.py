@@ -1,7 +1,7 @@
 import os
 from kskp.store import BaseModel
 from sqlalchemy import Column, text, PrimaryKeyConstraint
-from sqlalchemy.dialects.postgresql import INTEGER, BOOLEAN, TIMESTAMP, ENUM
+from sqlalchemy.dialects.postgresql import INTEGER, BOOLEAN, ENUM
 
 class Auth(BaseModel):
     FIND_OP = 'find'
@@ -26,10 +26,6 @@ class Auth(BaseModel):
     role_id      = Column(INTEGER, primary_key=True)
     operation    = Column(ENUM(FIND_OP, READ_OP, WRITE_OP, DELETE_OP, EXEC_OP, OWN_OP, name='op_type'), primary_key=True)
     permission   = Column(BOOLEAN, nullable=False)
-    # _creator_id  = Column('creator', INTEGER)
-    # _modifier_id = Column('modifier', INTEGER)
-    # created_at   = Column(TIMESTAMP, default=text('statement_timestamp()'))
-    # modified_at  = Column(TIMESTAMP, default=text('statement_timestamp()'), onupdate=text('statement_timestamp()'))
 
     def __init__(self, session, role_id, datum_id, operation, permission):
         """
@@ -37,33 +33,11 @@ class Auth(BaseModel):
         """
         super().__init__(session)
 
-        # # SQLAlchemy Session
-        # self._session = session
-
         self.role_id = role_id
         self.datum_id = datum_id
         self.operation = operation
         self.permission = permission
 
-        # # creator, modifier
-        # if session is not None and session.user is not None:
-        #     self._creator_id = session.user.id
-        #     self._modifier_id = session.user.id
-
-    # @property
-    # def creator(self):
-    #     from kskp.store.factory import UserFactory
-    #     if self._creator_id is None:
-    #         return None
-    #     return UserFactory(self._session).find_by_id(self._creator_id, allow_no_result=True)
-
-    # @property
-    # def modifier(self):
-    #     from kskp.store.factory import UserFactory
-    #     if self._modifier_id is None:
-    #         return None
-    #     return UserFactory(self._session).find_by_id(self._modifier_id, allow_no_result=True)
-        
     def save(self):
         """
         Authを保存する
