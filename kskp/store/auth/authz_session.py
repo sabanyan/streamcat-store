@@ -393,6 +393,7 @@ class AuthzSession(Session):
             if not self.has_usr_admin():
                 raise NotAuthorizedException(f'ユーザー({obj})を作成できませんでした')
             self._session.add(obj)
+            self.flush(obj)
 
         elif isinstance(obj, UserRole):
             # ユーザ管理者かロールの所有者のみ、ロールにユーザを追加できる
@@ -402,10 +403,12 @@ class AuthzSession(Session):
                 user = UserFactory(self).find_by_id(obj.user_id)
                 raise NotAuthorizedException(f'{self.user}はロール({role})にユーザー({user})を追加できませんでした')
             self._session.add(obj)
+            self.flush(obj)
 
         elif isinstance(obj, Role):
             # ロールの新規作成は誰でもできる
             self._session.add(obj)
+            self.flush(obj)
 
             # # 新規追加したロールをDBに反映する
             # self._session.flush([obj])
@@ -422,12 +425,14 @@ class AuthzSession(Session):
                 datum = self._session.query(Datum).get(obj.datum_id)
                 raise NotAuthorizedException(f'{self.user}は{datum.label}に{obj.operation}権限を追加できませんでした')
             self._session.add(obj)
+            self.flush(obj)
 
         else:
             if not self.has_sys_admin():
                 # 上記以外の書き込みはシステム管理者権限が必要
                 raise NotAuthorizedException('no anthz!', str(obj))       
             self._session.add(obj)
+            self.flush(obj)
 
     def update(self, obj, ignore_authz=False):
         from kskp.core import Datum

@@ -498,14 +498,14 @@ class AuthTest(TestCaseBase):
 
         # 他のユーザと同じメールアドレスに変更できないこと
         with self.assertRaises(Exception):
-            new_user1.update_email('wow@kskp.io')
+            new_user2.update_email('wow@kskp.io')
 
         # ユーザを削除する
         new_user1.delete()
 
     def test_validate_email(self):
         """
-        emailの妥当性が検証されること
+        E-Mailの妥当性が検証されること
         """
         pass
 
