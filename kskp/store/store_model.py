@@ -63,9 +63,9 @@ class Store(BaseModel):
 
     def to_json(self):
         return {'id'          : self.id,
-                'version'     : self.get('version'),
-                'label'       : self.get('label'),
-                'description' : self.get('description'),
-                'url'         : self.get('url'),
-                'params'      : self.get('params')
+                'version'     : self.data.get('version'),
+                'label'       : self.data.get('label'),
+                'description' : self.data.get('description'),
+                'url'         : self.data.get('url'),
+                'params'      : self.data.get('params')
                 }

@@ -50,7 +50,6 @@ class User(BaseModel):
     # 環境変数から仮パスワードの有効日数を取得する
     # (設定値がない場合は14日間とする)
     TMP_PASS_EXPIRE_SECONDS = int(os.getenv('KSKP_TMP_PASS_EXPIRE_DAYS', 14)) * 24 * 60 * 60
-    KEY_OF_TMP_PASS = b'yImzJql25MsreO5E1mQJfNh6ci-oIgSVCSamULEUOnA='
 
     # 列名と列のデータ型等の定義
     id            = Column(INTEGER, primary_key=True, autoincrement=True)
@@ -156,28 +155,6 @@ class User(BaseModel):
             hash_target = current_hash + password_bytes + salt
             current_hash = bytes(hashlib.sha256(hash_target).hexdigest(), 'ascii')
         return str(current_hash, encoding='utf-8')
-
-    def _get_encrypt_password(self, password):
-        from cryptography.fernet import Fernet
-        # UTF-8で符号化してByte列で出力
-        b_password = password.encode()
-        # 暗号化
-        cipher_suite = Fernet(self.KEY_OF_TMP_PASS)
-        cipher_text = cipher_suite.encrypt(b_password)
-        return cipher_text.decode()
-
-    def _get_decrypt_password(self, password):
-        from cryptography.fernet import Fernet, InvalidToken
-        # 復号化
-        cipher_suite = Fernet(self.KEY_OF_TMP_PASS)
-        try:
-            # 仮パスワードの有効期間が切れても復号化は可能である
-            return cipher_suite.decrypt(password.encode()).decode()
-        except InvalidToken:
-            # 復号に失敗しても処理は続行可能なので例外は送出しない
-            import warnings
-            warnings.warn(f'{self}の仮パスワードが無効です')
-            return None
 
     def _is_expired_password(self, password):
         """
