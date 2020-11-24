@@ -100,8 +100,11 @@ class Datum(BaseModel):
     _permissions = query_expression()
     # 所有権(queryで追加した列の結果を格納する)
     _ownership = query_expression()
+    # 親フォルダのuuid(queryで追加した列の結果を格納する)
+    _parent_uuid = query_expression()
+    # フォルダパス
+    _folder_path = query_expression()
 
-    user = query_expression()
 
 
     # これを設定することで、session.query(Datum).all()でもサブクラスの型で結果を得ることができる
@@ -243,6 +246,14 @@ class Datum(BaseModel):
         return self._ownership
 
     @property
+    def parent_uuid(self):
+        return self._parent_uuid
+
+    @property
+    def folder_path(self):
+        return self._folder_path
+
+    @property
     def is_root(self):
         return self.parent_id is None
 
@@ -351,6 +362,8 @@ class Datum(BaseModel):
         """
         from kskp.store.factory import DatumFactory
         factory = DatumFactory(self._session)
+        # Sessionにあるself._permissionsを期限切れ状態にしてDBからリロードされるようにする
+        factory._session._session.expire(self, ['_permissions'])
         return factory.find_by_id(self.id)
 
     @Constraints.prohibit_move_to_root
@@ -517,20 +530,20 @@ class Datum(BaseModel):
             except Exception as e:
                 return [], [e]
 
-    def get_prev_folder_path(self):
+    def _get_folder_path(self, parent_id):
         from kskp.store.auth import NotAuthorizedException
         from kskp.store.factory import DatumFactory
 
         factory = DatumFactory(self._session)
-        if self.prev_parent_id is None or not factory.exists_by_id(self.prev_parent_id):
+        if parent_id is None or not factory.exists_by_id(parent_id):
             return None
         else:
             try:
-                prev_parent = factory.find_by_id(self.prev_parent_id)
+                parent = factory.find_by_id(parent_id)
             except NotAuthorizedException:
                 # 参照権限がないため移動元の親Datumが取得できない場合、Noneを返す
                 return None
-            return '/' + '/'.join([folder.get('label') for folder in prev_parent.get_folder_path()])
+            return '/' + '/'.join([folder.get('label') for folder in parent.get_folder_path()])
 
     def __repr__(self):
         return f'Datum({self.id}, {self._label}, {self.type})'
@@ -561,7 +574,10 @@ class Datum(BaseModel):
                     'updateMember': False,
                     'lock'   : False,
                 },
-                'prevFolderPath' : self.get_prev_folder_path(),
+                'folderPath' : self.folder_path,
+                'folderUuid' : self.parent_uuid,
+                # TODO: _get_folder_path()だけで結構遅くなってる
+                'prevFolderPath' : self._get_folder_path(self.prev_parent_id),
                 'creator'   : self.creator_str,
                 'createdAt' : self.created_at_str }
 
@@ -570,7 +586,7 @@ class Datum(BaseModel):
         if self.readable is None:
             raise NotAuthorizedException(f'{self.label}の参照権限がNoneです(save後のDatumオブジェクトは参照権限がNoneになります)')
         if not self.readable:
-            raise NotAuthorizedException(f'{self._session.user.name} ({self.user})は{self.label}の参照権限がありません({self.readable})')
+            raise NotAuthorizedException(f'{self._session.user.name}は{self.label}の参照権限がありません({self.readable})')
 
     def _update_same_path(self, old_path, new_path, modifier):
         # 同じファイルに対応するフォルダのpath列を、ファイル名の移動に合わせて変更する
