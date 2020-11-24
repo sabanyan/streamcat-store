@@ -50,24 +50,6 @@ class Folder(Store):
         finally:
             self._session.commit()
 
-    # def add_entry_from_path(self, file_path):
-    #     """
-    #     指定されたパスのファイルをFolderとして登録する
-    #     """
-    #     # 既にルートフォルダが存在する場合は、parent_id=NULLを許可しない
-    #     from kskp.store.factory import DatumFactory
-    #     if self.parent_id is None and DatumFactory(self.session).count_root() > 0:
-    #         raise Exception('You can not add another root folder. A root already exists!')
-    #     self.path = file_path
-    #     try:
-    #         # Dataテーブルにレコードを新規追加する
-    #         self.session.add(self)
-    #     except Exception as e:
-    #         self.session.rollback()
-    #         raise e
-    #     finally:
-    #         self.session.commit()
-
     def update_data(self, label, modifier=None):
         """
         Folderのdata列を更新する

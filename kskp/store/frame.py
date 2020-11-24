@@ -81,32 +81,6 @@ class Frame(Datum):
             # 親フォルダのロックを解除する
             self._session.commit()
 
-    # def add_entry_from_path(self, file_path):
-    #     """
-    #     指定されたパスのファイルをFrameとして登録する
-    #     """
-    #     # 既にルートフォルダが存在する場合は、parent_id=NULLを許可しない
-    #     from kskp.store.factory import DatumFactory
-    #     if self.parent_id is None and DatumFactory(self.session).count_root() > 0:
-    #         raise Exception('You can not add another root frame. A root already exists!')
-    #     self.path = file_path
-
-    #     # ファイルの文字コードを判定する
-    #     if file_path.exists():
-    #         with open(file_path, 'rb') as f:
-    #             encoding = Frame._detect_encoding(f)
-    #             newline = Frame._detect_newline_code(f)
-    #         self.data = {'encoding':encoding, 'newline':newline}
-
-    #     try:
-    #         # Dataテーブルにレコードを新規追加する
-    #         self.session.add(self)
-    #     except Exception as e:
-    #         self.session.rollback()
-    #         raise e
-    #     finally:
-    #         self.session.commit()
-
     def update_label(self, label, modifier=None):
         """
         Frameのdata列を更新する

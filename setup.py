@@ -4,7 +4,7 @@ setup(
     name='kskp.store',
     packages=['kskp.store'],
     description='Data Store of many type',
-    url='https://www.ksk-anl.com/products/kskp',
+    url='https://www.kskp.io',
     install_requires=[
         'ordered_set',
         'chardet',
