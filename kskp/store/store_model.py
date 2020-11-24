@@ -12,18 +12,18 @@ class Store(BaseModel):
     # テーブル名
     __tablename__ = 'stores'
     
-    # 定義先スキーマ
-    if 'KSKP_POSTGRESQL_SCHEMA_NAME' in os.environ:
-        # テスト環境用のスキーマ
-        __table_args__ = {'schema': os.environ['KSKP_POSTGRESQL_SCHEMA_NAME']}
+    # # 定義先スキーマ
+    # if 'KSKP_POSTGRESQL_SCHEMA_NAME' in os.environ:
+    #     # テスト環境用のスキーマ
+    #     __table_args__ = {'schema': os.environ['KSKP_POSTGRESQL_SCHEMA_NAME']}
 
     # カラム
     id           = Column(ENUM('Directory', 'PostgreSQL', 'MySql', 'ORACLE', name='store_type') ,primary_key=True)
     data         = Column(JSONB)
-    _creator_id  = Column('creator', INTEGER)
-    _modifier_id = Column('modifier', INTEGER)
-    created_at   = Column(TIMESTAMP, default=text('statement_timestamp()'))
-    modified_at  = Column(TIMESTAMP, default=text('statement_timestamp()'), onupdate=text('statement_timestamp()'))
+    # _creator_id  = Column('creator', INTEGER)
+    # _modifier_id = Column('modifier', INTEGER)
+    # created_at   = Column(TIMESTAMP, default=text('statement_timestamp()'))
+    # modified_at  = Column(TIMESTAMP, default=text('statement_timestamp()'), onupdate=text('statement_timestamp()'))
 
     def __init__(self, id=None, data=None, creator=None):
         self._session = None
@@ -36,19 +36,19 @@ class Store(BaseModel):
             self._creator_id = creator.id
             self._modifier_id = creator.id
 
-    @property
-    def creator(self):
-        from kskp.store.factory import UserFactory
-        if self._creator_id is None:
-            return None
-        return UserFactory(self._session).find_by_id(self._creator_id, allow_no_result=True)
+    # @property
+    # def creator(self):
+    #     from kskp.store.factory import UserFactory
+    #     if self._creator_id is None:
+    #         return None
+    #     return UserFactory(self._session).find_by_id(self._creator_id, allow_no_result=True)
 
-    @property
-    def modifier(self):
-        from kskp.store.factory import UserFactory
-        if self._modifier_id is None:
-            return None
-        return UserFactory(self._session).find_by_id(self._modifier_id, allow_no_result=True)
+    # @property
+    # def modifier(self):
+    #     from kskp.store.factory import UserFactory
+    #     if self._modifier_id is None:
+    #         return None
+    #     return UserFactory(self._session).find_by_id(self._modifier_id, allow_no_result=True)
 
     def save(self):
         self._session.add(self)
@@ -63,9 +63,9 @@ class Store(BaseModel):
 
     def to_json(self):
         return {'id'          : self.id,
-                'version'     : self.data['version'],
-                'label'       : self.data['label'],
-                'description' : self.data['description'],
-                'url'         : self.data['url'],
-                'params'      : self.data['params']
+                'version'     : self.get('version'),
+                'label'       : self.get('label'),
+                'description' : self.get('description'),
+                'url'         : self.get('url'),
+                'params'      : self.get('params')
                 }

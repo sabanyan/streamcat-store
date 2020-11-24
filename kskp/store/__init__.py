@@ -63,14 +63,10 @@ if _is_unittest():
     """.format(schema=os.environ['KSKP_POSTGRESQL_SCHEMA_NAME'])
     engine.execute(sql)
 
-# ベースクラスをつくる
-class MyBase(object):
-    @property
-    def is_base_model(self):
-        return True
-
+# SQLAlchemyの全てのモデルクラスのベースモデルを作成する
+from .kskp_base_model import KSKPBaseModel
 from sqlalchemy.ext.declarative import declarative_base
-BaseModel = declarative_base(cls=MyBase)
+BaseModel = declarative_base(cls=KSKPBaseModel, constructor=KSKPBaseModel.__init__, name='KSKPBase')
 
 from kskp.core import Datum, Port, Command
 

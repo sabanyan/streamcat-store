@@ -11,10 +11,10 @@ class User(BaseModel):
     # テーブル名の定義
     __tablename__ = 'users'
 
-    # 定義先スキーマ
-    if 'KSKP_POSTGRESQL_SCHEMA_NAME' in os.environ:
-        # テスト環境用のスキーマ
-        __table_args__ = {'schema': os.environ['KSKP_POSTGRESQL_SCHEMA_NAME']}
+    # # 定義先スキーマ
+    # if 'KSKP_POSTGRESQL_SCHEMA_NAME' in os.environ:
+    #     # テスト環境用のスキーマ
+    #     __table_args__ = {'schema': os.environ['KSKP_POSTGRESQL_SCHEMA_NAME']}
 
     class MyString(sqlalchemy.types.TypeDecorator):
         """
@@ -58,17 +58,19 @@ class User(BaseModel):
     state         = Column(ENUM(INIT_STATE, TMP_STATE, ACTIVE_STATE, INACTIVE_STATE, name='user_state'), nullable=False)
     # 本人ロールのRoleId
     self_role_id  = Column(INTEGER, nullable=True)
-    _creator_id   = Column('creator', INTEGER)
-    _modifier_id  = Column('modifier', INTEGER)
-    created_at    = Column(TIMESTAMP, default=text('statement_timestamp()'))
-    modified_at   = Column(TIMESTAMP, default=text('statement_timestamp()'), onupdate=text('statement_timestamp()'))
+    # _creator_id   = Column('creator', INTEGER)
+    # _modifier_id  = Column('modifier', INTEGER)
+    # created_at    = Column(TIMESTAMP, default=text('statement_timestamp()'))
+    # modified_at   = Column(TIMESTAMP, default=text('statement_timestamp()'), onupdate=text('statement_timestamp()'))
 
     def __init__(self, session, email, name, password=None):
         """
         コンストラクタ
         """
-        # SQLAlchemy Session
-        self._session = session
+        super().__init__(session)
+
+        # # SQLAlchemy Session
+        # self._session = session
 
         # UUIDを採番する
         self.uuid = str(uuid.uuid4())
@@ -90,10 +92,10 @@ class User(BaseModel):
         # 本パスワードに変更する前は初期状態である
         self.state = User.INIT_STATE
 
-        # creator, modifier
-        if session is not None and session.user is not None:
-            self._creator_id = session.user.id
-            self._modifier_id = session.user.id
+        # # creator, modifier
+        # if session is not None and session.user is not None:
+        #     self._creator_id = session.user.id
+        #     self._modifier_id = session.user.id
 
     def _init_on_activation(self):
         """
@@ -250,30 +252,30 @@ class User(BaseModel):
     def is_inactive(self):
         return self.state == User.INACTIVE_STATE
 
-    @property
-    def creator(self):
-        from kskp.store.factory import UserFactory
-        if self._creator_id is None:
-            return None
-        return UserFactory(self._session).find_by_id(self._creator_id, allow_no_result=True)
+    # @property
+    # def creator(self):
+    #     from kskp.store.factory import UserFactory
+    #     if self._creator_id is None:
+    #         return None
+    #     return UserFactory(self._session).find_by_id(self._creator_id, allow_no_result=True)
 
-    @property
-    def modifier(self):
-        from kskp.store.factory import UserFactory
-        if self._modifier_id is None:
-            return None
-        return UserFactory(self._session).find_by_id(self._modifier_id, allow_no_result=True)
+    # @property
+    # def modifier(self):
+    #     from kskp.store.factory import UserFactory
+    #     if self._modifier_id is None:
+    #         return None
+    #     return UserFactory(self._session).find_by_id(self._modifier_id, allow_no_result=True)
 
-    @property
-    def creator_str(self):
-        if self.creator is None:
-            return ''
-        return self.creator.name
+    # @property
+    # def creator_str(self):
+    #     if self.creator is None:
+    #         return ''
+    #     return self.creator.name
 
-    @property
-    def created_at_str(self):
-        from kskp.core import Util
-        return Util.datetime_to_local_time_str(self.created_at)
+    # @property
+    # def created_at_str(self):
+    #     from kskp.core import Util
+    #     return Util.datetime_to_local_time_str(self.created_at)
 
     def save(self):
         """

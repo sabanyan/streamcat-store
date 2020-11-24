@@ -68,10 +68,10 @@ class Datum(BaseModel):
     # テーブル名の定義
     __tablename__ = 'data'
 
-    # 定義先スキーマ
-    if 'KSKP_POSTGRESQL_SCHEMA_NAME' in os.environ:
-        # テスト環境用のスキーマ
-        __table_args__ = {'schema': os.environ['KSKP_POSTGRESQL_SCHEMA_NAME']}
+    # # 定義先スキーマ
+    # if 'KSKP_POSTGRESQL_SCHEMA_NAME' in os.environ:
+    #     # テスト環境用のスキーマ
+    #     __table_args__ = {'schema': os.environ['KSKP_POSTGRESQL_SCHEMA_NAME']}
 
     # 列名と列のデータ型等の定義
     id           = Column(INTEGER, primary_key=True, autoincrement=True)
@@ -92,10 +92,10 @@ class Datum(BaseModel):
                                 TRASH_TYPE,
                                 name='data_type'), nullable=False)
     _data        = Column('data', JSONB)
-    _creator_id  = Column('creator', INTEGER)
-    _modifier_id = Column('modifier', INTEGER)
-    created_at   = Column(TIMESTAMP, default=text('statement_timestamp()'))
-    modified_at  = Column(TIMESTAMP, default=text('statement_timestamp()'), onupdate=text('statement_timestamp()'))
+    # _creator_id  = Column('creator', INTEGER)
+    # _modifier_id = Column('modifier', INTEGER)
+    # created_at   = Column(TIMESTAMP, default=text('statement_timestamp()'))
+    # modified_at  = Column(TIMESTAMP, default=text('statement_timestamp()'), onupdate=text('statement_timestamp()'))
     # 各種権限(queryで追加した列の結果を格納する)
     _permissions = query_expression()
     # 所有権(queryで追加した列の結果を格納する)
@@ -113,8 +113,10 @@ class Datum(BaseModel):
         """
         コンストラクタ
         """
-        # SQLAlchemy Session
-        self._session = session
+        super().__init__(session)
+
+        # # SQLAlchemy Session
+        # self._session = session
 
         # parent_id
         # (rootのみparent_idはNoneである)
@@ -140,9 +142,9 @@ class Datum(BaseModel):
         self.type = datum_type
 
         # creator, modifier
-        if session is not None and session.user is not None:
-            self._creator_id = session.user.id
-            self._modifier_id = session.user.id
+        # if session is not None and session.user is not None:
+        #     self._creator_id = session.user.id
+        #     self._modifier_id = session.user.id
 
         # DBに保存する前のDatumへの参照と更新権限は制限しない
         self._permissions = 0b1100
@@ -268,45 +270,45 @@ class Datum(BaseModel):
     def data_is_empty(self):
         return self._data is None or self._data == {}
 
-    @property
-    def created_at_str(self):
-        from kskp.core import Util
-        return Util.datetime_to_local_time_str(self.created_at)
+    # @property
+    # def created_at_str(self):
+    #     from kskp.core import Util
+    #     return Util.datetime_to_local_time_str(self.created_at)
 
-    @property
-    def modified_at_str(self):
-        from kskp.core import Util
-        return Util.datetime_to_local_time_str(self.modified_at)
+    # @property
+    # def modified_at_str(self):
+    #     from kskp.core import Util
+    #     return Util.datetime_to_local_time_str(self.modified_at)
 
-    @property
-    def creator(self):
-        from kskp.store.factory import UserFactory
-        if self._creator_id is None:
-            return None
-        return UserFactory(self._session).find_by_id(self._creator_id, allow_no_result=True)
+    # @property
+    # def creator(self):
+    #     from kskp.store.factory import UserFactory
+    #     if self._creator_id is None:
+    #         return None
+    #     return UserFactory(self._session).find_by_id(self._creator_id, allow_no_result=True)
 
-    @property
-    def modifier(self):
-        from kskp.store.factory import UserFactory
-        if self._modifier_id is None:
-            return None
-        return UserFactory(self._session).find_by_id(self._modifier_id, allow_no_result=True)
+    # @property
+    # def modifier(self):
+    #     from kskp.store.factory import UserFactory
+    #     if self._modifier_id is None:
+    #         return None
+    #     return UserFactory(self._session).find_by_id(self._modifier_id, allow_no_result=True)
 
-    @modifier.setter
-    def modifier(self, modifier):
-        self._modifier = modifier
+    # @modifier.setter
+    # def modifier(self, modifier):
+    #     self._modifier = modifier
 
-    @property
-    def creator_str(self):
-        if self.creator is None:
-            return ''
-        return self.creator.name
+    # @property
+    # def creator_str(self):
+    #     if self.creator is None:
+    #         return ''
+    #     return self.creator.name
 
-    @property
-    def modifier_str(self):
-        if self.modifier is None:
-            return ''
-        return self.modifier.name
+    # @property
+    # def modifier_str(self):
+    #     if self.modifier is None:
+    #         return ''
+    #     return self.modifier.name
 
     def find_parent(self):
         """
