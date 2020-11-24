@@ -528,7 +528,8 @@ class MissingValueInterpolateCommand(PCommand):
                     bot_pre_uxt = float('nan' if bot_pre_uxt == '' else bot_pre_uxt)
 
                     
-                    # ave_uxt should be null when values are all bad
+                    # ave_uxt should be null when values are all bad, 
+                    # and the current keybreak comprises a full group
                     complete_key = top_flg and bot_flg
                     all_bad = all(val == '' for val in (x[ header.index(field)] for x in kb)) and complete_key
                     if all_bad:
