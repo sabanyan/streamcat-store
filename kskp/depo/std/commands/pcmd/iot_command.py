@@ -516,6 +516,9 @@ class MissingValueInterpolateCommand(PCommand):
                     top_val = kb[0][ header.index(field) ]
                     bot_val = kb[-1][ header.index(nextfield) ]
 
+                    top_flg = kb[0][ header.index(aflds['top']) ] == '1'
+                    bot_flg = kb[-1][ header.index(aflds['bot']) ] == '1'
+
                     top_uxt = kb[0][ header.index( aflds['unix_time'] )]
                     bot_uxt = kb[-1][ header.index( aflds['unix_time_next']) ]
                     bot_pre_uxt = kb[-1][ header.index( aflds['unix_time']) ]
@@ -526,7 +529,9 @@ class MissingValueInterpolateCommand(PCommand):
 
                     
                     # ave_uxt should be null when values are all bad
-                    if all(val == '' for val in (x[ header.index(field)] for x in kb)):
+                    complete_key = top_flg and bot_flg
+                    all_bad = all(val == '' for val in (x[ header.index(field)] for x in kb)) and complete_key
+                    if all_bad:
                         ave_uxt = float('nan')
                     else:
                         if math.isnan(bot_uxt):
