@@ -81,8 +81,10 @@ class Flow(Datum):
         new_label = Datum.escape_label(label)
 
         try:
-            # レコードを更新する
+            # ラベルを更新する
             self._label = new_label
+            # フローJsonにあるlabelは廃止予定だが、label列と同期しておく
+            self._data['flow']['label'] = new_label
             self._modifier_id = (modifier or self._session.user).id
             self._session.update(self)
         except Exception as e:
