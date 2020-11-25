@@ -120,6 +120,12 @@ class AuthzSession(Session):
             # ownのpermissionsの値を取得する
             select_ownership = self._make_select_ownership(Datum.id)
             
+            # Datumの親フォルダのuuidを取得する
+            select_parent_uuid = self._make_select_parent_uuid()
+
+            # Datumのフォルダパスを取得する
+            select_folder_path = self._make_select_folder_path()
+
             # read=TrueのDatumのみ抽出する
             # exists_readable = self._make_exists_readable()
 
@@ -127,7 +133,8 @@ class AuthzSession(Session):
             query = self._session.query(Datum).\
                                   options(with_expression(Datum._permissions, select_permissions.label('permissions'))).\
                                   options(with_expression(Datum._ownership, select_ownership.label('ownership'))).\
-                                  options(with_expression(Datum.user, literal_column(f"'{self.user.name}'")))
+                                  options(with_expression(Datum._parent_uuid, select_parent_uuid.label('parent_uuid'))).\
+                                  options(with_expression(Datum._folder_path, select_folder_path.label('folder_path')))
 
             return AuthzDatumQuery(query, self)
 
@@ -204,11 +211,7 @@ class AuthzSession(Session):
         from sqlalchemy.sql.expression import select, literal_column, text
         from kskp.core import Datum
 
-        # 相関条件を記述するとSQLAlchemyがFROM句にdataテーブルを追加するので、
-        # それを回避するためtextで記述する
-        datum_id_column = text(str(Datum.id.compile()))
-
-        select_stmt = self._make_select_permissions_inner(datum_id_column).as_scalar()
+        select_stmt = self._make_select_permissions_inner().as_scalar()
 
         # SELECT句内にWITH句を記述する必要があるが、SQLAlchemyではそれができないようだ
         # そのため、ここでWITH句を含むSELECT文をtextで記述してこれをメインのSELECT文に含める
@@ -222,12 +225,8 @@ class AuthzSession(Session):
         from sqlalchemy.sql.expression import exists, literal, text
         from kskp.core import Datum
 
-        # 相関条件を記述するとSQLAlchemyがFROM句にdataテーブルを追加するので、
-        # それを回避するためtextで記述する
-        datum_id_column = text(str(Datum.id.compile()))
-
         # label()は括弧で囲むが何故かAlias名(RA1)が付かない
-        select_stmt = self._make_select_permissions_inner(datum_id_column).label('RA1')
+        select_stmt = self._make_select_permissions_inner().label('RA1')
 
         # SELECT句内にWITH句を記述する必要があるが、SQLAlchemyではそれができないようだ
         # そのため、ここでWITH句を含むSELECT文をtextで記述してこれをメインのSELECT文に含める
@@ -237,14 +236,20 @@ class AuthzSession(Session):
         return exists().select_from(text(select_stmt_str + ' RA1')).\
                         where(text('RA1.permissions') >= literal(0b1000))
 
-    def _make_select_permissions_inner(self, datum_id_column, ignore_self_edit_lock=False):
+    def _make_select_permissions_inner(self, datum_id=None, ignore_self_edit_lock=False):
         from sqlalchemy.orm import aliased
-        from sqlalchemy.sql.expression import select, func, case, exists, literal, true, false, and_, or_
+        from sqlalchemy.sql.expression import select, func, case, exists, literal, true, false, and_, or_, text
         from kskp.core import Datum
         from .auth import Auth
         from .user import User
         from .role import Role
         from .user_role import UserRole
+
+        # datum_id=Noneの場合は、親クエリのdataテーブルとの相関クエリとする
+        if datum_id is None:
+            # 相関条件を記述するとSQLAlchemyがFROM句にdataテーブルを追加するので、
+            # それを回避するためtextで記述する
+            datum_id = text(str(Datum.id.compile()))
 
         # leaf_id : 検索対象Datumのid
         # id      : 検索対象DatumからRootDatumへの経路の全てのDatumのid
@@ -252,7 +257,7 @@ class AuthzSession(Session):
         D0 = aliased(Datum, name='D0')
         R = select([D0.id.label('leaf_id'), D0.id, D0.parent_id, literal(1).label('depth')]).\
             select_from(D0).\
-            where(D0.id==datum_id_column).\
+            where(D0.id==datum_id).\
             cte(name='R', recursive=True) 
             # cte: Common Table Expression WITH句のこと
 
@@ -268,7 +273,7 @@ class AuthzSession(Session):
 
         if ignore_self_edit_lock:
             # 検索対象のDatumの編集ロックを権限の判定条件に含めない場合
-            not_exists_edit_lock = ~exists().where(and_(A0.c.datum_id==datum_id_column,
+            not_exists_edit_lock = ~exists().where(and_(A0.c.datum_id==datum_id,
                                                         A0.c.role_id==Role.id,
                                                         Role.uuid==Role.EDIT_LOCK_ROLE_UUID))
             criteria = not_exists_edit_lock
@@ -316,7 +321,7 @@ class AuthzSession(Session):
              select_from(
                  R.outerjoin(A, R.c.id==A.c.datum_id)
              ).\
-             where(R.c.leaf_id==datum_id_column).\
+             where(R.c.leaf_id==datum_id).\
              group_by(A.c.operation).\
              alias('RA')
 
@@ -350,6 +355,68 @@ class AuthzSession(Session):
                                 )
                             )
         return select_stmt
+
+    def _make_select_parent_uuid(self):
+        """
+        Datumの親フォルダのuuidを取得する
+        """
+        from sqlalchemy import select, text
+        from sqlalchemy.orm import aliased
+        from kskp.core import Datum
+
+        # 相関条件を記述するとSQLAlchemyがFROM句にdataテーブルを追加するので、
+        # それを回避するためtextで記述する
+        datum_parent_id_column = text(str(Datum.parent_id.compile()))
+
+        D = aliased(Datum, name='D')
+
+        select_stmt = select([D.uuid]).\
+                      select_from(D).\
+                      where(D.id==datum_parent_id_column)
+        return select_stmt
+
+    def _make_select_folder_path(self):
+        """
+        Datumのフォルダパスを取得する
+        """
+        from sqlalchemy import select, func, text
+        from sqlalchemy.orm import aliased
+        from sqlalchemy.sql.expression import literal_column
+        from kskp.core import Datum
+
+        # 相関条件を記述するとSQLAlchemyがFROM句にdataテーブルを追加するので、
+        # それを回避するためtextで記述する
+        datum_parent_id_column = text(str(Datum.parent_id.compile()))
+
+        # label : 検索対象Datumのlabel
+        # id    : 検索対象DatumからRootDatumへの経路の全てのDatumのid
+        D0 = aliased(Datum, name='D0')
+        R = select([D0._label.label('label'), D0.id, D0.parent_id]).\
+            select_from(D0).\
+            where(D0.id==datum_parent_id_column).\
+            cte(name='R', recursive=True) 
+            # cte: Common Table Expression WITH句のこと
+
+        # WITH句にUNION ALLを用いて再帰クエリとする
+        D = aliased(Datum, name='D')
+        R = R.union_all(
+                select([D._label, D.id, D.parent_id]).\
+                select_from(R.join(D, D.id==R.c.parent_id))
+            )
+
+        Labels = select([R.c.label]).\
+                 select_from(R).\
+                 order_by(R.c.id).as_scalar()
+                 # フォルダ階層順にソートするためidでソートする 
+                 # as_scalar()を指定しないとメインのSELECT文にFROM句が付加されてしまう
+
+        # PostgreSQLにはGROUP_CONCATが無いので代わりに、ARRAY_TO_STRINGとARRAYを用いる
+        func_exp = func.array_to_string(func.array(Labels), '/')
+
+        # WITH句を含むSELECT文をtextで記述してこれをメインのSELECT文に含める
+        func_exp_str = str(func_exp.compile(compile_kwargs={'literal_binds': True}))
+
+        return select([literal_column(func_exp_str)])
 
     def add(self, obj, ignore_authz=False):
         from kskp.core import Datum
@@ -393,6 +460,7 @@ class AuthzSession(Session):
             if not self.has_usr_admin():
                 raise NotAuthorizedException(f'ユーザー({obj})を作成できませんでした')
             self._session.add(obj)
+            self.flush(obj)
 
         elif isinstance(obj, UserRole):
             # ユーザ管理者かロールの所有者のみ、ロールにユーザを追加できる
@@ -402,10 +470,12 @@ class AuthzSession(Session):
                 user = UserFactory(self).find_by_id(obj.user_id)
                 raise NotAuthorizedException(f'{self.user}はロール({role})にユーザー({user})を追加できませんでした')
             self._session.add(obj)
+            self.flush(obj)
 
         elif isinstance(obj, Role):
             # ロールの新規作成は誰でもできる
             self._session.add(obj)
+            self.flush(obj)
 
             # # 新規追加したロールをDBに反映する
             # self._session.flush([obj])
@@ -422,12 +492,14 @@ class AuthzSession(Session):
                 datum = self._session.query(Datum).get(obj.datum_id)
                 raise NotAuthorizedException(f'{self.user}は{datum.label}に{obj.operation}権限を追加できませんでした')
             self._session.add(obj)
+            self.flush(obj)
 
         else:
             if not self.has_sys_admin():
                 # 上記以外の書き込みはシステム管理者権限が必要
                 raise NotAuthorizedException('no anthz!', str(obj))       
             self._session.add(obj)
+            self.flush(obj)
 
     def update(self, obj, ignore_authz=False):
         from kskp.core import Datum

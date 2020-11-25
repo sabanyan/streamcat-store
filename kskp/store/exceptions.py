@@ -140,6 +140,6 @@ class FieldForbiddenCharacterException(CommandException):
         if self._option_id != '':
             msg += f'【オプションID：{self._option_id}】'
 
-        msg += f'半角の（ :　%　&　\\ ）は、項目名の指定に使用できません。{self._bad_field}'
+        msg += f'半角の :　%　&　\\ は、項目名の指定に使用できません。{self._bad_field}'
         return msg
 

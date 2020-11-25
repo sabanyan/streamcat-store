@@ -127,7 +127,7 @@ class CacheSaverCommand(SaverCommand):
             #       フロー実行とプレビュー実行のAPI引数に'lock'キーを追加する必要がある。
             #       しかし、将来的にフローJsonにキャッシュのUUIDを設定しないようにする方針なので
             #       APIのインタフェースの変更の手間を惜しんで、暫定的に排他制御を無視してキャッシュのUUIDを設定する。
-            flow.update_data(flow.label, flow.flow_data.to_json(), ignore_lock=True)
+            flow.update_data(flow.label, flow.flow_data, ignore_lock=True)
 
         # NYSOLコマンドを作成する
         cmd = inputs['i'].content
