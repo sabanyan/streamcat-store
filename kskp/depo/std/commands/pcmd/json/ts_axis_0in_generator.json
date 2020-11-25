@@ -89,7 +89,7 @@
     ],
     "version": "0.7.0",
     "label": "センサ時系列生成（0入力）",
-    "classification": "table_grouping",
+    "classification": "data_source",
     "description": "指定した方法で、一定間隔の時系列データを生成する。",
     "url": ""
   }
