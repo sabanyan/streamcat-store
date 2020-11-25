@@ -1,15 +1,10 @@
 import sys
 import copy
-import uuid
-import numpy as np
-import fnmatch as fn
 import nysol.mcmd as nm
-import nysol.util.mtemp as mtemp
-from nysol.util._utillib import mcsvout as mcsvout
 from decimal import Decimal
 
+from kskp.core import Port, Tmp
 from kskp.store import NysolModule
-from kskp.core import Command, Port, Tmp
 from .script import PCommand
 
 # shared functions for all IoT Commands
@@ -448,15 +443,11 @@ class MeasurementPeriodIdentifyCommand(PCommand):
         nysol_module_o.set_content(f)
         return {'o': nysol_module_o}
 
-
-
-
 class MissingValueInterpolateCommand(PCommand):
     def __init__(self):
         super().__init__()
         self.i_ports = [Port('i', 'frame')]
         self.o_ports = [Port('o', 'frame')]
-
 
     def interpolate_formula_topbot(self, keys, field, nextfield, methods, iplist, ipflds, args, aflds):
         """
@@ -1626,7 +1617,6 @@ class MissingValueInterpolateCommand(PCommand):
         finally:
             sys.__stdout__.flush()#not needed for bigger data
 
-
 class TimeSeriesDataJoinCommand(PCommand):
     def __init__(self):
         super().__init__()
@@ -2308,15 +2298,12 @@ class TimeAxisDataGenerateIn0Command(PCommand):
         nysol_module_o.set_content(f)
         return {'o': nysol_module_o}
 
-
-
 class TimeAxisDataGenerateIn1Command(PCommand):
     def __init__(self):
         super().__init__()
         self.i_ports = [Port('i', 'frame')]
         self.o_ports = [Port('o', 'frame')]
     
-
     def time_axis_generator_in1(self, args):
         """
         引数
@@ -2628,4 +2615,3 @@ class TimeAxisDataGenerateIn1Command(PCommand):
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(f)
         return {'o': nysol_module_o}
-
