@@ -108,6 +108,8 @@ class Folder(Store):
         return trashed_folder
 
     def _throw_away_inner(self, parent, datum):
+        from kskp.store import lock_manager
+
         if isinstance(datum, Folder):
             # フォルダ直下のフォルダとデータベースとドキュメントを取得する
             children = datum.find_children()
@@ -154,6 +156,9 @@ class Folder(Store):
         elif datum.type == Datum.FRAME_TYPE or datum.type == Datum.FLOW_TYPE:
             # 削除しようとするフレーム/サブフローの更新権限がない場合は削除できない
             if not self._session.writable(datum):
+                return 0, 1, None
+            # 削除しようとするサブフローが排他ロック中の場合は削除できない
+            if lock_manager.containts_target(datum.uuid):
                 return 0, 1, None
             # 削除しようとするフレーム/サブフローが、削除対象のフォルダ外のフローで使用されてる場合は削除できない
             using_flow_uuids = self.get_flow_uuids_using_me()
