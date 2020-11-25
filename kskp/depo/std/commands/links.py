@@ -14,6 +14,13 @@ class CommandLink:
     """
     from kskp.depo.std.commands.pcmd.square_command import Square
     from kskp.depo.std.commands.pcmd.groupby2_command import GroupBy2Command
+    from kskp.depo.std.commands.pcmd.iot_command import (
+        MissingValueInterpolateCommand,
+        MeasurementPeriodIdentifyCommand,
+        TimeSeriesDataJoinCommand,
+        TimeAxisDataGenerateIn1Command,
+        TimeAxisDataGenerateIn0Command
+    )
 
     COMMAND_TABLE = {
         # テスト用コマンド
@@ -125,6 +132,12 @@ class CommandLink:
         'convtoutf8' : ConvToUtf8(),
         'align' : AlignColumns(),
         'to_list' : ToListCommand(),
+        # IoT コマンド
+        'ts_polation' : MissingValueInterpolateCommand(),
+        'ts_mpid' : MeasurementPeriodIdentifyCommand(),
+        'ts_join' : TimeSeriesDataJoinCommand(),
+        'ts_axis_1in_generator' : TimeAxisDataGenerateIn1Command(),
+        'ts_axis_0in_generator' : TimeAxisDataGenerateIn0Command(),
         # ビジュアライズ
         'csvtohtmltable': CsvToTableCommand(),
         'csvtolinegraph': CsvToLineGraphCommand(),
