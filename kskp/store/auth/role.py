@@ -1,8 +1,7 @@
 import os
 import uuid
-from sqlalchemy import Column, String, text
-from sqlalchemy.dialects.postgresql import INTEGER, BOOLEAN, TIMESTAMP, UUID
-from kskp.core import Constraints
+from sqlalchemy import Column, String
+from sqlalchemy.dialects.postgresql import INTEGER, BOOLEAN, UUID
 from kskp.store import BaseModel
 from .user_role import UserRole
 
@@ -33,20 +32,11 @@ class Role(BaseModel):
     # テーブル名の定義
     __tablename__ = 'roles'
 
-    # 定義先スキーマ
-    if 'KSKP_POSTGRESQL_SCHEMA_NAME' in os.environ:
-        # テスト環境用のスキーマ
-        __table_args__ = {'schema': os.environ['KSKP_POSTGRESQL_SCHEMA_NAME']}
-
     # 列名と列のデータ型等の定義
     id           = Column(INTEGER, primary_key=True, autoincrement=True)
     uuid         = Column(UUID, nullable=False, unique=True)
     name         = Column(String, nullable=False)
     _delete_on_isolated = Column('delete_on_isolated', BOOLEAN, nullable=False)
-    _creator_id  = Column('creator', INTEGER)
-    _modifier_id = Column('modifier', INTEGER)
-    created_at   = Column(TIMESTAMP, default=text('statement_timestamp()'))
-    modified_at  = Column(TIMESTAMP, default=text('statement_timestamp()'), onupdate=text('statement_timestamp()'))
 
     SYS_ADMIN_ROLE_UUID  = 'aa19bfb3-1409-4082-98e3-c497849d6235'
     SYS_ADMIN_ROLE_LABEL = 'SYS_ADMIN'
@@ -61,8 +51,7 @@ class Role(BaseModel):
         """
         コンストラクタ
         """
-        # SQLAlchemy Session
-        self._session = session
+        super().__init__(session)
 
         # UUIDを採番する
         self.uuid = str(uuid.uuid4())
@@ -73,36 +62,6 @@ class Role(BaseModel):
         # Trueの場合、紐づくDatumが存在しなくなったらこのロールを削除する
         # (このロールの所有者以外のユーザがDatumを削除した時でも削除する)
         self._delete_on_isolated = delete_on_isolated
-
-        # creator, modifier
-        if session is not None and session.user is not None:
-            self._creator_id = session.user.id
-            self._modifier_id = session.user.id
-
-    @property
-    def creator(self):
-        from kskp.store.factory import UserFactory
-        if self._creator_id is None:
-            return None
-        return UserFactory(self._session).find_by_id(self._creator_id, allow_no_result=True)
-
-    @property
-    def modifier(self):
-        from kskp.store.factory import UserFactory
-        if self._modifier_id is None:
-            return None
-        return UserFactory(self._session).find_by_id(self._modifier_id, allow_no_result=True)
-
-    @property
-    def creator_str(self):
-        if self.creator is None:
-            return ''
-        return self.creator.name
-
-    @property
-    def created_at_str(self):
-        from kskp.core import Util
-        return Util.datetime_to_local_time_str(self.created_at)
 
     @property
     def delete_on_isolated(self):
