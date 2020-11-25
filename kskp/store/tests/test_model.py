@@ -257,6 +257,34 @@ class LibraryTest(TestCaseBase):
         frame_src.delete()
         folder_src.delete()
 
+    def test_cannot_move_folder_into_inner(self):
+        """
+        フォルダを自身の中に移動できないこと
+        """
+        # ルートデータストアを取得する
+        root = self.factory.data.load_root()
+        # ルートデータストアの直下にフォルダ1を作成する
+        folder1 = self.save_folder(root, 'Apple')
+        # フォルダ1の直下にフォルダ2を作成する
+        folder2 = self.save_folder(folder1, 'iMac')
+
+        # 移動先に、移動元のフォルダの子フォルダを指定したら例外を送出すること
+        with self.assertRaises(OSError):
+            folder1.move(folder2.uuid)
+
+        # 移動が失敗した場合はDBは更新されていないこと
+        self.assertEqual(folder1.created_at, folder1.modified_at)
+        self.assertEqual(folder2.created_at, folder2.modified_at)
+
+        # 例外送出によりSQLAlchemyのSessionがRollbackされるため
+        # Datumの参照権限がNoneになる、そのため再読み込みする
+        folder1 = folder1.reload()
+        folder2 = folder2.reload()
+
+        # 作成したフォルダを削除する
+        folder2.delete()
+        folder1.delete()
+
     def test_save_folder(self):
         """
         フォルダを作成する

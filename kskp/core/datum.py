@@ -511,7 +511,7 @@ class Datum(BaseModel):
     def _readable_or_raise(self):
         from kskp.store.auth import NotAuthorizedException
         if self.readable is None:
-            raise NotAuthorizedException(f'{self.label}の参照権限がNoneです(save後のDatumオブジェクトは参照権限がNoneになります)')
+            raise NotAuthorizedException(f'{self.label}の参照権限がNoneです(save後またはrollback後のDatumオブジェクトは参照権限がNoneになります)')
         if not self.readable:
             raise NotAuthorizedException(f'{self._session.user.name}は{self.label}の参照権限がありません({self.readable})')
 
@@ -690,6 +690,9 @@ class Datum(BaseModel):
         except OSError as e:
             # ファイルパス指定に誤りがある場合
             # (循環参照になる場合など)
+            import errno
+            if e.errno == errno.EINVAL:
+                raise OSError(e.errno, f'移動先が無効なため、{old_path.name}を移動できませんでした')
             raise e
 
     @staticmethod

@@ -304,10 +304,11 @@ class Folder(Store):
             # ディレクトリに対する権限がない場合
             raise e
         except OSError as e:
-            if e.errno == 39:
+            import errno
+            if e.errno == errno.ENOTEMPTY:
                 # [Errno 39] Directory not empty
                 file_path = next(dir_path.glob('*'))
-                raise OSError(f'Directory({dir_path}) is not removed. File({file_path}) exists in Directory')
+                raise OSError(e.errno, f'Directory({dir_path}) is not removed. File({file_path}) exists in Directory')
             raise e
 
     def _dir_path_exists(self, dir_path, except_id):
