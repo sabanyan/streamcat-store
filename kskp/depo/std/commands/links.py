@@ -14,8 +14,14 @@ class CommandLink:
     コマンド名を解決するリンク
     """
     from kskp.depo.std.commands.pcmd.square_command import Square
-    from kskp.depo.std.commands.pcmd.iot_command import MissingValueInterpolateCommand, MeasurementPeriodIdentifyCommand, TimeSeriesDataJoinCommand, TimeAxisDataGenerateIn1Command, TimeAxisDataGenerateIn0Command
     from kskp.depo.std.commands.pcmd.groupby2_command import GroupBy2Command
+    from kskp.depo.std.commands.pcmd.iot_command import (
+        MissingValueInterpolateCommand,
+        MeasurementPeriodIdentifyCommand,
+        TimeSeriesDataJoinCommand,
+        TimeAxisDataGenerateIn1Command,
+        TimeAxisDataGenerateIn0Command
+    )
 
     COMMAND_TABLE = {
         # テスト用コマンド
