@@ -864,7 +864,7 @@ class LibraryTest(TestCaseBase):
         # 作成したフローを変更する
         from kskp.store import FlowData
         new_flow_data = FlowData(new_flow_json)
-        updated_flow = flow.update_data('新しいフロー', new_flow_data, self.USER2)
+        updated_flow = flow.update_data('新しいフロー', new_flow_data, modifier=self.USER2)
 
         # ラベルとディレクトリパスのみが変更されることを検証する
         self.assertEqual(updated_flow.id, flow.id)
@@ -906,7 +906,7 @@ class LibraryTest(TestCaseBase):
         # ルートデータストアの直下にフォルダを作成する
         folder_dst = self.save_folder(root, 'フォルダDST_B')
         # フローSRCをフォルダDSTへ移動する
-        updated_flow = flow_src.move(folder_dst.uuid, self.USER2)
+        updated_flow = flow_src.move(folder_dst.uuid, modifier=self.USER2)
         # parent_id, path, modifierが変更されることを検証する
         self.assertEqual(updated_flow.id, flow_src.id)
         self.assertEqual(updated_flow.parent_id, folder_dst.id)
@@ -959,20 +959,20 @@ class LibraryTest(TestCaseBase):
 
         # 存在しないフォルダへ移動しようとすると例外を送出する
         with self.assertRaises(Exception):
-            flow_src.move('00000000-0000-0000-0000-000000000000', self.USER2)
+            flow_src.move('00000000-0000-0000-0000-000000000000', modifier=self.USER2)
         # 移動が失敗した場合はDBは更新されていないこと
         self.assertEqual(flow_src.created_at, flow_src.modified_at)
 
         # 移動先にフローを指定したら例外を送出する
         with self.assertRaises(Exception):
-            flow_src.move(flow_dst.uuid, self.USER2)
+            flow_src.move(flow_dst.uuid, modifier=self.USER2)
         # 移動が失敗した場合はDBは更新されていないこと
         self.assertEqual(flow_src.created_at, flow_src.modified_at)
         self.assertEqual(flow_dst.created_at, flow_dst.modified_at)
 
         # 移動先に自分自身を指定したら例外を送出する
         with self.assertRaises(Exception):
-            flow_src.move(flow_src.uuid, self.USER2)
+            flow_src.move(flow_src.uuid, modifier=self.USER2)
         # 移動が失敗した場合はDBは更新されていないこと
         self.assertEqual(flow_src.created_at, flow_src.modified_at)
 
