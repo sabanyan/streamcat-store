@@ -2167,10 +2167,11 @@ class TimeAxisDataGenerateIn0Command(PCommand):
                 raise Exception(msg)
             finally:
                 if time_type == 'datetime':
-                    _, decimal = interval.split('.')
+                    interval_list = interval.split('.')
 
-                    # if more than 7 digits, raise TimePrecisionError
-                    if len(decimal) >= 7:
+                    # if there is a decimal part,
+                    # and it is longer than 7 digits, raise TimePrecisionError
+                    if len(interval_list) == 2 and len(interval_list[1]) >= 7:
                         msg = generate_error_message(commandname,
                                         'TimePrecisionError',
                                         'interval', args['interval'])
