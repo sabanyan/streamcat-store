@@ -1,5 +1,4 @@
 import os
-from pathlib import Path
 
 def _is_unittest():
     # python3 -m unittestで実行した場合は、is_unittest=Trueとなる
@@ -20,36 +19,27 @@ def _make_schema(engine, schema_name):
     try:
         engine.execute(DDL('CREATE SCHEMA IF NOT EXISTS %s' % schema_name))
     except exc.OperationalError as e:
-        raise Exception('💲💰テスト実行にはAWS RDSが起動している必要があります💲💰')
+        raise Exception('💲💰テスト実行にはAWS RDSに接続している必要があります💲💰')
 
 
 if 'DATABASE_URL' in os.environ:
     # HEROKU環境用の設定
-    os.environ["SQLALCHEMY_DATABASE_URI"] = os.environ['DATABASE_URL']
+    sqlalchemy_database_uri = os.environ['DATABASE_URL']
 elif _is_unittest():
     # テスト環境用の設定
     passwd = 'J2-pH|%B'
     database_uri = "postgresql://kskp:%s@kskp.cr4gfi5zl5xm.ap-northeast-1.rds.amazonaws.com/kskp" % passwd
-    os.environ["SQLALCHEMY_DATABASE_URI"] = database_uri
+    sqlalchemy_database_uri = database_uri
 else:
     # ローカル環境用の設定
-    os.environ["SQLALCHEMY_DATABASE_URI"] = "postgresql://postgres:@db/kskp"
-    # os.environ["SQLALCHEMY_DATABASE_URI"] = "postgresql://kskp:ZQZtVgL6G32Vy6p6WJtG3C3K84yuJ4zz@db/kskp"
-
-    # ローカルでpostgres専用コンテナを立ち上げる時のコマンド
-    # docker run --name postgres -p 5432:5432 -e POSTGRES_USER=dev -e POSTGRES_DB=kskp -e POSTGRES_PASSWORD=secret -d postgres:11.1
-    # os.environ["SQLALCHEMY_DATABASE_URI"] = 'postgresql://dev:secret@0.0.0.0:5432/kskp'
+    sqlalchemy_database_uri = "postgresql://postgres:@db/kskp"
+    # sqlalchemy_database_uri = "postgresql://kskp:ZQZtVgL6G32Vy6p6WJtG3C3K84yuJ4zz@db/kskp"
 
 
 # データベースへの接続
 # echo=TrueでSQLログがコンソールに出力される
 from sqlalchemy import create_engine
-# SQLite用
-os.environ['SQLITE_PATH'] = os.getenv('SQLITE_PATH', (Path(__file__).parent.parent.parent / 'kskp.db').as_posix())
-# os.environ['DATABASE_URI'] = "sqlite:///" + os.environ['SQLITE_PATH']
-# check_same_threadをFalseにすることで、sessionをスレッドをまたいで使うことができるようになる（デフォルトはTrue）
-# -> PostgreSQLにはこのオプションはない
-engine = create_engine(os.environ['SQLALCHEMY_DATABASE_URI'], echo=False)
+engine = create_engine(sqlalchemy_database_uri, echo=False)
 
 if _is_unittest():
     # テスト用スキーマ名を設定する

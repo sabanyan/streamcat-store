@@ -316,45 +316,6 @@ class Flow(Datum):
         edit_lock_value = not value and None
         edit_lock_role.init_authz(self.id, read=None, write=edit_lock_value)
 
-    @staticmethod
-    def _get_select_stmt_for_nodes():
-        from sqlalchemy import select, literal_column, text, String
-        from sqlalchemy.dialects.postgresql import TIMESTAMP, UUID
-
-        """
-        select distinct
-               label as label,
-               node ->> 'uuid' as uuid,
-               node ->> 'type' as type,
-               node ->> 'cacheCreatedAt' as cacheCreatedAt
-        from  (select label,
-                      uuid,
-                      jsonb_array_elements(data #> '{flow,nodes}') as node
-                from data
-                where type='flow') F0
-        )
-        """
-
-        # DatumのTableオブジェクト
-        D = Datum.__table__
-
-        sql = select([literal_column("label as label", type_=String),
-                      literal_column("node ->> 'uuid' as uuid", type_=UUID),
-                      literal_column("node ->> 'type' as type", type_=String),
-                      literal_column("node ->> 'cacheCreatedAt' as cacheCreatedAt", type_=TIMESTAMP)
-                     ],
-                     distinct=True,
-              ).select_from(
-                    select([literal_column("label"),
-                            literal_column("uuid"),
-                            literal_column("jsonb_array_elements(data #> '{flow,nodes}') as node")
-                           ])
-                    .select_from(D)
-                    .where(Datum.type==Datum.FLOW_TYPE).alias('F0')
-              )
-
-        return sql
-
     def valid_uuids_in_flowdata_or_raise(self):
         from kskp.store.factory import DatumFactory
         factory = DatumFactory(self._session)
