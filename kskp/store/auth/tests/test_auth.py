@@ -3113,6 +3113,37 @@ class AuthTest(TestCaseBase):
         # ゴミ箱を空にする
         self.factory3.data.find_trashcan().trash_all()
 
+    def test_cannnot_move_system_folder(self):
+        """
+        システムフォルダは移動できないこと
+        """
+        # ルートフォルダを取得する
+        root = self.factory3.data.load_root()
+        # ルートフォルダの下にプロジェクトを作成する
+        project = root.create_project_folder('そうiPhoneならね')
+        project.save()
+        project = project.reload()
+
+        # ルートフォルダは移動できないこと
+        with self.assertRaises(Exception):
+            root.move(project.uuid)
+
+        # キャッシュフォルダは移動できないこと
+        cache_folder = self.factory.data.load_cache_folder()
+        with self.assertRaises(Exception):
+            cache_folder.move(project.uuid)
+
+        # ゴミ箱は移動できないこと
+        trashcan = self.factory.data.load_trash_folder()
+        with self.assertRaises(Exception):
+            trashcan.move(project.uuid)
+
+        # プロジェクトをほかす
+        project.throw_away()
+
+        # ゴミ箱を空にする
+        trashcan.trash_all()
+
     def test_cannot_save_datum_at_root(self):
         """
         ユーザ管理者以外は、ルートフォルダにプロジェクト以外のDatumを新規追加できないこと
