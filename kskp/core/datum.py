@@ -62,6 +62,14 @@ class Datum(BaseModel):
     FLOW_FOLDER_UUID  = 'ff37fe34-9c25-4ad0-b74a-affda3712a45'
     FLOW_FOLDER_LABEL = 'フロー'
 
+    # AuthzSessionが返す権限設定ののビットフラグ(_permissions)
+    PERMISSION_READ   = 0b1_00_0_0
+    PERMISSION_WRITE  = 0b0_10_0_0
+    # 編集ロック値を除外した更新権限(編集者フラグ)
+    PERMISSION_WRITER = 0b0_01_0_0
+    PERMISSION_EXEC   = 0b0_00_1_0
+    PERMISSION_OWN    = 0b0_00_0_1
+
     # Datum.pathの基点ディレクトリ
     STORE_DIR = Path(__file__).parent.parent / 'depo/files'
 
@@ -132,7 +140,7 @@ class Datum(BaseModel):
         self.type = datum_type
 
         # DBに保存する前のDatumへの参照と更新権限は制限しない
-        self._permissions = 0b1100
+        self._permissions = Datum.PERMISSION_READ | Datum.PERMISSION_WRITE
 
         # Engineから参照する
         self.context = {}
@@ -206,17 +214,25 @@ class Datum(BaseModel):
     @property
     def readable(self):
         p = self._permissions
-        return p if p is None else (p & 0b1000) > 0
+        return p if p is None else (p & Datum.PERMISSION_READ) > 0
 
     @property
     def writable(self):
         p = self._permissions
-        return p if p is None else (p & 0b0100) > 0
+        return p if p is None else (p & Datum.PERMISSION_WRITE) > 0
+
+    @property
+    def writable_without_edit_lock(self):
+        """
+        このDatumの編集ロックを考慮しないself.writable
+        """
+        p = self._permissions
+        return p if p is None else (p & Datum.PERMISSION_WRITER) > 0
 
     @property
     def executable(self):
         p = self._permissions
-        return p if p is None else (p & 0b0010) > 0
+        return p if p is None else (p & Datum.PERMISSION_EXEC) > 0
 
     @property
     def ownership(self):
@@ -495,7 +511,7 @@ class Datum(BaseModel):
                     'delete' : not self.is_root and self.writable,
                     'execute': False,
                     'move'   : not self.is_root and self.writable,
-                    'copy'   : not self.is_root and self.writable,
+                    'copy'   : not self.is_root and self.writable_without_edit_lock,
                     # 閲覧者以外はDownload可能なのでwritableで判定する
                     'download'    : not self.is_root and self.writable,
                     'findMember'  : False,

@@ -24,7 +24,7 @@ class Flow(Datum):
         self._data = {'label' : label, 'flow' : flow_data.to_json()}
 
         # DBに保存する前のFlowへの参照と更新と実行権限は制限しない
-        self._permissions = 0b1110
+        self._permissions = Datum.PERMISSION_READ | Datum.PERMISSION_WRITE | Datum.PERMISSION_EXEC
 
         # フローデータの妥当性を検証する
         self.valid_uuids_in_flowdata_or_raise()
@@ -306,7 +306,10 @@ class Flow(Datum):
         編集ロックを設定する
         """
         from kskp.store.auth import NotAuthorizedException
-        if not self._session.writable(self, ignore_self_edit_lock=True):
+        # 閲覧者には編集ロックの値を変更させない
+        if self.writable_without_edit_lock is None:
+            raise NotAuthorizedException(f'{self.label}の更新権限がNoneです(save後またはrollback後のDatumオブジェクトは更新権限がNoneになります)')
+        elif not self.writable_without_edit_lock:
             raise NotAuthorizedException(f'({self._session.user.name})は{self.label}の編集ロックの更新権限がありません')
 
         from kskp.store.factory import RoleFactory
@@ -357,7 +360,7 @@ class Flow(Datum):
         ret = super().to_json()
         ret['editLock'] = self.edit_lock
         ret['allowlist']['execute'] = self.executable
-        ret['allowlist']['lock'] = self.writable
+        ret['allowlist']['lock'] = self.writable_without_edit_lock
         return ret
 
     @staticmethod

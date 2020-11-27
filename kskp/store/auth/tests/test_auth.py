@@ -2997,11 +2997,13 @@ class AuthTest(TestCaseBase):
         flow_data = FlowData(copy.deepcopy(self.flow_json))
         flow = project.create_flow('天下太平マリネラじゃー', flow_data)
         flow.save()
+        flow = flow.reload()
 
         # メンバを設定する
         member1 = ProjectFolder.Member(self.USER2, ProjectFolder.OWNER_MEMBER_TYPE)
-        member2 = ProjectFolder.Member(self.USER3, ProjectFolder.READER_MEMBER_TYPE)
-        project.init_members([member1, member2], last_modified_at=project.modified_at)
+        member2 = ProjectFolder.Member(self.USER0, ProjectFolder.WRITER_MEMBER_TYPE)
+        member3 = ProjectFolder.Member(self.USER3, ProjectFolder.READER_MEMBER_TYPE)
+        project.init_members([member1, member2, member3], last_modified_at=project.modified_at)
 
         # フローを編集ロックする
         flow.edit_lock = True
@@ -3019,6 +3021,16 @@ class AuthTest(TestCaseBase):
             flow.edit_lock = False
         
         # 閲覧者でも編集ロックの値を参照できること
+        self.assertFalse(flow.edit_lock)
+
+        # 編集者は編集ロックの値を変更できること
+        flow = self.factory0.data.find_by_uuid(flow.uuid)
+        flow.edit_lock = True
+        self.assertTrue(flow.edit_lock)
+        flow.edit_lock = False
+        self.assertFalse(flow.edit_lock)
+        
+        # 編集者は編集ロックの値を参照できること
         self.assertFalse(flow.edit_lock)
 
         # プロジェクトを削除する
@@ -3048,6 +3060,7 @@ class AuthTest(TestCaseBase):
         flow_data = FlowData(copy.deepcopy(self.flow_json))
         flow = project1.create_flow('どうした、どうした', flow_data)
         flow.save()
+        flow = flow.reload()
 
         # メンバを設定する
         member1 = ProjectFolder.Member(self.USER2, ProjectFolder.OWNER_MEMBER_TYPE)
@@ -3062,12 +3075,17 @@ class AuthTest(TestCaseBase):
         with self.assertRaises(EditLockedException):
             flow.move(project2.uuid)
 
+        # Roleback後は権限情報がNoneになるので再読み込みする
+        flow = flow.reload()
+
         # 編集ロックを解除する
         flow.edit_lock = False
         self.assertFalse(flow.edit_lock)
-        
-        # 閲覧者でも編集ロックの値を参照できること
-        self.assertFalse(flow.edit_lock)
+
+        # 設定した編集ロックに基づいた_permissionsの値を再設定する
+        # (編集ロックの設定のたびにreload()するのはテストコードの記述者にとっては面倒だが
+        #  APIでの処理においてはreload()は必要のない重たい処理なので、set_edit_lock()内では行わないこととする)
+        flow = flow.reload()
 
         # プロジェクトを削除する
         project1.throw_away()
