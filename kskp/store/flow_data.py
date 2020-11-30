@@ -165,7 +165,14 @@ class FlowData():
         if nodes is None or prev_ver_nodes is None:
             return
         for node in nodes:
-            if not node.get('masked'):
+            # フローエディタでノードの削除・追加を行うことで、Nodeのidは再利用されることに注意すること
+            # その場合、再利用されたidでもmaskedキーはないノードなので、マスキング解除の対象ノードには
+            # ならない
+
+            # フローエディタでuuidがNoneのノードを追加できないので、uuidがNoneのノードはマスキング
+            # されたノードだと判断できるが、何らかの不具合によりNoneになる可能性を考慮して、
+            # maskedフラグを導入し、これで判断する。なお、確実に判断するためuuidがNoneの条件も含める
+            if not node.get('masked') or node.get('uuid') is not None:
                 continue
 
             # 前の版のフローJsonから同じidのノードを取得する
