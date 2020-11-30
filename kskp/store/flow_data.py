@@ -7,6 +7,7 @@ class FlowData():
     def __init__(self,
                  flow_json:dict = {},
                  is_readable:Callable[[str],bool] = None,
+                 is_executable:Callable[[str],bool] = None,
                  readable_or_raise:Callable[[],None] = None, 
                  executable_or_raise:Callable[[],None] = None):
         self._flow_json = flow_json
@@ -15,6 +16,7 @@ class FlowData():
         true_func = lambda uuid: True
         empty_func = lambda: None
         self._is_readable = is_readable or true_func
+        self._is_executable = is_executable or true_func
         self._readable_or_raise = readable_or_raise or empty_func
         self._executable_or_raise = executable_or_raise or empty_func
 
@@ -241,14 +243,19 @@ class FlowData():
                 # 参照権限が無ければ例外を送出する
                 flow_data._readable_or_raise()
 
-        def mask_unreadble_nodes(flow_data, nodes):
+        def mask_unreadble_nodes(flow_data, nodes, use_exec_auth):
             if nodes is None:
                 return
             for node in nodes:
                 node_uuid = node.get('uuid')
                 if node_uuid is None or node_uuid=='':
                     continue
-                if not flow_data._is_readable(node_uuid):
+                elif node.get('type')=='flow' and use_exec_auth:
+                    if not flow_data._is_executable(node_uuid):
+                        # フロー実行のための参照であれば、ノードのマスキングではなく例外を送出する
+                        from kskp.store.auth import NotAuthorizedException
+                        raise NotAuthorizedException(f'共有フロー({node.get("id")})の実行権限がありません')
+                elif not flow_data._is_readable(node_uuid):
                     node['uuid'] = None
                     node['label'] = '******'
                     # ノードをマスクしたことを示すフラグを追加する
@@ -262,7 +269,7 @@ class FlowData():
         flow_json = copy.deepcopy(flow_json)
         # 参照権限の無いサブフローやデータソースのラベルとuuidをマスキングする
         nodes = flow_json.get('nodes')
-        mask_unreadble_nodes(self, nodes)
+        mask_unreadble_nodes(self, nodes, use_exec_auth)
 
         return flow_json
 

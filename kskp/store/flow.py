@@ -40,7 +40,16 @@ class Flow(Datum):
                 return False
             return data[0].readable
 
-        return FlowData(self._data['flow'], is_readable, self._readable_or_raise, self._executable_or_raise)
+        def is_executable(uuid):
+            """
+            指定されたuuidのDatumのexecutableの値を取得する
+            """
+            data = self._session.query(Datum).filter(Datum.uuid==uuid).all(ignore_authz=True)
+            if len(data) == 0:
+                return False
+            return data[0].executable
+
+        return FlowData(self._data['flow'], is_readable, is_executable, self._readable_or_raise, self._executable_or_raise)
 
     def _executable_or_raise(self):
         from kskp.store.auth import NotAuthorizedException
