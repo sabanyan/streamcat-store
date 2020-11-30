@@ -6,15 +6,16 @@ import pprint
 from pathlib import Path
 from datetime import datetime
 
-from kskp.store import Library, STORE_DIR, Flow
+from kskp.store import Library, Flow, FlowData
 from kskp.engine import execute, FlowJsonLink, FlowLinkContext
+from .test_case_base import TestCaseBase
 
-class CommandTest(unittest.TestCase):
+class CommandTest(TestCaseBase):
     
     @classmethod
     def setUpClass(cls):
-        # テスト用スキーマを作成する
-        from kskp.core import Datum
+        # 親クラスのsetUpClass()を実行する
+        TestCaseBase.setUpClass()
 
         # テスト用テーブルを作成する
         from kskp.store import engine
@@ -36,24 +37,14 @@ class CommandTest(unittest.TestCase):
         INSERT INTO {schema}.test VALUES(1, 'a', 'b', '1900-12-31', '1900-12-31 01:01:01.123456', '1:10:00')
         """.format(schema=os.environ['KSKP_POSTGRESQL_SCHEMA_NAME'])
         engine.execute(insert_test)
-    
 
     @classmethod
     def tearDownClass(cls):
-        # ライブラリフォルダを削除する
-        from kskp.core import Datum
-        library_path = STORE_DIR / Library.load_root().path 
-        import shutil
-        shutil.rmtree(library_path.as_posix())
-        # Sessionを閉じる
-        from kskp.store import ss as session
-        session.close()
-        # スキーマを破棄する
-        from kskp.store import engine
-        from sqlalchemy import DDL
-        engine.execute(DDL('DROP SCHEMA IF EXISTS %s CASCADE' % os.environ['KSKP_POSTGRESQL_SCHEMA_NAME']))
+        # 親クラスのtearDownClass()を実行する
+        TestCaseBase.tearDownClass()
 
-    flow_data = {
+
+    flow_json = {
         "projectId": None, 
         "label": "abc", 
         "ports": [
@@ -107,7 +98,8 @@ class CommandTest(unittest.TestCase):
         """
         DBローダーコマンドが正しくデータを取得できること
         """
-        flow = Flow(None, self.flow_data['label'], self.flow_data)
+        flow_data = FlowData(self.flow_json)
+        flow = Flow(None, self.flow_json['label'], flow_data)
         flow_link = FlowJsonLink(flow, FlowLinkContext())
         lasts = execute(flow_link, {}, {})
 
@@ -121,7 +113,7 @@ class CommandTest(unittest.TestCase):
         # 後片付け
         Library.delete_frame(lasts['d'].uuid)
 
-    flow_data2 = {
+    flow_json2 = {
         "projectId": None, 
         "label": "abc", 
         "ports": [
@@ -175,7 +167,8 @@ class CommandTest(unittest.TestCase):
         """
         DBに接続できない場合は例外を送出すること
         """
-        flow = Flow(None, self.flow_data2['label'], self.flow_data2)
+        flow_data2 = FlowData(self.flow_json2)
+        flow = Flow(None, self.flow_json2['label'], flow_data2)
         flow_link = FlowJsonLink(flow, FlowLinkContext())
 
         from sqlalchemy import exc
@@ -190,7 +183,7 @@ def get_frame_by_uuid(uuid, header=True):
     import csv
     result = []
     frame = Library.load_frame(uuid)
-    with open(STORE_DIR / frame.path, 'r') as f:
+    with open(frame.path, 'r') as f:
         rows = csv.reader(f)
         if header:
             header = next(rows)

@@ -1,151 +1,199 @@
 import os
-import re
-import json
-import uuid
 
-from pathlib import Path
-
-from . import ss as session
-
-from kskp.core import Datum
-from kskp.store import Store, STORE_DIR
+from kskp.core import Datum, Constraints
+from kskp.store import Store
 
 class Folder(Store):
 
-    def __init__(self, parent_uuid, label, creator=None):
+    __mapper_args__ = {
+        'polymorphic_identity' : 'folder'
+    }
+
+    def __init__(self, session, parent, label):
         """
         コンストラクタ
         """
-        super().__init__(parent_uuid, Datum.FOLDER_TYPE, label, creator)
+        super().__init__(session, parent, Datum.FOLDER_TYPE, label)
 
-        # data列の値を作成する
-        self.data = {}
+        # DBに保存する前のFolderへの参照と更新と実行権限は制限しない
+        self._permissions = Datum.PERMISSION_READ | Datum.PERMISSION_WRITE | Datum.PERMISSION_EXEC
 
-    @staticmethod
-    def find_by_uuid(uuid):
-        """
-        指定されたuuidを持つFolderを取得する
-        """
-        datum = session.query(Datum).filter(Datum.uuid==uuid)\
-                                    .filter(Datum.type==Datum.FOLDER_TYPE).one_or_none()
-        if datum is None:
-            raise Exception('no folder is found by designated id.')
-        return Folder.convert_to_folder(datum)
-
-    @staticmethod
-    def exists(uuid):
-        """
-        指定されたuuidを持つFolderが存在する場合はTrueを返す
-        """
-        # UUID値の形式チェックをする
-        if not Datum.is_valid_uuid(uuid):
-            return False
-        result = session.query(Datum).filter(Datum.uuid==uuid)\
-                                     .filter(Datum.type==Datum.FOLDER_TYPE).count()
-        return result > 0
-
-    @staticmethod
-    def convert_to_folder(datum):
-        parent_uuid = Datum.get_uuid_by_id(datum.parent_id)
-        folder = Folder(parent_uuid, datum.label, datum.creator)
-        folder.id = datum.id
-        folder.uuid = datum.uuid
-        folder._path = datum._path
-        folder.modifier = datum.modifier
-        folder.created_at = datum.created_at
-        folder.modified_at = datum.modified_at
-        return folder
-
-    def save(self):
+    @Constraints.prohibit_save_on_root
+    @Constraints.set_project_role_on_adding
+    def save(self, file_path=None):
         """
         Folderを保存する
         """
         # 既にルートフォルダが存在する場合は、parent_id=NULLを許可しない
-        if self.parent_id is None and Datum.count_root() > 0:
+        from kskp.store.factory import DatumFactory
+        if self.parent_id is None and DatumFactory(self._session).count_root() > 0:
             raise Exception('You can not add root folder. A root already exists.')
-        # フォルダに紐付くディレクトリ(path列で指定されるディレクトリ)がなければ作成する
-        path = self._make_dir()
-        self._path = path
+
+        if file_path is None:
+            # 既存のファイルと重複しないファイル名を取得する
+            self._path = Datum.make_unique_path(self._path)
+        else:
+            self._path = file_path
+
+        # # 新規追加前にファイルパスを退避する
+        # self_path = self.path
+
         try:
             # Dataテーブルにレコードを新規追加する
-            session.add(self)
+            self._session.add(self)
+            # ドキュメントに紐付くファイル(path列で指定されるファイル)がなければ作成する
+            if file_path is None:
+                self._make_dir(self._path)
         except Exception as e:
-            session.rollback()
+            self._session.rollback()
             raise e
         finally:
-            session.commit()
+            self._session.commit()
 
-    def add_entry_from_path(self, file_path):
-        """
-        指定されたパスのファイルをFolderとして登録する
-        """
-        # 既にルートフォルダが存在する場合は、parent_id=NULLを許可しない
-        if self.parent_id is None and Datum.count_root() > 0:
-            raise Exception('You can not add another root folder. A root already exists!')
-        self.path = file_path
-        try:
-            # Dataテーブルにレコードを新規追加する
-            session.add(self)
-        except Exception as e:
-            session.rollback()
-            raise e
-        finally:
-            session.commit()
-
-    @staticmethod
-    def update_data(uuid, label, modifier):
+    def update_data(self, label, modifier=None):
         """
         Folderのdata列を更新する
         """
-        # UUID値の形式チェックをする
-        Datum.valid_uuid_or_raise(uuid)
-        # レコードを取得する
-        datum = session.query(Datum).filter(Datum.uuid==uuid)\
-                                    .filter(Datum.type==Datum.FOLDER_TYPE).one_or_none()
-        if datum is None:
-            raise Exception('no folder is found by designated id.')
-
         # ラベルに'\0'が含まれていれば取り除く
         new_label = Datum.escape_label(label)
 
-        # ファイルを移動する
-        old_path = datum._path
-        new_path = Folder._move_dir(old_path, new_label)
+        # ラベル名からファイルパスを作成する    
+        old_path = self._path
+        new_path = old_path.parent / Datum.escape_filename(new_label)
+        new_path = Datum.make_unique_path(new_path, except_path=old_path)
 
         try:
             # ディレクトリ名の移動によって他のDatumのpathが変更が必要であれば変更する
-            Datum.update_same_path(old_path, new_path, modifier)
-            Datum.update_include_path(old_path, new_path, modifier)
-
+            self._update_same_path(old_path, new_path, modifier)
+            self._update_include_path(old_path, new_path, modifier)
             # レコードを更新する
-            session.query(Datum).filter(Datum.uuid==uuid).update({'_label'  :new_label
-                                                                 ,'modifier':modifier})
+            self._label = new_label
+            self._modifier_id = (modifier or self._session.user).id
+            self._session.update(self)
+            # ファイルを移動する
+            Datum.move_file(old_path, new_path)
         except Exception as e:
-            session.rollback()
+            self._session.rollback()
             raise e
         finally:
-            session.commit()
+            self._session.commit()
 
-        return Folder.convert_to_folder(datum)
+        return self
 
+    @Constraints.set_role_to_trashed_folder
+    def throw_away(self):
+        """
+        Folderを中身のファイルも一緒にゴミ箱にほかす
+        """
+        from kskp.store.factory import DatumFactory
+        factory = DatumFactory(self._session)
+        trash_folder = factory.load_trash_folder()
+
+        if self.parent_id is None:
+            raise Exception('ルートフォルダは削除できません')
+
+        # if self.get_flow_uuids_using_me():
+        #     raise Exception('別のフローで使用しているため削除できませんでした')
+
+        thrown_count, obstacle_count, trashed_folder = self._throw_away_inner(trash_folder, self)
+
+        if obstacle_count == 0 and not self.is_system_folder():
+            # 中のファイル全て削除可能であればフォルダ(ファイル)ごとゴミ箱へ移動する
+            self.move(trash_folder.uuid)
+            thrown_count += 1
+
+        if thrown_count == 0:
+            raise Exception('削除できませんでした')
+
+        return trashed_folder
+
+    def _throw_away_inner(self, parent, datum):
+        from kskp.store import lock_manager
+
+        if isinstance(datum, Folder):
+            # フォルダ直下のフォルダとデータベースとドキュメントを取得する
+            children = datum.find_children()
+
+            # ゴミ箱に捨てても削除前の階層構造を維持するため、削除対象フォルダの形代をゴミ箱に作成する
+            trashed_folder = parent.create_folder(datum.label)
+            trashed_folder.save()
+            trashed_folder = trashed_folder.reload()
+
+            throwables = []
+            thrown_count = 0
+            obstacle_count = 0
+
+            for child in children:
+                child_thrown_count, child_obstacle_count, child_trashed_folder = self._throw_away_inner(trashed_folder, child)
+                # 削除可能リストの作成
+                if child_obstacle_count == 0:
+                    throwables.append(child)
+                # 削除ファイルと削除不可ファイルを集計する
+                thrown_count += child_thrown_count
+                obstacle_count += child_obstacle_count
+
+            # 形代フォルダの削除済みフラグ
+            trashed_folder_is_deleted = False
+
+            if obstacle_count == 0 and not datum.is_system_folder():
+                # 全部捨る場合はフォルダごとゴミ箱へ移動する
+                trashed_folder.delete()
+                trashed_folder_is_deleted = True
+
+            else:
+                # 一部捨てる場合はそれらを形代フォルダへ移動する
+                for throwable in throwables:
+                    throwable.move(trashed_folder.uuid)
+                    thrown_count += 1
+                # 捨るものがなかった場合は形代フォルダを作らない
+                if thrown_count == 0:
+                    trashed_folder.delete()
+                    trashed_folder_is_deleted = True
+
+            # 形代フォルダを作る場合は返り値として返す、作らない場合はNoneを返す
+            return thrown_count, obstacle_count, None if trashed_folder_is_deleted else trashed_folder
+
+        elif datum.type == Datum.FRAME_TYPE or datum.type == Datum.FLOW_TYPE:
+            import warnings
+            # 削除しようとするフレーム/サブフローの更新権限がない場合は削除できない
+            if not self._session.writable(datum):
+                warnings.warn(f'{datum} is not thrown, not writable')
+                return 0, 1, None
+            # 削除しようとするサブフローが排他ロック中の場合は削除できない
+            if lock_manager.containts_target(datum.uuid):
+                warnings.warn(f'{datum} is not thrown, exclusive locked')
+                return 0, 1, None
+            # 削除しようとするフレーム/サブフローが、削除対象のフォルダ外のフローで使用されてる場合は削除できない
+            using_flow_uuids = self.get_flow_uuids_using_me()
+            for using_flow_uuid in using_flow_uuids:
+                if datum.uuid == using_flow_uuid['referenced_uuid']:
+                    warnings.warn(f'{datum} is not thrown, referenced by other flows')
+                    return 0, 1, None
+            # 削除可能!
+            return 0, 0, None
+
+        else:
+            # データベース接続、リモートフォルダ接続
+            return 0, 0, None
+
+    @Constraints.delete_role_when_isolated
     def delete(self):
         """
         Folderを削除する
         """
         # 削除対象のフォルダの下にフォルダまたはファイルが存在する場合は例外を送出する
-        if len(Datum.find_by_parent_uuid(self.uuid)) > 0:
-            raise Exception('空でないフォルダは削除できません')
+        if self.count_children() > 0:
+            raise Exception(f'空でないフォルダは削除できません')
         try:
             # フォルダレコードを削除する
-            session.query(Datum).filter(Datum.id==self.id)\
-                                .filter(Datum.type==Datum.FOLDER_TYPE).delete()
+            self._session.delete(self)
             # ディレクトリを削除する
-            self._remove_dir()
+            self._remove_dir(self._path)
         except Exception as e:
-            session.rollback()
+            self._session.rollback()
             raise e
         finally:
-            session.commit()
+            self._session.commit()
 
     def remove_reference_only(self):
         """
@@ -171,135 +219,113 @@ class Folder(Store):
 
         try:
             # フォルダレコードを削除する
-            session.query(Datum).filter(Datum.id==self.id)\
-                                .filter(Datum.type==Datum.FOLDER_TYPE).delete()
-            session.execute(sql)
+            self._session.delete(self)
+            self._session.execute(sql)
         except Exception as e:
-            session.rollback()
+            self._session.rollback()
             raise e
         finally:
-            session.commit()
+            self._session.commit()
 
     def get_folder_path(self):
         """
         現在のフォルダ階層パスをリスト型で返す(APIのFolderPath属性の作成で用いる)
         """
-        # 指定されたUUIDのfolerレコードを取得する
-        datum = session.query(Datum).filter(Datum.uuid==self.uuid).one_or_none()
+        from kskp.store.auth import NotAuthorizedException
 
-        parent_id = datum.parent_id
+        datum = self
         path_to_root = [{'type':datum.type, 'uuid':datum.uuid, 'label':datum.label}]
-        # 取得したレコードから外部キー’parent_id’をたどり、途中のfolderレコードをリストに順に保存する
+        parent_id = datum.parent_id
+        # 自分からルートフォルダまでのfolderレコードをリストに順に保存する
         while parent_id != None:
-            datum = session.query(Datum).filter(Datum.id==parent_id).one_or_none()
+            try:
+                datum = datum.find_parent()
+            except NotAuthorizedException:
+                # 参照権限がないため親Datumが取得できない場合、空リストを返す
+                return []
             path_to_root.append({'type':datum.type, 'uuid':datum.uuid, 'label':datum.label})
             parent_id = datum.parent_id
         # 保存したリストの並びを逆にする
         path_to_root.reverse()
         return path_to_root
 
-    def _make_dir(self):
+    def to_json(self):
+        ret = super().to_json()
+
+        if self.is_cache_folder():
+            # キャッシュフォルダ直下では新規作成はできない
+            # キャッシュフォルダの変更・削除・移動もできない
+            ret['allowlist']['createProject'] = False
+            ret['allowlist']['createFolder'] = False
+            ret['allowlist']['createFile'] = False
+            ret['allowlist']['upload'] = False
+            ret['allowlist']['update'] = False
+            ret['allowlist']['delete'] = False
+            ret['allowlist']['move'] = False
+        else:
+            # ルートフォルダ直下はプロジェクトのみが作成できる
+            # それ以外ではプロジェクト以外が作成できる
+            ret['allowlist']['createProject'] = self.is_root and self.writable
+            ret['allowlist']['createFolder'] = not self.is_root and self.writable
+            ret['allowlist']['createFile'] = not self.is_root and self.writable
+            ret['allowlist']['upload'] = not self.is_root and self.writable
+        return ret
+
+    def _make_dir(self, path):
         """
         Folderに対応するディレクトリを作成する
         """
         try:
-            # 同じ名称のファイルが既に存在する場合、末尾に数字を付加したディレクトリ名で作成する
-            path = Folder.get_another_file_path(self._path)
-
             # フォルダに紐付くディレクトリ(path列で指定されるディレクトリ)がなければ作成する
-            if not os.path.isdir(Datum._to_abs_path(path)):
-                os.makedirs(Datum._to_abs_path(path), exist_ok=True)
+            if not path.is_dir():
+                os.makedirs(path, exist_ok=True)
             return path
         except PermissionError as e:
             # ファイルに対する権限がない場合
             raise e
 
-    def _remove_dir(self):
+    def _remove_dir(self, path):
         """
         Folderに対応するディレクトリを削除する
         """
         from kskp.store import Mountable
-        
+
+        # 全てのフォルダから紐づかないディレクトリは物理削除する
+        dir_path = path
         try:
-            # 全てのフォルダから紐づかないディレクトリは物理削除する
-            dir_path = self._path.rstrip(os.pathsep)
-            abs_dir_path = Datum._to_abs_path(dir_path)
             while dir_path != '' and dir_path != '/':
                 # 自分以外で同じディレクトリパス(相対パス)を使用しているフォルダの有無を確認する
-                if Folder._dir_path_exists(dir_path, except_id=self.id):
+                if self._dir_path_exists(dir_path, except_id=self.id):
                     break
-                elif Mountable.is_mount(Path(dir_path)):
+                elif Mountable.is_mount(dir_path):
                     # マウント中のフォルダは削除しない
                     break
                 else:
-                    if os.path.isdir(abs_dir_path):
-                        os.rmdir(abs_dir_path)
-                    dir_path = os.path.dirname(dir_path)
-                    abs_dir_path = os.path.dirname(abs_dir_path)
+                    if dir_path.is_dir():
+                        dir_path.rmdir()
+                    dir_path = dir_path.parent
         except PermissionError as e:
-            # ファイルに対する権限がない場合
+            # ディレクトリに対する権限がない場合
+            raise e
+        except OSError as e:
+            import errno
+            if e.errno == errno.ENOTEMPTY:
+                # [Errno 39] Directory not empty
+                file_path = next(dir_path.glob('*'))
+                raise OSError(e.errno, f'Directory({dir_path}) is not removed. File({file_path}) exists in Directory')
             raise e
 
-    @staticmethod
-    def _move_dir(old_path, new_label):
-        """
-        Folderのラベルに対応するディレクトリへ移動する
-        """
-        # ファイルを移動する
-        new_path = os.path.join(os.path.dirname(old_path), Datum.escape_filename(new_label))
-        new_path = Datum.move_file(old_path, new_path)
-        return new_path
-
-    @staticmethod
-    def _dir_path_exists(dir_path, except_id):
+    def _dir_path_exists(self, dir_path, except_id):
         rel_path = Datum._to_rel_path(dir_path)
-        abs_path = Datum._to_abs_path(dir_path)
 
-        from sqlalchemy import or_
-        results = session.query(Datum._path)\
-                 .filter(or_(Datum._path.like(rel_path + '%'), Datum._path.like(abs_path + '%')))\
+        results = self._session.query(Datum._path)\
+                 .filter(Datum._path.like(rel_path.as_posix() + '%'))\
                  .filter(Datum.id != except_id).all()
 
         for result in results:
-            if Datum._to_rel_path(result._path) == rel_path:
+            if result._path == dir_path:
                 return True
-            if os.path.commonpath([Datum._to_rel_path(result._path), rel_path]) == rel_path:
+            if os.path.commonpath([result._path, dir_path]) == dir_path:
                 return True
         return False
 
-    def to_json(self):
-        return {'uuid'      : self.uuid,
-                'type'      : Datum.FOLDER_TYPE,
-                'label'     : self.label,
-                'creator'   : Datum.get_user_name_by_user_id(self.creator),
-                'createdAt' : self.created_at_str}
-
-    # def save_frame(self, command, args, datum, file_name):
-    #     """
-    #     engine用
-    #     保存するframeへのパスを作成する
-    #     """
-    #     # args['frame_path'] = (Path(Datum._to_abs_path(self.path)) / (str(uuid.uuid4()) + '.csv'))
-    #     args['frame_path'] = Path(Datum._to_abs_path(self.path.as_posix())) / file_name
-    #     return command.module(args, datum)
-
-    # @staticmethod
-    # def load_frame(uuid):
-    #     """
-    #     指定したuuidのframeを取得する
-    #     """
-    #     import nysol.mcmd as nm
-    #     from kskp.store import Library
-
-    #     frame = Library.load_frame(uuid)
-    #     if frame is None:
-    #         raise Exception('No frame(%s) is found !' % uuid)
-    #     path = Datum._to_abs_path(frame.path.as_posix())
-
-    #     return nm.m2tee({'i':path})
-    #     # mreadで存在しないファイルパスを指定するとDockerごと落ちる
-    #     # return nm.mread({'i':path})
-
-    # @property
-    # def content(self):
-    #     return self
