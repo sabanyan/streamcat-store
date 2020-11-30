@@ -2,16 +2,16 @@
   "id": "maccum",
   "groups": [
     {
-      "name": "group1",
-      "label": "グループの設定 (省略可)",
-      "params": [
-        "k"
-      ]
+      "name": "abstract",
+      "label": "累積の計算",
+      "description": "累積を計算する",
+      "params": []
     },
     {
-      "name": "group2",
-      "label": "グループ内のソートの設定（省略可)",
+      "name": "grouping",
+      "label": "グループの設定",
       "params": [
+        "k",
         "s"
       ]
     },
@@ -26,17 +26,11 @@
       "name": "group10",
       "label": "その他 (省略可)",
       "params": [
-        "precision",
-        "q"
-      ]
-    },
-    {
-      "name": "group15",
-      "label": "項目名・項目番号についての設定（省略可）",
-      "params": [
-        "x",
         "nfn",
-        "nfno"
+        "nfno",
+        "x",
+        "q",
+        "precision"
       ]
     },
     {
@@ -51,84 +45,24 @@
       ]
     }
   ],
-  "rules": {
-    "f": {
-      "presence": {
-        "allowEmpty": false
-      },
-      "checkSeveralSpecifiedFormats": {
-        "defaultRule": {
-          "pattern": "^[^:,]+:[^:,]+(,[^:,]+:[^:,]+)*$|^@\\[.+\\]$",
-          "message": "対象となる列名と新しい列名を、:(コロン)で区切って入力してください"
-        },
-        "specialRules": [
-          {
-            "target": [
-              "x",
-              "nfn"
-            ],
-            "pattern": "^[1-9]?[0-9]+L?(:[^,:]+)?(,[1-9]?[0-9]+L?(:[^,:]+)?)*$|^@\\[.+\\]$",
-            "message": "項目の指定は数値のみ可能です。"
-          }
-        ]
-      }
-    },
-    "s": {
-      "presencesIfTargetIsNotInput": "q",
-      "checkSeveralSpecifiedFormats": {
-        "defaultRule": {
-          "pattern": "^[^,]+(,[^,]+)*$|^$",
-          "message": "入力が正しくありません"
-        },
-        "specialRules": [
-          {
-            "target": [
-              "x",
-              "nfn"
-            ],
-            "pattern": "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$|^$",
-            "message": "項目の指定は数値のみ可能です。"
-          }
-        ]
-      }
-    },
-    "k": {
-      "checkSeveralSpecifiedFormats": {
-        "defaultRule": {
-          "pattern": "^[^,]+(,[^,]+)*$|^$",
-          "message": "入力が正しくありません"
-        },
-        "specialRules": [
-          {
-            "target": [
-              "x",
-              "nfn"
-            ],
-            "pattern": "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$|^$",
-            "message": "項目の指定は数値のみ可能です。"
-          }
-        ]
-      }
-    }
-  },
   "params": [
     {
       "name": "f",
       "type": "string",
-      "label": "対象とする項目名と追加項目名の指定",
-      "description": "●対象列名、追加列名の順で コロン区切りで指定\n●カンマ区切りで複数指定可"
+      "label": "対象とする項目名と累積値の項目名の指定",
+      "description": "・対象列名、累積値の項目名の順で コロン区切りで指定\n・カンマ区切りで複数指定可"
     },
     {
       "name": "s",
       "type": "string",
-      "label": "グループ内順序の指定",
-      "description": "●カンマ区切りで複数指定可\n●表記：【末尾に付与】無しは文字列の昇順、%nは数値の昇順、%rは文字列の降順、%nrは数値の降順\n●注意： グループ化に用いた項目を含めるとグループ内順序の指定が無効になるため、含めずに設定"
+      "label": "グループ内ソートの設定",
+      "description": "ソートのキー項目を、カンマ区切りで複数指定可\n・ソートの種類は変更可能　(デフォルト: 文字列昇順)\n 　方法: 項目名末尾に記号を付与 (数値昇順：%n,  文字列降順： %r,  数値降順：%nr)\n・注意 グループ化する項目名と同じ項目名があると、不整合になり、ソートされません"
     },
     {
       "name": "k",
       "type": "string",
       "label": "グループ化する項目名",
-      "description": "●カンマ区切りで複数指定可",
+      "description": "カンマ区切りで複数指定可\n省略時は全ての行を同じグループとみなして処理される",
       "optional": true
     },
     {
@@ -146,7 +80,7 @@
     {
       "name": "assert_nullin",
       "type": "boolean",
-      "label": "入力項目の f=または vf=で指定された項目の NULL 値チェックを行う",
+      "label": "対象とする項目名の NULL 値チェックを行う",
       "optional": true
     },
     {
@@ -170,14 +104,15 @@
     {
       "name": "x",
       "type": "boolean",
-      "label": "項目番号による指定",
-      "optional": true
+      "label": "項目名ではなく、項目番号で指定する",
+      "optional": true,
+      "description": "・0始まりの項目番号で指定する\n・Lをつけると、右端起点の項目番号とみなす(例:3L)\n・複数入力可能なOptの場合は、列範囲としての指定も可能(例: 0-5)"
     },
     {
       "name": "q",
       "type": "boolean",
       "label": "自動並べ替えの無効化",
-      "description": "入力データがグループ化済かつソート済の場合、指定すると処理速度が向上",
+      "description": "入力データがグループ単位でソート済みの場合、指定すると処理速度が向上",
       "optional": true
     },
     {

@@ -1,113 +1,38 @@
 {
   "id": "mnrcommon",
-  "rules": {
-    "k": {
-      "checkSeveralSpecifiedFormats": {
-        "defaultRule": {
-          "pattern": "^[^,]+(,[^,]+)*$|^$",
-          "message": "入力が正しくありません"
-        },
-        "specialRules": [
-          {
-            "target": [
-              "x",
-              "nfn"
-            ],
-            "pattern": "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$|^$",
-            "message": "項目の指定は数値のみ可能です。"
-          }
-        ]
-      }
-    },
-    "R": {
-      "presence": {
-        "allowEmpty": false
-      },
-      "checkSeveralSpecifiedFormats": {
-        "defaultRule": {
-          "pattern": "^[^,]+,[^,]+$|^@\\[.+\\]$",
-          "message": "項目名は２つかつ,(コンマ)で指定してください。"
-        },
-        "specialRules": [
-          {
-            "target": [
-              "x",
-              "nfn"
-            ],
-            "pattern": "^[1-9]?[0-9]+L?,[1-9]?[0-9]+L?$|^@\\[.+\\]$",
-            "message": "項目名は２つかつ,(コンマ)で指定してください。"
-          }
-        ]
-      }
-    },
-    "rf": {
-      "presence": {
-        "allowEmpty": false
-      },
-      "checkSeveralSpecifiedFormats": {
-        "defaultRule": {
-          "pattern": "^[^,]+(%n|%r|%nr)?(,[^,]+(%n|%r|%nr)?)*$",
-          "message": "入力が正しくありません"
-        },
-        "specialRules": [
-          {
-            "target": [
-              "x",
-              "nfn"
-            ],
-            "pattern": "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(%n|%r|%nr)?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(%n|%r|%nr)?)*$|^@\\[.+\\](%n|%r|%nr)?$",
-            "message": "項目の指定は数値のみ可能です。"
-          }
-        ]
-      }
-    },
-    "K": {
-      "checkSeveralSpecifiedFormats": {
-        "defaultRule": {
-          "pattern": "^[^,]+(,[^,]+)*$|^$",
-          "message": "入力が正しくありません"
-        },
-        "specialRules": [
-          {
-            "target": [
-              "x",
-              "nfn"
-            ],
-            "pattern": "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$|^$",
-            "message": "項目の指定は数値のみ可能です。"
-          }
-        ]
-      }
-    }
-  },
   "params": [
     {
       "name": "k",
       "type": "string",
-      "label": "項目名",
-      "optional": true
+      "label": "入力 i のグループ項目名",
+      "optional": true,
+      "description": "カンマ区切りで複数指定可"
     },
     {
       "name": "R",
       "type": "string",
-      "label": "参照ファイルの範囲列名(必須)"
+      "label": "入力m の範囲開始と終了の項目名",
+      "description": "・カンマ区切りで、開始、終了の順で指定する\n・開始のNull値は無限小、終了は無限大とみなして処理する\n・開区間、閉区間の指定 （開始項目をA, 終了項目をBとする)\n    指定         ：  意味\n    A,B          ：   [A,B)   A以上、B未満  （デフォルト）\n    A%n,B      :    (A,B)   Aより大きく、B未満\n    A,B%e      :    [A,B]   A以上、B以下\n    A%n,B%e  :   (A,B]   Aより大きく、B以下\n\n【注意】 各区間に重複がある場合、行が増える可能性があります"
     },
     {
       "name": "rf",
       "type": "string",
-      "label": "範囲比較を行う入力ファイル上の列名(必須)"
+      "label": "入力i の範囲比較項目名",
+      "description": "・項目を1つ指定する\n・型の指定\n     デフォルトは文字列型で、数値型の場合は項目名末尾に%nをつける"
     },
     {
       "name": "K",
       "type": "string",
-      "label": "参照列名",
-      "optional": true
+      "label": "入力 m のグループ項目名",
+      "optional": true,
+      "description": "入力i と同じ場合は省略可"
     },
     {
       "name": "r",
       "type": "boolean",
-      "label": "R=パラメータで指定した行番号以外の行を選択する",
-      "optional": true
+      "label": "条件反転　",
+      "optional": true,
+      "description": "範囲選択された行を、o　ではなく　u に出力する"
     },
     {
       "name": "assert_diffSize",
@@ -136,14 +61,16 @@
     {
       "name": "x",
       "type": "boolean",
-      "label": "項目番号による指定",
-      "optional": true
+      "label": "項目名ではなく、項目番号で指定する",
+      "optional": true,
+      "description": "・0始まりの項目番号で指定する\n・Lをつけると、右端起点の項目番号とみなす(例:3L)\n・複数入力可能なOptの場合は、列範囲としての指定も可能(例: 0-5)"
     },
     {
       "name": "q",
       "type": "boolean",
       "label": "自動並べ替えの無効化",
-      "optional": true
+      "optional": true,
+      "description": "入力i と入力m ともにキー項目でソート済みの場合、指定すると処理速度が向上"
     },
     {
       "name": "tmpPath",
@@ -178,5 +105,51 @@
   "label": "参照データの複数範囲条件による行選択",
   "classification": "table_join",
   "description": "指定した範囲条件にマッチする行を選択する",
-  "url": "./static/pdf/mcmd/table_join/mnrcommon.pdf"
+  "url": "./static/pdf/mcmd/table_join/mnrcommon.pdf",
+  "groups": [
+    {
+      "name": "abstract",
+      "label": "参照データの複数範囲条件による行選択",
+      "description": "・入力i の比較項目と、入力m の範囲の開始項目と終了項目を比較し、範囲内のものを o に、それ以外を uに出力する\n・範囲比較は、入力データのソート順をもとにおこない、文字列順と数値順が選択可能\n・【注意】このコマンドでは入力データのソート順を整えられないため、ソート済みのデータを入力データに用いてください",
+      "params": []
+    },
+    {
+      "name": "group1",
+      "label": "グループの設定 (省略可)",
+      "description": "・カンマ区切りで複数指定可\n・入力i と m の項目を、1対1に対応させて指定する\n",
+      "params": [
+        "k",
+        "K"
+      ]
+    },
+    {
+      "name": "group3",
+      "label": "範囲条件による結合の設定 (必須)",
+      "description": "・入力i の比較項目と、入力m の範囲の開始と終了の項目名を指定する",
+      "params": [
+        "rf",
+        "R",
+        "r"
+      ]
+    },
+    {
+      "name": "merge_sub",
+      "label": "その他 (省略可)",
+      "params": [
+        "q",
+        "nfn",
+        "nfno",
+        "x"
+      ]
+    },
+    {
+      "name": "system",
+      "label": "システム管理用設定（作業領域・ログ出力）",
+      "params": [
+        "assert_diffSize",
+        "assert_nullkey",
+        "tmpPath"
+      ]
+    }
+  ]
 }

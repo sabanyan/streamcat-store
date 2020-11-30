@@ -3,7 +3,7 @@ import os
 import sys
 import nysol.mcmd as nm
 
-from kskp.store import NysolModule, Datum, Store, Folder, Frame, Cache
+from kskp.store import NysolModule, Datum, Store, Frame
 from kskp.core import Command, Port
 
 class SCommand(Command):
@@ -17,7 +17,7 @@ class SaverCommand(SCommand):
     def __init__(self):
         super().__init__()
         self.i_ports = [Port('i', 'frame'), Port('store', 'store')]
-        self.o_ports = [Port('o', 'mcmd'), Port('u', 'frame')]
+        self.o_ports = [Port('o', 'mcmd')]
 
     def run(self, args, inputs):
         # Frameを作成する
@@ -32,48 +32,48 @@ class SaverCommand(SCommand):
         start_time_str1 = start_time.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
         start_time_str2 = start_time.strftime('%Y%m%d.%H%M%S.%f')[:-3]
         folder = self.make_folder(store, flow_label, start_time_str1, start_time_str2)
-        frame = self.make_frame(folder, point_label + '.csv')
+        frame = self.make_frame(folder, point_label)
         # ラベル名とファイル名はコンストラクタで別々に指定できるようにすれば
         # 改めてupdate_label_only()を行う必要はなくなる
         # もしくは、実行ログ一覧画面さえできれば別々に指定する必要もなくなるか？
-        Frame.update_label_only(frame.uuid, point_label, None)
+        # frame.update_label_only(point_label)
 
         # NYSOLコマンドを作成する
         # if not isinstance(inputs['i'], NysolModule):
         #     raise Exception(f"Illegal type : {type(inputs['i'])}")
         cmd = inputs['i'].content
         cmd = self.append_writecsv_cmd(cmd, frame.path)
- 
-        return {'o': NysolModule(cmd), 'u': frame}
+        # 出力フレームをRunsCommandに渡す
+        nysol_module = NysolModule(cmd)
+        nysol_module.context['frame'] = frame
+
+        return {'o': nysol_module}
 
     def append_writecsv_cmd(self, cmd, frame_path):
-        abs_frame_path = Datum._to_abs_path(frame_path.as_posix())
+        abs_frame_path = frame_path.as_posix()
         # リストが渡されても処理できるようi=に入力値を渡している
         # writecsvは0Byteデータが入力されるとエラーになるのでm2teeを使う
         return nm.m2tee(i=cmd, o=abs_frame_path)
 
     def make_folder(self, store, folder1_label, folder2_label, folder2_file_name):
-        from kskp.store import Datum, AwsS3
-
         # フロー名フォルダがなければ作成する
-        results1 = Datum.find_by_parent_uuid_and_label(store.uuid, folder1_label)
+        results1 = store.find_children_by_label(folder1_label, type=Datum.FOLDER_TYPE)
         if results1 is None or len(results1)==0:
-            folder1 = Folder(store.uuid, folder1_label, None)
+            folder1 = store.create_folder(folder1_label)
             folder1.save()
+            folder1 = folder1.reload()
         else:
             folder1 = results1[0]
 
         # 開始時間フォルダがなければ作成する
-        results2 = Datum.find_by_parent_uuid_and_label(folder1.uuid, folder2_label)
+        results2 = folder1.find_children_by_label(folder2_label, type=Datum.FOLDER_TYPE)
         if results2 is None or len(results2)==0:
-            folder2 = Folder(folder1.uuid, folder2_label, None)
-            folder2.path = folder2.path.parent / folder2_file_name
-            folder2.save()
+            folder2 = folder1.create_folder(folder2_label)
+            folder2.save(file_path = folder2.path.parent / folder2_file_name)
+            folder2 = folder2.reload()
         else:
-            if results2[0].type == Datum.FOLDER_TYPE:
-                folder2 = Folder.convert_to_folder(results2[0])
-            elif results2[0].type == Datum.AWSS3_TYPE:
-                folder2 = AwsS3.convert_to_awss3(results2[0])
+            if isinstance(results2[0], Store):
+                folder2 = results2[0]
             else:
                 # 開始時間フォルダを作成できなかった場合はフロー名フォルダ直下に結果を作成する
                 folder2 = folder1
@@ -83,10 +83,10 @@ class SaverCommand(SCommand):
     def make_frame(self, store, label):
         import io
         f = io.BytesIO(b'')
-        frame = Frame(store.uuid, label, f)
+        frame = store.create_frame(label, f)
         # RunsCommandの実行前にFrameを登録する
         frame.save()
-        return frame
+        return frame.reload()
 
 class CacheSaverCommand(SaverCommand):
     """
@@ -118,25 +118,35 @@ class CacheSaverCommand(SaverCommand):
         # FlowのキャッシュUUIDを変更する
         # テスト実行の場合は実行するFlowをDBに保存していない
         from kskp.store import Flow
-        if Flow.exists(args['flow_uuid']):
-            flow = Flow.find_by_uuid(args['flow_uuid'])
+        if args['flow'] is not None:
+            flow = args['flow']
             node_id = args['datum_id']
             # TODO: RunsCommand実行前にFlowにキャッシュありの情報を更新すると、同じフローの同時実行に支障があるだろう
-            flow.set_cache(node_id, cache.uuid, None)
-            Flow.update_data(flow.uuid, flow.label, flow.flow_data, None)
+            flow.set_cache(node_id, cache)
+            # TODO: キャッシュのUUIDをフローJsonに設定するので、ロックによる排他制御をするべきだが
+            #       フロー実行とプレビュー実行のAPI引数に'lock'キーを追加する必要がある。
+            #       しかし、将来的にフローJsonにキャッシュのUUIDを設定しないようにする方針なので
+            #       APIのインタフェースの変更の手間を惜しんで、暫定的に排他制御を無視してキャッシュのUUIDを設定する。
+            flow.update_data(flow.label, flow.flow_data, ignore_lock=True)
 
         # NYSOLコマンドを作成する
         cmd = inputs['i'].content
         cmd = self.append_writecsv_cmd(cmd, cache.path)
+        # 出力フレームをRunsCommandに渡す
+        nysol_module = NysolModule(cmd)
+        nysol_module.context['frame'] = cache
 
-        return {'o': NysolModule(cmd), 'u': cache}
+        return {'o': nysol_module}
 
     def make_frame(self, store, label):
         import io
         f = io.BytesIO(b'')
-        cache = Cache(store.uuid, label, f)
+        cache = store.create_cache(label, f)
         # RunsCommandの実行前にCacheを登録する
         cache.save()
+        cache = cache.reload()
+        # FrameとCacheを区別するためのフラグ
+        cache.is_cache = True
         return cache
 
 # 1つ保存のsaverはどうなる？
@@ -155,16 +165,16 @@ class LoaderCommand(SCommand):
         if not isinstance(inputs['store'], Store):
             t = type(inputs['store'])
             raise Exception(f'Loaderの入力にStore以外のデータ型({t})が入力されました')
-        folder = Folder.convert_to_folder(inputs['store'])
+        folder = inputs['store']
         if not folder.path_exists:
             raise Exception(f'ディレクトリ({folder.path})が存在しません')
 
         # 指定したuuidのframeを取得する
         frame_uuid = args['uuid']
-        frame = Frame.find_by_uuid(frame_uuid)
+        frame = folder.find_child_by_uuid(frame_uuid)
         if frame is None:
             raise Exception('No frame(%s) is found !' % frame_uuid)
-        path = Datum._to_abs_path(frame.path.as_posix())
+        path = frame.path.as_posix()
 
         if frame.encoding is None:
             # frameの文字コードが未判定の場合はここで判定する
@@ -175,7 +185,7 @@ class LoaderCommand(SCommand):
             encoding = frame.encoding
 
         cmd = nm.m2tee(i=path)
-        # mreadで存在しないファイルパスを指定するとDockerごと落ちる ->　
+        # mreadで存在しないファイルパスを指定するとDockerごと落ちる -> 0.3.10で修正済
         # mreadは巨大ファイルの読み込みが遅い(全行入力してる?)
         # cmd = nm.mread({'i':path, 'n':65535})
         nysol_module = NysolModule(cmd)
@@ -196,12 +206,12 @@ class DbLoaderCommand(SCommand):
     def run(self, args, inputs):
         DbLoaderCommand._write_log('START')
 
-        from kskp.store import Datum, Database
+        from kskp.store import Datum
         if inputs['i'].type != Datum.DATABASE_TYPE:
             t = type(inputs['i'])
             raise Exception(f'DbLoaderの入力にDatabase Store以外のデータ型({t})が入力されました')
         else:
-            database = Database.convert_to_database(inputs['i'])
+            database = inputs['i']
 
         # DB接続情報に漏れがないか確認し、漏れがあれば例外を送出する
         database.valid_or_raise()
@@ -332,7 +342,7 @@ class DbLoaderCommand(SCommand):
         sys.__stderr__.write(indent + '  ' + message + '\n')
         sys.__stderr__.write(indent + '>\n')
 
-    def dtor(self):
+    def dtor(self, args):
         DbLoaderCommand._write_log('DTOR!')
 
 
@@ -343,24 +353,24 @@ class DbSaverCommand(SaverCommand):
     def __init__(self):
         super().__init__()
         self.i_ports = [Port('i', 'frame'), Port('store', 'store'), Port('folder', 'store')]
-        self.o_ports = [Port('o', 'mcmd'), Port('u', 'frame')]
+        self.o_ports = [Port('o', 'mcmd')]
         self._tmp_file_path = None
 
     def run(self, args, inputs):
         DbSaverCommand._write_log('START')
 
-        from kskp.store import Datum, Database
+        from kskp.store import Datum
         if inputs['store'].type != Datum.DATABASE_TYPE:
             t = type(inputs['store'])
             raise Exception(f'DbSaverの入力にDatabase Store以外のデータ型({t})が入力されました')
         else:
-            database = Database.convert_to_database(inputs['store'])
+            database = inputs['store']
 
         if inputs['folder'].type != Datum.FOLDER_TYPE:
             t = type(inputs['folder'])
             raise Exception(f'DbSaverの入力にFolder以外のデータ型({t})が入力されました')
         else:
-            folder = Folder.convert_to_folder(inputs['folder'])
+            folder = inputs['folder']
 
         # DB接続情報に漏れがないか確認し、漏れがあれば例外を送出する
         database.valid_or_raise()
@@ -420,10 +430,14 @@ class DbSaverCommand(SaverCommand):
 
         # 出力結果を取得するDataSourceをライブラリに登録する
         # TODO: point_idどっからとってこよう
-        datasource = self._create_data_source(result_folder.uuid, database, 'point_id', schema_name, table_name, args['activity_uuid'])
+        datasource = self._create_data_source(result_folder, database, 'point_id', schema_name, table_name, args['activity_uuid'])
         datasource.save()
 
-        return {'o': NysolModule(cmd), 'u': datasource}  
+        # 出力DataSourceをRunsCommandに渡す
+        nysol_module = NysolModule(cmd)
+        nysol_module.context['frame'] = datasource
+
+        return {'o': nysol_module}  
         
     @staticmethod
     def _connect_to_db(db_uri):
@@ -571,14 +585,13 @@ class DbSaverCommand(SaverCommand):
             conn.commit()
 
     @staticmethod
-    def _create_data_source(parent_uuid, database, label, schema_name, table_name, activity_uuid):
+    def _create_data_source(parent, database, label, schema_name, table_name, activity_uuid):
         import uuid
         from kskp.engine import Step
         from kskp.depo.std.commands import CommandLink
-        from kskp.store import DataSource
         args = {'schema_name':schema_name, 'table_name':table_name, 'activity_uuid_kskp':activity_uuid}
         loader_step = Step(str(uuid.uuid4()), CommandLink('db_loader').resolve(), args)
-        return DataSource(parent_uuid, label, database, loader_step)
+        return parent.create_datasource(label, database, loader_step)
 
     @staticmethod
     def _get_tmp_file_name():
@@ -595,7 +608,7 @@ class DbSaverCommand(SaverCommand):
         sys.__stderr__.write(indent + '  ' + message + '\n')
         sys.__stderr__.write(indent + '>\n')
 
-    def dtor(self):
+    def dtor(self, args):
         DbSaverCommand._write_log('DTOR!')
         # Tmpファイルを削除する
         import os
@@ -614,12 +627,12 @@ class RemoteFolderLoaderCommand(SCommand):
         self.name = 'remotefolder_loader'
 
     def run(self, args, inputs):
-        from kskp.store import Datum, RemoteFolder
+        from kskp.store import Datum
         if inputs['i'].type != Datum.RFOLDER_TYPE:
             t = type(inputs['i'])
             raise Exception(f'Remotefolder_loaderの入力にRemote Folder Store以外のデータ型({t})が入力されました')
         else:
-            folder = RemoteFolder.convert_to_remote_folder(inputs['i'])
+            folder = inputs['i']
 
         # 接続情報に漏れがないか確認し、漏れがあれば例外を送出する
         folder.valid_or_raise()
@@ -631,7 +644,7 @@ class RemoteFolderLoaderCommand(SCommand):
 
         # ファイルパスを取得する
         path = folder.path / file_path.lstrip('/')
-        path_str = Datum._to_abs_path(path.as_posix())
+        path_str = path.as_posix()
 
         cmd = nm.m2tee({'i':path_str})
         # mreadで存在しないファイルパスを指定するとDockerごと落ちる ->　
@@ -645,21 +658,21 @@ class RemoteFolderSaverCommand(SaverCommand):
     def __init__(self):
         super().__init__()
         self.i_ports = [Port('i', 'frame'), Port('store', 'store'), Port('folder', 'store')]
-        self.o_ports = [Port('o', 'mcmd'), Port('u', 'frame')]
+        self.o_ports = [Port('o', 'mcmd')]
 
     def run(self, args, inputs):
-        from kskp.store import Datum, RemoteFolder
+        from kskp.store import Datum
         if inputs['store'].type != Datum.RFOLDER_TYPE:
             t = type(inputs['store'])
             raise Exception(f'RemoteFolderSaverの入力にRemoteFolderStore以外のデータ型({t})が入力されました')
         else:
-            rfolder = RemoteFolder.convert_to_remote_folder(inputs['store'])
+            rfolder = inputs['store']
 
         if inputs['folder'].type != Datum.FOLDER_TYPE:
             t = type(inputs['folder'])
             raise Exception(f'RemoteFolderSaverの入力にFolder以外のデータ型({t})が入力されました')
         else:
-            folder = Folder.convert_to_folder(inputs['folder'])
+            folder = inputs['folder']
 
         # 接続情報に漏れがないか確認し、漏れがあれば例外を送出する
         rfolder.valid_or_raise()
@@ -671,8 +684,8 @@ class RemoteFolderSaverCommand(SaverCommand):
 
         # 出力ファイルパスを作成する
         file_path = rfolder.path / dir_path.strip('/') / 'point_id' 
-        file_path = Datum.get_another_file_path(file_path.as_posix())
-        path_str = Datum._to_abs_path(file_path)
+        file_path = Datum.make_unique_path(file_path)
+        path_str = file_path.as_posix()
 
         # Nysol Python
         cmd = inputs['i'].content
@@ -687,25 +700,31 @@ class RemoteFolderSaverCommand(SaverCommand):
 
         # 出力結果を取得するDataSourceをライブラリに登録する
         # TODO: point_idどっからとってこよう
-        datasource = self._create_data_source(result_folder.uuid, rfolder, 'point_id', path_str)
+        datasource = self._create_data_source(result_folder, rfolder, 'point_id', path_str)
         datasource.save()
 
-        return {'o': NysolModule(cmd), 'u': datasource}  
+        # 出力DataSourceをRunsCommandに渡す
+        nysol_module = NysolModule(cmd)
+        nysol_module.context['frame'] = datasource
+
+        return {'o': NysolModule(cmd)}  
 
     @staticmethod
-    def _create_data_source(parent_uuid, rfolder, label, file_path):
+    def _create_data_source(parent, rfolder, label, file_path_str):
         import uuid
         from kskp.engine import Step
         from kskp.depo.std.commands import CommandLink
-        from kskp.store import DataSource
-        args = {'file_path':file_path}
+        args = {'file_path':file_path_str}
         loader_step = Step(str(uuid.uuid4()), CommandLink('remotefolder_loader').resolve(), args)
-        return DataSource(parent_uuid, label, rfolder, loader_step)
+        return parent.create_datasource(label, rfolder, loader_step)
 
 class RunsCommand(SCommand):
 
     # 最低必要ディスクサイズ(1Mbyte)
     MIN_REQUIRED_DISK_SIZE = 1024 * 1024
+
+    # 環境変数からPythonの再帰呼び出しの制限回数を取得する
+    RECURSION_LIMIT = int(os.getenv('KSKP_NYSOL_RECURSION_LIMIT', 2**20))
 
     def __init__(self):
         super().__init__()
@@ -720,17 +739,23 @@ class RunsCommand(SCommand):
     def run(self, args, inputs):
         import psutil
         from multiprocessing import Process, Manager, Pipe
+        from kskp.store import List, ApparentLast, CommandException
 
         def do_runs(nm_list, results, exs, out):
             """
             NYSOL Pythonを実行する
             """
             try:
-                # multiprocessing.Processで閉じられる標準入力を開き直す
                 import sys
+
+                # NYSOL-Pythonは、処理フローのグラフを組み立てる時と、処理メソッドをスケジューリングする時に
+                # 再帰呼び出しの制限回数がPythonの初期制限値を超えるので、ここで制限値を上げる
+                # (サブプロセスの制限回数を上げても親プロセスの制限回数は変わらない)
+                sys.setrecursionlimit(self.RECURSION_LIMIT)
+
+                # multiprocessing.Processで閉じられる標準入力を開き直す
                 sys.stdin = open(0, closefd=False)
 
-                import nysol.mcmd as nm
                 # nm.drawModelsD3(fname='aaabbbccc.html', val=nm_list)
 
                 # 標準エラー出力のファイル記述子(No.2)を親プロセスへのPIPEに変更する
@@ -744,6 +769,25 @@ class RunsCommand(SCommand):
                     import traceback
                     traceback.print_exc(file=fpe)
                 exs.append(e)
+
+        # 
+        # CommandExceptionが1つでも入力された場合は処理を中断する
+        # (例外が入力されたら対応する出力ポートに渡す)
+        # 
+        rets = {}
+        exception_exists = False
+        for i_port_name, input in inputs.items():
+            if isinstance(input, CommandException):
+                rets[i_port_name] = ApparentLast(None, None, [input])
+                exception_exists = True
+            elif isinstance(input,  (NysolModule, List)):
+                rets[i_port_name] = ApparentLast(None, input.context.get('frame'))
+            else:
+                raise Exception('RunsCommandにNysolModuleまたはCommandException以外のデータ型が入力されました')
+
+        if exception_exists:
+            # ActivityCommandにSaverが生成したFrameと例外を渡す
+            return rets
 
         # ディスクの空き容量を確認する
         # (Managerがtmpファイルを作成するが容量不足の時にその旨の例外を返さないので事前に確認する)
@@ -773,7 +817,7 @@ class RunsCommand(SCommand):
                 p = Process(target=do_runs, kwargs={'nm_list':nm_list, 'results':results, 'exs':exs, 'out':send_conn})
                 # サブプロセスを開始する
                 p.start()
-                
+
                 mcmd_errors = []
                 while True:
                     # サブプロセスが終了するまで待つ(単位は秒)
@@ -785,6 +829,7 @@ class RunsCommand(SCommand):
                     #  recv_connオブジェクトでcloseするのでclosefd=Falseとする)
                     for line in open(recv_conn.fileno(), mode='r', closefd=False):
                         print(line, end='', file=sys.stderr)
+                        sys.stderr.flush()
                         if line.startswith('#ERROR#') and 'script RUN KGERROR runmain on kgshell' not in line:
                             mcmd_errors.append(line)
 
@@ -801,31 +846,38 @@ class RunsCommand(SCommand):
                 recv_conn.close()
                 send_conn.close()
 
-            # NYSOL Pythonのエラー処理
-            if len(mcmd_errors) > 0:
-                from .mcmd_error_info import MCMDErrorInfo, MCMDError
-                mcmd_error_info = MCMDErrorInfo.parse_stderr(mcmd_errors[0])
-                raise MCMDError(mcmd_error_info)
+            # 例外リスト
+            exs_list = []
 
-            if len(exs) > 0:
-                # writelistコマンドにCSV形式以外のデータが入力されると例外が送出されるようである
-                raise Exception('データを表示できませんでした。次の原因が考えられます ' + \
-                                '(データが空です / ' + \
-                                'データがCSV形式ではありません / ' + \
-                                '最終行が改行コードのみ)')
+            # NYSOL-Pythonから"#ERROR#"形式のエラーが出力された場合
+            from .mcmd_error_info import MCMDErrorInfo, MCMDError
+            for mcmd_error in mcmd_errors:
+                mcmd_error_info = MCMDErrorInfo.parse_stderr(mcmd_error)
+                exs_list.append(MCMDError(mcmd_error_info))
 
-            if len(results) != len(inputs):
-                raise Exception('RunsCommandの入力ポートと出力ポートの数が異なります')
+            # "#ERROR#"形式のエラーは無く、例外が送出された場合
+            if len(exs_list) == 0:
+                exs_list.extend(exs)
+
+            # NYSOL-Pythonからエラーは無く、期待する結果数が返らなかった場合
+            if len(exs_list) == 0 and len(results) != len(inputs):
+                exs_list.append(Exception(f'RunsCommandの入力ポート数({len(inputs)})と出力ポート数({len(results)})が異なります'))
 
             # resultsの要素はnm_listへのappend順に対応している?ため
             # 入力ポートと出力ポートは同じキーで対応付ける
             i = 0
-            ret = {}
-            for i_port_name in inputs.keys():
-                ret[i_port_name] = results[i]
+            rets = {}
+            for i_port_name, nysol_module in inputs.items():
+                # プレビューの場合はframe=Noneである
+                frame = nysol_module.context.get('frame')
+                if len(exs_list) == 0:
+                    list = List(results[i])
+                    rets[i_port_name] = ApparentLast(None, frame or list)
+                else:
+                    rets[i_port_name] = ApparentLast(None, frame, exs_list)
                 i += 1
 
-            return ret
+            return rets
 
 
 class FieldNamesCommand(RunsCommand):
@@ -841,7 +893,6 @@ class FieldNamesCommand(RunsCommand):
             ret.append(nm_flow.fldname())
         return ret
 
-from kskp.store import Activity
 
 class ActivityCommand(SCommand):
     def __init__(self):
@@ -850,16 +901,45 @@ class ActivityCommand(SCommand):
         self.o_ports = [Port('o', 'activity')]
 
     def run(self, args, inputs):
+        from kskp.store import ApparentLast
+        from kskp.store import CommandException
+
         activity = args['activity']
         points = args['points']
 
-        for port_id, datum in inputs.items():
-            point = points[port_id]
-            activity.add(point, datum)
+        for port_id, input in inputs.items():
+            # 出力ポイント
+            out_point = points[port_id]
 
-        if activity.count_result() == len(points):
-            # Activityを全て集め終えたら結果を出力Pointに渡し、処理を終了する
+            if isinstance(input, CommandException):
+                # RunsCommandの前のコマンドで例外が送出された場合はframeは生成されない
+                last = ApparentLast(out_point, None, [input])
+            elif isinstance(input, ApparentLast):
+                last = input
+                last.out_point = out_point
+            else:
+                raise Exception('ActivityCommandにApparentLastまたはCommandException以外のデータ型が入力されました')
+
+            # Activityにlastを追加する
+            activity.add(last)
+
+        if activity.count_lasts() == len(points):
+            # Activityを全て集め終えたら実行結果情報を保存する
+            # (今は出力ファイル名にその情報を刻んでいる)
+            activity.save()
+            # Activityを出力Pointに渡し、処理を終了する
             return {'o': activity}
         else:
             # Noneを渡して、再びrun()を実行してもらう
             return {'o': None}
+
+    def dtor(self, args):
+        activity = args['activity']
+
+        # フローの実行に成功した場合は、何もしない
+        if activity.is_success:
+            return
+
+        # フローの実行に失敗した場合は、ここでSaverが出力したファイルを削除する
+        # (本当はSaver自身が削除すべきだが、Saverは作成したファイルを自身で覚えていない)
+        activity.delete_all_frames()

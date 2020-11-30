@@ -1,12 +1,9 @@
-import os
 import io
-import json
 import unittest
-from kskp.store import Library, Flow
 from kskp.engine import execute, FlowJsonLink, FlowLinkContext
+from .test_case_base import TestCaseBase
 
-
-class VCmdTestCase(unittest.TestCase):
+class VCmdTestCase(TestCaseBase):
     """
     visualize用コマンドの実行テスト
     """
@@ -16,11 +13,11 @@ class VCmdTestCase(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        # テスト用スキーマを作成する
-        from kskp.core import Datum
-        from kskp.store import Frame
+        # 親クラスのsetUpClass()を実行する
+        TestCaseBase.setUpClass()
+
         # ルートフォルダを取得する
-        root = Library.load_root()
+        root = cls.factory.data.load_root()
         # テスト用データを作成する
         test_data  = b'customer,date,amount,add1,add2,add3' + b'\n'
         test_data += b'A,20180101,5200,0,0,0' + b'\n'
@@ -29,25 +26,14 @@ class VCmdTestCase(unittest.TestCase):
         test_data += b'A,20180105,2000,4,5,6' + b'\n'
         test_data += b'B,20180107,4000,0,0,0' + b'\n'
         with io.BytesIO(test_data) as b:
-            frame = Frame(root.uuid, "customer data", b)
+            frame = root.create_frame("customer data", b)
             VCmdTestCase.frame_uuid = frame.uuid
             frame.save()
     
     @classmethod
     def tearDownClass(cls):
-        # ライブラリフォルダを削除する
-        from kskp.core import Datum
-        from kskp.store import STORE_DIR
-        library_path = STORE_DIR / Datum.find_root().path
-        import shutil
-        shutil.rmtree(library_path.as_posix())
-        # Sessionを閉じる
-        from kskp.store import ss as session
-        session.close()
-        # スキーマを破棄する
-        from kskp.store import engine
-        from sqlalchemy import DDL
-        engine.execute(DDL('DROP SCHEMA IF EXISTS %s CASCADE' % os.environ['KSKP_POSTGRESQL_SCHEMA_NAME']))
+        # 親クラスのtearDownClass()を実行する
+        TestCaseBase.tearDownClass()
 
     def setUp(self):
         # テスト用フローの定義
@@ -199,16 +185,23 @@ class VCmdTestCase(unittest.TestCase):
         self.assertIsInstance(result['div'], str)
         self.assertIsInstance(result['script'], str)
 
-    def convert_from_activity_vis(self, activity):
+    def convert_from_activity_vis(self, lasts):
         """
         execute()の戻り値であるActivityから
         pointのidとvisのDictに置き換える
         """
-        return {point.id : vis.result for point, vis in activity.result}
+        from kskp.store import Activity
+        # Activityを取得して返り値とする
+        for point_id, datum in lasts.items():
+            if isinstance(datum, Activity):
+                return {point.id : vis.result for point, vis in datum.lasts}
 
     def exec_flow(self, vis_args):
-        flow = Flow(None, 'CSV to graph', self.flow_csvtohtmltable)
-        flow_link = FlowJsonLink(flow, vis_args=vis_args)
-        activity = execute(flow_link, {}, {})
-        result = self.convert_from_activity_vis(activity)['d1']
+        from kskp.store import FlowData
+        root = self.factory.data.load_root()
+        flow_data = FlowData(self.flow_csvtohtmltable)
+        flow = root.create_flow('CSV to graph', flow_data)
+        flow_link = FlowJsonLink(flow, self.factory, vis_args=vis_args)
+        lasts = execute(flow_link, {}, {})
+        result = self.convert_from_activity_vis(lasts)['d1']
         return result

@@ -1,9 +1,8 @@
 import os
-import json
 
 from sqlalchemy import Column, text
 from sqlalchemy.dialects.postgresql import INTEGER, TIMESTAMP, JSONB, ENUM
-from kskp.store import BaseModel, ss as session
+from kskp.store import BaseModel
 
 class Store(BaseModel):
     """
@@ -12,73 +11,38 @@ class Store(BaseModel):
 
     # テーブル名
     __tablename__ = 'stores'
-    
-    # 定義先スキーマ
-    if 'KSKP_POSTGRESQL_SCHEMA_NAME' in os.environ:
-        # テスト環境用のスキーマ
-        __table_args__ = {'schema': os.environ['KSKP_POSTGRESQL_SCHEMA_NAME']}
 
     # カラム
-    id          = Column(ENUM('Directory', 'PostgreSQL', 'MySql', 'ORACLE', name='store_type') ,primary_key=True)
-    data        = Column(JSONB)
-    creator     = Column(INTEGER)
-    modifier    = Column(INTEGER)
-    created_at  = Column(TIMESTAMP, default=text('statement_timestamp()'))
-    modified_at = Column(TIMESTAMP, default=text('statement_timestamp()'), onupdate=text('statement_timestamp()'))
+    id           = Column(ENUM('Directory', 'PostgreSQL', 'MySql', 'ORACLE', name='store_type') ,primary_key=True)
+    data         = Column(JSONB)
 
     def __init__(self, id=None, data=None, creator=None):
+        self._session = None
+
         self.id = id
         self.data = data
-        self.creator = creator
-        self.modifier = creator
-
-    @classmethod
-    def create(cls, id, version=None, label=None, description=None, url=None, params=None, creator=None):
-        data = {'version'    : version,
-                'label'      : label,
-                'description': description,
-                'url'        : url,
-                'params'     : params}
-        return Store(id, data, creator)
-
-    @classmethod
-    def find_all(cls):
-        results = session.query(Store.id,
-                                   Store.data,
-                                   Store.created_at,
-                                   Store.modified_at,
-                                   Store.creator,
-                                   Store.modifier).all()
-        return [Store(result.id, result.data, result.creator) for result in results]
-
-    @classmethod
-    def find_by_id(cls, id):
-        result = session.query(Store.id,
-                                  Store.data,
-                                  Store.created_at,
-                                  Store.modified_at,
-                                  Store.creator,
-                                  Store.modifier).filter(Store.id==id).one_or_none()
-        if result is None:
-            raise Exception('No store is found by designated store id')
-        return Store(result.id, result.data, result.creator)
+        
+        # creator, modifier
+        if creator is not None:
+            self._creator_id = creator.id
+            self._modifier_id = creator.id
 
     def save(self):
-        session.add(self)
-        session.commit()
+        self._session.add(self)
+        self._session.commit()
 
     def delete(self):
-        session.query(Store).filter(Store.id==self.id).delete()
-        session.commit()
+        self._session.delete(self)
+        self._session.commit()
 
     def __str__(self):
         return self.id
 
     def to_json(self):
         return {'id'          : self.id,
-                'version'     : self.data['version'],
-                'label'       : self.data['label'],
-                'description' : self.data['description'],
-                'url'         : self.data['url'],
-                'params'      : self.data['params']
-                }
+                'version'     : self.data.get('version'),
+                'label'       : self.data.get('label'),
+                'description' : self.data.get('description'),
+                'url'         : self.data.get('url'),
+                'params'      : self.data.get('params')
+               }

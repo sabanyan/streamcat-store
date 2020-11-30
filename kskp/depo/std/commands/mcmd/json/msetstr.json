@@ -1,41 +1,16 @@
 {
   "id": "msetstr",
-  "rules": {
-    "v": {
-      "checkSeveralSpecifiedFormats": {
-        "defaultRule": {
-          "pattern": "^[^,]+(,[^,]+)*$|^$",
-          "message": "入力が正しくありません"
-        }
-      }
-    },
-    "a": {
-      "presencesIfTargetIsNotInput": [
-        "nfn",
-        "nfno"
-      ],
-      "specifiedFormatIfTargetInput": {
-        "target": "a",
-        "pattern": "^[^,]+$|^$",
-        "message": "入力が正しくありません。"
-      },
-      "lessValueListThanN": {
-        "target": "v",
-        "difference": "0",
-        "justValue": "-1"
-      }
-    }
-  },
   "params": [
     {
       "name": "v",
       "type": "string",
-      "label": "追加する値"
+      "label": "追加する値 (必須)"
     },
     {
       "name": "a",
       "type": "string",
-      "label": "追加列名"
+      "label": "項目名の設定 (必須)",
+      "description": "複数項目の指定は不可"
     },
     {
       "name": "assert_diffSize",
@@ -58,8 +33,9 @@
     {
       "name": "x",
       "type": "boolean",
-      "label": "項目番号による指定",
-      "optional": true
+      "label": "項目名ではなく、項目番号で指定する",
+      "optional": true,
+      "description": "・0始まりの項目番号で指定する\n・Lをつけると、右端起点の項目番号とみなす(例:3L)\n・複数入力可能なOptの場合は、列範囲としての指定も可能(例: 0-5)"
     },
     {
       "name": "tmpPath",
@@ -86,5 +62,38 @@
   "label": "文字列項目の追加",
   "classification": "col_edit",
   "description": "指定した文字列を値とする項目を追加する",
-  "url": "./static/pdf/mcmd/col_edit/msetstr.pdf"
+  "url": "./static/pdf/mcmd/col_edit/msetstr.pdf",
+  "groups": [
+    {
+      "name": "abstract",
+      "label": "文字列項目の追加",
+      "description": "指定した文字列を値とする項目を追加する",
+      "params": []
+    },
+    {
+      "name": "cmd_main",
+      "label": "文字列項目追加の設定 (必須)",
+      "params": [
+        "v",
+        "a"
+      ]
+    },
+    {
+      "name": "cmd_sub",
+      "label": "その他 (省略可)",
+      "params": [
+        "nfn",
+        "nfno",
+        "x"
+      ]
+    },
+    {
+      "name": "system",
+      "label": "システム管理用設定（作業領域・ログ出力）",
+      "params": [
+        "assert_diffSize",
+        "tmpPath"
+      ]
+    }
+  ]
 }
