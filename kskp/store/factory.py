@@ -82,8 +82,8 @@ class UnAuthzFactory():
     def find_user_by_email(self, email):
         return UserFactory(self._session).find_by_email(email)
 
-    def find_user_by_id(self, user_id):
-        return UserFactory(self._session).find_by_id(user_id)
+    def find_user_by_uuid(self, user_uuid):
+        return UserFactory(self._session).find_by_uuid(user_uuid)
 
     def load_sys_admin_user(self, activate_if_inactive=False):
         """
