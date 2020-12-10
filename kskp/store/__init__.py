@@ -32,8 +32,8 @@ elif _is_unittest():
     sqlalchemy_database_uri = database_uri
 else:
     # ローカル環境用の設定
-    sqlalchemy_database_uri = "postgresql://postgres:@db/kskp"
-    # sqlalchemy_database_uri = "postgresql://kskp:ZQZtVgL6G32Vy6p6WJtG3C3K84yuJ4zz@db/kskp"
+    # sqlalchemy_database_uri = "postgresql://postgres:@db/kskp"
+    sqlalchemy_database_uri = "postgresql://kskp:ZQZtVgL6G32Vy6p6WJtG3C3K84yuJ4zz@db/kskp"
 
 
 # データベースへの接続
