@@ -640,7 +640,11 @@ class MultiMcalWCCommand(PCommand):
         first = True
 
         # ヘッダ行を取得する
-        self.header = self.get_field_names(inputs['i'])
+        # self.header = self.get_field_names(inputs['i'])
+
+        # experimental header get method
+        header_iter = inputs['i'].content 
+        self.header = next(header_iter)
 
         xoption = _args.pop('x') if 'x' in _args else False
         
