@@ -28,12 +28,13 @@ if 'DATABASE_URL' in os.environ:
 elif _is_unittest():
     # テスト環境用の設定
     passwd = 'J2-pH|%B'
-    database_uri = "postgresql://kskp:%s@kskp.cr4gfi5zl5xm.ap-northeast-1.rds.amazonaws.com/kskp" % passwd
+    database_uri = f'postgresql://kskp:{passwd}@kskp.cr4gfi5zl5xm.ap-northeast-1.rds.amazonaws.com/kskp'
     sqlalchemy_database_uri = database_uri
 else:
     # ローカル環境用の設定
-    sqlalchemy_database_uri = "postgresql://postgres:@db/kskp"
-    # sqlalchemy_database_uri = "postgresql://kskp:ZQZtVgL6G32Vy6p6WJtG3C3K84yuJ4zz@db/kskp"
+    # sqlalchemy_database_uri = "postgresql://postgres:@db/kskp"
+    passwd = 'ZQZtVgL6G32Vy6p6WJtG3C3K84yuJ4zz'
+    sqlalchemy_database_uri = f'postgresql://kskp:{passwd}@db/kskp'
 
 
 # データベースへの接続
