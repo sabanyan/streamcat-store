@@ -1,4 +1,4 @@
-from kskp.store import Flow
+from kskp.store import Flow, FlowData
 
 class DataSource(Flow):
     def __init__(self, session, parent, label, store, loader_step):
@@ -69,4 +69,4 @@ class DataSource(Flow):
             "description": ""
         }
         
-        super().__init__(session, parent, label, flow_json)
+        super().__init__(session, parent, label, FlowData(flow_json))

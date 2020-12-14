@@ -34,13 +34,6 @@
       ]
     }
   ],
-  "rules": {
-    "c": {
-      "presence": {
-        "allowEmpty": false
-      }
-    }
-  },
   "params": [
     {
       "name": "c",

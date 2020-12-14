@@ -16,7 +16,7 @@ class Folder(Store):
         super().__init__(session, parent, Datum.FOLDER_TYPE, label)
 
         # DBに保存する前のFolderへの参照と更新と実行権限は制限しない
-        self._permissions = 0b1110
+        self._permissions = Datum.PERMISSION_READ | Datum.PERMISSION_WRITE | Datum.PERMISSION_EXEC
 
     @Constraints.prohibit_save_on_root
     @Constraints.set_project_role_on_adding
@@ -49,24 +49,6 @@ class Folder(Store):
             raise e
         finally:
             self._session.commit()
-
-    # def add_entry_from_path(self, file_path):
-    #     """
-    #     指定されたパスのファイルをFolderとして登録する
-    #     """
-    #     # 既にルートフォルダが存在する場合は、parent_id=NULLを許可しない
-    #     from kskp.store.factory import DatumFactory
-    #     if self.parent_id is None and DatumFactory(self.session).count_root() > 0:
-    #         raise Exception('You can not add another root folder. A root already exists!')
-    #     self.path = file_path
-    #     try:
-    #         # Dataテーブルにレコードを新規追加する
-    #         self.session.add(self)
-    #     except Exception as e:
-    #         self.session.rollback()
-    #         raise e
-    #     finally:
-    #         self.session.commit()
 
     def update_data(self, label, modifier=None):
         """
@@ -126,6 +108,8 @@ class Folder(Store):
         return trashed_folder
 
     def _throw_away_inner(self, parent, datum):
+        from kskp.store import lock_manager
+
         if isinstance(datum, Folder):
             # フォルダ直下のフォルダとデータベースとドキュメントを取得する
             children = datum.find_children()
@@ -170,13 +154,20 @@ class Folder(Store):
             return thrown_count, obstacle_count, None if trashed_folder_is_deleted else trashed_folder
 
         elif datum.type == Datum.FRAME_TYPE or datum.type == Datum.FLOW_TYPE:
+            import warnings
             # 削除しようとするフレーム/サブフローの更新権限がない場合は削除できない
             if not self._session.writable(datum):
+                warnings.warn(f'{datum} is not thrown, not writable')
+                return 0, 1, None
+            # 削除しようとするサブフローが排他ロック中の場合は削除できない
+            if lock_manager.containts_target(datum.uuid):
+                warnings.warn(f'{datum} is not thrown, exclusive locked')
                 return 0, 1, None
             # 削除しようとするフレーム/サブフローが、削除対象のフォルダ外のフローで使用されてる場合は削除できない
             using_flow_uuids = self.get_flow_uuids_using_me()
             for using_flow_uuid in using_flow_uuids:
                 if datum.uuid == using_flow_uuid['referenced_uuid']:
+                    warnings.warn(f'{datum} is not thrown, referenced by other flows')
                     return 0, 1, None
             # 削除可能!
             return 0, 0, None
@@ -317,10 +308,11 @@ class Folder(Store):
             # ディレクトリに対する権限がない場合
             raise e
         except OSError as e:
-            if e.errno == 39:
+            import errno
+            if e.errno == errno.ENOTEMPTY:
                 # [Errno 39] Directory not empty
                 file_path = next(dir_path.glob('*'))
-                raise OSError(f'Directory({dir_path}) is not removed. File({file_path}) exists in Directory')
+                raise OSError(e.errno, f'Directory({dir_path}) is not removed. File({file_path}) exists in Directory')
             raise e
 
     def _dir_path_exists(self, dir_path, except_id):

@@ -1,11 +1,19 @@
 from typing import Callable
+from kskp.store import KSKPBaseModel
 
 class DatabaseConn():
     """
     DBへの接続情報を保持する
     """
-    def __init__(self, conn_json:dict, readable_or_raise:Callable[[],None] = None):
+    def __init__(self, conn_json:dict, password_is_enctypted=False, readable_or_raise:Callable[[],None] = None):
         self._conn_json = conn_json
+
+        # パスワードを暗号化する
+        if password_is_enctypted:
+            self._encrypted_password = conn_json.get('password')
+        else:
+            password = conn_json.get('password')
+            self._encrypted_password = KSKPBaseModel._get_encrypt_password(password)
 
         # readable_or_raise()が指定されない場合は権限判定をしない
         empty_func = lambda: None
@@ -40,7 +48,7 @@ class DatabaseConn():
     @property
     def password(self) -> str:
         self._readable_or_raise()
-        return self._conn_json.get('password')
+        return KSKPBaseModel._get_decrypt_password(self._encrypted_password)
 
     def valid_or_raise(self):
         if self.dbms is None or self.dbms =='':
@@ -77,7 +85,10 @@ class DatabaseConn():
         else:
             return f'{dbms}://{user_id}:{password}@{hostname}:{port}/{database}'
 
-    def to_json(self):
+    def to_json(self, encrypt_password=False):
+        # encrypt_password=Trueの場合は暗号化したpasswordを返す
+        password = self._encrypted_password if encrypt_password else self.password
+
         # self._conn_jsonに他のキーが入っている場合もあるので
         # 改めてJSONデータを作成する
         return {'dbms'     : self.dbms,
@@ -85,4 +96,4 @@ class DatabaseConn():
                 'port'     : self.port,
                 'database' : self.database,
                 'user_id'  : self.user_id,
-                'password' : self.password}
+                'password' : password}

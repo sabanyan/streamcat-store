@@ -1,43 +1,5 @@
 {
   "id": "msed",
-  "rules": {
-    "c": {
-      "presence": {
-        "allowEmpty": false
-      }
-    },
-    "f": {
-      "presence": {
-        "allowEmpty": false
-      },
-      "checkSeveralSpecifiedFormats": {
-        "defaultRule": {
-          "pattern": "^[^:,]+(:[^:,]+)?(,[^:,]+(:[^:,]+)?)*$",
-          "message": "対象となる列名を入力してください"
-        },
-        "specialRules": [
-          {
-            "target": "A",
-            "pattern": "^[^:,]+:[^:,]+(,[^:,]+:[^:,]+)*$|^@\\[.+\\]$",
-            "message": "対象となる列名と新しい列名を、:(コロン)で区切って入力してください"
-          },
-          {
-            "target": [
-              "x",
-              "nfn"
-            ],
-            "pattern": "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$|^[1-9]?[0-9]+L?(:[^,:]+)?(,[1-9]?[0-9]+L?(:[^,:]+)?)*$",
-            "message": "項目の指定は数値のみ可能です。"
-          }
-        ]
-      }
-    },
-    "v": {
-      "presence": {
-        "allowEmpty": true
-      }
-    }
-  },
   "params": [
     {
       "name": "c",
