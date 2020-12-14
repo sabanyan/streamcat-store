@@ -1,5 +1,12 @@
 {
   "id": "mnewrand",
+  "rules": {
+    "a": {
+      "presence": {
+        "allowEmpty": false
+      }
+    }
+  },
   "params": [
     {
       "name": "a",

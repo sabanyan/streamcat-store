@@ -1,5 +1,31 @@
 {
   "id": "msetstr",
+  "rules": {
+    "v": {
+      "checkSeveralSpecifiedFormats": {
+        "defaultRule": {
+          "pattern": "^[^,]+(,[^,]+)*$|^$",
+          "message": "入力が正しくありません"
+        }
+      }
+    },
+    "a": {
+      "presencesIfTargetIsNotInput": [
+        "nfn",
+        "nfno"
+      ],
+      "specifiedFormatIfTargetInput": {
+        "target": "a",
+        "pattern": "^[^,]+$|^$",
+        "message": "入力が正しくありません。"
+      },
+      "lessValueListThanN": {
+        "target": "v",
+        "difference": "0",
+        "justValue": "-1"
+      }
+    }
+  },
   "params": [
     {
       "name": "v",

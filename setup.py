@@ -3,9 +3,8 @@ from setuptools import setup
 setup(
     name='kskp.store',
     packages=['kskp.store'],
-    version='3.0',
     description='Data Store of many type',
-    url='https://www.kskp.io',
+    url='https://www.ksk-anl.com/products/kskp',
     install_requires=[
         'ordered_set',
         'chardet',

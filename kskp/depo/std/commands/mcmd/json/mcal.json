@@ -35,6 +35,18 @@
       ]
     }
   ],
+  "rules": {
+    "a": {
+      "presence": {
+        "allowEmpty": false
+      }
+    },
+    "c": {
+      "presence": {
+        "allowEmpty": false
+      }
+    }
+  },
   "params": [
     {
       "name": "a",

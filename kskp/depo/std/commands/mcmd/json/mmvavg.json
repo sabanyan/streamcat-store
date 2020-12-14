@@ -1,5 +1,87 @@
 {
   "id": "mmvavg",
+  "rules": {
+    "t": {
+      "specifiedFormatIfTargetInput": {
+        "target": "t",
+        "pattern": "^[1-9]?[0-9]*$|^@\\[.+\\]$",
+        "message": "1以上の整数を半角で入力してください"
+      },
+      "raiseWarningTargetsSelected": [
+        "exp",
+        "alpha"
+      ]
+    },
+    "alpha": {
+      "specifiedFormatIfTargetInput": {
+        "target": "alpha",
+        "pattern": "^(\\+|-)?[1-9]?[0-9]*(\\.[0-9]+)?$|^@\\[.+\\]$",
+        "message": "実数を半角で入力してください"
+      }
+    },
+    "skip": {
+      "specifiedFormatIfTargetInput": {
+        "target": "skip",
+        "pattern": "^(\\+|-)?[1-9]?[0-9]*$|^@\\[.+\\]$",
+        "message": "整数を半角で入力してください"
+      }
+    },
+    "s": {
+      "presencesIfTargetIsNotInput": "q",
+      "checkSeveralSpecifiedFormats": {
+        "defaultRule": {
+          "pattern": "^[^,]+(,[^,]+)*$|^$",
+          "message": "入力が正しくありません"
+        },
+        "specialRules": [
+          {
+            "target": [
+              "x",
+              "nfn"
+            ],
+            "pattern": "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$|^$",
+            "message": "項目の指定は数値のみ可能です。"
+          }
+        ]
+      }
+    },
+    "f": {
+      "presence": {
+        "allowEmpty": false
+      },
+      "checkSeveralSpecifiedFormats": {
+        "defaultRule": {
+          "pattern": "^[^,]+(,[^,]+)*$",
+          "message": "入力が正しくありません"
+        },
+        "specialRules": [
+          {
+            "target": [
+              "x",
+              "nfn"
+            ],
+            "pattern": "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$",
+            "message": "項目の指定は数値のみ可能です。"
+          }
+        ]
+      }
+    },
+    "exp": {
+      "presencesIfTargetIsInput": "alpha",
+      "onlyOneInput": {
+        "target": [
+          "w"
+        ]
+      }
+    },
+    "w": {
+      "onlyOneInput": {
+        "target": [
+          "exp"
+        ]
+      }
+    }
+  },
   "params": [
     {
       "name": "s",

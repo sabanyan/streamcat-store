@@ -53,8 +53,3 @@ class TrashCan(Folder):
         elif datum.writable:
             # ファイルを削除する
             datum.delete()
-        else:
-            # 更新権限のないファイルは削除しない
-            # import warnings
-            # warnings.warn(f'{datum} is not deleted, {datum.writable}')
-            pass

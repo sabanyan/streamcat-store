@@ -22,7 +22,7 @@ class Database(Store):
         # data列の値を作成する
         if database_conn is None:
             raise Exception('database_conn引数がNoneです')
-        self._data = {'conn' : database_conn.to_json(encrypt_password=True)}
+        self._data = {'conn' : database_conn.to_json()}
 
     @Constraints.prohibit_save_on_root
     @Constraints.set_project_role_on_adding
@@ -52,8 +52,11 @@ class Database(Store):
 
         try:
             # レコードを更新する
+            # data = {'conn' : database_conn.to_json()}
+            # data = self.data.copy()
+            # data['conn'] = database_conn.to_json()
             self._label = new_label
-            self._data['conn'] = database_conn.to_json(encrypt_password=True)
+            self._data['conn'] = database_conn.to_json()
             self._modifier_id = (modifier or self._session.user).id
             self._session.update(self)
         except Exception as e:
@@ -95,15 +98,13 @@ class Database(Store):
 
     @property
     def conn(self):
-        return DatabaseConn(self._data['conn'],
-                            password_is_enctypted=True,
-                            readable_or_raise=self._readable_or_raise)
+        return DatabaseConn(self._data['conn'], self._readable_or_raise)
 
     def valid_or_raise(self):
         """
         DB接続情報の形式チェックを行い、NGの場合は例外を送出する
         """
-        database_conn = DatabaseConn(self._data['conn'], password_is_enctypted=True)
+        database_conn = DatabaseConn(self._data['conn'])
         return database_conn.valid_or_raise()
 
     def to_json(self):

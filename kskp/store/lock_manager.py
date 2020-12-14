@@ -68,18 +68,6 @@ class LockManager():
             else:
                 return False
 
-    def containts_target(self, target_uuid):
-        with self._lock:
-            # 有効期間切れのロックを削除する
-            self._unlock_expired_locks()
-
-        for lock in list(self._lock_data.values()):
-            if lock.target == target_uuid:
-                # ロックの有効期間を延長する
-                self._lock_data[lock.uuid].modified_at = datetime.utcnow()
-                return True
-        return False
-
     def unlock(self, lock_uuid):
         with self._lock:
             try:

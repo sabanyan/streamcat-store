@@ -7,7 +7,7 @@ from pathlib import Path
 from sqlalchemy import Column, String, text
 from sqlalchemy.sql import operators
 from sqlalchemy.orm import query_expression
-from sqlalchemy.dialects.postgresql import INTEGER, JSONB, ENUM, UUID
+from sqlalchemy.dialects.postgresql import INTEGER, TIMESTAMP, JSONB, ENUM, UUID
 from kskp.store import BaseModel
 from .constraints import Constraints
 
@@ -62,19 +62,16 @@ class Datum(BaseModel):
     FLOW_FOLDER_UUID  = 'ff37fe34-9c25-4ad0-b74a-affda3712a45'
     FLOW_FOLDER_LABEL = 'フロー'
 
-    # AuthzSessionが返す権限設定ののビットフラグ(_permissions)
-    PERMISSION_READ   = 0b1_00_0_0
-    PERMISSION_WRITE  = 0b0_10_0_0
-    # 編集ロック値を除外した更新権限(編集者フラグ)
-    PERMISSION_WRITER = 0b0_01_0_0
-    PERMISSION_EXEC   = 0b0_00_1_0
-    PERMISSION_OWN    = 0b0_00_0_1
-
     # Datum.pathの基点ディレクトリ
     STORE_DIR = Path(__file__).parent.parent / 'depo/files'
 
     # テーブル名の定義
     __tablename__ = 'data'
+
+    # 定義先スキーマ
+    if 'KSKP_POSTGRESQL_SCHEMA_NAME' in os.environ:
+        # テスト環境用のスキーマ
+        __table_args__ = {'schema': os.environ['KSKP_POSTGRESQL_SCHEMA_NAME']}
 
     # 列名と列のデータ型等の定義
     id           = Column(INTEGER, primary_key=True, autoincrement=True)
@@ -95,15 +92,17 @@ class Datum(BaseModel):
                                 TRASH_TYPE,
                                 name='data_type'), nullable=False)
     _data        = Column('data', JSONB)
-
+    _creator_id  = Column('creator', INTEGER)
+    _modifier_id = Column('modifier', INTEGER)
+    created_at   = Column(TIMESTAMP, default=text('statement_timestamp()'))
+    modified_at  = Column(TIMESTAMP, default=text('statement_timestamp()'), onupdate=text('statement_timestamp()'))
     # 各種権限(queryで追加した列の結果を格納する)
     _permissions = query_expression()
     # 所有権(queryで追加した列の結果を格納する)
-    _ownership   = query_expression()
-    # 親フォルダのuuid(queryで追加した列の結果を格納する)
-    _parent_uuid = query_expression()
-    # フォルダパス
-    _folder_path = query_expression()
+    _ownership = query_expression()
+
+    user = query_expression()
+
 
     # これを設定することで、session.query(Datum).all()でもサブクラスの型で結果を得ることができる
     __mapper_args__ = {
@@ -114,7 +113,8 @@ class Datum(BaseModel):
         """
         コンストラクタ
         """
-        super().__init__(session)
+        # SQLAlchemy Session
+        self._session = session
 
         # parent_id
         # (rootのみparent_idはNoneである)
@@ -139,8 +139,13 @@ class Datum(BaseModel):
         # type
         self.type = datum_type
 
+        # creator, modifier
+        if session is not None and session.user is not None:
+            self._creator_id = session.user.id
+            self._modifier_id = session.user.id
+
         # DBに保存する前のDatumへの参照と更新権限は制限しない
-        self._permissions = Datum.PERMISSION_READ | Datum.PERMISSION_WRITE
+        self._permissions = 0b1100
 
         # Engineから参照する
         self.context = {}
@@ -198,6 +203,11 @@ class Datum(BaseModel):
         # 絶対パスを返す
         return Path(Datum._to_abs_path(self._path))
 
+    # @path.setter
+    # def path(self, path):
+    #     # Pathオブジェクトを受け取る
+    #     self._path = Datum._to_rel_path(path)
+
     @property
     def path_exists(self):
         return self._path.exists()
@@ -214,37 +224,21 @@ class Datum(BaseModel):
     @property
     def readable(self):
         p = self._permissions
-        return p if p is None else (p & Datum.PERMISSION_READ) > 0
+        return p if p is None else (p & 0b1000) > 0
 
     @property
     def writable(self):
         p = self._permissions
-        return p if p is None else (p & Datum.PERMISSION_WRITE) > 0
-
-    @property
-    def writable_without_edit_lock(self):
-        """
-        このDatumの編集ロックを考慮しないself.writable
-        """
-        p = self._permissions
-        return p if p is None else (p & Datum.PERMISSION_WRITER) > 0
+        return p if p is None else (p & 0b0100) > 0
 
     @property
     def executable(self):
         p = self._permissions
-        return p if p is None else (p & Datum.PERMISSION_EXEC) > 0
+        return p if p is None else (p & 0b0010) > 0
 
     @property
     def ownership(self):
         return self._ownership
-
-    @property
-    def parent_uuid(self):
-        return self._parent_uuid
-
-    @property
-    def folder_path(self):
-        return self._folder_path
 
     @property
     def is_root(self):
@@ -260,9 +254,59 @@ class Datum(BaseModel):
     def prev_parent_id(self, id):
         self._data['prev_parent_id'] = id
 
+    # @property
+    # def data(self):
+    #     # 参照権限が無ければ例外を送出する
+    #     self._readable_or_raise()
+    #     return self._data
+
+    # @data.setter
+    # def data(self, value):
+    #     self._data = value
+
     @property
     def data_is_empty(self):
         return self._data is None or self._data == {}
+
+    @property
+    def created_at_str(self):
+        from kskp.core import Util
+        return Util.datetime_to_local_time_str(self.created_at)
+
+    @property
+    def modified_at_str(self):
+        from kskp.core import Util
+        return Util.datetime_to_local_time_str(self.modified_at)
+
+    @property
+    def creator(self):
+        from kskp.store.factory import UserFactory
+        if self._creator_id is None:
+            return None
+        return UserFactory(self._session).find_by_id(self._creator_id, allow_no_result=True)
+
+    @property
+    def modifier(self):
+        from kskp.store.factory import UserFactory
+        if self._modifier_id is None:
+            return None
+        return UserFactory(self._session).find_by_id(self._modifier_id, allow_no_result=True)
+
+    @modifier.setter
+    def modifier(self, modifier):
+        self._modifier = modifier
+
+    @property
+    def creator_str(self):
+        if self.creator is None:
+            return ''
+        return self.creator.name
+
+    @property
+    def modifier_str(self):
+        if self.modifier is None:
+            return ''
+        return self.modifier.name
 
     def find_parent(self):
         """
@@ -305,12 +349,9 @@ class Datum(BaseModel):
         """
         from kskp.store.factory import DatumFactory
         factory = DatumFactory(self._session)
-        # Sessionにあるself._permissionsを期限切れ状態にしてDBからリロードされるようにする
-        factory._session._session.expire(self, ['_permissions'])
         return factory.find_by_id(self.id)
 
     @Constraints.prohibit_move_to_root
-    @Constraints.prohibit_move_system_folder
     @Constraints.set_project_role_on_moving
     @Constraints.set_project_role_on_moving_flow
     def move(self, parent_uuid, modifier=None):
@@ -474,20 +515,20 @@ class Datum(BaseModel):
             except Exception as e:
                 return [], [e]
 
-    def _get_folder_path(self, parent_id):
+    def get_prev_folder_path(self):
         from kskp.store.auth import NotAuthorizedException
         from kskp.store.factory import DatumFactory
 
         factory = DatumFactory(self._session)
-        if parent_id is None or not factory.exists_by_id(parent_id):
+        if self.prev_parent_id is None or not factory.exists_by_id(self.prev_parent_id):
             return None
         else:
             try:
-                parent = factory.find_by_id(parent_id)
+                prev_parent = factory.find_by_id(self.prev_parent_id)
             except NotAuthorizedException:
                 # 参照権限がないため移動元の親Datumが取得できない場合、Noneを返す
                 return None
-            return '/' + '/'.join([folder.get('label') for folder in parent.get_folder_path()])
+            return '/' + '/'.join([folder.get('label') for folder in prev_parent.get_folder_path()])
 
     def __repr__(self):
         return f'Datum({self.id}, {self._label}, {self.type})'
@@ -511,26 +552,23 @@ class Datum(BaseModel):
                     'delete' : not self.is_root and self.writable,
                     'execute': False,
                     'move'   : not self.is_root and self.writable,
-                    'copy'   : not self.is_root and self.writable_without_edit_lock,
+                    'copy'   : not self.is_root and self.writable,
                     # 閲覧者以外はDownload可能なのでwritableで判定する
                     'download'    : not self.is_root and self.writable,
                     'findMember'  : False,
                     'updateMember': False,
                     'lock'   : False,
                 },
-                'folderPath' : self.folder_path,
-                'folderUuid' : self.parent_uuid,
-                # TODO: _get_folder_path()だけで結構遅くなってる
-                'prevFolderPath' : self._get_folder_path(self.prev_parent_id),
+                'prevFolderPath' : self.get_prev_folder_path(),
                 'creator'   : self.creator_str,
                 'createdAt' : self.created_at_str }
 
     def _readable_or_raise(self):
         from kskp.store.auth import NotAuthorizedException
         if self.readable is None:
-            raise NotAuthorizedException(f'{self.label}の参照権限がNoneです(save後またはrollback後のDatumオブジェクトは参照権限がNoneになります)')
+            raise NotAuthorizedException(f'{self.label}の参照権限がNoneです(save後のDatumオブジェクトは参照権限がNoneになります)')
         if not self.readable:
-            raise NotAuthorizedException(f'{self._session.user.name}は{self.label}の参照権限がありません({self.readable})')
+            raise NotAuthorizedException(f'{self._session.user.name} ({self.user})は{self.label}の参照権限がありません({self.readable})')
 
     def _update_same_path(self, old_path, new_path, modifier):
         # 同じファイルに対応するフォルダのpath列を、ファイル名の移動に合わせて変更する
@@ -707,9 +745,6 @@ class Datum(BaseModel):
         except OSError as e:
             # ファイルパス指定に誤りがある場合
             # (循環参照になる場合など)
-            import errno
-            if e.errno == errno.EINVAL:
-                raise OSError(e.errno, f'移動先が無効なため、{old_path.name}を移動できませんでした')
             raise e
 
     @staticmethod

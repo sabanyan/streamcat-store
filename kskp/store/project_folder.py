@@ -482,23 +482,18 @@ class ProjectFolder(Folder):
 
         AU = AU.group_by(A.c.datum_id, A.c.operation, User.id).alias('AU')
 
-        # プロジェクトへの参加タイプと権限設定ののビットフラグの対応
-        READER_PERMISSIONS = Datum.PERMISSION_READ | Datum.PERMISSION_EXEC
-        WRITE_PERMISSIONS  = READER_PERMISSIONS | Datum.PERMISSION_WRITE
-        OWNER_PERMISSIONS  = WRITE_PERMISSIONS  | Datum.PERMISSION_OWN
-
         query = self._session.query(
                     User,
                     case(
-                        {READER_PERMISSIONS : ProjectFolder.READER_MEMBER_TYPE,
-                         WRITE_PERMISSIONS  : ProjectFolder.WRITER_MEMBER_TYPE,
-                         OWNER_PERMISSIONS  : ProjectFolder.OWNER_MEMBER_TYPE},
+                        {0b1010 : ProjectFolder.READER_MEMBER_TYPE,
+                         0b1110 : ProjectFolder.WRITER_MEMBER_TYPE,
+                         0b1111 : ProjectFolder.OWNER_MEMBER_TYPE},
                         value=func.sum(
                                 case([(AU.c.permission,
-                                    case([(AU.c.operation=='read',  Datum.PERMISSION_READ),
-                                          (AU.c.operation=='write', Datum.PERMISSION_WRITE),
-                                          (AU.c.operation=='exec',  Datum.PERMISSION_EXEC),
-                                          (AU.c.operation=='own',   Datum.PERMISSION_OWN)
+                                    case([(AU.c.operation=='read', 0b1000),
+                                          (AU.c.operation=='write', 0b100),
+                                          (AU.c.operation=='exec',   0b10),
+                                          (AU.c.operation=='own',     0b1)
                                     ])
                                 )])
                               ),

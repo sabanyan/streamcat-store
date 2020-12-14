@@ -4,7 +4,7 @@ import unittest
 import pprint
 from sqlalchemy.orm.exc import NoResultFound
 from kskp.core import Datum
-from kskp.store import ProjectFolder, FlowData, OptimisticLockException, EditLockedException, CommandException
+from kskp.store import ProjectFolder, OptimisticLockException, EditLockedException, CommandException
 from kskp.store.auth import Auth, Role, InvalidPassword, NotAuthorizedException, NoRoleOwnerException
 from ...tests.test_case_base import TestCaseBase
 
@@ -92,145 +92,6 @@ class AuthTest(TestCaseBase):
         "description": ""
     }
 
-    # d(in=on) -> column_unique_name -> d1(out=on)
-    flow2_json = {
-        "label": "flow2", 
-        "nodes": [
-        {
-            "id": "d", 
-            "type": "frame", 
-            "value": [["顧客", "数量", "金額"],
-                      ["A", 1, 10],
-                      ["A", 2, 20],
-                      ["B", 1, 30],
-                      ["B", 3, 40],
-                      ["B", 1, 50]],
-            "label": "testData",
-            "makeCache": False, 
-            "dataSource": "csv", 
-            "cacheCreatedAt": None
-        }, 
-        {
-            "id": "d1", 
-            "type": "frame", 
-            "uuid": None, 
-            "label": "d1", 
-            "makeCache": False, 
-            "dataSource": "csv", 
-            "cacheCreatedAt": None
-        }, 
-        {
-            "id": "c1", 
-            "args": {
-                "d": "^^"
-            }, 
-            "dsts": {
-                "o": "d1"
-            }, 
-            "srcs": {
-                "i": "d"
-            }, 
-            "type": "command", 
-            "label": "c1", 
-            "commandId": "column_unique_name", 
-            "srcsOrder": [
-                "i"
-            ]
-        }
-        ], 
-        "ports": [
-        [
-            {
-                "type": "frame", 
-                "label": "testData", 
-                "nodeId": "d"
-            }
-        ], 
-        [
-            {
-                "type": "frame", 
-                "label": "d1", 
-                "nodeId": "d1"
-            }
-        ]
-        ], 
-        "params": [], 
-        "creator": "ユーザ管理者", 
-        "createdAt": "2020-11-19 11:31:10", 
-        "projectId": None, 
-        "description": ""
-    }
-
-    # d(in=on) -> sub_flow -> d1(out=on)
-    flow3_json = {
-        "label": "flow3",
-        "nodes": [
-            {
-                "id": "d",
-                "type": "frame",
-                "uuid": None,
-                "label": "0byte",
-                "makeCache": False,
-                "dataSource": "csv",
-                "cacheCreatedAt": None
-            },
-            {
-                "id": "d1",
-                "type": "frame",
-                "uuid": None,
-                "label": "d1",
-                "makeCache": False,
-                "dataSource": "csv",
-                "cacheCreatedAt": None
-            },
-            {
-                "id": "f1",
-                "args": {},
-                "dsts": {
-                    "d1": "d1"
-                },
-                "srcs": {
-                    "d": "d"
-                },
-                "type": "flow",
-                "uuid": None,
-                "label": "f1",
-                "srcsOrder": [
-                    "d"
-                ]
-            }
-        ],
-        "ports": [
-            [],
-            [
-                {
-                    "type": "frame",
-                    "label": "d1",
-                    "nodeId": "d1"
-                }
-            ]
-        ],
-        "params": [],
-        "creator": "ユーザー管理者",
-        "createdAt": "2020-11-20 09:20:50",
-        "projectId": None,
-        "description": ""
-    }
-
-    def get_flow3_json(self, subflow_uuid):
-        """
-        サブフローのUUIDを設定して、Flow3のJsonを取得する
-        """
-        flow3_json =  copy.deepcopy(self.flow3_json)
-
-        # サブフローを指定されたUUIDに設定する
-        for node in flow3_json['nodes']:
-            if node.get('id') == 'f1':
-                node['uuid'] = subflow_uuid
-                break
-
-        return flow3_json
-
     def get_frame_from_lasts(lasts):
         """
         lastsから出力結果Frameを1つ返す
@@ -254,7 +115,7 @@ class AuthTest(TestCaseBase):
         # ルートフォルダの下にフォルダを作成する
         folder = root.create_folder('Folder!')
         # ルートフォルダの下にFlowを作成する
-        flow = root.create_flow('Flow!', FlowData())
+        flow = root.create_flow('Flow!', {})
         # ルートフォルダの下にフレームを作成する
         frame = root.create_frame('Frame!', io.BytesIO(b''))
 
@@ -309,12 +170,8 @@ class AuthTest(TestCaseBase):
     def test_failure_after_update_data(self):
         """
         原因不明
-          save() -> update() -> find_by_id()/find_by_uuid()の順に実行すると
-          find_by_id()/find_by_uuid()で参照権限Noneのためエラーになる
-
-        AuthzSession.update()においてSession.exipre()を実行しても
-        _permissions(=None)はExpireされないので、find_by_id()を実行時に
-        Sessionにある_permissionsの値を参照している?
+          save() -> update() -> reload()の順に実行すると
+          reload()で参照権限Noneのためエラーになる
         """
         # ルートフォルダを取得する
         root = self.factory.data.load_root()
@@ -338,8 +195,8 @@ class AuthTest(TestCaseBase):
         self.assertIsNone(frame.writable)
         self.assertIsNone(frame.executable)
 
-        # ここでSELECTを発行すると、下のfind_by_id()は成功する
-        # self.factory.data.find_by_id(frame.id)
+        # ここでSELECTを発行すると、下のreload()は成功する
+        # frame.reload()
 
         # フレームを更新する
         # (SELECTを発行しない単純なUPDATE)
@@ -352,7 +209,7 @@ class AuthTest(TestCaseBase):
         # フォルダを再読み込みする
         # 参照権限がNoneのため、NotAuthorizedExceptionが送出される
         with self.assertRaises(NotAuthorizedException):
-            self.factory.data.find_by_id(frame.id)
+            frame.reload()
 
         # 
         # プロジェクトを新規作成する
@@ -367,13 +224,13 @@ class AuthTest(TestCaseBase):
 
         # プロジェクトを再読み込みする
         with self.assertRaises(NotAuthorizedException):
-            self.factory.data.find_by_uuid(project.uuid)
+            project.reload()
 
-    def test_success_after_update_data1(self):
+    def test_success_after_update_data(self):
         """
         原因不明
-          save() -> find_by_id() -> update() -> find_by_id()の順に実行すると
-          2回目のfind_by_id()で参照権限のエラーは送出されない
+          save() -> update() -> reload()の順に実行すると
+          reload()で参照権限Noneのためエラーになる
         """
         # ルートフォルダを取得する
         root = self.factory.data.load_root()
@@ -398,7 +255,7 @@ class AuthTest(TestCaseBase):
         self.assertIsNone(frame.executable)
 
         # ここでSELECTを発行すると、下のreload()は成功する
-        self.factory.data.find_by_id(frame.id)
+        frame.reload()
 
         # フレームを更新する
         # (SELECTを発行しない単純なUPDATE)
@@ -409,7 +266,7 @@ class AuthTest(TestCaseBase):
         self.assertFalse(frame.executable)
 
         # フォルダを再読み込みする
-        self.factory.data.find_by_id(frame.id)
+        frame.reload()
 
         # 
         # プロジェクトを新規作成する
@@ -420,61 +277,7 @@ class AuthTest(TestCaseBase):
         project.save()
 
         # ここでSELECTを発行すると、下のreload()は成功する
-        self.factory.data.find_by_uuid(project.uuid)
-
-        # プロジェクトの更新者IDと最終更新時刻を更新する
-        project._update_timestamp()
-
-        # プロジェクトを再読み込みする
-        self.factory.data.find_by_uuid(project.uuid)
-
-    def test_success_after_update_data2(self):
-        """
-        save() -> update() -> reload()の順に実行すると
-        reload()で参照権限のエラーは送出されないこと
-        """
-        # ルートフォルダを取得する
-        root = self.factory.data.load_root()
-
-        # 
-        # フレームを新規作成する
-        # 
-        frame = root.create_frame('Frame!!!!', io.BytesIO(b''))
-
-        # フレームの参照と更新権限は付与されていること
-        # (フレームなので実行権限はない)
-        self.assertTrue(frame.readable)
-        self.assertTrue(frame.writable)
-        self.assertFalse(frame.executable)
-
-        # フレームを保存する
-        frame.save()
-
-        # 保存後は全ての権限はNoneに設定される
-        self.assertIsNone(frame.readable)
-        self.assertIsNone(frame.writable)
-        self.assertIsNone(frame.executable)
-
-        # フレームを更新する
-        # (SELECTを発行しない単純なUPDATE)
-        frame.update_label_only('frame!!!!')
-
-        self.assertIsNone(frame.readable)
-        self.assertIsNone(frame.writable)
-        self.assertIsNone(frame.executable)
-
-        # フォルダを再読み込みする
-        #  reload()にて_permissionsをExpireしてからfind_by_id()を呼んでいるので、
-        #  NotAuthorizedExceptionは送出されない
-        frame.reload()
-
-        # 
-        # プロジェクトを新規作成する
-        # 
-        project = root.create_project_folder('Project!!!')
-
-        # プロジェクトを保存する
-        project.save()
+        project.reload()
 
         # プロジェクトの更新者IDと最終更新時刻を更新する
         project._update_timestamp()
@@ -695,14 +498,14 @@ class AuthTest(TestCaseBase):
 
         # 他のユーザと同じメールアドレスに変更できないこと
         with self.assertRaises(Exception):
-            new_user2.update_email('wow@kskp.io')
+            new_user1.update_email('wow@kskp.io')
 
         # ユーザを削除する
         new_user1.delete()
 
     def test_validate_email(self):
         """
-        E-Mailの妥当性が検証されること
+        emailの妥当性が検証されること
         """
         pass
 
@@ -1217,7 +1020,7 @@ class AuthTest(TestCaseBase):
         folder.save()
         folder = folder.reload()
         # フォルダの下にフローを作成する
-        flow = folder.create_flow('フロー', FlowData())
+        flow = folder.create_flow('フロー', {})
         flow.save()
         flow = flow.reload()
 
@@ -1258,7 +1061,7 @@ class AuthTest(TestCaseBase):
         folder.save()
         folder = folder.reload()
         # フォルダの下にフローを作成する
-        flow = folder.create_flow('フロー', FlowData())
+        flow = folder.create_flow('フロー', {})
         flow.save()
         flow = flow.reload()
 
@@ -1267,7 +1070,7 @@ class AuthTest(TestCaseBase):
 
         # フローは更新不可
         with self.assertRaises(NotAuthorizedException):
-            flow.update_data('WOW', FlowData())
+            flow.update_data('WOW', {})
 
         # フローは削除不可
         with self.assertRaises(NotAuthorizedException):
@@ -1287,7 +1090,7 @@ class AuthTest(TestCaseBase):
         everyone_role.init_authz(project.id, True, True, exec=True)
 
         # プロジェクトの下にフローを作成する
-        flow = project.create_flow('フロー', FlowData())
+        flow = project.create_flow('フロー', {})
         flow.save()
 
         # フローの参照権限を全て削除する
@@ -1323,7 +1126,7 @@ class AuthTest(TestCaseBase):
 
         # フローは更新不可
         with self.assertRaises(NotAuthorizedException):
-            flow.update_data('WOW!', FlowData())
+            flow.update_data('WOW!', {})
 
         # フローは削除不可
         with self.assertRaises(NotAuthorizedException):
@@ -1402,7 +1205,7 @@ class AuthTest(TestCaseBase):
         # ルートフォルダを取得する
         root = self.factory.data.load_root()
         # ルートフォルダの下にフローを作成する
-        flow = root.create_flow('所有者のみ参照できるフロー', FlowData())
+        flow = root.create_flow('所有者のみ参照できるフロー', {})
         flow.save()
         
         # フローの参照権限を全て削除する
@@ -1427,7 +1230,7 @@ class AuthTest(TestCaseBase):
         # ルートフォルダを取得する
         root = self.factory.data.load_root()
         # ルートフォルダの下にフローを作成する
-        flow = root.create_flow('所有者のみ参照できるフロー', FlowData())
+        flow = root.create_flow('所有者のみ参照できるフロー', {})
         flow.save()
 
         # フローの参照権限を全て削除する
@@ -1447,7 +1250,7 @@ class AuthTest(TestCaseBase):
         # ルートフォルダを取得する
         root = self.factory.data.load_root()
         # ルートフォルダの下にフローを作成する
-        flow = root.create_flow('所有者のみ更新できるフロー', FlowData())
+        flow = root.create_flow('所有者のみ更新できるフロー', {})
         flow.save()
         
         # フローの権限を全て削除する
@@ -1457,7 +1260,7 @@ class AuthTest(TestCaseBase):
         self.USER1.load_self_role().init_authz(flow.id, False, True)
 
         # フローは更新可能
-        flow.update_data('変更したフロー名', FlowData())
+        flow.update_data('変更したフロー名', {})
 
         # フローは更新されていること
         self.assertEqual(flow.label, '変更したフロー名')
@@ -1472,7 +1275,7 @@ class AuthTest(TestCaseBase):
         folder = root.create_folder('所有者のみ更新できるフォルダ')
         folder.save()
         # フォルダの下にフローを作成する
-        flow = folder.create_flow('フロー', FlowData())
+        flow = folder.create_flow('フロー', {})
         flow.save()
 
         # フォルダとフローの権限を全て削除する
@@ -1484,7 +1287,7 @@ class AuthTest(TestCaseBase):
         self.USER1.load_self_role().init_authz(flow.id, False, True)
 
         # フローは更新可能
-        flow.update_data('変更したフロー名2', FlowData())
+        flow.update_data('変更したフロー名2', {})
 
         # フローは更新されていること
         self.assertEqual(flow.label, '変更したフロー名2')        
@@ -1496,7 +1299,7 @@ class AuthTest(TestCaseBase):
         # ルートフォルダを取得する
         root = self.factory.data.load_root()
         # ルートフォルダの下にフローを作成する
-        flow = root.create_flow('所有者のみ更新できるフロー2', FlowData())
+        flow = root.create_flow('所有者のみ更新できるフロー2', {})
         flow.save()
         
         # フローの権限を全て削除する
@@ -1514,7 +1317,7 @@ class AuthTest(TestCaseBase):
 
         # フローは更新不可能
         with self.assertRaises(NotAuthorizedException):
-            flow.update_data('変更したフロー名2', FlowData())
+            flow.update_data('変更したフロー名2', {})
 
         # フローは更新されていないこと
         self.assertEqual(flow.label, '所有者のみ更新できるフロー2')
@@ -1532,7 +1335,7 @@ class AuthTest(TestCaseBase):
         to_folder = root.create_folder('移動先フォルダ')
         to_folder.save()
         # 移動元フォルダの直下にフローを作成する
-        flow = from_folder.create_flow('フローA', FlowData())
+        flow = from_folder.create_flow('フローA', {})
         flow.save()
 
         # 移動元フォルダを参照不可にする
@@ -1562,7 +1365,7 @@ class AuthTest(TestCaseBase):
         to_folder = root.create_folder('移動先フォルダ')
         to_folder.save()
         # 移動元フォルダの直下にフローを作成する
-        flow = from_folder.create_flow('フローB', FlowData())
+        flow = from_folder.create_flow('フローB', {})
         flow.save()
         
         # 移動元フォルダを更新不可にする
@@ -1594,7 +1397,7 @@ class AuthTest(TestCaseBase):
         to_folder = root.create_folder('移動先フォルダ')
         to_folder.save()
         # 移動元フォルダの直下にフローを作成する
-        flow = from_folder.create_flow('フローC', FlowData())
+        flow = from_folder.create_flow('フローC', {})
         flow.save()
 
         # 移動先フォルダを更新不可にする
@@ -1624,7 +1427,7 @@ class AuthTest(TestCaseBase):
         folder2 = folder1.create_folder('フォルダ2')
         folder2.save()
         # フォルダ2の下にフローを作成する
-        flow = folder2.create_flow('myFlow', FlowData())
+        flow = folder2.create_flow('myFlow', {})
         flow.save()
 
         # フォルダ1を更新不可にする
@@ -1641,10 +1444,10 @@ class AuthTest(TestCaseBase):
 
         # フローは更新できないこと
         with self.assertRaises(NotAuthorizedException):
-            flow.update_data('myFlow0', FlowData())
+            flow.update_data('myFlow0', {})
 
         # フォルダ2にフローを新規追加できないこと
-        flow2 = folder2.create_flow('myFlow1', FlowData())
+        flow2 = folder2.create_flow('myFlow1', {})
         with self.assertRaises(NotAuthorizedException):
             flow2.save()
 
@@ -1659,7 +1462,7 @@ class AuthTest(TestCaseBase):
         folder.save()
         folder = folder.reload()
         # フォルダAの下にフロー1を作成する
-        flow1 = folder.create_flow('更新できないフロー', FlowData())
+        flow1 = folder.create_flow('更新できないフロー', {})
         flow1.save()
 
         # フローを更新不可にする
@@ -1692,7 +1495,7 @@ class AuthTest(TestCaseBase):
         folder = root.create_folder('フォルダA')
         folder.save()
         # フォルダAの下にフロー1を作成する
-        flow = folder.create_flow('実行できないフロー', FlowData())
+        flow = folder.create_flow('実行できないフロー', {})
         flow.save()
 
         # フローを実行不可にする
@@ -1769,7 +1572,7 @@ class AuthTest(TestCaseBase):
         self_role.init_authz(frame_a.id, read=None, write=True)
         self_role.init_authz(frame_b.id, read=None, write=True)
 
-        # フレームA,Bを削除する
+        # # フレームA,Bを削除する
         frame_a.delete()
         frame_b.delete()
 
@@ -1853,7 +1656,7 @@ class AuthTest(TestCaseBase):
 
         # フローの更新はできないこと
         with self.assertRaises(NotAuthorizedException):
-            flow.update_data('flame_file', FlowData())
+            flow.update_data('flame_file', {})
 
         # フローは削除できないこと
         with self.assertRaises(NotAuthorizedException):
@@ -1931,7 +1734,7 @@ class AuthTest(TestCaseBase):
 
         # フローの更新はできないこと
         with self.assertRaises(NotAuthorizedException):
-            flow.update_data('flame_file', FlowData())
+            flow.update_data('flame_file', {})
 
         # フローは削除できないこと
         with self.assertRaises(NotAuthorizedException):
@@ -1947,7 +1750,7 @@ class AuthTest(TestCaseBase):
         folder1 = root.create_folder('フォルダ1')
         folder1.save()
         # フォルダ1の下にフローを作成する
-        flow = folder1.create_flow('myFlow', FlowData())
+        flow = folder1.create_flow('myFlow', {})
         flow.save()
 
         # フローを参照不可にする
@@ -2168,7 +1971,7 @@ class AuthTest(TestCaseBase):
         project = project.reload()
 
         # プロジェクトの下にフローを作成する
-        flow = project.create_flow('フロー', FlowData())
+        flow = project.create_flow('フロー', {})
         flow.save()
         flow = flow.reload()
 
@@ -2484,7 +2287,7 @@ class AuthTest(TestCaseBase):
         folder = folder.reload()
 
         # USER3は、フォルダの下にフローを作成する
-        flow = folder.create_flow('シャミ子が悪いんだよ💘', FlowData())
+        flow = folder.create_flow('シャミ子が悪いんだよ💘', {})
         flow.save()
         flow = flow.reload()
 
@@ -2549,7 +2352,7 @@ class AuthTest(TestCaseBase):
         folder = folder.reload()
 
         # USER3は、フォルダの下にフローを作成する
-        flow = folder.create_flow('疾如風徐如林侵掠如火不動如山', FlowData())
+        flow = folder.create_flow('疾如風徐如林侵掠如火不動如山', {})
         flow.save()
         flow = flow.reload()
 
@@ -2569,7 +2372,7 @@ class AuthTest(TestCaseBase):
 
         # ユーザ管理者は、フローの参照・更新・実行ができること
         flow = self.factory.data.find_by_uuid(flow.uuid)
-        flow.update_data('武田晴信', FlowData())
+        flow.update_data('武田晴信', {})
         flow.flow_data.get_nodes(use_exec_auth=True)
 
         # ユーザ管理者は、フローの参照・更新・実行のプロパティがTrueであること
@@ -2730,8 +2533,7 @@ class AuthTest(TestCaseBase):
         project2 = project2.reload()
 
         # プロジェクトの下にフローを作成する
-        flow_data = FlowData(copy.deepcopy(self.flow_json))
-        flow = project1.create_flow('どん兵衛', flow_data)
+        flow = project1.create_flow('どん兵衛', copy.deepcopy(self.flow_json))
         flow.save()
         flow = flow.reload() 
 
@@ -2743,7 +2545,7 @@ class AuthTest(TestCaseBase):
         out_frame = AuthTest.get_frame_from_lasts(lasts)
 
         # プロジェクト管理者は、フローのキャッシュを参照できること
-        cache_frame_uuid = flow.flow_data.get_cache_frame_uuids()[0]
+        cache_frame_uuid = flow.get_cache_frame_uuids()[0]
         cache_frame = self.factory2.data.find_by_uuid(cache_frame_uuid)
 
         # フローをプロジェクト2に移動する
@@ -2781,8 +2583,8 @@ class AuthTest(TestCaseBase):
         self.assertEqual(auths[2].permission, True)
         self.assertEqual(auths[2].creator, self.USER2)
         self.assertEqual(auths[2].modifier, self.USER2)
-        self.assertIsNotNone(auths[2].created_at)
-        self.assertIsNotNone(auths[2].modified_at)
+        self.assertIsNotNone(auths[1].created_at)
+        self.assertIsNotNone(auths[1].modified_at)
         # プロジェクト2のReadersロールの参照権限
         self.assertEqual(auths[3].role_id, readers_role.id)
         self.assertEqual(auths[3].datum_id, cache_frame.id)
@@ -2790,8 +2592,8 @@ class AuthTest(TestCaseBase):
         self.assertEqual(auths[3].permission, True)
         self.assertEqual(auths[3].creator, self.USER2)
         self.assertEqual(auths[3].modifier, self.USER2)
-        self.assertIsNotNone(auths[3].created_at)
-        self.assertIsNotNone(auths[3].modified_at)
+        self.assertIsNotNone(auths[1].created_at)
+        self.assertIsNotNone(auths[1].modified_at)
         # プロジェクト2のWritersロールの更新権限
         self.assertEqual(auths[4].role_id, writers_role.id)
         self.assertEqual(auths[4].datum_id, cache_frame.id)
@@ -2799,8 +2601,8 @@ class AuthTest(TestCaseBase):
         self.assertEqual(auths[4].permission, True)
         self.assertEqual(auths[4].creator, self.USER2)
         self.assertEqual(auths[4].modifier, self.USER2)
-        self.assertIsNotNone(auths[4].created_at)
-        self.assertIsNotNone(auths[4].modified_at)
+        self.assertIsNotNone(auths[1].created_at)
+        self.assertIsNotNone(auths[1].modified_at)
         # プロジェクト2のWritersロールの所有権限
         self.assertEqual(auths[5].role_id, writers_role.id)
         self.assertEqual(auths[5].datum_id, cache_frame.id)
@@ -2808,8 +2610,8 @@ class AuthTest(TestCaseBase):
         self.assertEqual(auths[5].permission, True)
         self.assertEqual(auths[5].creator, self.USER2)
         self.assertEqual(auths[5].modifier, self.USER2)
-        self.assertIsNotNone(auths[5].created_at)
-        self.assertIsNotNone(auths[5].modified_at)
+        self.assertIsNotNone(auths[1].created_at)
+        self.assertIsNotNone(auths[1].modified_at)
 
         # プロジェクトとキャッシュを削除する
         project1.throw_away()
@@ -2835,8 +2637,7 @@ class AuthTest(TestCaseBase):
         project1 = project1.reload()
 
         # プロジェクトの下にフローを作成する
-        flow_data = FlowData(copy.deepcopy(self.flow_json))
-        flow = project1.create_flow('辛ラーメン', flow_data)
+        flow = project1.create_flow('辛ラーメン', copy.deepcopy(self.flow_json))
         flow.save()
         flow = flow.reload() 
 
@@ -2848,7 +2649,7 @@ class AuthTest(TestCaseBase):
         out_frame = AuthTest.get_frame_from_lasts(lasts)
 
         # プロジェクト管理者は、フローのキャッシュを参照できること
-        cache_frame_uuid = flow.flow_data.get_cache_frame_uuids()[0]
+        cache_frame_uuid = flow.get_cache_frame_uuids()[0]
         cache_frame = self.factory2.data.find_by_uuid(cache_frame_uuid)
 
         # フローをキャッシュフォルダに移動する
@@ -2886,8 +2687,8 @@ class AuthTest(TestCaseBase):
         self.assertEqual(auths[2].permission, True)
         self.assertEqual(auths[2].creator, self.USER2)
         self.assertEqual(auths[2].modifier, self.USER2)
-        self.assertIsNotNone(auths[2].created_at)
-        self.assertIsNotNone(auths[2].modified_at)
+        self.assertIsNotNone(auths[1].created_at)
+        self.assertIsNotNone(auths[1].modified_at)
         # プロジェクト2のReadersロールの参照権限
         self.assertEqual(auths[3].role_id, readers_role.id)
         self.assertEqual(auths[3].datum_id, cache_frame.id)
@@ -2895,8 +2696,8 @@ class AuthTest(TestCaseBase):
         self.assertEqual(auths[3].permission, True)
         self.assertEqual(auths[3].creator, self.USER2)
         self.assertEqual(auths[3].modifier, self.USER2)
-        self.assertIsNotNone(auths[3].created_at)
-        self.assertIsNotNone(auths[3].modified_at)
+        self.assertIsNotNone(auths[1].created_at)
+        self.assertIsNotNone(auths[1].modified_at)
         # プロジェクト2のWritersロールの更新権限
         self.assertEqual(auths[4].role_id, writers_role.id)
         self.assertEqual(auths[4].datum_id, cache_frame.id)
@@ -2904,8 +2705,8 @@ class AuthTest(TestCaseBase):
         self.assertEqual(auths[4].permission, True)
         self.assertEqual(auths[4].creator, self.USER2)
         self.assertEqual(auths[4].modifier, self.USER2)
-        self.assertIsNotNone(auths[4].created_at)
-        self.assertIsNotNone(auths[4].modified_at)
+        self.assertIsNotNone(auths[1].created_at)
+        self.assertIsNotNone(auths[1].modified_at)
         # プロジェクト2のWritersロールの所有権限
         self.assertEqual(auths[5].role_id, writers_role.id)
         self.assertEqual(auths[5].datum_id, cache_frame.id)
@@ -2913,8 +2714,8 @@ class AuthTest(TestCaseBase):
         self.assertEqual(auths[5].permission, True)
         self.assertEqual(auths[5].creator, self.USER2)
         self.assertEqual(auths[5].modifier, self.USER2)
-        self.assertIsNotNone(auths[5].created_at)
-        self.assertIsNotNone(auths[5].modified_at)
+        self.assertIsNotNone(auths[1].created_at)
+        self.assertIsNotNone(auths[1].modified_at)
 
         # プロジェクトとキャッシュを削除する
         project1.throw_away()
@@ -2958,8 +2759,7 @@ class AuthTest(TestCaseBase):
 
         # 編集ロックされたフローは更新できないこと
         with self.assertRaises(EditLockedException):
-            flow_data = FlowData(copy.deepcopy(self.flow_json))
-            flow.update_data('ククロビン', flow_data)
+            flow.update_data('ククロビン', copy.deepcopy(self.flow_json))
 
         # 編集ロックされたフローは削除できないこと
         with self.assertRaises(EditLockedException):
@@ -2973,8 +2773,7 @@ class AuthTest(TestCaseBase):
         self.assertFalse(flow.edit_lock)
 
         # 編集ロックが解除されたフローは更新できること
-        flow_data = FlowData(copy.deepcopy(self.flow_json))
-        flow.update_data('だーれが殺したククロビン', flow_data)
+        flow.update_data('だーれが殺したククロビン', copy.deepcopy(self.flow_json))
         self.assertEqual(flow.label, 'だーれが殺したククロビン')
 
         # フローとフレームを削除する
@@ -2994,16 +2793,13 @@ class AuthTest(TestCaseBase):
         project = project.reload()
 
         # プロジェクトの下にフローを作成する
-        flow_data = FlowData(copy.deepcopy(self.flow_json))
-        flow = project.create_flow('天下太平マリネラじゃー', flow_data)
+        flow = project.create_flow('天下太平マリネラじゃー', copy.deepcopy(self.flow_json))
         flow.save()
-        flow = flow.reload()
 
         # メンバを設定する
         member1 = ProjectFolder.Member(self.USER2, ProjectFolder.OWNER_MEMBER_TYPE)
-        member2 = ProjectFolder.Member(self.USER0, ProjectFolder.WRITER_MEMBER_TYPE)
-        member3 = ProjectFolder.Member(self.USER3, ProjectFolder.READER_MEMBER_TYPE)
-        project.init_members([member1, member2, member3], last_modified_at=project.modified_at)
+        member2 = ProjectFolder.Member(self.USER3, ProjectFolder.READER_MEMBER_TYPE)
+        project.init_members([member1, member2], last_modified_at=project.modified_at)
 
         # フローを編集ロックする
         flow.edit_lock = True
@@ -3021,16 +2817,6 @@ class AuthTest(TestCaseBase):
             flow.edit_lock = False
         
         # 閲覧者でも編集ロックの値を参照できること
-        self.assertFalse(flow.edit_lock)
-
-        # 編集者は編集ロックの値を変更できること
-        flow = self.factory0.data.find_by_uuid(flow.uuid)
-        flow.edit_lock = True
-        self.assertTrue(flow.edit_lock)
-        flow.edit_lock = False
-        self.assertFalse(flow.edit_lock)
-        
-        # 編集者は編集ロックの値を参照できること
         self.assertFalse(flow.edit_lock)
 
         # プロジェクトを削除する
@@ -3057,10 +2843,8 @@ class AuthTest(TestCaseBase):
         project2 = project1.reload()
 
         # プロジェクト1の下にフローを作成する
-        flow_data = FlowData(copy.deepcopy(self.flow_json))
-        flow = project1.create_flow('どうした、どうした', flow_data)
+        flow = project1.create_flow('どうした、どうした', copy.deepcopy(self.flow_json))
         flow.save()
-        flow = flow.reload()
 
         # メンバを設定する
         member1 = ProjectFolder.Member(self.USER2, ProjectFolder.OWNER_MEMBER_TYPE)
@@ -3075,17 +2859,12 @@ class AuthTest(TestCaseBase):
         with self.assertRaises(EditLockedException):
             flow.move(project2.uuid)
 
-        # Roleback後は権限情報がNoneになるので再読み込みする
-        flow = flow.reload()
-
         # 編集ロックを解除する
         flow.edit_lock = False
         self.assertFalse(flow.edit_lock)
-
-        # 設定した編集ロックに基づいた_permissionsの値を再設定する
-        # (編集ロックの設定のたびにreload()するのはテストコードの記述者にとっては面倒だが
-        #  APIでの処理においてはreload()は必要のない重たい処理なので、set_edit_lock()内では行わないこととする)
-        flow = flow.reload()
+        
+        # 閲覧者でも編集ロックの値を参照できること
+        self.assertFalse(flow.edit_lock)
 
         # プロジェクトを削除する
         project1.throw_away()
@@ -3131,37 +2910,6 @@ class AuthTest(TestCaseBase):
         # ゴミ箱を空にする
         self.factory3.data.find_trashcan().trash_all()
 
-    def test_cannnot_move_system_folder(self):
-        """
-        システムフォルダは移動できないこと
-        """
-        # ルートフォルダを取得する
-        root = self.factory3.data.load_root()
-        # ルートフォルダの下にプロジェクトを作成する
-        project = root.create_project_folder('そうiPhoneならね')
-        project.save()
-        project = project.reload()
-
-        # ルートフォルダは移動できないこと
-        with self.assertRaises(Exception):
-            root.move(project.uuid)
-
-        # キャッシュフォルダは移動できないこと
-        cache_folder = self.factory.data.load_cache_folder()
-        with self.assertRaises(Exception):
-            cache_folder.move(project.uuid)
-
-        # ゴミ箱は移動できないこと
-        trashcan = self.factory.data.load_trash_folder()
-        with self.assertRaises(Exception):
-            trashcan.move(project.uuid)
-
-        # プロジェクトをほかす
-        project.throw_away()
-
-        # ゴミ箱を空にする
-        trashcan.trash_all()
-
     def test_cannot_save_datum_at_root(self):
         """
         ユーザ管理者以外は、ルートフォルダにプロジェクト以外のDatumを新規追加できないこと
@@ -3180,7 +2928,7 @@ class AuthTest(TestCaseBase):
         root = self.factory3.data.load_root()
 
         # 一般ユーザは、ルートフォルダの下にフローを作成できないこと
-        flow = root.create_flow('ワオーン🐕‍🦺', FlowData())
+        flow = root.create_flow('ワオーン🐕‍🦺', {})
         with self.assertRaises(Exception):
             flow.save()
 
@@ -3231,7 +2979,7 @@ class AuthTest(TestCaseBase):
         self.assertTrue(own_auth.permission)
 
         # フォルダの下にフローを作成する
-        flow = folder.create_flow('Mac pro', FlowData())
+        flow = folder.create_flow('Mac pro', {})
         flow.save()
         flow = flow.reload()
 
@@ -3299,7 +3047,7 @@ class AuthTest(TestCaseBase):
         self.assertFalse(self.factory3.auth.exists(usr_admin_role.id, folder.id))
 
         # フォルダの下にフローを作成する
-        flow = folder.create_flow('テメエらの所業は御天道様がちゃーんと見ているぜ', FlowData())
+        flow = folder.create_flow('テメエらの所業は御天道様がちゃーんと見ているぜ', {})
         flow.save()
         flow = flow.reload()
 
@@ -3316,7 +3064,7 @@ class AuthTest(TestCaseBase):
 
         # ユーザ管理者はフローの参照・更新ができること
         flow = self.factory.data.find_by_uuid(flow.uuid)
-        flow.update_data('越後屋久兵衛、市中引き回しの上獄門！その他の者は終生遠島とする！ひったてい！', FlowData())
+        flow.update_data('越後屋久兵衛、市中引き回しの上獄門！その他の者は終生遠島とする！ひったてい！', {})
 
         # ユーザ管理者はフローをほかせること
         flow.throw_away()
@@ -3349,7 +3097,7 @@ class AuthTest(TestCaseBase):
         folder = folder.reload()
 
         # フォルダの下にフローを作成する
-        flow = folder.create_flow('かつお節', FlowData())
+        flow = folder.create_flow('かつお節', {})
         flow.save()
         flow = flow.reload() 
 
@@ -3401,7 +3149,7 @@ class AuthTest(TestCaseBase):
         folder = folder.reload()
 
         # フォルダの下にフローを作成する
-        flow = folder.create_flow('みっつ、醜い浮世の鬼を', FlowData({'label': '退治てくれよう桃太郎！'}))
+        flow = folder.create_flow('みっつ、醜い浮世の鬼を', {'label': '退治てくれよう桃太郎！'})
         flow.save()
         flow = flow.reload() 
 
@@ -3416,7 +3164,7 @@ class AuthTest(TestCaseBase):
         with self.assertRaises(NotAuthorizedException):
             folder.update_data('不埒な悪行三昧')
         with self.assertRaises(NotAuthorizedException):
-            flow.update_data('醜い浮き世の鬼を', FlowData())
+            flow.update_data('醜い浮き世の鬼を', {})
 
         # 閲覧者はゴミを元の場所に戻せないこと
         with self.assertRaises(NotAuthorizedException):
@@ -3583,7 +3331,7 @@ class AuthTest(TestCaseBase):
         folder = folder.reload()
 
         # フォルダの下にフローを作成する
-        flow = folder.create_flow('もうちょっとちーかづいちゃえ', FlowData())
+        flow = folder.create_flow('もうちょっとちーかづいちゃえ', {})
         flow.save()
         flow = flow.reload() 
 
@@ -3596,7 +3344,7 @@ class AuthTest(TestCaseBase):
 
         # 編集者はゴミを更新できること
         folder.update_data('簡単にはお〜しえないっ')
-        flow.update_data('こんなに素敵なことを〜', FlowData())
+        flow.update_data('こんなに素敵なことを〜', {})
 
         # 編集者はゴミを元の場所に戻せること
         folder.put_back()
@@ -3627,8 +3375,8 @@ class AuthTest(TestCaseBase):
         project = project.reload()
 
         # プロジェクトの下にフローを作成する
-        flow_data = FlowData(copy.deepcopy(self.flow_json))
-        flow = project.create_flow('フロー🚅', flow_data)
+        import copy
+        flow = project.create_flow('フロー🚅', copy.deepcopy(self.flow_json))
         flow.save()
         flow = flow.reload() 
 
@@ -3650,7 +3398,7 @@ class AuthTest(TestCaseBase):
             self.factory3.data.find_by_uuid(out_frame.uuid)
 
         # プロジェクト管理者は、フローのキャッシュを参照できること
-        cache_frame_uuid = flow.flow_data.get_cache_frame_uuids()[0]
+        cache_frame_uuid = flow.get_cache_frame_uuids()[0]
         cache_frame = self.factory2.data.find_by_uuid(cache_frame_uuid)
         # プロジェクト管理者は、フローのキャッシュを更新できること
         cache_frame.update_label('キャッシュ㊗')
@@ -3677,8 +3425,8 @@ class AuthTest(TestCaseBase):
         project = project.reload()
 
         # プロジェクトの下にフローを作成する
-        flow_data = FlowData(copy.deepcopy(self.flow_json))
-        flow = project.create_flow('大阪🏯', flow_data)
+        import copy
+        flow = project.create_flow('大阪🏯', copy.deepcopy(self.flow_json))
         flow.save()
         flow = flow.reload() 
 
@@ -3703,7 +3451,7 @@ class AuthTest(TestCaseBase):
         self.assertEqual(out_frame.label, '神戸⚓️')
 
         # プロジェクト管理者は、フローのキャッシュを参照できること
-        cache_frame_uuid = flow.flow_data.get_cache_frame_uuids()[0]
+        cache_frame_uuid = flow.get_cache_frame_uuids()[0]
         cache_frame = self.factory2.data.find_by_uuid(cache_frame_uuid)
         # プロジェクト管理者は、フローのキャッシュを更新できること
         cache_frame.update_label('琵琶湖🛥')
@@ -3740,8 +3488,7 @@ class AuthTest(TestCaseBase):
         project = project.reload()
 
         # プロジェクトの下にフローを作成する
-        flow_data = FlowData(copy.deepcopy(self.flow_json))
-        flow = project.create_flow('iPad', flow_data)
+        flow = project.create_flow('iPad', copy.deepcopy(self.flow_json))
         flow.save()
         flow = flow.reload()
 
@@ -3764,242 +3511,6 @@ class AuthTest(TestCaseBase):
 
         # プロジェクトを削除する
         project.delete()
-
-    def test_duplicate_flow_with_cache(self):
-        """
-        キャッシュを持つフローを複製しても、
-        キャッシュの権限はフローのプロジェクトに紐づいていること
-        """
-        # ROOTを取得する
-        root = self.factory2.data.load_root()
-
-        # ルートフォルダの下にプロジェクトを作成する
-        project = root.create_project_folder('枕もシーツも')
-        project.save()
-        project = project.reload()
-
-        # プロジェクト管理者は、プロジェクトメンバを設定する
-        member1 = ProjectFolder.Member(self.USER2, ProjectFolder.OWNER_MEMBER_TYPE)
-        member2 = ProjectFolder.Member(self.USER3, ProjectFolder.WRITER_MEMBER_TYPE)
-        project.init_members([member1, member2], last_modified_at=project.modified_at)
-
-        # 編集者は、フローを作成する
-        flow_data = FlowData(copy.deepcopy(self.flow_json))
-        flow = project.create_flow('堅くて眠れない〜♪', flow_data)
-        flow.save()
-        flow = flow.reload()
-
-        # 編集者は、フローをプレビュー実行して、キャッシュファイルを作成する
-        from kskp.engine import execute, FlowJsonLink
-        vis_args = { "d1" : 
-                        {"args" :
-                            {"visualizer" : "csvtohtmltable",
-                             "offset" : 0,
-                             "limit"  : 100
-                            }
-                        }
-                    }
-        flow = self.factory3.data.find_by_uuid(flow.uuid)
-        link = FlowJsonLink(flow, self.factory3, vis_args)
-        lasts = execute(link=link, args={}, inputs={})
-
-        # キャッシュのUUIDを取得する
-        cache_frame_uuid = flow.flow_data.get_cache_frame_uuids()[0]
-        cache_frame = self.factory3.data.find_by_uuid(cache_frame_uuid)
-
-        # 編集者は、フローを複製する
-        flow = self.factory3.data.find_by_uuid(flow.uuid)
-        duplicated_flow = flow.duplicate('君も寝具にしてやろうか?😈')
-
-        # 複製したキャッシュのUUIDを取得する
-        duplicated_cache_frame_uuid = duplicated_flow.flow_data.get_cache_frame_uuids()[0]
-        duplicated_cache_frame = self.factory3.data.find_by_uuid(duplicated_cache_frame_uuid)
-
-        # キャッシュが複製されていることを検証する
-        # (フローJSONに記録されたキャッシュのUUIDが異なることを検証する)
-        self.assertNotEqual(duplicated_cache_frame_uuid, cache_frame_uuid)
-
-        # キャッシュの権限設定を検証する
-        auths = self.factory.auth.find_all_by_datum_id(duplicated_cache_frame.id)
-        self.assertEqual(len(auths), 6)
-        # 取得した権限を検証する
-        usr_admin_role = self.factory.role.load_usr_admin_role()
-        readers_role = project._find_readers_role()
-        writers_role = project._find_writers_role()
-        # ユーザ管理者ロールの参照権限
-        self.assertEqual(auths[0].role_id, usr_admin_role.id)
-        self.assertEqual(auths[0].datum_id, duplicated_cache_frame.id)
-        self.assertEqual(auths[0].operation, Auth.READ_OP)
-        self.assertEqual(auths[0].permission, True)
-        self.assertEqual(auths[0].creator, self.USER3)
-        self.assertEqual(auths[0].modifier, self.USER3)
-        self.assertIsNotNone(auths[0].created_at)
-        self.assertIsNotNone(auths[0].modified_at)
-        # ユーザ管理者ロールの更新権限
-        self.assertEqual(auths[1].role_id, usr_admin_role.id)
-        self.assertEqual(auths[1].datum_id, duplicated_cache_frame.id)
-        self.assertEqual(auths[1].operation, Auth.WRITE_OP)
-        self.assertEqual(auths[1].permission, True)
-        self.assertEqual(auths[1].creator, self.USER3)
-        self.assertEqual(auths[1].modifier, self.USER3)
-        self.assertIsNotNone(auths[1].created_at)
-        self.assertIsNotNone(auths[1].modified_at)
-        # ユーザ管理者ロールの所有権限
-        self.assertEqual(auths[2].role_id, usr_admin_role.id)
-        self.assertEqual(auths[2].datum_id, duplicated_cache_frame.id)
-        self.assertEqual(auths[2].operation, Auth.OWN_OP)
-        self.assertEqual(auths[2].permission, True)
-        self.assertEqual(auths[2].creator, self.USER3)
-        self.assertEqual(auths[2].modifier, self.USER3)
-        self.assertIsNotNone(auths[2].created_at)
-        self.assertIsNotNone(auths[2].modified_at)
-        # プロジェクトのReadersロールの参照権限
-        self.assertEqual(auths[3].role_id, readers_role.id)
-        self.assertEqual(auths[3].datum_id, duplicated_cache_frame.id)
-        self.assertEqual(auths[3].operation, Auth.READ_OP)
-        self.assertEqual(auths[3].permission, True)
-        self.assertEqual(auths[3].creator, self.USER3)
-        self.assertEqual(auths[3].modifier, self.USER3)
-        self.assertIsNotNone(auths[3].created_at)
-        self.assertIsNotNone(auths[3].modified_at)
-        # プロジェクトのWritersロールの更新権限
-        self.assertEqual(auths[4].role_id, writers_role.id)
-        self.assertEqual(auths[4].datum_id, duplicated_cache_frame.id)
-        self.assertEqual(auths[4].operation, Auth.WRITE_OP)
-        self.assertEqual(auths[4].permission, True)
-        self.assertEqual(auths[4].creator, self.USER3)
-        self.assertEqual(auths[4].modifier, self.USER3)
-        self.assertIsNotNone(auths[4].created_at)
-        self.assertIsNotNone(auths[4].modified_at)
-        # プロジェクトのWritersロールの所有権限
-        self.assertEqual(auths[5].role_id, writers_role.id)
-        self.assertEqual(auths[5].datum_id, duplicated_cache_frame.id)
-        self.assertEqual(auths[5].operation, Auth.OWN_OP)
-        self.assertEqual(auths[5].permission, True)
-        self.assertEqual(auths[5].creator, self.USER3)
-        self.assertEqual(auths[5].modifier, self.USER3)
-        self.assertIsNotNone(auths[5].created_at)
-        self.assertIsNotNone(auths[5].modified_at)
-
-        # 編集者は、複製したフローをプレビュー実行できること
-        link = FlowJsonLink(duplicated_flow, self.factory3, vis_args)
-        lasts = execute(link=link, args={}, inputs={})
-
-        # プロジェクトに属さないユーザは、複製したフローをプレビュー実行できないこと
-        with self.assertRaises(NotAuthorizedException):
-            link = FlowJsonLink(duplicated_flow, self.factory0, vis_args)
-            lasts = execute(link=link, args={}, inputs={})
-
-        # フローを削除する
-        flow.delete()
-        duplicated_flow.delete()
-
-        # プロジェクトを削除する
-        project.delete()
-     
-    def test_get_masked_flow(self):
-        """
-        参照権限のないサブフローノードやデータソースノードは、
-        ラベルとuuidがマスキングされること
-        """
-        # ルートフォルダを取得する
-        root = self.factory2.data.load_root()
-
-        # USER2は、ルートフォルダの下にプロジェクトを作成する
-        project1 = root.create_project_folder('プロジェクトX')
-        project1.save()
-        project1 = project1.reload()
-
-        # USER2は、プロジェクトの下に共有フローを作成する
-        flow_data = FlowData(copy.deepcopy(self.flow2_json))
-        flow1 = project1.create_flow('共有フロー', flow_data)
-        flow1.save()
-        flow1 = flow1.reload()
-
-        # USER2は、ルートフォルダの下にプロジェクトを作成する
-        project2 = root.create_project_folder('プロジェクトY')
-        project2.save()
-        project2 = project2.reload()
-
-        # USER2は、プロジェクトの下にメインフローを作成する
-        flow_data = FlowData(self.get_flow3_json(flow1.uuid))
-        flow2 = project2.create_flow('メインフロー', flow_data)
-        flow2.save()
-        flow2 = flow2.reload()
-
-        # USER2は、USER3をプロジェクト2の編集者に追加する
-        member1 = ProjectFolder.Member(self.USER3, ProjectFolder.OWNER_MEMBER_TYPE)
-        project2.join_member(member1)
-
-        # USER3は、メインフローを取得できるが、共有フローの参照権限がないので
-        # その共有フローノードのラベルとuuidはマスキングされていること
-        flow2 = self.factory3.data.find_by_uuid(flow2.uuid)
-        masked_flow_data = flow2.flow_data.to_json()
-        nodes = masked_flow_data['nodes']
-
-        # フローJsonを検証する
-        self.assertEqual(nodes[2]['id'], 'f1')
-        self.assertEqual(nodes[2]['type'], 'flow')
-        # uuidがマスキングされていること
-        self.assertIsNone(nodes[2]['uuid'])
-        # ラベルがマスキングされていること
-        self.assertEqual(nodes[2]['label'], '******')
-        self.assertEqual(nodes[2]['args'], {})
-        self.assertEqual(nodes[2]['srcs'], {'d':'d'})
-        self.assertEqual(nodes[2]['dsts'], {'d1':'d1'})
-        self.assertEqual(nodes[2]['srcsOrder'], ['d'])
-        # マスキングのフラグが設定されていること
-        self.assertEqual(nodes[2]['masked'], True)
-
-        # USER3は、マスキングされたフローJsonでも更新できること
-        flow2.update_data('更新したフロー', FlowData(masked_flow_data))
-
-        # USER2は、更新後のフローであってもマスキングされていないフローJsonを取得できること
-        flow2 = self.factory2.data.find_by_uuid(flow2.uuid)
-        masked_flow_data = flow2.flow_data.to_json()
-        nodes = masked_flow_data['nodes']
-
-        # 更新後のフローJsonを検証する
-        self.assertEqual(flow2.label, '更新したフロー')
-        self.assertEqual(nodes[2]['id'], 'f1')
-        self.assertEqual(nodes[2]['type'], 'flow')
-        # USER2は、参照権限があるのでマスキングされていないこと
-        self.assertEqual(nodes[2]['uuid'], flow1.uuid)
-        # USER2は、参照権限があるのでマスキングされていないこと
-        self.assertEqual(nodes[2]['label'], 'f1')
-        self.assertEqual(nodes[2]['args'], {})
-        self.assertEqual(nodes[2]['srcs'], {'d':'d'})
-        self.assertEqual(nodes[2]['dsts'], {'d1':'d1'})
-        self.assertEqual(nodes[2]['srcsOrder'], ['d'])
-        # マスキングのフラグが存在しないこと
-        self.assertNotIn('masked', nodes[2])
-
-        # USER3は、メインフローを実行できないこと
-        from kskp.engine import execute, FlowJsonLink
-        vis_args = {
-          "d1": {
-            "args": {
-              "visualizer": "csvtohtmltable",
-              "offset": 0,
-              "limit": 108
-            }
-          }
-        }
-        link = FlowJsonLink(flow2, self.factory3, vis_args)
-        with self.assertRaises(Exception):
-            execute(link=link, args={}, inputs={})
-
-        # USER2は、メインフローを実行できること
-        link = FlowJsonLink(flow2, self.factory2, vis_args)
-        last = execute(link=link, args={}, inputs={})
-
-        # フローを削除する
-        flow2.delete()
-        flow1.delete()
-
-        # プロジェクトを削除する
-        project1.delete()
-        project2.delete()
 
     def test_move_from_root_to_project(self):
         """

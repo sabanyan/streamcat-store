@@ -197,10 +197,8 @@ class VCmdTestCase(TestCaseBase):
                 return {point.id : vis.result for point, vis in datum.lasts}
 
     def exec_flow(self, vis_args):
-        from kskp.store import FlowData
         root = self.factory.data.load_root()
-        flow_data = FlowData(self.flow_csvtohtmltable)
-        flow = root.create_flow('CSV to graph', flow_data)
+        flow = root.create_flow('CSV to graph', self.flow_csvtohtmltable)
         flow_link = FlowJsonLink(flow, self.factory, vis_args=vis_args)
         lasts = execute(flow_link, {}, {})
         result = self.convert_from_activity_vis(lasts)['d1']

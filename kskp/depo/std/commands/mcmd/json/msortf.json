@@ -37,6 +37,50 @@
       ]
     }
   ],
+  "rules": {
+    "f": {
+      "presence": {
+        "allowEmpty": false
+      },
+      "checkSeveralSpecifiedFormats": {
+        "defaultRule": {
+          "pattern": "^[^,]+(%n|%r|%nr)?(,[^,]+(%n|%r|%nr)?)*$",
+          "message": "入力が正しくありません"
+        },
+        "specialRules": [
+          {
+            "target": [
+              "x",
+              "nfn"
+            ],
+            "pattern": "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(%n|%r|%nr)?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(%n|%r|%nr)?)*$|^@\\[.+\\](%n|%r|%nr)?$",
+            "message": "項目の指定は数値のみ可能です。"
+          }
+        ]
+      }
+    },
+    "blocks": {
+      "specifiedFormatIfTargetInput": {
+        "target": "blocks",
+        "pattern": "^[1-9]$|^[1-9].[0-9]{0,1}$|^1000$|^$|^@\\[.+\\]$",
+        "message": "1から1000までの整数を半角で入力してください"
+      }
+    },
+    "maxlines": {
+      "specifiedFormatIfTargetInput": {
+        "target": "maxlines",
+        "pattern": "^100$|^[1-9].[0-9]{2,6}$|^10000000$|^$|^@\\[.+\\]$",
+        "message": "100から1000万までの整数を半角で入力してください"
+      }
+    },
+    "threadCnt": {
+      "specifiedFormatIfTargetInput": {
+        "target": "threadCnt",
+        "pattern": "^[1-9]$|^[4-9]?[0-9]$|^50$|^$|^@\\[.+\\]$",
+        "message": "1から50までの整数を半角で入力してください"
+      }
+    }
+  },
   "params": [
     {
       "name": "f",

@@ -76,8 +76,7 @@ class LibraryTest(TestCaseBase):
         return self.factory.data.find_by_uuid(new_folder.uuid)
 
     def save_flow(self, parent, label, flow_json):
-        from kskp.store import FlowData
-        new_flow = parent.create_flow(label, FlowData(flow_json))
+        new_flow = parent.create_flow(label, flow_json)
         new_flow.save()
         # save()によりreadable=Noneになるため再取得する
         return self.factory.data.find_by_uuid(new_flow.uuid)
@@ -256,34 +255,6 @@ class LibraryTest(TestCaseBase):
         # 作成したフォルダを削除する
         frame_src.delete()
         folder_src.delete()
-
-    def test_cannot_move_folder_into_inner(self):
-        """
-        フォルダを自身の中に移動できないこと
-        """
-        # ルートデータストアを取得する
-        root = self.factory.data.load_root()
-        # ルートデータストアの直下にフォルダ1を作成する
-        folder1 = self.save_folder(root, 'Apple')
-        # フォルダ1の直下にフォルダ2を作成する
-        folder2 = self.save_folder(folder1, 'iMac')
-
-        # 移動先に、移動元のフォルダの子フォルダを指定したら例外を送出すること
-        with self.assertRaises(OSError):
-            folder1.move(folder2.uuid)
-
-        # 移動が失敗した場合はDBは更新されていないこと
-        self.assertEqual(folder1.created_at, folder1.modified_at)
-        self.assertEqual(folder2.created_at, folder2.modified_at)
-
-        # 例外送出によりSQLAlchemyのSessionがRollbackされるため
-        # Datumの参照権限がNoneになる、そのため再読み込みする
-        folder1 = folder1.reload()
-        folder2 = folder2.reload()
-
-        # 作成したフォルダを削除する
-        folder2.delete()
-        folder1.delete()
 
     def test_save_folder(self):
         """
@@ -890,9 +861,7 @@ class LibraryTest(TestCaseBase):
             'createdAt': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         }
         # 作成したフローを変更する
-        from kskp.store import FlowData
-        new_flow_data = FlowData(new_flow_json)
-        updated_flow = flow.update_data('新しいフロー', new_flow_data, modifier=self.USER2)
+        updated_flow = flow.update_data('新しいフロー', new_flow_json, self.USER2)
 
         # ラベルとディレクトリパスのみが変更されることを検証する
         self.assertEqual(updated_flow.id, flow.id)
@@ -901,7 +870,7 @@ class LibraryTest(TestCaseBase):
         self.assertIsNone(updated_flow.path)
         self.assertEqual(updated_flow.type, flow.type)
         self.assertEqual(updated_flow.label, '新しいフロー')
-        self.assertEqual(updated_flow.flow_data, new_flow_data)
+        self.assertEqual(updated_flow.flow_data.to_json(), new_flow_json)
         self.assertEqual(updated_flow.creator, self.USER1)
         self.assertEqual(updated_flow.modifier, self.USER2)
         self.assertEqual(updated_flow.created_at, flow.created_at)
@@ -934,7 +903,7 @@ class LibraryTest(TestCaseBase):
         # ルートデータストアの直下にフォルダを作成する
         folder_dst = self.save_folder(root, 'フォルダDST_B')
         # フローSRCをフォルダDSTへ移動する
-        updated_flow = flow_src.move(folder_dst.uuid, modifier=self.USER2)
+        updated_flow = flow_src.move(folder_dst.uuid, self.USER2)
         # parent_id, path, modifierが変更されることを検証する
         self.assertEqual(updated_flow.id, flow_src.id)
         self.assertEqual(updated_flow.parent_id, folder_dst.id)
@@ -987,20 +956,20 @@ class LibraryTest(TestCaseBase):
 
         # 存在しないフォルダへ移動しようとすると例外を送出する
         with self.assertRaises(Exception):
-            flow_src.move('00000000-0000-0000-0000-000000000000', modifier=self.USER2)
+            flow_src.move('00000000-0000-0000-0000-000000000000', self.USER2)
         # 移動が失敗した場合はDBは更新されていないこと
         self.assertEqual(flow_src.created_at, flow_src.modified_at)
 
         # 移動先にフローを指定したら例外を送出する
         with self.assertRaises(Exception):
-            flow_src.move(flow_dst.uuid, modifier=self.USER2)
+            flow_src.move(flow_dst.uuid, self.USER2)
         # 移動が失敗した場合はDBは更新されていないこと
         self.assertEqual(flow_src.created_at, flow_src.modified_at)
         self.assertEqual(flow_dst.created_at, flow_dst.modified_at)
 
         # 移動先に自分自身を指定したら例外を送出する
         with self.assertRaises(Exception):
-            flow_src.move(flow_src.uuid, modifier=self.USER2)
+            flow_src.move(flow_src.uuid, self.USER2)
         # 移動が失敗した場合はDBは更新されていないこと
         self.assertEqual(flow_src.created_at, flow_src.modified_at)
 

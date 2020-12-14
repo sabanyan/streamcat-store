@@ -37,6 +37,23 @@
       ]
     }
   ],
+  "rules": {
+    "targets": {
+      "presence": {
+        "allowEmpty": false
+      }
+    },
+    "a": {
+      "presence": {
+        "allowEmpty": false
+      }
+    },
+    "c": {
+      "presence": {
+        "allowEmpty": false
+      }
+    }
+  },
   "params": [
     {
       "name": "targets",

@@ -3,7 +3,6 @@ from pathlib import Path
 from kskp.store import (
     Datum,
     Folder,
-    FlowData,
     DatabaseConn,
 )
 
@@ -67,7 +66,7 @@ class FlowDumper:
     def _get_flow(self, parent_tmp_path, gathered_uuids, flow_uuid):
         import os
 
-        (frame_uuids, store_uuids, flow_uuids) = self._get_flows_and_frames(flow_uuid, exclude_uuids=gathered_uuids)
+        (frame_uuids, store_uuids, flow_uuids) = self.get_flows_and_frames(flow_uuid, exclude_uuids=gathered_uuids)
 
         uuid_type_label = []
 
@@ -109,13 +108,13 @@ class FlowDumper:
 
         return gathered_uuids
 
-    def _get_flows_and_frames(self, flow_uuid, exclude_uuids):
+    def get_flows_and_frames(self, flow_uuid, exclude_uuids):
         flow = self.factory.data.find_by_uuid(flow_uuid, type=Datum.FLOW_TYPE)
 
-        src_frame_uuids = flow.flow_data.get_src_frame_uuids()
-        cache_frame_uuids = flow.flow_data.get_cache_frame_uuids()
-        store_uuids = flow.flow_data.get_store_uuids()
-        sub_flow_uuids = flow.flow_data.get_sub_flow_uuids()
+        src_frame_uuids = flow.get_src_frame_uuids()
+        cache_frame_uuids = flow.get_cache_frame_uuids()
+        store_uuids = flow.get_store_uuids()
+        sub_flow_uuids = flow.get_sub_flow_uuids()
 
         reference_frames = []
         reference_stores = []
@@ -142,7 +141,7 @@ class FlowDumper:
 
         for sub_flow_uuid in sub_flow_uuids:
             if sub_flow_uuid not in exclude_uuids:
-                (frame_uuids, store_uuids, flow_uuids) = self._get_flows_and_frames(sub_flow_uuid, exclude_uuids)
+                (frame_uuids, store_uuids, flow_uuids) = self.get_flows_and_frames(sub_flow_uuid, exclude_uuids)
                 reference_frames.extend(frame_uuids)
                 reference_stores.extend(store_uuids)
                 reference_flows.extend(flow_uuids)
@@ -174,8 +173,7 @@ class FlowDumper:
         extracted_members = self._extract_archive(tar_dir_path, stream)
 
         flow_uuids  = {}
-        # uuidの変換テーブル {old_uuid : new_uuid}
-        uuid_conv_table = {}
+        uuids = {}
 
         # label.txtからuuidとlabelの対応を取得する
         type_labels = {}
@@ -229,7 +227,7 @@ class FlowDumper:
                     file.parent
                     with file.open('rb') as f:
                         frame = folder.create_frame(label, f)
-                        uuid_conv_table[file.stem] = frame.uuid
+                        uuids[file.stem] = frame.uuid
                         frame.save()
                 elif datum_type == Datum.DATABASE_TYPE:
                     with file.open('r') as f:
@@ -237,15 +235,15 @@ class FlowDumper:
                         db = json.loads(d)
                     db_conn = DatabaseConn(db)
                     database = folder.create_database(label, db_conn)
-                    uuid_conv_table[file.stem] = database.uuid
+                    uuids[file.stem] = database.uuid
                     database.save()
                 elif datum_type == Datum.FLOW_TYPE:
                     with file.open('r') as f:
                         d = f.read()
                         flow_json = json.loads(d)
-                    flow = folder.create_flow(label, FlowData(flow_json))
+                    flow = folder.create_flow(label, flow_json)
                     flow_uuids[file.stem] = flow.uuid
-                    uuid_conv_table[file.stem] = flow.uuid
+                    uuids[file.stem] = flow.uuid
                     flow.save()
             except Exception as e:
                 raise Exception(f'ERROR! at {file.name} : {str(e)}')
@@ -253,8 +251,8 @@ class FlowDumper:
         # Flowの参照uuidを変更する
         for new_flow_uuid in flow_uuids.values():
             flow = self.factory.data.find_by_uuid(new_flow_uuid, type=Datum.FLOW_TYPE)
-            flow.replace_uuids(uuid_conv_table)
-            flow.update_data(flow.label, flow.flow_data)
+            flow.replace_uuids(uuids)
+            flow.update_data(flow.label, flow.flow_data.to_json())
 
         # 展開したファイルを削除する
         import shutil

@@ -33,7 +33,7 @@ class GroupBy2Command(PCommand):
             'UnknownKeyFieldError' : 'キー項目の指定は正しくありません。${fieldinput}',
 
             # 時間軸に関わるエラー
-            'TimecolForbiddenCharacterError' : '半角の *　?　[　]　,　:　\\　&　％ は、時間軸の項目の指定に使用できません。${fieldinput}',
+            'TimecolForbiddenCharacterError' : '半角の（ *　?　[　]　,　:　\\　&　％ ）は、時間軸の項目の指定に使用できません。${fieldinput}',
             'EmptyTimecolFieldError' : '空文字列で時間軸の項目名が指定されています。${fieldinput}',
             'UnknownTimecolFieldError' : 'キー項目の指定は正しくありません。${fieldinput}',
 
@@ -45,7 +45,7 @@ class GroupBy2Command(PCommand):
             'UnknownTargetFieldError' : '項目名の指定が正しくありません。${fieldinput}',
 
             # 結果列指定に関わるエラー
-            'ResultsColForbiddenCharacterError' : '半角の *　?　[　]　,　:　\\ \' \" は、項目名に使用できません。${fieldinput}',
+            'ResultsColForbiddenCharacterError' : '半角の（ *　?　[　]　,　:　\\ \' \"）は、項目名に使用できません。${fieldinput}',
             'ResultsColConflictError' : '出力項目名が重複しています。%指定、&指定、ワイルドカード指定など、重複する出力項目名となる設定がないかを、確認してください。',
             'UnknownResultsColError' : '名前付けルールの設定の指定が正しくありません。${fieldinput}',
 
@@ -61,10 +61,10 @@ class GroupBy2Command(PCommand):
             # パラメータ指定に関わるエラー
             'EmptyParamError' : '空文字列でパラメータが指定されています。${fieldinput}',
             'ParameterConflictError' : 'パラメータが重複しています。${fieldinput}',
-            'ParameterTypeError'  : '${calc} のパラメータへの ${fieldinput} 指定が正しくありません。${correct_type} を指定してください。',
-            'ParameterOutOfBoundsError' : '${calc} のパラメータへの ${fieldinput} 指定が正しくありません。 ${correct_value} で指定してください。',
-            'ParameterFormatError' : '${calc} のパラメータへの ${fieldinput} 指定が正しくありません。${correct_format} で指定してください。',
-            'UnknownParameterError' : '${calc} のパラメータへの ${fieldinput} 指定が正しくありません。'
+            'ParameterTypeError'  : '${calc} のパラメータへの ${fieldinput} 指定が正しくありません。${correct_type} を指定してください',
+            'ParameterOutOfBoundsError' : '${calc} のパラメータへの ${fieldinput} 指定が正しくありません。 ${correct_value} で指定してください',
+            'ParameterFormatError' : '${calc} のパラメータへの ${fieldinput} 指定が正しくありません。${correct_format} で指定してください',
+            'UnknownParameterError' : '${calc} のパラメータへの ${fieldinput} 指定が正しくありません'
             }
         elif s == 'paraminfo':
             return {

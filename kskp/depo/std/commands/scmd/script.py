@@ -122,12 +122,8 @@ class CacheSaverCommand(SaverCommand):
             flow = args['flow']
             node_id = args['datum_id']
             # TODO: RunsCommand実行前にFlowにキャッシュありの情報を更新すると、同じフローの同時実行に支障があるだろう
-            flow.set_cache(node_id, cache)
-            # TODO: キャッシュのUUIDをフローJsonに設定するので、ロックによる排他制御をするべきだが
-            #       フロー実行とプレビュー実行のAPI引数に'lock'キーを追加する必要がある。
-            #       しかし、将来的にフローJsonにキャッシュのUUIDを設定しないようにする方針なので
-            #       APIのインタフェースの変更の手間を惜しんで、暫定的に排他制御を無視してキャッシュのUUIDを設定する。
-            flow.update_data(flow.label, flow.flow_data, ignore_lock=True)
+            flow.set_cache(node_id, cache.uuid)
+            flow.update_data(flow.label, flow.flow_data.to_json())
 
         # NYSOLコマンドを作成する
         cmd = inputs['i'].content
@@ -723,9 +719,6 @@ class RunsCommand(SCommand):
     # 最低必要ディスクサイズ(1Mbyte)
     MIN_REQUIRED_DISK_SIZE = 1024 * 1024
 
-    # 環境変数からPythonの再帰呼び出しの制限回数を取得する
-    RECURSION_LIMIT = int(os.getenv('KSKP_NYSOL_RECURSION_LIMIT', 2**20))
-
     def __init__(self):
         super().__init__()
         self.i_ports = [Port('*', 'mcmd')]
@@ -746,16 +739,11 @@ class RunsCommand(SCommand):
             NYSOL Pythonを実行する
             """
             try:
-                import sys
-
-                # NYSOL-Pythonは、処理フローのグラフを組み立てる時と、処理メソッドをスケジューリングする時に
-                # 再帰呼び出しの制限回数がPythonの初期制限値を超えるので、ここで制限値を上げる
-                # (サブプロセスの制限回数を上げても親プロセスの制限回数は変わらない)
-                sys.setrecursionlimit(self.RECURSION_LIMIT)
-
                 # multiprocessing.Processで閉じられる標準入力を開き直す
+                import sys
                 sys.stdin = open(0, closefd=False)
 
+                import nysol.mcmd as nm
                 # nm.drawModelsD3(fname='aaabbbccc.html', val=nm_list)
 
                 # 標準エラー出力のファイル記述子(No.2)を親プロセスへのPIPEに変更する
@@ -780,7 +768,7 @@ class RunsCommand(SCommand):
             if isinstance(input, CommandException):
                 rets[i_port_name] = ApparentLast(None, None, [input])
                 exception_exists = True
-            elif isinstance(input,  (NysolModule, List)):
+            elif isinstance(input, (NysolModule, List)):
                 rets[i_port_name] = ApparentLast(None, input.context.get('frame'))
             else:
                 raise Exception('RunsCommandにNysolModuleまたはCommandException以外のデータ型が入力されました')

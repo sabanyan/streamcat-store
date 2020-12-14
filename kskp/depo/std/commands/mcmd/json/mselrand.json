@@ -1,5 +1,51 @@
 {
   "id": "mselrand",
+  "rules": {
+    "c": {
+      "presencesIfTargetIsNotInput": "p",
+      "format": {
+        "pattern": "^[1-9][0-9]*$|^[1-9]$|^@\\[.+\\]$|^$",
+        "message": "1以上の整数を半角で入力してください"
+      },
+      "onlyOneInput": {
+        "target": "p"
+      }
+    },
+    "p": {
+      "presencesIfTargetIsNotInput": "c",
+      "format": {
+        "pattern": "^-?[1-9]?[0-9]*(\\.[0-9]+)?$|^@\\[.+\\]$|^$",
+        "message": "数字を半角で入力してください"
+      },
+      "onlyOneInput": {
+        "target": "c"
+      }
+    },
+    "S": {
+      "format": {
+        "pattern": "^[1-9]?[0-9]*$|^0$|^$|^@\\[.+\\]$",
+        "message": "0以上の整数を半角で入力してください"
+      }
+    },
+    "k": {
+      "checkSeveralSpecifiedFormats": {
+        "defaultRule": {
+          "pattern": "^[^,]+(,[^,]+)*$|^$",
+          "message": "入力が正しくありません"
+        },
+        "specialRules": [
+          {
+            "target": [
+              "x",
+              "nfn"
+            ],
+            "pattern": "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$|^$",
+            "message": "項目の指定は数値のみ可能です。"
+          }
+        ]
+      }
+    }
+  },
   "params": [
     {
       "name": "c",

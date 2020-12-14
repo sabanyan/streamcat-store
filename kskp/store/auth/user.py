@@ -11,6 +11,11 @@ class User(BaseModel):
     # テーブル名の定義
     __tablename__ = 'users'
 
+    # 定義先スキーマ
+    if 'KSKP_POSTGRESQL_SCHEMA_NAME' in os.environ:
+        # テスト環境用のスキーマ
+        __table_args__ = {'schema': os.environ['KSKP_POSTGRESQL_SCHEMA_NAME']}
+
     class MyString(sqlalchemy.types.TypeDecorator):
         """
         SQLAlchemyにおいてString列のlike/ilike演算で検索語をエスケープする
@@ -38,13 +43,10 @@ class User(BaseModel):
     TMP_STATE      = 'tmp'      # 仮登録状態
     ACTIVE_STATE   = 'active'   # 登録状態
     INACTIVE_STATE = 'inactive' # 論理削除状態
-    EXPIRED_STATE  = 'expired'  # 失効状態(表示のみに使用)
 
     # 仮パスワードの有効期間(14日間)
-
-    # 環境変数から仮パスワードの有効日数を取得する
-    # (設定値がない場合は14日間とする)
-    TMP_PASS_EXPIRE_SECONDS = int(os.getenv('KSKP_TMP_PASS_EXPIRE_DAYS', 14)) * 24 * 60 * 60
+    VALID_SECOND_OF_TMP_PASS = 14 * 24 * 60 * 60
+    KEY_OF_TMP_PASS = b'yImzJql25MsreO5E1mQJfNh6ci-oIgSVCSamULEUOnA='
 
     # 列名と列のデータ型等の定義
     id            = Column(INTEGER, primary_key=True, autoincrement=True)
@@ -56,12 +58,17 @@ class User(BaseModel):
     state         = Column(ENUM(INIT_STATE, TMP_STATE, ACTIVE_STATE, INACTIVE_STATE, name='user_state'), nullable=False)
     # 本人ロールのRoleId
     self_role_id  = Column(INTEGER, nullable=True)
+    _creator_id   = Column('creator', INTEGER)
+    _modifier_id  = Column('modifier', INTEGER)
+    created_at    = Column(TIMESTAMP, default=text('statement_timestamp()'))
+    modified_at   = Column(TIMESTAMP, default=text('statement_timestamp()'), onupdate=text('statement_timestamp()'))
 
     def __init__(self, session, email, name, password=None):
         """
         コンストラクタ
         """
-        super().__init__(session)
+        # SQLAlchemy Session
+        self._session = session
 
         # UUIDを採番する
         self.uuid = str(uuid.uuid4())
@@ -82,6 +89,11 @@ class User(BaseModel):
 
         # 本パスワードに変更する前は初期状態である
         self.state = User.INIT_STATE
+
+        # creator, modifier
+        if session is not None and session.user is not None:
+            self._creator_id = session.user.id
+            self._modifier_id = session.user.id
 
     def _init_on_activation(self):
         """
@@ -139,27 +151,25 @@ class User(BaseModel):
             current_hash = bytes(hashlib.sha256(hash_target).hexdigest(), 'ascii')
         return str(current_hash, encoding='utf-8')
 
-    def _is_expired_password(self, password):
-        """
-        仮パスワードが有効期限を過ぎている場合はTrueを返す
-        """
-        import time
-        from cryptography.fernet import Fernet, InvalidToken
+    def _get_encrypt_password(self, password):
+        from cryptography.fernet import Fernet
+        # UTF-8で符号化してByte列で出力
+        b_password = password.encode()
+        # 暗号化
+        cipher_suite = Fernet(self.KEY_OF_TMP_PASS)
+        cipher_text = cipher_suite.encrypt(b_password)
+        return cipher_text.decode()
 
+    def _get_decrypt_password(self, password):
+        from cryptography.fernet import Fernet, InvalidToken
+        # 復号化
         cipher_suite = Fernet(self.KEY_OF_TMP_PASS)
         try:
-            # 仮パスワードを暗号化した時刻(Epoch Time)
-            encrypted_at = cipher_suite.extract_timestamp(password.encode())
+            # TODO:仮パスワードの有効期間が切れた場合のUIの挙動を決めてなかったので、とりあえず有効期間を設定しない
+            # return cipher_suite.decrypt(password.encode(),ttl=self.VALID_SECOND_OF_TMP_PASS).decode()
+            return cipher_suite.decrypt(password.encode()).decode()
         except InvalidToken:
-            # 復号に失敗しても処理は続行可能なので例外は送出しない
-            import warnings
-            warnings.warn(f'{self}の仮パスワードが無効なので有効期限を取得できませんでした')
-            # 例外が発生した場合は、有効期間が過ぎていると扱う
-            return True
-
-        # 現在時刻(Epoch Time)
-        current = time.time()
-        return encrypted_at + self.TMP_PASS_EXPIRE_SECONDS < current
+            raise Exception('仮パスワードの有効期間が切れました、仮パスワードをリセットして下さい')
 
     def _generate_password(self):
         # パスワードを自動生成する
@@ -240,12 +250,30 @@ class User(BaseModel):
     def is_inactive(self):
         return self.state == User.INACTIVE_STATE
 
-    def password_expired(self):
-        # 初期状態は仮登録状態と表示する
-        if self.state in (User.TMP_STATE, User.INIT_STATE):
-            return self._is_expired_password(self.password)
-        else:
-            return False
+    @property
+    def creator(self):
+        from kskp.store.factory import UserFactory
+        if self._creator_id is None:
+            return None
+        return UserFactory(self._session).find_by_id(self._creator_id, allow_no_result=True)
+
+    @property
+    def modifier(self):
+        from kskp.store.factory import UserFactory
+        if self._modifier_id is None:
+            return None
+        return UserFactory(self._session).find_by_id(self._modifier_id, allow_no_result=True)
+
+    @property
+    def creator_str(self):
+        if self.creator is None:
+            return ''
+        return self.creator.name
+
+    @property
+    def created_at_str(self):
+        from kskp.core import Util
+        return Util.datetime_to_local_time_str(self.created_at)
 
     def save(self):
         """
@@ -459,9 +487,6 @@ class User(BaseModel):
             return False
         # パスワード判定処理
         elif self.is_init_or_temp:
-            if self._is_expired_password(self.password):
-                # 仮パスワードの有効期間が過ぎている場合は認証できない
-                return False
             return password == self._get_decrypt_password(self.password)
         else:
             return self._get_password_hash(self.uuid, password) == self.password
@@ -538,23 +563,12 @@ class User(BaseModel):
         }
 
     def to_json(self):
-        def display_state():
-            """
-            self.stateを表示状態に変換する
-            """
-            if self.password_expired():
-                return self.EXPIRED_STATE
-            elif self.is_init_or_temp:
-                # 初期状態は仮登録状態と表示する
-                return self.TMP_STATE
-            else:
-                return self.state
-
         ret = {
             'uuid'     : self.uuid,
             'email'    : self.email,
             'name'     : self.name,
-            'state'    : display_state(),
+            # 初期状態は仮登録状態と表示する
+            'state'    : User.TMP_STATE if self.state==User.INIT_STATE else self.state,
             'creator'  : self.creator_str,
             'createdAt': self.created_at_str
         }

@@ -82,8 +82,8 @@ class UnAuthzFactory():
     def find_user_by_email(self, email):
         return UserFactory(self._session).find_by_email(email)
 
-    def find_user_by_uuid(self, user_uuid):
-        return UserFactory(self._session).find_by_uuid(user_uuid)
+    def find_user_by_id(self, user_id):
+        return UserFactory(self._session).find_by_id(user_id)
 
     def load_sys_admin_user(self, activate_if_inactive=False):
         """
@@ -386,6 +386,20 @@ class DatumFactory():
         # 作成者(creator)の本人ロールからDatumの権限を削除する
         self_role = datum.creator.load_self_role()
         self_role.clear_authz(datum.id)
+
+    def get_flows_referencing_frame(self, frame_uuid):
+        """
+        参照する入力frameとキャッシュframeを全て取得する
+        """
+        from sqlalchemy import select, text
+        from sqlalchemy.sql import alias
+        from kskp.store import Flow
+
+        sql = Flow._get_select_stmt_for_nodes()
+        sql = select(['*']).select_from(sql.alias('F')).where(text(f"uuid='{frame_uuid}'"))
+
+        results = self._session.execute(sql)
+        return [str(result['label']) for result in results]
 
     def exists(self, uuid, type=None) -> bool:
         """

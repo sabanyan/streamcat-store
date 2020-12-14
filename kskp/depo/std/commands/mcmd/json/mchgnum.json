@@ -1,5 +1,64 @@
 {
   "id": "mchgnum",
+  "rules": {
+    "f": {
+      "presence": {
+        "allowEmpty": false
+      },
+      "checkSeveralSpecifiedFormats": {
+        "defaultRule": {
+          "pattern": "^[^,]+(,[^,]+)*$",
+          "message": "入力値が正しくありません。"
+        },
+        "specialRules": [
+          {
+            "target": "A",
+            "pattern": "^[^:,]+:[^:,]+(,[^:,]+:[^:,]+)*$|^@\\[.+\\]$",
+            "message": "対象となる列名と新しい列名を、:(コロン)で区切って入力してください"
+          },
+          {
+            "target": [
+              "x",
+              "nfn"
+            ],
+            "pattern": "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$|^[1-9]?[0-9]+L?(:[^,:]+)?(,[1-9]?[0-9]+L?(:[^,:]+)?)*$",
+            "message": "項目の指定は数値のみ可能です。"
+          }
+        ]
+      }
+    },
+    "O": {
+      "format": {
+        "pattern": "^[^,]*$",
+        "message": "この項目にて,(コンマ)は入力しないでください。"
+      },
+      "onlyOneInput": {
+        "target": "F"
+      }
+    },
+    "R": {
+      "presence": {
+        "allowEmpty": false
+      },
+      "format": {
+        "pattern": "^(MIN|(\\+|-)?[1-9]?[0-9]+(\\.[0-9]*)?)(,(\\+|-)?[1-9]?[0-9]+(\\.[0-9]*)?)*(,(MAX|(\\+|-)?[1-9]?[0-9]+(\\.[0-9]*)?))$|^@\\[.+\\]$",
+        "message": "数値範囲の指定は,(コンマ)で区切って入力してください。MINは一番左側のみ、MAXは一番右側のみに入力可能です。"
+      },
+      "checkArrangementSequences": true
+    },
+    "v": {
+      "lessValueListThanN": {
+        "target": "R",
+        "difference": "1",
+        "justValue": "-1"
+      }
+    },
+    "F": {
+      "onlyOneInput": {
+        "target": "O"
+      }
+    }
+  },
   "params": [
     {
       "name": "f",

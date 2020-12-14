@@ -5,6 +5,7 @@ class Constraints():
     プロジェクト単位での権限設定をするための機能
     権限の基盤機能と分けるためDecoratorとする
     """
+
     @staticmethod
     def prohibit_move_to_root(func):
         """
@@ -33,33 +34,6 @@ class Constraints():
                 root = DatumFactory(myself._session).load_root()
                 if parent_uuid == root.uuid:
                     raise Exception('プロジェクト以外のDatumは、Rootへ移動できません')
-
-            return func(*args, **kwargs)
-
-        return wrapper
-
-    @staticmethod
-    def prohibit_move_system_folder(func):
-        """
-        システムフォルダの移動を禁止する
-        """
-        @functools.wraps(func)
-        def wrapper(*args, **kwargs):
-            if func.__name__ != 'move':
-                raise Exception('このDecoratorはmove()以外をデコレートできません')
-
-            # self
-            myself = args[0]
-
-            from kskp.core import Datum
-            from kskp.store import TrashCan
-
-            if myself.is_root:
-                raise Exception('ルートフォルダは移動できません')
-            elif myself.uuid == Datum.CACHE_FOLDER_UUID:
-                raise Exception('キャッシュフォルダは移動できません')
-            elif isinstance(myself, TrashCan):
-                raise Exception('ゴミ箱は移動できません')
 
             return func(*args, **kwargs)
 
@@ -150,12 +124,14 @@ class Constraints():
         def wrapper(*args, **kwargs):
             from sqlalchemy.orm.exc import NoResultFound
 
-            if func.__name__ not in ('set_cache', '_replace_cache'):
-                raise Exception('このDecoratorはset_cache()または_replace_cache()以外をデコレートできません')
+            if func.__name__ != 'set_cache':
+                raise Exception('このDecoratorはset_cache()以外をデコレートできません')
 
             # self
             myflow = args[0]
-            # cache
+            # node_id
+            node_id = args[1]
+            # cache_uuid
             cache = args[2]
 
             try:
@@ -367,7 +343,7 @@ class Constraints():
                 readers_role = to_project._load_readers_role()
                 writers_role = to_project._load_writers_role()
                 usr_admin_role = RoleFactory(myflow._session).load_usr_admin_role()
-                for cache_uuid in myflow.flow_data.get_cache_frame_uuids():
+                for cache_uuid in myflow.get_cache_frame_uuids():
                     # キャッシュが存在しない場合、キャッシュの権限設定は変更できない
                     if not datumFactory.exists(cache_uuid):
                         continue

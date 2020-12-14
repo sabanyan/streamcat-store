@@ -869,7 +869,7 @@ class MvSimCommand(PCommand):
                 'KeyFieldNotFoundError' : '指定した項目名は存在しません。${fieldinput}',
                 'KeyFieldNumberNotFoundError' : '指定した項目番号は存在しません。${fieldinput}',
                 'EmptyKeyFieldError' : '空文字列でキー項目名が指定されています。${fieldinput}',
-                'KeyFieldForbiddenCharacterError' : '半角の :　\　&　％　＃ は、キー項目の指定に使用できません。${fieldinput}',
+                'KeyFieldForbiddenCharacterError' : '半角の（ :　\　&　％　＃ ）は、キー項目の指定に使用できません。${fieldinput}',
                 
                 # ソート設定に対するエラー
                 'SortFieldConflictError' : '項目名が重複しています。${fieldinput}',
@@ -877,20 +877,20 @@ class MvSimCommand(PCommand):
                 'SortFieldNumberSettingError' : 'ソート項目番号の指定は正しくありません。${fieldinput}',
                 'SortFieldNotFoundError' : '指定した項目名は存在しません。${fieldinput}',
                 'SortFieldNumberNotFoundError' : '指定した項目番号は存在しません。${fieldinput}',
-                'SortFieldForbiddenCharacterError': '半角の :　\　&　＃ は、ソートの項目名の指定に使用できません。${fieldinput}',
+                'SortFieldForbiddenCharacterError': '半角の（ :　\　&　＃ ）は、ソートの項目名の指定に使用できません。${fieldinput}',
                 'EmptySortFieldError' : '空文字列でソートが指定されています。${fieldinput}',
                 'SortFieldOrderError' : 'ソート順の指定は正しくありません。指定可能なのは、（%n、%r、%nr）です。${fieldinput}',
                 
                 # 結果列名設定に対するエラー
                 'EmptyResultsColNameError' : '空文字列で結果項目名が指定されてます。${fieldinput}',
-                'ResultsColNameForbiddenCharacterError': '半角の :　\　,　*　?　[　] は、結果項目名の指定に使用できません。${fieldinput}',
+                'ResultsColNameForbiddenCharacterError': '半角の（ :　\　,　*　?　[　] ）は、結果項目名の指定に使用できません。${fieldinput}',
                 
                 # 計算対象列に対するエラー
                 'Target1FieldNotFoundError' : '指定した項目名は存在しません。${fieldinput}',
                 'Target1FieldNumberNotFoundError' : '指定した項目番号は存在しません。${fieldinput}',
                 'Target1MultipleFieldError' : '１つ目の計算対象項目指定で、複数の項目名を指定できません。${fieldinput}',
                 'Target1MultipleFieldNumberError' : '１つ目の計算対象項目指定で、複数の項目番号を指定できません。${fieldinput}',
-                'Target1ForbiddenCharacterError' : '半角の :　\　&　％　＃ は、計算対象項目の指定に使用できません。${fieldinput}',
+                'Target1ForbiddenCharacterError' : '半角の（ :　\　&　％　＃ ）は、計算対象項目の指定に使用できません。${fieldinput}',
                 'Target1FieldNumberSettingError' : '計算対象項目番号の指定は正しくありません。${fieldinput}',
                 'Target1EmptyError' : '空文字列で計算対象項目が指定されています。${fieldinput}',
                 
@@ -898,7 +898,7 @@ class MvSimCommand(PCommand):
                 'Target2FieldNotFoundError' : '指定した項目名は存在しません。${fieldinput}',
                 'Target2FieldNumberNotFoundError' : '指定した項目番号は存在しません。${fieldinput}',
                 'Target2FieldNumberSettingError' : '計算対象項目番号の指定は正しくありません。${fieldinput}',
-                'Target2ForbiddenCharacterError' : '半角の :　\　&　％　＃ は、計算対象項目の指定に使用できません。${fieldinput}',
+                'Target2ForbiddenCharacterError' : '半角の（ :　\　&　％　＃ ）は、計算対象項目の指定に使用できません。${fieldinput}',
                 'Target2EmptyError' : '空文字列で計算対象項目が指定されています。${fieldinput}',
                 
                 # 類似度指定に対するエラー
@@ -908,12 +908,12 @@ class MvSimCommand(PCommand):
                 
                 # 期間数指定に対するエラー
                 'WindowSizeConflictError' : '対象行数が重複しています。${fieldinput}',
-                'WindowSizeFormatError' : '対象行数への ${fieldinput} 指定が正しくありません。２以上の整数を指定してください。',
-                'WindowSizeValueError' : '対象行数への ${fieldinput} 指定が正しくありません。２以上の整数で指定してください。',
-                'WindowSizeEmptyError' : '空文字列で対象行数が指定されています。${fieldinput}。',
+                'WindowSizeFormatError' : '対象行数への ${fieldinput} 指定が正しくありません。２以上の整数を指定してください',
+                'WindowSizeValueError' : '対象行数への ${fieldinput} 指定が正しくありません。２以上の整数で指定してください',
+                'WindowSizeEmptyError' : '空文字列で対象行数が指定されています。${fieldinput}',
 
                 # 結果列重複エラー
-                'ResultsColConflictError' : '出力項目名が重複しています。%指定、&指定、#指定、ワ。ルドカード指定など、重複する出力項目名となる設定がないかを、確認してください。${fieldinput}',
+                'ResultsColConflictError' : '出力項目名が重複しています。%指定、&指定、#指定、ワイルドカード指定など、重複する出力項目名となる設定がないかを、確認してください。${fieldinput}',
                 
                 
                 'TestError' : 'This is a test'

@@ -63,6 +63,91 @@
       ]
     }
   ],
+  "rules": {
+    "f": {
+      "checkSeveralSpecifiedFormats": {
+        "defaultRule": {
+          "pattern": "^[^:,]+(,[^:,]+)*$|^$",
+          "message": "対象となる列名を入力してください"
+        },
+        "specialRules": [
+          {
+            "target": [
+              "x",
+              "nfn"
+            ],
+            "pattern": "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$|^$",
+            "message": "項目の指定は数値のみ可能です。"
+          }
+        ]
+      }
+    },
+    "rf": {
+      "presence": {
+        "allowEmpty": false
+      },
+      "checkSeveralSpecifiedFormats": {
+        "defaultRule": {
+          "pattern": "^[^,]+(%[ndr]){0,3}(,[^,]+(%[ndr]){0,3})*$",
+          "message": "入力値が正しくありません。"
+        },
+        "specialRules": [
+          {
+            "target": [
+              "x",
+              "nfn"
+            ],
+            "pattern": "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(%[ndr]){0,3}(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(%[ndr]){0,3})*$|^@\\[.+\\](%[ndr]){0,3}$",
+            "message": "項目の指定は数値のみ可能です。"
+          }
+        ]
+      }
+    },
+    "k": {
+      "checkSeveralSpecifiedFormats": {
+        "defaultRule": {
+          "pattern": "^[^:,]+(,[^:,]+)*$|^$",
+          "message": "対象となる列名を入力してください"
+        },
+        "specialRules": [
+          {
+            "target": [
+              "x",
+              "nfn"
+            ],
+            "pattern": "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$|^$",
+            "message": "項目の指定は数値のみ可能です。"
+          }
+        ]
+      }
+    },
+    "K": {
+      "checkSeveralSpecifiedFormats": {
+        "defaultRule": {
+          "pattern": "^[^:,]+(,[^:,]+)*$|^$",
+          "message": "対象となる列名を入力してください"
+        },
+        "specialRules": [
+          {
+            "target": [
+              "x",
+              "nfn"
+            ],
+            "pattern": "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$|^$",
+            "message": "項目の指定は数値のみ可能です。"
+          }
+        ]
+      }
+    },
+    "R": {
+      "checkSeveralSpecifiedFormats": {
+        "defaultRule": {
+          "pattern": "^[^:,]+(,[^:,]+)*$|^$",
+          "message": "対象となる列名を入力してください"
+        }
+      }
+    }
+  },
   "params": [
     {
       "name": "rf",
