@@ -22,25 +22,30 @@ def _make_schema(engine, schema_name):
         raise Exception('💲💰テスト実行にはAWS RDSに接続している必要があります💲💰')
 
 
-if 'DATABASE_URL' in os.environ:
-    # HEROKU環境用の設定
-    sqlalchemy_database_uri = os.environ['DATABASE_URL']
-elif _is_unittest():
+# バージョンを取得する
+from pathlib import Path
+kskp_ver_file = Path('/etc/kskp_ver')
+if kskp_ver_file.exists() and kskp_ver_file.stat().st_size < 20:
+    KSKP_VER = kskp_ver_file.read_text(errors='ignore').strip()
+else:
+    KSKP_VER = None
+
+
+if _is_unittest():
     # テスト環境用の設定
     passwd = 'J2-pH|%B'
     database_uri = f'postgresql://kskp:{passwd}@kskp.cr4gfi5zl5xm.ap-northeast-1.rds.amazonaws.com/kskp'
-    sqlalchemy_database_uri = database_uri
 else:
     # ローカル環境用の設定
-    # sqlalchemy_database_uri = "postgresql://postgres:@db/kskp"
+    # database_uri = "postgresql://postgres:@db/kskp"
     passwd = 'ZQZtVgL6G32Vy6p6WJtG3C3K84yuJ4zz'
-    sqlalchemy_database_uri = f'postgresql://kskp:{passwd}@db/kskp'
+    database_uri = f'postgresql://kskp:{passwd}@db/kskp'
 
 
 # データベースへの接続
 # echo=TrueでSQLログがコンソールに出力される
 from sqlalchemy import create_engine
-engine = create_engine(sqlalchemy_database_uri, echo=False)
+engine = create_engine(database_uri, echo=False)
 
 if _is_unittest():
     # テスト用スキーマ名を設定する
