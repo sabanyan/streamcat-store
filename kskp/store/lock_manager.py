@@ -49,7 +49,8 @@ class LockManager():
             for lock in self._lock_data.values():
                 if lock.target == target:
                     # ロック失敗 (T_T
-                    raise LockedDatumException(f'Datum ({target}) is already locked')
+                    raise LockedDatumException(f'{target}は、{lock.creator.name}が編集中です')
+                    
             # ロック成功 !
             new_lock = Lock(target, creator, datetime.utcnow())
             self._lock_data[new_lock.uuid] = new_lock
