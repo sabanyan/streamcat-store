@@ -1023,7 +1023,7 @@ class AssertCommand(SCommand):
             # is_trueの判定 と diffの出力
             if diff_result == [] or diff_result == None:
                 is_true = "True"
-                diff = ["nothing","nothing","nothing"]
+                diff = ["","",""]
             else:
                 is_true = "False"
                 diff = diff_result
