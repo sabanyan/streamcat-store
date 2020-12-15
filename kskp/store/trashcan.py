@@ -44,13 +44,17 @@ class TrashCan(Folder):
             self._trash_all_inner(child)
 
     def _trash_all_inner(self, datum):
-        if isinstance(datum, Folder):
+        if isinstance(datum, Folder) and datum.writable:
             # フォルダ直下のフォルダとファイルを削除する
             for child in datum.find_children():
                 self._trash_all_inner(child)
             # フォルダを削除する
             datum.delete()
-        else:
+        elif datum.writable:
             # ファイルを削除する
             datum.delete()
-
+        else:
+            # 更新権限のないファイルは削除しない
+            # import warnings
+            # warnings.warn(f'{datum} is not deleted, {datum.writable}')
+            pass

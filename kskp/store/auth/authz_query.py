@@ -13,8 +13,21 @@ class Query():
 
     @staticmethod
     def _is_base_model(obj):
-        from kskp.store import BaseModel
-        return obj is not None and isinstance(obj, BaseModel)
+        from kskp.store import KSKPBaseModel
+        return obj is not None and isinstance(obj, KSKPBaseModel)
+
+    # @staticmethod
+    # def _is_base_model(obj):
+    #     from sqlalchemy.orm.base import object_mapper
+    #     from sqlalchemy.orm.exc import UnmappedInstanceError
+    #     try:
+    #         object_mapper(obj)
+    #     except UnmappedInstanceError:
+    #         return False
+    #     return True
+
+    def _create_query(self, query, session):
+        return Query(query, session)
 
     def get(self, ident):
         result = self._query.get(ident)
@@ -34,6 +47,12 @@ class Query():
             result._session = self._session
         return result
 
+    def first(self):
+        result = self._query.first()
+        if Query._is_base_model(result):
+            result._session = self._session
+        return result
+
     def all(self):
         results = self._query.all()
         if results is not None and len(results) > 0 and Query._is_base_model(results[0]):
@@ -45,24 +64,82 @@ class Query():
         return self._query.count()
 
     def filter(self, *criterion):
-        return Query(self._query.filter(*criterion), self._session)
+        return self._create_query(self._query.filter(*criterion), self._session)
+
+    def select_from(self, *from_obj):
+        return self._create_query(self._query.select_from(*from_obj), self._session)
+
+    def join(self, *props, **kwargs):
+        return self._create_query(self._query.join(*props, **kwargs), self._session)
+
+    def outerjoin(self, *props, **kwargs):
+        return self._create_query(self._query.outerjoin(*props, **kwargs), self._session)
 
     def exists(self):
         return self._query.exists()
 
+    def group_by(self, *criterion):
+        return self._create_query(self._query.group_by(*criterion), self._session)
+
     def order_by(self, *criterion):
-        return Query(self._query.order_by(*criterion), self._session)
+        return self._create_query(self._query.order_by(*criterion), self._session)
 
     def update(self, values, update_args=None):
         # synchronize_session='fetch'でSQLを2回発行するらしい
         result = self._query.update(values, update_args=update_args)
         return result
 
-    def delete(self):
-        result = self._query.delete()
+    def delete(self, synchronize_session='evaluate'):
+        result = self._query.delete(synchronize_session)
         return result
 
 class AuthzDatumQuery(Query):
+
+    def _create_query(self, query, session):
+        return AuthzDatumQuery(query, session)
+
+    def get(self, ident):
+        from kskp.core import Datum
+        result = self._query.get(ident)
+        if Query._is_base_model(result):
+            result._session = self._session
+            # 参照権限のないDatumの場合はNoneを返す
+            if isinstance(result, Datum) and not result.readable:
+                return None
+        return result
+
+    def one(self):
+        from kskp.core import Datum
+        result = self._query.one()
+        if Query._is_base_model(result):
+            result._session = self._session
+            # 参照権限のないDatumの場合は例外を送出する
+            isinstance(result, Datum) and result._readable_or_raise()
+        return result
+
+    def one_or_none(self):
+        from kskp.core import Datum
+        result = self._query.one_or_none()
+        if Query._is_base_model(result):
+            result._session = self._session
+            # 参照権限のないDatumの場合はNoneを返す
+            if isinstance(result, Datum) and not result.readable:
+                return None
+        return result
+
+    def all(self, ignore_authz=False):
+        from kskp.core import Datum
+        results = self._query.all()
+        if results is not None and len(results) > 0 and Query._is_base_model(results[0]):
+            rets = []
+            for result in results:
+                # 参照権限のないDatumは返さない
+                if not ignore_authz and isinstance(result, Datum) and not result.readable:
+                    continue
+                result._session = self._session
+                rets.append(result)
+            return rets
+        return results
 
     def filter(self, *criterion):
         return AuthzDatumQuery(self._query.filter(*criterion), self._session)

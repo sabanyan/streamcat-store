@@ -4,11 +4,12 @@
 import os
 import sqlalchemy.types
 from pathlib import Path
-from kskp.store import BaseModel
 from sqlalchemy import Column, String, text
 from sqlalchemy.sql import operators
 from sqlalchemy.orm import query_expression
-from sqlalchemy.dialects.postgresql import INTEGER, TIMESTAMP, JSONB, ENUM, UUID
+from sqlalchemy.dialects.postgresql import INTEGER, JSONB, ENUM, UUID
+from kskp.store import BaseModel
+from .constraints import Constraints
 
 class Datum(BaseModel):
     """
@@ -35,7 +36,7 @@ class Datum(BaseModel):
 
         # _pathに対してLike式を用いる時に必要
         def coerce_compared_value(self, op, value):
-            if op in (operators.like_op, operators.notlike_op):
+            if op in (operators.like_op, operators.notlike_op, operators.startswith_op):
                 return String()
             else:
                 return self
@@ -43,16 +44,16 @@ class Datum(BaseModel):
     # ルートフォルダのPath
     DEFAULT_LIBRARY_PATH = Path('cmn')
 
-    FOLDER_TYPE = 'folder'
     PROJECT_TYPE = 'project'
+    FOLDER_TYPE = 'folder'
     AWSS3_TYPE  = 'awss3'
     RFOLDER_TYPE = 'rfolder'
     DATABASE_TYPE = 'database'
     FLOW_TYPE   = 'flow'
     FRAME_TYPE  = 'frame'
-    TRASH_TYPE = 'trash'
     COMMAND_TYPE = 'command'
     ACTIVITY_TYPE = 'activity'
+    TRASH_TYPE = 'trash'
 
     RESULT_FOLDER_UUID  = 'aacb4914-0695-40fc-b14b-95b7f1f81707'
     RESULT_FOLDER_LABEL = '実行結果'
@@ -61,16 +62,19 @@ class Datum(BaseModel):
     FLOW_FOLDER_UUID  = 'ff37fe34-9c25-4ad0-b74a-affda3712a45'
     FLOW_FOLDER_LABEL = 'フロー'
 
+    # AuthzSessionが返す権限設定ののビットフラグ(_permissions)
+    PERMISSION_READ   = 0b1_00_0_0
+    PERMISSION_WRITE  = 0b0_10_0_0
+    # 編集ロック値を除外した更新権限(編集者フラグ)
+    PERMISSION_WRITER = 0b0_01_0_0
+    PERMISSION_EXEC   = 0b0_00_1_0
+    PERMISSION_OWN    = 0b0_00_0_1
+
     # Datum.pathの基点ディレクトリ
     STORE_DIR = Path(__file__).parent.parent / 'depo/files'
 
     # テーブル名の定義
     __tablename__ = 'data'
-
-    # 定義先スキーマ
-    if 'KSKP_POSTGRESQL_SCHEMA_NAME' in os.environ:
-        # テスト環境用のスキーマ
-        __table_args__ = {'schema': os.environ['KSKP_POSTGRESQL_SCHEMA_NAME']}
 
     # 列名と列のデータ型等の定義
     id           = Column(INTEGER, primary_key=True, autoincrement=True)
@@ -79,18 +83,27 @@ class Datum(BaseModel):
     _path        = Column('path', PathType, nullable=False)
     _label       = Column('label', String)
     # PostgreSQLのENUM型の要素を変更してもSQLAlchemyから自動的に変更がかからないので手動で変更する必要がある
-    type         = Column(ENUM(FOLDER_TYPE, PROJECT_TYPE, AWSS3_TYPE, RFOLDER_TYPE, DATABASE_TYPE, FLOW_TYPE, FRAME_TYPE, TRASH_TYPE, COMMAND_TYPE, ACTIVITY_TYPE, name='data_type'), nullable=False)
+    type         = Column(ENUM( PROJECT_TYPE,
+                                FOLDER_TYPE,
+                                AWSS3_TYPE,
+                                RFOLDER_TYPE,
+                                DATABASE_TYPE,
+                                FLOW_TYPE,
+                                FRAME_TYPE,
+                                COMMAND_TYPE,
+                                ACTIVITY_TYPE,
+                                TRASH_TYPE,
+                                name='data_type'), nullable=False)
     _data        = Column('data', JSONB)
-    _creator_id  = Column('creator', INTEGER)
-    _modifier_id = Column('modifier', INTEGER)
-    created_at   = Column(TIMESTAMP, default=text('statement_timestamp()'))
-    modified_at  = Column(TIMESTAMP, default=text('statement_timestamp()'), onupdate=text('statement_timestamp()'))
-    # read権限(queryで追加した列の結果を格納する)
-    readable     = query_expression()
 
-    user = query_expression()
-
-
+    # 各種権限(queryで追加した列の結果を格納する)
+    _permissions = query_expression()
+    # 所有権(queryで追加した列の結果を格納する)
+    _ownership   = query_expression()
+    # 親フォルダのuuid(queryで追加した列の結果を格納する)
+    _parent_uuid = query_expression()
+    # フォルダパス
+    _folder_path = query_expression()
 
     # これを設定することで、session.query(Datum).all()でもサブクラスの型で結果を得ることができる
     __mapper_args__ = {
@@ -101,8 +114,7 @@ class Datum(BaseModel):
         """
         コンストラクタ
         """
-        # SQLAlchemy Session
-        self._session = session
+        super().__init__(session)
 
         # parent_id
         # (rootのみparent_idはNoneである)
@@ -127,13 +139,8 @@ class Datum(BaseModel):
         # type
         self.type = datum_type
 
-        # creator, modifier
-        if session is not None and session.user is not None:
-            self._creator_id = session.user.id
-            self._modifier_id = session.user.id
-
-        # DBに保存する前のDatumへの参照権限は制限しない
-        self.readable = True
+        # DBに保存する前のDatumへの参照と更新権限は制限しない
+        self._permissions = Datum.PERMISSION_READ | Datum.PERMISSION_WRITE
 
         # Engineから参照する
         self.context = {}
@@ -191,11 +198,6 @@ class Datum(BaseModel):
         # 絶対パスを返す
         return Path(Datum._to_abs_path(self._path))
 
-    # @path.setter
-    # def path(self, path):
-    #     # Pathオブジェクトを受け取る
-    #     self._path = Datum._to_rel_path(path)
-
     @property
     def path_exists(self):
         return self._path.exists()
@@ -210,6 +212,45 @@ class Datum(BaseModel):
             return self._label
 
     @property
+    def readable(self):
+        p = self._permissions
+        return p if p is None else (p & Datum.PERMISSION_READ) > 0
+
+    @property
+    def writable(self):
+        p = self._permissions
+        return p if p is None else (p & Datum.PERMISSION_WRITE) > 0
+
+    @property
+    def writable_without_edit_lock(self):
+        """
+        このDatumの編集ロックを考慮しないself.writable
+        """
+        p = self._permissions
+        return p if p is None else (p & Datum.PERMISSION_WRITER) > 0
+
+    @property
+    def executable(self):
+        p = self._permissions
+        return p if p is None else (p & Datum.PERMISSION_EXEC) > 0
+
+    @property
+    def ownership(self):
+        return self._ownership
+
+    @property
+    def parent_uuid(self):
+        return self._parent_uuid
+
+    @property
+    def folder_path(self):
+        return self._folder_path
+
+    @property
+    def is_root(self):
+        return self.parent_id is None
+
+    @property
     def prev_parent_id(self):
         if self._data is None:
             return None
@@ -219,70 +260,43 @@ class Datum(BaseModel):
     def prev_parent_id(self, id):
         self._data['prev_parent_id'] = id
 
-
-    # @property
-    # def data(self):
-    #     # 参照権限が無ければ例外を送出する
-    #     self._readable_or_raise()
-    #     return self._data
-
-    # @data.setter
-    # def data(self, value):
-    #     self._data = value
-
     @property
     def data_is_empty(self):
         return self._data is None or self._data == {}
-
-    @property
-    def created_at_str(self):
-        from kskp.core import Util
-        return Util.datetime_to_local_time_str(self.created_at)
-
-    @property
-    def modified_at_str(self):
-        from kskp.core import Util
-        return Util.datetime_to_local_time_str(self.modified_at)
-
-    @property
-    def creator(self):
-        from kskp.store.factory import UserFactory
-        if self._creator_id is None:
-            return None
-        return UserFactory(self._session).find_by_id(self._creator_id, allow_no_result=True)
-
-    @property
-    def modifier(self):
-        from kskp.store.factory import UserFactory
-        if self._modifier_id is None:
-            return None
-        return UserFactory(self._session).find_by_id(self._modifier_id, allow_no_result=True)
-
-    @modifier.setter
-    def modifier(self, modifier):
-        self._modifier = modifier
-
-    @property
-    def creator_str(self):
-        if self.creator is None:
-            return ''
-        return self.creator.name
-
-    @property
-    def modifier_str(self):
-        if self.modifier is None:
-            return ''
-        return self.modifier.name
 
     def find_parent(self):
         """
         自分の親を取得する
         """
-        datum = self._session.query(Datum)\
+        return self._session.query(Datum)\
                             .filter(Datum.id==self.parent_id).one()
 
-        # datum.session = self._session
-        return datum
+    def find_my_project(self):
+        """
+        自分のプロジェクトを取得する
+        """
+        from sqlalchemy.orm import aliased
+        from sqlalchemy.sql.expression import select, exists, and_
+        from kskp.store import ProjectFolder
+
+        # cte: Common Table Expression WITH句のこと
+        D0 = aliased(Datum, name='D0')
+        R = select([D0.id, D0.parent_id, D0.type]).select_from(D0).\
+            where(D0.id==self.id).\
+            cte(name='R', recursive=True)
+
+        # WITH句にUNION ALLを用いて再帰クエリとする
+        D = aliased(Datum, name='D')
+        R = R.union_all(
+                select([D.id, D.parent_id, D.type]).\
+                select_from(R.join(D, and_(D.id==R.c.parent_id,
+                                           R.c.type!=Datum.PROJECT_TYPE)))
+            )
+
+        # プロジェクトを取得する
+        exists_project = exists().where(and_(R.c.id==ProjectFolder.id, R.c.type==Datum.PROJECT_TYPE))
+        query = self._session.query(ProjectFolder).filter(exists_project)
+        return query.one()
 
     def reload(self):
         """
@@ -291,8 +305,14 @@ class Datum(BaseModel):
         """
         from kskp.store.factory import DatumFactory
         factory = DatumFactory(self._session)
+        # Sessionにあるself._permissionsを期限切れ状態にしてDBからリロードされるようにする
+        factory._session._session.expire(self, ['_permissions'])
         return factory.find_by_id(self.id)
 
+    @Constraints.prohibit_move_to_root
+    @Constraints.prohibit_move_system_folder
+    @Constraints.set_project_role_on_moving
+    @Constraints.set_project_role_on_moving_flow
     def move(self, parent_uuid, modifier=None):
         """
         指定されたStoreの直下に移動する
@@ -310,6 +330,8 @@ class Datum(BaseModel):
         to_folder = DatumFactory(self._session).find_by_uuid(parent_uuid)
         if not isinstance(to_folder, Folder):
             raise Exception('移動先の指定はフォルダ、プロジェクトまたはゴミ箱のUUIDしか許可していません')
+        elif not self._session.writable(to_folder):
+            raise NotAuthorizedException((f'{self._session.user}は{to_folder.label}の更新権限がないため{self.label}を移動できません'))
 
         # # 移動対象がマウントポイントの場合は、path列を変更することはマウントポイントを変更することになるので
         # # とりあえずエラーとする
@@ -380,8 +402,6 @@ class Datum(BaseModel):
                 raise NotAuthorizedException((f'{user_name}は更新権限がないため{self.label}を移動できません'))
             elif not self._session.writable(from_folder):
                 raise NotAuthorizedException((f'{user_name}は{from_folder.label}の更新権限がないため{self.label}を移動できません'))
-            elif not self._session.writable(to_folder):
-                raise NotAuthorizedException((f'{user_name}は{to_folder.label}の更新権限がないため{self.label}を移動できません'))
             else:
                 raise e
         except Exception as e:
@@ -401,11 +421,11 @@ class Datum(BaseModel):
         factory = DatumFactory(self._session)
         trash_folder = factory.load_trash_folder()
 
-        self.move(trash_folder.uuid)
+        return self.move(trash_folder.uuid)
 
     def put_back(self):
         """
-        直前の親のStoreの直下に移動する
+        直前の親のStoreの直下に戻す
         """
         moved_data, exps = self._put_back_inner(self)
         if len(moved_data) == 0:
@@ -454,42 +474,71 @@ class Datum(BaseModel):
             except Exception as e:
                 return [], [e]
 
-    def get_prev_folder_path(self):
+    def _get_folder_path(self, parent_id):
+        from kskp.store.auth import NotAuthorizedException
         from kskp.store.factory import DatumFactory
+
         factory = DatumFactory(self._session)
-        if self.prev_parent_id is None or not factory.exists_by_id(self.prev_parent_id):
+        if parent_id is None or not factory.exists_by_id(parent_id):
             return None
         else:
-            prev_parent = factory.find_by_id(self.prev_parent_id)
-            return '/' + '/'.join([folder.get('label') for folder in prev_parent.get_folder_path()])
+            try:
+                parent = factory.find_by_id(parent_id)
+            except NotAuthorizedException:
+                # 参照権限がないため移動元の親Datumが取得できない場合、Noneを返す
+                return None
+            return '/' + '/'.join([folder.get('label') for folder in parent.get_folder_path()])
 
     def __repr__(self):
         return f'Datum({self.id}, {self._label}, {self.type})'
 
+    def __eq__(self, other):
+        return self.uuid == other.uuid
+
+    def __ne__(self, other):
+        return self.uuid != other.uuid
+
+    def __hash__(self) -> int:
+        return hash(self.uuid)
+
     def to_json(self):
-        ret =  {'uuid'      : self.uuid,
+        return {'uuid'      : self.uuid,
                 'type'      : self.type,
                 'label'     : self.label,
-                'readable'  : self.readable,
-                'prevFolderPath' : self.get_prev_folder_path(),
+                'allowlist' : {
+                    'read'   : self.readable,
+                    'update' : not self.is_root and self.writable,
+                    'delete' : not self.is_root and self.writable,
+                    'execute': False,
+                    'move'   : not self.is_root and self.writable,
+                    'copy'   : not self.is_root and self.writable_without_edit_lock,
+                    # 閲覧者以外はDownload可能なのでwritableで判定する
+                    'download'    : not self.is_root and self.writable,
+                    'findMember'  : False,
+                    'updateMember': False,
+                    'lock'   : False,
+                },
+                'folderPath' : self.folder_path,
+                'folderUuid' : self.parent_uuid,
+                # TODO: _get_folder_path()だけで結構遅くなってる
+                'prevFolderPath' : self._get_folder_path(self.prev_parent_id),
                 'creator'   : self.creator_str,
-                'createdAt' : self.created_at_str}
-        return ret
+                'createdAt' : self.created_at_str }
 
     def _readable_or_raise(self):
         from kskp.store.auth import NotAuthorizedException
         if self.readable is None:
-            raise NotAuthorizedException(f'{self.label}の参照権限がNoneです(save後のDatumオブジェクトは参照権限がNoneになります)')
+            raise NotAuthorizedException(f'{self.label}の参照権限がNoneです(save後またはrollback後のDatumオブジェクトは参照権限がNoneになります)')
         if not self.readable:
-            raise NotAuthorizedException(f'{self._session.user.name} ({self.user})は{self.label}の参照権限がありません({self.readable})')
+            raise NotAuthorizedException(f'{self._session.user.name}は{self.label}の参照権限がありません({self.readable})')
 
     def _update_same_path(self, old_path, new_path, modifier):
         # 同じファイルに対応するフォルダのpath列を、ファイル名の移動に合わせて変更する
-        results = self._session.query(Datum).filter(Datum._path == old_path).all()
+        results = self._session.query(Datum).filter(Datum._path == old_path).all(ignore_authz=True)
         for result in results:
             result._path = Datum._to_rel_path(new_path)
             result._modifier_id = (modifier or self._session.user).id
-            self._session.update(result)
+            self._session.update(result, ignore_authz=True)
 
     def _update_include_path(self, old_path, new_path, modifier=None):
         import re
@@ -497,10 +546,12 @@ class Datum(BaseModel):
         rel_old_path = Datum._to_rel_path(old_path).as_posix()
         # ファイルパスに正規表現文字が含まれていればエスケープする
         old_path_pattern = '^' + re.escape(rel_old_path) + '/'
-        # SQLのワイルドカード%と_をエスケープする
+        # autoescape=True : LIKEのワイルドカード%と_をエスケープする
         results = self._session.query(Datum)\
-                         .filter(Datum._path!=None)\
-                         .filter(Datum._path.like(rel_old_path + '/' + '%')).all()
+                      .filter(Datum._path!=None)\
+                      .filter(Datum._path.startswith(rel_old_path, autoescape=True))\
+                      .all(ignore_authz=True)
+
         for result in results:
             rel_new_path = Datum._to_rel_path(new_path).as_posix() + '/'
             rel_result_path = Datum._to_rel_path(result._path).as_posix()
@@ -508,21 +559,129 @@ class Datum(BaseModel):
 
             result._path = Path(replaced_path)
             result._modifier_id = (modifier or self._session.user).id
-            self._session.update(result)
+            self._session.update(result, ignore_authz=True)
 
-    def get_flow_uuids_using_me(self):
+    def get_flow_uuids_using_me_old(self):
         """      .......
         指定されたDatumのuuidを参照するFlowを取得する
         """
+        from sqlalchemy.sql.expression import select, func, and_
+
         sql = f"""
         select uuid from data
         where type='flow'
           and uuid<>'{self.uuid}'
           and to_tsvector(data) @@ to_tsquery('{self.uuid}')
         """
+
+        # DataのTableオブジェクト
+        D = Datum.__table__
+
+        select_stmt = select([Datum.uuid]).\
+                      select_from(D).\
+                      where(and_(Datum.type==Datum.FLOW_TYPE,
+                                 Datum.uuid!=self.uuid, 
+                                 func.to_tsvector(Datum._data).match(self.uuid)))
+
         # SQLを発行する
-        results = self._session.execute(sql)
+        results = self._session.execute(select_stmt)
         return [str(result[0]) for result in results]
+
+    def get_flow_uuids_using_me(self):
+        """
+        自身のエントリ以下にあるDatumが、自身のエントリ以下以外にあるFlowから参照される、
+        そのようなFlowを全て返す
+        """
+        from sqlalchemy.orm import aliased
+        from sqlalchemy.sql.expression import select, func, exists, and_, cast
+
+        sql = """
+        WITH RECURSIVE
+            R AS (
+                SELECT id, uuid FROM data WHERE id = self.id
+                UNION ALL
+                SELECT data.id, data.uuid FROM data JOIN R ON data.parent_id = R.id
+            ),
+            T AS (
+                SELECT id, uuid FROM data WHERE type = 'trash'
+                UNION ALL
+                SELECT data.id, data.uuid FROM data JOIN T ON data.parent_id = T.id
+            )
+        SELECT U.uuid, U.label
+        FROM (SELECT D.uuid as uuid,
+                     D.label as label,
+                     jsonb_path_query(
+                         D.data,
+                         '$.flow.nodes?(@.type != "command" && @.type != "note").uuid'
+                     ) AS ref_uuid
+              FROM data D
+              WHERE D.type = 'flow'
+                AND NOT EXISTS (SELECT * FROM R WHERE R.id = D.id)) U
+        WHERE EXISTS (SELECT * FROM R
+                      WHERE U.ref_uuid #>> '{}' = CAST(R.uuid AS VARCHAR))
+        """
+
+        # id : 検索対象Datumから葉ノードへの経路の全てのDatumのid
+        D0 = aliased(Datum, name='D0')
+        R = select([D0.id, D0.uuid]).\
+            select_from(D0).\
+            where(D0.id==self.id).\
+            cte(name='R', recursive=True) 
+            # cte: Common Table Expression WITH句のこと
+
+        # WITH句にUNION ALLを用いて再帰クエリとする
+        D1 = aliased(Datum, name='D1')
+        R = R.union_all(
+                select([D1.id, D1.uuid]).\
+                select_from(R.join(D1, D1.parent_id==R.c.id))
+            )
+
+        # ゴミ箱の中のDatumを全て取得する再帰クエリ
+        T = select([D0.id, D0.uuid]).\
+            select_from(D0).\
+            where(D0.type==Datum.TRASH_TYPE).\
+            cte(name='T', recursive=True)
+        T = T.union_all(
+                select([D1.id, D1.uuid]).\
+                select_from(T.join(D1, D1.parent_id==T.c.id))
+            )
+
+        # DataのTableオブジェクト
+        D = Datum.__table__
+
+        # 自分と自分の子孫は抽出対象外である
+        not_exists_inner = ~exists().where(R.c.id==D.c.id)
+
+        # 参照元がゴミ箱内のフローの場合は抽出対象外である
+        not_exists_trash = ~exists().where(T.c.id==D.c.id)
+
+        # 自分と自分の子孫以外のFlowから参照する、自分と自分の子孫のuuidのリストを取得する
+        #  R : 自分と自分の子孫
+        #  U : 自分と自分の子孫以外のFlow
+        #  U.ref_uuid : 自分と自分の子孫以外のFlowが参照しているuuid
+        jsonpath = '$.flow.nodes?(@.type != "command" && @.type != "note").uuid'
+        U = select([D.c.uuid,
+                    D.c.label,
+                    func.jsonb_path_query(D.c.data, jsonpath).label('ref_uuid')]).\
+            select_from(D).\
+            where(and_(D.c.type==Datum.FLOW_TYPE, not_exists_inner, not_exists_trash)).\
+            alias('U')
+
+        # 自分の子孫以外のFlowから参照する、自分と自分の子孫
+        U_ref_uuid = str(U.c.ref_uuid.compile())
+        predicate = text("%s #>> '{}'" % U_ref_uuid)==cast(R.c.uuid, String)
+        exists_inner = exists().where(predicate)
+
+        # メインSQL
+        select_stmt = select([U.c.uuid,U.c.label,U.c.ref_uuid]).\
+                      select_from(U).\
+                      where(exists_inner)
+        
+        # SQLを発行する
+        results = self._session.execute(select_stmt)
+        return [{'reference_uuid' :result[0],
+                 'reference_label':result[1],
+                 'referenced_uuid':result[2]} for result in results]
 
     @staticmethod
     def move_file(old_path, new_path):
@@ -548,6 +707,9 @@ class Datum(BaseModel):
         except OSError as e:
             # ファイルパス指定に誤りがある場合
             # (循環参照になる場合など)
+            import errno
+            if e.errno == errno.EINVAL:
+                raise OSError(e.errno, f'移動先が無効なため、{old_path.name}を移動できませんでした')
             raise e
 
     @staticmethod
@@ -617,7 +779,7 @@ class Datum(BaseModel):
         if uuid is None:
             return False
         import re
-        return re.match("^[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}$", uuid)
+        return re.match('^[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}$', uuid)
 
     @staticmethod
     def valid_uuid_or_raise(uuid):

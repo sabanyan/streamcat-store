@@ -6,7 +6,7 @@ import pprint
 from pathlib import Path
 from datetime import datetime
 
-from kskp.store import Library, Flow
+from kskp.store import Library, Flow, FlowData
 from kskp.engine import execute, FlowJsonLink, FlowLinkContext
 from .test_case_base import TestCaseBase
 
@@ -98,7 +98,8 @@ class CommandTest(TestCaseBase):
         """
         DBローダーコマンドが正しくデータを取得できること
         """
-        flow = Flow(None, self.flow_json['label'], self.flow_json)
+        flow_data = FlowData(self.flow_json)
+        flow = Flow(None, self.flow_json['label'], flow_data)
         flow_link = FlowJsonLink(flow, FlowLinkContext())
         lasts = execute(flow_link, {}, {})
 
@@ -166,7 +167,8 @@ class CommandTest(TestCaseBase):
         """
         DBに接続できない場合は例外を送出すること
         """
-        flow = Flow(None, self.flow_json2['label'], self.flow_json2)
+        flow_data2 = FlowData(self.flow_json2)
+        flow = Flow(None, self.flow_json2['label'], flow_data2)
         flow_link = FlowJsonLink(flow, FlowLinkContext())
 
         from sqlalchemy import exc

@@ -19,21 +19,6 @@ class Store(Datum):
 
         data = self._session.query(Datum).filter(Datum.parent_id==self.id).\
                             order_by(Datum.type, desc(Datum.created_at)).all()
-
-        # 
-        # DatumについてEveryOneロールの権限設定がない場合、初期値を設定する
-        # (後方互換、一覧表示の速度を結構遅くしている)
-        # 
-        for datum in data:
-            from kskp.store.factory import RoleFactory, AuthFactory
-            everyone_role = RoleFactory(self._session).load_everyone_role()
-            everyone_role.join_user(self._session.user)
-            if not AuthFactory(self._session).exists(everyone_role.id, datum.id):
-                from kskp.store import Folder, Flow
-                # FolderまたはFlowの場合は実行権限を付与する
-                folder_or_flow = isinstance(datum, Folder) or isinstance(datum, Flow) or None
-                everyone_role.init_authz(datum.id, True, True, exec=folder_or_flow)
-
         return data
 
     def find_children_by_label(self, label, type=None):
@@ -76,6 +61,11 @@ class Store(Datum):
                             filter(Datum.uuid==uuid).one()
 
         return data
+
+    def count_children(self):
+        # 参照権限が無ければ直下の子Datumは取得できない
+        self._readable_or_raise()
+        return self._session.query(Datum).filter(Datum.parent_id==self.id).count()
 
     def make_unique_label(self, label, except_uuid=None):
         """
@@ -123,12 +113,12 @@ class Store(Datum):
         from kskp.store import RemoteFolder
         return RemoteFolder(self._session, self, label, remoteFolderConn)
 
-    def create_flow(self, label, flow_json):
+    def create_flow(self, label, flow_data):
         from kskp.store import Flow
-        return Flow(self._session, self, label, flow_json)
+        return Flow(self._session, self, label, flow_data)
 
-    def create_simple_flow(self, parent, label, data_source):
-        from kskp.store import Flow
+    def create_simple_flow(self, label, data_source):
+        from kskp.store import Flow, FlowData
         flow_json = {
                         "label": label,
                         "nodes": [
@@ -151,7 +141,8 @@ class Store(Datum):
                         "projectId": None,
                         "description": ""
                     }
-        return Flow(self._session, self, label, flow_json)
+        flow_data = FlowData(flow_json)
+        return Flow(self._session, self, label, flow_data)
 
     def create_datasource(self, label, store, loader_step):
         from kskp.store import DataSource
@@ -177,6 +168,10 @@ class Store(Datum):
         from kskp.core import Datum
         return self.uuid in (Datum.FLOW_FOLDER_UUID, Datum.RESULT_FOLDER_UUID, Datum.CACHE_FOLDER_UUID)
 
+    def is_cache_folder(self):
+        from kskp.core import Datum
+        return self.uuid == Datum.CACHE_FOLDER_UUID
+        
     # def save(self, datum):
     #     """
     #     override用
@@ -244,7 +239,7 @@ class List(Datum):
     リスト構造のデータを表す
     """
     def __init__(self, content=None):
-        super().__init__(None, None, 'list', None)
+        super().__init__(None, None, 'list', 'list')
         self._content = content
         self._encoding = None
 
@@ -272,3 +267,32 @@ class List(Datum):
 
     def __len__(self):
         return len(self._content)
+
+class ApparentLast(Store):
+    """
+    フローの出力ポートと出力結果を保持する
+    (フローエディタから見た見かけのlast)
+    """
+    def __init__(self, out_point, datum, exs=None):
+        super().__init__(None, None, 'last', 'last')
+        self.out_point = out_point
+        self.datum = datum
+        self.exs = exs
+
+    @property
+    def has_exs(self):
+        return self.exs is not None and len(self.exs) > 0
+
+    @property
+    def has_list(self):
+        return self.datum is not None and isinstance(self.datum, List)
+
+    @property
+    def has_frame(self):
+        from kskp.store import Frame
+        return self.datum is not None and isinstance(self.datum, Frame)
+
+    @property
+    def has_cache(self):
+        from kskp.store import Frame
+        return self.datum is not None and isinstance(self.datum, Frame) and self.datum.is_cache

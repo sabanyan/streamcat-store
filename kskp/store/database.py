@@ -1,4 +1,4 @@
-from kskp.core import Datum
+from kskp.core import Datum, Constraints
 from kskp.store import Store, DatabaseConn
 
 class Database(Store):
@@ -22,8 +22,10 @@ class Database(Store):
         # data列の値を作成する
         if database_conn is None:
             raise Exception('database_conn引数がNoneです')
-        self._data = {'conn' : database_conn.to_json()}
+        self._data = {'conn' : database_conn.to_json(encrypt_password=True)}
 
+    @Constraints.prohibit_save_on_root
+    @Constraints.set_project_role_on_adding
     def save(self):
         """
         Databaseを保存する
@@ -50,11 +52,8 @@ class Database(Store):
 
         try:
             # レコードを更新する
-            # data = {'conn' : database_conn.to_json()}
-            # data = self.data.copy()
-            # data['conn'] = database_conn.to_json()
             self._label = new_label
-            self._data['conn'] = database_conn.to_json()
+            self._data['conn'] = database_conn.to_json(encrypt_password=True)
             self._modifier_id = (modifier or self._session.user).id
             self._session.update(self)
         except Exception as e:
@@ -65,41 +64,7 @@ class Database(Store):
 
         return self
 
-    # def move(self, parent_uuid, modifier=None):
-    #     """
-    #     指定されたStoreの直下に移動する
-    #     """
-    #     # UUID値の形式チェックをする
-    #     Datum.valid_uuid_or_raise(parent_uuid)
-
-    #     from kskp.store.factory import DatumFactory
-    #     to_folder = DatumFactory(self.session).find_by_uuid(parent_uuid)
-    #     if to_folder.type != Datum.FOLDER_TYPE and to_folder.type != Datum.TRASH_TYPE:
-    #         raise Exception('移動先の指定はフォルダまたはゴミ箱のUUIDしか許可していません')
-
-    #     if parent_uuid == self.uuid:
-    #         raise Exception('移動先と移動元の指定が同じです')
-
-    #     # 移動元フォルダのidを覚えておく
-    #     data = self.data.copy()
-    #     data['prev_parent_id'] = self.parent_id
-
-    #     try:
-    #         # レコードを更新する
-    #         # self.session.query(Datum).filter(Datum.id==self.id).update({'parent_id'   :to_folder.id
-    #         #                                                       ,'_modifier_id':modifier.id})
-    #         self.parent_id = to_folder.id
-    #         self._data = data
-    #         self._modifier_id = (modifier or self.session.user).id
-    #         self.session.update(self)
-    #     except Exception as e:
-    #         self.session.rollback()
-    #         raise e
-    #     finally:
-    #         self.session.commit()
-
-    #     return self
-        
+    @Constraints.delete_role_when_isolated     
     def delete(self):
         """
         Databaseを削除する
@@ -107,9 +72,7 @@ class Database(Store):
         # 削除しようとするDatabaseが、DBに格納されているフローで使用されている場合は例外を送出する
         using_flow_uuids = self.get_flow_uuids_using_me()
         if len(using_flow_uuids) > 0:
-            from kskp.store.factory import DatumFactory
-            using_flow_label = DatumFactory(self._session).find_by_uuid(using_flow_uuids[0]).label
-            raise Exception('このStoreはローダ・セーバ(%s)で使用しているため削除できません' % using_flow_label)
+            raise Exception(f"このStoreはローダ・セーバ({using_flow_uuids[0]['reference_label']})で使用しているため削除できません")
 
         try:
             # Databaseレコードを削除する
@@ -132,25 +95,19 @@ class Database(Store):
 
     @property
     def conn(self):
-        return DatabaseConn(self._data['conn'], self._readable_or_raise)
+        return DatabaseConn(self._data['conn'],
+                            password_is_enctypted=True,
+                            readable_or_raise=self._readable_or_raise)
 
     def valid_or_raise(self):
         """
         DB接続情報の形式チェックを行い、NGの場合は例外を送出する
         """
-        database_conn = DatabaseConn(self._data['conn'])
+        database_conn = DatabaseConn(self._data['conn'], password_is_enctypted=True)
         return database_conn.valid_or_raise()
 
     def to_json(self):
-        ret =  {'uuid'      : self.uuid,
-                'type'      : Datum.DATABASE_TYPE,
-                'label'     : self.label,
-                'readable'  : self.readable,
-                'prevFolderPath' : self.get_prev_folder_path(),
-                'creator'   : self.creator_str,
-                'createdAt' : self.created_at_str}
-
+        ret =  super().to_json()
         if self.readable:
             ret.update(self.conn.to_json())
-
         return ret

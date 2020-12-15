@@ -2,134 +2,92 @@
   "id": "mjoin",
   "groups": [
     {
+      "name": "abstract",
+      "label": "自然結合 (参照データにキー重複ない場合に使用)",
+      "description": "入力データ と 参照データ を キー項目 で結合する",
+      "params": []
+    },
+    {
       "name": "group1",
       "label": "結合キーの設定 (必須)",
+      "description": "・カンマ区切りで複数指定可\n・入力i と m のキー項目を、1対1に対応させて指定する\n",
       "params": [
         "k",
         "K"
       ]
     },
     {
+      "name": "group3",
+      "label": "結合項目の設定 (省略可)",
+      "description": "・入力m から特定の項目を結合する場合に指定する\n・結合結果に項目名の重複が生じた場合はエラー発生",
+      "params": [
+        "f"
+      ]
+    },
+    {
       "name": "group5",
-      "label": "結合方法の設定  (省略時は 共通部分を出力)",
+      "label": "結合方法の設定  (省略可)",
+      "description": " 指定しなければ共通部分を、両方指定すると 和集合(UNION) を出力する",
       "params": [
         "n",
         "N"
       ]
     },
     {
-      "name": "group3",
-      "label": "結合する項目の設定",
-      "params": [
-        "f"
-      ]
-    },
-    {
       "name": "group10",
       "label": "その他 (省略可)",
       "params": [
-        "q"
-      ]
-    },
-    {
-      "name": "group15",
-      "label": "項目名・項目番号についての設定（省略可）",
-      "params": [
-        "x",
+        "q",
         "nfn",
-        "nfno"
+        "nfno",
+        "x"
       ]
     },
     {
       "name": "group20",
       "label": "システム管理用設定（作業領域・ログ出力）",
       "params": [
-        "tmpPath",
         "assert_diffSize",
-        "assert_nullout",
         "assert_nullkey",
-        "assert_nullin"
+        "assert_nullin",
+        "assert_nullout",
+        "tmpPath"
       ]
     }
   ],
-  "rules": {
-    "k": {
-      "presence": {
-        "allowEmpty": false
-      },
-      "checkSeveralSpecifiedFormats": {
-        "defaultRule": {
-          "pattern": "^[^,]+(,[^,]+)*$",
-          "message": "入力が正しくありません"
-        },
-        "specialRules": [
-          {
-            "target": [
-              "x",
-              "nfn"
-            ],
-            "pattern": "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$",
-            "message": "項目の指定は数値のみ可能です。"
-          }
-        ]
-      }
-    },
-    "K": {
-      "presence": {
-        "allowEmpty": false
-      },
-      "checkSeveralSpecifiedFormats": {
-        "defaultRule": {
-          "pattern": "^[^,]+(,[^,]+)*$|^$",
-          "message": "入力が正しくありません"
-        },
-        "specialRules": [
-          {
-            "target": [
-              "x",
-              "nfn"
-            ],
-            "pattern": "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$|^$",
-            "message": "項目の指定は数値のみ可能です。"
-          }
-        ]
-      }
-    }
-  },
   "params": [
     {
       "name": "k",
       "type": "string",
-      "label": "入力i のキー項目名",
-      "description": "●カンマ区切りで複数指定可\n  項目番号時:0−3,5,0L 等使用可"
+      "label": "入力 i のキー項目名　(必須)"
     },
     {
       "name": "K",
       "type": "string",
-      "label": "入力m のキー項目名",
-      "description": "●入力i の指定項目と、1対1に対応させて指定\n\n【注意】キー項目には重複ないことが必要\n        重複時はコマンド「自然結合」を使用",
-      "optional": true
+      "label": "入力 m のキー項目名",
+      "optional": true,
+      "description": "入力i のキー項目名と同じ場合は省略可"
     },
     {
       "name": "f",
       "type": "string",
-      "label": "入力m から結合する項目名 (省略可)",
-      "description": "●キー項目を除いた全ての項目ではなく、一部の項目のみを結合する場合に指定\n●結合後に、重複が生じない設定が必要\n●カンマ区切りで複数指定可\n  項目名時:*,？ 使用可\n  項目番号時:0−3,5,0L 等使用可\n【注意】入力i に存在する列名を指定した場合は、エラーとなり、処理を停止",
+      "label": "入力m から結合する項目名",
+      "description": "・カンマ区切りで複数指定可\n・ワイルドカード(*,？ )使用可",
       "optional": true
     },
     {
       "name": "n",
       "type": "boolean",
-      "label": "入力i にある行を全て出す (左結合)",
-      "description": "対応するものが無い場合は、Null値を出力\nもう一方も指定により、両者の和集合を出力",
-      "optional": true
+      "label": "左結合",
+      "optional": true,
+      "description": "入力i にある行を全て出力します"
     },
     {
       "name": "N",
       "type": "boolean",
-      "label": "入力m にある行を全て出す (右結合)",
-      "description": "対応するものが無い場合は、Null値を出力\nもう一方も指定により、両者の和集合を出力",
-      "optional": true
+      "label": "右結合",
+      "optional": true,
+      "description": "入力m にある行を全て出力します"
     },
     {
       "name": "assert_diffSize",
@@ -140,13 +98,13 @@
     {
       "name": "assert_nullkey",
       "type": "boolean",
-      "label": "キー項目に NULL 値が含まれているかどうかのチェックを行う",
+      "label": "キー項目に NULL 値が含まれているかどうかのチェックを行う",
       "optional": true
     },
     {
       "name": "assert_nullin",
       "type": "boolean",
-      "label": "結合する項目名で指定された項目の NULL 値チェックを行う",
+      "label": "結合する項目名で指定された項目の NULL 値チェックを行う",
       "optional": true
     },
     {
@@ -170,8 +128,9 @@
     {
       "name": "x",
       "type": "boolean",
-      "label": "項目番号による指定",
-      "optional": true
+      "label": "項目名ではなく、項目番号で指定する",
+      "optional": true,
+      "description": "・0始まりの項目番号で指定する\n・Lをつけると、右端起点の項目番号とみなす(例:3L)\n・複数入力可能なOptの場合は、列範囲としての指定も可能(例: 0-5)"
     },
     {
       "name": "q",

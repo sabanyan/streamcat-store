@@ -194,11 +194,13 @@ class VCmdTestCase(TestCaseBase):
         # Activityを取得して返り値とする
         for point_id, datum in lasts.items():
             if isinstance(datum, Activity):
-                return {point.id : vis.result for point, vis in datum.results}
+                return {point.id : vis.result for point, vis in datum.lasts}
 
     def exec_flow(self, vis_args):
+        from kskp.store import FlowData
         root = self.factory.data.load_root()
-        flow = root.create_flow('CSV to graph', self.flow_csvtohtmltable)
+        flow_data = FlowData(self.flow_csvtohtmltable)
+        flow = root.create_flow('CSV to graph', flow_data)
         flow_link = FlowJsonLink(flow, self.factory, vis_args=vis_args)
         lasts = execute(flow_link, {}, {})
         result = self.convert_from_activity_vis(lasts)['d1']

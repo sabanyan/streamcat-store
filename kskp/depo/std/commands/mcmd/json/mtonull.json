@@ -1,59 +1,24 @@
 {
   "id": "mtonull",
-  "rules": {
-    "f": {
-      "presence": {
-        "allowEmpty": false
-      },
-      "checkSeveralSpecifiedFormats": {
-        "defaultRule": {
-          "pattern": "^[^,]+(,[^,]+)*$",
-          "message": "入力が正しくありません"
-        },
-        "specialRules": [
-          {
-            "target": [
-              "x",
-              "nfn"
-            ],
-            "pattern": "^[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?(,[1-9]?[0-9]+L?(-[1-9]?[0-9]+)?L?)*$|^@\\[.+\\]$",
-            "message": "項目の指定は数値のみ可能です。"
-          }
-        ]
-      }
-    },
-    "v": {
-      "presence": {
-        "allowEmpty": false
-      },
-      "format": {
-        "pattern": "^[^:,]+(,[^:,]+)*$",
-        "message": "入力が正しくありません。"
-      }
-    }
-  },
   "params": [
     {
       "name": "f",
       "type": "string",
-      "label": "対象列名(必須)"
+      "label": "対象とする項目名 (必須)",
+      "description": "・カンマ区切りで複数指定可\n・ワイルドカード(*,？ )使用可"
     },
     {
       "name": "v",
       "type": "string",
-      "label": "変換前文字列(必須)"
+      "label": "NULLで置換する値 (必須)",
+      "description": "カンマ区切りで複数指定可"
     },
     {
       "name": "sub",
       "type": "boolean",
-      "label": "検索を完全一致ではなく部分文字列マッチで比較",
-      "optional": true
-    },
-    {
-      "name": "W",
-      "type": "boolean",
-      "label": "-sub オプションが指定されているときにワイド文字として部分文字列マッチをおこなう。",
-      "optional": true
+      "label": "全体ではなく、部分一致で置換する",
+      "optional": true,
+      "description": "一致部分ではなく、値全体がNULLで置換されます"
     },
     {
       "name": "assert_diffSize",
@@ -64,7 +29,7 @@
     {
       "name": "assert_nullin",
       "type": "boolean",
-      "label": "入力項目のf=またはvf=で指定された項目のNULL値チェックを行う",
+      "label": "対象とする項目名で指定された項目のNULL値チェックを行う",
       "optional": true
     },
     {
@@ -82,14 +47,16 @@
     {
       "name": "x",
       "type": "boolean",
-      "label": "項目番号による指定",
-      "optional": true
+      "label": "項目名ではなく、項目番号で指定する",
+      "optional": true,
+      "description": "・0始まりの項目番号で指定する\n・Lをつけると、右端起点の項目番号とみなす(例:3L)\n・複数入力可能なOptの場合は、列範囲としての指定も可能(例: 0-5)"
     },
     {
       "name": "q",
       "type": "boolean",
       "label": "自動並べ替えの無効化",
-      "optional": true
+      "optional": true,
+      "description": "入力データがグループ単位でソート済みの場合、指定すると処理速度が向上"
     },
     {
       "name": "tmpPath",
@@ -116,5 +83,41 @@
   "label": "NULL値へ置換",
   "classification": "value_transform",
   "description": "指定した値にマッチした項目データをNULLに置換する",
-  "url": "./static/pdf/mcmd/value_transform/mtonull.pdf"
+  "url": "./static/pdf/mcmd/value_transform/mtonull.pdf",
+  "groups": [
+    {
+      "name": "abstract",
+      "label": "NULL値へ置換",
+      "description": "指定した値にマッチした項目データをNULLに置換する",
+      "params": []
+    },
+    {
+      "name": "cmd_main",
+      "label": "置換の設定 (必須)",
+      "params": [
+        "f",
+        "v",
+        "sub"
+      ]
+    },
+    {
+      "name": "cmd_sub",
+      "label": "その他 (省略可)",
+      "params": [
+        "q",
+        "nfn",
+        "nfno",
+        "x"
+      ]
+    },
+    {
+      "name": "system",
+      "label": "システム管理用設定（作業領域・ログ出力）",
+      "params": [
+        "assert_diffSize",
+        "assert_nullin",
+        "tmpPath"
+      ]
+    }
+  ]
 }

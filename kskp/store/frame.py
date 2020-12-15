@@ -1,6 +1,6 @@
 import os
 
-from kskp.core import Datum
+from kskp.core import Datum, Constraints
 
 class Frame(Datum):
 
@@ -41,6 +41,8 @@ class Frame(Datum):
         # data.type列='cache'を用意するべきだろうか？
         self.is_cache = False
 
+    @Constraints.prohibit_save_on_root
+    @Constraints.set_project_role_on_adding
     def save(self, file_path=None):
         """
         Frameを保存する
@@ -78,32 +80,6 @@ class Frame(Datum):
         finally:
             # 親フォルダのロックを解除する
             self._session.commit()
-
-    # def add_entry_from_path(self, file_path):
-    #     """
-    #     指定されたパスのファイルをFrameとして登録する
-    #     """
-    #     # 既にルートフォルダが存在する場合は、parent_id=NULLを許可しない
-    #     from kskp.store.factory import DatumFactory
-    #     if self.parent_id is None and DatumFactory(self.session).count_root() > 0:
-    #         raise Exception('You can not add another root frame. A root already exists!')
-    #     self.path = file_path
-
-    #     # ファイルの文字コードを判定する
-    #     if file_path.exists():
-    #         with open(file_path, 'rb') as f:
-    #             encoding = Frame._detect_encoding(f)
-    #             newline = Frame._detect_newline_code(f)
-    #         self.data = {'encoding':encoding, 'newline':newline}
-
-    #     try:
-    #         # Dataテーブルにレコードを新規追加する
-    #         self.session.add(self)
-    #     except Exception as e:
-    #         self.session.rollback()
-    #         raise e
-    #     finally:
-    #         self.session.commit()
 
     def update_label(self, label, modifier=None):
         """
@@ -204,12 +180,13 @@ class Frame(Datum):
         trash_folder = factory.load_trash_folder()
 
         # 削除しようとするframeが、フローで使用されている場合は例外を送出する
-        flow_labels = factory.get_flows_referencing_frame(self.uuid)
-        if len(flow_labels) > 0:
-            raise Exception(f'このCSVファイルはフロー({flow_labels[0]})で使用しているため削除できません')
+        using_flow_uuids = self.get_flow_uuids_using_me()
+        if len(using_flow_uuids) > 0:
+            raise Exception(f"このCSVファイルはフロー({using_flow_uuids[0]['reference_label']})で使用しているため削除できません")
 
-        self.move(trash_folder.uuid)
+        return self.move(trash_folder.uuid)
 
+    @Constraints.delete_role_when_isolated
     def delete(self):
         """
         Frameを削除する
@@ -253,7 +230,12 @@ class Frame(Datum):
 
     @property
     def file_size(self):
-        return self._path.stat().st_size
+        if self.file_exists:
+            return self._path.stat().st_size
+        else:
+            import warnings
+            warnings.warn(f'Not Exists file path : {self._path}')
+            return 0
 
     @property
     def file_exists(self):
@@ -312,6 +294,8 @@ class Frame(Datum):
         try:
             # ファイルが存在しなければ削除処理はしない
             if not self._path.exists():
+                import warnings
+                warnings.warn(f'Not Exists file path : {self._path}')
                 return
             # 自分以外で同じファイルを使用しているFrameがあれば削除しない
             if self._frame_path_exists(self._path, except_id=self.id):
@@ -405,15 +389,10 @@ class Frame(Datum):
             return 'UNKNOWN'
 
     def to_json(self):
-        ret =  {'uuid'      : self.uuid,
-                'type'      : self.type,
-                'label'     : self.label,
-                'readable'  : self.readable,
-                'prevFolderPath' : self.get_prev_folder_path(),
-                'encoding'  : self.encoding_str,
-                'newline'   : self.newline_str,
-                'creator'   : self.creator_str,
-                'createdAt' : self.created_at_str}
+        ret = super().to_json()
+        ret['encoding'] = self.encoding_str
+        ret['newline'] = self.newline_str
+        ret['fileSize'] = self.file_size
         return ret
 
     def load_as_data_frame(self, offset, limit):

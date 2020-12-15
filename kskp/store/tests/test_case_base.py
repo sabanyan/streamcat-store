@@ -7,33 +7,35 @@ from kskp.store.factory import Factory, UnAuthzFactory
 class TestCaseBase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        # 管理者ユーザを取得する
-        from kskp.store.auth import Auth, Role, User
+        # ユーザ管理者を取得する
         with UnAuthzFactory() as factory:
-            admin_user = factory.find_user_by_email('admin@kskp.io')
+            sys_admin_user = factory.find_user_by_email('Admin@kskp.io')
+            usr_admin_user = factory.find_user_by_email('admin@kskp.io')
         # 管理者ユーザのFactoryをOpenする
-        cls.factory = Factory(admin_user)
-        # AuthzSessionをUserオブジェクトに格納する
-        admin_user._session = cls.factory._session
+        cls.factory0 = Factory(sys_admin_user)
+        cls.factory = Factory(usr_admin_user)
         # テストユーザ1を作成する
-        test_user = cls.factory.user.create('test@kskp.io', 'testpass', 'Test')
+        test_user = cls.factory.user.create('test@kskp.io', 'Test', '123abc(*)A')
         test_user.save()
         # テストユーザ2を作成する
-        test_user2 = cls.factory.user.create('test2@kskp.io', 'testpass2', 'Test2')
+        test_user2 = cls.factory.user.create('test2@kskp.io', 'Test2', '123abc(*)B')
         test_user2.save()
-        # 仮登録状態から登録状態にする
-        admin_user.update_password('adminpass0')
-        test_user.update_password('testpass0')
-        test_user2.update_password('testpass20')
-        # EveryOneロールにテストユーザを加える
-        everyone_role = cls.factory.role.load_everyone_role()
-        everyone_role.join_user(test_user)
-        everyone_role.join_user(test_user2)
         # テストユーザのFactoryをOpenする
         cls.factory2 = Factory(test_user)
         cls.factory3 = Factory(test_user2)
+        # FactoryでUserオブジェクトを再取得する
+        sys_admin_user = cls.factory0.user.find_by_id(sys_admin_user.id)
+        usr_admin_user = cls.factory.user.find_by_id(usr_admin_user.id)
+        test_user = cls.factory2.user.find_by_id(test_user.id)
+        test_user2 = cls.factory3.user.find_by_id(test_user2.id)
+        # 仮登録状態から登録状態にする
+        sys_admin_user.update_password('adminpass1')
+        usr_admin_user.update_password('adminpass1')
+        test_user.update_password('testpass00')
+        test_user2.update_password('testpass20')
         # クラス変数に設定する
-        cls.USER1 = admin_user
+        cls.USER0 = sys_admin_user
+        cls.USER1 = usr_admin_user
         cls.USER2 = test_user
         cls.USER3 = test_user2
 
@@ -44,6 +46,7 @@ class TestCaseBase(unittest.TestCase):
         import shutil
         shutil.rmtree(library_path.as_posix())
         # FactoryをCloseする
+        cls.factory0.close()
         cls.factory.close()
         cls.factory2.close()
         cls.factory3.close()

@@ -69,7 +69,7 @@
       "type"  :"select",
       "label" :"横軸列：時間軸　フォーマット",
       "options":{
-        "labels": ["暦型（YYYYMMDDhhmmss小数６桁まで）","数値型","ユーザー指定"],
+        "labels": ["暦型（YYYYMMDDhhmmss.小数６桁まで）","数値型","ユーザー指定"],
         "values": ["nysol","float","custom"]
       },
       "default":"nysol"

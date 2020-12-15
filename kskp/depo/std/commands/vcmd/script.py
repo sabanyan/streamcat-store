@@ -33,17 +33,20 @@ class CsvToTableCommand(VisualizersHtml):
         """
         ListデータをVisデータにして返す
         """
+        from kskp.store import ApparentLast
+        from kskp.store import Vis
+
         # 直前のRunsCommandがエラーを返した場合、直後のActivityCommandにエラーを渡す
-        if not isinstance(inputs['i'], List):
+        if inputs['i'].has_exs:
             return {'o': inputs['i']}
 
         # 結果はVisに入れて返す
-        from kskp.store import Vis
-        column_names = inputs['i'][0] if len(inputs['i']) > 0 else []
-        matrix = inputs['i'][1:] if len(inputs['i']) > 1 else [[]]
+        list_datum = inputs['i'].datum
+        column_names = list_datum[0] if len(list_datum) > 0 else []
+        matrix = list_datum[1:] if len(list_datum) > 1 else [[]]
         vis = Vis(None, None, 'csv_to_table', column_names, matrix)
 
-        return {'o': vis}  
+        return {'o': ApparentLast(inputs['i'].out_point, vis)}  
 
 class VisualizersBokehPlot(VisualizersCommand):
     """
@@ -53,23 +56,26 @@ class VisualizersBokehPlot(VisualizersCommand):
         super().__init__()
 
     def run(self, args, inputs):
+        from kskp.store import ApparentLast
+        from kskp.store import BokehPlotVis
+
         # 直前のRunsCommandがエラーを返した場合、直後のActivityCommandにエラーを渡す
-        if not isinstance(inputs['i'], List):
+        if inputs['i'].has_exs:
             return {'o': inputs['i']}
 
-        column_names = inputs['i'][0] if len(inputs['i']) > 0 else []
-        matrix = inputs['i'][1:] if len(inputs['i']) > 1 else [[]]
+        list_datum = inputs['i'].datum
+        column_names = list_datum[0] if len(list_datum) > 0 else []
+        matrix = list_datum[1:] if len(list_datum) > 1 else [[]]
         p = self.plot(args, column_names, matrix)
         script1, div1 = components(p)
 
-        from kskp.store import BokehPlotVis
         label = self.__class__.__name__
         vis = BokehPlotVis(None, None, label, column_names, script1, div1)
 
         # とりあえず動くようにするため
         # vis.data = nm.runfunc(lambda : None)
 
-        return {'o': vis} 
+        return {'o': ApparentLast(inputs['i'].out_point, vis)} 
 
     def direct_product_by_keys(self, df, keys):
         """
@@ -209,7 +215,7 @@ class CsvToLineGraphCommand(VisualizersBokehPlot):
         # 横軸：date
         # 縦軸：float
         # データ系列：string
-        timeseries_format_nysol = "%Y%m%d%H%M%S%f"
+        timeseries_format_nysol = "%Y%m%d%H%M%S.%f"
         timeseries_format_custom = args.get('x_axis_format_custom')
 
         if x_axis_format_select == "nysol":

@@ -122,8 +122,12 @@ class CacheSaverCommand(SaverCommand):
             flow = args['flow']
             node_id = args['datum_id']
             # TODO: RunsCommand実行前にFlowにキャッシュありの情報を更新すると、同じフローの同時実行に支障があるだろう
-            flow.set_cache(node_id, cache.uuid)
-            flow.update_data(flow.label, flow.flow_data.to_json())
+            flow.set_cache(node_id, cache)
+            # TODO: キャッシュのUUIDをフローJsonに設定するので、ロックによる排他制御をするべきだが
+            #       フロー実行とプレビュー実行のAPI引数に'lock'キーを追加する必要がある。
+            #       しかし、将来的にフローJsonにキャッシュのUUIDを設定しないようにする方針なので
+            #       APIのインタフェースの変更の手間を惜しんで、暫定的に排他制御を無視してキャッシュのUUIDを設定する。
+            flow.update_data(flow.label, flow.flow_data, ignore_lock=True)
 
         # NYSOLコマンドを作成する
         cmd = inputs['i'].content
@@ -338,7 +342,7 @@ class DbLoaderCommand(SCommand):
         sys.__stderr__.write(indent + '  ' + message + '\n')
         sys.__stderr__.write(indent + '>\n')
 
-    def dtor(self):
+    def dtor(self, args):
         DbLoaderCommand._write_log('DTOR!')
 
 
@@ -604,7 +608,7 @@ class DbSaverCommand(SaverCommand):
         sys.__stderr__.write(indent + '  ' + message + '\n')
         sys.__stderr__.write(indent + '>\n')
 
-    def dtor(self):
+    def dtor(self, args):
         DbSaverCommand._write_log('DTOR!')
         # Tmpファイルを削除する
         import os
@@ -719,6 +723,9 @@ class RunsCommand(SCommand):
     # 最低必要ディスクサイズ(1Mbyte)
     MIN_REQUIRED_DISK_SIZE = 1024 * 1024
 
+    # 環境変数からPythonの再帰呼び出しの制限回数を取得する
+    RECURSION_LIMIT = int(os.getenv('KSKP_NYSOL_RECURSION_LIMIT', 2**20))
+
     def __init__(self):
         super().__init__()
         self.i_ports = [Port('*', 'mcmd')]
@@ -732,18 +739,23 @@ class RunsCommand(SCommand):
     def run(self, args, inputs):
         import psutil
         from multiprocessing import Process, Manager, Pipe
-        from kskp.store import List
+        from kskp.store import List, ApparentLast, CommandException
 
         def do_runs(nm_list, results, exs, out):
             """
             NYSOL Pythonを実行する
             """
             try:
-                # multiprocessing.Processで閉じられる標準入力を開き直す
                 import sys
+
+                # NYSOL-Pythonは、処理フローのグラフを組み立てる時と、処理メソッドをスケジューリングする時に
+                # 再帰呼び出しの制限回数がPythonの初期制限値を超えるので、ここで制限値を上げる
+                # (サブプロセスの制限回数を上げても親プロセスの制限回数は変わらない)
+                sys.setrecursionlimit(self.RECURSION_LIMIT)
+
+                # multiprocessing.Processで閉じられる標準入力を開き直す
                 sys.stdin = open(0, closefd=False)
 
-                import nysol.mcmd as nm
                 # nm.drawModelsD3(fname='aaabbbccc.html', val=nm_list)
 
                 # 標準エラー出力のファイル記述子(No.2)を親プロセスへのPIPEに変更する
@@ -757,6 +769,25 @@ class RunsCommand(SCommand):
                     import traceback
                     traceback.print_exc(file=fpe)
                 exs.append(e)
+
+        # 
+        # CommandExceptionが1つでも入力された場合は処理を中断する
+        # (例外が入力されたら対応する出力ポートに渡す)
+        # 
+        rets = {}
+        exception_exists = False
+        for i_port_name, input in inputs.items():
+            if isinstance(input, CommandException):
+                rets[i_port_name] = ApparentLast(None, None, [input])
+                exception_exists = True
+            elif isinstance(input,  (NysolModule, List)):
+                rets[i_port_name] = ApparentLast(None, input.context.get('frame'))
+            else:
+                raise Exception('RunsCommandにNysolModuleまたはCommandException以外のデータ型が入力されました')
+
+        if exception_exists:
+            # ActivityCommandにSaverが生成したFrameと例外を渡す
+            return rets
 
         # ディスクの空き容量を確認する
         # (Managerがtmpファイルを作成するが容量不足の時にその旨の例外を返さないので事前に確認する)
@@ -786,7 +817,7 @@ class RunsCommand(SCommand):
                 p = Process(target=do_runs, kwargs={'nm_list':nm_list, 'results':results, 'exs':exs, 'out':send_conn})
                 # サブプロセスを開始する
                 p.start()
-                
+
                 mcmd_errors = []
                 while True:
                     # サブプロセスが終了するまで待つ(単位は秒)
@@ -835,16 +866,18 @@ class RunsCommand(SCommand):
             # resultsの要素はnm_listへのappend順に対応している?ため
             # 入力ポートと出力ポートは同じキーで対応付ける
             i = 0
-            ret = {}
+            rets = {}
             for i_port_name, nysol_module in inputs.items():
+                # プレビューの場合はframe=Noneである
+                frame = nysol_module.context.get('frame')
                 if len(exs_list) == 0:
-                    frame = nysol_module.context.get('frame')
                     list = List(results[i])
-                    ret[i_port_name] = frame or list
+                    rets[i_port_name] = ApparentLast(None, frame or list)
                 else:
-                    ret[i_port_name] = exs_list
+                    rets[i_port_name] = ApparentLast(None, frame, exs_list)
                 i += 1
-            return ret
+
+            return rets
 
 
 class FieldNamesCommand(RunsCommand):
@@ -869,24 +902,29 @@ class ActivityCommand(SCommand):
 
 
     def run(self, args, inputs):
+        from kskp.store import ApparentLast
+        from kskp.store import CommandException
+
         activity = args['activity']
         points = args['points']
-        
-        # 例外オブジェクトがあればActivityに保存する
-        for datum in inputs.values():
-            if isinstance(datum, list):
-                activity.add_exs(datum)
-                # Activityを出力Pointに渡し、処理を終了する
-                return {'o': activity}
-            elif isinstance(datum, Exception):
-                activity.add_exs([datum])
-                return {'o': activity}
 
-        for port_id, datum in inputs.items():
-            point = points[port_id]
-            activity.add(point, datum)
+        for port_id, input in inputs.items():
+            # 出力ポイント
+            out_point = points[port_id]
 
-        if activity.count_results() == len(points):
+            if isinstance(input, CommandException):
+                # RunsCommandの前のコマンドで例外が送出された場合はframeは生成されない
+                last = ApparentLast(out_point, None, [input])
+            elif isinstance(input, ApparentLast):
+                last = input
+                last.out_point = out_point
+            else:
+                raise Exception('ActivityCommandにApparentLastまたはCommandException以外のデータ型が入力されました')
+
+            # Activityにlastを追加する
+            activity.add(last)
+
+        if activity.count_lasts() == len(points):
             # Activityを全て集め終えたら実行結果情報を保存する
             # (今は出力ファイル名にその情報を刻んでいる)
             activity.save()
@@ -896,13 +934,16 @@ class ActivityCommand(SCommand):
             # Noneを渡して、再びrun()を実行してもらう
             return {'o': None}
 
-    def dtor(self):
-        # TODO:
-        # Stepからargsとsuccessフラグをもらって、実行失敗の場合は
-        # ここでSaverが出力したファイルを削除する
+    def dtor(self, args):
+        activity = args['activity']
 
-        # 本当はSaver自身が削除すべきだが、Saverが作成したファイルを自身で覚えていない
-        pass
+        # フローの実行に成功した場合は、何もしない
+        if activity.is_success:
+            return
+
+        # フローの実行に失敗した場合は、ここでSaverが出力したファイルを削除する
+        # (本当はSaver自身が削除すべきだが、Saverは作成したファイルを自身で覚えていない)
+        activity.delete_all_frames()
 
 
 class AssertCommand(SCommand):
@@ -917,10 +958,19 @@ class AssertCommand(SCommand):
     def run(self, args, inputs):
         import uuid
         from pathlib import Path
-        from kskp.core import Util
         from itertools import zip_longest
 
         flow = args['flow']
+
+        def datetime_to_local_time_str(d):
+            import datetime
+            if d is None:
+                return ''
+            # DBに格納されている日時はUTCなので、タイムゾーンをUTCに設定する
+            d_at_utc = d.replace(tzinfo=datetime.timezone.utc)
+            # UTC日時はここで現地時間(環境変数TZの値)に設定される
+            d_at_local = d_at_utc.astimezone()
+            return d_at_local.strftime('%Y-%m-%d %H:%M:%S')
 
         def report_diff():
             """
@@ -1014,7 +1064,7 @@ class AssertCommand(SCommand):
             # 各カラムパラメータ定義
             flow_label = args["flow_label"]
             flow_uuid = args["flow_uuid"]
-            date = Util.datetime_to_local_time_str(args['start_time'])
+            date = datetime_to_local_time_str(args['start_time'])
             point_id = args['asserted_point']
             is_true = False
             raise_exs = i_is_exs or m_is_exs
