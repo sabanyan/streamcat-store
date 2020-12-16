@@ -643,7 +643,7 @@ class MultiMcalWCCommand(PCommand):
         # self.header = self.get_field_names(inputs['i'])
 
         # experimental header get method
-        header_iter = inputs['i'].content 
+        header_iter = inputs['i'].content.getline(header=True)
         self.header = next(header_iter)
 
         xoption = _args.pop('x') if 'x' in _args else False
