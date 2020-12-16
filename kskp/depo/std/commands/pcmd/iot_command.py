@@ -1723,8 +1723,8 @@ class TimeSeriesDataJoinCommand(PCommand):
         ### fm = NysolModule()
         ### fm.set_content(fm_mtee)
 
-        header_iter_i = inputs['i'].content
-        header_iter_m = inputs['m'].content
+        header_iter_i = inputs['i'].content.getline(header= True)
+        header_iter_m = inputs['m'].content.getline(header= True)
 
         header_i = next(header_iter_i)
         header_m = next(header_iter_m)
