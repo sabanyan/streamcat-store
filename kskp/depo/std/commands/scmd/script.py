@@ -122,12 +122,8 @@ class CacheSaverCommand(SaverCommand):
             flow = args['flow']
             node_id = args['datum_id']
             # TODO: RunsCommand実行前にFlowにキャッシュありの情報を更新すると、同じフローの同時実行に支障があるだろう
-            flow.set_cache(node_id, cache)
-            # TODO: キャッシュのUUIDをフローJsonに設定するので、ロックによる排他制御をするべきだが
-            #       フロー実行とプレビュー実行のAPI引数に'lock'キーを追加する必要がある。
-            #       しかし、将来的にフローJsonにキャッシュのUUIDを設定しないようにする方針なので
-            #       APIのインタフェースの変更の手間を惜しんで、暫定的に排他制御を無視してキャッシュのUUIDを設定する。
-            flow.update_data(flow.label, flow.flow_data, ignore_lock=True)
+            flow.set_cache(node_id, cache.uuid)
+            flow.update_data(flow.label, flow.flow_data.to_json())
 
         # NYSOLコマンドを作成する
         cmd = inputs['i'].content
@@ -723,9 +719,6 @@ class RunsCommand(SCommand):
     # 最低必要ディスクサイズ(1Mbyte)
     MIN_REQUIRED_DISK_SIZE = 1024 * 1024
 
-    # 環境変数からPythonの再帰呼び出しの制限回数を取得する
-    RECURSION_LIMIT = int(os.getenv('KSKP_NYSOL_RECURSION_LIMIT', 2**20))
-
     def __init__(self):
         super().__init__()
         self.i_ports = [Port('*', 'mcmd')]
@@ -746,16 +739,11 @@ class RunsCommand(SCommand):
             NYSOL Pythonを実行する
             """
             try:
-                import sys
-
-                # NYSOL-Pythonは、処理フローのグラフを組み立てる時と、処理メソッドをスケジューリングする時に
-                # 再帰呼び出しの制限回数がPythonの初期制限値を超えるので、ここで制限値を上げる
-                # (サブプロセスの制限回数を上げても親プロセスの制限回数は変わらない)
-                sys.setrecursionlimit(self.RECURSION_LIMIT)
-
                 # multiprocessing.Processで閉じられる標準入力を開き直す
+                import sys
                 sys.stdin = open(0, closefd=False)
 
+                import nysol.mcmd as nm
                 # nm.drawModelsD3(fname='aaabbbccc.html', val=nm_list)
 
                 # 標準エラー出力のファイル記述子(No.2)を親プロセスへのPIPEに変更する
@@ -780,7 +768,7 @@ class RunsCommand(SCommand):
             if isinstance(input, CommandException):
                 rets[i_port_name] = ApparentLast(None, None, [input])
                 exception_exists = True
-            elif isinstance(input,  (NysolModule, List)):
+            elif isinstance(input, (NysolModule, List)):
                 rets[i_port_name] = ApparentLast(None, input.context.get('frame'))
             else:
                 raise Exception('RunsCommandにNysolModuleまたはCommandException以外のデータ型が入力されました')
@@ -940,7 +928,7 @@ class ActivityCommand(SCommand):
         # フローの実行に成功した場合は、何もしない
         if activity.is_success:
             return
-
+        
         # フローの実行に失敗した場合は、ここでSaverが出力したファイルを削除する
         # (本当はSaver自身が削除すべきだが、Saverは作成したファイルを自身で覚えていない)
         activity.delete_all_frames()
@@ -957,7 +945,6 @@ class AssertCommand(SCommand):
         
     def run(self, args, inputs):
         import uuid
-        from pathlib import Path
         from itertools import zip_longest
 
         flow = args['flow']
@@ -1020,7 +1007,7 @@ class AssertCommand(SCommand):
                     # 差分情報をリスト形式で取得
                     for i_row, m_row in zip_longest(i_port_output, m_port_output, fillvalue=''):
                         if i_row != m_row:
-                            diff_row = [row_number]
+                            diff_row = [str(row_number)]
                             escaped_list = escape_csv([i_row, m_row])
                             diff_row.extend(escaped_list)
                             diff_list.append(diff_row)
@@ -1109,9 +1096,10 @@ class AssertCommand(SCommand):
             raise Exception('AssertCommandの入力ポートmに値が入力されていません')
 
 
-        # それぞれの入力portで与えられたデータの一時書き出し先
-        i_output_path = Path("/tmp/" + str(uuid.uuid4()) + "_i.csv")
-        m_output_path = Path("/tmp/" + str(uuid.uuid4()) + "_m.csv")
+        # # それぞれの入力portで与えられたデータの一時書き出し先
+        from kskp.core import Tmp
+        i_output_path = Tmp.create_file()
+        m_output_path = Tmp.create_file()
 
         # 入力portが送出するエラーメッセージを格納
         i_port_exs = {}
@@ -1125,8 +1113,9 @@ class AssertCommand(SCommand):
 
         # 一時ファイルへフローの結果を書き出し
         # エラー発生もここで確認する
+
         if isinstance(inputs['i'], Exception):
-            i_port_exs['i'] = [inputs['i']]
+            i_port_exs = [inputs['i']]
             i_is_exs = True
         elif isinstance(inputs['i'], (NysolModule, List)):
             # RunsCommand を確認したら、実行結果にエラーがない場合にはframeが返却され、エラーが発生した場合はlistが返却される
@@ -1137,14 +1126,23 @@ class AssertCommand(SCommand):
         else:
             raise Exception("入力ポートiに <type: " + str(type(inputs['i'])) + " >は対応していません")
 
+        from kskp.store import CommandException
+
+        if isinstance(i_port_exs, list):
+            i_is_exs = True
+        elif i_port_exs.has_exs:
+            i_port_exs = i_port_exs.exs
+            i_is_exs = True
+        
         # もしエラーが発生していたら、それまでの出力に関わらずエラー文章を比較対象とする。
-        if isinstance(inputs['i'], list) or isinstance(i_port_exs, list):
+        if i_is_exs:
             # エラーメッセージを一時ファイルへ書き出す
             with i_output_path.open(mode="w")as f:
                 i_exs_list = [str(x).strip().replace("\n", "") for x in i_port_exs]
                 f.write('\n'.join(i_exs_list))
             i_is_exs = True
         
+    
         if isinstance(inputs['m'], Exception):
             m_port_exs = [inputs['m']]
             m_is_exs = True
@@ -1155,14 +1153,17 @@ class AssertCommand(SCommand):
         else:
             raise Exception("入力ポートmに <type: " + str(type(inputs['m'])) + " >は対応していません")
 
+        if isinstance(m_port_exs , list):
+            m_is_exs = True
+        elif m_port_exs.has_exs:
+            m_port_exs = m_port_exs.exs
+            m_is_exs = True
 
         # もしエラーが発生していたら、それまでの出力に関わらずエラー文章を比較対象とする。
-        if isinstance(inputs['m'], list) or isinstance(m_port_exs, list):
+        if m_is_exs:
             with m_output_path.open(mode="w")as f:
                 m_exs_list = [str(x).strip().replace("\n", "") for x in m_port_exs]
                 f.write('\n'.join(m_exs_list))
-            m_is_exs = True
-
 
         # 親フォルダの情報を取得
         # 元々datumクラスのget_prev_parent_pathを参考に現在のパスを取得しようと考えていたが、flowクラスに現在いるフォルダを取得する方法があったのでそちらを利用。
