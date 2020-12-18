@@ -944,7 +944,6 @@ class AssertCommand(SCommand):
         self.o_ports = [Port('o', 'mcmd')]
         
     def run(self, args, inputs):
-        import uuid
         from itertools import zip_longest
 
         flow = args['flow']
@@ -1126,8 +1125,7 @@ class AssertCommand(SCommand):
         else:
             raise Exception("入力ポートiに <type: " + str(type(inputs['i'])) + " >は対応していません")
 
-        from kskp.store import CommandException
-
+        # i_portからの出力がエラーであることを判定する
         if isinstance(i_port_exs, list):
             i_is_exs = True
         elif i_port_exs.has_exs:
@@ -1140,19 +1138,21 @@ class AssertCommand(SCommand):
             with i_output_path.open(mode="w")as f:
                 i_exs_list = [str(x).strip().replace("\n", "") for x in i_port_exs]
                 f.write('\n'.join(i_exs_list))
-            i_is_exs = True
         
     
         if isinstance(inputs['m'], Exception):
             m_port_exs = [inputs['m']]
             m_is_exs = True
         elif isinstance(inputs['m'], (NysolModule, List)):
+            # RunsCommand を確認したら、実行結果にエラーがない場合にはframeが返却され、エラーが発生した場合はlistが返却される
+            # この後の型による分岐で、エラーのもののみの対応を行っているの問題はないのでは
             nysol_cmd_m = inputs['m'].content
             nysol_cmd_m <<= nm.m2tee(o=m_output_path.as_posix())
             m_port_exs = RunsCommand().run({}, {'m':NysolModule(nysol_cmd_m)})['m']
         else:
             raise Exception("入力ポートmに <type: " + str(type(inputs['m'])) + " >は対応していません")
 
+        # m_portからの出力がエラーであることを判定する
         if isinstance(m_port_exs , list):
             m_is_exs = True
         elif m_port_exs.has_exs:
@@ -1161,6 +1161,7 @@ class AssertCommand(SCommand):
 
         # もしエラーが発生していたら、それまでの出力に関わらずエラー文章を比較対象とする。
         if m_is_exs:
+            # エラーメッセージを一時ファイルへ書き出す
             with m_output_path.open(mode="w")as f:
                 m_exs_list = [str(x).strip().replace("\n", "") for x in m_port_exs]
                 f.write('\n'.join(m_exs_list))
