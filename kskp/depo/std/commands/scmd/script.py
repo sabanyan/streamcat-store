@@ -958,27 +958,6 @@ class AssertCommand(SCommand):
             d_at_local = d_at_utc.astimezone()
             return d_at_local.strftime('%Y-%m-%d %H:%M:%S')
 
-        def report_diff():
-            """
-            差分の取得および出力データのインタフェース
-            """
-            try:
-                dlimit = args["dlimit"]
-                res_diff = None
-
-                # 差分の取得を行う
-                res_diff = create_diff_list(dlimit)
-                
-                # CSVを構築して、標準出力へ渡す
-                sys.stdout.flush()
-                diff_csv_maker(res_diff)
-                sys.stdout.flush()
-
-            except Exception as e:
-                import traceback
-                with open('dev/stderr', 'w')as fpe:
-                    traceback.print_exc(file=fpe)
-
         def create_diff_list(dlimit):
             """
             2ファイル間での差分取得を行う
@@ -1026,11 +1005,14 @@ class AssertCommand(SCommand):
                 escaped_list.append(ret)
             return escaped_list
 
-        def diff_csv_maker(diff_result):
+        def diff_csv_maker(res_diff):
             """
             差分取得の処理結果をもとに、コマンドとしての返却データを作成
             runfuncを使用した場合、対象のコマンドでは標準出力にcsv形式のデータを渡す必要がある。（逆に、runfuncに対して、return を通してデータを返さない）
             """
+            # 標準出力初期化
+            sys.stdout.flush()
+
             # 出力データの列
             output_columns = [
                 "フロー名", # テスト対象フローのラベル名
@@ -1057,12 +1039,12 @@ class AssertCommand(SCommand):
 
 
             # is_trueの判定 と diffの出力
-            if diff_result == [] or diff_result == None:
+            if res_diff == [] or res_diff == None:
                 is_true = "True"
                 diff = ["","",""]
             else:
                 is_true = "False"
-                diff = diff_result
+                diff = res_diff
 
             output_datas = [
                 flow_label,
@@ -1087,6 +1069,10 @@ class AssertCommand(SCommand):
             else:
                 output_datas.append(diff)
                 print(output_datas)
+            
+            # 標準出力初期化
+            sys.stdout.flush()
+            
 
 
         if 'i' not in inputs:
@@ -1172,8 +1158,13 @@ class AssertCommand(SCommand):
         flow_path = flow.find_parent().get_folder_path()
         flow_path_str = '/' + '/'.join([flow.get('label') for flow in flow_path]) + '/' + flow.label
 
-
         # 作成した一時ファイルから差分を算出する
         new_cmd_list = None
-        new_cmd_list <<= nm.runfunc(report_diff)
+
+        # 差分の取得を行う
+        res_diff = None
+        res_diff = create_diff_list(args["dlimit"])
+
+        # csvデータの出力を行う
+        new_cmd_list <<= nm.runfunc(diff_csv_maker, res_diff=res_diff)
         return {'o': NysolModule(new_cmd_list)}# PCommandの方法を参照
