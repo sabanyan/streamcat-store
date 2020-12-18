@@ -367,6 +367,8 @@ class Flow(Datum):
 
     def to_json(self):
         ret = super().to_json()
+        # 排他ロックの再取得の判定に最終更新時刻を用いる
+        ret['modifiedAt'] = self.modified_at.strftime('%Y-%m-%d %H:%M:%S.%f')
         ret['editLock'] = self.edit_lock
         ret['allowlist']['execute'] = self.executable
         ret['allowlist']['lock'] = self.writable_without_edit_lock

@@ -34,7 +34,7 @@ class LockManagerTest(TestCaseBase):
         lock = self.lock_manager.lock(target, creator=self.USER1)
         # 正常にロックが取得できることを確認する
         self.assertIsNotNone(lock.uuid)
-        self.assertEqual(lock.target, target)
+        self.assertEqual(lock.target_uuid, target)
         self.assertEqual(lock.creator, self.USER1)
         self.assertIsNotNone(lock.created_at)
         # 取得したロックUUIDはLockManagerが管理している
@@ -53,7 +53,7 @@ class LockManagerTest(TestCaseBase):
         lock = self.lock_manager.lock(target, creator=self.USER1)
         # 正常にロックが取得できることを確認する
         self.assertIsNotNone(lock.uuid)
-        self.assertEqual(lock.target, target)
+        self.assertEqual(lock.target_uuid, target)
         self.assertEqual(lock.creator, self.USER1)
         self.assertIsNotNone(lock.created_at)
         # 同じユーザで、同じDatum UUIDでも複数回ロックはできない
@@ -79,7 +79,7 @@ class LockManagerTest(TestCaseBase):
         lock = self.lock_manager.lock(target, creator=self.USER1)
         # 正常にロックが取得できることを確認する
         self.assertIsNotNone(lock.uuid)
-        self.assertEqual(lock.target, target)
+        self.assertEqual(lock.target_uuid, target)
         self.assertEqual(lock.creator, self.USER1)
         self.assertIsNotNone(lock.created_at)
         # ロックを解除する
@@ -88,7 +88,7 @@ class LockManagerTest(TestCaseBase):
         lock = self.lock_manager.lock(target, creator=self.USER1)
         # 正常にロックが取得できることを確認する
         self.assertIsNotNone(lock.uuid)
-        self.assertEqual(lock.target, target)
+        self.assertEqual(lock.target_uuid, target)
         self.assertEqual(lock.creator, self.USER1)
         self.assertIsNotNone(lock.created_at)
 
@@ -102,7 +102,7 @@ class LockManagerTest(TestCaseBase):
         # ロック対象を指定してロック解除する
         result = self.lock_manager.unlock_target(target)
         self.assertEqual(result.uuid, lock.uuid)
-        self.assertEqual(result.target, target)
+        self.assertEqual(result.target_uuid, target)
         # 解除したロックはLockManagerは管理しない
         self.assertFalse(self.lock_manager.contains(lock.uuid))
 
