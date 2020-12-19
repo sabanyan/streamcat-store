@@ -1,4 +1,3 @@
-import os
 from sqlalchemy import Column, text
 from sqlalchemy.dialects.postgresql import INTEGER, TIMESTAMP
 from sqlalchemy.ext.declarative import declared_attr
@@ -12,11 +11,14 @@ class KSKPBaseModel(object):
 
     @declared_attr
     def __table_args__(cls):
+        # schema_nameが定義されていればその値を取得する
+        schema_name = getattr(cls, 'schema_name', None)
+
         # 定義先スキーマ
-        if 'KSKP_POSTGRESQL_SCHEMA_NAME' in os.environ:
-            return ({'schema': os.environ['KSKP_POSTGRESQL_SCHEMA_NAME']},)
-        else:
+        if schema_name is None:
             return ()
+        else:
+            return ({'schema': schema_name},)
 
     # 
     # モデルクラスに共通の列を定義する

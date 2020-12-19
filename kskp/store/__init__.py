@@ -7,19 +7,58 @@ def _is_unittest():
             hasattr(sys.modules['__main__'], '__unittest') and \
             sys.modules['__main__'].__unittest
 
-def _get_test_schema_name():
-    # スキーマ名はランダム文字列を命名して他のテスト実行処理とDBスキーマを分ける
-    import uuid
-    schema_name = 'schema_' + str(uuid.uuid4()).upper()[0:6]
-    return schema_name.lower()
+def _get_db_engine(database_uri_candidates):
+    """
+    SQLAlchemyのEnginオブジェクトを作成する
+    """
+    def _check_connection(database_uri):
+        from sqlalchemy import create_engine
+        from sqlalchemy.exc import OperationalError
+        try:
+            # DBに接続する
+            # echo=TrueでSQLログがコンソールに出力される
+            engine = create_engine(database_uri, echo=False)
+            # DBへの接続を確認する
+            engine.execute('SELECT 1')
+            return engine
+        except OperationalError as e:
+            # DBに接続できなかった場合
+            return None
+        except Exception:
+            raise
 
-def _make_schema(engine, schema_name):
-    # スキーマを作成する
-    from sqlalchemy import DDL, exc
-    try:
-        engine.execute(DDL('CREATE SCHEMA IF NOT EXISTS %s' % schema_name))
-    except exc.OperationalError as e:
-        raise Exception('💲💰テスト実行にはAWS RDSに接続している必要があります💲💰')
+    for database_uri_candidate in database_uri_candidates:
+        engine = _check_connection(database_uri_candidate)
+        if engine is None:
+            continue
+        else:
+            return engine
+
+    raise Exception('💽 PostgreSQLに接続できませんでした 💽')
+
+def _make_test_schema(engine):
+    """
+    テストケース実行で使用するデータベーススキーマを作成する
+    """
+    def _get_test_schema_name():
+        # スキーマ名はランダム文字列を命名して他のテスト実行処理とDBスキーマを分ける
+        import uuid
+        schema_name = 'schema_' + str(uuid.uuid4()).upper()[0:6]
+        return schema_name.lower()
+
+    def _create_schema(engine, schema_name):
+        # スキーマを作成する
+        from sqlalchemy import DDL, exc
+        try:
+            engine.execute(DDL(f'CREATE SCHEMA IF NOT EXISTS {schema_name}'))
+        except exc.OperationalError as e:
+            raise Exception('テストケース実行で使用するデータベーススキーマを作成できませんでした')
+
+    # テスト用スキーマ名を設定する
+    test_schema_name = _get_test_schema_name()
+    # テスト用スキーマを作成する
+    _create_schema(engine, test_schema_name)
+    return test_schema_name
 
 
 # バージョンを取得する
@@ -31,37 +70,42 @@ else:
     KSKP_VER = None
 
 
-if _is_unittest():
-    # テスト環境用の設定
-    passwd = 'J2-pH|%B'
-    database_uri = f'postgresql://kskp:{passwd}@kskp.cr4gfi5zl5xm.ap-northeast-1.rds.amazonaws.com/kskp'
-else:
-    # ローカル環境用の設定
-    # database_uri = "postgresql://postgres:@db/kskp"
-    passwd = 'ZQZtVgL6G32Vy6p6WJtG3C3K84yuJ4zz'
-    database_uri = f'postgresql://kskp:{passwd}@db/kskp'
-
-
-# データベースへの接続
-# echo=TrueでSQLログがコンソールに出力される
-from sqlalchemy import create_engine
-engine = create_engine(database_uri, echo=False)
+db_password = 'ZQZtVgL6G32Vy6p6WJtG3C3K84yuJ4zz'
 
 if _is_unittest():
+    # テストスクリプト実行時のDB接続先
+    db_port = int(os.getenv('KSKP_DB_PORT', 5432))
+    database_uri_candidates=[
+        f'postgresql://kskp:{db_password}@localhost:{db_port}/kskp',
+        f'postgresql://kskp:{db_password}@db/kskp',
+        f'postgresql://kskp:{"J2-pH|%B"}@kskp.cr4gfi5zl5xm.ap-northeast-1.rds.amazonaws.com/kskp'
+    ]
+    # DBに接続する
+    engine = _get_db_engine(database_uri_candidates)
+
     # テスト用スキーマ名を設定する
-    os.environ['KSKP_POSTGRESQL_SCHEMA_NAME'] = _get_test_schema_name()
-    # テスト用スキーマを作成する
-    _make_schema(engine, os.environ['KSKP_POSTGRESQL_SCHEMA_NAME'])
+    SCHEMA_NAME = _make_test_schema(engine)
     # カレントスキーマを設定する
     # (コミットされると、セッションが終了するまでその設定が持続する)
-    sql = """
-    SET SESSION search_path = {schema}; commit;
-    """.format(schema=os.environ['KSKP_POSTGRESQL_SCHEMA_NAME'])
+    sql = f'SET SESSION search_path = {SCHEMA_NAME}; commit;'
     engine.execute(sql)
 
-# SQLAlchemyの全てのモデルクラスのベースモデルを作成する
+else:
+    # 通常実行時のDB接続先
+    database_uri_candidates=[
+        f'postgresql://kskp:{db_password}@db/kskp'
+    ]
+    # DBに接続する
+    engine = _get_db_engine(database_uri_candidates)
+    # デフォルトスキーマを用いる
+    SCHEMA_NAME = None
+
+
 from .kskp_base_model import KSKPBaseModel
 from sqlalchemy.ext.declarative import declarative_base
+# ベースモデルにスキーマ名を設定する
+KSKPBaseModel.schema_name = SCHEMA_NAME
+# SQLAlchemyの全てのモデルクラスのベースモデルを作成する
 BaseModel = declarative_base(cls=KSKPBaseModel, constructor=KSKPBaseModel.__init__, name='KSKPBase')
 
 from kskp.core import Datum, Port, Command
@@ -159,7 +203,7 @@ with UnAuthzFactory() as unauthz_factory:
         factory.data.load_trash_folder()
 
 
-from sqlalchemy import event, DDL
+from sqlalchemy import event, DDL, exc
 
 @event.listens_for(BaseModel.metadata, 'after_create')
 def receive_after_create(target, connection, tables, **kw):

@@ -6,7 +6,7 @@ import pprint
 from pathlib import Path
 from datetime import datetime
 
-from kskp.store import Library, Flow, FlowData
+from kskp.store import Library, Flow, FlowData, SCHEMA_NAME
 from kskp.engine import execute, FlowJsonLink, FlowLinkContext
 from .test_case_base import TestCaseBase
 
@@ -20,8 +20,8 @@ class CommandTest(TestCaseBase):
         # テスト用テーブルを作成する
         from kskp.store import engine
         from sqlalchemy import DDL
-        create_table = """
-        CREATE TABLE IF NOT EXISTS {schema}.test (
+        create_table = f"""
+        CREATE TABLE IF NOT EXISTS {SCHEMA_NAME}.test (
             id    integer,
             char1 char(4),
             char2 varchar(64),
@@ -29,13 +29,13 @@ class CommandTest(TestCaseBase):
             stamp timestamp,
             len   interval hour to minute
         )
-        """.format(schema=os.environ['KSKP_POSTGRESQL_SCHEMA_NAME'])
+        """
         engine.execute(DDL(create_table))
 
         # テスト用データを作成する
-        insert_test = """
-        INSERT INTO {schema}.test VALUES(1, 'a', 'b', '1900-12-31', '1900-12-31 01:01:01.123456', '1:10:00')
-        """.format(schema=os.environ['KSKP_POSTGRESQL_SCHEMA_NAME'])
+        insert_test = f"""
+        INSERT INTO {SCHEMA_NAME}.test VALUES(1, 'a', 'b', '1900-12-31', '1900-12-31 01:01:01.123456', '1:10:00')
+        """
         engine.execute(insert_test)
 
     @classmethod
@@ -85,7 +85,7 @@ class CommandTest(TestCaseBase):
                 "database": "kskp",
                 "user_id": "kskp", 
                 "password": "J2-pH|%B",
-                "schema_name" : os.environ['KSKP_POSTGRESQL_SCHEMA_NAME'],
+                "schema_name" : SCHEMA_NAME,
                 "table_name": "test"
                 }, 
                 "commandId": "db_loader"
@@ -154,7 +154,7 @@ class CommandTest(TestCaseBase):
                 "database": "kskp",
                 "user_id": "kskp", 
                 "password": "J2-pH|%B",
-                "schema_name" : os.environ['KSKP_POSTGRESQL_SCHEMA_NAME'],
+                "schema_name" : SCHEMA_NAME,
                 "table_name": "test"
                 }, 
                 "commandId": "db_loader"
