@@ -1153,10 +1153,7 @@ class AssertCommand(SCommand):
                 f.write('\n'.join(m_exs_list))
 
         # 親フォルダの情報を取得
-        # 元々datumクラスのget_prev_parent_pathを参考に現在のパスを取得しようと考えていたが、flowクラスに現在いるフォルダを取得する方法があったのでそちらを利用。
-        # TODO:ほとんど同じ役割のメソッド が離れているのはおかしいので、将来回収する
-        flow_path = flow.find_parent().get_folder_path()
-        flow_path_str = '/' + '/'.join([flow.get('label') for flow in flow_path]) + '/' + flow.label
+        flow_path_str = flow.get_flow_path()
 
         # 作成した一時ファイルから差分を算出する
         new_cmd_list = None
