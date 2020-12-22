@@ -281,7 +281,7 @@ class Flow(Datum):
             # フローのキャッシュUUIDに新しいキャッシュを設定する
             new_flow._replace_cache(cache_uuid, new_cache)
 
-        return new_flow
+        return new_flow.update_data(new_flow.label, new_flow.flow_data)
 
     @property
     def edit_lock(self):
