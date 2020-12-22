@@ -244,7 +244,21 @@ class Datum(BaseModel):
 
     @property
     def folder_path(self):
-        return self._folder_path
+        """
+        自身の親フォルダまでのフォルダパスを返す
+        """
+        # _folder_path=None場合は、DataumがDBに保存されてないで
+        # その場合は親フォルダのfolder_pathと親フォルダのラベルからフォルダパス文字列を作成する
+        if self._folder_path is None:
+            if self.is_root:
+                return '/'
+            parent = self.find_parent()
+            if parent.is_root:
+                return parent.folder_path + parent.label
+            else:
+                return parent.folder_path + '/' + parent.label
+        else:
+            return self._folder_path
 
     @property
     def is_root(self):

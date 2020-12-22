@@ -359,6 +359,7 @@ class AuthzSession(Session):
 
         # PostgreSQLにはGROUP_CONCATが無いので代わりに、ARRAY_TO_STRINGとARRAYを用いる
         func_exp = func.array_to_string(func.array(Labels), '/')
+        func_exp = func.concat('/', func_exp)
 
         # WITH句を含むSELECT文をtextで記述してこれをメインのSELECT文に含める
         func_exp_str = str(func_exp.compile(compile_kwargs={'literal_binds': True}))
