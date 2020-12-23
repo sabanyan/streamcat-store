@@ -1008,12 +1008,9 @@ class MvSimCommand(PCommand):
     def run(self, args, inputs):
         _args = copy.deepcopy(args)
 
-        
-        cmd_o = None
-        cmd_o <<= inputs['i'].content
-
         # ヘッダ行を取得する
-        self.header = self.get_field_names(inputs['i'])
+        nysol_mod, self.header = self.get_field_names(inputs['i'])
+        cmd_o = nysol_mod.content
 
         xoption = _args.get('x')
 
