@@ -403,28 +403,30 @@ class CheckDuplicateRowsCommand(PCommand):
         targetcols = args.get('k')
         
         # error checks go here:
-        self.header = self.get_field_names(inputs['i'])
+        nysol_mod, self.header = self.get_field_names(inputs['i'])
+        cmd_i = nysol_mod.content
+        
         targets_list = []
 
         if targetcols is None:
             raise EmptyFieldException(command_name = self.const('commandname'), 
                                         option_id = 'k')
             
-        for col in targetcols.split(','):
-            expanded_list = self.expand_wild_cards(targetcols)
+        expanded_list = self.expand_wild_cards(targetcols)
 
+        # check if expandWildCards returned a dict (error signature)
+        if type(expanded_list) == dict:
+            raise FieldNotFoundException(expanded_list['unmatched'], 
+                                        command_name = self.const('commandname'),
+                                        option_id = 'k')
+
+        for col in expanded_list:
             # ForbiddenCharacterError
             if self.contains_any(col, ':%&\\'):
                 raise FieldForbiddenCharacterException(col,
                                                        command_name = self.const('commandname'),
                                                        option_id = 'k')
-            
-            # check if expandWildCards returned a dict (error signature)
-            if type(expanded_list) == dict:
-                raise FieldNotFoundException(expanded_list['unmatched'], 
-                                            command_name = self.const('commandname'),
-                                            option_id = 'k')
-                                            
+
             # FieldConflictError
             if col in targets_list:
                 raise FieldConflictException(col,
@@ -432,10 +434,6 @@ class CheckDuplicateRowsCommand(PCommand):
                                             option_id = 'k')
             else:
                 targets_list.append(col)
-                
-        
-        cmd_i = None
-        cmd_i <<= inputs['i'].content
 
         # number each line
         cmd_i <<= nm.mcal(a = COLNUM, c = 'line()+1')
