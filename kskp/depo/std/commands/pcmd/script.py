@@ -256,9 +256,8 @@ class ColumnNameCommand(PCommand):
         return msg
 
     def run(self, args, inputs):
-        f = inputs['i'].content
-
-        self.header = self.get_field_names(inputs['i'])
+        nysol_mod, self.header = self.get_field_names(inputs['i'])
+        f = nysol_mod.content
 
         _args = copy.deepcopy(args)
         
