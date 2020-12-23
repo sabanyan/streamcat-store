@@ -985,7 +985,8 @@ class AssertCommand(SCommand):
 
         def escape_csv(val_list):
             """
-            文章中のコンマや改行によって間違ったcsvの区切り位置になることを
+            AssertCommandの出力項目の中に、入力i,mのデータを行１つ分出力する項目があり、
+            AssertCommandの出力データが、入力i,mのcsv文章中のコンマや改行のような特殊文字によって壊れることを、
             ダブルクォーテーションを設定するエスケープ 処理によって防ぐ
             """
             escaped_list = []

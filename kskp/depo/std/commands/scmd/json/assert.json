@@ -1,7 +1,7 @@
 {
   "version": "0.7.0",
   "id": "assert",
-  "label": "参照データとの比較による出力評価",
+  "label": "入力データと参照データの出力比較",
   "classification": "validation",
   "description": "入力データと参照データを比較して、差分情報を出力する",
   "ports": [
