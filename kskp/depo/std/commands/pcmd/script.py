@@ -5,7 +5,7 @@ import fnmatch as fn
 from pathlib import Path
 import nysol.mcmd as nm
 
-from kskp.core import Command, Port
+from kskp.core import Command, Port, Tmp
 from kskp.store import (
     NysolModule,
     FieldForbiddenCharacterException,
@@ -56,15 +56,44 @@ class PCommand(Command):
 
     def get_field_names(self, nysol_module):
         """
-        NYSOLフローの結果データのヘッダ行を取得する
+        NysolModuleのフローを実行して、結果をTMPファイルに保存して、
+        そのTMPファイルからヘッダーを取得する
+        
+        返り値：NysolModule, header（リスト）
         """
+        from kskp.depo.std.commands import FieldNamesCommand
+        
+        # 以前のフローをコピーする
+        prev_flow = nysol_module.content
+
+        # 以前のフローを tmp ファイルに保存する
+        input_file = Tmp.create_file()         # KSKP TMP ファイルを作成
+        input_filename = input_file.as_posix() # KSKP TMP ファイル名
+
+        prev_flow <<= nm.m2tee(o = input_filename) # 以前のフロー結果を、TMP ファイルに保存する
+        
+        # フローを NysolObject にラップして、実行する 
+        prev_flow_obj = NysolModule(prev_flow)
+        self.do_runs(prev_flow_obj)
+        
+        
+        # ヘッダー取得する
+        header_get = nm.m2tee(i = input_filename) # KSKP TMP ファイル読み込む
+        header_get_obj = NysolModule(header_get)
+
         # ヘッダ行を取得するときに標準エラーに出力されるエラーメッセージを取得するため
         # FieldNamesCommandを用いる
-        from kskp.depo.std.commands import FieldNamesCommand
         fldNamesCmd = FieldNamesCommand()
-        results = fldNamesCmd.run(args={}, inputs={'fld': nysol_module})
+        
+        results = fldNamesCmd.run(args={}, inputs={'fld': header_get_obj})
         # 'fld'キーへの入力結果は'fld'キーを指定して取得する
-        return results['fld'].datum
+        header = results['fld'].datum
+        
+        # TMP ファイル読み込む
+        read_tmpfile = nm.m2tee(i = input_filename)
+
+        return NysolModule(read_tmpfile), header
+        
 
     def do_runs(self, nysol_module):
         from kskp.depo.std.commands import RunsCommand
@@ -636,11 +665,11 @@ class MultiMcalWCCommand(PCommand):
         #     a: output column name (string must include &, default is 'new&')
 
         _args = copy.deepcopy(args)
-        cmd_o = None
         first = True
 
         # ヘッダ行を取得する
-        self.header = self.get_field_names(inputs['i'])
+        nysol_module, self.header = self.get_field_names(inputs['i'])
+        cmd_o = nysol_module.content
 
         xoption = _args.pop('x') if 'x' in _args else False
         
@@ -674,7 +703,7 @@ class MultiMcalWCCommand(PCommand):
             arg['c'] = arg['c'].replace('&',str(target))
 
             if first:
-                cmd_o <<= nm.mcal(i = inputs['i'].content, **arg)
+                cmd_o <<= nm.mcal(**arg)
                 first = False
             else:
                 cmd_o <<= nm.mcal(arg)
