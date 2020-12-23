@@ -113,8 +113,8 @@ from kskp.core import Datum, Port, Command
 from .lock_manager import LockManager, LockedDatumException
 
 # 環境変数からロックの有効期間(分)を取得する
-# (設定値がない場合は1時間とする)
-lock_expire_minutes = int(os.getenv('LOCK_EXPIRE_MIN', 60))
+# (設定値がない場合は5分とする)
+lock_expire_minutes = int(os.getenv('LOCK_EXPIRE_MIN', 5))
 # LockManagerオブジェクトを作成する
 lock_manager = LockManager(60 * lock_expire_minutes)
 
