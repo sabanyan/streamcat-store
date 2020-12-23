@@ -1,7 +1,5 @@
 # ビジュアライズコマンド
-import os
 from kskp.core import Command, Port
-from kskp.store import List
 import nysol.mcmd as nm
 
 ErrMsg={
@@ -143,23 +141,17 @@ class VisualizersBokehPlot(VisualizersCommand):
         return 600
 
 # グラフ化に必要なものの準備
-import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 import holoviews as hv
-import random
 import nysol.mcmd as nm
 from bokeh.plotting import figure
-from bokeh.resources import CDN
-from bokeh.embed import file_html,components
+from bokeh.embed import components
 from bokeh.palettes import Dark2_5 as palette
-from bokeh.layouts import gridplot, column
-from bokeh.models import HoverTool, Select, Legend, ColumnDataSource
-from bokeh.io import output_file, show
+from bokeh.layouts import gridplot
+from bokeh.models import Select, ColumnDataSource, Span
 from bokeh.models.callbacks import CustomJS
-from bokeh.models import Span
 import pprint
-from numpy import histogram
 import itertools
 
 hv.extension('bokeh')
