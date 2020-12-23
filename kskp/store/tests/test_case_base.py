@@ -1,4 +1,3 @@
-import os
 import unittest
 import pprint
 
@@ -51,6 +50,6 @@ class TestCaseBase(unittest.TestCase):
         cls.factory2.close()
         cls.factory3.close()
         # スキーマを破棄する
-        from kskp.store import engine
+        from kskp.store import engine, SCHEMA_NAME
         from sqlalchemy import DDL
-        engine.execute(DDL('DROP SCHEMA IF EXISTS %s CASCADE' % os.environ['KSKP_POSTGRESQL_SCHEMA_NAME']))
+        engine.execute(DDL(f'DROP SCHEMA IF EXISTS {SCHEMA_NAME} CASCADE'))
