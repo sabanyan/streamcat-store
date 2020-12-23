@@ -735,8 +735,6 @@ class MvAvgCommand(PCommand):
 
         _args = copy.deepcopy(args)
         
-        cmd_o = None
-        cmd_o <<= inputs['i'].content
 
         if (not _args.get('s')) or (_args['s'] == ''):
             _args['q'] = True
@@ -744,7 +742,8 @@ class MvAvgCommand(PCommand):
         xoption = _args.get('x')
         
         # ヘッダ行を取得する
-        self.header = self.get_field_names(inputs['i'])
+        nysol_mod, self.header = self.get_field_names(inputs['i'])
+        cmd_o = nysol_mod.content
 
         fatlist = []
 
