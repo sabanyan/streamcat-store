@@ -2656,18 +2656,10 @@ class GroupBy2Command(PCommand):
         # first off, make copies of the inputs
         args = copy.deepcopy(args)
         inputs = copy.deepcopy(inputs)
-        
-        # TODO fix tmpfile handling
-        initialfile = Tmp.create_file()
-        # run everything up til now, and then save into the file
-        self.dump_to_file(inputs['i'].content, initialfile)
 
         # ヘッダ行を取得する
-        cmd = nm.m2tee(i = initialfile.as_posix())
-        cmd = self.wrap_flow(cmd)
-        self.header = self.get_field_names(cmd)
-
-        cmd = nm.m2tee(i = initialfile.as_posix())
+        nysol_obj, self.header = self.get_field_names(inputs['i'])
+        cmd = nysol_obj.content
 
         # parse the inputs
         all_calcs, common_args = self.parse_args(args)
@@ -2710,8 +2702,7 @@ class GroupBy2Command(PCommand):
         self.dump_to_file(keys, keys_file)
         
         self.keys_filename = keys_file.as_posix()
-
-
+        
         
         # schedule the batches and calculations
         # get list of tmpfiles made per batch
