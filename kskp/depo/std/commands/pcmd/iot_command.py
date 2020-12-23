@@ -1649,7 +1649,6 @@ class TimeSeriesDataJoinCommand(PCommand):
         # 補間値： 補間式より値を計算
 
         # --- Opt整合性チェック ---
-        # get all of the flow before this
         nysol_obj_i, header_i = self.get_field_names(inputs['i'])
         nysol_obj_m, header_m = self.get_field_names(inputs['m'])
         
@@ -2364,27 +2363,10 @@ class TimeAxisDataGenerateIn1Command(PCommand):
         f = None
         header = args.get('header')
         if header is None:
-            # get all of the flow before this
-            prev_flow = copy.deepcopy(inputs['i'].content)
-            
-            # put this into a tmpfile
-            input_file = Tmp.create_file()
-            input_filename = input_file.as_posix()
-            
-            prev_flow <<= nm.m2tee(o = input_filename)
-            
-            prev_flow_obj = NysolModule()
-            prev_flow_obj.set_content(prev_flow)
-            self.do_runs(prev_flow_obj) # run savetotmpfile
-            
-            # get header
-            get_header = nm.m2tee(i = input_filename)
-            
-            get_header_module = NysolModule()
-            get_header_module.set_content(get_header)
-            header = self.get_field_names(get_header_module)
+            nysol_obj, header = self.get_field_names(inputs['i'])
+            args['header'] = header
 
-            f <<= nm.m2tee(i = input_filename)
+            f = nysol_obj.content
         else:
             # if header is passed just read from input
             f <<= copy.deepcopy(inputs['i'].content)
