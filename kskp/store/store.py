@@ -268,6 +268,17 @@ class List(Datum):
     def __len__(self):
         return len(self._content)
 
+    def __eq__(self, other):
+        if isinstance(other, List):
+            return self._content == other._content
+        elif isinstance(other, list):
+            return self._content == other
+        else:
+            raise Exception(f'List型と{type(other).__name__}の比較はできません')
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
 class ApparentLast(Store):
     """
     フローの出力ポートと出力結果を保持する
