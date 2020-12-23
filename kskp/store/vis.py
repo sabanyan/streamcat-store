@@ -32,11 +32,6 @@ class Vis(Datum):
         result['header'] = self._data['column_names']
         result['reader'] = self._data['matrix']
         return result
-        
-    def to_html(self):
-        result = self.result
-        from flask import render_template
-        return render_template('visualize/table.html', header=result['header'], reader=result['reader'])
 
 
 class BokehPlotVis(Vis):
@@ -56,9 +51,3 @@ class BokehPlotVis(Vis):
         result['script'] = self._data['script']
         result['div'] = self._data['div']
         return result
-
-    def to_html(self):
-        result = self.result
-        from flask import render_template
-        return render_template('visualize/component.html', script=result['script'], div=result['div'])
-        
