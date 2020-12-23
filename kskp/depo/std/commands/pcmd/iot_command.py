@@ -1650,47 +1650,13 @@ class TimeSeriesDataJoinCommand(PCommand):
 
         # --- Opt整合性チェック ---
         # get all of the flow before this
-        prev_flow_i = copy.deepcopy(inputs['i'].content)
-        prev_flow_m = copy.deepcopy(inputs['m'].content)
+        nysol_obj_i, header_i = self.get_field_names(inputs['i'])
+        nysol_obj_m, header_m = self.get_field_names(inputs['m'])
         
-        # put this into a tmpfile
-        input_file_i = Tmp.create_file()
-        input_filename_i = input_file_i.as_posix()
-        input_file_m = Tmp.create_file()
-        input_filename_m = input_file_m.as_posix()
+        fi = nysol_obj_i.content
         
-        prev_flow_i <<= nm.m2tee(o = input_filename_i)
-        prev_flow_m <<= nm.m2tee(o = input_filename_m)
-        
-        prev_flow_obj_i = NysolModule()
-        prev_flow_obj_i.set_content(prev_flow_i)
-        self.do_runs(prev_flow_obj_i) # run savetotmpfile
-
-        prev_flow_obj_m = NysolModule()
-        prev_flow_obj_m.set_content(prev_flow_m)
-        self.do_runs(prev_flow_obj_m) # run savetotmpfile
-        
-        # get headers
-        # get header for i input
-        get_header_i = nm.m2tee(i = input_filename_i)
-        
-        get_header_module_i = NysolModule()
-        get_header_module_i.set_content(get_header_i)
-        header_i = self.get_field_names(get_header_module_i)
-
-        # get header for m input
-        get_header_m = nm.m2tee(i = input_filename_m)
-        
-        get_header_module_m = NysolModule()
-        get_header_module_m.set_content(get_header_m)
-        header_m = self.get_field_names(get_header_module_m)
-
-        fi = nm.m2tee(i = input_filename_i)
-        
-        fm_mtee = nm.m2tee(i = input_filename_m)
-        fm = NysolModule()
-        fm.set_content(fm_mtee)
-
+        fm = nysol_obj_m
+        args['header'] = header_m
 
         if debug:
             sys.stderr.write( 'header_i : ' + ','.join(header_i) + '\n' )
