@@ -3,7 +3,7 @@ import os
 import sys
 import nysol.mcmd as nm
 
-from kskp.store import NysolModule, Datum, Store, Frame, Flow, Folder, List
+from kskp.store import KSKPBaseModel, NysolModule, Datum, Store, Frame, Flow, Folder, List
 from kskp.core import Command, Port
 from flask import g
 
@@ -948,16 +948,6 @@ class AssertCommand(SCommand):
 
         flow = args['flow']
 
-        def datetime_to_local_time_str(d):
-            import datetime
-            if d is None:
-                return ''
-            # DBに格納されている日時はUTCなので、タイムゾーンをUTCに設定する
-            d_at_utc = d.replace(tzinfo=datetime.timezone.utc)
-            # UTC日時はここで現地時間(環境変数TZの値)に設定される
-            d_at_local = d_at_utc.astimezone()
-            return d_at_local.strftime('%Y-%m-%d %H:%M:%S')
-
         def create_diff_list(dlimit):
             """
             2ファイル間での差分取得を行う
@@ -1010,7 +1000,8 @@ class AssertCommand(SCommand):
             差分取得の処理結果をもとに、コマンドとしての返却データを作成
             runfuncを使用した場合、対象のコマンドでは標準出力にcsv形式のデータを渡す必要がある。（逆に、runfuncに対して、return を通してデータを返さない）
             """
-            # 標準出力初期化
+            # NysolPythonのrunfunc関数の出力は標準出力を使用する、
+            # その出力のタイミングを確定させる
             sys.stdout.flush()
 
             # 出力データの列
@@ -1032,7 +1023,7 @@ class AssertCommand(SCommand):
             # 各カラムパラメータ定義
             flow_label = args["flow_label"]
             flow_uuid = args["flow_uuid"]
-            date = datetime_to_local_time_str(args['start_time'])
+            date = KSKPBaseModel.datetime_to_local_time_str(args['start_time'])
             point_id = args['asserted_point']
             is_true = False
             raise_exs = i_is_exs or m_is_exs
@@ -1049,7 +1040,7 @@ class AssertCommand(SCommand):
             output_datas = [
                 flow_label,
                 flow_uuid,
-                flow_path_str,
+                flow_path,
                 date,
                 point_id,
                 is_true,
@@ -1070,10 +1061,46 @@ class AssertCommand(SCommand):
                 output_datas.append(diff)
                 print(output_datas)
             
-            # 標準出力初期化
+            # NysolPythonのrunfunc関数の出力は標準出力を使用する、
+            # その出力のタイミングを確定させる
             sys.stdout.flush()
             
 
+        # 一時ファイルへフローの結果を書き出し
+        # エラー発生もここで確認する
+        def output_err_msg(input_data, output_path, port):
+            result = {}
+            is_exs = False
+            nysol_cmd = None
+
+
+            if isinstance(input_data, Exception):
+                result = [input_data]
+                is_exs = True
+            elif isinstance(input_data, (NysolModule, List)):
+                # RunsCommand を確認したら、実行結果にエラーがない場合にはframeが返却され、エラーが発生した場合はlistが返却される
+                # この後の型による分岐で、エラーのもののみの対応を行っているの問題はないのでは
+                nysol_cmd = input_data.content
+                nysol_cmd <<= nm.m2tee(o=output_path.as_posix())
+                result = RunsCommand().run({}, {port:NysolModule(nysol_cmd)})[port]
+            else:
+                raise Exception("入力ポート" + port + "に <type: " + str(type(input_data)) + " >は対応していません")
+
+            # i_portからの出力がエラーであることを判定する
+            if isinstance(result, list):
+                is_exs = True
+            elif result.has_exs:
+                result = result.exs
+                is_exs = True
+            
+            # もしエラーが発生していたら、それまでの出力に関わらずエラー文章を比較対象とする。
+            if is_exs:
+                # エラーメッセージを一時ファイルへ書き出す
+                with output_path.open(mode="w")as f:
+                    exs_list = [str(x).strip().replace("\n", "") for x in result]
+                    f.write('\n'.join(exs_list))  
+                
+            return is_exs
 
         if 'i' not in inputs:
             raise Exception('AssertCommandの入力ポートiに値が入力されていません')
@@ -1086,74 +1113,16 @@ class AssertCommand(SCommand):
         i_output_path = Tmp.create_file()
         m_output_path = Tmp.create_file()
 
-        # 入力portが送出するエラーメッセージを格納
-        i_port_exs = {}
-        m_port_exs = {}
-
         # それぞれの入力portがエラーを持つかどうかのフラグ
         i_is_exs = False
         m_is_exs = False
-        nysol_cmd_i = None
-        nysol_cmd_m = None
-
-        # 一時ファイルへフローの結果を書き出し
-        # エラー発生もここで確認する
-
-        if isinstance(inputs['i'], Exception):
-            i_port_exs = [inputs['i']]
-            i_is_exs = True
-        elif isinstance(inputs['i'], (NysolModule, List)):
-            # RunsCommand を確認したら、実行結果にエラーがない場合にはframeが返却され、エラーが発生した場合はlistが返却される
-            # この後の型による分岐で、エラーのもののみの対応を行っているの問題はないのでは
-            nysol_cmd_i = inputs['i'].content
-            nysol_cmd_i <<= nm.m2tee(o=i_output_path.as_posix())
-            i_port_exs = RunsCommand().run({}, {'i':NysolModule(nysol_cmd_i)})['i']
-        else:
-            raise Exception("入力ポートiに <type: " + str(type(inputs['i'])) + " >は対応していません")
-
-        # i_portからの出力がエラーであることを判定する
-        if isinstance(i_port_exs, list):
-            i_is_exs = True
-        elif i_port_exs.has_exs:
-            i_port_exs = i_port_exs.exs
-            i_is_exs = True
         
-        # もしエラーが発生していたら、それまでの出力に関わらずエラー文章を比較対象とする。
-        if i_is_exs:
-            # エラーメッセージを一時ファイルへ書き出す
-            with i_output_path.open(mode="w")as f:
-                i_exs_list = [str(x).strip().replace("\n", "") for x in i_port_exs]
-                f.write('\n'.join(i_exs_list))
-        
-    
-        if isinstance(inputs['m'], Exception):
-            m_port_exs = [inputs['m']]
-            m_is_exs = True
-        elif isinstance(inputs['m'], (NysolModule, List)):
-            # RunsCommand を確認したら、実行結果にエラーがない場合にはframeが返却され、エラーが発生した場合はlistが返却される
-            # この後の型による分岐で、エラーのもののみの対応を行っているの問題はないのでは
-            nysol_cmd_m = inputs['m'].content
-            nysol_cmd_m <<= nm.m2tee(o=m_output_path.as_posix())
-            m_port_exs = RunsCommand().run({}, {'m':NysolModule(nysol_cmd_m)})['m']
-        else:
-            raise Exception("入力ポートmに <type: " + str(type(inputs['m'])) + " >は対応していません")
-
-        # m_portからの出力がエラーであることを判定する
-        if isinstance(m_port_exs , list):
-            m_is_exs = True
-        elif m_port_exs.has_exs:
-            m_port_exs = m_port_exs.exs
-            m_is_exs = True
-
-        # もしエラーが発生していたら、それまでの出力に関わらずエラー文章を比較対象とする。
-        if m_is_exs:
-            # エラーメッセージを一時ファイルへ書き出す
-            with m_output_path.open(mode="w")as f:
-                m_exs_list = [str(x).strip().replace("\n", "") for x in m_port_exs]
-                f.write('\n'.join(m_exs_list))
+        # 出力を一時ファイルに書き出し、その出力がエラー出力であるかどうかを返す
+        i_is_exs =  output_err_msg(inputs['i'], i_output_path, 'i')
+        m_is_exs =  output_err_msg(inputs['m'], m_output_path, 'm')
 
         # 親フォルダの情報を取得
-        flow_path_str = flow.get_flow_path()
+        flow_path = flow.get_flow_path()
 
         # 作成した一時ファイルから差分を算出する
         new_cmd_list = None
