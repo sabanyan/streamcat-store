@@ -266,10 +266,14 @@ class ColumnNameCommand(PCommand):
         
         if _left:
             for col in _left.split(','):
-                if self.contains_any(col, ':%&\\'):
+                if self.contains_any(col, ':%&\\\"\''):
                     raise FieldForbiddenCharacterException(col,
                                                            command_name = self.const('commandname'),
                                                            option_id = 'head')
+
+                if col == '':
+                    raise EmptyFieldException(command_name = self.const('commandname'), 
+                                              option_id = 'head')
 
             _left_list = self.expand_wild_cards(_left)
             if type(_left_list) == dict:
@@ -288,10 +292,14 @@ class ColumnNameCommand(PCommand):
             
         if _right:
             for col in _right.split(','):
-                if self.contains_any(col, ':%&\\'):
+                if self.contains_any(col, ':%&\\\"\''):
                     raise FieldForbiddenCharacterException(col,
                                                            command_name = self.const('commandname'),
                                                            option_id = 'tail')
+
+                if col == '':
+                    raise EmptyFieldException(command_name = self.const('commandname'), 
+                                              option_id = 'tail')
 
             _right_list = self.expand_wild_cards(_right)
             if type(_right_list) == dict:
