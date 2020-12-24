@@ -6,30 +6,33 @@ from kskp.depo.std.commands.pcmd.script import *
 
 class GetHeaderTestCase(unittest.TestCase):
     def setUp(self):
-        pass
+        self.in_data = [
+            ['id','val1','val2','val3'],
+            ['0','1','2','3'],
+            ['1','2','4','6'],
+            ['2','3','6','9']]
+        self.in_nysol_obj = NysolModule(nm.mread(i= self.in_data))
 
     def tearDown(self):
         pass
     
-    in_data = [
-        ['id','val1','val2','val3'],
-        ['0','1','2','3'],
-        ['1','2','4','6'],
-        ['2','3','6','9']]
-    
-    def test_always_true(self):
-        self.assertEqual(self.in_data[0],
-                         ['id','val1','val2','val3'])
-    
-    def test_pcmd_header_get(self):
-        in_mread = nm.mread(i= self.in_data)
-        in_obj = NysolModule(in_mread)
-        
+    def test_pcmd_header_get_outputs(self):
+        """
+        PCommandクラスのget_field_names関数の出力テスト
+        """
         cmd = PCommand()
-        obj, header = cmd.get_field_names(in_obj)
+        obj, header = cmd.get_field_names(self.in_nysol_obj)
 
-        self.assertTrue(isinstance(obj, NysolModule))
-        # not sure how to assert this?
-        print(type(header))
-        # self.assertEqual(header,['id','val1','val2','val3'])
+        # Test that returned obj is correctly a NysolModule object
+        self.assertIsInstance(obj, NysolModule, 
+                              "Returned object is not NysolModule")
+
+        # Check that NysolModule content is m2tee (read from file)
+        M2tee_class = nm.submod.m2tee.Nysol_M2tee
+        self.assertIsInstance(obj.content, M2tee_class,
+                              "Returned flow is not m2tee")
+        
+        # check that returned header matches input data
+        self.assertEqual(header, self.in_data[0],
+                         "Returned header does not match input")
 
