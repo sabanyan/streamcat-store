@@ -444,7 +444,7 @@ class DatumFactory():
 
         return len([result for result in results]) > 0
 
-from kskp.store import Store
+# from kskp.store import Store
 
 class StoreFactory():
 

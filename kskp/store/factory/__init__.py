@@ -1,8 +1,20 @@
-from .factory import Factory, UnAuthzFactory, DatumFactory, StoreFactory, AuthFactory, RoleFactory, UserRoleFactory, UserFactory
+from .factory import (
+    Factory,
+    UnAuthzFactory,
+    DatumFactory,
+    StoreFactory,
+    AuthFactory,
+    RoleFactory,
+    UserRoleFactory,
+    UserFactory
+)
 
+# 
 # 全てのテーブルを作成する
+# 
 from kskp.core import BaseModel, engine
 BaseModel.metadata.create_all(bind=engine, checkfirst=True)
+
 
 with UnAuthzFactory() as unauthz_factory:
     from kskp.store.auth import Role

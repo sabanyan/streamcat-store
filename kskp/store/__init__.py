@@ -1,4 +1,3 @@
-
 from .exceptions import (
     NothingToPutbackException,
     NoResultsException,
@@ -14,21 +13,21 @@ from .exceptions import (
 )
 from .store_model import Store as StoreModel
 from .store import Store, NysolModule, ModuleStore, List, ApparentLast
-from .database_conn import DatabaseConn
-from .remote_folder_conn import RemoteFolderConn
 from .mountable import Mountable
 from .frame import Frame
+from .activity import Activity
+from .vis import Vis, BokehPlotVis
 from .flow_data import FlowData
 from .flow import Flow
+from .datasource import DataSource
 from .folder import Folder
 from .project_folder import ProjectFolder
-from .awss3 import AwsS3
-from .remote_folder import RemoteFolder
 from .trashcan import TrashCan
-from .vis import Vis, BokehPlotVis
-from .datasource import DataSource
-from .activity import Activity
+from .awss3 import AwsS3
+from .database_conn import DatabaseConn
 from .database import Database
+from .remote_folder_conn import RemoteFolderConn
+from .remote_folder import RemoteFolder
 from .flow_dumper import FlowDumper
 
 # 
