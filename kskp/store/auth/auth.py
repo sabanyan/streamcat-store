@@ -1,6 +1,5 @@
-import os
-from kskp.store import BaseModel
-from sqlalchemy import Column, text, PrimaryKeyConstraint
+from . import BaseModel
+from sqlalchemy import Column, PrimaryKeyConstraint
 from sqlalchemy.dialects.postgresql import INTEGER, BOOLEAN, ENUM
 
 class Auth(BaseModel):

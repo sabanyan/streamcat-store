@@ -1,5 +1,5 @@
 from kskp.core import Datum
-from kskp.store import Folder, OptimisticLockException
+from .folder import Folder
 
 class ProjectFolder(Folder):
 
@@ -358,6 +358,7 @@ class ProjectFolder(Folder):
         プロジェクトの所属ユーザを初期化する
         """
         from kskp.store.auth import Role, NotAuthorizedException
+        from .exceptions import OptimisticLockException
 
         # 
         # 指定されたメンバリストの妥当性を検証する

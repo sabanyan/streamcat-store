@@ -5,7 +5,7 @@ from sqlalchemy import Column, String, text
 from sqlalchemy.sql import operators
 from sqlalchemy.dialects.postgresql import INTEGER, TIMESTAMP, UUID, ENUM
 from .exceptions import NotAuthorizedException
-from .. import BaseModel
+from . import BaseModel
 
 class User(BaseModel):
     # テーブル名の定義
@@ -215,16 +215,16 @@ class User(BaseModel):
     def _join_everyone_role(self):
         # everyoneロールに所属させる
         # (everyoneロールの作成者であるユーザ管理者のみがユーザを追加できる)
-        from kskp.store.auth import Role
-        from kskp.store.factory import RoleFactory
+        from .role import Role
+        from ..factory import RoleFactory
         everyone_role = RoleFactory(self._session).load_everyone_role()
         everyone_role.join_member(Role.Member(self, False))
 
     def _join_edit_lock_role(self):
         # edit_lockロールに所属させる
         # (edit_lockロールの作成者であるユーザ管理者のみがユーザを追加できる)
-        from kskp.store.auth import Role
-        from kskp.store.factory import RoleFactory
+        from .role import Role
+        from ..factory import RoleFactory
         edit_lock_role = RoleFactory(self._session).load_edit_lock_role()
         edit_lock_role.join_member(Role.Member(self, False))
 
@@ -504,7 +504,8 @@ class User(BaseModel):
         所属する全てのプロジェクトを返す
         """
         from sqlalchemy import exists, and_, or_
-        from kskp.store import Datum, ProjectFolder
+        from kskp.core import Datum
+        from kskp.store import ProjectFolder
         from .user_role import UserRole
         from .auth import Auth
 

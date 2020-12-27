@@ -6,7 +6,8 @@ import pprint
 from pathlib import Path
 from datetime import datetime
 
-from kskp.store import Library, Flow, FlowData, SCHEMA_NAME
+from kskp.core import SCHEMA_NAME
+from kskp.store import Library, Flow, FlowData
 from kskp.engine import execute, FlowJsonLink, FlowLinkContext
 from .test_case_base import TestCaseBase
 
@@ -18,7 +19,7 @@ class CommandTest(TestCaseBase):
         TestCaseBase.setUpClass()
 
         # テスト用テーブルを作成する
-        from kskp.store import engine
+        from kskp.core import engine
         from sqlalchemy import DDL
         create_table = f"""
         CREATE TABLE IF NOT EXISTS {SCHEMA_NAME}.test (

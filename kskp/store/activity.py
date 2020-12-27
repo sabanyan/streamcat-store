@@ -1,5 +1,4 @@
 from kskp.core import Datum
-from kskp.store import Frame, DataSource
 
 class Activity(Datum):
     """
@@ -71,8 +70,9 @@ class Activity(Datum):
         return len(self._lasts)
 
     def save(self):
-        # 現在時刻を取得する
         from datetime import datetime, timezone
+        from kskp.store import Frame, DataSource
+        # 現在時刻を取得する
         end_time = datetime.utcnow().replace(tzinfo=timezone.utc)
         end_time_str = end_time.astimezone().strftime('%H:%M:%S')
         # 出力フレームのラベルに終了時刻と所要時間を付加する

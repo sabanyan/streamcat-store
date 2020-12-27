@@ -2,7 +2,7 @@ import os
 import uuid
 from sqlalchemy import Column, String
 from sqlalchemy.dialects.postgresql import INTEGER, BOOLEAN, UUID
-from kskp.store import BaseModel
+from . import BaseModel
 from .user_role import UserRole
 
 class Role(BaseModel):
@@ -280,7 +280,7 @@ class Role(BaseModel):
         if member.user.is_inactive:
             raise Exception('削除状態のユーザを所属させることはできません')
 
-        from kskp.store.factory import UserRoleFactory
+        from ..factory import UserRoleFactory
         factory = UserRoleFactory(self._session)
 
         if factory.exists(member.user.id, self.id):

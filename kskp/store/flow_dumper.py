@@ -1,11 +1,6 @@
 import json
 from pathlib import Path
-from kskp.store import (
-    Datum,
-    Folder,
-    FlowData,
-    DatabaseConn,
-)
+from kskp.core import Datum
 
 class FlowDumper:
     def __init__(self, factory):
@@ -45,6 +40,7 @@ class FlowDumper:
         return (archive_path, archive_name)
 
     def _get_folder(self, parent_tmp_path, gathered_uuids, folder_uuid):
+        from .folder import Folder
         folder = self.factory.data.find_by_uuid(folder_uuid)
         if not isinstance(folder, Folder):
             raise Exception(f'{folder.label}はフォルダまたはプロジェクトではありません')
@@ -232,6 +228,7 @@ class FlowDumper:
                         uuid_conv_table[file.stem] = frame.uuid
                         frame.save()
                 elif datum_type == Datum.DATABASE_TYPE:
+                    from .database_conn import DatabaseConn
                     with file.open('r') as f:
                         d = f.read()
                         db = json.loads(d)
@@ -240,6 +237,7 @@ class FlowDumper:
                     uuid_conv_table[file.stem] = database.uuid
                     database.save()
                 elif datum_type == Datum.FLOW_TYPE:
+                    from .flow_data import FlowData
                     with file.open('r') as f:
                         d = f.read()
                         flow_json = json.loads(d)

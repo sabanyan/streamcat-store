@@ -1,11 +1,13 @@
 from typing import Callable
-from kskp.store import KSKPBaseModel
+from kskp.core import KSKPBaseModel
 
 class DatabaseConn():
     """
     DBへの接続情報を保持する
     """
     def __init__(self, conn_json:dict, password_is_enctypted=False, readable_or_raise:Callable[[],None] = None):
+
+
         self._conn_json = conn_json
 
         # パスワードを暗号化する

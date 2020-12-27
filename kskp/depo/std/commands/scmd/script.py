@@ -3,8 +3,8 @@ import os
 import sys
 import nysol.mcmd as nm
 
-from kskp.store import NysolModule, Datum, Store, Frame
-from kskp.core import Command, Port
+from kskp.core import Datum, Command, Port
+from kskp.store import NysolModule, Store, Frame
 
 class SCommand(Command):
     pass
@@ -206,7 +206,7 @@ class DbLoaderCommand(SCommand):
     def run(self, args, inputs):
         DbLoaderCommand._write_log('START')
 
-        from kskp.store import Datum
+        from kskp.core import Datum
         if inputs['i'].type != Datum.DATABASE_TYPE:
             t = type(inputs['i'])
             raise Exception(f'DbLoaderの入力にDatabase Store以外のデータ型({t})が入力されました')
@@ -359,7 +359,7 @@ class DbSaverCommand(SaverCommand):
     def run(self, args, inputs):
         DbSaverCommand._write_log('START')
 
-        from kskp.store import Datum
+        from kskp.core import Datum
         if inputs['store'].type != Datum.DATABASE_TYPE:
             t = type(inputs['store'])
             raise Exception(f'DbSaverの入力にDatabase Store以外のデータ型({t})が入力されました')
@@ -627,7 +627,7 @@ class RemoteFolderLoaderCommand(SCommand):
         self.name = 'remotefolder_loader'
 
     def run(self, args, inputs):
-        from kskp.store import Datum
+        from kskp.core import Datum
         if inputs['i'].type != Datum.RFOLDER_TYPE:
             t = type(inputs['i'])
             raise Exception(f'Remotefolder_loaderの入力にRemote Folder Store以外のデータ型({t})が入力されました')
@@ -661,7 +661,7 @@ class RemoteFolderSaverCommand(SaverCommand):
         self.o_ports = [Port('o', 'mcmd')]
 
     def run(self, args, inputs):
-        from kskp.store import Datum
+        from kskp.core import Datum
         if inputs['store'].type != Datum.RFOLDER_TYPE:
             t = type(inputs['store'])
             raise Exception(f'RemoteFolderSaverの入力にRemoteFolderStore以外のデータ型({t})が入力されました')

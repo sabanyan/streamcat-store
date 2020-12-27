@@ -50,6 +50,6 @@ class TestCaseBase(unittest.TestCase):
         cls.factory2.close()
         cls.factory3.close()
         # スキーマを破棄する
-        from kskp.store import engine, SCHEMA_NAME
+        from kskp.core import engine, SCHEMA_NAME
         from sqlalchemy import DDL
         engine.execute(DDL(f'DROP SCHEMA IF EXISTS {SCHEMA_NAME} CASCADE'))

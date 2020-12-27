@@ -46,7 +46,7 @@ class Session():
     def execute(self, sql):
         # テスト実行で二つのSessionを用いた時、片方のSessionで
         # search_pathが設定されないので、execute()の度に設定することにする
-        from kskp.store import _is_unittest, SCHEMA_NAME
+        from kskp.core import _is_unittest, SCHEMA_NAME
         if _is_unittest():
             # カレントスキーマを設定する
             # (コミットされると、セッションが終了するまでその設定が持続する)

@@ -1,5 +1,6 @@
 from kskp.core import Datum, Constraints
-from kskp.store import Store, DatabaseConn
+from .store import Store
+from .database_conn import DatabaseConn
 
 class Database(Store):
     """

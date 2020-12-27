@@ -1,8 +1,9 @@
 from typing import Union
 from sqlalchemy.orm.exc import NoResultFound
 from kskp.core import Datum
-from kskp.store.folder import Folder
-from kskp.store.trashcan import TrashCan
+from kskp.store import Folder
+from kskp.store import TrashCan
+
 
 class Factory():
     """
@@ -10,7 +11,7 @@ class Factory():
     """
     def __init__(self, user=None):
         from sqlalchemy.orm import sessionmaker
-        from kskp.store import engine
+        from kskp.core import engine
         from kskp.store.auth.authz_session import AuthzSession
 
         # セッションを生成する
@@ -67,10 +68,10 @@ class Factory():
 
 
 class UnAuthzFactory():
-    
+
     def __init__(self):
         from sqlalchemy.orm import sessionmaker
-        from kskp.store import engine
+        from kskp.core import engine
         from kskp.store.auth.authz_session import Session
 
         # セッションをつくる
@@ -443,6 +444,8 @@ class DatumFactory():
 
         return len([result for result in results]) > 0
 
+from kskp.store import Store
+
 class StoreFactory():
 
     def __init__(self, session):
@@ -764,3 +767,4 @@ class UserFactory():
             return query.filter(User.state.notin_(except_states))
         else:
             raise Exception(f'except_statesにはNoneかlist型を指定してください')
+

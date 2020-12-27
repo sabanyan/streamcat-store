@@ -1,5 +1,5 @@
 from kskp.core import Datum
-from kskp.store import Folder
+from .folder import Folder
 
 class TrashCan(Folder):
 

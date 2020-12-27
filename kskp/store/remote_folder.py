@@ -1,5 +1,7 @@
 from kskp.core import Datum, Constraints
-from kskp.store import Folder, RemoteFolderConn, Mountable
+from .folder import Folder
+from .mountable import Mountable
+from .remote_folder_conn import RemoteFolderConn
 
 # 
 # TODO: 継承元をFolderからStoreに変更する。
