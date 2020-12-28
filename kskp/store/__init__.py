@@ -30,11 +30,6 @@ from .remote_folder_conn import RemoteFolderConn
 from .remote_folder import RemoteFolder
 from .flow_dumper import FlowDumper
 
-# 
-# TODO: SAWarning: Reassigning polymorphic association for identity を引き起こしている
-# 
-from .library import Library
-
 
 # from sqlalchemy import event, DDL, exc
 

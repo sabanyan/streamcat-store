@@ -2,11 +2,10 @@ import os
 import unittest
 import uuid
 import pprint
-from pathlib import Path
 from datetime import datetime
 
 from kskp.core import Datum
-from kskp.store import RemoteFolderConn, Library
+from kskp.store import RemoteFolderConn
 from .test_case_base import TestCaseBase
 
 class LibraryTest(TestCaseBase):
@@ -454,6 +453,7 @@ class LibraryTest(TestCaseBase):
         """
         AWS S3フォルダを取得する
         """
+        from kskp.store.library import Library
         try:
             # ルートデータストアを取得する
             root = self.factory.data.load_root()
@@ -481,6 +481,7 @@ class LibraryTest(TestCaseBase):
         """
         AWS S3フォルダのラベルを変更する
         """
+        from kskp.store.library import Library
         try:
             # ルートデータストアを取得する
             root = self.factory.data.load_root()
@@ -511,6 +512,7 @@ class LibraryTest(TestCaseBase):
         """
         AWS S3フォルダを作成する
         """
+        from kskp.store.library import Library
         try:
             # ルートデータストアを取得する
             root = self.factory.data.load_root()
