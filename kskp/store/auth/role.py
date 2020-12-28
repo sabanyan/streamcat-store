@@ -1,9 +1,8 @@
-import os
 import uuid
 from sqlalchemy import Column, String
 from sqlalchemy.dialects.postgresql import INTEGER, BOOLEAN, UUID
-from . import BaseModel
 from .user_role import UserRole
+from . import BaseModel
 
 class Role(BaseModel):
 
