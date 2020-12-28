@@ -1,6 +1,6 @@
 from kskp.core import Datum, Constraints
+from .lock import lock_required
 from .flow_data import FlowData
-from kskp.store.lock import lock_required
 
 class Flow(Datum):
 
