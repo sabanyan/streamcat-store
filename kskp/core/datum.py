@@ -285,15 +285,6 @@ class Datum(BaseModel):
         return self._session.query(Datum)\
                             .filter(Datum.id==self.parent_id).one()
 
-    def get_flow_path(self):
-        """
-        対象のflowのパスを取得する
-        """
-        flow_path = self.find_parent().get_folder_path()
-        return '/' + '/'.join([flow.get('label') for flow in flow_path]) + '/' + self.label
-
-
-
     def find_my_project(self):
         """
         自分のプロジェクトを取得する

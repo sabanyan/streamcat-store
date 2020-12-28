@@ -3,9 +3,8 @@ import os
 import sys
 import nysol.mcmd as nm
 
-from kskp.store import KSKPBaseModel, NysolModule, Datum, Store, Frame, Flow, Folder, List
+from kskp.store import NysolModule, Datum, Store, Frame, List
 from kskp.core import Command, Port
-from flask import g
 
 class SCommand(Command):
     pass
@@ -944,15 +943,70 @@ class AssertCommand(SCommand):
         self.o_ports = [Port('o', 'mcmd')]
         
     def run(self, args, inputs):
-        from itertools import zip_longest
 
-        flow = args['flow']
+        from kskp.store import KSKPBaseModel
 
-        def create_diff_list(dlimit):
+        def write_to_file(inputs, port_name, output_path):
+            """
+            一時ファイルへフローの結果を書き出し
+            エラー発生もここで確認する
+            """
+            # 入力値
+            input = inputs[port_name]
+
+            result = {}
+            is_exs = False
+            nysol_cmd = None
+
+            if isinstance(input, Exception):
+                result = [input]
+                is_exs = True
+            elif isinstance(input, (NysolModule, List)):
+                # RunsCommand を確認したら、実行結果にエラーがない場合にはframeが返却され、エラーが発生した場合はlistが返却される
+                # この後の型による分岐で、エラーのもののみの対応を行っているの問題はないのでは
+                nysol_cmd = input.content
+                nysol_cmd <<= nm.m2tee(o=output_path.as_posix())
+                result = RunsCommand().run({}, {port_name:NysolModule(nysol_cmd)})[port_name]
+            else:
+                raise Exception("入力ポート" + port_name + "に <type: " + str(type(input)) + " >は対応していません")
+
+            # i_portからの出力がエラーであることを判定する
+            if isinstance(result, list):
+                is_exs = True
+            elif result.has_exs:
+                result = result.exs
+                is_exs = True
+            
+            # もしエラーが発生していたら、それまでの出力に関わらずエラー文章を比較対象とする。
+            if is_exs:
+                # エラーメッセージを一時ファイルへ書き出す
+                with output_path.open(mode="w")as f:
+                    exs_list = [str(x).strip().replace("\n", "") for x in result]
+                    f.write('\n'.join(exs_list))  
+                
+            return is_exs
+
+        def create_diff_list(i_output_path, m_output_path, i_is_exs, m_is_exs, dlimit):
             """
             2ファイル間での差分取得を行う
             dlimitは差分検出上限数、これを超えたら全体が間違っていると判断する
+            NOTE: 2入力のrunfuncが作成できるか不明なため、この差分取得関数はrunfuncで実行しないこととした
             """
+            def escape_csv(val_list):
+                """
+                AssertCommandの出力項目の中に、入力i,mのデータを行１つ分出力する項目があり、
+                AssertCommandの出力データが、入力i,mのcsv文章中のコンマや改行のような特殊文字によって壊れることを、
+                ダブルクォーテーションを設定するエスケープ 処理によって防ぐ
+                """
+                escaped_list = []
+                for val in val_list:
+                    ret = val.strip().replace("\"", "\"\"")
+                    ret = "\"" + ret + "\""
+                    escaped_list.append(ret)
+                return escaped_list
+        
+            from itertools import zip_longest
+
             diff_list = []
             with i_output_path.open()as i_tmp:
                 with m_output_path.open()as m_tmp:
@@ -983,155 +1037,107 @@ class AssertCommand(SCommand):
                             row_number += 1
             return diff_list
 
-        def escape_csv(val_list):
-            """
-            AssertCommandの出力項目の中に、入力i,mのデータを行１つ分出力する項目があり、
-            AssertCommandの出力データが、入力i,mのcsv文章中のコンマや改行のような特殊文字によって壊れることを、
-            ダブルクォーテーションを設定するエスケープ 処理によって防ぐ
-            """
-            escaped_list = []
-            for val in val_list:
-                ret = val.strip().replace("\"", "\"\"")
-                ret = "\"" + ret + "\""
-                escaped_list.append(ret)
-            return escaped_list
-
-        def diff_csv_maker(res_diff):
+        def format_to_csv(diff_list, parent_path):
             """
             差分取得の処理結果をもとに、コマンドとしての返却データを作成
             runfuncを使用した場合、対象のコマンドでは標準出力にcsv形式のデータを渡す必要がある。（逆に、runfuncに対して、return を通してデータを返さない）
             """
-            # NysolPythonのrunfunc関数の出力は標準出力を使用する、
-            # その出力のタイミングを確定させる
-            sys.stdout.flush()
+            try:
+                # NysolPythonのrunfunc関数の出力は標準出力を使用する、
+                # その出力のタイミングを確定させる
+                sys.stdout.flush()
 
-            # 出力データの列
-            output_columns = [
-                "フロー名", # テスト対象フローのラベル名
-                "フローUUID", # テスト対象フローのuuid
-                "フローのパス", # KSKP上での、テスト対象フローまでのパス
-                "実行日時", # 実行日時
-                "テストポイントID", # assert commandの出力先ポイント
-                "テスト成功", # ２つの入力が正しい値であるか
-                "エラー発生", # テスト対象のデータにエラーメッセージが含まれているか
-                "行番号", # 各入力における、csv情報が違う行番号
-                "入力iのデータ", # i_portのdiff_row_number 行目を抜き出す
-                "入力mのデータ" # m_portのdiff_row_number 行目を抜き出す
-            ]
+                # 出力データの列
+                output_columns = [
+                    "フロー名", # テスト対象フローのラベル名
+                    "フローUUID", # テスト対象フローのuuid
+                    "フローのパス", # KSKP上での、テスト対象フローまでのパス
+                    "実行日時", # 実行日時
+                    "テストポイントID", # assert commandの出力先ポイント
+                    "テスト成功", # ２つの入力が正しい値であるか
+                    "エラー発生", # テスト対象のデータにエラーメッセージが含まれているか
+                    "行番号", # 各入力における、csv情報が違う行番号
+                    "入力iのデータ", # i_portのdiff_row_number 行目を抜き出す
+                    "入力mのデータ" # m_portのdiff_row_number 行目を抜き出す
+                ]
 
-            print(",".join(output_columns))
+                # CSVヘッダ行を出力する
+                print(",".join(output_columns))
 
-            # 各カラムパラメータ定義
-            flow_label = args["flow_label"]
-            flow_uuid = args["flow_uuid"]
-            date = KSKPBaseModel.datetime_to_local_time_str(args['start_time'])
-            point_id = args['asserted_point']
-            is_true = False
-            raise_exs = i_is_exs or m_is_exs
+                # return
 
+                # 各カラムパラメータ定義
+                flow_label = args["flow_label"]
+                flow_uuid = args["flow_uuid"]
+                # フローの親フォルダのパス
+                flow_path = parent_path + '/' + flow_label
+                date = KSKPBaseModel._datetime_to_local_time_str(args['start_time'])
+                point_id = args['asserted_point']
+                is_true = False
+                raise_exs = i_is_exs or m_is_exs
 
-            # is_trueの判定 と diffの出力
-            if res_diff == [] or res_diff == None:
-                is_true = "True"
-                diff = ["","",""]
-            else:
-                is_true = "False"
-                diff = res_diff
-
-            output_datas = [
-                flow_label,
-                flow_uuid,
-                flow_path,
-                date,
-                point_id,
-                is_true,
-                raise_exs
-            ]
-
-
-            # csv出力処理
-            if isinstance(diff, list):
-                if isinstance(diff[0], list):
-                    for output_diff in diff:
-                        row_data = output_datas + output_diff
-                        data_str = ",".join(map(str, row_data))
-                        print(data_str)
+                # is_trueの判定 と diffの出力
+                if diff_list == [] or diff_list == None:
+                    is_true = "True"
+                    diff = ["","",""]
                 else:
-                    print(",".join(map(str, output_datas)) + "," + ",".join(map(str, diff)))
-            else:
-                output_datas.append(diff)
-                print(output_datas)
-            
-            # NysolPythonのrunfunc関数の出力は標準出力を使用する、
-            # その出力のタイミングを確定させる
-            sys.stdout.flush()
-            
+                    is_true = "False"
+                    diff = diff_list
 
-        # 一時ファイルへフローの結果を書き出し
-        # エラー発生もここで確認する
-        def output_err_msg(input_data, output_path, port):
-            result = {}
-            is_exs = False
-            nysol_cmd = None
+                output_datas = [
+                    flow_label,
+                    flow_uuid,
+                    flow_path,
+                    date,
+                    point_id,
+                    is_true,
+                    raise_exs
+                ]
 
-
-            if isinstance(input_data, Exception):
-                result = [input_data]
-                is_exs = True
-            elif isinstance(input_data, (NysolModule, List)):
-                # RunsCommand を確認したら、実行結果にエラーがない場合にはframeが返却され、エラーが発生した場合はlistが返却される
-                # この後の型による分岐で、エラーのもののみの対応を行っているの問題はないのでは
-                nysol_cmd = input_data.content
-                nysol_cmd <<= nm.m2tee(o=output_path.as_posix())
-                result = RunsCommand().run({}, {port:NysolModule(nysol_cmd)})[port]
-            else:
-                raise Exception("入力ポート" + port + "に <type: " + str(type(input_data)) + " >は対応していません")
-
-            # i_portからの出力がエラーであることを判定する
-            if isinstance(result, list):
-                is_exs = True
-            elif result.has_exs:
-                result = result.exs
-                is_exs = True
-            
-            # もしエラーが発生していたら、それまでの出力に関わらずエラー文章を比較対象とする。
-            if is_exs:
-                # エラーメッセージを一時ファイルへ書き出す
-                with output_path.open(mode="w")as f:
-                    exs_list = [str(x).strip().replace("\n", "") for x in result]
-                    f.write('\n'.join(exs_list))  
+                # csv出力処理
+                if isinstance(diff, list):
+                    if isinstance(diff[0], list):
+                        for output_diff in diff:
+                            row_data = output_datas + output_diff
+                            data_str = ",".join(map(str, row_data))
+                            print(data_str)
+                    else:
+                        print(",".join(map(str, output_datas)) + "," + ",".join(map(str, diff)))
+                else:
+                    output_datas.append(diff)
+                    print(output_datas)
                 
-            return is_exs
+                # NysolPythonのrunfunc関数の出力は標準出力を使用する、
+                # その出力のタイミングを確定させる
+                sys.stdout.flush()
+            
+            except Exception as e:
+                with open('/dev/stderr', 'w') as fpe:
+                    import traceback
+                    traceback.print_exc(file=fpe)
 
         if 'i' not in inputs:
             raise Exception('AssertCommandの入力ポートiに値が入力されていません')
         if 'm' not in inputs:
             raise Exception('AssertCommandの入力ポートmに値が入力されていません')
 
-
-        # # それぞれの入力portで与えられたデータの一時書き出し先
+        # それぞれの入力portの処理結果の一時書き出し先ファイル
         from kskp.core import Tmp
         i_output_path = Tmp.create_file()
         m_output_path = Tmp.create_file()
-
-        # それぞれの入力portがエラーを持つかどうかのフラグ
-        i_is_exs = False
-        m_is_exs = False
         
-        # 出力を一時ファイルに書き出し、その出力がエラー出力であるかどうかを返す
-        i_is_exs =  output_err_msg(inputs['i'], i_output_path, 'i')
-        m_is_exs =  output_err_msg(inputs['m'], m_output_path, 'm')
+        # それぞれの入力portの処理結果を一時ファイルに出力する
+        # 処理中に例外が送出された場合はTrueを返す
+        i_is_exs = write_to_file(inputs, 'i', i_output_path)
+        m_is_exs = write_to_file(inputs, 'm', m_output_path)
 
-        # 親フォルダの情報を取得
-        flow_path = flow.get_flow_path()
+        # それぞれの入力portから得られたCSVを比較し、その差分を取得する
+        diff_list = create_diff_list(i_output_path, m_output_path, i_is_exs, m_is_exs, args["dlimit"])
+        
+        # フローの親フォルダのパスを取得する
+        # NOTE: runfunc内でDBにアクセスすると、psycopg2.OperationalErrorが送出される
+        parent_path = args['flow'].folder_path
 
-        # 作成した一時ファイルから差分を算出する
-        new_cmd_list = None
-
-        # 差分の取得を行う
-        res_diff = None
-        res_diff = create_diff_list(args["dlimit"])
-
-        # csvデータの出力を行う
-        new_cmd_list <<= nm.runfunc(diff_csv_maker, res_diff=res_diff)
-        return {'o': NysolModule(new_cmd_list)}# PCommandの方法を参照
+        # 差分をCSVで出力する
+        cmd = nm.runfunc(format_to_csv, diff_list=diff_list, parent_path=parent_path)
+        return {'o': NysolModule(cmd)}
