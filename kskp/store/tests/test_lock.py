@@ -3,7 +3,7 @@ import unittest
 import uuid
 import pprint
 
-from kskp.store.lock import LockManager, LockedDatumException
+from ..lock import LockManager, LockedDatumException
 from .test_case_base import TestCaseBase
 
 class LockManagerTest(TestCaseBase):

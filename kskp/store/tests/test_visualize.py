@@ -614,8 +614,7 @@ class ExecuteViualizeTestCase(unittest.TestCase):
             df_dict['-'.join(map(str, list(result.values())))] = _df
         return df_dict
 def create_data(file_path_obj, data=None):
-    """;
-
+    """
     テストデータ作成用
     frameのuuidが返る
     """

@@ -1,4 +1,3 @@
-import nysol.mcmd as nm
 
 def copy_nm(nysol_module, number):
     """
