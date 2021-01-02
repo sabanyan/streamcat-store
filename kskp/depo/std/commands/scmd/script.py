@@ -944,8 +944,6 @@ class AssertCommand(SCommand):
         
     def run(self, args, inputs):
 
-        from kskp.store import KSKPBaseModel
-
         def write_to_file(inputs, port_name, output_path):
             """
             一時ファイルへフローの結果を書き出し
@@ -1042,6 +1040,8 @@ class AssertCommand(SCommand):
             差分取得の処理結果をもとに、コマンドとしての返却データを作成
             runfuncを使用した場合、対象のコマンドでは標準出力にcsv形式のデータを渡す必要がある。（逆に、runfuncに対して、return を通してデータを返さない）
             """
+            from kskp.store import KSKPBaseModel
+
             try:
                 # NysolPythonのrunfunc関数の出力は標準出力を使用する、
                 # その出力のタイミングを確定させる
