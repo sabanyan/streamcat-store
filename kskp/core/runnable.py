@@ -1,16 +1,13 @@
 """
 コマンドと、それに関係するクラスを定義したモジュール
 """
-
-
 from enum import Enum, auto
-from kskp.core import Datum
+from . import Datum
 
 class Command(Datum):
     """
     実行(run)可能な最小単位。
     """
-
     def __init__(self):
         super().__init__(None, None, 'command', self.__class__.__name__)
         self.i_ports = []
@@ -34,7 +31,6 @@ class Port:
     runnableなクラス(CommandやFlow)にそれぞれ、
     入力はi_ports属性・出力はo_ports属性として使われる
     """
-
     def __init__(self, name, port_type):
         self.name = name
         self.type = port_type
@@ -51,7 +47,6 @@ class Parameter:
     :param caption: このパラメータを表す短いタイトル。GUI上でのラベルとして使われる。
                     オプショナルで、未指定だとnameと同じになる。
     """
-
     class WidgetType(Enum):
         """
         パラメータ値の分類を表す。
@@ -59,7 +54,6 @@ class Parameter:
         この値によってGUI上で使われる部品が変化することを想定している
         """
         TEXTBOX = auto()
-
 
     def __init__(self, name, caption=None):
         assert name is not None and name != '', 'nameは必須です'
