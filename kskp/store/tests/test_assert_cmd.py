@@ -699,6 +699,99 @@ class ExecuteAssertCmdFlow(TestCaseBase):
         ]
     }
 
+    dlimit_overred_json = {
+        "label": "テストフロ",
+        "ports": [
+            [],
+            []
+        ],
+        "params": [],
+        "description": "",
+        "nodes": [
+            {
+                "id": "d",
+                "type": "frame",
+                "error": {},
+                "label": "テストデータ1",
+                "dataSource": "csv"
+            },
+            {
+                "id": "c",
+                "args": {
+                    "I": "1",
+                    "S": "100",
+                    "a": "column2",
+                    "l": "10"
+                },
+                "dsts": {
+                    "o": "d"
+                },
+                "srcs": {},
+                "type": "command",
+                "error": {},
+                "label": "c",
+                "commandId": "mnewnumber",
+                "srcsOrder": []
+            },
+            {
+                "id": "d1",
+                "type": "frame",
+                "error": {},
+                "label": "テストデータ2",
+                "dataSource": "csv"
+            },
+            {
+                "id": "c1",
+                "args": {
+                    "I": "1",
+                    "S": "1",
+                    "a": "column1",
+                    "l": "10"
+                },
+                "dsts": {
+                    "o": "d1"
+                },
+                "srcs": {},
+                "type": "command",
+                "error": {},
+                "label": "c1",
+                "commandId": "mnewnumber",
+                "srcsOrder": []
+            },
+            {
+                "id": "d2",
+                "type": "frame",
+                "error": {},
+                "label": "d2",
+                "dataSource": "csv"
+            },
+            {
+                "id": "c2",
+                "args": {
+                    "dlimit": "10"
+                },
+                "dsts": {
+                    "o": "d2"
+                },
+                "srcs": {
+                    "i": "d1",
+                    "m": "d"
+                },
+                "type": "command",
+                "error": {},
+                "label": "c2",
+                "commandId": "assert",
+                "srcsOrder": [
+                    "i",
+                    "m"
+                ]
+            }
+        ]
+    }
+
+
+
+
     @classmethod
     def setUpClass(cls):
         # 親クラスのsetUpClass()を実行する
@@ -1097,6 +1190,53 @@ class ExecuteAssertCmdFlow(TestCaseBase):
 
         # 後片付け
         lasts['d2'].delete()
+
+    # @unittest.skip
+    def test_dlimit_overred_assert(self):
+        """
+        assert_commandの処理の途中で出力不一致行の検出上限を超えた時、検出処理を途中で辞め、
+        出力でその旨を通知することと、テスト失敗の判定が出ることを期待する。
+        エラー判定はfalse     
+        """
+        json_flow = copy.deepcopy(self.dlimit_overred_json)
+        json_flow['ports'] = [[],[{'nodeId':'d2', 'label':'d2', 'type':'frame'}]]
+
+        flow = self.root.create_flow(json_flow['label'], FlowData(json_flow))
+        flow_link = FlowJsonLink(flow, self.factory)
+        lasts = execute(flow_link, {}, {})
+        lasts = convert_from_activity(lasts)
+
+        # # 正解データ内のuuid, タイムスタンプはダミー、テスト実行時には、毎回変動するので、出力がされているかどうかのみ確認する
+        corrects = {'d2': [
+            ['テストフロ','cb4cf7ad-44de-4df9-a7b7-a4d5a4201d81','/ライブラリ/テストフロ','0000-00-00 00:00:00.000000+00:00','d2','False','False','None','<出力不一致である行数が 10 件を超えました>','<出力不一致である行数が 10 件を超えました>']
+        ]}
+        # テスト
+        # DBにframeデータが生成されているか
+        self.assertIsNotNone(self.factory.data.exists(lasts['d2'].uuid))
+        # 実ファイルが指定ディレクトリに存在するか
+        results = self.get_frame_by_uuid(lasts['d2'].uuid)
+
+        results, corrects['d2'] = self.check_equal(results, corrects['d2'])
+
+        # 出力の一致を確認
+        self.assertEqual(len(results), len(corrects['d2']))
+        for result,correct in zip(results, corrects['d2']):
+            self.assertEqual(len(result), len(correct))
+
+            self.assertEqual(result[0], correct[0])
+            self.assertIsNotNone(result[1])
+            self.assertEqual(result[2], correct[2])
+            self.assertIsNotNone(result[3])
+            self.assertEqual(result[4], correct[4])
+            self.assertEqual(result[5], correct[5])
+            self.assertEqual(result[6], correct[6])
+            self.assertEqual(result[7], correct[7])
+            self.assertEqual(result[8], correct[8])
+            self.assertEqual(result[9], correct[9])
+
+        # 後片付け
+        lasts['d2'].delete()
+
 
 
     def check_equal(self, result, correct):

@@ -1006,6 +1006,7 @@ class AssertCommand(SCommand):
             from itertools import zip_longest
 
             diff_list = []
+            error_limit = 0
             with i_output_path.open()as i_tmp:
                 with m_output_path.open()as m_tmp:
                     row_number = None
@@ -1031,6 +1032,10 @@ class AssertCommand(SCommand):
                             escaped_list = escape_csv([i_row, m_row])
                             diff_row.extend(escaped_list)
                             diff_list.append(diff_row)
+                            error_limit += 1
+                            if error_limit > dlimit:
+                                limit_message = "<出力不一致である行数が " + str(dlimit) + " 件を超えました>"
+                                return [[ None, limit_message, limit_message]]
                         if isinstance(row_number, int):
                             row_number += 1
             return diff_list
@@ -1121,6 +1126,17 @@ class AssertCommand(SCommand):
         if 'm' not in inputs:
             raise Exception('AssertCommandの入力ポートmに値が入力されていません')
 
+        # オプションの値が正常であるかを処理前に判定
+        # dlimit : エラー検知上限数 -> 整数
+        # dlimit未入力の場合、上限を10に設定
+        dlimit = args["dlimit"]
+        if dlimit.isdecimal():
+            dlimit = int(dlimit)
+        elif dlimit == "":
+            dlimit == 10
+        else:
+            raise Exception("dlimitには0以上の整数を指定してください")
+
         # それぞれの入力portの処理結果の一時書き出し先ファイル
         from kskp.core import Tmp
         i_output_path = Tmp.create_file()
@@ -1132,7 +1148,7 @@ class AssertCommand(SCommand):
         m_is_exs = write_to_file(inputs, 'm', m_output_path)
 
         # それぞれの入力portから得られたCSVを比較し、その差分を取得する
-        diff_list = create_diff_list(i_output_path, m_output_path, i_is_exs, m_is_exs, args["dlimit"])
+        diff_list = create_diff_list(i_output_path, m_output_path, i_is_exs, m_is_exs, dlimit)
         
         # フローの親フォルダのパスを取得する
         # NOTE: runfunc内でDBにアクセスすると、psycopg2.OperationalErrorが送出される
