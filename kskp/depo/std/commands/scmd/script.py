@@ -1039,7 +1039,7 @@ class AssertCommand(SCommand):
 
                             # エラー検知上限数を超えたら検出処理を途中でやめ、各差分情報の代わりに上限超えの旨を出力情報にする
                             if diff_limit > dlimit:
-                                limit_message = "<出力不一致である行数が " + str(dlimit) + " 件を超えました>"
+                                limit_message = "<出力不一致である行数が、dlimit指定の上限 " + str(dlimit) + " 件を超えました>"
                                 return [[None, limit_message, limit_message]]
                         if isinstance(row_number, int):
                             row_number += 1
