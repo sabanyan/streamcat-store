@@ -1005,8 +1005,11 @@ class AssertCommand(SCommand):
         
             from itertools import zip_longest
 
+            # 差分情報格納
             diff_list = []
-            error_limit = 0
+            # 差分取得総数の取得
+            diff_limit = 0
+
             with i_output_path.open()as i_tmp:
                 with m_output_path.open()as m_tmp:
                     row_number = None
@@ -1032,10 +1035,12 @@ class AssertCommand(SCommand):
                             escaped_list = escape_csv([i_row, m_row])
                             diff_row.extend(escaped_list)
                             diff_list.append(diff_row)
-                            error_limit += 1
-                            if error_limit > dlimit:
+                            diff_limit += 1
+
+                            # エラー検知上限数を超えたら検出処理を途中でやめ、各差分情報の代わりに上限超えの旨を出力情報にする
+                            if diff_limit > dlimit:
                                 limit_message = "<出力不一致である行数が " + str(dlimit) + " 件を超えました>"
-                                return [[ None, limit_message, limit_message]]
+                                return [[None, limit_message, limit_message]]
                         if isinstance(row_number, int):
                             row_number += 1
             return diff_list
