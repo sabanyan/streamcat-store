@@ -97,7 +97,6 @@ class AuthzSession(Session):
         """
         import inspect
         from sqlalchemy.orm import with_expression
-        from sqlalchemy.sql.expression import literal_column
         from kskp.core import Datum
         from .authz_query import Query, AuthzDatumQuery
 
@@ -121,7 +120,10 @@ class AuthzSession(Session):
             select_parent_uuid = self._make_select_parent_uuid()
 
             # Datumのフォルダパスを取得する
-            select_folder_path = self._make_select_folder_path()
+            select_folder_path = self._make_select_folder_path(Datum.parent_id)
+
+            # Datumの移動前のフォルダパスを取得する
+            select_prev_folder_path = self._make_select_folder_path(Datum.prev_parent_id)
 
             # read=TrueのDatumのみ抽出する
             # exists_readable = self._make_exists_readable()
@@ -131,7 +133,8 @@ class AuthzSession(Session):
                                   options(with_expression(Datum._permissions, select_permissions.label('permissions'))).\
                                   options(with_expression(Datum._ownership, select_ownership.label('ownership'))).\
                                   options(with_expression(Datum._parent_uuid, select_parent_uuid.label('parent_uuid'))).\
-                                  options(with_expression(Datum._folder_path, select_folder_path.label('folder_path')))
+                                  options(with_expression(Datum._folder_path, select_folder_path.label('folder_path'))).\
+                                  options(with_expression(Datum._prev_folder_path, select_prev_folder_path.label('prev_folder_path')))
 
             return AuthzDatumQuery(query, self)
 
@@ -140,9 +143,8 @@ class AuthzSession(Session):
             return Query(query, self)
 
     def _make_select_permissions(self):
-        from sqlalchemy.sql.expression import select, literal_column, text
-        from kskp.core import Datum
-
+        from sqlalchemy.sql.expression import select, literal_column
+        
         select_stmt = self._make_select_permissions_inner().as_scalar()
 
         # SELECT句内にWITH句を記述する必要があるが、SQLAlchemyではそれができないようだ
@@ -319,7 +321,7 @@ class AuthzSession(Session):
                       where(D.id==datum_parent_id_column)
         return select_stmt
 
-    def _make_select_folder_path(self):
+    def _make_select_folder_path(self, datum_parent_id):
         """
         Datumのフォルダパスを取得する
         """
@@ -330,7 +332,7 @@ class AuthzSession(Session):
 
         # 相関条件を記述するとSQLAlchemyがFROM句にdataテーブルを追加するので、
         # それを回避するためtextで記述する
-        datum_parent_id_column = text(str(Datum.parent_id.compile()))
+        datum_parent_id_column = text(str(datum_parent_id.compile()))
 
         # label : 検索対象Datumのlabel
         # id    : 検索対象DatumからRootDatumへの経路の全てのDatumのid
