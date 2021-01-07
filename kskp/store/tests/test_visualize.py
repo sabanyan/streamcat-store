@@ -7,13 +7,12 @@ import pandas as pd
 pp = pprint.PrettyPrinter(depth=6)
 
 from pathlib import Path
-from kskp.store import Library, CommandLink
-from kskp.store import NysolModule
+# from kskp.store import Library
+from kskp.depo.std.commands import CommandLink
 from bokeh.plotting import figure
 from bokeh.palettes import Dark2_5 as palette
-from bokeh.models import HoverTool, Select, Legend, ColumnDataSource
 from bokeh.layouts import gridplot
-from bokeh.plotting import figure, output_file, show
+from bokeh.plotting import figure
 import itertools
 
 @unittest.skip('test_vcmdに移行する')
@@ -615,8 +614,7 @@ class ExecuteViualizeTestCase(unittest.TestCase):
             df_dict['-'.join(map(str, list(result.values())))] = _df
         return df_dict
 def create_data(file_path_obj, data=None):
-    """;
-
+    """
     テストデータ作成用
     frameのuuidが返る
     """

@@ -1,6 +1,6 @@
 # ビジュアライズコマンド
-from kskp.core import Command, Port
 import nysol.mcmd as nm
+from kskp.core import Command, Port
 
 ErrMsg={
         '1': "VisualizeInitException"
@@ -141,10 +141,13 @@ class VisualizersBokehPlot(VisualizersCommand):
         return 600
 
 # グラフ化に必要なものの準備
+# 
+# これらのImportは、テストスクリプトの実行時に、以下のWarningを出力している
+# ImportWarning: can't resolve package from __spec__ or __package__, falling back on __name__ and __path__
+# 
 import pandas as pd
 import numpy as np
 import holoviews as hv
-import nysol.mcmd as nm
 from bokeh.plotting import figure
 from bokeh.embed import components
 from bokeh.palettes import Dark2_5 as palette
@@ -773,7 +776,6 @@ class CsvToRepetitivieWaveCommand(VisualizersBokehPlot):
 
         return result_df
 
-
 class CsvToTimeCompressionCommand(VisualizersBokehPlot):
 
     def __init__(self):
@@ -939,3 +941,4 @@ class CsvToTimeCompressionCommand(VisualizersBokehPlot):
         result_df = pd.DataFrame(result,columns=name)
 
         return result_df
+

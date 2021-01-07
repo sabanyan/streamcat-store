@@ -1,4 +1,5 @@
-from kskp.store import Flow, FlowData
+from .flow import Flow
+from .flow_data import FlowData
 
 class DataSource(Flow):
     def __init__(self, session, parent, label, store, loader_step):

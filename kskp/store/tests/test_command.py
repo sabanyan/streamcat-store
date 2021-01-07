@@ -1,12 +1,7 @@
-import os
 import unittest
-import json
-import uuid
-import pprint
-from pathlib import Path
-from datetime import datetime
 
-from kskp.store import Library, Flow, FlowData, SCHEMA_NAME
+from kskp.core import SCHEMA_NAME
+from kskp.store import Flow, FlowData
 from kskp.engine import execute, FlowJsonLink, FlowLinkContext
 from .test_case_base import TestCaseBase
 
@@ -18,7 +13,7 @@ class CommandTest(TestCaseBase):
         TestCaseBase.setUpClass()
 
         # テスト用テーブルを作成する
-        from kskp.store import engine
+        from kskp.core import engine
         from sqlalchemy import DDL
         create_table = f"""
         CREATE TABLE IF NOT EXISTS {SCHEMA_NAME}.test (
@@ -105,13 +100,14 @@ class CommandTest(TestCaseBase):
 
         correct = {'d': [['1', 'a   ', 'b', '1900-12-31', '1900-12-31 01:01:01.123456', '1:10:00']]}
         # DBにframeデータが生成されているか
-        self.assertIsNotNone(Library.load_frame(lasts['d'].uuid))
+        frame = self.factory.find_by_uuid(lasts['d'].uuid)
+        self.assertIsNotNone(frame)
         # 実ファイルが指定ディレクトリに存在するか
-        result = get_frame_by_uuid(lasts['d'].uuid)
+        result = self.get_frame_by_uuid(lasts['d'].uuid)
         self.assertEqual(result, correct['d'])
 
         # 後片付け
-        Library.delete_frame(lasts['d'].uuid)
+        frame.delete()
 
     flow_json2 = {
         "projectId": None, 
@@ -175,19 +171,19 @@ class CommandTest(TestCaseBase):
         with self.assertRaises(exc.OperationalError):
             lasts = execute(flow_link, {}, {})
 
-# Helpler
-def get_frame_by_uuid(uuid, header=True):
-    """
-    指定したuuidのframeを取得する
-    """
-    import csv
-    result = []
-    frame = Library.load_frame(uuid)
-    with open(frame.path, 'r') as f:
-        rows = csv.reader(f)
-        if header:
-            header = next(rows)
-        for row in rows:
-            result.append(row)
+    # Helpler
+    def get_frame_by_uuid(self, uuid, header=True):
+        """
+        指定したuuidのframeを取得する
+        """
+        import csv
+        result = []
+        frame = self.factory.find_by_uuid(uuid)
+        with open(frame.path, 'r') as f:
+            rows = csv.reader(f)
+            if header:
+                header = next(rows)
+            for row in rows:
+                result.append(row)
 
-    return result
+        return result

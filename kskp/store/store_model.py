@@ -1,8 +1,6 @@
-import os
-
-from sqlalchemy import Column, text
-from sqlalchemy.dialects.postgresql import INTEGER, TIMESTAMP, JSONB, ENUM
-from kskp.store import BaseModel
+from sqlalchemy import Column
+from sqlalchemy.dialects.postgresql import JSONB, ENUM
+from kskp.core import BaseModel
 
 class Store(BaseModel):
     """

@@ -51,7 +51,7 @@ class Constraints():
             # self
             myself = args[0]
 
-            from kskp.core import Datum
+            from .datum import Datum
             from kskp.store import TrashCan
 
             if myself.is_root:
@@ -197,7 +197,7 @@ class Constraints():
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
             from sqlalchemy.orm.exc import NoResultFound
-            from kskp.core import Datum
+            from .datum import Datum
             from kskp.store import Folder, Flow
             from kskp.store.auth import Role
             from kskp.store.factory import DatumFactory, RoleFactory, AuthFactory
@@ -315,7 +315,7 @@ class Constraints():
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
             from sqlalchemy.orm.exc import NoResultFound
-            from kskp.core import Datum
+            from .datum import Datum
             from kskp.store.factory import DatumFactory, RoleFactory, AuthFactory
 
             if func.__name__ != 'move':

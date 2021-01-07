@@ -1,4 +1,4 @@
-from kskp.store import Command, Port, Datum, NysolModule
+from kskp.core import Datum, Command, Port
 
 class Square(Command):
     """

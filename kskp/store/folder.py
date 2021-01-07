@@ -1,7 +1,7 @@
 import os
 
 from kskp.core import Datum, Constraints
-from kskp.store import Store
+from .store import Store
 
 class Folder(Store):
 
@@ -108,7 +108,7 @@ class Folder(Store):
         return trashed_folder
 
     def _throw_away_inner(self, parent, datum):
-        from kskp.store import lock_manager
+        from kskp.store.lock import lock_manager
 
         if isinstance(datum, Folder):
             # フォルダ直下のフォルダとデータベースとドキュメントを取得する

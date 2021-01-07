@@ -3,7 +3,7 @@ import unittest
 import uuid
 import pprint
 
-from kskp.store import LockManager, LockedDatumException
+from ..lock import LockManager, LockedDatumException
 from .test_case_base import TestCaseBase
 
 class LockManagerTest(TestCaseBase):
@@ -159,8 +159,6 @@ class LockManagerTest(TestCaseBase):
             LockRunner(name=str(i)).start()
 
     def test_simulutaneous_lock2(self):
-        from kskp.store import Datum, Folder, Flow
-        from threading import Thread
         class Worker():
             # Lock Managerを作成する
             lock_manager = LockManager(60)

@@ -1,5 +1,5 @@
 from typing import Callable
-from kskp.store import KSKPBaseModel
+from kskp.core import KSKPBaseModel
 
 class DatabaseConn():
     """

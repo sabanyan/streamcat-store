@@ -1,6 +1,6 @@
 
 import functools
-from kskp.store import lock_manager, LockedDatumException
+from . import LockedDatumException, lock_manager
 
 def lock_required(func):
     """

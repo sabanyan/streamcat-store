@@ -16,9 +16,9 @@ class KSKPBaseModel(object):
 
         # 定義先スキーマ
         if schema_name is None:
-            return ()
+            return ({'extend_existing': True},)
         else:
-            return ({'schema': schema_name},)
+            return ({'extend_existing': True, 'schema': schema_name},)
 
     # 
     # モデルクラスに共通の列を定義する

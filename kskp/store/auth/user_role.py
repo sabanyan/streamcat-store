@@ -1,7 +1,6 @@
-import os
-from sqlalchemy import Column, text, PrimaryKeyConstraint
-from sqlalchemy.dialects.postgresql import INTEGER, BOOLEAN, TIMESTAMP
-from kskp.store import BaseModel
+from sqlalchemy import Column, PrimaryKeyConstraint
+from sqlalchemy.dialects.postgresql import INTEGER, BOOLEAN
+from . import BaseModel
 
 class UserRole(BaseModel):
     # テーブル名の定義

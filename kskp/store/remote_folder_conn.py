@@ -57,7 +57,7 @@ class RemoteFolderConn():
         リモートフォルダへの接続コマンドを返す
         """
         if self.protocol == 'smb':
-            from kskp.store import _is_unittest
+            from kskp.core import _is_unittest
             if _is_unittest():
                 # テスト実行では、macOS用のmountコマンドを用いる
                 return f'mount -t smbfs //{self.user_id}:{self.password}@{self.hostname}/{self.directory} {mount_point_path.as_posix()}'

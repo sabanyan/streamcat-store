@@ -2,7 +2,8 @@ import os
 import datetime
 
 # from .abc_command import AbcCommand
-from kskp.store import Datum, Folder, Frame, Flow, Database
+from kskp.core import Datum
+from kskp.store import Folder, Frame, Flow, Database
 
 class ChildrenGetter:
 

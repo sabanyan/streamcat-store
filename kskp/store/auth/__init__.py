@@ -1,6 +1,6 @@
 from sqlalchemy import event, DDL
 
-from kskp.store import engine, BaseModel
+from kskp.core import engine, BaseModel
 
 from .exceptions import NotAuthorizedException, InvalidPassword, NoRoleOwnerException
 from .auth import Auth

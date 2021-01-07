@@ -46,7 +46,7 @@ class Session():
     def execute(self, sql):
         # テスト実行で二つのSessionを用いた時、片方のSessionで
         # search_pathが設定されないので、execute()の度に設定することにする
-        from kskp.store import _is_unittest, SCHEMA_NAME
+        from kskp.core import _is_unittest, SCHEMA_NAME
         if _is_unittest():
             # カレントスキーマを設定する
             # (コミットされると、セッションが終了するまでその設定が持続する)
@@ -97,7 +97,6 @@ class AuthzSession(Session):
         """
         import inspect
         from sqlalchemy.orm import with_expression
-        from sqlalchemy.sql.expression import literal_column
         from kskp.core import Datum
         from .authz_query import Query, AuthzDatumQuery
 
@@ -447,7 +446,10 @@ class AuthzSession(Session):
 
     def update(self, obj, ignore_authz=False):
         from kskp.core import Datum
-        from kskp.store.auth import User, Role, UserRole, Auth
+        from .auth import Auth
+        from .user_role import UserRole
+        from .role import Role
+        from .user import User
 
         if isinstance(obj, Datum):
             # Datumの変更権限を判定する
@@ -495,7 +497,10 @@ class AuthzSession(Session):
 
     def delete(self, obj):
         from kskp.core import Datum
-        from kskp.store.auth import User, Role, UserRole, Auth
+        from .auth import Auth
+        from .user_role import UserRole
+        from .role import Role
+        from .user import User
 
         if isinstance(obj, Datum):
             if self.writable(obj):

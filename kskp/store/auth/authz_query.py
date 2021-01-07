@@ -13,7 +13,7 @@ class Query():
 
     @staticmethod
     def _is_base_model(obj):
-        from kskp.store import KSKPBaseModel
+        from kskp.core import KSKPBaseModel
         return obj is not None and isinstance(obj, KSKPBaseModel)
 
     # @staticmethod

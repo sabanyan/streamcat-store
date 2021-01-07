@@ -1,5 +1,6 @@
 from kskp.core import Datum, Constraints
-from kskp.store import Folder, Mountable
+from .folder import Folder
+from .mountable import Mountable
 
 class AwsS3(Folder, Mountable):
 

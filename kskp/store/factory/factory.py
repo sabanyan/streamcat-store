@@ -1,77 +1,19 @@
 from typing import Union
 from sqlalchemy.orm.exc import NoResultFound
 from kskp.core import Datum
-from kskp.store.folder import Folder
-from kskp.store.trashcan import TrashCan
-
-class Factory():
-    """
-    SQLAlchemyのSessionを保持する(とりあえずこの目的ね)
-    """
-    def __init__(self, user=None):
-        from sqlalchemy.orm import sessionmaker
-        from kskp.store import engine
-        from kskp.store.auth.authz_session import AuthzSession
-
-        # セッションを生成する
-        # ・session.commit()によるExpireでquery_expression()で設定されているreadableがNoneになる
-        # ・これを回避するためexpire_on_commit=Falseとする、autoflush=Falseも必要!
-        # ・session.rollback()によるExprireを回避する方法はない
-        session_maker = sessionmaker(bind=engine, expire_on_commit=False, autoflush=False)
-
-        # セッションを保持する
-        self._session = AuthzSession(session_maker, user)
-
-        self._data = DatumFactory(self._session)
-        self._store = StoreFactory(self._session)
-        self._auth = AuthFactory(self._session)
-        self._role = RoleFactory(self._session)
-        self._user_role = UserRoleFactory(self._session)
-        self._user = UserFactory(self._session)
-
-        # 生成したセッションからUserオブジェクトを取得し、セッションに再設定する
-        self._session.user = self._user.find_by_id(user.id)
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, ex_type, ex_value, trace):
-        self.close()
-
-    def close(self):
-        self._session.close()
-
-    @property
-    def data(self):
-        return self._data
-
-    @property
-    def store(self):
-        return self._store
-
-    @property
-    def auth(self):
-        return self._auth
-
-    @property
-    def role(self):
-        return self._role
-
-    @property
-    def user_role(self):
-        return self._user_role
-
-    @property
-    def user(self):
-        return self._user
+from kskp.store import Folder
+from kskp.store import TrashCan
+from kskp.store.auth import UserRole
+from kskp.store.auth import Role
+from kskp.store.auth import User
 
 
 class UnAuthzFactory():
-    
+
     def __init__(self):
         from sqlalchemy.orm import sessionmaker
-        from kskp.store import engine
         from kskp.store.auth.authz_session import Session
+        from . import engine
 
         # セッションをつくる
         session_maker = sessionmaker(engine)
@@ -157,6 +99,68 @@ class UnAuthzFactory():
 
     def close(self):
         self._session.close()
+
+
+class Factory():
+    """
+    SQLAlchemyのSessionを保持する(とりあえずこの目的ね)
+    """
+    def __init__(self, user=None):
+        from sqlalchemy.orm import sessionmaker
+        from kskp.store.auth.authz_session import AuthzSession
+        from . import engine
+
+        # セッションを生成する
+        # ・session.commit()によるExpireでquery_expression()で設定されているreadableがNoneになる
+        # ・これを回避するためexpire_on_commit=Falseとする、autoflush=Falseも必要!
+        # ・session.rollback()によるExprireを回避する方法はない
+        session_maker = sessionmaker(bind=engine, expire_on_commit=False, autoflush=False)
+
+        # セッションを保持する
+        self._session = AuthzSession(session_maker, user)
+
+        self._data = DatumFactory(self._session)
+        self._store = StoreFactory(self._session)
+        self._auth = AuthFactory(self._session)
+        self._role = RoleFactory(self._session)
+        self._user_role = UserRoleFactory(self._session)
+        self._user = UserFactory(self._session)
+
+        # 生成したセッションからUserオブジェクトを取得し、セッションに再設定する
+        self._session.user = self._user.find_by_id(user.id)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, ex_type, ex_value, trace):
+        self.close()
+
+    def close(self):
+        self._session.close()
+
+    @property
+    def data(self):
+        return self._data
+
+    @property
+    def store(self):
+        return self._store
+
+    @property
+    def auth(self):
+        return self._auth
+
+    @property
+    def role(self):
+        return self._role
+
+    @property
+    def user_role(self):
+        return self._user_role
+
+    @property
+    def user(self):
+        return self._user
 
 
 class DatumFactory():
@@ -443,6 +447,7 @@ class DatumFactory():
 
         return len([result for result in results]) > 0
 
+
 class StoreFactory():
 
     def __init__(self, session):
@@ -469,6 +474,7 @@ class StoreFactory():
         if result is None:
             raise Exception('No store is found by designated store id')
         return result
+
 
 class AuthFactory():
     def __init__(self, session):
@@ -525,8 +531,6 @@ class AuthFactory():
         finally:
             self._session.commit()
 
-
-from kskp.store.auth import Role
 
 class RoleFactory():
     def __init__(self, session):
@@ -607,7 +611,6 @@ class RoleFactory():
         count = self._session.query(Role).filter(Role.uuid==uuid).count()
         return count > 0
 
-from kskp.store.auth import UserRole
 
 class UserRoleFactory():
     def __init__(self, session):
@@ -663,7 +666,6 @@ class UserRoleFactory():
         finally:
             self._session.commit() 
 
-from kskp.store.auth import User
 
 class UserFactory():
     def __init__(self, session):

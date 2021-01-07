@@ -8,7 +8,7 @@ from sqlalchemy import Column, String, text
 from sqlalchemy.sql import operators
 from sqlalchemy.orm import query_expression
 from sqlalchemy.dialects.postgresql import INTEGER, JSONB, ENUM, UUID
-from kskp.store import BaseModel
+from . import BaseModel
 from .constraints import Constraints
 
 class Datum(BaseModel):

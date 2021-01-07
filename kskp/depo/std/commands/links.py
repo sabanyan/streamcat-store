@@ -2,19 +2,19 @@ import json
 from pathlib import Path
 from kskp.core import Command
 
-from kskp.depo.std.commands.mcmd.script import *
-from kskp.depo.std.commands.kcmd.script import *
-from kskp.depo.std.commands.pcmd.script import *
-from kskp.depo.std.commands.scmd.script import *
-from kskp.depo.std.commands.vcmd.script import *
+from .mcmd.script import *
+from .kcmd.script import *
+from .pcmd.script import *
+from .scmd.script import *
+from .vcmd.script import *
 
 class CommandLink:
     """
     コマンド名を解決するリンク
     """
-    from kskp.depo.std.commands.pcmd.square_command import Square
-    from kskp.depo.std.commands.pcmd.groupby2_command import GroupBy2Command
-    from kskp.depo.std.commands.pcmd.iot_command import (
+    from .pcmd.square_command import Square
+    from .pcmd.groupby2_command import GroupBy2Command
+    from .pcmd.iot_command import (
         MissingValueInterpolateCommand,
         MeasurementPeriodIdentifyCommand,
         TimeSeriesDataJoinCommand,
