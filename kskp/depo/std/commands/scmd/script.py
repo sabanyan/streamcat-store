@@ -1009,6 +1009,8 @@ class AssertCommand(SCommand):
             diff_list = []
             # 差分取得総数の取得
             diff_limit = 0
+            # 差分取得上限数超過判定
+            exceed_limit = False
 
             with i_output_path.open()as i_tmp:
                 with m_output_path.open()as m_tmp:
@@ -1039,13 +1041,13 @@ class AssertCommand(SCommand):
 
                             # エラー検知上限数を超えたら検出処理を途中でやめ、各差分情報の代わりに上限超えの旨を出力情報にする
                             if diff_limit > dlimit:
-                                limit_message = "<出力不一致である行数が、差分取得限界数の上限 " + str(dlimit) + " 件を超えました>"
-                                return [[None, limit_message, limit_message]]
+                                exceed_limit = True
+                                break
                         if isinstance(row_number, int):
                             row_number += 1
-            return diff_list
+            return diff_list, exceed_limit
 
-        def format_to_csv(diff_list, parent_path):
+        def format_to_csv(diff_list, parent_path, exceed_limit):
             """
             差分取得の処理結果をもとに、コマンドとしての返却データを作成
             runfuncを使用した場合、対象のコマンドでは標準出力にcsv形式のデータを渡す必要がある。（逆に、runfuncに対して、return を通してデータを返さない）
@@ -1066,6 +1068,7 @@ class AssertCommand(SCommand):
                     "テストポイントID", # assert commandの出力先ポイント
                     "テスト成功", # ２つの入力が正しい値であるか
                     "エラー発生", # テスト対象のデータにエラーメッセージが含まれているか
+                    "差分取得限界数超過", # オプションで指定した差分取得限界数を超えたかどうか
                     "行番号", # 各入力における、csv情報が違う行番号
                     "入力iのデータ", # i_portのdiff_row_number 行目を抜き出す
                     "入力mのデータ" # m_portのdiff_row_number 行目を抜き出す
@@ -1101,7 +1104,8 @@ class AssertCommand(SCommand):
                     date,
                     point_id,
                     is_true,
-                    raise_exs
+                    raise_exs,
+                    exceed_limit
                 ]
 
                 # csv出力処理
@@ -1138,7 +1142,8 @@ class AssertCommand(SCommand):
         if dlimit.isdecimal():
             dlimit = int(dlimit)
         elif dlimit == "":
-            dlimit == 10
+            # 制限をかけない
+            dlimit == sys.maxsize
         else:
             raise Exception("dlimitには0以上の整数を指定してください")
 
@@ -1153,12 +1158,12 @@ class AssertCommand(SCommand):
         m_is_exs = write_to_file(inputs, 'm', m_output_path)
 
         # それぞれの入力portから得られたCSVを比較し、その差分を取得する
-        diff_list = create_diff_list(i_output_path, m_output_path, i_is_exs, m_is_exs, dlimit)
+        diff_list, exceed_limit = create_diff_list(i_output_path, m_output_path, i_is_exs, m_is_exs, dlimit)
         
         # フローの親フォルダのパスを取得する
         # NOTE: runfunc内でDBにアクセスすると、psycopg2.OperationalErrorが送出される
         parent_path = args['flow'].folder_path
 
         # 差分をCSVで出力する
-        cmd = nm.runfunc(format_to_csv, diff_list=diff_list, parent_path=parent_path)
+        cmd = nm.runfunc(format_to_csv, diff_list=diff_list, parent_path=parent_path, exceed_limit=exceed_limit)
         return {'o': NysolModule(cmd)}
