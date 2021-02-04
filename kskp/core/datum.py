@@ -44,16 +44,27 @@ class Datum(BaseModel):
     # ルートフォルダのPath
     DEFAULT_LIBRARY_PATH = Path('cmn')
 
+    # type列の値の定義
     PROJECT_TYPE = 'project'
-    FOLDER_TYPE = 'folder'
-    AWSS3_TYPE  = 'awss3'
+    FOLDER_TYPE  = 'folder'
+    AWSS3_TYPE   = 'awss3'
     RFOLDER_TYPE = 'rfolder'
     DATABASE_TYPE = 'database'
-    FLOW_TYPE   = 'flow'
-    FRAME_TYPE  = 'frame'
-    COMMAND_TYPE = 'command'
+    FLOW_TYPE  = 'flow'
+    FRAME_TYPE = 'frame'
+    COMMAND_TYPE  = 'command'
     ACTIVITY_TYPE = 'activity'
     TRASH_TYPE = 'trash'
+    # 将来の拡張のために予約するtype値
+    APPLICATION_TYPE = 'app'
+    EXCEL_TYPE = 'excel'
+    PDF_TYPE   = 'pdf'
+    ZIP_TYPE   = 'zip'
+    VIDEO_TYPE = 'video'
+    IMAGE_TYPE = 'image'
+    TEXT_TYPE  = 'text'
+    HTML_TYPE  = 'html'
+    UNKNOWN_TYPE = 'unknown'
 
     RESULT_FOLDER_UUID  = 'aacb4914-0695-40fc-b14b-95b7f1f81707'
     RESULT_FOLDER_LABEL = '実行結果'
@@ -93,6 +104,15 @@ class Datum(BaseModel):
                                 COMMAND_TYPE,
                                 ACTIVITY_TYPE,
                                 TRASH_TYPE,
+                                APPLICATION_TYPE,
+                                EXCEL_TYPE,
+                                PDF_TYPE,
+                                ZIP_TYPE,
+                                VIDEO_TYPE,
+                                IMAGE_TYPE,
+                                TEXT_TYPE,
+                                HTML_TYPE,
+                                UNKNOWN_TYPE,
                                 name='data_type'), nullable=False)
     _data        = Column('data', JSONB)
 
