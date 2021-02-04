@@ -90,6 +90,7 @@ class Datum(BaseModel):
     # 列名と列のデータ型等の定義
     id           = Column(INTEGER, primary_key=True, autoincrement=True)
     parent_id    = Column(INTEGER)
+    prev_parent_id = Column(INTEGER)
     uuid         = Column(UUID, nullable=False, unique=True)
     _path        = Column('path', PathType, nullable=False)
     _label       = Column('label', String)
@@ -124,6 +125,8 @@ class Datum(BaseModel):
     _parent_uuid = query_expression()
     # フォルダパス
     _folder_path = query_expression()
+    # 移動前のフォルダパス
+    _prev_folder_path = query_expression()
 
     # これを設定することで、session.query(Datum).all()でもサブクラスの型で結果を得ることができる
     __mapper_args__ = {
@@ -290,18 +293,27 @@ class Datum(BaseModel):
             return self._folder_path
 
     @property
+    def prev_folder_path(self):
+        """
+        移動前の親フォルダまでのフォルダパスを返す
+        """
+        # 一度も移動していない場合はNoneを返す
+        # (prev_folder_path=NULLの場合、ARRAY_TO_STRING関数は空文字を返す)
+        return self._prev_folder_path or None
+
+    @property
     def is_root(self):
         return self.parent_id is None
 
-    @property
-    def prev_parent_id(self):
-        if self._data is None:
-            return None
-        return self._data.get('prev_parent_id')
+    # @property
+    # def prev_parent_id(self):
+    #     if self._data is None:
+    #         return None
+    #     return self._data.get('prev_parent_id')
 
-    @prev_parent_id.setter
-    def prev_parent_id(self, id):
-        self._data['prev_parent_id'] = id
+    # @prev_parent_id.setter
+    # def prev_parent_id(self, id):
+    #     self._data['prev_parent_id'] = id
 
     @property
     def data_is_empty(self):
@@ -423,7 +435,7 @@ class Datum(BaseModel):
             # レコードを更新する
             if self._data is None:
                 self._data = {}
-            self._data['prev_parent_id'] = self.parent_id
+            self.prev_parent_id = self.parent_id
             self.parent_id = to_folder.id
             if self._path is not None:
                 self._path = new_path
@@ -517,20 +529,20 @@ class Datum(BaseModel):
             except Exception as e:
                 return [], [e]
 
-    def _get_folder_path(self, parent_id):
-        from kskp.store.auth import NotAuthorizedException
-        from kskp.store.factory import DatumFactory
+    # def _get_folder_path(self, parent_id):
+    #     from kskp.store.auth import NotAuthorizedException
+    #     from kskp.store.factory import DatumFactory
 
-        factory = DatumFactory(self._session)
-        if parent_id is None or not factory.exists_by_id(parent_id):
-            return None
-        else:
-            try:
-                parent = factory.find_by_id(parent_id)
-            except NotAuthorizedException:
-                # 参照権限がないため移動元の親Datumが取得できない場合、Noneを返す
-                return None
-            return '/' + '/'.join([folder.get('label') for folder in parent.get_folder_path()])
+    #     factory = DatumFactory(self._session)
+    #     if parent_id is None or not factory.exists_by_id(parent_id):
+    #         return None
+    #     else:
+    #         try:
+    #             parent = factory.find_by_id(parent_id)
+    #         except NotAuthorizedException:
+    #             # 参照権限がないため移動元の親Datumが取得できない場合、Noneを返す
+    #             return None
+    #         return '/' + '/'.join([folder.get('label') for folder in parent.get_folder_path()])
 
     def __repr__(self):
         return f'Datum({self.id}, {self._label}, {self.type})'
@@ -563,8 +575,7 @@ class Datum(BaseModel):
                 },
                 'folderPath' : self.folder_path,
                 'folderUuid' : self.parent_uuid,
-                # TODO: _get_folder_path()だけで結構遅くなってる
-                'prevFolderPath' : self._get_folder_path(self.prev_parent_id),
+                'prevFolderPath' : self.prev_folder_path,
                 'creator'   : self.creator_str,
                 'createdAt' : self.created_at_str }
 

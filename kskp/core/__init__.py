@@ -98,6 +98,15 @@ else:
     # デフォルトスキーマを用いる
     SCHEMA_NAME = None
 
+#
+# TODO: 後方互換性を保つためにprev_parent_id列がない場合は列を追加する
+#
+try:
+    alter_sql = f'ALTER TABLE data ADD COLUMN prev_parent_id INTEGER;'
+    engine.execute(alter_sql)
+except:
+    pass
+
 from .kskp_base_model import KSKPBaseModel
 from sqlalchemy.ext.declarative import declarative_base
 # ベースモデルにスキーマ名を設定する
