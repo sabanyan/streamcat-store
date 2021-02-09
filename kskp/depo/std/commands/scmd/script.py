@@ -16,12 +16,12 @@ class SaverCommand(SCommand):
     """
     def __init__(self):
         super().__init__()
-        self.i_ports = [Port('i', 'frame'), Port('store', 'store')]
+        self.i_ports = [Port('i', 'frame'), Port('folder', 'store')]
         self.o_ports = [Port('o', 'mcmd')]
 
     def run(self, args, inputs):
         # Frameを作成する
-        store = inputs['store']
+        folder = inputs['folder']
         flow_label = args['flow_label']
         point = args['point']
         point_label = point.label if point.label is not None else point.id
@@ -31,8 +31,8 @@ class SaverCommand(SCommand):
         start_time = start_time.astimezone()
         start_time_str1 = start_time.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
         start_time_str2 = start_time.strftime('%Y%m%d.%H%M%S.%f')[:-3]
-        folder = self.make_folder(store, flow_label, start_time_str1, start_time_str2)
-        frame = self.make_frame(folder, point_label)
+        sub_folder = self.make_folder(folder, flow_label, start_time_str1, start_time_str2)
+        frame = self.make_frame(sub_folder, point_label)
         # ラベル名とファイル名はコンストラクタで別々に指定できるようにすれば
         # 改めてupdate_label_only()を行う必要はなくなる
         # もしくは、実行ログ一覧画面さえできれば別々に指定する必要もなくなるか？
@@ -55,11 +55,11 @@ class SaverCommand(SCommand):
         # writecsvは0Byteデータが入力されるとエラーになるのでm2teeを使う
         return nm.m2tee(i=cmd, o=abs_frame_path)
 
-    def make_folder(self, store, folder1_label, folder2_label, folder2_file_name):
+    def make_folder(self, parent, folder1_label, folder2_label, folder2_file_name):
         # フロー名フォルダがなければ作成する
-        results1 = store.find_children_by_label(folder1_label, type=Datum.FOLDER_TYPE)
+        results1 = parent.find_children_by_label(folder1_label, type=Datum.FOLDER_TYPE)
         if results1 is None or len(results1)==0:
-            folder1 = store.create_folder(folder1_label)
+            folder1 = parent.create_folder(folder1_label)
             folder1.save()
             folder1 = folder1.reload()
         else:
@@ -80,10 +80,10 @@ class SaverCommand(SCommand):
 
         return folder2
 
-    def make_frame(self, store, label):
+    def make_frame(self, parent, label):
         import io
         f = io.BytesIO(b'')
-        frame = store.create_frame(label, f)
+        frame = parent.create_frame(label, f)
         # RunsCommandの実行前にFrameを登録する
         frame.save()
         return frame.reload()
@@ -97,7 +97,7 @@ class CacheSaverCommand(SaverCommand):
         super().__init__()
 
     def run(self, args, inputs):
-        store = inputs['store']
+        folder = inputs['folder']
         flow_label = args['flow_label']
         point = args['point']
         point_label = point.label if point.label is not None else point.id
@@ -113,7 +113,7 @@ class CacheSaverCommand(SaverCommand):
         cache_label = cache_label.replace(' ', '_')
 
         # Cacheフレームを作成する
-        cache = self.make_frame(store, cache_label)
+        cache = self.make_frame(folder, cache_label)
 
         # FlowのキャッシュUUIDを変更する
         # テスト実行の場合は実行するFlowをDBに保存していない
@@ -138,10 +138,10 @@ class CacheSaverCommand(SaverCommand):
 
         return {'o': nysol_module}
 
-    def make_frame(self, store, label):
+    def make_frame(self, parent, label):
         import io
         f = io.BytesIO(b'')
-        cache = store.create_cache(label, f)
+        cache = parent.create_cache(label, f)
         # RunsCommandの実行前にCacheを登録する
         cache.save()
         cache = cache.reload()
@@ -157,15 +157,15 @@ class LoaderCommand(SCommand):
     """
     def __init__(self):
         super().__init__()
-        self.i_ports = [Port('store', 'store')]
+        self.i_ports = [Port('folder', 'store')]
         self.o_ports = [Port('o', 'mcmd')]
         self.name = 'loader'
 
     def run(self, args, inputs):
-        if not isinstance(inputs['store'], Store):
-            t = type(inputs['store'])
+        if not isinstance(inputs['folder'], Store):
+            t = type(inputs['folder'])
             raise Exception(f'Loaderの入力にStore以外のデータ型({t})が入力されました')
-        folder = inputs['store']
+        folder = inputs['folder']
         if not folder.path_exists:
             raise Exception(f'ディレクトリ({folder.path})が存在しません')
 
@@ -352,7 +352,7 @@ class DbSaverCommand(SaverCommand):
     """
     def __init__(self):
         super().__init__()
-        self.i_ports = [Port('i', 'frame'), Port('store', 'store'), Port('folder', 'store')]
+        self.i_ports = [Port('i', 'frame'), Port('store', 'store')]
         self.o_ports = [Port('o', 'mcmd')]
         self._tmp_file_path = None
 
@@ -366,11 +366,22 @@ class DbSaverCommand(SaverCommand):
         else:
             database = inputs['store']
 
-        if inputs['folder'].type != Datum.FOLDER_TYPE:
-            t = type(inputs['folder'])
-            raise Exception(f'DbSaverの入力にFolder以外のデータ型({t})が入力されました')
+        # 
+        # TODO: ライブラリの出力結果フォルダは、argsで貰うこととする
+        # 
+        # ・出力結果フォルダは実行フローと同じ階層のフォルダとしているが、
+        #   フローJSONにフォルダの相対パスを指定する記法がない(uuidの指定しかできない)
+        # ・SaverCommandのinputsを実行時に決定するには、SaverCommandにIn指定のポイントを繋げることになるが
+        #   データデストに対して、実行結果フォルダStoreを取得するデータデストを指定することになってしまう
+        # ・出力結果フォルダのuuidは実行時に決定される値なので、出力結果フォルダをSaverCommandの引数指定することとした
+        # 
+        # 
+
+        if 'result_folder' not in args or args['result_folder'].type != Datum.FOLDER_TYPE:
+            t = type(inputs['result_folder'])
+            raise Exception(f'DbSaverの引数にFolder以外のデータ型({t})が入力されました')
         else:
-            folder = inputs['folder']
+            folder = args['result_folder']
 
         # DB接続情報に漏れがないか確認し、漏れがあれば例外を送出する
         database.valid_or_raise()
@@ -391,10 +402,11 @@ class DbSaverCommand(SaverCommand):
         # 指定されたテーブルがデータを格納可能か判定する → どうやって？
         # (所定の列が存在して、それら列が所定の順序に並んでいて、、)
 
-        def bulk_inserter(database, schema_name, table_name):
+        def bulk_inserter(database_conn, schema_name, table_name):
+            engine = None
             try:
                 # DBへ接続する
-                db_uri = database.conn.get_database_uri()
+                db_uri = database_conn['database_uri']
                 engine = DbSaverCommand._connect_to_db(db_uri)
 
                 # CSVのヘッダ行を取得する
@@ -402,24 +414,29 @@ class DbSaverCommand(SaverCommand):
 
                 # インポート先テーブルが無ければ作成する
                 if not DbSaverCommand._table_exists(engine, schema_name, table_name):
-                    DbSaverCommand._create_table(engine, database.dbms, schema_name, table_name, csv_columns)
+                    DbSaverCommand._create_table(engine, database_conn['dbms'], schema_name, table_name, csv_columns)
 
                 # CSVデータのインポートコマンドを発行する
-                DbSaverCommand._import_to_table(database, schema_name, table_name, csv_columns, sys.stdin)
+                DbSaverCommand._import_to_table(database_conn, schema_name, table_name, csv_columns, sys.stdin)
             except Exception as e:
                 with open('/dev/stderr', 'w') as fpe:
                     import traceback
                     traceback.print_exc(file=fpe)
             finally:
-                engine.dispose()
+                engine and engine.dispose()
 
         # flushをしないと、デバッグ用のprintなども入ってしまう
         sys.stdout.flush()
 
+        # runfuncに渡す引数の値はcopy.deepcopy()されるため
+        # deepcopyできないdatabase.connをdict型に変換する
+        database_conn = database.conn.to_json()
+        database_conn['database_uri'] = database.conn.get_database_uri()
+
         # Nysol Pythonのrunfunc関数を作成する
         cmd = inputs['i'].content
         cmd <<= nm.msetstr(v=args["activity_uuid"], a='activity_uuid_kskp')
-        cmd <<= nm.runfunc(bulk_inserter, database=database, schema_name=schema_name, table_name=table_name)
+        cmd <<= nm.runfunc(bulk_inserter, database_conn=database_conn, schema_name=schema_name, table_name=table_name)
 
         # DataSourceを保存するフォルダを用意する
         flow_label = args['flow_label']
@@ -505,13 +522,13 @@ class DbSaverCommand(SaverCommand):
             raise Exception('DBのテーブル作成に失敗しました(%s)' % str(e))
 
     @staticmethod
-    def _import_to_table(database, schema_name, table_name, csv_columns, csv_input):
+    def _import_to_table(database_conn, schema_name, table_name, csv_columns, csv_input):
         try:
-            if database.dbms.upper() == 'POSTGRESQL':
-                db_uri = database.conn.get_database_uri()
+            if database_conn['dbms'].upper() == 'POSTGRESQL':
+                db_uri = database_conn['database_uri']
                 DbSaverCommand._import_to_table_postgresql(db_uri, schema_name, table_name, csv_columns, csv_input)
-            elif database.dbms.upper() == 'ORACLE':
-                DbSaverCommand._import_to_table_oracle(database, schema_name, table_name, csv_columns, csv_input)
+            elif database_conn['dbms'].upper() == 'ORACLE':
+                DbSaverCommand._import_to_table_oracle(database_conn, schema_name, table_name, csv_columns, csv_input)
             else:
                 raise Exception('DBのインポート先DBMS種別が判定できませんでした')
         except Exception as e:
@@ -536,7 +553,7 @@ class DbSaverCommand(SaverCommand):
         print(r'\.', end='')
 
     @staticmethod
-    def _import_to_table_oracle(database, schema_name, table_name, csv_columns, csv_input):
+    def _import_to_table_oracle(database_conn, schema_name, table_name, csv_columns, csv_input):
         """
         ORACLE 12c以降に対応する
         """
@@ -562,9 +579,9 @@ class DbSaverCommand(SaverCommand):
         # 一括してINSERTする行数
         batch_rows = 10000
 
-        user_id = database.conn.user_id
-        password = database.conn.password
-        dsnStr = cx_Oracle.makedsn(database.conn.hostname, database.conn.port, database.conn.database)
+        user_id = database_conn['user_id']
+        password = database_conn['password']
+        dsnStr = cx_Oracle.makedsn(database_conn['hostname'], database_conn['port'], database_conn['database'])
         with cx_Oracle.connect(user_id, password, dsnStr, encoding='UTF-8', nencoding='UTF-8') as conn:
             with conn.cursor() as cursor:
                 # Predefine the memory areas to match the table definition

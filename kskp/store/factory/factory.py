@@ -172,9 +172,9 @@ class DatumFactory():
         from kskp.store import Folder
         return Folder(self._session, None, label)
 
-    def create_datasource(self, parent, label, store, loader_step):
-        from kskp.store import DataSource
-        return DataSource(self._session, parent, label, store, loader_step)
+    # def create_datasource(self, parent, label, store, loader_step):
+    #     from kskp.store import DataSource
+    #     return DataSource(self._session, parent, label, store, loader_step)
 
     def find_by_id(self, id, type=None) -> Datum:
         """

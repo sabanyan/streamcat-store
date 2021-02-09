@@ -71,7 +71,7 @@ class Activity(Datum):
 
     def save(self):
         from datetime import datetime, timezone
-        from kskp.store import Frame, DataSource
+        from kskp.store import Flow, Frame
         # 現在時刻を取得する
         end_time = datetime.utcnow().replace(tzinfo=timezone.utc)
         end_time_str = end_time.astimezone().strftime('%H:%M:%S')
@@ -100,5 +100,5 @@ class Activity(Datum):
                     # 対応ファイルの文字コードと改行コードを推測してその結果を登録する
                     last.datum.update_encoding_newline()
                     last.datum.update_label_only(new_label)
-            elif isinstance(last.datum, DataSource):
-                last.datum.update_data(new_label, last.datum.flow_data.to_json())
+            elif isinstance(last.datum, Flow):
+                last.datum.update_label(new_label)

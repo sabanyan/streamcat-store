@@ -141,12 +141,74 @@ class Store(Datum):
                         "projectId": None,
                         "description": ""
                     }
-        flow_data = FlowData(flow_json)
-        return Flow(self._session, self, label, flow_data)
+        return Flow(self._session, self, label, FlowData(flow_json))
 
     def create_datasource(self, label, store, loader_step):
-        from kskp.store import DataSource
-        return DataSource(self._session, self, label, store, loader_step)
+        """
+        コンストラクタ
+        """
+        from kskp.store import Flow, FlowData
+        # PointとStepの繫がりを探索するFlowVisitorを使えばスマートに、Jsonデータを取得できるだろう
+        flow_json = {
+            "label": label,
+            "nodes": [
+                {
+                    "id": "d0",
+                    "type": "store",
+                    "uuid": store.uuid,
+                    "error": {},
+                    "label": store.label,
+                    "invalid": {},
+                    "makeCache": False,
+                    "dataSource": "csv",
+                    "cacheCreatedAt": None
+                },
+                {
+                    "id": "c1",
+                    "args": loader_step.args,
+                    "srcs": {
+                        loader_step.runnable.i_ports[0].name : "d0"
+                    },
+                    "dsts": {
+                        "o": "d"
+                    },
+                    "type": "command",
+                    "error": {},
+                    "label": "c1",
+                    "commandId": loader_step.runnable.name,
+                    "srcsOrder": [
+                        "i"
+                    ]
+                },
+                {
+                    "id": "d",
+                    "type": "frame",
+                    "uuid": None,
+                    "error": {},
+                    "label": "d",
+                    "invalid": {},
+                    "makeCache": False,
+                    "dataSource": "csv",
+                    "cacheCreatedAt": None
+                }
+            ],
+            "ports": [
+                [],
+                [
+                    {
+                        "type": "frame",
+                        "label": "d",
+                        "nodeId": "d"
+                    }
+                ]
+            ],
+            "params": [],
+            "creator": self.creator_str,
+            "createdAt": self.created_at_str,
+            "projectId": None,
+            "description": ""
+        }
+        return Flow(self._session, self, label, FlowData(flow_json))
 
     def create_frame(self, label, stream):
         from kskp.store import Frame

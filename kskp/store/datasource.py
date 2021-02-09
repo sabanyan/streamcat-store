@@ -2,6 +2,10 @@ from .flow import Flow
 from .flow_data import FlowData
 
 class DataSource(Flow):
+    """
+    Flowを継承し、かつSQLAlchemyのpolymorphic_identity='flow'の設定は、SQLAlchemyの制約でできない
+    そのため、DataSourceクラスを放棄する
+    """
     def __init__(self, session, parent, label, store, loader_step):
         """
         コンストラクタ
