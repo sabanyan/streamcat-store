@@ -9,6 +9,50 @@ from kskp.store import NysolModule, Store, Frame
 class SCommand(Command):
     pass
 
+# 1つ保存のsaverはどうなる？
+# 普通なら、inputsできたものをargs情報を使って保存か
+class LoaderCommand(SCommand):
+    """
+    指定したstoreからデータを取ってくる（テスト用）
+    """
+    def __init__(self):
+        super().__init__()
+        self.i_ports = [Port('folder', 'store')]
+        self.o_ports = [Port('o', 'mcmd')]
+        self.name = 'loader'
+
+    def run(self, args, inputs):
+        if not isinstance(inputs['folder'], Store):
+            t = type(inputs['folder'])
+            raise Exception(f'Loaderの入力にStore以外のデータ型({t})が入力されました')
+        folder = inputs['folder']
+        if not folder.path_exists:
+            raise Exception(f'ディレクトリ({folder.path})が存在しません')
+
+        # 指定したuuidのframeを取得する
+        frame_uuid = args['uuid']
+        frame = folder.find_child_by_uuid(frame_uuid)
+        if frame is None:
+            raise Exception('No frame(%s) is found !' % frame_uuid)
+        path = frame.path.as_posix()
+
+        if frame.encoding is None:
+            # frameの文字コードが未判定の場合はここで判定する
+            with open(path, 'rb') as f:
+                encoding = Frame._detect_encoding(f)
+        else:
+            # frameの文字コードを取得する
+            encoding = frame.encoding
+
+        cmd = nm.m2tee(i=path)
+        # mreadで存在しないファイルパスを指定するとDockerごと落ちる -> 0.3.10で修正済
+        # mreadは巨大ファイルの読み込みが遅い(全行入力してる?)
+        # cmd = nm.mread({'i':path, 'n':65535})
+        nysol_module = NysolModule(cmd)
+        # frameの文字コードを次のコマンドに渡す
+        nysol_module.encoding = encoding
+        return {'o': nysol_module}
+
 class SaverCommand(SCommand):
     """
     指定されているstoreに出力するコマンド（テスト用）
@@ -149,49 +193,6 @@ class CacheSaverCommand(SaverCommand):
         cache.is_cache = True
         return cache
 
-# 1つ保存のsaverはどうなる？
-# 普通なら、inputsできたものをargs情報を使って保存か
-class LoaderCommand(SCommand):
-    """
-    指定したstoreからデータを取ってくる（テスト用）
-    """
-    def __init__(self):
-        super().__init__()
-        self.i_ports = [Port('folder', 'store')]
-        self.o_ports = [Port('o', 'mcmd')]
-        self.name = 'loader'
-
-    def run(self, args, inputs):
-        if not isinstance(inputs['folder'], Store):
-            t = type(inputs['folder'])
-            raise Exception(f'Loaderの入力にStore以外のデータ型({t})が入力されました')
-        folder = inputs['folder']
-        if not folder.path_exists:
-            raise Exception(f'ディレクトリ({folder.path})が存在しません')
-
-        # 指定したuuidのframeを取得する
-        frame_uuid = args['uuid']
-        frame = folder.find_child_by_uuid(frame_uuid)
-        if frame is None:
-            raise Exception('No frame(%s) is found !' % frame_uuid)
-        path = frame.path.as_posix()
-
-        if frame.encoding is None:
-            # frameの文字コードが未判定の場合はここで判定する
-            with open(path, 'rb') as f:
-                encoding = Frame._detect_encoding(f)
-        else:
-            # frameの文字コードを取得する
-            encoding = frame.encoding
-
-        cmd = nm.m2tee(i=path)
-        # mreadで存在しないファイルパスを指定するとDockerごと落ちる -> 0.3.10で修正済
-        # mreadは巨大ファイルの読み込みが遅い(全行入力してる?)
-        # cmd = nm.mread({'i':path, 'n':65535})
-        nysol_module = NysolModule(cmd)
-        # frameの文字コードを次のコマンドに渡す
-        nysol_module.encoding = encoding
-        return {'o': nysol_module}
 
 class DbLoaderCommand(SCommand):
     """
@@ -344,7 +345,6 @@ class DbLoaderCommand(SCommand):
 
     def dtor(self, args):
         DbLoaderCommand._write_log('DTOR!')
-
 
 class DbSaverCommand(SaverCommand):
     """
@@ -628,7 +628,6 @@ class DbSaverCommand(SaverCommand):
     def dtor(self, args):
         DbSaverCommand._write_log('DTOR!')
         # Tmpファイルを削除する
-        import os
         if self._tmp_file_path is not None and self._tmp_file_path.exists():
             self._tmp_file_path.unlink()
 
@@ -763,8 +762,6 @@ class RunsCommand(SCommand):
             NYSOL Pythonを実行する
             """
             try:
-                import sys
-
                 # NYSOL-Pythonは、処理フローのグラフを組み立てる時と、処理メソッドをスケジューリングする時に
                 # 再帰呼び出しの制限回数がPythonの初期制限値を超えるので、ここで制限値を上げる
                 # (サブプロセスの制限回数を上げても親プロセスの制限回数は変わらない)
