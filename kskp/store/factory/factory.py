@@ -1,11 +1,8 @@
 from typing import Union
 from sqlalchemy.orm.exc import NoResultFound
 from kskp.core import Datum
-from kskp.store import Folder
-from kskp.store import TrashCan
-from kskp.store.auth import UserRole
-from kskp.store.auth import Role
-from kskp.store.auth import User
+from kskp.store import Folder, TrashCan
+from kskp.store.auth import User, Role, UserRole
 
 
 class UnAuthzFactory():
@@ -172,10 +169,6 @@ class DatumFactory():
         from kskp.store import Folder
         return Folder(self._session, None, label)
 
-    # def create_datasource(self, parent, label, store, loader_step):
-    #     from kskp.store import DataSource
-    #     return DataSource(self._session, parent, label, store, loader_step)
-
     def find_by_id(self, id, type=None) -> Datum:
         """
         指定されたidを持つDatumを取得する
@@ -190,7 +183,6 @@ class DatumFactory():
             datum = query.one()
         except NoResultFound:
             raise Exception(f'指定したDatum({id})は存在しませんでした')
-        # datum.session = self._session
 
         return datum
 
@@ -211,7 +203,6 @@ class DatumFactory():
             datum = query.one()
         except NoResultFound:
             raise Exception(f'指定したDatum({uuid})は存在しませんでした')
-        # datum.session = self._session
 
         return datum
 
@@ -241,8 +232,6 @@ class DatumFactory():
             return None
         elif len(roots) > 1:
             raise Exception('More than 2 roots exist!!')
-
-        # roots[0].session = self._session
         
         return roots[0]
 
@@ -279,7 +268,6 @@ class DatumFactory():
                     continue
 
             if len(flow_data.ports[0]) > 0 or len(flow_data.ports[1]) > 0:
-                # flow.session = self._session
                 subflows.append(flow)
 
         return subflows
