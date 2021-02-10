@@ -4,7 +4,7 @@ import sys
 import nysol.mcmd as nm
 
 from kskp.core import Datum, Command, Port
-from kskp.store import NysolModule, Store, Frame
+from kskp.store import NysolModule, Store
 
 class SCommand(Command):
     pass
@@ -37,6 +37,7 @@ class LoaderCommand(SCommand):
         path = frame.path.as_posix()
 
         if frame.encoding is None:
+            from kskp.store import Frame
             # frameの文字コードが未判定の場合はここで判定する
             with open(path, 'rb') as f:
                 encoding = Frame._detect_encoding(f)
@@ -60,12 +61,12 @@ class SaverCommand(SCommand):
     """
     def __init__(self):
         super().__init__()
-        self.i_ports = [Port('i', 'frame'), Port('folder', 'store')]
+        self.i_ports = [Port('i', 'frame')]
         self.o_ports = [Port('o', 'mcmd')]
 
     def run(self, args, inputs):
         # Frameを作成する
-        folder = inputs['folder']
+        folder = self.get_result_folder(args)
         flow_label = args['flow_label']
         point = args['point']
         point_label = point.label if point.label is not None else point.id
@@ -92,6 +93,27 @@ class SaverCommand(SCommand):
         nysol_module.context['frame'] = frame
 
         return {'o': nysol_module}
+
+    def get_result_folder(self, args):
+        # 
+        # NOTE: ライブラリの出力結果フォルダは、argsで貰うこととする
+        # 
+        # ・出力結果フォルダは実行フローと同じ階層のフォルダとしているが、
+        #   フローJSONにフォルダの相対パスを指定する記法がない(uuidの指定しかできない)
+        # ・SaverCommandのinputsを実行時に決定するには、SaverCommandにIn指定のポイントを繋げることになるが
+        #   データデストに対して、実行結果フォルダStoreを取得するデータデストを指定することになってしまう
+        # ・出力結果フォルダのuuidは実行時に決定される値なので、出力結果フォルダをSaverCommandの引数指定することとした
+        #
+        from kskp.store import Folder
+        if 'result_folder' not in args:
+            class_name = self.__class__.__name__
+            raise Exception(f'{class_name}の引数(args)にresult_folderキーが存在しません')
+        elif not isinstance(args['result_folder'], Folder):
+            t = type(args['result_folder'])
+            class_name = self.__class__.__name__
+            raise Exception(f'{class_name}の引数(args)にFolder以外のデータ型({t})が入力されました')
+        # Folderオブジェクトを返す
+        return args['result_folder']
 
     def append_writecsv_cmd(self, cmd, frame_path):
         abs_frame_path = frame_path.as_posix()
@@ -141,7 +163,7 @@ class CacheSaverCommand(SaverCommand):
         super().__init__()
 
     def run(self, args, inputs):
-        folder = inputs['folder']
+        folder = self.get_result_folder(args)
         flow_label = args['flow_label']
         point = args['point']
         point_label = point.label if point.label is not None else point.id
@@ -354,7 +376,6 @@ class DbSaverCommand(SaverCommand):
         super().__init__()
         self.i_ports = [Port('i', 'frame'), Port('store', 'store')]
         self.o_ports = [Port('o', 'mcmd')]
-        self._tmp_file_path = None
 
     def run(self, args, inputs):
         DbSaverCommand._write_log('START')
@@ -366,22 +387,8 @@ class DbSaverCommand(SaverCommand):
         else:
             database = inputs['store']
 
-        # 
-        # TODO: ライブラリの出力結果フォルダは、argsで貰うこととする
-        # 
-        # ・出力結果フォルダは実行フローと同じ階層のフォルダとしているが、
-        #   フローJSONにフォルダの相対パスを指定する記法がない(uuidの指定しかできない)
-        # ・SaverCommandのinputsを実行時に決定するには、SaverCommandにIn指定のポイントを繋げることになるが
-        #   データデストに対して、実行結果フォルダStoreを取得するデータデストを指定することになってしまう
-        # ・出力結果フォルダのuuidは実行時に決定される値なので、出力結果フォルダをSaverCommandの引数指定することとした
-        # 
-        # 
-
-        if 'result_folder' not in args or args['result_folder'].type != Datum.FOLDER_TYPE:
-            t = type(inputs['result_folder'])
-            raise Exception(f'DbSaverの引数にFolder以外のデータ型({t})が入力されました')
-        else:
-            folder = args['result_folder']
+        # DataSourceを保存するフォルダを取得する
+        folder = self.get_result_folder(args)
 
         # DB接続情報に漏れがないか確認し、漏れがあれば例外を送出する
         database.valid_or_raise()
@@ -395,9 +402,6 @@ class DbSaverCommand(SaverCommand):
         if 'table_name' not in args:
             raise Exception('DB接続の格納先テーブル名が必要です')
         table_name = args['table_name']
-
-        # Tmpファイル名を決定する
-        # self._tmp_file_path = DbSaverCommand._get_tmp_file_name()
 
         # 指定されたテーブルがデータを格納可能か判定する → どうやって？
         # (所定の列が存在して、それら列が所定の順序に並んでいて、、)
@@ -627,9 +631,6 @@ class DbSaverCommand(SaverCommand):
 
     def dtor(self, args):
         DbSaverCommand._write_log('DTOR!')
-        # Tmpファイルを削除する
-        if self._tmp_file_path is not None and self._tmp_file_path.exists():
-            self._tmp_file_path.unlink()
 
 
 class RemoteFolderLoaderCommand(SCommand):
@@ -673,7 +674,7 @@ class RemoteFolderSaverCommand(SaverCommand):
     """
     def __init__(self):
         super().__init__()
-        self.i_ports = [Port('i', 'frame'), Port('store', 'store'), Port('folder', 'store')]
+        self.i_ports = [Port('i', 'frame'), Port('store', 'store')]
         self.o_ports = [Port('o', 'mcmd')]
 
     def run(self, args, inputs):
@@ -684,11 +685,8 @@ class RemoteFolderSaverCommand(SaverCommand):
         else:
             rfolder = inputs['store']
 
-        if inputs['folder'].type != Datum.FOLDER_TYPE:
-            t = type(inputs['folder'])
-            raise Exception(f'RemoteFolderSaverの入力にFolder以外のデータ型({t})が入力されました')
-        else:
-            folder = inputs['folder']
+        # DataSourceを保存するフォルダを取得する
+        folder = self.get_result_folder(args)
 
         # 接続情報に漏れがないか確認し、漏れがあれば例外を送出する
         rfolder.valid_or_raise()
