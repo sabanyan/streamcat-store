@@ -15,10 +15,10 @@ class LibraryTest(TestCaseBase):
 
     conn_json = {
         'protocol' : 'smb',
-        'hostname' : "kskds-HP-Workstation-z620.local",
+        'hostname' : "18.178.64.116",
         'domain'   : "WORKGROUP",
         'directory': "share",
-        'user_id'  : "ksk-ds",
+        'user_id'  : "samba",
         'password' : "kskanalytics"
     }
 

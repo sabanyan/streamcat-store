@@ -77,19 +77,19 @@ class Mountable():
                       AND to_tsvector(D.data) @@ to_tsquery(cast(R.uuid AS VARCHAR)))
         """.format(id=self_id)
         try:
-            results = self.session.execute(sql)
+            results = self._session.execute(sql)
             return [result[0] for result in results]
         except Exception as e:
-            self.session.rollback()
+            self._session.rollback()
             raise e
         finally:
-            self.session.commit()
+            self._session.commit()
 
     @staticmethod
     def _exec_command(command_line):
         import shlex
         # mountコマンドの有無を確認する
-        sub = subprocess.run(shlex.split(command_line), stdout = subprocess.PIPE, stderr=subprocess.PIPE)
+        sub = subprocess.run(shlex.split(command_line), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         # サブプロセスのリターンコードがNGの場合は例外を送出する
         sub.check_returncode()
         # 出力結果を返す
@@ -130,7 +130,7 @@ class Mountable():
             pass
 
         factory = DatumFactory(session)
-        
+
         for result in results:
             mount_point_path = Datum._to_abs_path(Path(result[1]))
             if not Mountable.is_mount(mount_point_path):
