@@ -47,6 +47,9 @@ class RemoteFolder(Folder, Mountable):
         try:
             # Dataテーブルにレコードを新規追加する
             self._session.add(self)
+            # マウントするには参照権限が必要だが、session.add()がself.permissionsをNoneにするため
+            # reload()してpermissionsを再読み込みする
+            self = self.reload()
             # フォルダに紐付くディレクトリ(path列で指定されるディレクトリ)がなければ作成する
             self._make_dir(self_path)
             # ここでリモートフォルダをマウントする

@@ -56,14 +56,16 @@ class RemoteFolderConn():
         """
         リモートフォルダへの接続コマンドを返す
         """
+        import sys
         if self.protocol == 'smb':
-            from kskp.core import _is_unittest
-            if _is_unittest():
-                # テスト実行では、macOS用のmountコマンドを用いる
+            if sys.platform == 'linux':
+                # return f'sudo mount -t cifs -o username={self.user_id},password={self.password},domain={self.domain} //{self.hostname}/{self.directory} {mount_point_path.as_posix()}'
+                return f'mount -t cifs -o username={self.user_id},password={self.password},domain={self.domain} //{self.hostname}/{self.directory} {mount_point_path.as_posix()}'
+            elif sys.platform == 'darwin':
+                # macOS
                 return f'mount -t smbfs //{self.user_id}:{self.password}@{self.hostname}/{self.directory} {mount_point_path.as_posix()}'
             else:
-                return f'sudo mount -t cifs -o username={self.user_id},password={self.password},domain={self.domain} //{self.hostname}/{self.directory} {mount_point_path.as_posix()}'
-            
+                raise Exception(f'このOS({sys.platform})で実行するmountコマンドの引数指定が定義されていません')
         else:
             raise Exception('undefined remote protocol found')
 

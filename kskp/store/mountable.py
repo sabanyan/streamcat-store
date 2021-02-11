@@ -1,8 +1,5 @@
-import shlex
 import subprocess
 from time import sleep
-from pathlib import Path
-
 from kskp.core import Datum
 
 class Mountable():
@@ -90,6 +87,7 @@ class Mountable():
 
     @staticmethod
     def _exec_command(command_line):
+        import shlex
         # mountコマンドの有無を確認する
         sub = subprocess.run(shlex.split(command_line), stdout = subprocess.PIPE, stderr=subprocess.PIPE)
         # サブプロセスのリターンコードがNGの場合は例外を送出する
@@ -109,6 +107,9 @@ class Mountable():
         ルートデータストアから指定されたidのDatumまでの経路において、
         マウントされていないマウントポイントがあればマウントし直す
         """
+        from pathlib import Path
+        from kskp.store.factory import DatumFactory
+
         sql = """
         WITH RECURSIVE R AS (
             SELECT id, parent_id, uuid, type, path FROM data WHERE id = {id}
@@ -128,13 +129,13 @@ class Mountable():
             # session.commit()
             pass
 
+        factory = DatumFactory(session)
+        
         for result in results:
-            mount_point_path = Path(Datum._to_abs_path(result[1]))
+            mount_point_path = Datum._to_abs_path(Path(result[1]))
             if not Mountable.is_mount(mount_point_path):
                 uuid = str(result[0])
                 type = str(result[2])
-                from kskp.store.factory import DatumFactory
-                factory = DatumFactory(session)
                 if type == Datum.AWSS3_TYPE:
                     awss3 = factory.find_by_uuid(uuid)
                     awss3.mount(mount_point_path)
