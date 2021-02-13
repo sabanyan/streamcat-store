@@ -52,7 +52,7 @@ class Folder(Store):
 
     def update_data(self, label, modifier=None):
         """
-        Folderのdata列を更新する
+        Folderのlabel列を更新する
         """
         # ラベルに'\0'が含まれていれば取り除く
         new_label = Datum.escape_label(label)
