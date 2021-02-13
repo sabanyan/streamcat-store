@@ -721,7 +721,7 @@ class RemoteFolderSaverCommand(SaverCommand):
         nysol_module = NysolModule(cmd)
         nysol_module.context['frame'] = datasource
 
-        return {'o': NysolModule(cmd)}  
+        return {'o': nysol_module}  
 
     @staticmethod
     def _create_data_source(parent, rfolder, label, file_path_str):

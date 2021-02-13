@@ -104,14 +104,13 @@ class RemoteFolder(Folder, Mountable):
         共有フォルダを削除する
         """
         # 自身のフォルダ以下のフレームが、自身のフォルダ以下以外にあるフローから参照されている場合は、例外を送出する
-        uuids = self._get_flow_uuids_using_other_datum(self.id)
-        if len(uuids) > 0:
+        flow_uuids = self.get_flow_uuids_using_me()
+        if len(flow_uuids) > 0:
             raise Exception(
-                'フロー(%s)で使用しているCSVファイルが登録解除対象になっているため削除できません' % uuids[0])
+                f'フロー{flow_uuids[0]["reference_label"]}で使用しているCSVファイルが登録解除対象になっているため削除できません')
         try:
-            # 自身のフォルダ以下の全てのフォルダとドキュメントをエントリーから削除する
-            self._remove_reference_only_recursively()
-
+            # フォルダレコードを削除する
+            self._session.delete(self)
             # 共有フォルダをマウント解除する
             self.unmount(self._path)
             # ディレクトリを削除する
