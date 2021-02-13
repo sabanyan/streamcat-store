@@ -60,10 +60,10 @@ class RemoteFolderConn():
         if self.protocol == 'smb':
             if sys.platform == 'linux':
                 return f'sudo mount -t cifs -o "user={self.user_id},pass={self.password},domain={self.domain},uid=kskp,gid=kskp" ' +\
-                       f'"//{self.hostname}/{self.directory}" {mount_point_path.as_posix()}'    
+                       f'"//{self.hostname}/{self.directory}" "{mount_point_path.as_posix()}"'    
             elif sys.platform == 'darwin':
                 # macOS
-                return f'mount -t smbfs //{self.user_id}:{self.password}@{self.hostname}/{self.directory} {mount_point_path.as_posix()}'
+                return f'mount -t smbfs "//{self.user_id}:{self.password}@{self.hostname}/{self.directory}" "{mount_point_path.as_posix()}"'
             else:
                 raise Exception(f'このOS({sys.platform})で実行するmountコマンドの引数指定が定義されていません')
         else:

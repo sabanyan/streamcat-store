@@ -128,6 +128,15 @@ class RemoteFolder(Folder, Mountable):
 
     def to_json(self):
         ret = super().to_json()
+
+        # リモートフォルダは接続情報を保持するだけのDatumなので
+        # その下にフォルダやファイルを作成できない
+        # TODO: Folderを継承しないようにしたい
+        del ret['allowlist']['createProject']
+        del ret['allowlist']['createFolder']
+        del ret['allowlist']['createFile']
+        del ret['allowlist']['upload']
+
         if self.readable:
             ret.update(self.conn.to_json())
         return ret

@@ -45,7 +45,7 @@ class Mountable():
             # マウント解除を実行する
             # (/etc/sudoersに %admin ALL = (ALL) NOPASSWD:/sbin/umount
             #  を追加するとテスト実行時にはパスワードを聞かれない)
-            umount_cmd = 'sudo umount %s' % mount_point_path.as_posix()
+            umount_cmd = f'sudo umount "{mount_point_path.as_posix()}"'
             umount_ret= Mountable._exec_command(umount_cmd)
 
             # 念のためWAITを入れています
