@@ -32,7 +32,7 @@ class DataSource(Flow):
                     "id": "c1",
                     "args": loader_step.args,
                     "srcs": {
-                        loader_step.runnable.i_ports[0].name : "d0"
+                        loader_step.runnable.i_ports[0].label : "d0"
                     },
                     "dsts": {
                         "o": "d"

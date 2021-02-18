@@ -31,12 +31,12 @@ class Port:
     runnableなクラス(CommandやFlow)にそれぞれ、
     入力はi_ports属性・出力はo_ports属性として使われる
     """
-    def __init__(self, name, port_type):
-        self.name = name
+    def __init__(self, label, port_type):
+        self.label = label
         self.type = port_type
 
     def __repr__(self):
-        return f'<Port({self.name})>'
+        return f'<Port({self.label})>'
 
 
 class Parameter:

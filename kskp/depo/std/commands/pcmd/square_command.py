@@ -16,7 +16,7 @@ class Square(Command):
         i = inputs['i'].content if isinstance(inputs['i'], Integer) else inputs['i']
         frame = Integer()
         frame.set_content([[i[0][0] ** 2]])
-        return {self.o_ports[0].name: frame}
+        return {self.o_ports[0].label: frame}
 
 class Integer(Datum):
     """
