@@ -7,7 +7,10 @@ setup(
     description='Data Store of many type',
     url='https://www.kskp.io',
     install_requires=[
-        'psycopg2',
+        # macOS環境にインストールすると、clangが "ld: library not found for -lssl"のエラーメッセージを出力して
+        # インストールできない、そのためpsycopg2の代わりにpsycopg2-binaryをインストールする
+        # 'psycopg2',
+        'psycopg2-binary',
         'sqlalchemy<1.4.0',
         # 'alembic',
         'cryptography',
