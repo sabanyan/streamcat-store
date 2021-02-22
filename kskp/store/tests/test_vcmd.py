@@ -1,6 +1,6 @@
 import io
 import unittest
-from kskp.engine import execute, FlowJsonLink, FlowLinkContext
+from kskp.engine import execute, FlowJsonLink
 from .test_case_base import TestCaseBase
 
 class VCmdTestCase(TestCaseBase):
