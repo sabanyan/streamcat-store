@@ -3885,10 +3885,9 @@ class AuthTest(TestCaseBase):
         link = FlowJsonLink(duplicated_flow, self.factory3, vis_args)
         lasts = execute(link=link, args={}, inputs={})
 
-        # プロジェクトに属さないユーザは、複製したフローをプレビュー実行できないこと
+        # プロジェクトに属さないユーザは、複製したフローを取得できないこと
         with self.assertRaises(NotAuthorizedException):
-            link = FlowJsonLink(duplicated_flow, self.factory0, vis_args)
-            lasts = execute(link=link, args={}, inputs={})
+            self.factory0.data.find_by_uuid(duplicated_flow.uuid)
 
         # フローを削除する
         flow.delete()
@@ -3974,7 +3973,6 @@ class AuthTest(TestCaseBase):
         # マスキングのフラグが存在しないこと
         self.assertNotIn('masked', nodes[2])
 
-        # USER3は、メインフローを実行できないこと
         from kskp.engine import execute, FlowJsonLink
         vis_args = {
           "d1": {
@@ -3985,11 +3983,15 @@ class AuthTest(TestCaseBase):
             }
           }
         }
+
+        # USER3は、メインフローを実行できないこと
+        flow2 = self.factory3.data.find_by_uuid(flow2.uuid)
         link = FlowJsonLink(flow2, self.factory3, vis_args)
         with self.assertRaises(Exception):
             execute(link=link, args={}, inputs={})
 
         # USER2は、メインフローを実行できること
+        flow2 = self.factory2.data.find_by_uuid(flow2.uuid)
         link = FlowJsonLink(flow2, self.factory2, vis_args)
         last = execute(link=link, args={}, inputs={})
 
