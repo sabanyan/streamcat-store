@@ -142,7 +142,7 @@ class VisualizersBokehPlot(VisualizersCommand):
 
 # グラフ化に必要なものの準備
 # 
-# これらのImportは、テストスクリプトの実行時に、以下のWarningを出力している
+# TODO: これらのImportは、テストスクリプトの実行時に、以下のWarningを出力している
 # ImportWarning: can't resolve package from __spec__ or __package__, falling back on __name__ and __path__
 # 
 import pandas as pd
