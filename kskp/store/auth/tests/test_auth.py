@@ -994,13 +994,19 @@ class AuthTest(TestCaseBase):
         (保守性向上のためシステムが用意するロールのIDは固定したい)
         """
         everyone_role = self.factory.role.load_everyone_role()
+        edit_lock_role = self.factory.role.load_edit_lock_role()
         sys_admin_role = self.factory.role.load_sys_admin_role()
         usr_admin_role = self.factory.role.load_usr_admin_role()
 
-        # everyoneは1、システム管理者は2、ユーザ管理者は3
+        # TODO: 本当は以下のようにIDを採番したい
+        # everyone  : 1
+        # sys_admin : 2
+        # usr_admin : 3
+        # edit_lock : 4
         self.assertEqual(everyone_role.id, 1)
-        self.assertEqual(sys_admin_role.id, 2)
-        self.assertEqual(usr_admin_role.id, 3)
+        self.assertEqual(edit_lock_role.id, 2)
+        self.assertEqual(sys_admin_role.id, 3)
+        self.assertEqual(usr_admin_role.id, 4)
 
     # 
     # Auths
