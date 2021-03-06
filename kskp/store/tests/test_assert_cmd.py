@@ -1,0 +1,1296 @@
+import copy
+from kskp.engine import execute, FlowJsonLink
+from kskp.store import FlowData
+from .test_case_base import TestCaseBase
+
+class ExecuteAssertCmdFlow(TestCaseBase):
+    """
+    ２つの入力に対して、出力が一致しているかどうかを確認する。入力にはcsv、KSKPのエラーに対応する
+    入力されたデータが行ごとに一致しているかを確認し、結果を出力する
+
+    出力値の各列情報は、
+    ["フロー名","フローUUID", "フローのパス","実行日時","テストポイントID","テスト成功","エラー発生","行番号","入力iのデータ","入力mのデータ"]
+
+    本テストでは、入力データを変化させ、その出力が想定通りであるかを確認する
+    """
+    flow_json = {
+        "label": "テストフロ",
+        "params": [],
+        "description": "",
+        "ports": [
+            [],
+            []
+        ],
+        "nodes": [
+            {
+            "id": "i",
+            "type": "frame",
+            "label": "テストデータ",
+            "value": [['顧客','数量','金額'],
+                ['A',1,10],
+                ['A',2,20],
+                ['B',1,30],
+                ['B',3,40],
+                ['B',1,50]],
+            "dataSource": "csv"
+            },
+            {
+            "type": "frame",
+            "id": "d1",
+            "label": "d1",
+            "uuid": None,
+            "dataSource": "csv"
+            },
+            {
+            "type": "command",
+            "id": "c1",
+            "label": "c1",
+            "srcs": {
+                "i": "i"
+            },
+            "dsts": {
+                "o": "d1"
+            },
+            "args": {
+                "f": "0,1",
+                "x": True
+            },
+            "commandId": "mcut"
+            }
+        ]
+    }
+
+    simple_assert_json = {
+        "label": "テストフロ",
+        "params": [],
+        "description": "",
+        "ports": [
+            [],
+            []
+        ],
+        "nodes": [
+            {
+                "id": "i",
+                "type": "frame",
+                "label": "テストデータ",
+                "value": [['顧客','数量','金額'],
+                    ['A',1,10],
+                    ['A',2,20],
+                    ['B',1,30],
+                    ['B',3,40],
+                    ['B',1,50]],
+                "dataSource": "csv"
+            },
+            {
+                "type": "frame",
+                "id": "d1",
+                "label": "d1",
+                "uuid": None,
+                "dataSource": "csv"
+            },
+            {
+                "id": "i2",
+                "type": "frame",
+                "label": "テストデータ2",
+                "value": [['顧客','数量','金額'],
+                    ['A',1,10],
+                    ['B',1,30]],
+                "dataSource": "csv"
+            },
+            {
+                "id": "c1",
+                "args": {
+                "dlimit": "10"
+                },
+                "dsts": {
+                "o": "d1"
+                },
+                "srcs": {
+                "i": "i",
+                "m": "i2"
+                },
+                "type": "command",
+                "error": {},
+                "label": "c1",
+                "commandId": "assert"
+            }
+        ]
+    }
+
+    flow_json_same = {
+        "label": "テストフロ",
+        "params": [],
+        "description": "",
+        "ports": [
+            [],
+            []
+        ],
+        "nodes": [
+            {
+                "id": "i",
+                "type": "frame",
+                "label": "テストデータ",
+                "value": [['顧客','数量','金額'],
+                    ['A',1,10],
+                    ['A',2,20],
+                    ['B',1,30],
+                    ['B',3,40],
+                    ['B',1,50]],
+                "dataSource": "csv"
+            },
+            {
+                "type": "frame",
+                "id": "d1",
+                "label": "d1",
+                "uuid": None,
+                "dataSource": "csv"
+            },
+            {
+                "id": "i2",
+                "type": "frame",
+                "label": "テストデータ2",
+                "value": [['顧客','数量','金額'],
+                    ['A',1,10],
+                    ['A',2,20],
+                    ['B',1,30],
+                    ['B',3,40],
+                    ['B',1,50]],
+                "dataSource": "csv"
+            },
+            {
+                "id": "c1",
+                "args": {
+                "dlimit": "10"
+                },
+                "dsts": {
+                "o": "d1"
+                },
+                "srcs": {
+                "i": "i",
+                "m": "i2"
+                },
+                "type": "command",
+                "error": {},
+                "label": "c1",
+                "commandId": "assert"
+            }
+        ]
+    }
+
+    sequential_assert_json = {
+        "label": "テストフロ",
+        "params": [],
+        "description": "",
+        "ports": [
+            [],
+            []
+        ],
+        "nodes": [
+            {
+                "id": "i",
+                "type": "frame",
+                "label": "テストデータ",
+                "value": [['顧客','数量','金額'],
+                    ['A',1,10],
+                    ['A',2,20],
+                    ['B',1,30],
+                    ['B',3,40],
+                    ['B',1,50]],
+                "dataSource": "csv"
+            },
+            {
+                "type": "frame",
+                "id": "d1",
+                "label": "d1",
+                "uuid": None,
+                "dataSource": "csv"
+            },
+            {
+                "type": "frame",
+                "id": "d2",
+                "label": "d2",
+                "uuid": None,
+                "dataSource": "csv"
+            },
+            {
+                "id": "i2",
+                "type": "frame",
+                "label": "テストデータ2",
+                "value": [['顧客','数量','金額'],
+                    ['A',1,10],
+                    ['B',1,30]],
+                "dataSource": "csv"
+            },
+            {
+                "id": "c1",
+                "args": {
+                "dlimit": "10"
+                },
+                "dsts": {
+                "o": "d1"
+                },
+                "srcs": {
+                "i": "i",
+                "m": "i2"
+                },
+                "type": "command",
+                "error": {},
+                "label": "c1",
+                "commandId": "assert"
+            },
+            {
+                "id": "c2",
+                "args": {
+                "dlimit": "10"
+                },
+                "dsts": {
+                "o": "d2"
+                },
+                "srcs": {
+                "i": "i",
+                "m": "d1"
+                },
+                "type": "command",
+                "error": {},
+                "label": "c2",
+                "commandId": "assert"
+            }
+        ]
+    }
+
+    double_assert_json = {
+        "label": "テストフロ",
+        "params": [],
+        "description": "",
+        "ports": [
+            [],
+            []
+        ],
+        "nodes": [
+            {
+                "id": "i",
+                "type": "frame",
+                "label": "テストデータ",
+                "value": [['顧客','数量','金額'],
+                    ['A',1,10],
+                    ['A',2,20],
+                    ['B',1,30],
+                    ['B',3,40],
+                    ['B',1,50]],
+                "dataSource": "csv"
+            },
+            {
+                "type": "frame",
+                "id": "d1",
+                "label": "d1",
+                "uuid": None,
+                "dataSource": "csv"
+            },
+            {
+                "type": "frame",
+                "id": "d2",
+                "label": "d2",
+                "uuid": None,
+                "dataSource": "csv"
+            },
+            {
+                "id": "i2",
+                "type": "frame",
+                "label": "テストデータ2",
+                "value": [['顧客','数量','金額'],
+                    ['A',1,10],
+                    ['B',1,30]],
+                "dataSource": "csv"
+            },
+            {
+                "id": "c1",
+                "args": {
+                "dlimit": "10"
+                },
+                "dsts": {
+                "o": "d1"
+                },
+                "srcs": {
+                "i": "i",
+                "m": "i2"
+                },
+                "type": "command",
+                "error": {},
+                "label": "c1",
+                "commandId": "assert"
+            },
+            {
+                "id": "c2",
+                "args": {
+                "dlimit": "10"
+                },
+                "dsts": {
+                "o": "d2"
+                },
+                "srcs": {
+                "i": "i",
+                "m": "i2"
+                },
+                "type": "command",
+                "error": {},
+                "label": "c2",
+                "commandId": "assert"
+            }
+        ]
+    }
+
+    one_side_error_json = {
+        "label": "テストフロ",
+        "params": [],
+        "description": "",
+        "ports": [
+            [],
+            []
+        ],
+        "nodes": [
+            {
+                "id": "i",
+                "type": "frame",
+                "label": "テストデータ",
+                "value": [['顧客','数量','金額'],
+                    ['A',1,10],
+                    ['A',2,20],
+                    ['B',1,30],
+                    ['B',3,40],
+                    ['B',1,50]],
+                "dataSource": "csv"
+            },
+            {
+                "type": "frame",
+                "id": "d1",
+                "label": "d1",
+                "uuid": None,
+                "dataSource": "csv"
+            },
+            {
+                "id": "c2",
+                "type": "command",
+                "label": "c2",
+                "commandId": "mnewnumber",
+                "args": {},
+                "srcs": {},
+                "dsts": {
+                    "o": "d1"
+                },
+                "error": {}
+            },
+            {
+                "type": "frame",
+                "id": "d2",
+                "label": "d2",
+                "uuid": None,
+                "dataSource": "csv"
+            },
+            {
+                "type": "frame",
+                "id": "d2",
+                "label": "d2",
+                "uuid": None,
+                "dataSource": "csv"
+            },
+            {
+                "id": "c1",
+                "args": {
+                "dlimit": "10"
+                },
+                "dsts": {
+                "o": "d2"
+                },
+                "srcs": {
+                "i": "i",
+                "m": "d1"
+                },
+                "type": "command",
+                "error": {},
+                "label": "c1",
+                "commandId": "assert"
+            }
+        ]
+    }
+
+    both_same_error_json = {
+        "label": "テストフロ",
+        "params": [],
+        "description": "",
+        "ports": [
+            [],
+            []
+        ],
+        "nodes": [
+            {
+                "id": "c3",
+                "type": "command",
+                "label": "c3",
+                "commandId": "mnewnumber",
+                "args": {},
+                "srcs": {},
+                "dsts": {
+                    "o": "d3"
+                },
+                "error": {}
+            },
+            {
+                "type": "frame",
+                "id": "d3",
+                "label": "d3",
+                "uuid": None,
+                "dataSource": "csv"
+            },
+            {
+                "type": "frame",
+                "id": "d1",
+                "label": "d1",
+                "uuid": None,
+                "dataSource": "csv"
+            },
+            {
+                "id": "c2",
+                "type": "command",
+                "label": "c2",
+                "commandId": "mnewnumber",
+                "args": {},
+                "srcs": {},
+                "dsts": {
+                    "o": "d1"
+                },
+                "error": {}
+            },
+            {
+                "type": "frame",
+                "id": "d1",
+                "label": "d1",
+                "uuid": None,
+                "dataSource": "csv"
+            },
+            {
+                "type": "frame",
+                "id": "d2",
+                "label": "d2",
+                "uuid": None,
+                "dataSource": "csv"
+            },
+            {
+                "id": "c1",
+                "args": {
+                "dlimit": "10"
+                },
+                "dsts": {
+                "o": "d2"
+                },
+                "srcs": {
+                "i": "d3",
+                "m": "d1"
+                },
+                "type": "command",
+                "error": {},
+                "label": "c1",
+                "commandId": "assert"
+            }
+        ]
+    }
+
+    both_error_json = {
+        "label": "テストフロ",
+        "params": [],
+        "description": "",
+        "ports": [
+            [],
+            []
+        ],
+        "nodes": [
+            {
+                "id": "c3",
+                "type": "command",
+                "label": "c3",
+                "commandId": "mnewnumber",
+                "args": {},
+                "srcs": {},
+                "dsts": {
+                    "o": "d3"
+                },
+                "error": {}
+            },
+            {
+                "type": "frame",
+                "id": "d3",
+                "label": "d3",
+                "uuid": None,
+                "dataSource": "csv"
+            },
+            {
+                "type": "frame",
+                "id": "d1",
+                "label": "d1",
+                "uuid": None,
+                "dataSource": "csv"
+            },
+            {
+                "id": "c2",
+                "type": "command",
+                "label": "c2",
+                "commandId": "mnewrand",
+                "args": {},
+                "srcs": {},
+                "dsts": {
+                    "o": "d1"
+                },
+                "error": {}
+            },
+            {
+                "type": "frame",
+                "id": "d1",
+                "label": "d1",
+                "uuid": None,
+                "dataSource": "csv"
+            },
+            {
+                "type": "frame",
+                "id": "d2",
+                "label": "d2",
+                "uuid": None,
+                "dataSource": "csv"
+            },
+            {
+                "id": "c1",
+                "args": {
+                "dlimit": "10"
+                },
+                "dsts": {
+                "o": "d2"
+                },
+                "srcs": {
+                "i": "d3",
+                "m": "d1"
+                },
+                "type": "command",
+                "error": {},
+                "label": "c1",
+                "commandId": "assert"
+            }
+        ]
+    }
+
+    error_groupby2_json = {
+        "label": "テストフロ",
+        "params": [],
+        "description": "",
+        "ports": [
+            [],
+            []
+        ],
+        "nodes": [
+            {
+                "id": "i",
+                "type": "frame",
+                "label": "テストデータ",
+                "value": [['顧客','数量','金額'],
+                    ['A',1,10],
+                    ['A',2,20],
+                    ['B',1,30],
+                    ['B',3,40],
+                    ['B',1,50]],
+                "dataSource": "csv"
+            },
+            {
+                "type": "frame",
+                "id": "d1",
+                "label": "d1",
+                "uuid": None,
+                "dataSource": "csv"
+            },
+            {
+                "id": "i2",
+                "type": "frame",
+                "label": "テストデータ2",
+                "value": [['顧客','数量','金額'],
+                    ['A',1,10],
+                    ['B',1,30]],
+                "dataSource": "csv"
+            },
+            {
+                "id": "c2",
+                "type": "command",
+                "label": "c2",
+                "commandId": "groupby2",
+                "args": {
+                    "clist":[
+                        {
+                            "c": "",
+                            "fld": ""
+                        }
+                    ],
+                    "fclist": [
+                        {
+                            "c": "sum",
+                            "f": "random1"
+                        },
+                        {
+                            "c": "max",
+                            "f": "random2"
+                        },
+                        {
+                            "c": "min",
+                            "f": "random3"
+                        }
+                    ],
+                    "format": "&_%",
+                    "nfclist": [
+                        {
+                            "c": "",
+                            "f": "",
+                            "n": ""
+                        }
+                    ],
+                    "xfclist": [
+                        {
+                            "c": "",
+                            "f": "",
+                            "x": ""
+                        }
+                    ],
+                    "xfcnlist": [
+                        {
+                            "c": "",
+                            "f": "",
+                            "n": "",
+                            "x": ""
+                        }
+                    ],
+                    "precision": "10",
+                    "dataformat": "date"
+                },
+                "srcs": {
+                    "i": "i2"
+                },
+                "dsts": {
+                    "o": "d3"
+                },
+                "error": {}
+            },
+            {
+                "type": "frame",
+                "id": "d3",
+                "label": "d3",
+                "uuid": None,
+                "dataSource": "csv"
+            },
+            {
+                "id": "c1",
+                "args": {
+                "dlimit": "10"
+                },
+                "dsts": {
+                "o": "d1"
+                },
+                "srcs": {
+                "i": "i",
+                "m": "d3"
+                },
+                "type": "command",
+                "error": {},
+                "label": "c1",
+                "commandId": "assert"
+            }
+        ]
+    }
+
+    dlimit_overred_json = {
+        "label": "テストフロ",
+        "ports": [
+            [],
+            []
+        ],
+        "params": [],
+        "description": "",
+        "nodes": [
+            {
+                "id": "d",
+                "type": "frame",
+                "error": {},
+                "label": "テストデータ1",
+                "dataSource": "csv"
+            },
+            {
+                "id": "c",
+                "args": {
+                    "I": "1",
+                    "S": "100",
+                    "a": "column2",
+                    "l": "10"
+                },
+                "dsts": {
+                    "o": "d"
+                },
+                "srcs": {},
+                "type": "command",
+                "error": {},
+                "label": "c",
+                "commandId": "mnewnumber",
+                "srcsOrder": []
+            },
+            {
+                "id": "d1",
+                "type": "frame",
+                "error": {},
+                "label": "テストデータ2",
+                "dataSource": "csv"
+            },
+            {
+                "id": "c1",
+                "args": {
+                    "I": "1",
+                    "S": "1",
+                    "a": "column1",
+                    "l": "10"
+                },
+                "dsts": {
+                    "o": "d1"
+                },
+                "srcs": {},
+                "type": "command",
+                "error": {},
+                "label": "c1",
+                "commandId": "mnewnumber",
+                "srcsOrder": []
+            },
+            {
+                "id": "d2",
+                "type": "frame",
+                "error": {},
+                "label": "d2",
+                "dataSource": "csv"
+            },
+            {
+                "id": "c2",
+                "args": {
+                    "dlimit": "10"
+                },
+                "dsts": {
+                    "o": "d2"
+                },
+                "srcs": {
+                    "i": "d1",
+                    "m": "d"
+                },
+                "type": "command",
+                "error": {},
+                "label": "c2",
+                "commandId": "assert",
+                "srcsOrder": [
+                    "i",
+                    "m"
+                ]
+            }
+        ]
+    }
+
+
+
+
+    @classmethod
+    def setUpClass(cls):
+        # 親クラスのsetUpClass()を実行する
+        TestCaseBase.setUpClass()
+        cls.root = cls.factory.data.load_root()
+        cls.TESTDATA_DIR = cls.root.path
+        maxDiff = None
+
+    @classmethod
+    def tearDownClass(cls):
+        # 親クラスのtearDownClass()を実行する
+        TestCaseBase.tearDownClass()
+
+    # Helpler
+    def get_frame_by_uuid(self, uuid, header=True):
+        """
+        指定したuuidのframeを取得する
+        """
+        import csv
+        result = []
+        frame = self.factory.data.find_by_uuid(uuid)
+        try:
+          with open(frame.path, 'r') as f:
+              rows = csv.reader(f)
+              if header:
+                  header = next(rows)
+              for row in rows:
+                  result.append(row)
+        except Exception as e:
+          raise e
+
+        return result
+
+    # @unittest.skip
+    def test_simple_assert_command(self):
+        """
+        内容が3行目以降違う２つの入力に対して、assert_commandを一つ配置したフローを実行、
+        出力で、入力データの3行目以降不一致判定が出ることを期待する。
+        エラー判定はfalse        
+        """
+        json_flow = copy.deepcopy(self.simple_assert_json)
+        json_flow['ports'] = [[],[{'nodeId':'d1', 'label':'d1', 'type':'frame'}]]
+
+        flow = self.root.create_flow(json_flow['label'], FlowData(json_flow))
+        flow_link = FlowJsonLink(flow, self.factory)
+        lasts = execute(flow_link, {}, {})
+        lasts = convert_from_activity(lasts)
+
+        # 正解データ内のuuid, タイムスタンプはダミー、テスト実行時には、毎回変動するので、出力がされているかどうかのみ確認する
+        corrects = {'d1': [
+            ['テストフロ','00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','0000-00-00 00:00:00.000000+00:00','d1','False','False','False','3','A,2,20','B,1,30'],
+            ['テストフロ','00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','0000-00-00 00:00:00.000000+00:00','d1','False','False','False','4','B,1,30',''],
+            ['テストフロ','00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','0000-00-00 00:00:00.000000+00:00','d1','False','False','False','5','B,3,40',''],
+            ['テストフロ','00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','0000-00-00 00:00:00.000000+00:00','d1','False','False','False','6','B,1,50','']
+        ]}
+        # テスト
+        # DBにframeデータが生成されているか
+        self.assertIsNotNone(self.factory.data.exists(lasts['d1'].uuid))
+        # 実ファイルが指定ディレクトリに存在するか
+        results = self.get_frame_by_uuid(lasts['d1'].uuid)
+
+        # 出力の一致を確認
+        self.assertEqual(len(results), len(corrects['d1']))
+        for result,correct in zip(results, corrects['d1']):
+            self.assertEqual(len(result), len(correct))
+            
+            self.assertEqual(result[0], correct[0])
+            self.assertIsNotNone(result[1])
+            self.assertEqual(result[2], correct[2])
+            self.assertIsNotNone(result[3])
+            self.assertEqual(result[4], correct[4])
+            self.assertEqual(result[5], correct[5])
+            self.assertEqual(result[6], correct[6])
+            self.assertEqual(result[7], correct[7])
+            self.assertEqual(result[8], correct[8])
+            self.assertEqual(result[9], correct[9])
+            self.assertEqual(result[10], correct[10])
+
+        # 後片付け
+        lasts['d1'].delete()
+
+    # @unittest.skip
+    def test_same_execute(self):
+        """
+        内容が同じ２つの入力に対して、assert_commandを一つ配置したフローを実行、
+        出力で、入力データが一致という判定が出ることを期待する。
+        エラー判定はfalse     
+        """
+        json_flow = copy.deepcopy(self.flow_json_same)
+        json_flow['ports'] = [[],[{'nodeId':'d1', 'label':'d1', 'type':'frame'}]]
+
+        flow = self.root.create_flow(json_flow['label'], FlowData(json_flow))
+        flow_link = FlowJsonLink(flow, self.factory)
+        lasts = execute(flow_link, {}, {})
+        lasts = convert_from_activity(lasts)
+        # 正解データ内のuuid, タイムスタンプはダミー、テスト実行時には、毎回変動するので、出力がされているかどうかのみ確認する
+        corrects = {'d1': [
+            ['テストフロ','00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','0000-00-00 00:00:00.000000+00:00','d1','True','False','False','','','']
+        ]}
+        # テスト
+        # DBにframeデータが生成されているか
+        self.assertIsNotNone(self.factory.data.exists(lasts['d1'].uuid))
+        # 実ファイルが指定ディレクトリに存在するか
+        results = self.get_frame_by_uuid(lasts['d1'].uuid)
+
+        # 出力の一致を確認
+        self.assertEqual(len(results), len(corrects['d1']))
+        for result,correct in zip(results, corrects['d1']):
+            self.assertEqual(len(result), len(correct))
+            
+            self.assertEqual(result[0], correct[0])
+            self.assertIsNotNone(result[1])
+            self.assertEqual(result[2], correct[2])
+            self.assertIsNotNone(result[3])
+            self.assertEqual(result[4], correct[4])
+            self.assertEqual(result[5], correct[5])
+            self.assertEqual(result[6], correct[6])
+            self.assertEqual(result[7], correct[7])
+            self.assertEqual(result[8], correct[8])
+            self.assertEqual(result[9], correct[9])
+            self.assertEqual(result[10], correct[10])
+
+        # 後片付け
+        lasts['d1'].delete()
+
+
+    # @unittest.skip
+    def test_case_sequential_assert(self):
+        """
+        assert_commandが２連続で実行されるフローを実行、出力結果をテストする
+        assert_commandを２連続配置したフローを実行、
+        出力で入力データ全行が不一致判定が出ることを期待する。
+        エラー判定はfalse     
+        """
+        json_flow = copy.deepcopy(self.sequential_assert_json)
+        json_flow['ports'] = [[],[{'nodeId':'d2', 'label':'d2', 'type':'frame'}]]
+
+        flow = self.root.create_flow(json_flow['label'], FlowData(json_flow))
+        flow_link = FlowJsonLink(flow, self.factory)
+        lasts = execute(flow_link, {}, {})
+        lasts = convert_from_activity(lasts)
+
+        # # 正解データ内のuuid, タイムスタンプはダミー、テスト実行時には、毎回変動するので、出力がされているかどうかのみ確認する
+        corrects = {'d2': [
+            ['テストフロ','00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','0000-00-00 00:00:00.000000+00:00','d2','False','False','False','1','顧客,数量,金額','flow_label,flow_uuid,flow_path,date,point_id,is_true,raise_exs,diff_row_number,i_port_diff,m_port_diff'],
+            ['テストフロ','00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','0000-00-00 00:00:00.000000+00:00','d2','False','False','False','2','A,1,10','テストフロ,00000000-0000-0000-0000-000000000000,/ライブラリ/テストフロ,0000-00-00 00:00:00.000000+00:00,d1,False,False,3,"A,2,20",""'],
+            ['テストフロ','00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','0000-00-00 00:00:00.000000+00:00','d2','False','False','False','3','A,2,20','テストフロ,00000000-0000-0000-0000-000000000000,/ライブラリ/テストフロ,0000-00-00 00:00:00.000000+00:00,d1,False,False,4,"B,1,30",""'],
+            ['テストフロ','00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','0000-00-00 00:00:00.000000+00:00','d2','False','False','False','4','B,1,30','テストフロ,00000000-0000-0000-0000-000000000000,/ライブラリ/テストフロ,0000-00-00 00:00:00.000000+00:00,d1,False,False,5,"B,3,40",""'],
+            ['テストフロ','00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','0000-00-00 00:00:00.000000+00:00','d2','False','False','False','5','B,3,40','テストフロ,00000000-0000-0000-0000-000000000000,/ライブラリ/テストフロ,0000-00-00 00:00:00.000000+00:00,d1,False,False,6,"B,1,50",""'],
+            ['テストフロ','00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','0000-00-00 00:00:00.000000+00:00','d2','False','False','False','6','B,1,50','']
+        ]}
+        # テスト
+        # DBにframeデータが生成されているか
+        self.assertIsNotNone(self.factory.data.exists(lasts['d2'].uuid))
+        # 実ファイルが指定ディレクトリに存在するか
+        results = self.get_frame_by_uuid(lasts['d2'].uuid)
+
+        # 比較するデータ内にタイムスタンプがあるので、文字列を置き換え。
+        # コマンドの動作自体は別のコマンドがしてくれているので、ここではerrorが発生しないことを確認
+        for s in results:
+            s[9]= "Replacement of output information"
+        for s in corrects['d2']:
+            s[9]= "Replacement of output information"
+
+        results, corrects['d2'] = self.check_equal(results, corrects['d2'])
+
+        # 出力の一致を確認
+        self.assertEqual(len(results), len(corrects['d2']))
+        for result,correct in zip(results, corrects['d2']):
+            self.assertEqual(len(result), len(correct))
+            
+            self.assertEqual(result[0], correct[0])
+            self.assertIsNotNone(result[1])
+            self.assertEqual(result[2], correct[2])
+            self.assertIsNotNone(result[3])
+            self.assertEqual(result[4], correct[4])
+            self.assertEqual(result[5], correct[5])
+            self.assertEqual(result[6], correct[6])
+            self.assertEqual(result[7], correct[7])
+            self.assertEqual(result[8], correct[8])
+            self.assertEqual(result[9], correct[9])
+
+        # 後片付け
+        lasts['d2'].delete()
+
+    # @unittest.skip
+    def test_case_two_assert(self):
+        """
+        内容が3行目以降違う２つの入力に対して、assert_commandを一つ配置したフローの島を2つ用意し、同時実行、
+        出力で、入力データが3行目以降不一致という判定が出ることを期待する。
+        エラー判定はfalse
+        """
+        json_flow = copy.deepcopy(self.double_assert_json)
+        json_flow['ports'] = [[],[{'nodeId':'d1', 'label':'d1', 'type':'frame'},{'nodeId':'d2', 'label':'d2', 'type':'frame'}]]
+
+        flow = self.root.create_flow(json_flow['label'], FlowData(json_flow))
+        flow_link = FlowJsonLink(flow, self.factory)
+        lasts = execute(flow_link, {}, {})
+        lasts = convert_from_activity(lasts)
+
+        # 正解データ内のuuid, タイムスタンプはダミー、テスト実行時には、毎回変動するので、出力がされているかどうかのみ確認する
+        corrects = {
+        'd1':[
+            ['テストフロ','00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','0000-00-00 00:00:00.000000+00:00','d1','False','False','False','3','A,2,20','B,1,30'],
+            ['テストフロ','00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','0000-00-00 00:00:00.000000+00:00','d1','False','False','False','4','B,1,30',''],
+            ['テストフロ','00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','0000-00-00 00:00:00.000000+00:00','d1','False','False','False','5','B,3,40',''],
+            ['テストフロ','00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','0000-00-00 00:00:00.000000+00:00','d1','False','False','False','6','B,1,50','']
+        ],
+        'd2': [
+            ['テストフロ','00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','0000-00-00 00:00:00.000000+00:00','d2','False','False','False','3','A,2,20','B,1,30'],
+            ['テストフロ','00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','0000-00-00 00:00:00.000000+00:00','d2','False','False','False','4','B,1,30',''],
+            ['テストフロ','00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','0000-00-00 00:00:00.000000+00:00','d2','False','False','False','5','B,3,40',''],
+            ['テストフロ','00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','0000-00-00 00:00:00.000000+00:00','d2','False','False','False','6','B,1,50','']
+        ]}
+        # テスト
+        # DBにframeデータが生成されているか
+        self.assertIsNotNone(self.factory.data.exists(lasts['d1'].uuid))
+        self.assertIsNotNone(self.factory.data.exists(lasts['d2'].uuid))
+        # 実ファイルが指定ディレクトリに存在するか
+        results = self.get_frame_by_uuid(lasts['d1'].uuid)
+        results2 = self.get_frame_by_uuid(lasts['d2'].uuid)
+
+        # 出力の一致を確認
+        self.assertEqual(len(results), len(corrects['d1']))
+        for result,correct in zip(results, corrects['d1']):
+            self.assertEqual(len(result), len(correct))
+            
+            self.assertEqual(result[0], correct[0])
+            self.assertIsNotNone(result[1])
+            self.assertEqual(result[2], correct[2])
+            self.assertIsNotNone(result[3])
+            self.assertEqual(result[4], correct[4])
+            self.assertEqual(result[5], correct[5])
+            self.assertEqual(result[6], correct[6])
+            self.assertEqual(result[7], correct[7])
+            self.assertEqual(result[8], correct[8])
+            self.assertEqual(result[9], correct[9])
+            self.assertEqual(result[10], correct[10])
+
+        self.assertEqual(len(results), len(corrects['d2']))
+        for result,correct in zip(results2, corrects['d2']):
+            self.assertEqual(len(result), len(correct))
+            
+            self.assertEqual(result[0], correct[0])
+            self.assertIsNotNone(result[1])
+            self.assertEqual(result[2], correct[2])
+            self.assertIsNotNone(result[3])
+            self.assertEqual(result[4], correct[4])
+            self.assertEqual(result[5], correct[5])
+            self.assertEqual(result[6], correct[6])
+            self.assertEqual(result[7], correct[7])
+            self.assertEqual(result[8], correct[8])
+            self.assertEqual(result[9], correct[9])
+            self.assertEqual(result[10], correct[10])
+
+        # 後片付け
+        lasts['d1'].delete()
+        lasts['d2'].delete()
+
+
+    # @unittest.skip
+    def test_one_side_error_assert(self):
+        """
+        ２つの入力のうち、片方がassert_command以前のノードでエラーが発生するフローを実行、
+        出力で、入力データが全行不一致という判定が出ることを期待する。
+        エラー判定はtrue
+        """
+        json_flow = copy.deepcopy(self.one_side_error_json)
+        json_flow['ports'] = [[],[{'nodeId':'d2', 'label':'d2', 'type':'frame'}]]
+
+        flow = self.root.create_flow(json_flow['label'], FlowData(json_flow))
+        flow_link = FlowJsonLink(flow, self.factory)
+        lasts = execute(flow_link, {}, {})
+        lasts = convert_from_activity(lasts)
+
+        # 正解データ内のuuid, タイムスタンプはダミー、テスト実行時には、毎回変動するので、出力がされているかどうかのみ確認する
+        corrects = {'d2': [
+            ['テストフロ','00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','0000-00-00 00:00:00.000000+00:00','d2','False','True','False','1','顧客,数量,金額','MCMDError:#ERROR# parameter a= is mandatory (kgNewnumber); kgNewnumber;  OUT=0; 2020/09/13 16:54:32; 2020/09/13 16:54:32'],
+            ['テストフロ','00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','0000-00-00 00:00:00.000000+00:00','d2','False','True','False','2','A,1,10',''],
+            ['テストフロ','00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','0000-00-00 00:00:00.000000+00:00','d2','False','True','False','3','A,2,20',''],
+            ['テストフロ','00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','0000-00-00 00:00:00.000000+00:00','d2','False','True','False','4','B,1,30',''],
+            ['テストフロ','00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','0000-00-00 00:00:00.000000+00:00','d2','False','True','False','5','B,3,40',''],
+            ['テストフロ','00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','0000-00-00 00:00:00.000000+00:00','d2','False','True','False','6','B,1,50','']
+        ]}
+        # テスト
+        # DBにframeデータが生成されているか
+        self.assertIsNotNone(self.factory.data.exists(lasts['d2'].uuid))
+        # 実ファイルが指定ディレクトリに存在するか
+        results = self.get_frame_by_uuid(lasts['d2'].uuid)
+
+        results, corrects['d2'] = self.check_equal(results, corrects['d2'])
+
+        # 出力の一致を確認
+        self.assertEqual(len(results), len(corrects['d2']))
+        for result,correct in zip(results, corrects['d2']):
+            self.assertEqual(len(result), len(correct))
+            
+            self.assertEqual(result[0], correct[0])
+            self.assertIsNotNone(result[1])
+            self.assertEqual(result[2], correct[2])
+            self.assertIsNotNone(result[3])
+            self.assertEqual(result[4], correct[4])
+            self.assertEqual(result[5], correct[5])
+            self.assertEqual(result[6], correct[6])
+            self.assertEqual(result[7], correct[7])
+            self.assertEqual(result[8], correct[8])
+            self.assertEqual(result[9], correct[9])
+            self.assertEqual(result[10], correct[10])
+
+        # 後片付け
+        lasts['d2'].delete()
+
+
+    # @unittest.skip
+    def test_same_both_error_assert(self):
+        """
+        内容がどちらも同じエラーを出す２つの入力に対して、assert_commandを一つ配置し実行、
+        出力で、入力データが一致という判定が出ることを期待する。
+        エラー判定はtrue
+        """
+        json_flow = copy.deepcopy(self.both_same_error_json)
+        json_flow['ports'] = [[],[{'nodeId':'d2', 'label':'d2', 'type':'frame'}]]
+
+        flow = self.root.create_flow(json_flow['label'], FlowData(json_flow))
+        flow_link = FlowJsonLink(flow, self.factory)
+        lasts = execute(flow_link, {}, {})
+        lasts = convert_from_activity(lasts)
+
+        # 正解データ内のuuid, タイムスタンプはダミー、テスト実行時には、毎回変動するので、出力がされているかどうかのみ確認する
+        corrects = {
+            'd2': [
+                ['テストフロ','fa95ec62-5141-44fb-b4b0-f680139b4adc','/ライブラリ/テストフロ','0000-00-00 00:00:00.000000+00:00','d2','True','True','False','','','']
+        ]}
+        # テスト
+        # DBにframeデータが生成されているか
+        self.assertIsNotNone(self.factory.data.exists(lasts['d2'].uuid))
+        # 実ファイルが指定ディレクトリに存在するか
+        results = self.get_frame_by_uuid(lasts['d2'].uuid)
+
+        # 出力の一致を確認
+        self.assertEqual(len(results), len(corrects['d2']))
+        for result,correct in zip(results, corrects['d2']):
+            self.assertEqual(len(result), len(correct))
+            
+            self.assertEqual(result[0], correct[0])
+            self.assertIsNotNone(result[1])
+            self.assertEqual(result[2], correct[2])
+            self.assertIsNotNone(result[3])
+            self.assertEqual(result[4], correct[4])
+            self.assertEqual(result[5], correct[5])
+            self.assertEqual(result[6], correct[6])
+            self.assertEqual(result[7], correct[7])
+            self.assertEqual(result[8], correct[8])
+            self.assertEqual(result[9], correct[9])
+            self.assertEqual(result[10], correct[10])
+
+        # 後片付け
+        lasts['d2'].delete()
+    
+    # @unittest.skip
+    def test_both_error_assert(self):
+        """
+        内容が違うエラーを出す２つの入力に対して、assert_commandを一つ配置し実行、
+        出力で、入力データが不一致という判定が出ることを期待する。
+        エラー判定はtrue
+        """
+        json_flow = copy.deepcopy(self.both_error_json)
+        json_flow['ports'] = [[],[{'nodeId':'d2', 'label':'d2', 'type':'frame'}]]
+
+        flow = self.root.create_flow(json_flow['label'], FlowData(json_flow))
+        flow_link = FlowJsonLink(flow, self.factory)
+        lasts = execute(flow_link, {}, {})
+        lasts = convert_from_activity(lasts)
+
+        # 正解データ内のuuid, タイムスタンプはダミー、テスト実行時には、毎回変動するので、出力がされているかどうかのみ確認する
+        corrects = {'d2': [
+            ['テストフロ','cb4cf7ad-44de-4df9-a7b7-a4d5a4201d81','/ライブラリ/テストフロ','0000-00-00 00:00:00.000000+00:00','d2','False','True','False','None','MCMDError:#ERROR# parameter a= is mandatory (kgNewnumber); kgNewnumber;  OUT=0; 2020/09/12 11:24:50; 2020/09/12 11:24:50','MCMDError:#ERROR# parameter a= is mandatory (kgnewrand); kgnewrand;  OUT=0; 2020/09/12 11:24:50; 2020/09/12 11:24:50']
+        ]}
+        # テスト
+        # DBにframeデータが生成されているか
+        self.assertIsNotNone(self.factory.data.exists(lasts['d2'].uuid))
+        # 実ファイルが指定ディレクトリに存在するか
+        results = self.get_frame_by_uuid(lasts['d2'].uuid)
+
+        results, corrects['d2'] = self.check_equal(results, corrects['d2'])
+
+        # 出力の一致を確認
+        self.assertEqual(len(results), len(corrects['d2']))
+        for result,correct in zip(results, corrects['d2']):
+            self.assertEqual(len(result), len(correct))
+
+            self.assertEqual(result[0], correct[0])
+            self.assertIsNotNone(result[1])
+            self.assertEqual(result[2], correct[2])
+            self.assertIsNotNone(result[3])
+            self.assertEqual(result[4], correct[4])
+            self.assertEqual(result[5], correct[5])
+            self.assertEqual(result[6], correct[6])
+            self.assertEqual(result[7], correct[7])
+            self.assertEqual(result[8], correct[8])
+            self.assertEqual(result[9], correct[9])
+
+        # 後片付け
+        lasts['d2'].delete()
+
+    # @unittest.skip
+    def test_dlimit_overred_assert(self):
+        """
+        assert_commandの処理の途中で出力不一致行の検出上限を超えた時、検出処理を途中で辞め、
+        出力でその旨を通知することと、テスト失敗の判定が出ることを期待する。
+        エラー判定はfalse     
+        """
+        json_flow = copy.deepcopy(self.dlimit_overred_json)
+        json_flow['ports'] = [[],[{'nodeId':'d2', 'label':'d2', 'type':'frame'}]]
+
+        flow = self.root.create_flow(json_flow['label'], FlowData(json_flow))
+        flow_link = FlowJsonLink(flow, self.factory)
+        lasts = execute(flow_link, {}, {})
+        lasts = convert_from_activity(lasts)
+
+        # # 正解データ内のuuid, タイムスタンプはダミー、テスト実行時には、毎回変動するので、出力がされているかどうかのみ確認する
+        corrects = {'d2': [
+            ['テストフロ', '564fb0a7-00bb-416f-9ccc-4e7a056d7564', '/ライブラリ/テストフロ', '2021-01-12 17:38:01', 'd2', 'False', 'False', 'True', '1', 'column1', 'column2'],
+            ['テストフロ', '564fb0a7-00bb-416f-9ccc-4e7a056d7564', '/ライブラリ/テストフロ', '2021-01-12 17:38:01', 'd2', 'False', 'False', 'True', '2', '1', '100'],
+            ['テストフロ', '564fb0a7-00bb-416f-9ccc-4e7a056d7564', '/ライブラリ/テストフロ', '2021-01-12 17:38:01', 'd2', 'False', 'False', 'True', '3', '2', '101'],
+            ['テストフロ', '564fb0a7-00bb-416f-9ccc-4e7a056d7564', '/ライブラリ/テストフロ', '2021-01-12 17:38:01', 'd2', 'False', 'False', 'True', '4', '3', '102'],
+            ['テストフロ', '564fb0a7-00bb-416f-9ccc-4e7a056d7564', '/ライブラリ/テストフロ', '2021-01-12 17:38:01', 'd2', 'False', 'False', 'True', '5', '4', '103'],
+            ['テストフロ', '564fb0a7-00bb-416f-9ccc-4e7a056d7564', '/ライブラリ/テストフロ', '2021-01-12 17:38:01', 'd2', 'False', 'False', 'True', '6', '5', '104'],
+            ['テストフロ', '564fb0a7-00bb-416f-9ccc-4e7a056d7564', '/ライブラリ/テストフロ', '2021-01-12 17:38:01', 'd2', 'False', 'False', 'True', '7', '6', '105'],
+            ['テストフロ', '564fb0a7-00bb-416f-9ccc-4e7a056d7564', '/ライブラリ/テストフロ', '2021-01-12 17:38:01', 'd2', 'False', 'False', 'True', '8', '7', '106'],
+            ['テストフロ', '564fb0a7-00bb-416f-9ccc-4e7a056d7564', '/ライブラリ/テストフロ', '2021-01-12 17:38:01', 'd2', 'False', 'False', 'True', '9', '8', '107'],
+            ['テストフロ', '564fb0a7-00bb-416f-9ccc-4e7a056d7564', '/ライブラリ/テストフロ', '2021-01-12 17:38:01', 'd2', 'False', 'False', 'True', '10', '9', '108'],
+            ['テストフロ', '564fb0a7-00bb-416f-9ccc-4e7a056d7564', '/ライブラリ/テストフロ', '2021-01-12 17:38:01', 'd2', 'False', 'False', 'True', '11', '10', '109']
+        ]}
+        # テスト
+        # DBにframeデータが生成されているか
+        self.assertIsNotNone(self.factory.data.exists(lasts['d2'].uuid))
+        # 実ファイルが指定ディレクトリに存在するか
+        results = self.get_frame_by_uuid(lasts['d2'].uuid)
+
+        results, corrects['d2'] = self.check_equal(results, corrects['d2'])
+
+        # 出力の一致を確認
+        print(results)
+        self.assertEqual(len(results), len(corrects['d2']))
+        for result,correct in zip(results, corrects['d2']):
+            self.assertEqual(len(result), len(correct))
+
+            self.assertEqual(result[0], correct[0])
+            self.assertIsNotNone(result[1])
+            self.assertEqual(result[2], correct[2])
+            self.assertIsNotNone(result[3])
+            self.assertEqual(result[4], correct[4])
+            self.assertEqual(result[5], correct[5])
+            self.assertEqual(result[6], correct[6])
+            self.assertEqual(result[7], correct[7])
+            self.assertEqual(result[8], correct[8])
+            self.assertEqual(result[9], correct[9])
+            self.assertEqual(result[10], correct[10])
+
+        # 後片付け
+        lasts['d2'].delete()
+
+
+
+    def check_equal(self, result, correct):
+        """
+        MCommandが出すエラーにあるタイムスタンプ部位を取り除く
+        """
+        # TODO:
+        # mcmd_error_infoのMCMDErrorにタイムスタンプを取り除く処理を描こうとしたが、
+        # mコマンドにもエラーメッセージでタイムスタンプが出ないものがあり対応に時間が取られるため、後回し
+
+        for row in result:
+            if row[9].find('MCMDError') != -1:
+                row[9] = row[9][:-42]
+
+            if row[10].find('MCMDError') != -1:
+                row[10] = row[10][:-42]
+
+        for row in correct:
+            if row[9].find('MCMDError') != -1:
+                row[9] = row[9][:-42]
+
+            if row[10].find('MCMDError') != -1:
+                row[10] = row[10][:-42]
+
+        return result, correct
+
+
+def convert_from_activity(lasts):
+    """
+    execute()の戻り値から
+    pointのidとframeのDictに置き換える
+    """
+    from kskp.store import Activity
+    # Activityを取得して返り値とする
+    for point_id, datum in lasts.items():
+        if isinstance(datum, Activity):
+            return {point.id : frame for point, frame in datum.lasts}
+
+            
