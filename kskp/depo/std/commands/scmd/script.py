@@ -1149,15 +1149,21 @@ class AssertCommand(SCommand):
 
         # オプションの値が正常であるかを処理前に判定
         # dlimit : エラー検知上限数 -> 整数
-        # dlimit未入力の場合、上限を10に設定
-        dlimit = args["dlimit"]
-        if dlimit.isdecimal():
-            dlimit = int(dlimit)
-        elif dlimit == "":
+        # dlimit未入力の場合、制限をかけない
+        dlimit = 0
+        if 'dlimit' in args:
+            if isinstance(args["dlimit"], int):
+                dlimit = args["dlimit"]
+            elif isinstance(args["dlimit"], str) and args["dlimit"].isdecimal():
+                dlimit = int(args["dlimit"])
+            elif args["dlimit"] == '':
+                # 制限をかけない
+                dlimit == sys.maxsize
+            else:
+                raise Exception('dlimitには0以上の整数を指定してください')
+        else:
             # 制限をかけない
             dlimit == sys.maxsize
-        else:
-            raise Exception("dlimitには0以上の整数を指定してください")
 
         # それぞれの入力portの処理結果の一時書き出し先ファイル
         from kskp.core import Tmp

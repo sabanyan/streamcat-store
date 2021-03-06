@@ -25,9 +25,9 @@
   "params": [
     {
       "name": "dlimit",
-      "type": "string",
-      "label": "差分取得限界数(必須)",
-      "default": 100
+      "type": "number",
+      "label": "差分取得限界数",
+      "default": 10
     }
   ],
   "url": ""
