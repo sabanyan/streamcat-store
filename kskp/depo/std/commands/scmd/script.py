@@ -1061,7 +1061,7 @@ class AssertCommand(SCommand):
                             row_number += 1
             return diff_list, exceed_limit
 
-        def format_to_csv(diff_list, parent_path, exceed_limit):
+        def format_to_csv(diff_list, parent_path, verbose, exceed_limit):
             """
             差分取得の処理結果をもとに、コマンドとしての返却データを作成
             runfuncを使用した場合、対象のコマンドでは標準出力にcsv形式のデータを渡す必要がある。（逆に、runfuncに対して、return を通してデータを返さない）
@@ -1075,17 +1075,16 @@ class AssertCommand(SCommand):
 
                 # 出力データの列
                 output_columns = [
-                    "フロー名", # テスト対象フローのラベル名
-                    "フローUUID", # テスト対象フローのuuid
+                    "フローUUID",  # テスト対象フローのuuid
                     "フローのパス", # KSKP上での、テスト対象フローまでのパス
-                    "実行日時", # 実行日時
-                    "テストポイントID", # assert commandの出力先ポイント
-                    "テスト成功", # ２つの入力が正しい値であるか
-                    "エラー発生", # テスト対象のデータにエラーメッセージが含まれているか
-                    "差分取得限界数超過", # オプションで指定した差分取得限界数を超えたかどうか
-                    "行番号", # 各入力における、csv情報が違う行番号
+                    "出力ノードID", # assert commandのデータノードのID
+                    "差分なし",     # 入力データの差分がない場合True
+                    "例外送出",     # テスト対象のフローが例外を出力したか
+                    "行番号",       # 各入力における、csv情報が違う行番号
                     "入力iのデータ", # i_portのdiff_row_number 行目を抜き出す
-                    "入力mのデータ" # m_portのdiff_row_number 行目を抜き出す
+                    "入力mのデータ", # m_portのdiff_row_number 行目を抜き出す
+                    "差分取得限界数超過", # オプションで指定した差分取得限界数を超えたかどうか
+                    "実行日時"      # 実行日時
                 ]
 
                 # CSVヘッダ行を出力する
@@ -1096,28 +1095,31 @@ class AssertCommand(SCommand):
                 flow_uuid = args["flow_uuid"]
                 # フローの親フォルダのパス
                 flow_path = parent_path + '/' + flow_label
-                date = KSKPBaseModel._datetime_to_local_time_str(args['start_time'])
                 point_id = args['asserted_point']
                 is_true = False
                 raise_exs = i_is_exs or m_is_exs
+                time_str = KSKPBaseModel._datetime_to_local_time_str(args['start_time'])
+                exceed_limit_str = str(exceed_limit)
 
                 # is_trueの判定 と diffの出力
                 if diff_list == [] or diff_list == None:
-                    is_true = "True"
-                    diff = ["","",""]
+                    # 二つの入力データに差分がない場合
+                    if verbose:
+                        is_true = "True"
+                        diff = ["","",""]
+                    else:
+                        # 差分情報を出力しない
+                        return
                 else:
                     is_true = "False"
                     diff = diff_list
 
                 output_datas = [
-                    flow_label,
                     flow_uuid,
                     flow_path,
-                    date,
                     point_id,
                     is_true,
                     raise_exs,
-                    exceed_limit
                 ]
 
                 # csv出力処理
@@ -1125,12 +1127,14 @@ class AssertCommand(SCommand):
                     if isinstance(diff[0], list):
                         for output_diff in diff:
                             row_data = output_datas + output_diff
-                            data_str = ",".join(map(str, row_data))
+                            data_str = ",".join(map(str, row_data)) + "," + exceed_limit_str + "," + time_str
                             print(data_str)
                     else:
-                        print(",".join(map(str, output_datas)) + "," + ",".join(map(str, diff)))
+                        print(",".join(map(str, output_datas)) + "," + ",".join(map(str, diff)) + "," + exceed_limit_str + "," + time_str)
                 else:
                     output_datas.append(diff)
+                    output_datas.append(exceed_limit_str)
+                    output_datas.append(time_str)
                     print(output_datas)
                 
                 # NysolPythonのrunfunc関数の出力は標準出力を使用する、
@@ -1147,7 +1151,20 @@ class AssertCommand(SCommand):
         if 'm' not in inputs:
             raise Exception('AssertCommandの入力ポートmに値が入力されていません')
 
+        # 
         # オプションの値が正常であるかを処理前に判定
+        # 
+
+        # verbose : Trueの場合、比較が一致しても差分情報を出力する
+        if 'verbose' in args:
+            if isinstance(args['verbose'], bool):
+                verbose = args['verbose']
+            else:
+                Exception('verboseにはTrue/Falseを指定してください')
+        else:
+            verbose = False
+
+
         # dlimit : エラー検知上限数 -> 整数
         # dlimit未入力の場合、制限をかけない
         dlimit = 0
@@ -1183,5 +1200,5 @@ class AssertCommand(SCommand):
         parent_path = args['flow'].folder_path
 
         # 差分をCSVで出力する
-        cmd = nm.runfunc(format_to_csv, diff_list=diff_list, parent_path=parent_path, exceed_limit=exceed_limit)
+        cmd = nm.runfunc(format_to_csv, diff_list=diff_list, parent_path=parent_path, verbose=verbose, exceed_limit=exceed_limit)
         return {'o': NysolModule(cmd)}

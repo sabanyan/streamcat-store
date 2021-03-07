@@ -3,7 +3,7 @@ from kskp.engine import execute, FlowJsonLink
 from kskp.store import FlowData
 from .test_case_base import TestCaseBase
 
-class ExecuteAssertCmdFlow(TestCaseBase):
+class AssertCmdTest(TestCaseBase):
     """
     ２つの入力に対して、出力が一致しているかどうかを確認する。入力にはcsv、KSKPのエラーに対応する
     入力されたデータが行ごとに一致しているかを確認し、結果を出力する
@@ -100,7 +100,7 @@ class ExecuteAssertCmdFlow(TestCaseBase):
             {
                 "id": "c1",
                 "args": {
-                "dlimit": "10"
+                    "dlimit": "10"
                 },
                 "dsts": {
                 "o": "d1"
@@ -160,7 +160,8 @@ class ExecuteAssertCmdFlow(TestCaseBase):
             {
                 "id": "c1",
                 "args": {
-                "dlimit": "10"
+                    "verbose": True,
+                    "dlimit": "10"
                 },
                 "dsts": {
                 "o": "d1"
@@ -224,7 +225,8 @@ class ExecuteAssertCmdFlow(TestCaseBase):
             {
                 "id": "c1",
                 "args": {
-                "dlimit": "10"
+                    "verbose": True,
+                    "dlimit": "10"
                 },
                 "dsts": {
                 "o": "d1"
@@ -241,7 +243,8 @@ class ExecuteAssertCmdFlow(TestCaseBase):
             {
                 "id": "c2",
                 "args": {
-                "dlimit": "10"
+                    "verbose": True,
+                    "dlimit": "10"
                 },
                 "dsts": {
                 "o": "d2"
@@ -305,7 +308,8 @@ class ExecuteAssertCmdFlow(TestCaseBase):
             {
                 "id": "c1",
                 "args": {
-                "dlimit": "10"
+                    "verbose": True,
+                    "dlimit": "10"
                 },
                 "dsts": {
                 "o": "d1"
@@ -322,7 +326,8 @@ class ExecuteAssertCmdFlow(TestCaseBase):
             {
                 "id": "c2",
                 "args": {
-                "dlimit": "10"
+                    "verbose": True,
+                    "dlimit": "10"
                 },
                 "dsts": {
                 "o": "d2"
@@ -396,7 +401,8 @@ class ExecuteAssertCmdFlow(TestCaseBase):
             {
                 "id": "c1",
                 "args": {
-                "dlimit": "10"
+                    "verbose": True,
+                    "dlimit": "10"
                 },
                 "dsts": {
                 "o": "d2"
@@ -477,7 +483,8 @@ class ExecuteAssertCmdFlow(TestCaseBase):
             {
                 "id": "c1",
                 "args": {
-                "dlimit": "10"
+                    "verbose": True,
+                    "dlimit": "10"
                 },
                 "dsts": {
                 "o": "d2"
@@ -558,7 +565,8 @@ class ExecuteAssertCmdFlow(TestCaseBase):
             {
                 "id": "c1",
                 "args": {
-                "dlimit": "10"
+                    "verbose": True,
+                    "dlimit": "10"
                 },
                 "dsts": {
                 "o": "d2"
@@ -682,7 +690,8 @@ class ExecuteAssertCmdFlow(TestCaseBase):
             {
                 "id": "c1",
                 "args": {
-                "dlimit": "10"
+                    "verbose": True,
+                    "dlimit": "10"
                 },
                 "dsts": {
                 "o": "d1"
@@ -768,6 +777,7 @@ class ExecuteAssertCmdFlow(TestCaseBase):
             {
                 "id": "c2",
                 "args": {
+                    "verbose": True,
                     "dlimit": "10"
                 },
                 "dsts": {
@@ -842,10 +852,10 @@ class ExecuteAssertCmdFlow(TestCaseBase):
 
         # 正解データ内のuuid, タイムスタンプはダミー、テスト実行時には、毎回変動するので、出力がされているかどうかのみ確認する
         corrects = {'d1': [
-            ['テストフロ','00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','0000-00-00 00:00:00.000000+00:00','d1','False','False','False','3','A,2,20','B,1,30'],
-            ['テストフロ','00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','0000-00-00 00:00:00.000000+00:00','d1','False','False','False','4','B,1,30',''],
-            ['テストフロ','00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','0000-00-00 00:00:00.000000+00:00','d1','False','False','False','5','B,3,40',''],
-            ['テストフロ','00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','0000-00-00 00:00:00.000000+00:00','d1','False','False','False','6','B,1,50','']
+            ['00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','d1','False','False','3','A,2,20','B,1,30','False','0000-00-00 00:00:00.000000+00:00'],
+            ['00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','d1','False','False','4','B,1,30','','False','0000-00-00 00:00:00.000000+00:00'],
+            ['00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','d1','False','False','5','B,3,40','','False','0000-00-00 00:00:00.000000+00:00'],
+            ['00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','d1','False','False','6','B,1,50','','False','0000-00-00 00:00:00.000000+00:00']
         ]}
         # テスト
         # DBにframeデータが生成されているか
@@ -858,17 +868,16 @@ class ExecuteAssertCmdFlow(TestCaseBase):
         for result,correct in zip(results, corrects['d1']):
             self.assertEqual(len(result), len(correct))
             
-            self.assertEqual(result[0], correct[0])
-            self.assertIsNotNone(result[1])
+            self.assertIsNotNone(result[0])
+            self.assertEqual(result[1], correct[1])
             self.assertEqual(result[2], correct[2])
-            self.assertIsNotNone(result[3])
+            self.assertEqual(result[3], correct[3])
             self.assertEqual(result[4], correct[4])
             self.assertEqual(result[5], correct[5])
             self.assertEqual(result[6], correct[6])
             self.assertEqual(result[7], correct[7])
             self.assertEqual(result[8], correct[8])
-            self.assertEqual(result[9], correct[9])
-            self.assertEqual(result[10], correct[10])
+            self.assertIsNotNone(result[9])
 
         # 後片付け
         lasts['d1'].delete()
@@ -889,7 +898,7 @@ class ExecuteAssertCmdFlow(TestCaseBase):
         lasts = convert_from_activity(lasts)
         # 正解データ内のuuid, タイムスタンプはダミー、テスト実行時には、毎回変動するので、出力がされているかどうかのみ確認する
         corrects = {'d1': [
-            ['テストフロ','00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','0000-00-00 00:00:00.000000+00:00','d1','True','False','False','','','']
+            ['00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','d1','True','False','','','','False','0000-00-00 00:00:00.000000+00:00']
         ]}
         # テスト
         # DBにframeデータが生成されているか
@@ -902,17 +911,16 @@ class ExecuteAssertCmdFlow(TestCaseBase):
         for result,correct in zip(results, corrects['d1']):
             self.assertEqual(len(result), len(correct))
             
-            self.assertEqual(result[0], correct[0])
-            self.assertIsNotNone(result[1])
+            self.assertIsNotNone(result[0])
+            self.assertEqual(result[1], correct[1])
             self.assertEqual(result[2], correct[2])
-            self.assertIsNotNone(result[3])
+            self.assertEqual(result[3], correct[3])
             self.assertEqual(result[4], correct[4])
             self.assertEqual(result[5], correct[5])
             self.assertEqual(result[6], correct[6])
             self.assertEqual(result[7], correct[7])
             self.assertEqual(result[8], correct[8])
-            self.assertEqual(result[9], correct[9])
-            self.assertEqual(result[10], correct[10])
+            self.assertIsNotNone(result[9])
 
         # 後片付け
         lasts['d1'].delete()
@@ -936,12 +944,12 @@ class ExecuteAssertCmdFlow(TestCaseBase):
 
         # # 正解データ内のuuid, タイムスタンプはダミー、テスト実行時には、毎回変動するので、出力がされているかどうかのみ確認する
         corrects = {'d2': [
-            ['テストフロ','00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','0000-00-00 00:00:00.000000+00:00','d2','False','False','False','1','顧客,数量,金額','flow_label,flow_uuid,flow_path,date,point_id,is_true,raise_exs,diff_row_number,i_port_diff,m_port_diff'],
-            ['テストフロ','00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','0000-00-00 00:00:00.000000+00:00','d2','False','False','False','2','A,1,10','テストフロ,00000000-0000-0000-0000-000000000000,/ライブラリ/テストフロ,0000-00-00 00:00:00.000000+00:00,d1,False,False,3,"A,2,20",""'],
-            ['テストフロ','00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','0000-00-00 00:00:00.000000+00:00','d2','False','False','False','3','A,2,20','テストフロ,00000000-0000-0000-0000-000000000000,/ライブラリ/テストフロ,0000-00-00 00:00:00.000000+00:00,d1,False,False,4,"B,1,30",""'],
-            ['テストフロ','00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','0000-00-00 00:00:00.000000+00:00','d2','False','False','False','4','B,1,30','テストフロ,00000000-0000-0000-0000-000000000000,/ライブラリ/テストフロ,0000-00-00 00:00:00.000000+00:00,d1,False,False,5,"B,3,40",""'],
-            ['テストフロ','00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','0000-00-00 00:00:00.000000+00:00','d2','False','False','False','5','B,3,40','テストフロ,00000000-0000-0000-0000-000000000000,/ライブラリ/テストフロ,0000-00-00 00:00:00.000000+00:00,d1,False,False,6,"B,1,50",""'],
-            ['テストフロ','00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','0000-00-00 00:00:00.000000+00:00','d2','False','False','False','6','B,1,50','']
+            ['00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','d2','False','False','1','顧客,数量,金額','フローUUID,フローのパス,出力ノードID,差分なし,例外送出,行番号,入力iのデータ,入力mのデータ,差分取得限界数超過,実行日時','False','0000-00-00 00:00:00.000000+00:00'],
+            ['00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','d2','False','False','2','A,1,10','00000000-0000-0000-0000-000000000000,/ライブラリ/テストフロ,d1,False,False,3,"A,2,20","",False,0000-00-00 00:00:00.000000+00:00','False','0000-00-00 00:00:00.000000+00:00'],
+            ['00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','d2','False','False','3','A,2,20','00000000-0000-0000-0000-000000000000,/ライブラリ/テストフロ,d1,False,False,4,"B,1,30","",False,0000-00-00 00:00:00.000000+00:00','False','0000-00-00 00:00:00.000000+00:00'],
+            ['00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','d2','False','False','4','B,1,30','00000000-0000-0000-0000-000000000000,/ライブラリ/テストフロ,d1,False,False,5,"B,3,40","",False,0000-00-00 00:00:00.000000+00:00','False','0000-00-00 00:00:00.000000+00:00'],
+            ['00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','d2','False','False','5','B,3,40','00000000-0000-0000-0000-000000000000,/ライブラリ/テストフロ,d1,False,False,6,"B,1,50","",False,0000-00-00 00:00:00.000000+00:00','False','0000-00-00 00:00:00.000000+00:00'],
+            ['00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','d2','False','False','6','B,1,50','','False','0000-00-00 00:00:00.000000+00:00']
         ]}
         # テスト
         # DBにframeデータが生成されているか
@@ -963,16 +971,16 @@ class ExecuteAssertCmdFlow(TestCaseBase):
         for result,correct in zip(results, corrects['d2']):
             self.assertEqual(len(result), len(correct))
             
-            self.assertEqual(result[0], correct[0])
-            self.assertIsNotNone(result[1])
+            self.assertIsNotNone(result[0])
+            self.assertEqual(result[1], correct[1])
             self.assertEqual(result[2], correct[2])
-            self.assertIsNotNone(result[3])
+            self.assertEqual(result[3], correct[3])
             self.assertEqual(result[4], correct[4])
             self.assertEqual(result[5], correct[5])
             self.assertEqual(result[6], correct[6])
-            self.assertEqual(result[7], correct[7])
+            # self.assertEqual(result[7], correct[7])
             self.assertEqual(result[8], correct[8])
-            self.assertEqual(result[9], correct[9])
+            self.assertIsNotNone(result[9])
 
         # 後片付け
         lasts['d2'].delete()
@@ -995,16 +1003,16 @@ class ExecuteAssertCmdFlow(TestCaseBase):
         # 正解データ内のuuid, タイムスタンプはダミー、テスト実行時には、毎回変動するので、出力がされているかどうかのみ確認する
         corrects = {
         'd1':[
-            ['テストフロ','00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','0000-00-00 00:00:00.000000+00:00','d1','False','False','False','3','A,2,20','B,1,30'],
-            ['テストフロ','00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','0000-00-00 00:00:00.000000+00:00','d1','False','False','False','4','B,1,30',''],
-            ['テストフロ','00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','0000-00-00 00:00:00.000000+00:00','d1','False','False','False','5','B,3,40',''],
-            ['テストフロ','00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','0000-00-00 00:00:00.000000+00:00','d1','False','False','False','6','B,1,50','']
+            ['00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','d1','False','False','3','A,2,20','B,1,30','False','0000-00-00 00:00:00.000000+00:00'],
+            ['00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','d1','False','False','4','B,1,30','','False','0000-00-00 00:00:00.000000+00:00'],
+            ['00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','d1','False','False','5','B,3,40','','False','0000-00-00 00:00:00.000000+00:00'],
+            ['00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','d1','False','False','6','B,1,50','','False','0000-00-00 00:00:00.000000+00:00']
         ],
         'd2': [
-            ['テストフロ','00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','0000-00-00 00:00:00.000000+00:00','d2','False','False','False','3','A,2,20','B,1,30'],
-            ['テストフロ','00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','0000-00-00 00:00:00.000000+00:00','d2','False','False','False','4','B,1,30',''],
-            ['テストフロ','00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','0000-00-00 00:00:00.000000+00:00','d2','False','False','False','5','B,3,40',''],
-            ['テストフロ','00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','0000-00-00 00:00:00.000000+00:00','d2','False','False','False','6','B,1,50','']
+            ['00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','d2','False','False','3','A,2,20','B,1,30','False','0000-00-00 00:00:00.000000+00:00'],
+            ['00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','d2','False','False','4','B,1,30','','False','0000-00-00 00:00:00.000000+00:00'],
+            ['00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','d2','False','False','5','B,3,40','','False','0000-00-00 00:00:00.000000+00:00'],
+            ['00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','d2','False','False','6','B,1,50','','False','0000-00-00 00:00:00.000000+00:00']
         ]}
         # テスト
         # DBにframeデータが生成されているか
@@ -1019,33 +1027,31 @@ class ExecuteAssertCmdFlow(TestCaseBase):
         for result,correct in zip(results, corrects['d1']):
             self.assertEqual(len(result), len(correct))
             
-            self.assertEqual(result[0], correct[0])
-            self.assertIsNotNone(result[1])
+            self.assertIsNotNone(result[0])
+            self.assertEqual(result[1], correct[1])
             self.assertEqual(result[2], correct[2])
-            self.assertIsNotNone(result[3])
+            self.assertEqual(result[3], correct[3])
             self.assertEqual(result[4], correct[4])
             self.assertEqual(result[5], correct[5])
             self.assertEqual(result[6], correct[6])
             self.assertEqual(result[7], correct[7])
             self.assertEqual(result[8], correct[8])
-            self.assertEqual(result[9], correct[9])
-            self.assertEqual(result[10], correct[10])
+            self.assertIsNotNone(result[9])
 
         self.assertEqual(len(results), len(corrects['d2']))
         for result,correct in zip(results2, corrects['d2']):
             self.assertEqual(len(result), len(correct))
             
-            self.assertEqual(result[0], correct[0])
-            self.assertIsNotNone(result[1])
+            self.assertIsNotNone(result[0])
+            self.assertEqual(result[1], correct[1])
             self.assertEqual(result[2], correct[2])
-            self.assertIsNotNone(result[3])
+            self.assertEqual(result[3], correct[3])
             self.assertEqual(result[4], correct[4])
             self.assertEqual(result[5], correct[5])
             self.assertEqual(result[6], correct[6])
             self.assertEqual(result[7], correct[7])
             self.assertEqual(result[8], correct[8])
-            self.assertEqual(result[9], correct[9])
-            self.assertEqual(result[10], correct[10])
+            self.assertIsNotNone(result[9])
 
         # 後片付け
         lasts['d1'].delete()
@@ -1069,12 +1075,12 @@ class ExecuteAssertCmdFlow(TestCaseBase):
 
         # 正解データ内のuuid, タイムスタンプはダミー、テスト実行時には、毎回変動するので、出力がされているかどうかのみ確認する
         corrects = {'d2': [
-            ['テストフロ','00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','0000-00-00 00:00:00.000000+00:00','d2','False','True','False','1','顧客,数量,金額','MCMDError:#ERROR# parameter a= is mandatory (kgNewnumber); kgNewnumber;  OUT=0; 2020/09/13 16:54:32; 2020/09/13 16:54:32'],
-            ['テストフロ','00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','0000-00-00 00:00:00.000000+00:00','d2','False','True','False','2','A,1,10',''],
-            ['テストフロ','00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','0000-00-00 00:00:00.000000+00:00','d2','False','True','False','3','A,2,20',''],
-            ['テストフロ','00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','0000-00-00 00:00:00.000000+00:00','d2','False','True','False','4','B,1,30',''],
-            ['テストフロ','00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','0000-00-00 00:00:00.000000+00:00','d2','False','True','False','5','B,3,40',''],
-            ['テストフロ','00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','0000-00-00 00:00:00.000000+00:00','d2','False','True','False','6','B,1,50','']
+            ['00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','d2','False','True','1','顧客,数量,金額','MCMDError:#ERROR# parameter a= is mandatory (kgNewnumber); kgNewnumber;  OUT=0; 2020/09/13 16:54:32; 2020/09/13 16:54:32','False','0000-00-00 00:00:00.000000+00:00'],
+            ['00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','d2','False','True','2','A,1,10','','False','0000-00-00 00:00:00.000000+00:00'],
+            ['00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','d2','False','True','3','A,2,20','','False','0000-00-00 00:00:00.000000+00:00'],
+            ['00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','d2','False','True','4','B,1,30','','False','0000-00-00 00:00:00.000000+00:00'],
+            ['00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','d2','False','True','5','B,3,40','','False','0000-00-00 00:00:00.000000+00:00'],
+            ['00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','d2','False','True','6','B,1,50','','False','0000-00-00 00:00:00.000000+00:00']
         ]}
         # テスト
         # DBにframeデータが生成されているか
@@ -1089,17 +1095,16 @@ class ExecuteAssertCmdFlow(TestCaseBase):
         for result,correct in zip(results, corrects['d2']):
             self.assertEqual(len(result), len(correct))
             
-            self.assertEqual(result[0], correct[0])
-            self.assertIsNotNone(result[1])
+            self.assertIsNotNone(result[0])
+            self.assertEqual(result[1], correct[1])
             self.assertEqual(result[2], correct[2])
-            self.assertIsNotNone(result[3])
+            self.assertEqual(result[3], correct[3])
             self.assertEqual(result[4], correct[4])
             self.assertEqual(result[5], correct[5])
             self.assertEqual(result[6], correct[6])
             self.assertEqual(result[7], correct[7])
             self.assertEqual(result[8], correct[8])
-            self.assertEqual(result[9], correct[9])
-            self.assertEqual(result[10], correct[10])
+            self.assertIsNotNone(result[9])
 
         # 後片付け
         lasts['d2'].delete()
@@ -1123,7 +1128,7 @@ class ExecuteAssertCmdFlow(TestCaseBase):
         # 正解データ内のuuid, タイムスタンプはダミー、テスト実行時には、毎回変動するので、出力がされているかどうかのみ確認する
         corrects = {
             'd2': [
-                ['テストフロ','fa95ec62-5141-44fb-b4b0-f680139b4adc','/ライブラリ/テストフロ','0000-00-00 00:00:00.000000+00:00','d2','True','True','False','','','']
+                ['fa95ec62-5141-44fb-b4b0-f680139b4adc','/ライブラリ/テストフロ','d2','True','True','','','','False','0000-00-00 00:00:00.000000+00:00']
         ]}
         # テスト
         # DBにframeデータが生成されているか
@@ -1136,17 +1141,16 @@ class ExecuteAssertCmdFlow(TestCaseBase):
         for result,correct in zip(results, corrects['d2']):
             self.assertEqual(len(result), len(correct))
             
-            self.assertEqual(result[0], correct[0])
-            self.assertIsNotNone(result[1])
+            self.assertIsNotNone(result[0])
+            self.assertEqual(result[1], correct[1])
             self.assertEqual(result[2], correct[2])
-            self.assertIsNotNone(result[3])
+            self.assertEqual(result[3], correct[3])
             self.assertEqual(result[4], correct[4])
             self.assertEqual(result[5], correct[5])
             self.assertEqual(result[6], correct[6])
             self.assertEqual(result[7], correct[7])
             self.assertEqual(result[8], correct[8])
-            self.assertEqual(result[9], correct[9])
-            self.assertEqual(result[10], correct[10])
+            self.assertIsNotNone(result[9])
 
         # 後片付け
         lasts['d2'].delete()
@@ -1168,7 +1172,7 @@ class ExecuteAssertCmdFlow(TestCaseBase):
 
         # 正解データ内のuuid, タイムスタンプはダミー、テスト実行時には、毎回変動するので、出力がされているかどうかのみ確認する
         corrects = {'d2': [
-            ['テストフロ','cb4cf7ad-44de-4df9-a7b7-a4d5a4201d81','/ライブラリ/テストフロ','0000-00-00 00:00:00.000000+00:00','d2','False','True','False','None','MCMDError:#ERROR# parameter a= is mandatory (kgNewnumber); kgNewnumber;  OUT=0; 2020/09/12 11:24:50; 2020/09/12 11:24:50','MCMDError:#ERROR# parameter a= is mandatory (kgnewrand); kgnewrand;  OUT=0; 2020/09/12 11:24:50; 2020/09/12 11:24:50']
+            ['cb4cf7ad-44de-4df9-a7b7-a4d5a4201d81','/ライブラリ/テストフロ','d2','False','True','None','MCMDError:#ERROR# parameter a= is mandatory (kgNewnumber); kgNewnumber;  OUT=0; 2020/09/12 11:24:50; 2020/09/12 11:24:50','MCMDError:#ERROR# parameter a= is mandatory (kgnewrand); kgnewrand;  OUT=0; 2020/09/12 11:24:50; 2020/09/12 11:24:50','False','0000-00-00 00:00:00.000000+00:00']
         ]}
         # テスト
         # DBにframeデータが生成されているか
@@ -1183,16 +1187,16 @@ class ExecuteAssertCmdFlow(TestCaseBase):
         for result,correct in zip(results, corrects['d2']):
             self.assertEqual(len(result), len(correct))
 
-            self.assertEqual(result[0], correct[0])
-            self.assertIsNotNone(result[1])
+            self.assertIsNotNone(result[0])
+            self.assertEqual(result[1], correct[1])
             self.assertEqual(result[2], correct[2])
-            self.assertIsNotNone(result[3])
+            self.assertEqual(result[3], correct[3])
             self.assertEqual(result[4], correct[4])
             self.assertEqual(result[5], correct[5])
             self.assertEqual(result[6], correct[6])
             self.assertEqual(result[7], correct[7])
             self.assertEqual(result[8], correct[8])
-            self.assertEqual(result[9], correct[9])
+            self.assertIsNotNone(result[9])
 
         # 後片付け
         lasts['d2'].delete()
@@ -1214,17 +1218,17 @@ class ExecuteAssertCmdFlow(TestCaseBase):
 
         # # 正解データ内のuuid, タイムスタンプはダミー、テスト実行時には、毎回変動するので、出力がされているかどうかのみ確認する
         corrects = {'d2': [
-            ['テストフロ', '564fb0a7-00bb-416f-9ccc-4e7a056d7564', '/ライブラリ/テストフロ', '2021-01-12 17:38:01', 'd2', 'False', 'False', 'True', '1', 'column1', 'column2'],
-            ['テストフロ', '564fb0a7-00bb-416f-9ccc-4e7a056d7564', '/ライブラリ/テストフロ', '2021-01-12 17:38:01', 'd2', 'False', 'False', 'True', '2', '1', '100'],
-            ['テストフロ', '564fb0a7-00bb-416f-9ccc-4e7a056d7564', '/ライブラリ/テストフロ', '2021-01-12 17:38:01', 'd2', 'False', 'False', 'True', '3', '2', '101'],
-            ['テストフロ', '564fb0a7-00bb-416f-9ccc-4e7a056d7564', '/ライブラリ/テストフロ', '2021-01-12 17:38:01', 'd2', 'False', 'False', 'True', '4', '3', '102'],
-            ['テストフロ', '564fb0a7-00bb-416f-9ccc-4e7a056d7564', '/ライブラリ/テストフロ', '2021-01-12 17:38:01', 'd2', 'False', 'False', 'True', '5', '4', '103'],
-            ['テストフロ', '564fb0a7-00bb-416f-9ccc-4e7a056d7564', '/ライブラリ/テストフロ', '2021-01-12 17:38:01', 'd2', 'False', 'False', 'True', '6', '5', '104'],
-            ['テストフロ', '564fb0a7-00bb-416f-9ccc-4e7a056d7564', '/ライブラリ/テストフロ', '2021-01-12 17:38:01', 'd2', 'False', 'False', 'True', '7', '6', '105'],
-            ['テストフロ', '564fb0a7-00bb-416f-9ccc-4e7a056d7564', '/ライブラリ/テストフロ', '2021-01-12 17:38:01', 'd2', 'False', 'False', 'True', '8', '7', '106'],
-            ['テストフロ', '564fb0a7-00bb-416f-9ccc-4e7a056d7564', '/ライブラリ/テストフロ', '2021-01-12 17:38:01', 'd2', 'False', 'False', 'True', '9', '8', '107'],
-            ['テストフロ', '564fb0a7-00bb-416f-9ccc-4e7a056d7564', '/ライブラリ/テストフロ', '2021-01-12 17:38:01', 'd2', 'False', 'False', 'True', '10', '9', '108'],
-            ['テストフロ', '564fb0a7-00bb-416f-9ccc-4e7a056d7564', '/ライブラリ/テストフロ', '2021-01-12 17:38:01', 'd2', 'False', 'False', 'True', '11', '10', '109']
+            ['564fb0a7-00bb-416f-9ccc-4e7a056d7564', '/ライブラリ/テストフロ', 'd2', 'False', 'False', '1', 'column1', 'column2', 'True', '2021-01-12 17:38:01'],
+            ['564fb0a7-00bb-416f-9ccc-4e7a056d7564', '/ライブラリ/テストフロ', 'd2', 'False', 'False', '2', '1', '100', 'True', '2021-01-12 17:38:01'],
+            ['564fb0a7-00bb-416f-9ccc-4e7a056d7564', '/ライブラリ/テストフロ', 'd2', 'False', 'False', '3', '2', '101', 'True', '2021-01-12 17:38:01'],
+            ['564fb0a7-00bb-416f-9ccc-4e7a056d7564', '/ライブラリ/テストフロ', 'd2', 'False', 'False', '4', '3', '102', 'True', '2021-01-12 17:38:01'],
+            ['564fb0a7-00bb-416f-9ccc-4e7a056d7564', '/ライブラリ/テストフロ', 'd2', 'False', 'False', '5', '4', '103', 'True', '2021-01-12 17:38:01'],
+            ['564fb0a7-00bb-416f-9ccc-4e7a056d7564', '/ライブラリ/テストフロ', 'd2', 'False', 'False', '6', '5', '104', 'True', '2021-01-12 17:38:01'],
+            ['564fb0a7-00bb-416f-9ccc-4e7a056d7564', '/ライブラリ/テストフロ', 'd2', 'False', 'False', '7', '6', '105', 'True', '2021-01-12 17:38:01'],
+            ['564fb0a7-00bb-416f-9ccc-4e7a056d7564', '/ライブラリ/テストフロ', 'd2', 'False', 'False', '8', '7', '106', 'True', '2021-01-12 17:38:01'],
+            ['564fb0a7-00bb-416f-9ccc-4e7a056d7564', '/ライブラリ/テストフロ', 'd2', 'False', 'False', '9', '8', '107', 'True', '2021-01-12 17:38:01'],
+            ['564fb0a7-00bb-416f-9ccc-4e7a056d7564', '/ライブラリ/テストフロ', 'd2', 'False', 'False', '10', '9', '108', 'True', '2021-01-12 17:38:01'],
+            ['564fb0a7-00bb-416f-9ccc-4e7a056d7564', '/ライブラリ/テストフロ', 'd2', 'False', 'False', '11', '10', '109', 'True', '2021-01-12 17:38:01']
         ]}
         # テスト
         # DBにframeデータが生成されているか
@@ -1235,22 +1239,20 @@ class ExecuteAssertCmdFlow(TestCaseBase):
         results, corrects['d2'] = self.check_equal(results, corrects['d2'])
 
         # 出力の一致を確認
-        print(results)
         self.assertEqual(len(results), len(corrects['d2']))
         for result,correct in zip(results, corrects['d2']):
             self.assertEqual(len(result), len(correct))
 
-            self.assertEqual(result[0], correct[0])
-            self.assertIsNotNone(result[1])
+            self.assertIsNotNone(result[0])
+            self.assertEqual(result[1], correct[1])
             self.assertEqual(result[2], correct[2])
-            self.assertIsNotNone(result[3])
+            self.assertEqual(result[3], correct[3])
             self.assertEqual(result[4], correct[4])
             self.assertEqual(result[5], correct[5])
             self.assertEqual(result[6], correct[6])
             self.assertEqual(result[7], correct[7])
             self.assertEqual(result[8], correct[8])
-            self.assertEqual(result[9], correct[9])
-            self.assertEqual(result[10], correct[10])
+            self.assertIsNotNone(result[9])
 
         # 後片付け
         lasts['d2'].delete()
@@ -1266,18 +1268,18 @@ class ExecuteAssertCmdFlow(TestCaseBase):
         # mコマンドにもエラーメッセージでタイムスタンプが出ないものがあり対応に時間が取られるため、後回し
 
         for row in result:
-            if row[9].find('MCMDError') != -1:
-                row[9] = row[9][:-42]
+            if row[6].find('MCMDError') != -1:
+                row[6] = row[6][:-42]
 
-            if row[10].find('MCMDError') != -1:
-                row[10] = row[10][:-42]
+            if row[7].find('MCMDError') != -1:
+                row[7] = row[7][:-42]
 
         for row in correct:
-            if row[9].find('MCMDError') != -1:
-                row[9] = row[9][:-42]
+            if row[6].find('MCMDError') != -1:
+                row[6] = row[6][:-42]
 
-            if row[10].find('MCMDError') != -1:
-                row[10] = row[10][:-42]
+            if row[7].find('MCMDError') != -1:
+                row[7] = row[7][:-42]
 
         return result, correct
 

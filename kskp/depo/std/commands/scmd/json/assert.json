@@ -24,6 +24,12 @@
   ],
   "params": [
     {
+      "name": "verbose",
+      "type": "boolean",
+      "label": "比較が一致しても差分情報を出力する",
+      "default": false
+    },
+    {
       "name": "dlimit",
       "type": "number",
       "label": "差分取得限界数",
