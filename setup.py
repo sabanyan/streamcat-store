@@ -12,6 +12,7 @@ setup(
         # 'psycopg2',
         'psycopg2-binary',
         'SQLAlchemy<1.4.0',
+        'jsonschema',
         # 'alembic',
         'cryptography',
         'chardet',

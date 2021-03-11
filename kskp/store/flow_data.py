@@ -4,6 +4,485 @@ class FlowData():
     """
     Flowデータを表す
     """
+    # Flow Jsonの定義
+    FLOW_JSON_SCHEMA = {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "$ref": "#/definitions/Flow",
+        "definitions": {
+            "Flow": {
+                "title": "Flow",
+                "type": "object",
+                "required": [],
+                "additionalProperties": False,
+                "properties": {
+                    "label": {
+                        "type": "string"
+                    },
+                    "datasource":{
+                        "type": "object",
+                        "$ref": "#/definitions/FrameNode",
+                    },
+                    "nodes": {
+                        "type": "array",
+                        "items": {
+                            "anyOf": [
+                                {
+                                    "type": "object",
+                                    "$ref": "#/definitions/FrameNode"
+                                },
+                                {
+                                    "type": "object",
+                                    "$ref": "#/definitions/CommandNode"
+                                },
+                                {
+                                    "type": "object",
+                                    "$ref": "#/definitions/FlowNode"
+                                },
+                                {
+                                    "type": "object",
+                                    "$ref": "#/definitions/NoteNode"
+                                },
+                                {
+                                    "type": "object",
+                                    "$ref": "#/definitions/IntNode"
+                                }
+                            ]
+                        }
+                    },
+                    "params": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/definitions/Param"
+                        }
+                    },
+                    "ports": {
+                        "type": "array",
+                        "items": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/Port"
+                            }
+                        }
+                    },
+                    "description": {
+                        "type": "string"
+                    },
+                    "creator": {
+                        "type": "string"
+                    },
+                    "createdAt": {
+                        "type": "string"
+                    },
+                    "projectId": {
+                        "type": ["null", "integer"]
+                    }
+                }
+            },
+            "FrameNode": {
+                "title": "FrameNode",
+                "type": "object",
+                "required": [
+                    "id",
+                    "type"
+                ],
+                "additionalProperties": False,
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "pattern": "^[0-9a-zA-Z_]+$"
+                    },
+                    "label": {
+                        "type": "string"
+                    },
+                    "type": {
+                        "enum": ["frame", "store", "int"]
+                    },
+                    "uuid": {
+                        "anyOf": [
+                            {
+                                "type": "null"
+                            },
+                            {
+                                "type": "string",
+                                "format": "uuid"
+                            }
+                        ]
+                    },
+                    "value": {
+                        "anyOf": [
+                            {
+                                "type": "array",
+                                "items": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": ["null", "integer", "string"]
+                                    }
+                                }
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
+                    "makeCache": {
+                        "type": "boolean"
+                    },
+                    "dataSource": {
+                        "type": "string",
+                        "pattern": "^[0-9a-zA-Z_]+$"
+                    },
+                    "cacheCreatedAt": {
+                        "type": ["null", "string"]
+                    },
+                    "position": {
+                        "$ref": "#/definitions/Position"
+                    },
+                    "size": {
+                        "$ref": "#/definitions/Size"
+                    },
+                    "error": {
+                        "$ref": "#/definitions/Error"
+                    },
+                    "invalid": {
+                        "$ref": "#/definitions/Error"
+                    }
+                }
+            },
+            "CommandNode": {
+                "title": "CommandNode",
+                "type": "object",
+                "required": [
+                    "id",
+                    "type",
+                    "commandId"
+                ],
+                "additionalProperties": False,
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "pattern": "^[0-9a-zA-Z_]+$"
+                    },
+                    "label": {
+                        "type": "string"
+                    },
+                    "type": {
+                        "const": "command"
+                    },
+                    "commandId": {
+                        "type": "string",
+                        "pattern": "^[0-9a-zA-Z_]+$"
+                    },
+                    "args": {
+                        "$ref": "#/definitions/Args"
+                    },
+                    "srcs": {
+                        "$ref": "#/definitions/Srcs"
+                    },
+                    "dsts": {
+                        "$ref": "#/definitions/Dsts"
+                    },
+                    "position": {
+                        "$ref": "#/definitions/Position"
+                    },
+                    "size": {
+                        "$ref": "#/definitions/Size"
+                    },
+                    "srcsOrder": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "error": {
+                        "$ref": "#/definitions/Error"
+                    },
+                    "invalid": {
+                        "$ref": "#/definitions/Error"
+                    }
+                }
+            },
+            "FlowNode": {
+                "title": "FlowNode",
+                "type": "object",
+                "required": [
+                    "id",
+                    "type",
+                    "uuid"
+                ],
+                "additionalProperties": False,
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "pattern": "^[0-9a-zA-Z_]+$"
+                    },
+                    "label": {
+                        "type": "string"
+                    },
+                    "type": {
+                        "const": "flow"
+                    },
+                    "uuid": {
+                        "anyOf": [
+                            {
+                                "type": "null"
+                            },
+                            {
+                                "type": "string",
+                                "format": "uuid"
+                            }
+                        ]
+                    },
+                    "args": {
+                        "$ref": "#/definitions/Args"
+                    },
+                    "srcs": {
+                        "$ref": "#/definitions/Srcs"
+                    },
+                    "dsts": {
+                        "$ref": "#/definitions/Dsts"
+                    },
+                    "masked": {
+                        "type": "boolean"
+                    },
+                    "position": {
+                        "$ref": "#/definitions/Position"
+                    },
+                    "size": {
+                        "$ref": "#/definitions/Size"
+                    },
+                    "srcsOrder": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "error": {
+                        "$ref": "#/definitions/Error"
+                    },
+                    "invalid": {
+                        "$ref": "#/definitions/Error"
+                    }
+                }
+            },
+            "NoteNode": {
+                "title": "NoteNode",
+                "type": "object",
+                "required": [
+                    "id",
+                    "type",
+                    "title",
+                    "content"
+                ],
+                "additionalProperties": False,
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "pattern": "^[0-9a-zA-Z_]+$"
+                    },
+                    "label": {
+                        "type": "string"
+                    },
+                    "type": {
+                        "const": "note"
+                    },
+                    "title": {
+                        "type": "string"
+                    },
+                    "content": {
+                        "type": "string"
+                    },
+                    "fontSize": {
+                        "type": "integer"
+                    },
+                    "color": {
+                        "type": "string"
+                    },
+                    "position": {
+                        "$ref": "#/definitions/Position"
+                    },
+                    "size": {
+                        "$ref": "#/definitions/Size"
+                    },
+                    "error": {
+                        "$ref": "#/definitions/Error"
+                    },
+                    "invalid": {
+                        "$ref": "#/definitions/Error"
+                    }
+                }
+            },
+            "IntNode": {
+                "title": "IntNode",
+                "type": "object",
+                "required": [
+                    "id",
+                    "type",
+                    "value"
+                ],
+                "additionalProperties": False,
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "pattern": "^[0-9a-zA-Z_]+$"
+                    },
+                    "label": {
+                        "type": "string"
+                    },
+                    "type": {
+                        "const": "int"
+                    },
+                    "value": {
+                        "anyOf": [
+                            {
+                                "type": "array",
+                                "maxItems": 1,
+                                "minItems": 1,
+                                "items": {
+                                    "type": "array",
+                                    "maxItems": 1,
+                                    "minItems": 1,
+                                    "items": {
+                                        "type": ["null", "integer", "string"]
+                                    }
+                                }
+                            }
+                        ]
+                    },
+                    "uuid": {
+                        "const": "null"
+                    }
+                }
+            },
+            "Args": {
+                "title": "Args",
+                "type": "object",
+                "required": [],
+                "additionalProperties": False,
+                "patternProperties": {
+                    "^[0-9a-zA-Z_]+$": {
+                        "type": ["string", "number", "boolean", "array"]
+                    }
+                }
+            },
+            "Param": {
+                "title": "Param",
+                "type": "object",
+                "required": [
+                    "name",
+                    "type"
+                ],
+                "additionalProperties": False,
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "label": {
+                        "type": "string"
+                    },
+                    "type": {
+                        "type": "string"
+                    },
+                    "uuid": {
+                        "type": "string",
+                        "format": "uuid"
+                    }
+                }
+            },
+            "Port": {
+                "title": "Port",
+                "type": "object",
+                "required": [
+                    "label",
+                    "nodeId",
+                    "type"
+                ],
+                "additionalProperties": False,
+                "properties": {
+                    "label": {
+                        "type": "string"
+                    },
+                    "nodeId": {
+                        "type": "string"
+                    },
+                    "type": {
+                        "type": "string"
+                    }
+                }
+            },
+            "Srcs": {
+                "title": "Srcs",
+                "type": "object",
+                "required": [],
+                "additionalProperties": False,
+                "patternProperties": {
+                    "^[0-9a-zA-Z_*]+$": {
+                        "type": "string",
+                        "pattern": "^[0-9a-zA-Z_*]+$"
+                    }
+                }
+            },
+            "Dsts": {
+                "title": "Dsts",
+                "type": "object",
+                "required": [],
+                "additionalProperties": False,
+                "patternProperties": {
+                    "^[0-9a-zA-Z_*]+$": {
+                        "type": "string",
+                        "pattern": "^[0-9a-zA-Z_*]+$"
+                    }
+                }
+            },
+            "Position": {
+                "title": "Position",
+                "type": "object",
+                "required": [
+                    "x",
+                    "y"
+                ],
+                "additionalProperties": False,
+                "properties": {
+                    "x": {
+                        "type": "number"
+                    },
+                    "y": {
+                        "type": "number"
+                    }
+                }
+            },
+            "Size": {
+                "title": "Size",
+                "type": "object",
+                "required": [
+                    "height",
+                    "width"
+                ],
+                "additionalProperties": False,
+                "properties": {
+                    "width": {
+                        "type": "integer"
+                    },
+                    "height": {
+                        "type": "integer"
+                    }
+                }
+            },
+            "Error": {
+                "title": "Error",
+                "type": "object",
+                "additionalProperties": False,
+                "patternProperties": {
+                    "^[0-9a-zA-Z_]+$": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     def __init__(self,
                  flow_json:dict = {},
                  is_readable:Callable[[str],bool] = None,
@@ -201,6 +680,16 @@ class FlowData():
                 'params': self.params,
                 'ports': self.ports
             }
+
+    def valid_flow_json_or_raise(self):
+        """
+        フローJSONの書式に従っていない場合は例外を送出する
+        """
+        from jsonschema import validate, ValidationError
+        try:
+            validate(self._flow_json, FlowData.FLOW_JSON_SCHEMA)
+        except ValidationError as e:
+            raise
 
     def _set_cache(self, node_id, cache_uuid):
         """

@@ -69,6 +69,10 @@ class Flow(Datum):
         from kskp.store.factory import DatumFactory
         if self.parent_id is None and DatumFactory(self._session).count_root() > 0:
             raise Exception('You can not add another root flow. A root already exists.')
+
+        # 不正なフローJSONがDBに格納されないよう、ここで書式の検証をする
+        self.flow_data.valid_flow_json_or_raise()
+
         try:
             # Dataテーブルにレコードを新規追加する
             self._session.add(self)
@@ -154,6 +158,9 @@ class Flow(Datum):
 
         # マスクされたノードがあればマスクを外す
         flow_data.unmask_nodes(prev_flow_json=self._data['flow'])
+
+        # 不正なフローJSONがDBに格納されないよう、ここで書式の検証をする
+        flow_data.valid_flow_json_or_raise()
 
         try:
             # レコードを更新する
