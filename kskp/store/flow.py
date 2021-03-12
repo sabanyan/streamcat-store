@@ -28,7 +28,7 @@ class Flow(Datum):
         self._permissions = Datum.PERMISSION_READ | Datum.PERMISSION_WRITE | Datum.PERMISSION_EXEC
 
         # フローデータの妥当性を検証する
-        self.valid_uuids_in_flowdata_or_raise()
+        # self.valid_uuids_in_flowdata_or_raise()
 
     @property
     def flow_data(self):
@@ -72,6 +72,9 @@ class Flow(Datum):
 
         # 不正なフローJSONがDBに格納されないよう、ここで書式の検証をする
         self.flow_data.valid_flow_json_or_raise()
+
+        # フローデータの妥当性を検証する
+        self.valid_uuids_in_flowdata_or_raise()
 
         try:
             # Dataテーブルにレコードを新規追加する
@@ -133,8 +136,6 @@ class Flow(Datum):
         #     if not Flow.exists(flow_uuid):
         #         raise Exception(f'フロー({flow_uuid})がライブラリにありません')
 
-        # フローデータの妥当性を検証する
-        self.valid_uuids_in_flowdata_or_raise()
 
         # ラベルに'\0'が含まれていれば取り除く
         new_label = Datum.escape_label(label)
@@ -161,6 +162,9 @@ class Flow(Datum):
 
         # 不正なフローJSONがDBに格納されないよう、ここで書式の検証をする
         flow_data.valid_flow_json_or_raise()
+
+        # フローデータの妥当性を検証する
+        self.valid_uuids_in_flowdata_or_raise()
 
         try:
             # レコードを更新する
@@ -341,13 +345,17 @@ class Flow(Datum):
         factory = DatumFactory(self._session)
         # 参照するフレームがゴミ箱に存在しないことを確認する
         for frame_uuid in self.flow_data.get_src_frame_uuids():
-            if factory.trashed(frame_uuid):
+            if not factory.exists(frame_uuid):
+                raise Exception(f'参照するフレーム({frame_uuid})は存在しません')
+            elif factory.trashed(frame_uuid):
                 frame = factory.find_by_uuid(frame_uuid)
                 raise Exception(f'ゴミ箱にあるフレーム({frame.label})は使用できません')
 
         # 参照するサブフローがゴミ箱に存在しないことを確認する
         for flow_uuid in self.flow_data.get_sub_flow_uuids():
-            if factory.trashed(flow_uuid):
+            if not factory.exists(flow_uuid):
+                raise Exception(f'参照するフロー({flow_uuid})は存在しません')
+            elif factory.trashed(flow_uuid):
                 flow = factory.find_by_uuid(flow_uuid)
                 raise Exception(f'ゴミ箱にあるフロー({flow.label})は使用できません')
 

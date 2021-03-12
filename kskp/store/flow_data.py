@@ -6,479 +6,491 @@ class FlowData():
     """
     # Flow Jsonの定義
     FLOW_JSON_SCHEMA = {
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "$ref": "#/definitions/Flow",
-        "definitions": {
-            "Flow": {
-                "title": "Flow",
-                "type": "object",
-                "required": [],
-                "additionalProperties": False,
-                "properties": {
-                    "label": {
-                        "type": "string"
+        '$schema': 'http://json-schema.org/draft-07/schema#',
+        '$ref': '#/definitions/Flow',
+        'definitions': {
+            'Flow': {
+                'title': 'Flow',
+                'type': 'object',
+                'required': [],
+                'additionalProperties': False,
+                'properties': {
+                    'label': {
+                        'type': 'string'
                     },
-                    "datasource":{
-                        "type": "object",
-                        "$ref": "#/definitions/FrameNode",
+                    'datasource':{
+                        'type': 'object',
+                        '$ref': '#/definitions/FrameNode',
                     },
-                    "nodes": {
-                        "type": "array",
-                        "items": {
-                            "anyOf": [
+                    'nodes': {
+                        'type': 'array',
+                        'items': {
+                            'anyOf': [
                                 {
-                                    "type": "object",
-                                    "$ref": "#/definitions/FrameNode"
+                                    'type': 'object',
+                                    '$ref': '#/definitions/FrameNode'
                                 },
                                 {
-                                    "type": "object",
-                                    "$ref": "#/definitions/CommandNode"
+                                    'type': 'object',
+                                    '$ref': '#/definitions/CommandNode'
                                 },
                                 {
-                                    "type": "object",
-                                    "$ref": "#/definitions/FlowNode"
+                                    'type': 'object',
+                                    '$ref': '#/definitions/FlowNode'
                                 },
                                 {
-                                    "type": "object",
-                                    "$ref": "#/definitions/NoteNode"
+                                    'type': 'object',
+                                    '$ref': '#/definitions/NoteNode'
                                 },
                                 {
-                                    "type": "object",
-                                    "$ref": "#/definitions/IntNode"
+                                    'type': 'object',
+                                    '$ref': '#/definitions/IntNode'
                                 }
                             ]
                         }
                     },
-                    "params": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/definitions/Param"
+                    'params': {
+                        'type': 'array',
+                        'items': {
+                            '$ref': '#/definitions/Param'
                         }
                     },
-                    "ports": {
-                        "type": "array",
-                        "items": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/Port"
+                    'ports': {
+                        'type': 'array',
+                        'items': {
+                            'type': 'array',
+                            'items': {
+                                '$ref': '#/definitions/Port'
                             }
                         }
                     },
-                    "description": {
-                        "type": "string"
+                    'description': {
+                        'type': 'string'
                     },
-                    "creator": {
-                        "type": "string"
+                    'creator': {
+                        'type': 'string'
                     },
-                    "createdAt": {
-                        "type": "string"
+                    'createdAt': {
+                        'type': 'string'
                     },
-                    "projectId": {
-                        "type": ["null", "integer"]
+                    'projectId': {
+                        'type': ['null', 'integer']
                     }
                 }
             },
-            "FrameNode": {
-                "title": "FrameNode",
-                "type": "object",
-                "required": [
-                    "id",
-                    "type"
+            'FrameNode': {
+                'title': 'FrameNode',
+                'type': 'object',
+                'required': [
+                    'id',
+                    'type'
                 ],
-                "additionalProperties": False,
-                "properties": {
-                    "id": {
-                        "type": "string",
-                        "pattern": "^[0-9a-zA-Z_]+$"
+                'additionalProperties': False,
+                'properties': {
+                    'id': {
+                        '$ref': '#/definitions/id'
                     },
-                    "label": {
-                        "type": "string"
+                    'label': {
+                        'type': 'string'
                     },
-                    "type": {
-                        "enum": ["frame", "store", "int"]
+                    'type': {
+                        'enum': ['frame', 'store', 'int']
                     },
-                    "uuid": {
-                        "anyOf": [
+                    'uuid': {
+                        'anyOf': [
                             {
-                                "type": "null"
+                                'type': 'null'
                             },
                             {
-                                "type": "string",
-                                "format": "uuid"
+                                '$ref': '#/definitions/uuid'
                             }
                         ]
                     },
-                    "value": {
-                        "anyOf": [
+                    'value': {
+                        'anyOf': [
                             {
-                                "type": "array",
-                                "items": {
-                                    "type": "array",
-                                    "items": {
-                                        "type": ["null", "integer", "string"]
+                                'type': 'array',
+                                'items': {
+                                    'type': 'array',
+                                    'items': {
+                                        'type': ['null', 'integer', 'string']
                                     }
                                 }
                             },
                             {
-                                "type": "null"
+                                'type': 'null'
                             }
                         ]
                     },
-                    "makeCache": {
-                        "type": "boolean"
+                    'makeCache': {
+                        'type': 'boolean'
                     },
-                    "dataSource": {
-                        "type": "string",
-                        "pattern": "^[0-9a-zA-Z_]+$"
+                    'dataSource': {
+                        'type': 'string',
+                        'pattern': '^[0-9a-zA-Z_]+$'
                     },
-                    "cacheCreatedAt": {
-                        "type": ["null", "string"]
+                    'cacheCreatedAt': {
+                        'type': ['null', 'string']
                     },
-                    "position": {
-                        "$ref": "#/definitions/Position"
+                    'position': {
+                        '$ref': '#/definitions/Position'
                     },
-                    "size": {
-                        "$ref": "#/definitions/Size"
+                    'size': {
+                        '$ref': '#/definitions/Size'
                     },
-                    "error": {
-                        "$ref": "#/definitions/Error"
+                    'error': {
+                        '$ref': '#/definitions/Error'
                     },
-                    "invalid": {
-                        "$ref": "#/definitions/Error"
+                    'invalid': {
+                        '$ref': '#/definitions/Error'
                     }
                 }
             },
-            "CommandNode": {
-                "title": "CommandNode",
-                "type": "object",
-                "required": [
-                    "id",
-                    "type",
-                    "commandId"
+            'CommandNode': {
+                'title': 'CommandNode',
+                'type': 'object',
+                'required': [
+                    'id',
+                    'type',
+                    'commandId'
                 ],
-                "additionalProperties": False,
-                "properties": {
-                    "id": {
-                        "type": "string",
-                        "pattern": "^[0-9a-zA-Z_]+$"
+                'additionalProperties': False,
+                'properties': {
+                    'id': {
+                        '$ref': '#/definitions/id'
                     },
-                    "label": {
-                        "type": "string"
+                    'label': {
+                        'type': 'string'
                     },
-                    "type": {
-                        "const": "command"
+                    'type': {
+                        'const': 'command'
                     },
-                    "commandId": {
-                        "type": "string",
-                        "pattern": "^[0-9a-zA-Z_]+$"
+                    'commandId': {
+                        'type': 'string',
+                        'pattern': '^[0-9a-zA-Z_]+$'
                     },
-                    "args": {
-                        "$ref": "#/definitions/Args"
+                    'args': {
+                        '$ref': '#/definitions/Args'
                     },
-                    "srcs": {
-                        "$ref": "#/definitions/Srcs"
+                    'srcs': {
+                        '$ref': '#/definitions/Srcs'
                     },
-                    "dsts": {
-                        "$ref": "#/definitions/Dsts"
+                    'dsts': {
+                        '$ref': '#/definitions/Dsts'
                     },
-                    "position": {
-                        "$ref": "#/definitions/Position"
+                    'position': {
+                        '$ref': '#/definitions/Position'
                     },
-                    "size": {
-                        "$ref": "#/definitions/Size"
+                    'size': {
+                        '$ref': '#/definitions/Size'
                     },
-                    "srcsOrder": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
+                    'srcsOrder': {
+                        'type': 'array',
+                        'items': {
+                            '$ref': '#/definitions/portId'
                         }
                     },
-                    "error": {
-                        "$ref": "#/definitions/Error"
+                    'error': {
+                        '$ref': '#/definitions/Error'
                     },
-                    "invalid": {
-                        "$ref": "#/definitions/Error"
+                    'invalid': {
+                        '$ref': '#/definitions/Error'
                     }
                 }
             },
-            "FlowNode": {
-                "title": "FlowNode",
-                "type": "object",
-                "required": [
-                    "id",
-                    "type",
-                    "uuid"
+            'FlowNode': {
+                'title': 'FlowNode',
+                'type': 'object',
+                'required': [
+                    'id',
+                    'type',
+                    'uuid'
                 ],
-                "additionalProperties": False,
-                "properties": {
-                    "id": {
-                        "type": "string",
-                        "pattern": "^[0-9a-zA-Z_]+$"
+                'additionalProperties': False,
+                'properties': {
+                    'id': {
+                        '$ref': '#/definitions/id'
                     },
-                    "label": {
-                        "type": "string"
+                    'label': {
+                        'type': 'string'
                     },
-                    "type": {
-                        "const": "flow"
+                    'type': {
+                        'const': 'flow'
                     },
-                    "uuid": {
-                        "anyOf": [
+                    'uuid': {
+                        'anyOf': [
                             {
-                                "type": "null"
+                                'type': 'null'
                             },
                             {
-                                "type": "string",
-                                "format": "uuid"
+                                '$ref': '#/definitions/uuid'
                             }
                         ]
                     },
-                    "args": {
-                        "$ref": "#/definitions/Args"
+                    'args': {
+                        '$ref': '#/definitions/Args'
                     },
-                    "srcs": {
-                        "$ref": "#/definitions/Srcs"
+                    'srcs': {
+                        '$ref': '#/definitions/Srcs'
                     },
-                    "dsts": {
-                        "$ref": "#/definitions/Dsts"
+                    'dsts': {
+                        '$ref': '#/definitions/Dsts'
                     },
-                    "masked": {
-                        "type": "boolean"
+                    'masked': {
+                        'type': 'boolean'
                     },
-                    "position": {
-                        "$ref": "#/definitions/Position"
+                    'position': {
+                        '$ref': '#/definitions/Position'
                     },
-                    "size": {
-                        "$ref": "#/definitions/Size"
+                    'size': {
+                        '$ref': '#/definitions/Size'
                     },
-                    "srcsOrder": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
+                    'srcsOrder': {
+                        'type': 'array',
+                        'items': {
+                            '$ref': '#/definitions/portId'
                         }
                     },
-                    "error": {
-                        "$ref": "#/definitions/Error"
+                    'error': {
+                        '$ref': '#/definitions/Error'
                     },
-                    "invalid": {
-                        "$ref": "#/definitions/Error"
+                    'invalid': {
+                        '$ref': '#/definitions/Error'
                     }
                 }
             },
-            "NoteNode": {
-                "title": "NoteNode",
-                "type": "object",
-                "required": [
-                    "id",
-                    "type",
-                    "title",
-                    "content"
+            'NoteNode': {
+                'title': 'NoteNode',
+                'type': 'object',
+                'required': [
+                    'id',
+                    'type',
+                    'title',
+                    'content'
                 ],
-                "additionalProperties": False,
-                "properties": {
-                    "id": {
-                        "type": "string",
-                        "pattern": "^[0-9a-zA-Z_]+$"
+                'additionalProperties': False,
+                'properties': {
+                    'id': {
+                        '$ref': '#/definitions/id'
                     },
-                    "label": {
-                        "type": "string"
+                    'label': {
+                        'type': 'string'
                     },
-                    "type": {
-                        "const": "note"
+                    'type': {
+                        'const': 'note'
                     },
-                    "title": {
-                        "type": "string"
+                    'title': {
+                        'type': 'string'
                     },
-                    "content": {
-                        "type": "string"
+                    'content': {
+                        'type': 'string'
                     },
-                    "fontSize": {
-                        "type": "integer"
+                    'fontSize': {
+                        'type': 'integer'
                     },
-                    "color": {
-                        "type": "string"
+                    'color': {
+                        'type': 'string'
                     },
-                    "position": {
-                        "$ref": "#/definitions/Position"
+                    'position': {
+                        '$ref': '#/definitions/Position'
                     },
-                    "size": {
-                        "$ref": "#/definitions/Size"
+                    'size': {
+                        '$ref': '#/definitions/Size'
                     },
-                    "error": {
-                        "$ref": "#/definitions/Error"
+                    'error': {
+                        '$ref': '#/definitions/Error'
                     },
-                    "invalid": {
-                        "$ref": "#/definitions/Error"
+                    'invalid': {
+                        '$ref': '#/definitions/Error'
                     }
                 }
             },
-            "IntNode": {
-                "title": "IntNode",
-                "type": "object",
-                "required": [
-                    "id",
-                    "type",
-                    "value"
+            'IntNode': {
+                'title': 'IntNode',
+                'type': 'object',
+                'required': [
+                    'id',
+                    'type',
+                    'value'
                 ],
-                "additionalProperties": False,
-                "properties": {
-                    "id": {
-                        "type": "string",
-                        "pattern": "^[0-9a-zA-Z_]+$"
+                'additionalProperties': False,
+                'properties': {
+                    'id': {
+                        '$ref': '#/definitions/id'
                     },
-                    "label": {
-                        "type": "string"
+                    'label': {
+                        'type': 'string'
                     },
-                    "type": {
-                        "const": "int"
+                    'type': {
+                        'const': 'int'
                     },
-                    "value": {
-                        "anyOf": [
+                    'value': {
+                        'anyOf': [
                             {
-                                "type": "array",
-                                "maxItems": 1,
-                                "minItems": 1,
-                                "items": {
-                                    "type": "array",
-                                    "maxItems": 1,
-                                    "minItems": 1,
-                                    "items": {
-                                        "type": ["null", "integer", "string"]
+                                'type': 'array',
+                                'maxItems': 1,
+                                'minItems': 1,
+                                'items': {
+                                    'type': 'array',
+                                    'maxItems': 1,
+                                    'minItems': 1,
+                                    'items': {
+                                        'type': ['null', 'integer', 'string']
                                     }
                                 }
                             }
                         ]
                     },
-                    "uuid": {
-                        "const": "null"
+                    'uuid': {
+                        'const': 'null'
                     }
                 }
             },
-            "Args": {
-                "title": "Args",
-                "type": "object",
-                "required": [],
-                "additionalProperties": False,
-                "patternProperties": {
-                    "^[0-9a-zA-Z_]+$": {
-                        "type": ["string", "number", "boolean", "array"]
+            'Args': {
+                'title': 'Args',
+                'type': 'object',
+                'required': [],
+                'additionalProperties': False,
+                'patternProperties': {
+                    '^[0-9a-zA-Z_]+$': {
+                        'type': ['string', 'number', 'boolean', 'array']
                     }
                 }
             },
-            "Param": {
-                "title": "Param",
-                "type": "object",
-                "required": [
-                    "name",
-                    "type"
+            'Param': {
+                'title': 'Param',
+                'type': 'object',
+                'required': [
+                    'name',
+                    'type'
                 ],
-                "additionalProperties": False,
-                "properties": {
-                    "name": {
-                        "type": "string"
+                'additionalProperties': False,
+                'properties': {
+                    'name': {
+                        'type': 'string'
                     },
-                    "label": {
-                        "type": "string"
+                    'label': {
+                        'type': 'string'
                     },
-                    "type": {
-                        "type": "string"
+                    'type': {
+                        'type': 'string'
                     },
-                    "uuid": {
-                        "type": "string",
-                        "format": "uuid"
+                    'uuid': {
+                        '$ref': '#/definitions/uuid'
                     }
                 }
             },
-            "Port": {
-                "title": "Port",
-                "type": "object",
-                "required": [
-                    "label",
-                    "nodeId",
-                    "type"
+            'Port': {
+                'title': 'Port',
+                'type': 'object',
+                'required': [
+                    'label',
+                    'nodeId',
+                    'type'
                 ],
-                "additionalProperties": False,
-                "properties": {
-                    "label": {
-                        "type": "string"
+                'additionalProperties': False,
+                'properties': {
+                    'label': {
+                        'type': 'string'
                     },
-                    "nodeId": {
-                        "type": "string"
+                    'nodeId': {
+                        'type': 'string'
                     },
-                    "type": {
-                        "type": "string"
+                    'type': {
+                        'type': 'string'
                     }
                 }
             },
-            "Srcs": {
-                "title": "Srcs",
-                "type": "object",
-                "required": [],
-                "additionalProperties": False,
-                "patternProperties": {
-                    "^[0-9a-zA-Z_*]+$": {
-                        "type": "string",
-                        "pattern": "^[0-9a-zA-Z_*]+$"
+            'Srcs': {
+                'title': 'Srcs',
+                'type': 'object',
+                'required': [],
+                'additionalProperties': False,
+                'propertyNames': {
+                    'pattern': '^[0-9a-zA-Z_*]+$'
+                },
+                'patternProperties': {
+                    '^[0-9a-zA-Z_*]+$': {
+                        '$ref': '#/definitions/portId'
                     }
                 }
             },
-            "Dsts": {
-                "title": "Dsts",
-                "type": "object",
-                "required": [],
-                "additionalProperties": False,
-                "patternProperties": {
-                    "^[0-9a-zA-Z_*]+$": {
-                        "type": "string",
-                        "pattern": "^[0-9a-zA-Z_*]+$"
+            'Dsts': {
+                'title': 'Dsts',
+                'type': 'object',
+                'required': [],
+                'additionalProperties': False,
+                'propertyNames': {
+                    'pattern': '^[0-9a-zA-Z_*]+$'
+                },
+                'patternProperties': {
+                    '^[0-9a-zA-Z_*]+$': {
+                        '$ref': '#/definitions/portId'
                     }
                 }
             },
-            "Position": {
-                "title": "Position",
-                "type": "object",
-                "required": [
-                    "x",
-                    "y"
+            'Position': {
+                'title': 'Position',
+                'type': 'object',
+                'required': [
+                    'x',
+                    'y'
                 ],
-                "additionalProperties": False,
-                "properties": {
-                    "x": {
-                        "type": "number"
+                'additionalProperties': False,
+                'properties': {
+                    'x': {
+                        'type': 'number'
                     },
-                    "y": {
-                        "type": "number"
+                    'y': {
+                        'type': 'number'
                     }
                 }
             },
-            "Size": {
-                "title": "Size",
-                "type": "object",
-                "required": [
-                    "height",
-                    "width"
+            'Size': {
+                'title': 'Size',
+                'type': 'object',
+                'required': [
+                    'height',
+                    'width'
                 ],
-                "additionalProperties": False,
-                "properties": {
-                    "width": {
-                        "type": "integer"
+                'additionalProperties': False,
+                'properties': {
+                    'width': {
+                        'type': 'integer'
                     },
-                    "height": {
-                        "type": "integer"
+                    'height': {
+                        'type': 'integer'
                     }
                 }
             },
-            "Error": {
-                "title": "Error",
-                "type": "object",
-                "additionalProperties": False,
-                "patternProperties": {
-                    "^[0-9a-zA-Z_]+$": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
+            'Error': {
+                'title': 'Error',
+                'type': 'object',
+                'additionalProperties': False,
+                'patternProperties': {
+                    '^[0-9a-zA-Z_]+$': {
+                        'type': 'array',
+                        'items': {
+                            'type': 'string'
                         }
                     }
                 }
+            },
+            'id': {
+                'id': 'id',
+                'type': 'string',
+                'pattern': '^[0-9a-zA-Z_]+$'
+            },
+            'uuid': {
+                'id': 'uuid',
+                'type': 'string',
+                # The support was added in JSON Schema spec version 2019-09 (previously known as draft-08). 
+                'pattern': '^[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}$'
+            },
+            'portId': {
+                'id': 'portId',
+                'type': 'string',
+                'pattern': '^[0-9a-zA-Z_*]+$'
             }
         }
     }
