@@ -6,11 +6,12 @@ class FlowData():
     """
     # Flow Jsonの定義
     FLOW_JSON_SCHEMA = {
+        "title" : "Flow JSON Schema",
+        "description" : "This is a schema that verifies Flow JSON.",
         '$schema': 'http://json-schema.org/draft-07/schema#',
         '$ref': '#/definitions/Flow',
         'definitions': {
             'Flow': {
-                'title': 'Flow',
                 'type': 'object',
                 'required': [],
                 'additionalProperties': False,
@@ -79,7 +80,6 @@ class FlowData():
                 }
             },
             'FrameNode': {
-                'title': 'FrameNode',
                 'type': 'object',
                 'required': [
                     'id',
@@ -147,7 +147,6 @@ class FlowData():
                 }
             },
             'CommandNode': {
-                'title': 'CommandNode',
                 'type': 'object',
                 'required': [
                     'id',
@@ -199,7 +198,6 @@ class FlowData():
                 }
             },
             'FlowNode': {
-                'title': 'FlowNode',
                 'type': 'object',
                 'required': [
                     'id',
@@ -260,7 +258,6 @@ class FlowData():
                 }
             },
             'NoteNode': {
-                'title': 'NoteNode',
                 'type': 'object',
                 'required': [
                     'id',
@@ -306,7 +303,6 @@ class FlowData():
                 }
             },
             'IntNode': {
-                'title': 'IntNode',
                 'type': 'object',
                 'required': [
                     'id',
@@ -347,7 +343,6 @@ class FlowData():
                 }
             },
             'Args': {
-                'title': 'Args',
                 'type': 'object',
                 'required': [],
                 'additionalProperties': False,
@@ -358,7 +353,6 @@ class FlowData():
                 }
             },
             'Param': {
-                'title': 'Param',
                 'type': 'object',
                 'required': [
                     'name',
@@ -381,7 +375,6 @@ class FlowData():
                 }
             },
             'Port': {
-                'title': 'Port',
                 'type': 'object',
                 'required': [
                     'label',
@@ -402,35 +395,26 @@ class FlowData():
                 }
             },
             'Srcs': {
-                'title': 'Srcs',
                 'type': 'object',
                 'required': [],
-                'additionalProperties': False,
-                'propertyNames': {
-                    'pattern': '^[0-9a-zA-Z_*]+$'
+                'additionalProperties': {
+                    '$ref': '#/definitions/id'
                 },
-                'patternProperties': {
-                    '^[0-9a-zA-Z_*]+$': {
-                        '$ref': '#/definitions/portId'
-                    }
+                'propertyNames': {
+                    '$ref': '#/definitions/portId'
                 }
             },
             'Dsts': {
-                'title': 'Dsts',
                 'type': 'object',
                 'required': [],
-                'additionalProperties': False,
-                'propertyNames': {
-                    'pattern': '^[0-9a-zA-Z_*]+$'
+                'additionalProperties': {
+                    '$ref': '#/definitions/id'
                 },
-                'patternProperties': {
-                    '^[0-9a-zA-Z_*]+$': {
-                        '$ref': '#/definitions/portId'
-                    }
+                'propertyNames': {
+                    '$ref': '#/definitions/portId'
                 }
             },
             'Position': {
-                'title': 'Position',
                 'type': 'object',
                 'required': [
                     'x',
@@ -447,7 +431,6 @@ class FlowData():
                 }
             },
             'Size': {
-                'title': 'Size',
                 'type': 'object',
                 'required': [
                     'height',
@@ -464,7 +447,6 @@ class FlowData():
                 }
             },
             'Error': {
-                'title': 'Error',
                 'type': 'object',
                 'additionalProperties': False,
                 'patternProperties': {
