@@ -1,0 +1,40 @@
+{
+  "version": "0.7.0",
+  "id": "assert",
+  "label": "データの比較",
+  "classification": "validation",
+  "description": "入力データと参照データを比較して、差分情報を出力する",
+  "ports": [
+    [
+      {
+        "name": "i",
+        "type": "frame"
+      },
+      {
+        "name": "m",
+        "type": "frame"
+      }
+    ],
+    [
+      {
+        "name": "o",
+        "type": "frame"
+      }
+    ]
+  ],
+  "params": [
+    {
+      "name": "verbose",
+      "type": "boolean",
+      "label": "比較が一致しても差分情報を出力する",
+      "default": false
+    },
+    {
+      "name": "dlimit",
+      "type": "number",
+      "label": "差分取得限界数",
+      "default": 10
+    }
+  ],
+  "url": ""
+}

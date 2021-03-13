@@ -156,6 +156,7 @@ class CommandLink:
         'remotefolder_loader' : RemoteFolderLoaderCommand(),
         'remotefolder_saver'  : RemoteFolderSaverCommand(),
         'activity' : ActivityCommand(),
+        'assert' : AssertCommand(),
         'runs' : RunsCommand()
     }
 
