@@ -129,7 +129,8 @@ class CommandLink:
         'multi_mvsim': MvSimCommand(),
         'plaintext2csv': PlainText2Csv(),
         'rowrange': RowRangeCommand(),
-        'convtoutf8' : ConvToUtf8(),
+        'convtoutf8' : ConvEncoding(),
+        'convtocp932' : ConvEncoding(),
         'align' : AlignColumns(),
         'to_list' : ToListCommand(),
         # IoT コマンド

@@ -1452,6 +1452,85 @@ class ConvToUtf8(Command):
     
         return {'o': NysolModule(cmd)}
 
+class ConvEncoding(Command):
+    """
+    入力データを指定した文字コードと改行コードに変換する
+    """
+    def __init__(self):
+        super().__init__()
+        self.i_ports = [Port('i', 'frame')]
+        self.o_ports = [Port('o', 'frame')]
+
+    def run(self, args, inputs):
+
+        def convert_encoding(source_encoding, source_newline, target_encoding, target_newline):
+            """
+            指定されたファイルの文字コードと改行コードを変換する
+
+            # errors='replace'
+            # 変換できない文字があれば、
+            #   UTF-8への変換の場合は�(U+FFFD)に置き換える
+            #   CP932への変換の場合は?(3F)に置き換える
+            """
+            try:
+                # 標準入力の文字コードと改行コードの指定
+                with open(sys.stdin.fileno(),
+                        mode='r',
+                        encoding=source_encoding,
+                        newline=source_newline,
+                        errors='replace',
+                        closefd=False) as sys_stdin:
+                    # 標準入力への文字コードと改行コードの指定
+                    with open(sys.stdout.fileno(),
+                            mode='w',
+                            encoding=target_encoding,
+                            newline=target_newline,
+                            errors='replace',
+                            closefd=False) as sys_stdout:
+                        for line in sys_stdin:
+                            # 改行コードを削除する
+                            line = line.rstrip(source_newline)
+                            # 標準出力へ出力する
+                            print(line, file=sys_stdout)
+            except Exception as e:
+                with open('/dev/stderr', 'w') as fpe:
+                    import traceback
+                    traceback.print_exc(file=fpe)
+
+        nysol_module = inputs['i']
+
+        if 'target_encoding' not in args:
+            raise Exception('target_encodingを指定してください')
+        if 'target_newline' not in args:
+            raise Exception('target_newlineを指定してください')
+
+        # flushをしないと、デバッグ用のprintなども入ってしまう
+        sys.stdout.flush()
+
+        if nysol_module.encoding is None or nysol_module.encoding == 'UNKNOWN':
+            # 入力データの文字コードが未判定の場合
+            # 判定してもわからなかった場合はUTF-8で試してみる
+            source_encoding = 'utf-8'
+            source_newline = '\n'
+        else:
+            source_encoding = nysol_module.encoding
+            source_newline = '\r\n'
+
+        cmd = nysol_module.content
+        if source_encoding==args['target_newline'] or source_encoding=='ascii':
+            target_encoding = nysol_module.encoding
+        else:
+            cmd <<= nm.runfunc( convert_encoding,
+                                source_encoding=source_encoding,
+                                source_newline=source_newline,
+                                target_encoding=args['target_encoding'],
+                                target_newline=args['target_newline'])
+            target_encoding = args['target_encoding']
+    
+        ret = NysolModule(cmd)
+        ret.encoding = target_encoding
+        return {'o': ret}
+
 class AlignColumns(Command):
     """
     CSVのデータ列数をCSVヘッダの列数に揃える
