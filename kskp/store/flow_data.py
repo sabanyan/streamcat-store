@@ -477,8 +477,9 @@ class FlowData():
             },
             'portId': {
                 'id': 'portId',
-                'type': 'string',
-                'pattern': '^[0-9a-zA-Z_*]+$'
+                'type': 'string'
+                # ポートidはラベルとしても用いられている
+                # 'pattern': '^[0-9a-zA-Z_*]+$'
             }
         }
     }

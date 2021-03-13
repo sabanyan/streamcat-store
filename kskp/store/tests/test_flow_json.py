@@ -249,6 +249,80 @@ class FlowJsonTest(TestCaseBase):
         # フローを削除する
         flow.delete()
 
+    def test_validate_port_id(self):
+        """
+        ポートid属性に日本語文字列の値が設定できること
+        """
+        # ルートデータストアを取得する
+        root = self.factory.data.load_root()
+        # フローJSONを作成する
+        flow_json = {
+            'projectId': 1,
+            'label': 'テストフロー',
+            'ports': [
+                [
+                    {
+                        # valid
+                        'label': 'ラベルid*',
+                        'nodeId': 'd1',
+                        'type': 'frame'
+                    }
+                ],
+                []
+            ],
+            'params': [],
+            'description': '',
+            'nodes' : [
+                {
+                    'id': 'invalid_id',
+                    'type': 'frame',
+                    'dataSource': 'csv',
+                    'uuid': None,
+                    'label': '入力データ'
+                }
+            ],
+            'creator': '羽柴 秀吉',
+            'createdAt': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        }
+        # ルートデータストアの直下にフローを作成する
+        flow = root.create_flow('フロー', FlowData(flow_json))
+        # フローJSONの検証エラーが送出されないこと
+        flow.save()
+        # フローを削除する
+        flow.delete()
+
+    def test_validate_error_ports(self):
+        """
+        Ports属性の配列要素は2要素固定である
+        """
+        # ルートデータストアを取得する
+        root = self.factory.data.load_root()
+        # フローJSONを作成する
+        flow_json = {
+            'projectId': 1,
+            'label': 'テストフロー',
+            # invalid
+            'ports': [[]],
+            'params': [],
+            'description': '',
+            'nodes' : [
+                {
+                    'id': 'i',
+                    'type': 'frame',
+                    'dataSource': 'csv',
+                    'uuid': None,
+                    'label': '入力データ'
+                }
+            ],
+            'creator': '織田信長',
+            'createdAt': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        }
+        # ルートデータストアの直下にフローを作成する
+        flow = root.create_flow('フロー', FlowData(flow_json))
+        # フローJSONの検証エラーにより例外が送出されること
+        with self.assertRaises(ValidationError):
+            flow.save()
+
     def test_validate_error_uuid(self):
         """
         uuid属性に不正な形式の値が設定されたらエラーになること
@@ -313,47 +387,6 @@ class FlowJsonTest(TestCaseBase):
         with self.assertRaises(ValidationError):
             flow.save()
 
-    def test_validate_error_port_id(self):
-        """
-        ポートid属性に不正な形式の値が設定されたらエラーになること
-        """
-        # ルートデータストアを取得する
-        root = self.factory.data.load_root()
-        # フローJSONを作成する
-        flow_json = {
-            'projectId': 1,
-            'label': 'テストフロー',
-            'ports': [
-                [
-                    {
-                        # invalid
-                        'label': 'ラベルid*',
-                        'nodeId': 'd1',
-                        'type': 'frame'
-                    }
-                ],
-                []
-            ],
-            'params': [],
-            'description': '',
-            'nodes' : [
-                {
-                    'id': 'invalid_id',
-                    'type': 'frame',
-                    'dataSource': 'csv',
-                    'uuid': None,
-                    'label': '入力データ'
-                }
-            ],
-            'creator': '羽柴 秀吉',
-            'createdAt': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        }
-        # ルートデータストアの直下にフローを作成する
-        flow = root.create_flow('フロー', FlowData(flow_json))
-        # フローJSONの検証エラーにより例外が送出されること
-        with self.assertRaises(ValidationError):
-            flow.save()
-
     def test_validate_error_position(self):
         """
         ノードのPosition属性に不正な値が設定されたらエラーになること
@@ -389,4 +422,3 @@ class FlowJsonTest(TestCaseBase):
         # フローJSONの検証エラーにより例外が送出されること
         with self.assertRaises(ValidationError):
             flow.save()
-
