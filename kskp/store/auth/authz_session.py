@@ -327,7 +327,7 @@ class AuthzSession(Session):
         """
         from sqlalchemy import select, func, text
         from sqlalchemy.orm import aliased
-        from sqlalchemy.sql.expression import literal_column
+        from sqlalchemy.sql.expression import literal_column, case
         from kskp.core import Datum
 
         # 相関条件を記述するとSQLAlchemyがFROM句にdataテーブルを追加するので、
@@ -358,6 +358,14 @@ class AuthzSession(Session):
 
         # PostgreSQLにはGROUP_CONCATが無いので代わりに、ARRAY_TO_STRINGとARRAYを用いる
         func_exp = func.array_to_string(func.array(Labels), '/')
+
+        # フォルダパスの先頭に'/'を付加する、フォルダパスがない場合はNULLを返す   
+        func_exp = case(
+                         # Labelsの件数が0件の場合、ARRAY_TO_STRING関数は空文字を返す
+                        {'': None},
+                        value=func_exp,
+                        else_=func.concat('/', func_exp)
+                    )
 
         # WITH句を含むSELECT文をtextで記述してこれをメインのSELECT文に含める
         func_exp_str = str(func_exp.compile(compile_kwargs={'literal_binds': True}))

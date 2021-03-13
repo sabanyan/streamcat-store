@@ -298,8 +298,7 @@ class Datum(BaseModel):
         移動前の親フォルダまでのフォルダパスを返す
         """
         # 一度も移動していない場合はNoneを返す
-        # (prev_folder_path=NULLの場合、ARRAY_TO_STRING関数は空文字を返す)
-        return self._prev_folder_path or None
+        return self._prev_folder_path
 
     @property
     def is_root(self):
