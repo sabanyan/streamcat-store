@@ -115,7 +115,7 @@ class FlowData():
                                 'items': {
                                     'type': 'array',
                                     'items': {
-                                        'type': ['null', 'integer', 'string']
+                                        'type': ['null', 'string', 'number', 'boolean']
                                     }
                                 }
                             },
@@ -285,7 +285,8 @@ class FlowData():
                         'type': 'string'
                     },
                     'fontSize': {
-                        'type': 'integer'
+                        'type': 'number',
+                        'minimum': 0
                     },
                     'color': {
                         'type': 'string'
@@ -333,7 +334,7 @@ class FlowData():
                                     'maxItems': 1,
                                     'minItems': 1,
                                     'items': {
-                                        'type': ['null', 'integer', 'string']
+                                        'type': ['null', 'string', 'number', 'boolean']
                                     }
                                 }
                             }
@@ -347,11 +348,11 @@ class FlowData():
             'Args': {
                 'type': 'object',
                 'required': [],
-                'additionalProperties': False,
-                'patternProperties': {
-                    '^[0-9a-zA-Z_]+$': {
-                        'type': ['string', 'number', 'boolean', 'array']
-                    }
+                'additionalProperties': {
+                    'type': ['null', 'string', 'number', 'boolean', 'array']
+                },
+                'propertyNames': {
+                    'type': 'string'
                 }
             },
             'Param': {
@@ -443,11 +444,11 @@ class FlowData():
                 'additionalProperties': False,
                 'properties': {
                     'width': {
-                        'type': 'integer',
+                        'type': 'number',
                         'minimum': 0
                     },
                     'height': {
-                        'type': 'integer',
+                        'type': 'number',
                         'minimum': 0
                     }
                 }

@@ -249,6 +249,104 @@ class FlowJsonTest(TestCaseBase):
         # フローを削除する
         flow.delete()
 
+    def test_validate_args(self):
+        """
+        引数の名称に日本語文字列の値が設定できること
+        """
+        # ルートデータストアを取得する
+        root = self.factory.data.load_root()
+        # フローJSONを作成する
+        flow_json = {
+            'projectId': 1,
+            'label': 'テストフロー',
+            'ports': [[],[]],
+            'params': [],
+            'description': '',
+            'nodes' : [
+                {
+                    "id": "f8",
+                    "args": {
+                        "LOTの項目名": "LOT",
+                        "集計対象の項目名": "R2*"
+                    },
+                    "dsts": {
+                        "d2": "d28"
+                    },
+                    "size": {
+                        "width": 38,
+                        "height": 38
+                    },
+                    "srcs": {
+                        "d3": "d14"
+                    },
+                    "type": "flow",
+                    "uuid": "7aa7d023-8fbd-4356-a72c-cc10bc1a907f",
+                    "error": {},
+                    "label": "_集計_ロット単位v0.1",
+                    "invalid": {},
+                    "position": {
+                        "x": 1327.75,
+                        "y": 780.75
+                    },
+                    "srcsOrder": [
+                        "d3"
+                    ]
+                }
+            ],
+            'creator': '羽柴 秀吉',
+            'createdAt': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        }
+        # ルートデータストアの直下にフローを作成する
+        flow = root.create_flow('フロー', FlowData(flow_json))
+        # フローJSONの検証エラーが送出されないこと
+        flow.save()
+        # フローを削除する
+        flow.delete()
+
+    def test_validate_size(self):
+        """
+        Size属性に小数点付きの数値が指定できること
+        """
+        # ルートデータストアを取得する
+        root = self.factory.data.load_root()
+        # フローJSONを作成する
+        flow_json = {
+            'projectId': 1,
+            'label': 'テストフロー',
+            'ports': [[],[]],
+            'params': [],
+            'description': '',
+            'nodes' : [
+                {
+                    "id": "n1",
+                    "size": {
+                        "width": 115.595703125,
+                        "height": 25
+                    },
+                    "type": "note",
+                    "color": "green",
+                    "error": {},
+                    "label": "n1",
+                    "title": "10x70x0.001=700MB",
+                    "content": "新しいメモ",
+                    "invalid": {},
+                    "fontSize": 10,
+                    "position": {
+                        "x": 164,
+                        "y": 380
+                    }
+                }
+            ],
+            'creator': '羽柴 秀吉',
+            'createdAt': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        }
+        # ルートデータストアの直下にフローを作成する
+        flow = root.create_flow('フロー', FlowData(flow_json))
+        # フローJSONの検証エラーが送出されないこと
+        flow.save()
+        # フローを削除する
+        flow.delete()
+
     def test_validate_port_id(self):
         """
         ポートid属性に日本語文字列の値が設定できること
