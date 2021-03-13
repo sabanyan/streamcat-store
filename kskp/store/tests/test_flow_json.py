@@ -249,6 +249,1228 @@ class FlowJsonTest(TestCaseBase):
         # フローを削除する
         flow.delete()
 
+    def test_validate_sample(self):
+        """
+        サンプルフローJSONを検証する
+        """
+        # ルートデータストアを取得する
+        root = self.factory.data.load_root()
+        # サンプルフローJSON
+        flow_json ={
+            "label": "データセットv0.2.1_10分割＆R2TAG21phase単位分割&R2TAG9変化点分割_集計v01",
+            "nodes": [
+                {
+                    "id": "d",
+                    "size": {
+                        "width": 38,
+                        "height": 38
+                    },
+                    "type": "frame",
+                    "uuid": "ef23896a-5b05-40ae-92f7-9b531e4f0cb7",
+                    "error": {},
+                    "label": "RESULT",
+                    "invalid": {},
+                    "position": {
+                        "x": 186,
+                        "y": 564
+                    },
+                    "makeCache": False,
+                    "dataSource": "csv",
+                    "cacheCreatedAt": None
+                },
+                {
+                    "id": "d1",
+                    "size": {
+                        "width": 38,
+                        "height": 38
+                    },
+                    "type": "frame",
+                    "uuid": "d41487ff-77c4-4549-b909-9a1f263a8f3b",
+                    "error": {},
+                    "label": "R2_SER4-11 終了時刻13:48:59 全体処理時間1秒",
+                    "invalid": {},
+                    "position": {
+                        "x": 1017,
+                        "y": 316
+                    },
+                    "makeCache": False,
+                    "dataSource": "csv",
+                    "cacheCreatedAt": None
+                },
+                {
+                    "id": "d2",
+                    "size": {
+                        "width": 38,
+                        "height": 38
+                    },
+                    "type": "frame",
+                    "uuid": "0c01ec98-655e-465a-8238-a719217542b2",
+                    "error": {},
+                    "label": "R1_SER4-11 終了時刻13:48:59 全体処理時間1秒",
+                    "invalid": {},
+                    "position": {
+                        "x": 660,
+                        "y": 326
+                    },
+                    "makeCache": False,
+                    "dataSource": "csv",
+                    "cacheCreatedAt": None
+                },
+                {
+                    "id": "d4",
+                    "size": {
+                        "width": 38,
+                        "height": 38
+                    },
+                    "type": "frame",
+                    "uuid": None,
+                    "error": {},
+                    "label": "d4",
+                    "invalid": {},
+                    "position": {
+                        "x": 1120,
+                        "y": 705
+                    },
+                    "makeCache": False,
+                    "dataSource": "csv",
+                    "cacheCreatedAt": None
+                },
+                {
+                    "id": "f1",
+                    "args": {},
+                    "dsts": {
+                        "d1": "d4"
+                    },
+                    "size": {
+                        "width": 38,
+                        "height": 38
+                    },
+                    "srcs": {
+                        "d": "d14"
+                    },
+                    "type": "flow",
+                    "uuid": "500cdd4e-7119-42d2-bf02-1e031cebd263",
+                    "error": {},
+                    "label": "__R2TAG9波形分割__",
+                    "invalid": {},
+                    "position": {
+                        "x": 1124,
+                        "y": 620
+                    },
+                    "srcsOrder": [
+                        "d"
+                    ]
+                },
+                {
+                    "id": "d3",
+                    "size": {
+                        "width": 38,
+                        "height": 38
+                    },
+                    "type": "frame",
+                    "uuid": None,
+                    "error": {},
+                    "label": "d3",
+                    "invalid": {},
+                    "position": {
+                        "x": 661,
+                        "y": 683
+                    },
+                    "makeCache": False,
+                    "dataSource": "csv",
+                    "cacheCreatedAt": None
+                },
+                {
+                    "id": "c1",
+                    "args": {
+                        "F": "0",
+                        "f": "TIME:bucket",
+                        "k": "LOT",
+                        "n": "3",
+                        "rng": True,
+                        "bufcount": 10
+                    },
+                    "dsts": {
+                        "o": "d3"
+                    },
+                    "size": {
+                        "width": 38,
+                        "height": 38
+                    },
+                    "srcs": {
+                        "i": "d15"
+                    },
+                    "type": "command",
+                    "error": {},
+                    "label": "一次元均等化バケット分割",
+                    "invalid": {},
+                    "position": {
+                        "x": 659,
+                        "y": 613
+                    },
+                    "commandId": "mbucket",
+                    "srcsOrder": [
+                        "i"
+                    ]
+                },
+                {
+                    "id": "d9",
+                    "size": {
+                        "width": 38,
+                        "height": 38
+                    },
+                    "type": "frame",
+                    "uuid": None,
+                    "error": {},
+                    "label": "d9",
+                    "invalid": {},
+                    "position": {
+                        "x": 664.5,
+                        "y": 877.75
+                    },
+                    "makeCache": False,
+                    "dataSource": "csv",
+                    "cacheCreatedAt": None
+                },
+                {
+                    "id": "f2",
+                    "args": {
+                        "LOTの項目名": "LOT",
+                        "区分化キー項目名": "bucket",
+                        "集計対象の項目名": "R1*",
+                        "区分化キー種類(列名作成時の接頭辞)": "B"
+                    },
+                    "dsts": {
+                        "d2": "d9"
+                    },
+                    "size": {
+                        "width": 38,
+                        "height": 38
+                    },
+                    "srcs": {
+                        "d3": "d3"
+                    },
+                    "type": "flow",
+                    "uuid": "4c033419-3fa4-45a0-a61e-0aebbc731142",
+                    "error": {},
+                    "label": "データセットv0.1_集計",
+                    "invalid": {},
+                    "position": {
+                        "x": 663,
+                        "y": 800
+                    },
+                    "srcsOrder": [
+                        "d3"
+                    ]
+                },
+                {
+                    "id": "d5",
+                    "size": {
+                        "width": 38,
+                        "height": 38
+                    },
+                    "type": "frame",
+                    "uuid": None,
+                    "error": {},
+                    "label": "d5",
+                    "invalid": {},
+                    "position": {
+                        "x": 1121,
+                        "y": 880
+                    },
+                    "makeCache": False,
+                    "dataSource": "csv",
+                    "cacheCreatedAt": None
+                },
+                {
+                    "id": "f3",
+                    "args": {
+                        "LOTの項目名": "LOT",
+                        "区分化キー項目名": "phaseNo",
+                        "集計対象の項目名": "R2*",
+                        "区分化キー種類(列名作成時の接頭辞)": "ph"
+                    },
+                    "dsts": {
+                        "d2": "d5"
+                    },
+                    "size": {
+                        "width": 38,
+                        "height": 38
+                    },
+                    "srcs": {
+                        "d3": "d4"
+                    },
+                    "type": "flow",
+                    "uuid": "4c033419-3fa4-45a0-a61e-0aebbc731142",
+                    "error": {},
+                    "label": "データセットv0.1_集計",
+                    "invalid": {},
+                    "position": {
+                        "x": 1122,
+                        "y": 788
+                    },
+                    "srcsOrder": [
+                        "d3"
+                    ]
+                },
+                {
+                    "id": "d6",
+                    "size": {
+                        "width": 38,
+                        "height": 38
+                    },
+                    "type": "frame",
+                    "uuid": None,
+                    "error": {},
+                    "label": "d6",
+                    "invalid": {},
+                    "position": {
+                        "x": 950,
+                        "y": 698
+                    },
+                    "makeCache": False,
+                    "dataSource": "csv",
+                    "cacheCreatedAt": None
+                },
+                {
+                    "id": "c2",
+                    "args": {
+                        "F": "0",
+                        "f": "TIME:bucket",
+                        "k": "LOT",
+                        "n": "3",
+                        "rng": True,
+                        "bufcount": 10
+                    },
+                    "dsts": {
+                        "o": "d6"
+                    },
+                    "size": {
+                        "width": 38,
+                        "height": 38
+                    },
+                    "srcs": {
+                        "i": "d14"
+                    },
+                    "type": "command",
+                    "error": {},
+                    "label": "一次元均等化バケット分割",
+                    "invalid": {},
+                    "position": {
+                        "x": 950,
+                        "y": 616
+                    },
+                    "commandId": "mbucket",
+                    "srcsOrder": [
+                        "i"
+                    ]
+                },
+                {
+                    "id": "d7",
+                    "size": {
+                        "width": 38,
+                        "height": 38
+                    },
+                    "type": "frame",
+                    "uuid": None,
+                    "error": {},
+                    "label": "d7",
+                    "invalid": {},
+                    "position": {
+                        "x": 950,
+                        "y": 874
+                    },
+                    "makeCache": False,
+                    "dataSource": "csv",
+                    "cacheCreatedAt": None
+                },
+                {
+                    "id": "f4",
+                    "args": {
+                        "LOTの項目名": "LOT",
+                        "区分化キー項目名": "bucket",
+                        "集計対象の項目名": "R2*",
+                        "区分化キー種類(列名作成時の接頭辞)": "B"
+                    },
+                    "dsts": {
+                        "d2": "d7"
+                    },
+                    "size": {
+                        "width": 38,
+                        "height": 38
+                    },
+                    "srcs": {
+                        "d3": "d6"
+                    },
+                    "type": "flow",
+                    "uuid": "4c033419-3fa4-45a0-a61e-0aebbc731142",
+                    "error": {},
+                    "label": "データセットv0.1_集計",
+                    "invalid": {},
+                    "position": {
+                        "x": 950,
+                        "y": 792
+                    },
+                    "srcsOrder": [
+                        "d3"
+                    ]
+                },
+                {
+                    "id": "d8",
+                    "size": {
+                        "width": 38,
+                        "height": 38
+                    },
+                    "type": "frame",
+                    "uuid": None,
+                    "error": {},
+                    "label": "d8",
+                    "invalid": {},
+                    "position": {
+                        "x": 423.5,
+                        "y": 1060.75
+                    },
+                    "makeCache": False,
+                    "dataSource": "csv",
+                    "cacheCreatedAt": None
+                },
+                {
+                    "id": "c3",
+                    "args": {
+                        "K": "LOT",
+                        "k": "LOT",
+                        "bufcount": "10"
+                    },
+                    "dsts": {
+                        "o": "d8"
+                    },
+                    "size": {
+                        "width": 38,
+                        "height": 38
+                    },
+                    "srcs": {
+                        "i": "d",
+                        "m": "d9"
+                    },
+                    "type": "command",
+                    "error": {},
+                    "label": "自然結合",
+                    "invalid": {},
+                    "position": {
+                        "x": 423.5,
+                        "y": 978.75
+                    },
+                    "commandId": "mnjoin",
+                    "srcsOrder": [
+                        "i",
+                        "m"
+                    ]
+                },
+                {
+                    "id": "d10",
+                    "size": {
+                        "width": 38,
+                        "height": 38
+                    },
+                    "type": "frame",
+                    "uuid": None,
+                    "error": {},
+                    "label": "d10",
+                    "invalid": {},
+                    "position": {
+                        "x": 563.5,
+                        "y": 1153.25
+                    },
+                    "makeCache": False,
+                    "dataSource": "csv",
+                    "cacheCreatedAt": None
+                },
+                {
+                    "id": "c4",
+                    "args": {
+                        "K": "LOT",
+                        "k": "LOT",
+                        "bufcount": "10"
+                    },
+                    "dsts": {
+                        "o": "d10"
+                    },
+                    "size": {
+                        "width": 38,
+                        "height": 38
+                    },
+                    "srcs": {
+                        "i": "d8",
+                        "m": "d27"
+                    },
+                    "type": "command",
+                    "error": {},
+                    "label": "自然結合",
+                    "invalid": {},
+                    "position": {
+                        "x": 561.5,
+                        "y": 1069.25
+                    },
+                    "commandId": "mnjoin",
+                    "srcsOrder": [
+                        "i",
+                        "m"
+                    ]
+                },
+                {
+                    "id": "d11",
+                    "size": {
+                        "width": 38,
+                        "height": 38
+                    },
+                    "type": "frame",
+                    "uuid": None,
+                    "error": {},
+                    "label": "d11",
+                    "invalid": {},
+                    "position": {
+                        "x": 665,
+                        "y": 1231
+                    },
+                    "makeCache": False,
+                    "dataSource": "csv",
+                    "cacheCreatedAt": None
+                },
+                {
+                    "id": "c5",
+                    "args": {
+                        "K": "LOT",
+                        "k": "LOT",
+                        "bufcount": "10"
+                    },
+                    "dsts": {
+                        "o": "d11"
+                    },
+                    "size": {
+                        "width": 38,
+                        "height": 38
+                    },
+                    "srcs": {
+                        "i": "d10",
+                        "m": "d7"
+                    },
+                    "type": "command",
+                    "error": {},
+                    "label": "自然結合",
+                    "invalid": {},
+                    "position": {
+                        "x": 665,
+                        "y": 1161
+                    },
+                    "commandId": "mnjoin",
+                    "srcsOrder": [
+                        "i",
+                        "m"
+                    ]
+                },
+                {
+                    "id": "d12",
+                    "size": {
+                        "width": 38,
+                        "height": 38
+                    },
+                    "type": "frame",
+                    "uuid": None,
+                    "error": {},
+                    "label": "データセットv0.2",
+                    "invalid": {},
+                    "position": {
+                        "x": 765,
+                        "y": 1863.3333333333335
+                    },
+                    "makeCache": False,
+                    "dataSource": "csv",
+                    "cacheCreatedAt": None
+                },
+                {
+                    "id": "c6",
+                    "args": {
+                        "q": True
+                    },
+                    "dsts": {
+                        "o": "d12"
+                    },
+                    "size": {
+                        "width": 38,
+                        "height": 38
+                    },
+                    "srcs": {
+                        "i": "d26"
+                    },
+                    "type": "command",
+                    "error": {},
+                    "label": "項目名の変更",
+                    "invalid": {},
+                    "position": {
+                        "x": 762,
+                        "y": 1785.3333333333335
+                    },
+                    "commandId": "mfldname",
+                    "srcsOrder": [
+                        "i"
+                    ]
+                },
+                {
+                    "id": "d14",
+                    "size": {
+                        "width": 38,
+                        "height": 38
+                    },
+                    "type": "frame",
+                    "uuid": None,
+                    "error": {},
+                    "label": "d14",
+                    "invalid": {},
+                    "position": {
+                        "x": 1017,
+                        "y": 501
+                    },
+                    "makeCache": False,
+                    "dataSource": "csv",
+                    "cacheCreatedAt": None
+                },
+                {
+                    "id": "c7",
+                    "args": {
+                        "f": "R2TAG1,R2TAG2,R2TAG3,R2TAG4,R2TAG5,R2TAG6,R2TAG18,R2TAG33,R2TAG37,R2TAG52,R2TAG53,R2TAG54",
+                        "r": True
+                    },
+                    "dsts": {
+                        "o": "d14"
+                    },
+                    "size": {
+                        "width": 38,
+                        "height": 38
+                    },
+                    "srcs": {
+                        "i": "d1"
+                    },
+                    "type": "command",
+                    "error": {},
+                    "label": "項目の選択",
+                    "invalid": {},
+                    "position": {
+                        "x": 1018,
+                        "y": 424
+                    },
+                    "commandId": "mcut",
+                    "srcsOrder": [
+                        "i"
+                    ]
+                },
+                {
+                    "id": "d15",
+                    "size": {
+                        "width": 38,
+                        "height": 38
+                    },
+                    "type": "frame",
+                    "uuid": None,
+                    "error": {},
+                    "label": "d15",
+                    "invalid": {},
+                    "position": {
+                        "x": 660,
+                        "y": 503
+                    },
+                    "makeCache": False,
+                    "dataSource": "csv",
+                    "cacheCreatedAt": None
+                },
+                {
+                    "id": "c8",
+                    "args": {
+                        "f": "R1TAG2,R1TAG6,R1TAG30,R1TAG32,R1TAG38",
+                        "r": True
+                    },
+                    "dsts": {
+                        "o": "d15"
+                    },
+                    "size": {
+                        "width": 38,
+                        "height": 38
+                    },
+                    "srcs": {
+                        "i": "d2"
+                    },
+                    "type": "command",
+                    "error": {},
+                    "label": "項目の選択",
+                    "invalid": {},
+                    "position": {
+                        "x": 658,
+                        "y": 422
+                    },
+                    "commandId": "mcut",
+                    "srcsOrder": [
+                        "i"
+                    ]
+                },
+                {
+                    "id": "d26",
+                    "size": {
+                        "width": 38,
+                        "height": 38
+                    },
+                    "type": "frame",
+                    "uuid": None,
+                    "error": {},
+                    "label": "d26",
+                    "invalid": {},
+                    "position": {
+                        "x": 762.3333333333334,
+                        "y": 1720.666666666667
+                    },
+                    "makeCache": False,
+                    "dataSource": "csv",
+                    "cacheCreatedAt": None
+                },
+                {
+                    "id": "f6",
+                    "args": {
+                        "グループの項目名": "LOT"
+                    },
+                    "dsts": {
+                        "d1": "d26"
+                    },
+                    "size": {
+                        "width": 38,
+                        "height": 38
+                    },
+                    "srcs": {
+                        "d": "d19"
+                    },
+                    "type": "flow",
+                    "uuid": "7fa63f51-8995-4675-8873-48793ed11d49",
+                    "error": {},
+                    "label": "__NULL値あり列の削除__",
+                    "invalid": {},
+                    "position": {
+                        "x": 762.6666666666666,
+                        "y": 1630.9999999999998
+                    },
+                    "srcsOrder": [
+                        "d"
+                    ]
+                },
+                {
+                    "id": "n4",
+                    "size": {
+                        "width": 165,
+                        "height": 25
+                    },
+                    "type": "note",
+                    "color": "green",
+                    "error": {},
+                    "label": "n4",
+                    "title": "注意：キャッシュを作って下さい",
+                    "content": "新しいメモ",
+                    "invalid": {},
+                    "fontSize": 10,
+                    "position": {
+                        "x": 619.5,
+                        "y": 934
+                    }
+                },
+                {
+                    "id": "n5",
+                    "size": {
+                        "width": 175,
+                        "height": 25
+                    },
+                    "type": "note",
+                    "color": "green",
+                    "error": {},
+                    "label": "n5",
+                    "title": "注意：キャッシュを作ってください",
+                    "content": "新しいメモ",
+                    "invalid": {},
+                    "fontSize": 10,
+                    "position": {
+                        "x": 956.5,
+                        "y": 938
+                    }
+                },
+                {
+                    "id": "n6",
+                    "size": {
+                        "width": 95,
+                        "height": 25
+                    },
+                    "type": "note",
+                    "color": "green",
+                    "error": {},
+                    "label": "n6",
+                    "title": "変動ない列の削除",
+                    "content": "新しいメモ",
+                    "invalid": {},
+                    "fontSize": 10,
+                    "position": {
+                        "x": 584.5,
+                        "y": 390
+                    }
+                },
+                {
+                    "id": "n7",
+                    "size": {
+                        "width": 95,
+                        "height": 25
+                    },
+                    "type": "note",
+                    "color": "green",
+                    "error": {},
+                    "label": "n7",
+                    "title": "変動ない列の削除",
+                    "content": "新しいメモ",
+                    "invalid": {},
+                    "fontSize": 10,
+                    "position": {
+                        "x": 946.5,
+                        "y": 384
+                    }
+                },
+                {
+                    "id": "d27",
+                    "size": {
+                        "width": 38,
+                        "height": 38
+                    },
+                    "type": "frame",
+                    "uuid": None,
+                    "error": {},
+                    "label": "******",
+                    "invalid": {},
+                    "position": {
+                        "x": 796,
+                        "y": 876
+                    },
+                    "makeCache": False,
+                    "dataSource": "csv",
+                    "cacheCreatedAt": "2021-03-10 11:01:52"
+                },
+                {
+                    "id": "f7",
+                    "args": {
+                        "LOTの項目名": "LOT",
+                        "集計対象の項目名": "R1*"
+                    },
+                    "dsts": {
+                        "d2": "d27"
+                    },
+                    "size": {
+                        "width": 38,
+                        "height": 38
+                    },
+                    "srcs": {
+                        "d3": "d15"
+                    },
+                    "type": "flow",
+                    "uuid": "7aa7d023-8fbd-4356-a72c-cc10bc1a907f",
+                    "error": {},
+                    "label": "_集計_ロット単位v0.1",
+                    "invalid": {},
+                    "position": {
+                        "x": 800,
+                        "y": 805
+                    },
+                    "srcsOrder": [
+                        "d3"
+                    ]
+                },
+                {
+                    "id": "d28",
+                    "size": {
+                        "width": 38,
+                        "height": 38
+                    },
+                    "type": "frame",
+                    "uuid": None,
+                    "error": {},
+                    "label": "d28",
+                    "invalid": {},
+                    "position": {
+                        "x": 1328,
+                        "y": 876
+                    },
+                    "makeCache": False,
+                    "dataSource": "csv",
+                    "cacheCreatedAt": None
+                },
+                {
+                    "id": "f8",
+                    "args": {
+                        "LOTの項目名": "LOT",
+                        "集計対象の項目名": "R2*"
+                    },
+                    "dsts": {
+                        "d2": "d28"
+                    },
+                    "size": {
+                        "width": 38,
+                        "height": 38
+                    },
+                    "srcs": {
+                        "d3": "d14"
+                    },
+                    "type": "flow",
+                    "uuid": "7aa7d023-8fbd-4356-a72c-cc10bc1a907f",
+                    "error": {},
+                    "label": "_集計_ロット単位v0.1",
+                    "invalid": {},
+                    "position": {
+                        "x": 1327.75,
+                        "y": 780.75
+                    },
+                    "srcsOrder": [
+                        "d3"
+                    ]
+                },
+                {
+                    "id": "d13",
+                    "size": {
+                        "width": 38,
+                        "height": 38
+                    },
+                    "type": "frame",
+                    "uuid": None,
+                    "error": {},
+                    "label": "d13",
+                    "invalid": {},
+                    "position": {
+                        "x": 789.5,
+                        "y": 1319
+                    },
+                    "makeCache": False,
+                    "dataSource": "csv",
+                    "cacheCreatedAt": None
+                },
+                {
+                    "id": "c9",
+                    "args": {
+                        "K": "LOT",
+                        "k": "LOT",
+                        "bufcount": "10"
+                    },
+                    "dsts": {
+                        "o": "d13"
+                    },
+                    "size": {
+                        "width": 38,
+                        "height": 38
+                    },
+                    "srcs": {
+                        "i": "d11",
+                        "m": "d5"
+                    },
+                    "type": "command",
+                    "error": {},
+                    "label": "自然結合",
+                    "invalid": {},
+                    "position": {
+                        "x": 786.5,
+                        "y": 1230
+                    },
+                    "commandId": "mnjoin",
+                    "srcsOrder": [
+                        "i",
+                        "m"
+                    ]
+                },
+                {
+                    "id": "d16",
+                    "size": {
+                        "width": 38,
+                        "height": 38
+                    },
+                    "type": "frame",
+                    "uuid": None,
+                    "error": {},
+                    "label": "d16",
+                    "invalid": {},
+                    "position": {
+                        "x": 920.25,
+                        "y": 1445
+                    },
+                    "makeCache": False,
+                    "dataSource": "csv",
+                    "cacheCreatedAt": None
+                },
+                {
+                    "id": "c10",
+                    "args": {
+                        "K": "LOT",
+                        "k": "LOT",
+                        "bufcount": "10"
+                    },
+                    "dsts": {
+                        "o": "d16"
+                    },
+                    "size": {
+                        "width": 38,
+                        "height": 38
+                    },
+                    "srcs": {
+                        "i": "d13",
+                        "m": "d28"
+                    },
+                    "type": "command",
+                    "error": {},
+                    "label": "自然結合",
+                    "invalid": {},
+                    "position": {
+                        "x": 913.25,
+                        "y": 1328
+                    },
+                    "commandId": "mnjoin",
+                    "srcsOrder": [
+                        "i",
+                        "m"
+                    ]
+                },
+                {
+                    "id": "d17",
+                    "size": {
+                        "width": 38,
+                        "height": 38
+                    },
+                    "type": "frame",
+                    "uuid": None,
+                    "error": {},
+                    "label": "d17",
+                    "invalid": {},
+                    "position": {
+                        "x": 1501.9999999999998,
+                        "y": 702.0000000000002
+                    },
+                    "makeCache": False,
+                    "dataSource": "csv",
+                    "cacheCreatedAt": None
+                },
+                {
+                    "id": "f5",
+                    "args": {},
+                    "dsts": {
+                        "d1": "d17"
+                    },
+                    "size": {
+                        "width": 38,
+                        "height": 38
+                    },
+                    "srcs": {
+                        "d": "d14"
+                    },
+                    "type": "flow",
+                    "uuid": "2e16e8e4-0eab-4795-8adb-aacc9ee50968",
+                    "error": {},
+                    "label": "__要望1:特徴量_R2TAG39_変化点間の区間キー付与__",
+                    "invalid": {},
+                    "position": {
+                        "x": 1505.3333333333328,
+                        "y": 616.666666666667
+                    },
+                    "srcsOrder": [
+                        "d"
+                    ]
+                },
+                {
+                    "id": "d19",
+                    "size": {
+                        "width": 38,
+                        "height": 38
+                    },
+                    "type": "frame",
+                    "uuid": None,
+                    "error": {},
+                    "label": "d19",
+                    "invalid": {},
+                    "position": {
+                        "x": 1041.1250000000002,
+                        "y": 1539.166666666667
+                    },
+                    "makeCache": False,
+                    "dataSource": "csv",
+                    "cacheCreatedAt": None
+                },
+                {
+                    "id": "c11",
+                    "args": {
+                        "K": "LOT",
+                        "k": "LOT",
+                        "bufcount": "10"
+                    },
+                    "dsts": {
+                        "o": "d19"
+                    },
+                    "size": {
+                        "width": 38,
+                        "height": 38
+                    },
+                    "srcs": {
+                        "i": "d16",
+                        "m": "d20"
+                    },
+                    "type": "command",
+                    "error": {},
+                    "label": "自然結合",
+                    "invalid": {},
+                    "position": {
+                        "x": 1041.1249999999998,
+                        "y": 1453.8333333333333
+                    },
+                    "commandId": "mnjoin",
+                    "srcsOrder": [
+                        "i",
+                        "m"
+                    ]
+                },
+                {
+                    "id": "d20",
+                    "size": {
+                        "width": 38,
+                        "height": 38
+                    },
+                    "type": "frame",
+                    "uuid": None,
+                    "error": {},
+                    "label": "d20",
+                    "invalid": {},
+                    "position": {
+                        "x": 1499.9999999999998,
+                        "y": 867.0000000000002
+                    },
+                    "makeCache": False,
+                    "dataSource": "csv",
+                    "cacheCreatedAt": None
+                },
+                {
+                    "id": "f10",
+                    "args": {
+                        "LOTの項目名": "LOT",
+                        "区分化キー項目名": "R2TAG39変化点間連番",
+                        "集計対象の項目名": "R2*",
+                        "区分化キー種類(列名作成時の接頭辞)": "CpR2TAG39"
+                    },
+                    "dsts": {
+                        "d2": "d20"
+                    },
+                    "size": {
+                        "width": 38,
+                        "height": 38
+                    },
+                    "srcs": {
+                        "d3": "d17"
+                    },
+                    "type": "flow",
+                    "uuid": "4c033419-3fa4-45a0-a61e-0aebbc731142",
+                    "error": {},
+                    "label": "データセットv0.1_集計",
+                    "invalid": {},
+                    "position": {
+                        "x": 1501.9999999999998,
+                        "y": 788.0000000000002
+                    },
+                    "srcsOrder": [
+                        "d3"
+                    ]
+                },
+                {
+                    "id": "d18",
+                    "size": {
+                        "width": 38,
+                        "height": 38
+                    },
+                    "type": "frame",
+                    "uuid": "f7f86ed3-1813-4c15-97af-e98b560f67fc",
+                    "error": {},
+                    "label": "Expected Data",
+                    "invalid": {},
+                    "position": {
+                        "x": 905,
+                        "y": 1863.5
+                    },
+                    "makeCache": False,
+                    "dataSource": "csv",
+                    "cacheCreatedAt": None
+                },
+                {
+                    "id": "d21",
+                    "size": {
+                        "width": 38,
+                        "height": 38
+                    },
+                    "type": "frame",
+                    "uuid": None,
+                    "error": {},
+                    "label": "d21",
+                    "invalid": {},
+                    "position": {
+                        "x": 835,
+                        "y": 2039.4166666666667
+                    },
+                    "makeCache": False,
+                    "dataSource": "csv",
+                    "cacheCreatedAt": None
+                },
+                {
+                    "id": "c12",
+                    "args": {
+                        "dlimit": 10,
+                        "verbose": True
+                    },
+                    "dsts": {
+                        "o": "d21"
+                    },
+                    "size": {
+                        "width": 38,
+                        "height": 38
+                    },
+                    "srcs": {
+                        "i": "d18",
+                        "m": "d12"
+                    },
+                    "type": "command",
+                    "error": {},
+                    "label": "c12",
+                    "invalid": {},
+                    "position": {
+                        "x": 835,
+                        "y": 1957.4166666666667
+                    },
+                    "commandId": "assert",
+                    "srcsOrder": [
+                        "i",
+                        "m"
+                    ]
+                }
+            ],
+            "ports": [
+                [],
+                [
+                    {
+                        "type": "frame",
+                        "label": "d21",
+                        "nodeId": "d21"
+                    }
+                ]
+            ],
+            "params": [],
+            "creator": "開発用",
+            "createdAt": "2020-05-28 11:44:38",
+            "projectId": None,
+            "description": ""
+        }
+        # ルートデータストアの直下にフローを作成する
+        flow = root.create_flow('フロー', FlowData(flow_json))
+        # フローJSONの検証エラーが送出されないこと
+        flow.save()
+        # フローを削除する
+        flow.delete()
+
     def test_validate_args(self):
         """
         引数の名称に日本語文字列の値が設定できること
