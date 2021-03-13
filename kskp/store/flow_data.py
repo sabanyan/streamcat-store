@@ -17,7 +17,19 @@ class FlowData():
                 'additionalProperties': False,
                 'properties': {
                     'label': {
-                        'type': 'string'
+                        'type': ['null', 'string']
+                    },
+                    'description': {
+                        'type': ['null', 'string']
+                    },
+                    'creator': {
+                        'type': ['null', 'string']
+                    },
+                    'createdAt': {
+                        'type': ['null', 'string']
+                    },
+                    'projectId': {
+                        'type': ['null', 'integer']
                     },
                     'datasource':{
                         'type': 'object',
@@ -58,24 +70,14 @@ class FlowData():
                     },
                     'ports': {
                         'type': 'array',
+                        'maxItems': 2,
+                        'minItems': 2,
                         'items': {
                             'type': 'array',
                             'items': {
                                 '$ref': '#/definitions/Port'
                             }
                         }
-                    },
-                    'description': {
-                        'type': 'string'
-                    },
-                    'creator': {
-                        'type': 'string'
-                    },
-                    'createdAt': {
-                        'type': 'string'
-                    },
-                    'projectId': {
-                        'type': ['null', 'integer']
                     }
                 }
             },
@@ -384,10 +386,10 @@ class FlowData():
                 'additionalProperties': False,
                 'properties': {
                     'label': {
-                        'type': 'string'
+                        '$ref': '#/definitions/portId'
                     },
                     'nodeId': {
-                        'type': 'string'
+                        '$ref': '#/definitions/id'
                     },
                     'type': {
                         'type': 'string'
@@ -423,10 +425,12 @@ class FlowData():
                 'additionalProperties': False,
                 'properties': {
                     'x': {
-                        'type': 'number'
+                        'type': 'number',
+                        'minimum': 0
                     },
                     'y': {
-                        'type': 'number'
+                        'type': 'number',
+                        'minimum': 0
                     }
                 }
             },
@@ -439,10 +443,12 @@ class FlowData():
                 'additionalProperties': False,
                 'properties': {
                     'width': {
-                        'type': 'integer'
+                        'type': 'integer',
+                        'minimum': 0
                     },
                     'height': {
-                        'type': 'integer'
+                        'type': 'integer',
+                        'minimum': 0
                     }
                 }
             },
@@ -466,7 +472,7 @@ class FlowData():
             'uuid': {
                 'id': 'uuid',
                 'type': 'string',
-                # The support was added in JSON Schema spec version 2019-09 (previously known as draft-08). 
+                # The format of uuid was added in JSON Schema spec version 2019-09 (previously known as draft-08). 
                 'pattern': '^[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}$'
             },
             'portId': {
