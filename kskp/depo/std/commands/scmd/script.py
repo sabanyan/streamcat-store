@@ -607,11 +607,10 @@ class DbSaverCommand(SaverCommand):
 
     @staticmethod
     def _create_data_source(parent, database, label, schema_name, table_name, activity_uuid):
-        import uuid
         from kskp.engine import Step
         from kskp.depo.std.commands import CommandLink
         args = {'schema_name':schema_name, 'table_name':table_name, 'activity_uuid_kskp':activity_uuid}
-        loader_step = Step(str(uuid.uuid4()), CommandLink('db_loader').resolve(), args)
+        loader_step = Step('db_loader', CommandLink('db_loader').resolve(), args)
         return parent.create_datasource(label, database, loader_step)
 
     @staticmethod
@@ -725,11 +724,10 @@ class RemoteFolderSaverCommand(SaverCommand):
 
     @staticmethod
     def _create_data_source(parent, rfolder, label, file_path_str):
-        import uuid
         from kskp.engine import Step
         from kskp.depo.std.commands import CommandLink
         args = {'file_path':file_path_str}
-        loader_step = Step(str(uuid.uuid4()), CommandLink('remotefolder_loader').resolve(), args)
+        loader_step = Step('remotefolder_loader', CommandLink('remotefolder_loader').resolve(), args)
         return parent.create_datasource(label, rfolder, loader_step)
 
 class RunsCommand(SCommand):
