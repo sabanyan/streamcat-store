@@ -264,8 +264,7 @@ class FlowData():
                 'required': [
                     'id',
                     'type',
-                    'title',
-                    'content'
+                    'title'
                 ],
                 'additionalProperties': False,
                 'properties': {

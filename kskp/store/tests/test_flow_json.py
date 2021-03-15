@@ -1471,6 +1471,52 @@ class FlowJsonTest(TestCaseBase):
         # フローを削除する
         flow.delete()
 
+    def test_validate_note(self):
+        """
+        content属性のないNoteノードが検証できること
+        """
+        # ルートデータストアを取得する
+        root = self.factory.data.load_root()
+        # サンプルフローJSON
+        flow_json = {
+            "label": "モノの流れで紐付け",
+            "nodes": [
+                {
+                    "id": "n16",
+                    "size": {
+                        "width": 323.3,
+                        "height": 37
+                    },
+                    "type": "note",
+                    "color": "red",
+                    "error": {},
+                    "label": "n16",
+                    "title": "課題：機械学習用の特徴量生成",
+                    "invalid": {},
+                    "fontSize": 22,
+                    "position": {
+                        "x": 599,
+                        "y": 1631.5
+                    }
+                }
+            ],
+            "ports": [
+                [],
+                []
+            ],
+            "params": [],
+            "creator": "ユーザー管理者",
+            "createdAt": "2020-06-16 15:34:08",
+            "projectId": None,
+            "description": "【課題】\n  時刻をキーとした観測データから、\n  モノの流れをキーとした\n  分析用データを作成する\n\n【入力データ】\n  時刻をキーとして、\n  異なる工程の観測値が記録されている\n\n【問題点】\n  工程間の移動時間があるため、\n  製造されたモノをキーとした分析ができない\n\n【アプローチ】\n  工程間の標準的な移動時間がある場合、\n  その時間分、各工程ごとに、\n  観測値の時刻をずらし、\n  モノをキーとしたデータに、変形する"
+        }    
+        # ルートデータストアの直下にフローを作成する
+        flow = root.create_flow('フロー', FlowData(flow_json))
+        # フローJSONの検証エラーが送出されないこと
+        flow.save()
+        # フローを削除する
+        flow.delete()
+
     def test_validate_args(self):
         """
         引数の名称に日本語文字列の値が設定できること
