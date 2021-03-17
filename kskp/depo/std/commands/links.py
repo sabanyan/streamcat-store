@@ -25,6 +25,7 @@ class CommandLink:
     COMMAND_TABLE = {
         # テスト用コマンド
         'square': Square(),
+        'raise' : RaiseCommand(),
         # mコマンド
         'mcut': McutCommand(),
         'mselstr': MselstrCommand(),

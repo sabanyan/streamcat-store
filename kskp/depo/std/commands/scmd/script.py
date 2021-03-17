@@ -954,6 +954,19 @@ class ActivityCommand(SCommand):
         # (本当はSaver自身が削除すべきだが、Saverは作成したファイルを自身で覚えていない)
         activity.delete_all_frames()
 
+class RaiseCommand(SCommand):
+    """
+    例外送出コマンド
+    """
+    def __init__(self):
+        super().__init__()
+        self.i_ports = [Port('i', 'frame')]
+        self.o_ports = [Port('o', 'mcmd')]
+
+    def run(self, args, inputs):
+        # 例外を送出する
+        raise Exception(f'The Raise Command raises exception! ⚡️')
+
 
 class AssertCommand(SCommand):
     """
@@ -963,7 +976,7 @@ class AssertCommand(SCommand):
         super().__init__()
         self.i_ports = [Port('i', 'frame'), Port('m', 'frame')]
         self.o_ports = [Port('o', 'mcmd')]
-        
+
     def run(self, args, inputs):
 
         def write_to_file(inputs, port_name, output_path):
@@ -1026,7 +1039,7 @@ class AssertCommand(SCommand):
                     ret = "\"" + ret + "\""
                     escaped_list.append(ret)
                 return escaped_list
-        
+
             from itertools import zip_longest
 
             # 差分情報格納
@@ -1146,11 +1159,11 @@ class AssertCommand(SCommand):
                     output_datas.append(exceed_limit_str)
                     output_datas.append(time_str)
                     print(output_datas)
-                
+
                 # NysolPythonのrunfunc関数の出力は標準出力を使用する、
                 # その出力のタイミングを確定させる
                 sys.stdout.flush()
-            
+
             except Exception as e:
                 with open('/dev/stderr', 'w') as fpe:
                     import traceback
