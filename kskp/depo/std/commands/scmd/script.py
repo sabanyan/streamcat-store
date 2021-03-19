@@ -965,7 +965,10 @@ class RaiseCommand(SCommand):
 
     def run(self, args, inputs):
         # 例外を送出する
-        raise Exception(f'The Raise Command raises exception! ⚡️')
+        if 'message' in args:
+            raise Exception(args['message'])
+        else:
+            raise Exception(f'The Raise Command raises exception! ⚡️')
 
 
 class AssertCommand(SCommand):
