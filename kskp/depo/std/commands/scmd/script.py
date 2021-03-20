@@ -68,9 +68,13 @@ class SaverCommand(SCommand):
         # Frameを作成する
         folder = self.get_result_folder(args)
         flow_label = args['flow_label']
-        point = args['point']
-        point_label = point.label if point.label is not None else point.id
         start_time = args['start_time']
+        point = args.get('point')
+        if point is None:
+            # TODO: point_idどっからとってこよう
+            point_label = 'point_id'
+        else:
+            point_label = point.label if point.label is not None else point.id
 
         # UTC日時はここで現地時間(環境変数TZの値)に設定される
         start_time = start_time.astimezone()
@@ -730,6 +734,7 @@ class RemoteFolderSaverCommand(SaverCommand):
         loader_step = Step('remotefolder_loader', CommandLink('remotefolder_loader').resolve(), args)
         return parent.create_datasource(label, rfolder, loader_step)
 
+
 class RunsCommand(SCommand):
 
     # 最低必要ディスクサイズ(1Mbyte)
@@ -889,7 +894,6 @@ class RunsCommand(SCommand):
 
             return rets
 
-
 class FieldNamesCommand(RunsCommand):
     def __init__(self):
         super().__init__()
@@ -902,7 +906,6 @@ class FieldNamesCommand(RunsCommand):
             # ヘッダ行の取得を実行する
             ret.append(nm_flow.fldname())
         return ret
-
 
 class ActivityCommand(SCommand):
     def __init__(self):
@@ -954,6 +957,7 @@ class ActivityCommand(SCommand):
         # (本当はSaver自身が削除すべきだが、Saverは作成したファイルを自身で覚えていない)
         activity.delete_all_frames()
 
+
 class RaiseCommand(SCommand):
     """
     例外送出コマンド
@@ -969,7 +973,6 @@ class RaiseCommand(SCommand):
             raise Exception(args['message'])
         else:
             raise Exception(f'The Raise Command raises exception! ⚡️')
-
 
 class AssertCommand(SCommand):
     """
