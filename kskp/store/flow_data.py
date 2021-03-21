@@ -778,6 +778,9 @@ class FlowData():
         # 指定したidのノードがない場合はNoneを返す
         return None
 
+    def __repr__(self):
+        return self.label
+
     def __eq__(self, other):
         return self._flow_json == other._flow_json
 
