@@ -24,10 +24,8 @@ setup(
         'sklearn',
         # matplotlibはholoviewsが使用する
         'matplotlib',
-        'holoviews==1.12.7',
-        # param 1.10.0では以下のWarningが多量に表示される、bokehが参照している?
-        # "WARNING:param.Dimension: Use method 'get_param_values' via param namespace"
-        'param<=1.9.3',
+        'holoviews',
+        'param',
         'bokeh==2.3.0',
     ],
 )
