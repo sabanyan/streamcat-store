@@ -38,6 +38,11 @@ class Port:
     def __repr__(self):
         return f'<Port({self.label})>'
 
+    def __eq__(self, other):
+        return self.label == other.label
+
+    def __ne__(self, other):
+        return self.label != other.label
 
 class Parameter:
     """
