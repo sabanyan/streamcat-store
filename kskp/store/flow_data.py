@@ -779,7 +779,7 @@ class FlowData():
         return None
 
     def __repr__(self):
-        return self.label
+        return self.label or ''
 
     def __eq__(self, other):
         return self._flow_json == other._flow_json
