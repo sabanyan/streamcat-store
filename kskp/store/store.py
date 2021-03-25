@@ -274,7 +274,7 @@ class NysolModule(Datum):
     NysolModuleをラップするクラス
     """
     def __init__(self, nysol_cmd=None):
-        super().__init__(None, None, 'nm', None)
+        super().__init__(None, None, 'nm', self._get_name(nysol_cmd))
         self._content = nysol_cmd
         self._encoding = None
 
@@ -293,6 +293,13 @@ class NysolModule(Datum):
     def encoding(self, encoding):
         self._encoding = encoding
 
+    def _get_name(self, nysol_cmd):
+        if nysol_cmd is None:
+            return None
+        else:
+            return nysol_cmd.__class__.__name__
+
+
     def __ilshift__(self, other):
         raise Exception(f'NysolModule({str(self._content)})に"<<="演算子は使えません')
 
@@ -301,7 +308,7 @@ class List(Datum):
     リスト構造のデータを表す
     """
     def __init__(self, content=None):
-        super().__init__(None, None, 'list', 'list')
+        super().__init__(None, None, 'list', None)
         self._content = content
         self._encoding = None
 
@@ -336,7 +343,7 @@ class ApparentLast(Store):
     (フローエディタから見た見かけのlast)
     """
     def __init__(self, out_point, datum, exs=None):
-        super().__init__(None, None, 'last', 'last')
+        super().__init__(None, None, 'last', None)
         self.out_point = out_point
         self.datum = datum
         self.exs = exs

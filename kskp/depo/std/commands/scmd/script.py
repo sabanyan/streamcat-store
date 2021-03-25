@@ -798,7 +798,7 @@ class RunsCommand(SCommand):
             elif isinstance(input, (NysolModule, List)):
                 rets[i_port_name] = ApparentLast(None, input.context.get('frame'))
             else:
-                raise Exception('RunsCommandにNysolModuleまたはCommandException以外のデータ型が入力されました')
+                raise Exception(f'RunsCommandにNysolModuleまたはCommandException以外のデータ型({input})が入力されました')
 
         if exception_exists:
             # ActivityCommandにSaverが生成したFrameと例外を渡す
@@ -931,7 +931,7 @@ class ActivityCommand(SCommand):
                 last = input
                 last.out_point = out_point
             else:
-                raise Exception('ActivityCommandにApparentLastまたはCommandException以外のデータ型が入力されました')
+                raise Exception(f'ActivityCommandにApparentLastまたはCommandException以外のデータ型({input})が入力されました')
 
             # Activityにlastを追加する
             activity.add(last)
