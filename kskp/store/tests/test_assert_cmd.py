@@ -1,5 +1,5 @@
 import copy
-from kskp.engine import execute, FlowRunnable
+from kskp.engine import execute, FlowCommand
 from kskp.store import FlowData
 from .test_case_base import TestCaseBase
 
@@ -846,7 +846,7 @@ class AssertCmdTest(TestCaseBase):
         json_flow['ports'] = [[],[{'nodeId':'d1', 'label':'d1', 'type':'frame'}]]
 
         flow = self.root.create_flow(json_flow['label'], FlowData(json_flow))
-        flow_link = FlowRunnable(flow, self.factory)
+        flow_link = FlowCommand(flow, self.factory)
         lasts = execute(flow_link, {}, {})
         lasts = convert_from_activity(lasts)
 
@@ -893,7 +893,7 @@ class AssertCmdTest(TestCaseBase):
         json_flow['ports'] = [[],[{'nodeId':'d1', 'label':'d1', 'type':'frame'}]]
 
         flow = self.root.create_flow(json_flow['label'], FlowData(json_flow))
-        flow_link = FlowRunnable(flow, self.factory)
+        flow_link = FlowCommand(flow, self.factory)
         lasts = execute(flow_link, {}, {})
         lasts = convert_from_activity(lasts)
         # 正解データ内のuuid, タイムスタンプはダミー、テスト実行時には、毎回変動するので、出力がされているかどうかのみ確認する
@@ -938,7 +938,7 @@ class AssertCmdTest(TestCaseBase):
         json_flow['ports'] = [[],[{'nodeId':'d2', 'label':'d2', 'type':'frame'}]]
 
         flow = self.root.create_flow(json_flow['label'], FlowData(json_flow))
-        flow_link = FlowRunnable(flow, self.factory)
+        flow_link = FlowCommand(flow, self.factory)
         lasts = execute(flow_link, {}, {})
         lasts = convert_from_activity(lasts)
 
@@ -996,7 +996,7 @@ class AssertCmdTest(TestCaseBase):
         json_flow['ports'] = [[],[{'nodeId':'d1', 'label':'d1', 'type':'frame'},{'nodeId':'d2', 'label':'d2', 'type':'frame'}]]
 
         flow = self.root.create_flow(json_flow['label'], FlowData(json_flow))
-        flow_link = FlowRunnable(flow, self.factory)
+        flow_link = FlowCommand(flow, self.factory)
         lasts = execute(flow_link, {}, {})
         lasts = convert_from_activity(lasts)
 
@@ -1069,7 +1069,7 @@ class AssertCmdTest(TestCaseBase):
         json_flow['ports'] = [[],[{'nodeId':'d2', 'label':'d2', 'type':'frame'}]]
 
         flow = self.root.create_flow(json_flow['label'], FlowData(json_flow))
-        flow_link = FlowRunnable(flow, self.factory)
+        flow_link = FlowCommand(flow, self.factory)
         lasts = execute(flow_link, {}, {})
         lasts = convert_from_activity(lasts)
 
@@ -1121,7 +1121,7 @@ class AssertCmdTest(TestCaseBase):
         json_flow['ports'] = [[],[{'nodeId':'d2', 'label':'d2', 'type':'frame'}]]
 
         flow = self.root.create_flow(json_flow['label'], FlowData(json_flow))
-        flow_link = FlowRunnable(flow, self.factory)
+        flow_link = FlowCommand(flow, self.factory)
         lasts = execute(flow_link, {}, {})
         lasts = convert_from_activity(lasts)
 
@@ -1166,7 +1166,7 @@ class AssertCmdTest(TestCaseBase):
         json_flow['ports'] = [[],[{'nodeId':'d2', 'label':'d2', 'type':'frame'}]]
 
         flow = self.root.create_flow(json_flow['label'], FlowData(json_flow))
-        flow_link = FlowRunnable(flow, self.factory)
+        flow_link = FlowCommand(flow, self.factory)
         lasts = execute(flow_link, {}, {})
         lasts = convert_from_activity(lasts)
 
@@ -1212,7 +1212,7 @@ class AssertCmdTest(TestCaseBase):
         json_flow['ports'] = [[],[{'nodeId':'d2', 'label':'d2', 'type':'frame'}]]
 
         flow = self.root.create_flow(json_flow['label'], FlowData(json_flow))
-        flow_link = FlowRunnable(flow, self.factory)
+        flow_link = FlowCommand(flow, self.factory)
         lasts = execute(flow_link, {}, {})
         lasts = convert_from_activity(lasts)
 
