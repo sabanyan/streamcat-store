@@ -2743,7 +2743,7 @@ class AuthTest(TestCaseBase):
 
         # フローを実行する
         from kskp.engine import execute, FlowCommand
-        link = FlowCommand(flow, self.factory2)
+        link = FlowCommand(flow)
         lasts = execute(runnable=link, args={}, inputs={})
         # フローの実行結果を取得する
         out_frame = AuthTest.get_frame_from_lasts(lasts)
@@ -2848,7 +2848,7 @@ class AuthTest(TestCaseBase):
 
         # フローを実行する
         from kskp.engine import execute, FlowCommand
-        link = FlowCommand(flow, self.factory2)
+        link = FlowCommand(flow)
         lasts = execute(runnable=link, args={}, inputs={})
         # フローの実行結果を取得する
         out_frame = AuthTest.get_frame_from_lasts(lasts)
@@ -3640,7 +3640,7 @@ class AuthTest(TestCaseBase):
 
         # フローを実行する
         from kskp.engine import execute, FlowCommand
-        link = FlowCommand(flow, self.factory2)
+        link = FlowCommand(flow)
         lasts = execute(runnable=link, args={}, inputs={})
         # フローの実行結果を取得する
         out_frame = AuthTest.get_frame_from_lasts(lasts)
@@ -3690,7 +3690,7 @@ class AuthTest(TestCaseBase):
 
         # フローを実行する
         from kskp.engine import execute, FlowCommand
-        link = FlowCommand(flow, self.factory2)
+        link = FlowCommand(flow)
         lasts = execute(runnable=link, args={}, inputs={})
         # フローの実行結果を取得する
         out_frame = AuthTest.get_frame_from_lasts(lasts)
@@ -3757,7 +3757,7 @@ class AuthTest(TestCaseBase):
         # USER3は、フローにキャッシュのuuidを書き込めないので、フローを実行できない
         from kskp.engine import execute, FlowCommand
         flow = self.factory3.data.find_by_uuid(flow.uuid)
-        link = FlowCommand(flow, self.factory3)
+        link = FlowCommand(flow)
         with self.assertRaises(CommandException) as e:
             lasts = execute(runnable=link, args={}, inputs={})
             AuthTest.get_frame_from_lasts(lasts)
@@ -3806,7 +3806,7 @@ class AuthTest(TestCaseBase):
                         }
                     }
         flow = self.factory3.data.find_by_uuid(flow.uuid)
-        link = FlowCommand(flow, self.factory3, vis_args)
+        link = FlowCommand(flow, vis_args)
         lasts = execute(runnable=link, args={}, inputs={})
 
         # キャッシュのUUIDを取得する
@@ -3888,7 +3888,7 @@ class AuthTest(TestCaseBase):
         self.assertIsNotNone(auths[5].modified_at)
 
         # 編集者は、複製したフローをプレビュー実行できること
-        link = FlowCommand(duplicated_flow, self.factory3, vis_args)
+        link = FlowCommand(duplicated_flow, vis_args)
         lasts = execute(runnable=link, args={}, inputs={})
 
         # プロジェクトに属さないユーザは、複製したフローを取得できないこと
@@ -3992,13 +3992,13 @@ class AuthTest(TestCaseBase):
 
         # USER3は、メインフローを実行できないこと
         flow2 = self.factory3.data.find_by_uuid(flow2.uuid)
-        link = FlowCommand(flow2, self.factory3, vis_args)
+        link = FlowCommand(flow2, vis_args)
         with self.assertRaises(Exception):
             execute(runnable=link, args={}, inputs={})
 
         # USER2は、メインフローを実行できること
         flow2 = self.factory2.data.find_by_uuid(flow2.uuid)
-        link = FlowCommand(flow2, self.factory2, vis_args)
+        link = FlowCommand(flow2, vis_args)
         last = execute(runnable=link, args={}, inputs={})
 
         # フローを削除する
