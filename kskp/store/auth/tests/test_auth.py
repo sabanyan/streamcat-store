@@ -2742,8 +2742,8 @@ class AuthTest(TestCaseBase):
         flow = flow.reload() 
 
         # フローを実行する
-        from kskp.engine import execute, FlowJsonLink
-        link = FlowJsonLink(flow, self.factory2)
+        from kskp.engine import execute, FlowRunnable
+        link = FlowRunnable(flow, self.factory2)
         lasts = execute(runnable=link, args={}, inputs={})
         # フローの実行結果を取得する
         out_frame = AuthTest.get_frame_from_lasts(lasts)
@@ -2847,8 +2847,8 @@ class AuthTest(TestCaseBase):
         flow = flow.reload() 
 
         # フローを実行する
-        from kskp.engine import execute, FlowJsonLink
-        link = FlowJsonLink(flow, self.factory2)
+        from kskp.engine import execute, FlowRunnable
+        link = FlowRunnable(flow, self.factory2)
         lasts = execute(runnable=link, args={}, inputs={})
         # フローの実行結果を取得する
         out_frame = AuthTest.get_frame_from_lasts(lasts)
@@ -3639,8 +3639,8 @@ class AuthTest(TestCaseBase):
         flow = flow.reload() 
 
         # フローを実行する
-        from kskp.engine import execute, FlowJsonLink
-        link = FlowJsonLink(flow, self.factory2)
+        from kskp.engine import execute, FlowRunnable
+        link = FlowRunnable(flow, self.factory2)
         lasts = execute(runnable=link, args={}, inputs={})
         # フローの実行結果を取得する
         out_frame = AuthTest.get_frame_from_lasts(lasts)
@@ -3689,8 +3689,8 @@ class AuthTest(TestCaseBase):
         flow = flow.reload() 
 
         # フローを実行する
-        from kskp.engine import execute, FlowJsonLink
-        link = FlowJsonLink(flow, self.factory2)
+        from kskp.engine import execute, FlowRunnable
+        link = FlowRunnable(flow, self.factory2)
         lasts = execute(runnable=link, args={}, inputs={})
         # フローの実行結果を取得する
         out_frame = AuthTest.get_frame_from_lasts(lasts)
@@ -3755,9 +3755,9 @@ class AuthTest(TestCaseBase):
         project.join_member(ProjectFolder.Member(self.USER3, ProjectFolder.READER_MEMBER_TYPE))
 
         # USER3は、フローにキャッシュのuuidを書き込めないので、フローを実行できない
-        from kskp.engine import execute, FlowJsonLink
+        from kskp.engine import execute, FlowRunnable
         flow = self.factory3.data.find_by_uuid(flow.uuid)
-        link = FlowJsonLink(flow, self.factory3)
+        link = FlowRunnable(flow, self.factory3)
         with self.assertRaises(CommandException) as e:
             lasts = execute(runnable=link, args={}, inputs={})
             AuthTest.get_frame_from_lasts(lasts)
@@ -3796,7 +3796,7 @@ class AuthTest(TestCaseBase):
         flow = flow.reload()
 
         # 編集者は、フローをプレビュー実行して、キャッシュファイルを作成する
-        from kskp.engine import execute, FlowJsonLink
+        from kskp.engine import execute, FlowRunnable
         vis_args = { "d1" : 
                         {"args" :
                             {"visualizer" : "csvtohtmltable",
@@ -3806,7 +3806,7 @@ class AuthTest(TestCaseBase):
                         }
                     }
         flow = self.factory3.data.find_by_uuid(flow.uuid)
-        link = FlowJsonLink(flow, self.factory3, vis_args)
+        link = FlowRunnable(flow, self.factory3, vis_args)
         lasts = execute(runnable=link, args={}, inputs={})
 
         # キャッシュのUUIDを取得する
@@ -3888,7 +3888,7 @@ class AuthTest(TestCaseBase):
         self.assertIsNotNone(auths[5].modified_at)
 
         # 編集者は、複製したフローをプレビュー実行できること
-        link = FlowJsonLink(duplicated_flow, self.factory3, vis_args)
+        link = FlowRunnable(duplicated_flow, self.factory3, vis_args)
         lasts = execute(runnable=link, args={}, inputs={})
 
         # プロジェクトに属さないユーザは、複製したフローを取得できないこと
@@ -3979,7 +3979,7 @@ class AuthTest(TestCaseBase):
         # マスキングのフラグが存在しないこと
         self.assertNotIn('masked', nodes[2])
 
-        from kskp.engine import execute, FlowJsonLink
+        from kskp.engine import execute, FlowRunnable
         vis_args = {
           "d1": {
             "args": {
@@ -3992,13 +3992,13 @@ class AuthTest(TestCaseBase):
 
         # USER3は、メインフローを実行できないこと
         flow2 = self.factory3.data.find_by_uuid(flow2.uuid)
-        link = FlowJsonLink(flow2, self.factory3, vis_args)
+        link = FlowRunnable(flow2, self.factory3, vis_args)
         with self.assertRaises(Exception):
             execute(runnable=link, args={}, inputs={})
 
         # USER2は、メインフローを実行できること
         flow2 = self.factory2.data.find_by_uuid(flow2.uuid)
-        link = FlowJsonLink(flow2, self.factory2, vis_args)
+        link = FlowRunnable(flow2, self.factory2, vis_args)
         last = execute(runnable=link, args={}, inputs={})
 
         # フローを削除する

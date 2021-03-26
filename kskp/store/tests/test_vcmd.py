@@ -1,6 +1,6 @@
 import io
 import unittest
-from kskp.engine import execute, FlowJsonLink
+from kskp.engine import execute, FlowRunnable
 from .test_case_base import TestCaseBase
 
 class VCmdTestCase(TestCaseBase):
@@ -201,7 +201,7 @@ class VCmdTestCase(TestCaseBase):
         root = self.factory.data.load_root()
         flow_data = FlowData(self.flow_csvtohtmltable)
         flow = root.create_flow('CSV to graph', flow_data)
-        flow_link = FlowJsonLink(flow, self.factory, vis_args=vis_args)
+        flow_link = FlowRunnable(flow, self.factory, vis_args=vis_args)
         lasts = execute(flow_link, {}, {})
         result = self.convert_from_activity_vis(lasts)['d1']
         return result
