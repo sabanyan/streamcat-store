@@ -2744,7 +2744,7 @@ class AuthTest(TestCaseBase):
         # フローを実行する
         from kskp.engine import execute, FlowJsonLink
         link = FlowJsonLink(flow, self.factory2)
-        lasts = execute(link=link, args={}, inputs={})
+        lasts = execute(runnable=link, args={}, inputs={})
         # フローの実行結果を取得する
         out_frame = AuthTest.get_frame_from_lasts(lasts)
 
@@ -2849,7 +2849,7 @@ class AuthTest(TestCaseBase):
         # フローを実行する
         from kskp.engine import execute, FlowJsonLink
         link = FlowJsonLink(flow, self.factory2)
-        lasts = execute(link=link, args={}, inputs={})
+        lasts = execute(runnable=link, args={}, inputs={})
         # フローの実行結果を取得する
         out_frame = AuthTest.get_frame_from_lasts(lasts)
 
@@ -3641,7 +3641,7 @@ class AuthTest(TestCaseBase):
         # フローを実行する
         from kskp.engine import execute, FlowJsonLink
         link = FlowJsonLink(flow, self.factory2)
-        lasts = execute(link=link, args={}, inputs={})
+        lasts = execute(runnable=link, args={}, inputs={})
         # フローの実行結果を取得する
         out_frame = AuthTest.get_frame_from_lasts(lasts)
 
@@ -3691,7 +3691,7 @@ class AuthTest(TestCaseBase):
         # フローを実行する
         from kskp.engine import execute, FlowJsonLink
         link = FlowJsonLink(flow, self.factory2)
-        lasts = execute(link=link, args={}, inputs={})
+        lasts = execute(runnable=link, args={}, inputs={})
         # フローの実行結果を取得する
         out_frame = AuthTest.get_frame_from_lasts(lasts)
 
@@ -3759,7 +3759,7 @@ class AuthTest(TestCaseBase):
         flow = self.factory3.data.find_by_uuid(flow.uuid)
         link = FlowJsonLink(flow, self.factory3)
         with self.assertRaises(CommandException) as e:
-            lasts = execute(link=link, args={}, inputs={})
+            lasts = execute(runnable=link, args={}, inputs={})
             AuthTest.get_frame_from_lasts(lasts)
         # CommandExceptionはNotAuthorizedExceptionを再送出していること
         self.assertIsInstance(e.exception.innerException, NotAuthorizedException)
@@ -3807,7 +3807,7 @@ class AuthTest(TestCaseBase):
                     }
         flow = self.factory3.data.find_by_uuid(flow.uuid)
         link = FlowJsonLink(flow, self.factory3, vis_args)
-        lasts = execute(link=link, args={}, inputs={})
+        lasts = execute(runnable=link, args={}, inputs={})
 
         # キャッシュのUUIDを取得する
         cache_frame_uuid = flow.flow_data.get_cache_frame_uuids()[0]
@@ -3889,7 +3889,7 @@ class AuthTest(TestCaseBase):
 
         # 編集者は、複製したフローをプレビュー実行できること
         link = FlowJsonLink(duplicated_flow, self.factory3, vis_args)
-        lasts = execute(link=link, args={}, inputs={})
+        lasts = execute(runnable=link, args={}, inputs={})
 
         # プロジェクトに属さないユーザは、複製したフローを取得できないこと
         with self.assertRaises(NotAuthorizedException):
@@ -3994,12 +3994,12 @@ class AuthTest(TestCaseBase):
         flow2 = self.factory3.data.find_by_uuid(flow2.uuid)
         link = FlowJsonLink(flow2, self.factory3, vis_args)
         with self.assertRaises(Exception):
-            execute(link=link, args={}, inputs={})
+            execute(runnable=link, args={}, inputs={})
 
         # USER2は、メインフローを実行できること
         flow2 = self.factory2.data.find_by_uuid(flow2.uuid)
         link = FlowJsonLink(flow2, self.factory2, vis_args)
-        last = execute(link=link, args={}, inputs={})
+        last = execute(runnable=link, args={}, inputs={})
 
         # フローを削除する
         flow2.delete()
