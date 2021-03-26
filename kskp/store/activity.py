@@ -66,6 +66,20 @@ class Activity(Datum):
         # 同じPointにCacheとFrame(CacheとVis)が紐づくとややこしい
         return [(last.out_point, last.datum) for last in self._lasts if not last.has_cache]
 
+    @property
+    def frames(self):
+        """
+        作成したフレームのリストを返す
+        """
+        return [(last.out_point, last.datum) for last in self._lasts if not last.has_cache and last.has_frame]
+
+    @property
+    def caches(self):
+        """
+        作成したキャッシュのリストを返す
+        """
+        return [(last.out_point, last.datum) for last in self._lasts if last.has_cache]
+
     def count_lasts(self):
         return len(self._lasts)
 
