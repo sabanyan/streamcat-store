@@ -3992,8 +3992,8 @@ class AuthTest(TestCaseBase):
 
         # USER3は、メインフローを実行できないこと
         flow2 = self.factory3.data.find_by_uuid(flow2.uuid)
-        link = FlowCommand(flow2, vis_args)
         with self.assertRaises(Exception):
+            link = FlowCommand(flow2, vis_args)
             execute(runnable=link, args={}, inputs={})
 
         # USER2は、メインフローを実行できること
