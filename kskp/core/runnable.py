@@ -16,14 +16,13 @@ class Command(Datum):
 
         self.lasts = {}
 
-    def run(self, args=None, inputs=None):
+    def run(self, args={}, inputs={}):
         result = {}
         self.lasts = result
         return result
 
-    def dtor(self, args=None):
+    def dtor(self, args={}):
         pass
-
 
 class Port:
     """
