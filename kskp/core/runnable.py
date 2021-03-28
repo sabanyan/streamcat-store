@@ -6,17 +6,21 @@ from . import Datum
 
 class Command(Datum):
     """
-    実行(run)可能な最小単位。
+    実行(run)可能な最小単位
     """
     def __init__(self):
         super().__init__(None, None, 'command', self.__class__.__name__)
         self.i_ports = []
         self.o_ports = []
         self.params = []
-
         self.lasts = {}
 
     def run(self, args={}, inputs={}):
+        """
+        実行する
+        - `args`: 実行処理に渡す引数
+        - `inputs`: 実行処理の入力値
+        """
         result = {}
         self.lasts = result
         return result
@@ -46,10 +50,9 @@ class Port:
 class Parameter:
     """
     パラメータ定義1つを表す
-
-    :param name: パラメータ名。必須
-    :param caption: このパラメータを表す短いタイトル。GUI上でのラベルとして使われる。
-                    オプショナルで、未指定だとnameと同じになる。
+    - `param name`: パラメータ名。必須
+    - `param caption`: このパラメータを表す短いタイトル。GUI上でのラベルとして使われる。
+       オプショナルで、未指定だとnameと同じになる。
     """
     class WidgetType(Enum):
         """

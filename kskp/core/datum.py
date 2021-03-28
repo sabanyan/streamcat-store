@@ -304,16 +304,6 @@ class Datum(BaseModel):
     def is_root(self):
         return self.parent_id is None
 
-    # @property
-    # def prev_parent_id(self):
-    #     if self._data is None:
-    #         return None
-    #     return self._data.get('prev_parent_id')
-
-    # @prev_parent_id.setter
-    # def prev_parent_id(self, id):
-    #     self._data['prev_parent_id'] = id
-
     @property
     def data_is_empty(self):
         return self._data is None or self._data == {}
@@ -527,21 +517,6 @@ class Datum(BaseModel):
                 return [datum.move(prev_parent_uuid)], []
             except Exception as e:
                 return [], [e]
-
-    # def _get_folder_path(self, parent_id):
-    #     from kskp.store.auth import NotAuthorizedException
-    #     from kskp.store.factory import DatumFactory
-
-    #     factory = DatumFactory(self._session)
-    #     if parent_id is None or not factory.exists_by_id(parent_id):
-    #         return None
-    #     else:
-    #         try:
-    #             parent = factory.find_by_id(parent_id)
-    #         except NotAuthorizedException:
-    #             # 参照権限がないため移動元の親Datumが取得できない場合、Noneを返す
-    #             return None
-    #         return '/' + '/'.join([folder.get('label') for folder in parent.get_folder_path()])
 
     def __repr__(self):
         return f'Datum({self.id}, {self._label}, {self.type})'
