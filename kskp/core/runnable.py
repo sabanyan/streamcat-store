@@ -9,7 +9,7 @@ class Command(Datum):
     実行(run)可能な最小単位
     """
     def __init__(self):
-        super().__init__(None, None, 'command', self.__class__.__name__)
+        super().__init__(None, None, Datum.COMMAND_TYPE, self.__class__.__name__)
         self.i_ports = []
         self.o_ports = []
         self.params = []
