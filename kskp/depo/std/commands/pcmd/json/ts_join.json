@@ -122,7 +122,8 @@
           {
             "name": "ip_f",
             "type": "string",
-            "label": "対象項目"
+            "label": "対象項目",
+            "resizable": true
           },
           {
             "name": "ip_c",
