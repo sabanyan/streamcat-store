@@ -104,7 +104,8 @@
         {
           "name": "c",
           "type": "string",
-          "label": "特徴量名"
+          "label": "特徴量名",
+          "resizable": true
         }
       ],
       "default": [
@@ -122,12 +123,14 @@
         {
           "name": "f",
           "type": "string",
-          "label": "対象項目名"
+          "label": "対象項目名",
+          "resizable": true
         },
         {
           "name": "c",
           "type": "string",
-          "label": "特徴量名"
+          "label": "特徴量名",
+          "resizable": true
         }
       ],
       "default": [
@@ -490,18 +493,21 @@
         {
           "name": "f",
           "type": "string",
-          "label": "対象項目名"
+          "label": "対象項目名",
+          "resizable": true
         },
         {
           "name": "c",
           "type": "string",
           "label": "特徴量名",
-          "section": true
+          "section": true,
+          "resizable": true
         },
         {
           "name": "n",
           "type": "string",
-          "label": "パラメータ"
+          "label": "パラメータ",
+          "resizable": true
         }
       ],
       "default": [
@@ -606,7 +612,8 @@
         {
           "name": "f",
           "type": "string",
-          "label": "対象項目名"
+          "label": "対象項目名",
+          "resizable": true
         },
         {
           "name": "x",
@@ -616,7 +623,8 @@
         {
           "name": "c",
           "type": "string",
-          "label": "特徴量名"
+          "label": "特徴量名",
+          "resizable": true
         }
       ],
       "default": [
@@ -773,7 +781,8 @@
         {
           "name": "f",
           "type": "string",
-          "label": "対象項目名"
+          "label": "対象項目名",
+          "resizable": true
         },
         {
           "name": "x",
@@ -783,12 +792,14 @@
         {
           "name": "c",
           "type": "string",
-          "label": "特徴量名"
+          "label": "特徴量名",
+          "resizable": true
         },
         {
           "name": "n",
           "type": "string",
-          "label": "パラメータ"
+          "label": "パラメータ",
+          "resizable": true
         }
       ],
       "default": [
