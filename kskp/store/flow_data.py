@@ -707,7 +707,26 @@ class FlowData():
                 # TODO: 記録時間はUTC、表示時間は現地時間にすべきでは？？
                 node['cacheCreatedAt'] = datetime.now(timezone(timedelta(hours=+9), 'JST')).strftime('%Y-%m-%d %H:%M:%S')
                 # ノードidは重複しないので1つ設定したら処理を終了する
-                break
+                return
+
+    def _unset_cache(self, node_id):
+        """
+        指定するノードidのキャッシュを解除する
+        """
+        if 'nodes' not in self._flow_json:
+            return None
+
+        for node in self._flow_json.get('nodes'):
+            if node['id'] == node_id:
+                cache_uuid = node.get('uuid')
+                if cache_uuid is None:
+                    return None
+                # ノードからキャッシュを解除する
+                node['uuid'] = None
+                node['cacheCreatedAt'] = None
+                # ノードidは重複しないので1つ解除したら処理を終了する
+                return cache_uuid
+        return None
 
     def _replace_uuid(self, old_uuid, new_uuid):
         """
