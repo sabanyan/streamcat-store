@@ -4286,8 +4286,8 @@ class AuthTest(TestCaseBase):
             self.assertTrue(cache_frame.path_exists)
 
         # キャッシュを削除する
-        cache_d_uuid = flow1.flow_data.unset_cache('d')
-        cache_d1_uuid = flow1.flow_data.unset_cache('d1')
+        cache_d_uuid = flow1.unset_cache('d')
+        cache_d1_uuid = flow1.unset_cache('d1')
         self.assertIsNotNone(cache_d_uuid)
         self.assertIsNotNone(cache_d1_uuid)
 

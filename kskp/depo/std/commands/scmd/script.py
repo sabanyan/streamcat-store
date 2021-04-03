@@ -2,7 +2,6 @@
 import os
 import sys
 import nysol.mcmd as nm
-
 from kskp.core import Datum, Command, Port
 from kskp.store import NysolModule, Store
 
@@ -165,8 +164,11 @@ class CacheSaverCommand(SaverCommand):
     """
     def __init__(self):
         super().__init__()
+        self.o_ports = [Port('o', 'mcmd'), Port('u', 'frame')]
 
     def run(self, args, inputs):
+        from kskp.store import ApparentLast
+
         folder = self.get_result_folder(args)
         flow_label = args['flow_label']
         point = args['point']
@@ -204,7 +206,8 @@ class CacheSaverCommand(SaverCommand):
         nysol_module = NysolModule(cmd)
         nysol_module.context['frame'] = cache
 
-        return {'o': nysol_module}
+        # 出力Port(u)はActivityコマンドに繋げてCacheフレームを渡す
+        return {'o': nysol_module, 'u': ApparentLast(point, cache)}
 
     def make_frame(self, parent, label):
         import io
