@@ -1,189 +1,239 @@
 {
-    "id": "ts_polation",
-    "groups": [
-      {
-        "name": "abstract",
-        "label": "センサ時系列欠損値補間",
-        "description": "時系列の欠損値に対して、区分多項式により補間する。",
-        "params": []
-      },
-      {
-        "name": "group1",
-        "label": "グループの設定（省略可)",
-        "params": ["k"]
-      },
-      {
-        "name": "group2",
-        "label": "センサー時系列の設定 (必須)",
-        "params": ["time","time_type","q"]
-      },
-      {
-          "name": "group3",
-          "label": "補間の設定 (必須)",
-          "params": ["iplist","non_ip"]
-      },
-      {
-        "name": "group4",
-        "label": "停止判定の設定 (省略可)",
-        "description" : "停止期間をまたがずに、補間したい場合に設定する",
-        "params": ["mpi","c","t_dynamic_interval_num","t_fixed_time"]
-      },
-      {
-        "name": "group5",
-        "label": "その他の設定 (省略可)",
-        "params": ["overwrite","a"]       
-      },
-      {
-          "name": "group6",
-          "label": "システム管理用設定 (省略可)",
-          "params": ["max_num","trim_num"]
-      }
-    ],
-    "params": [
-      {
-        "name": "k",
-        "type": "string",
-        "label": "グループ化する項目名",
-        "description": "カンマ区切りで複数指定可\nグループ別に時系列を判定する",
-        "optional": true
-      },
-      {
-        "name": "time",
-        "type": "string",
-        "label": "時間軸の項目 (必須)",
-        "description": ""
-      },
-      {
-        "name": "time_type",
-        "type": "select",
-        "label": "時間軸のデータ型 (必須)",
-        "options":{
-            "labels": ["暦型(YYYYMMDDhhmmss.小数6桁まで)","数値型"],
-            "values": ["datetime","number"]
-        },
-        "default": "datetime"
-      },
-      {
-        "name": "q",
-        "type": "boolean",
-        "label": "自動並べ替えの無効化",
-        "description": "入力データがグループ単位でソート済みの場合、指定すると処理速度が向上",
-        "optional": true
-      },
-      {
-        "name": "mpi",
-        "type": "boolean",
-        "label": "稼働・停止判定を行う",
-        "description": "",
-        "optional": true
-      },
-      {
-        "name": "c",
-        "type": "select",
-        "label": "計測の停止期間と見なす判定の方法 (必須)",
-        "options": {
-        "labels": ["計測間隔(動的な推定値)で判定","計測間隔(固定時間)で判定"],
-        "values": ["dynamic_ave","fix"]
-        },
-        "default": "dynamic_ave"
-      },
-      {
-        "name": "t_dynamic_interval_num",
-        "type": "string",
-        "label": "閾値：【計測間隔（動的な推定値）で判定】",
-        "description": "●動的に推定した計測間隔の 連続数 を指定"
-      },
-      {
-        "name": "t_fixed_time",
-        "type": "string",
-        "label": "閾値：【計測間隔（固定時間）で判定】",
-        "description": "●計測間隔の時間（秒）を指定"
-      },      
-      {
-        "name": "iplist",
-        "type": "list",
-        "label": "補間の設定",
-        "description": "【対象項目】項目名時:*,？,[...] 使用可\n【補間法】方法を選択\n【結果項目】&:元の項目名を表す記号\n",
-        "elements": [
-          {
-            "name": "ip_f",
-            "type": "string",
-            "label": "対象項目",
-            "resizable": true
-          },
-          {
-            "name": "ip_c",
-            "type": "select",
-            "label": "補間方法",
-            "options": {
-            "labels": ["3次スプライン(数値のみ)","線形補間(数値のみ)","前値補間(数値・文字列)","後値補間(数値・文字列)","最近傍補間(数値・文字列)"],
-            "values": ["cubic_spline","linear","previous","next","nearest"]
-            }
-          },
-          {
-            "name": "ip_a",
-            "type": "string",
-            "label": "結果項目"
-          }
+  "id": "ts_polation",
+  "groups": [
+    {
+      "name": "abstract",
+      "label": "センサ時系列欠損値補間",
+      "description": "時系列の欠損値に対して、区分多項式により補間する。",
+      "params": []
+    },
+    {
+      "name": "group1",
+      "label": "グループの設定（省略可)",
+      "params": [
+        "k"
+      ]
+    },
+    {
+      "name": "group2",
+      "label": "センサー時系列の設定 (必須)",
+      "params": [
+        "time",
+        "time_type",
+        "q"
+      ]
+    },
+    {
+      "name": "group3",
+      "label": "補間の設定 (必須)",
+      "params": [
+        "iplist",
+        "non_ip"
+      ]
+    },
+    {
+      "name": "group4",
+      "label": "停止判定の設定 (省略可)",
+      "description": "停止期間をまたがずに、補間したい場合に設定する",
+      "params": [
+        "mpi",
+        "c",
+        "t_dynamic_interval_num",
+        "t_fixed_time"
+      ]
+    },
+    {
+      "name": "group5",
+      "label": "その他の設定 (省略可)",
+      "params": [
+        "overwrite",
+        "a"
+      ]
+    },
+    {
+      "name": "group6",
+      "label": "システム管理用設定 (省略可)",
+      "params": [
+        "max_num",
+        "trim_num"
+      ]
+    }
+  ],
+  "params": [
+    {
+      "name": "k",
+      "type": "string",
+      "label": "グループ化する項目名",
+      "description": "カンマ区切りで複数指定可\nグループ別に時系列を判定する",
+      "optional": true
+    },
+    {
+      "name": "time",
+      "type": "string",
+      "label": "時間軸の項目 (必須)",
+      "description": ""
+    },
+    {
+      "name": "time_type",
+      "type": "select",
+      "label": "時間軸のデータ型 (必須)",
+      "options": {
+        "labels": [
+          "暦型(YYYYMMDDhhmmss.小数6桁まで)",
+          "数値型"
         ],
-        "default": [{"ip_f": "", "ip_c": "cubic_spline", "ip_a": "&"}]
+        "values": [
+          "datetime",
+          "number"
+        ]
       },
-      {
-        "name": "non_ip",
-        "type": "boolean",
-        "label": "欠損値の補間はせず、補間式の係数項目を追加する",
-        "description": "値の補間ではなく、補間式のみ出力したい場合に指定すると処理速度が向上",
-        "optional": true
+      "default": "datetime"
+    },
+    {
+      "name": "q",
+      "type": "boolean",
+      "label": "自動並べ替えの無効化",
+      "description": "入力データがグループ単位でソート済みの場合、指定すると処理速度が向上",
+      "optional": true
+    },
+    {
+      "name": "mpi",
+      "type": "boolean",
+      "label": "稼働・停止判定を行う",
+      "description": "",
+      "optional": true
+    },
+    {
+      "name": "c",
+      "type": "select",
+      "label": "計測の停止期間と見なす判定の方法 (必須)",
+      "options": {
+        "labels": [
+          "計測間隔(動的な推定値)で判定",
+          "計測間隔(固定時間)で判定"
+        ],
+        "values": [
+          "dynamic_ave",
+          "fix"
+        ]
       },
-      {
-        "name": "max_num",
-        "type": "string",
-        "label": "補間の計算時に参照する最大の行数",
-        "description": "",
-        "optional": true,
-        "default": "1000000"
-      },
-      {
-        "name": "trim_num",
-        "type": "string",
-        "label": "3次スプライン式の計算時に誤差とする端点からの件数",
-        "description": "",
-        "optional": true,
-        "default": "100"
-      },      
-      {
-        "name": "overwrite",
-        "type": "boolean",
-        "label": "追加する項目が存在する場合、エラーとせず、上書きする",
-        "description": "",
-        "optional": true
-      },        
-      {
-        "name": "a",
-        "type": "string",
-        "label": "追加する項目名 (固定の項目名) (省略可)",
-        "description": "下記順序で9項目を、カンマ区切りで指定\n\t1:区間開始\t2:区間終了\n\t3:間隔\n\t4:稼働開始フラグ\t5:稼働終了フラグ\n\t6:停止開始フラグ\t7:停止終了フラグ\n\t8:稼働区間ID\t9:停止区間ID",
-        "optional": true,
-        "default": "区間開始,区間終了,間隔,稼働開始フラグ,稼働終了フラグ,停止開始フラグ,停止終了フラグ,稼働区間ID,停止区間ID"
-      }     
-    ],
-    "ports": [
-      [
+      "default": "dynamic_ave"
+    },
+    {
+      "name": "t_dynamic_interval_num",
+      "type": "string",
+      "label": "閾値：【計測間隔（動的な推定値）で判定】",
+      "description": "●動的に推定した計測間隔の 連続数 を指定"
+    },
+    {
+      "name": "t_fixed_time",
+      "type": "string",
+      "label": "閾値：【計測間隔（固定時間）で判定】",
+      "description": "●計測間隔の時間（秒）を指定"
+    },
+    {
+      "name": "iplist",
+      "type": "list",
+      "label": "補間の設定",
+      "description": "【対象項目】項目名時:*,？,[...] 使用可\n【補間法】方法を選択\n【結果項目】&:元の項目名を表す記号\n",
+      "elements": [
         {
-          "name": "i",
-          "type": "frame"
+          "name": "ip_f",
+          "type": "string",
+          "label": "対象項目",
+          "resizable": true
+        },
+        {
+          "name": "ip_c",
+          "type": "select",
+          "label": "補間方法",
+          "options": {
+            "labels": [
+              "3次スプライン(数値のみ)",
+              "線形補間(数値のみ)",
+              "前値補間(数値・文字列)",
+              "後値補間(数値・文字列)",
+              "最近傍補間(数値・文字列)"
+            ],
+            "values": [
+              "cubic_spline",
+              "linear",
+              "previous",
+              "next",
+              "nearest"
+            ]
+          }
+        },
+        {
+          "name": "ip_a",
+          "type": "string",
+          "label": "結果項目"
         }
       ],
-      [
+      "default": [
         {
-          "name": "o",
-          "type": "frame"
+          "ip_f": "",
+          "ip_c": "cubic_spline",
+          "ip_a": "&"
         }
       ]
+    },
+    {
+      "name": "non_ip",
+      "type": "boolean",
+      "label": "欠損値の補間はせず、補間式の係数項目を追加する",
+      "description": "値の補間ではなく、補間式のみ出力したい場合に指定すると処理速度が向上",
+      "optional": true
+    },
+    {
+      "name": "max_num",
+      "type": "string",
+      "label": "補間の計算時に参照する最大の行数",
+      "description": "",
+      "optional": true,
+      "default": "1000000"
+    },
+    {
+      "name": "trim_num",
+      "type": "string",
+      "label": "3次スプライン式の計算時に誤差とする端点からの件数",
+      "description": "",
+      "optional": true,
+      "default": "100"
+    },
+    {
+      "name": "overwrite",
+      "type": "boolean",
+      "label": "追加する項目が存在する場合、エラーとせず、上書きする",
+      "description": "",
+      "optional": true
+    },
+    {
+      "name": "a",
+      "type": "string",
+      "label": "追加する項目名 (固定の項目名) (省略可)",
+      "description": "下記順序で9項目を、カンマ区切りで指定\n\t1:区間開始\t2:区間終了\n\t3:間隔\n\t4:稼働開始フラグ\t5:稼働終了フラグ\n\t6:停止開始フラグ\t7:停止終了フラグ\n\t8:稼働区間ID\t9:停止区間ID",
+      "optional": true,
+      "default": "区間開始,区間終了,間隔,稼働開始フラグ,稼働終了フラグ,停止開始フラグ,停止終了フラグ,稼働区間ID,停止区間ID"
+    }
+  ],
+  "ports": [
+    [
+      {
+        "name": "i",
+        "type": "frame"
+      }
     ],
-    "version": "0.7.0",
-    "label": "センサ時系列欠損値補間",
-    "classification": "table_grouping",
-    "description": "時系列の欠損値に対して、区分多項式により補間する。",
-    "url": ""
-  }
+    [
+      {
+        "name": "o",
+        "type": "frame"
+      }
+    ]
+  ],
+  "version": "0.7.0",
+  "label": "センサ時系列欠損値補間",
+  "classification": "table_grouping",
+  "description": "時系列の欠損値に対して、区分多項式により補間する。",
+  "url": ""
+}

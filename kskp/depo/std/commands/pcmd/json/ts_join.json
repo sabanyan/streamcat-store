@@ -1,185 +1,236 @@
 {
-    "id": "ts_join",
-    "groups": [
-      {
-        "name": "abstract",
-        "label": "センサ時系列結合",
-        "description": "時系列iの時間軸に対して、時系列mの補間値を結合する。",
-        "params": []
-      },
-      {
-        "name": "group2",
-        "label": "センサー時系列の設定 (必須)",
-        "params": ["TIME","time","time_type","q"]
-      },
-
-      {
-        "name": "group1",
-        "label": "結合のキー項目の設定（省略可)",
-        "params": ["join_keys"]
-      },
-      {
-          "name": "group3",
-          "label": "補間の設定 (必須)",
-          "params": ["iplist"]
-      },
-      {
-        "name": "group4",
-        "label": "停止判定の設定 (省略可)",
-        "description" : "停止期間をまたがない補間は設定要",
-        "params": ["mpi","c","t_dynamic_interval_num","t_fixed_time"]
-      },
-      {
-          "name": "group6",
-          "label": "システム管理用設定 (省略可)",
-          "params": ["max_num","trim_num"]
-      }
-    ],
-    "params": [
-      {
-        "name": "join_keys",
-        "type": "list",
-        "label": "結合のキー項目の設定 (省略可)",
-        "description": "時間軸以外の項目をキーとして追加して結合したい場合に指定",
-        "elements": [
-            {
-              "name": "Ki",
-              "type": "string",
-              "label": "入力 i のキー項目"
-            },
-            {
-              "name": "Km",
-              "type": "string",
-              "label": "入力 m のキー項目"
-            }
-          ],
-          "default": [{"Ki": "", "Km": ""}]
-      },
-      {
-        "name": "TIME",
-        "type": "string",
-        "label": "入力 i の時間軸の項目 (必須)",
-        "description": ""
-      },
-      {
-        "name": "time",
-        "type": "string",
-        "label": "入力 m の時間軸の項目 (必須)",
-        "description": ""
-      },
-      {
-        "name": "time_type",
-        "type": "select",
-        "label": "時間軸のデータ型 (必須)",
-        "options":{
-            "labels": ["暦型(YYYYMMDDhhmmss.小数6桁まで)","数値型"],
-            "values": ["datetime","number"]
-        },
-        "default": "datetime"
-      },
-      {
-        "name": "q",
-        "type": "boolean",
-        "label": "自動並べ替えの無効化",
-        "description": "2つの入力データが結合キーと時間軸でソート済みの場合、指定すると処理速度が向上",
-        "optional": true
-      },
-      {
-        "name": "mpi",
-        "type": "boolean",
-        "label": "稼働・停止判定を行う",
-        "description": "",
-        "optional": true
-      },
-      {
-        "name": "c",
-        "type": "select",
-        "label": "計測の停止期間と見なす判定の方法 (必須)",
-        "options": {
-        "labels": ["計測間隔(動的な推定値)で判定","計測間隔(固定時間)で判定"],
-        "values": ["dynamic_ave","fix"]
-        },
-        "default": "dynamic_ave"
-      },
-      {
-        "name": "t_dynamic_interval_num",
-        "type": "string",
-        "label": "閾値：【計測間隔（動的な推定値）で判定】",
-        "description": "●動的に推定した計測間隔の 連続数 を指定"
-      },
-      {
-        "name": "t_fixed_time",
-        "type": "string",
-        "label": "閾値：【計測間隔（固定時間）で判定】",
-        "description": "●計測間隔の時間（秒）を指定"
-      },      
-      {
-        "name": "iplist",
-        "type": "list",
-        "label": "補間の設定（入力データ m ）",
-        "description": "【対象項目】項目名時:*,？,[...] 使用可\n【補間法】方法を選択\n【結果項目】&:元の項目名を表す記号\n",
-        "elements": [
-          {
-            "name": "ip_f",
-            "type": "string",
-            "label": "対象項目",
-            "resizable": true
-          },
-          {
-            "name": "ip_c",
-            "type": "select",
-            "label": "補間方法",
-            "options": {
-            "labels": ["3次スプライン(数値のみ)","線形補間(数値のみ)","前値補間(数値・文字列)","後値補間(数値・文字列)","最近傍補間(数値・文字列)"],
-            "values": ["cubic_spline","linear","previous","next","nearest"]
-            }
-          },
-          {
-            "name": "ip_a",
-            "type": "string",
-            "label": "結果項目"
-          }
-        ],
-        "default": [{"ip_f": "", "ip_c": "cubic_spline", "ip_a": "&"}]
-      },
-      {
-        "name": "max_num",
-        "type": "string",
-        "label": "補間の計算時に参照する最大の行数",
-        "description": "",
-        "optional": true,
-        "default": "1000000"
-      },
-      {
-        "name": "trim_num",
-        "type": "string",
-        "label": "3次スプライン式の計算時に誤差とする端点からの件数",
-        "description": "",
-        "optional": true,
-        "default": "100"
-      }   
-    ],
-    "ports": [
-      [
+  "id": "ts_join",
+  "groups": [
+    {
+      "name": "abstract",
+      "label": "センサ時系列結合",
+      "description": "時系列iの時間軸に対して、時系列mの補間値を結合する。",
+      "params": []
+    },
+    {
+      "name": "group2",
+      "label": "センサー時系列の設定 (必須)",
+      "params": [
+        "TIME",
+        "time",
+        "time_type",
+        "q"
+      ]
+    },
+    {
+      "name": "group1",
+      "label": "結合のキー項目の設定（省略可)",
+      "params": [
+        "join_keys"
+      ]
+    },
+    {
+      "name": "group3",
+      "label": "補間の設定 (必須)",
+      "params": [
+        "iplist"
+      ]
+    },
+    {
+      "name": "group4",
+      "label": "停止判定の設定 (省略可)",
+      "description": "停止期間をまたがない補間は設定要",
+      "params": [
+        "mpi",
+        "c",
+        "t_dynamic_interval_num",
+        "t_fixed_time"
+      ]
+    },
+    {
+      "name": "group6",
+      "label": "システム管理用設定 (省略可)",
+      "params": [
+        "max_num",
+        "trim_num"
+      ]
+    }
+  ],
+  "params": [
+    {
+      "name": "join_keys",
+      "type": "list",
+      "label": "結合のキー項目の設定 (省略可)",
+      "description": "時間軸以外の項目をキーとして追加して結合したい場合に指定",
+      "elements": [
         {
-          "name": "i",
-          "type": "frame"
+          "name": "Ki",
+          "type": "string",
+          "label": "入力 i のキー項目"
         },
         {
-          "name": "m",
-          "type": "frame"
+          "name": "Km",
+          "type": "string",
+          "label": "入力 m のキー項目"
         }
       ],
-      [
+      "default": [
         {
-          "name": "o",
-          "type": "frame"
+          "Ki": "",
+          "Km": ""
         }
       ]
+    },
+    {
+      "name": "TIME",
+      "type": "string",
+      "label": "入力 i の時間軸の項目 (必須)",
+      "description": ""
+    },
+    {
+      "name": "time",
+      "type": "string",
+      "label": "入力 m の時間軸の項目 (必須)",
+      "description": ""
+    },
+    {
+      "name": "time_type",
+      "type": "select",
+      "label": "時間軸のデータ型 (必須)",
+      "options": {
+        "labels": [
+          "暦型(YYYYMMDDhhmmss.小数6桁まで)",
+          "数値型"
+        ],
+        "values": [
+          "datetime",
+          "number"
+        ]
+      },
+      "default": "datetime"
+    },
+    {
+      "name": "q",
+      "type": "boolean",
+      "label": "自動並べ替えの無効化",
+      "description": "2つの入力データが結合キーと時間軸でソート済みの場合、指定すると処理速度が向上",
+      "optional": true
+    },
+    {
+      "name": "mpi",
+      "type": "boolean",
+      "label": "稼働・停止判定を行う",
+      "description": "",
+      "optional": true
+    },
+    {
+      "name": "c",
+      "type": "select",
+      "label": "計測の停止期間と見なす判定の方法 (必須)",
+      "options": {
+        "labels": [
+          "計測間隔(動的な推定値)で判定",
+          "計測間隔(固定時間)で判定"
+        ],
+        "values": [
+          "dynamic_ave",
+          "fix"
+        ]
+      },
+      "default": "dynamic_ave"
+    },
+    {
+      "name": "t_dynamic_interval_num",
+      "type": "string",
+      "label": "閾値：【計測間隔（動的な推定値）で判定】",
+      "description": "●動的に推定した計測間隔の 連続数 を指定"
+    },
+    {
+      "name": "t_fixed_time",
+      "type": "string",
+      "label": "閾値：【計測間隔（固定時間）で判定】",
+      "description": "●計測間隔の時間（秒）を指定"
+    },
+    {
+      "name": "iplist",
+      "type": "list",
+      "label": "補間の設定（入力データ m ）",
+      "description": "【対象項目】項目名時:*,？,[...] 使用可\n【補間法】方法を選択\n【結果項目】&:元の項目名を表す記号\n",
+      "elements": [
+        {
+          "name": "ip_f",
+          "type": "string",
+          "label": "対象項目",
+          "resizable": true
+        },
+        {
+          "name": "ip_c",
+          "type": "select",
+          "label": "補間方法",
+          "options": {
+            "labels": [
+              "3次スプライン(数値のみ)",
+              "線形補間(数値のみ)",
+              "前値補間(数値・文字列)",
+              "後値補間(数値・文字列)",
+              "最近傍補間(数値・文字列)"
+            ],
+            "values": [
+              "cubic_spline",
+              "linear",
+              "previous",
+              "next",
+              "nearest"
+            ]
+          }
+        },
+        {
+          "name": "ip_a",
+          "type": "string",
+          "label": "結果項目"
+        }
+      ],
+      "default": [
+        {
+          "ip_f": "",
+          "ip_c": "cubic_spline",
+          "ip_a": "&"
+        }
+      ]
+    },
+    {
+      "name": "max_num",
+      "type": "string",
+      "label": "補間の計算時に参照する最大の行数",
+      "description": "",
+      "optional": true,
+      "default": "1000000"
+    },
+    {
+      "name": "trim_num",
+      "type": "string",
+      "label": "3次スプライン式の計算時に誤差とする端点からの件数",
+      "description": "",
+      "optional": true,
+      "default": "100"
+    }
+  ],
+  "ports": [
+    [
+      {
+        "name": "i",
+        "type": "frame"
+      },
+      {
+        "name": "m",
+        "type": "frame"
+      }
     ],
-    "version": "0.7.0",
-    "label": "センサ時系列結合",
-    "classification": "table_join",
-    "description": "時系列iの時間軸に対して、時系列mの補間値を結合する。",
-    "url": ""
-  }
+    [
+      {
+        "name": "o",
+        "type": "frame"
+      }
+    ]
+  ],
+  "version": "0.7.0",
+  "label": "センサ時系列結合",
+  "classification": "table_join",
+  "description": "時系列iの時間軸に対して、時系列mの補間値を結合する。",
+  "url": ""
+}
