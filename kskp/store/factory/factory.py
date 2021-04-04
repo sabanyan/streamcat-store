@@ -244,33 +244,19 @@ class DatumFactory():
             raise Exception('no trush can is found by designated id.')
         return trashcan
 
-    def find_all_subflows(self, no_inputs=True, no_outputs=True):
+    def find_all_subflows(self):
         """
         サブフローを取得する
-        no_inputs  =False : 入力ポートのないサブフローは取得しない
-        no_outputs =False : 出力ポートのないサブフローは取得しない
         """
+        from sqlalchemy import func, or_
         # FIXIT : PostgreSQLのJSONB演算子を用いればSQLのみでサブフローを抽出できるはず
-        flows = self._session.query(Datum).filter(Datum.type==Datum.FLOW_TYPE).all()
-
-        subflows = []
-        for flow in flows:
-
-            flow_data = flow.flow_data
-            # onの時にno_inputs（＝inputsがない）のサブフローは出さない
-            if no_inputs:
-                if len(flow_data.ports[0]) == 0:
-                    continue
-
-            # onの時にno_outputs（＝outputsがない）のサブフローは出さない
-            if no_outputs:
-                if len(flow_data.ports[1]) == 0:
-                    continue
-
-            if len(flow_data.ports[0]) > 0 or len(flow_data.ports[1]) > 0:
-                subflows.append(flow)
-
-        return subflows
+        return self._session.query(Datum).filter(Datum.type==Datum.FLOW_TYPE).\
+                                          filter(
+                                                or_(
+                                                    func.jsonb_array_length(Datum._data['flow']['ports'][0])>0,
+                                                    func.jsonb_array_length(Datum._data['flow']['ports'][1])>0
+                                                )
+                                          ).all()
 
     def load_root(self):
         """
