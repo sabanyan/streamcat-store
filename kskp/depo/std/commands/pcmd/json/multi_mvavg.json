@@ -76,12 +76,14 @@
         {
           "name": "f",
           "type": "string",
-          "label": "対象項目"
+          "label": "対象項目",
+          "resizable": true
         },
         {
           "name": "t",
           "type": "string",
-          "label": "期間数"
+          "label": "期間数",
+          "resizable": true
         },
         {
           "name": "a",
@@ -93,7 +95,7 @@
         {
           "f": "",
           "t": "2",
-          "a": "&_%"
+          "a": "&_#"
         }
       ]
     },
