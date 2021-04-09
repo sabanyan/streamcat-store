@@ -45,6 +45,7 @@
       "name": "c",
       "type": "string",
       "label": "計算式",
+      "resizable": true,
       "description": "・項目値および定数を指定し、関数、演算子を組合せて計算式を設定する\n・項目値は、項目名とデータ型を組合せて指定する",
       "helper": {
         "c": {

@@ -5,13 +5,15 @@
       "name": "f",
       "type": "string",
       "label": "対象項目名と新項目名の指定",
-      "description": "・対象列名、新項目名の順で コロン区切りで指定\n・カンマ区切りで複数指定可"
+      "description": "・対象列名、新項目名の順で コロン区切りで指定\n・カンマ区切りで複数指定可",
+      "resizable": true
     },
     {
       "name": "n",
       "type": "string",
       "label": "新しい項目名リスト",
-      "description": "列数と同じ数の項目名をカンマ区切りで指定する"
+      "description": "列数と同じ数の項目名をカンマ区切りで指定する",
+      "resizable": true
     },
     {
       "name": "nfni",

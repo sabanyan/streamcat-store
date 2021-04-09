@@ -86,12 +86,14 @@
         {
           "name": "c",
           "type": "string",
-          "label": "類似度名"
+          "label": "類似度名",
+          "resizable": true
         },
         {
           "name": "t",
           "type": "string",
-          "label": "期間数"
+          "label": "期間数",
+          "resizable": true
         }
       ],
       "default": [

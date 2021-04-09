@@ -5,6 +5,7 @@
       "name": "c",
       "type": "string",
       "label": "置換の設定 (必須)",
+      "resizable": true,
       "description": "・置換対象となる文字列と、置換文字列を : 区切りで指定する\n・カンマ区切りで複数指定可"
     },
     {
