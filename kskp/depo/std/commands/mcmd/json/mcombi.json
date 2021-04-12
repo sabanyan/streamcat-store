@@ -11,7 +11,7 @@
       "name": "f",
       "type": "string",
       "label": "対象とする項目名 (必須)",
-      "description": "要素を１つ指定する"
+      "description": "・項目名を１つ指定する"
     },
     {
       "name": "n",

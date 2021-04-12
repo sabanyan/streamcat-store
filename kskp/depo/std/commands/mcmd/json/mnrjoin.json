@@ -99,7 +99,8 @@
       "type": "string",
       "label": "入力m から結合する項目名",
       "description": "・カンマ区切りで複数指定可\n・ワイルドカード(*,？ )使用可",
-      "optional": true
+      "optional": true,
+      "resizable": true
     },
     {
       "name": "n",
