@@ -5,7 +5,8 @@
       "name": "k",
       "type": "string",
       "label": "グループ化する項目名(必須)",
-      "description": "カンマ区切りで複数指定可"
+      "description": "カンマ区切りで複数指定可",
+      "resizable": true
     },
     {
       "name": "f",

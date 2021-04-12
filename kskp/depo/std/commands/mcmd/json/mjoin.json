@@ -59,14 +59,16 @@
     {
       "name": "k",
       "type": "string",
-      "label": "入力 i のキー項目名　(必須)"
+      "label": "入力 i のキー項目名　(必須)",
+      "resizable": true
     },
     {
       "name": "K",
       "type": "string",
       "label": "入力 m のキー項目名",
       "optional": true,
-      "description": "入力i のキー項目名と同じ場合は省略可"
+      "description": "入力i のキー項目名と同じ場合は省略可",
+      "resizable": true
     },
     {
       "name": "f",

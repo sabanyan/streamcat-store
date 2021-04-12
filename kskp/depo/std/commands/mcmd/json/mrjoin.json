@@ -75,14 +75,16 @@
       "type": "string",
       "label": "入力 i のグループ項目名",
       "optional": true,
-      "description": "カンマ区切りで複数指定可"
+      "description": "カンマ区切りで複数指定可",
+      "resizable": true
     },
     {
       "name": "K",
       "type": "string",
       "label": "入力 m のグループ項目名",
       "optional": true,
-      "description": "入力i と同じ場合は省略可"
+      "description": "入力i と同じ場合は省略可",
+      "resizable": true
     },
     {
       "name": "R",

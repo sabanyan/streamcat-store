@@ -62,7 +62,8 @@
       "type": "string",
       "label": "グループ化する項目",
       "description": "カンマ区切りで複数指定可\nグループ別に時系列を判定する",
-      "optional": true
+      "optional": true,
+      "resizable": true
     },
     {
       "name": "time",

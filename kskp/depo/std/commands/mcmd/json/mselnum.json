@@ -68,7 +68,8 @@
       "type": "string",
       "label": "グループ化する項目名",
       "description": "・カンマ区切りで複数指定可\n・省略時は全ての行を1つのグループとみなして処理する",
-      "optional": true
+      "optional": true,
+      "resizable": true
     },
     {
       "name": "F",

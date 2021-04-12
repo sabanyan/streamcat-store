@@ -39,7 +39,8 @@
       "type": "string",
       "label": "グループ化する項目名",
       "optional": true,
-      "description": "・カンマ区切りで複数指定可\n・省略時は全ての行を同じグループとみなして処理される"
+      "description": "・カンマ区切りで複数指定可\n・省略時は全ての行を同じグループとみなして処理される",
+      "resizable": true
     },
     {
       "name": "ms",
