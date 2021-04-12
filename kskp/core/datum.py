@@ -568,6 +568,7 @@ class Datum(BaseModel):
                     'copy'   : not self.is_root and self.writable_without_edit_lock,
                     # 閲覧者以外はDownload可能なのでwritableで判定する
                     'download'    : not self.is_root and self.writable,
+                    'export'      : False,
                     'findMember'  : False,
                     'updateMember': False,
                     'lock'   : False,

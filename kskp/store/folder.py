@@ -259,6 +259,7 @@ class Folder(Store):
             ret['allowlist']['createFolder'] = False
             ret['allowlist']['createFile'] = False
             ret['allowlist']['upload'] = False
+            ret['allowlist']['import'] = False
             ret['allowlist']['update'] = False
             ret['allowlist']['delete'] = False
             ret['allowlist']['move'] = False
@@ -269,6 +270,9 @@ class Folder(Store):
             ret['allowlist']['createFolder'] = not self.is_root and self.writable
             ret['allowlist']['createFile'] = not self.is_root and self.writable
             ret['allowlist']['upload'] = not self.is_root and self.writable
+            has_usr_admin = self._session.has_usr_admin()
+            ret['allowlist']['import'] = has_usr_admin
+            ret['allowlist']['export'] = has_usr_admin
         return ret
 
     def _make_dir(self, path):
