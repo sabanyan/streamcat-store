@@ -513,7 +513,7 @@ class CsvToRepetitivieWaveCommand(VisualizersBokehPlot):
             raise Exception(ErrMsg['1'])
 
         # 必須項目チェック
-        if x_axis_column is None or y_axis_column is None or group is None or statics is None:
+        if x_axis_column is None or y_axis_column is None or statics is None:
             return 
 
         # dfの作成
