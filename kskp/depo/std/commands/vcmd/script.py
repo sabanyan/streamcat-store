@@ -792,6 +792,10 @@ class CsvToTimeCompressionCommand(VisualizersBokehPlot):
         y_axis_column  = y_axis[0]['column']
         y_axis_label   = y_axis[0]['label']
 
+        # 初期表示時
+        if x_axis_column is None and y_axis_column is None: 
+            raise Exception(ErrMsg['1'])
+            
         # データ系列の設定
         data     = args.get('data')   if args.get('data') is not None else []
 
