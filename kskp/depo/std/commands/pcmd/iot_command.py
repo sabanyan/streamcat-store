@@ -203,7 +203,10 @@ class MeasurementPeriodIdentifyCommand(PCommand):
             args['parent_command'] = commandname
 
         if 'c' not in args:
-            raise Exception( 'c:' + err_msg['input'] )
+            msg = generate_error_message(commandname,
+                            'EmptyParamError',
+                            'c', '')
+            raise Exception( msg )
 
         if args['c'] == 'dynamic_ave':
             if ('t_dynamic_interval_num' not in args) or (args['t_dynamic_interval_num'] == ''):
@@ -861,10 +864,15 @@ class MissingValueInterpolateCommand(PCommand):
                                     'ip_a', '')
                     raise Exception(msg)
         else:
-            raise Exception( 'iplist:' + err_msg['input'] )
+            msg = generate_error_message(self.commandname,
+                            'EmptyParamError',
+                            'iplist', '')
+            raise Exception(msg)
+
+
         
         if debug:
-           sys.stderr.write( 'ip_c[0]: ' + args['iplist'][0]['ip_c'] + '\n' )
+            sys.stderr.write( 'ip_c[0]: ' + args['iplist'][0]['ip_c'] + '\n' )
  
         if 'k' in args:
             key_list = args.get('k').split(',')
@@ -932,7 +940,6 @@ class MissingValueInterpolateCommand(PCommand):
                                 'InterpolateResultsConflictError',
                                 'ip_f,ip_c,ip_a', '')
                 raise Exception(msg)
-                # raise Exception( 'iplist:' + err_msg['config duplication'] )
 
             if 'overwrite' in args:
                 # 稼働停止判定の出力項目以外を、削除する
@@ -947,8 +954,12 @@ class MissingValueInterpolateCommand(PCommand):
 
 
             else:
-                if len( set(header) & set(aflds['ipformulas']) ) > 0:
-                    raise Exception( '' + err_msg['same field name'] )
+                duplicates = set(header) & set(aflds['ipformulas'])
+                if len( duplicates ) > 0:
+                    msg = generate_error_message(self.commandname,
+                                    'InterpolateResultsConflictError',
+                                    'ip_f,ip_c,ip_a', duplicates.join(','))
+                    raise Exception(msg)
         else:
             # 補間値を出力
             if len( set(ipoutlist) ) != len( ipoutlist ):
@@ -957,7 +968,6 @@ class MissingValueInterpolateCommand(PCommand):
                                 'InterpolateResultsConflictError',
                                 'ip_f,ip_c,ip_a', '')
                 raise Exception(msg)
-                # raise Exception( 'iplist:' + err_msg['config duplication'] )
 
             if 'overwrite' in args:
                 # 稼働停止判定の出力項目以外を、削除する
@@ -966,8 +976,12 @@ class MissingValueInterpolateCommand(PCommand):
                     sys.stderr.write( 'removed: ' + ','.join(tmp) + '\n' )      
                     f <<= nm.mcut(f= ','.join(tmp), r= True)
             else:
-                if len( set(header) & set(ipoutlist) ) > 0:
-                    raise Exception( '' + err_msg['same field name'] )
+                duplicates = set(header) & set(ipoutlist)
+                if len( duplicates ) > 0:
+                    msg = generate_error_message(self.commandname,
+                                    'InterpolateResultsConflictError',
+                                    'ip_f,ip_c,ip_a', duplicates.join(','))
+                    raise Exception(msg)
 
 
         if 'mpi' in args:
@@ -1064,9 +1078,9 @@ class MissingValueInterpolateCommand(PCommand):
                     # j refers to one set of output column names (list)
                     for j in i[3]:
                         if 'non_ip' in args:
-                            tmp_field_name = ｊ + ipflds['ip_0_pre']
+                            tmp_field_name = j + ipflds['ip_0_pre']
                         else:
-                            tmp_field_name = i[2].replace('&', ｊ + dm2 + this_method)
+                            tmp_field_name = i[2].replace('&', j + dm2 + this_method)
 
                         top = aflds_tmp['top']
                         f <<= nm.mcal(a= tmp_field_name,
@@ -1748,7 +1762,10 @@ class TimeSeriesDataJoinCommand(PCommand):
         tmp = set(header_m) & set(ipoutlist)
         if len(tmp) > 0:
             # 入力m に、入力m の補間値項目名が、既に存在する場合
-            raise Exception( 'ip_a' + err_msg['same field name'] )
+            msg = generate_error_message(self.commandname,
+                            'InterpolateResultsConflictError',
+                            'ip_a', tmp.join(','))
+            raise Exception(msg)
 
         # 補間式出力のための引数設定
         args['non_ip']    = True
@@ -2133,7 +2150,6 @@ class TimeAxisDataGenerateIn0Command(PCommand):
             msg = generate_error_message(commandname, 
                                        'EmptyFieldNameError',
                                        'a', '')
-            # raise Exception( 'a:' + err_msg['input'])
             raise Exception(msg)
         elif any(char in args['a'] for char in '*?[],:\\ '):
             msg = generate_error_message(commandname, 
@@ -2479,7 +2495,10 @@ class TimeAxisDataGenerateIn1Command(PCommand):
                 raise Exception(msg)
         
         if 'time_type' not in args:
-            raise Exception( 'time_type:' + err_msg['input'] )
+            msg = generate_error_message(commandname,
+                            'EmptyParamError',
+                            'time_type', '')
+            raise Exception(msg)
         else:
             time_type = args['time_type']
 
