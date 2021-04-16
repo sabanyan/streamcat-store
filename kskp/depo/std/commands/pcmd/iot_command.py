@@ -562,14 +562,27 @@ class MissingValueInterpolateCommand(PCommand):
                                         if top_val != '' and bot_val != '':
                                             top_val = float('nan' if top_val == '' else top_val)
                                             bot_val = float('nan' if bot_val == '' else bot_val)
+                                            ## 桁落ち対策として、式を変形 → 効果不明なため、外す
+                                            # if bot_uxt - top_uxt == 0:
+                                            #     a = float('nan')
+                                            #     b = float('nan')
+                                            # elif bot_val + top_val == 0:
+                                            #     a = float('nan')
+                                            #     b = float('nan')
+                                            # elif bot_uxt**2 - top_uxt**2 == 0:
+                                            #     a = float('nan')
+                                            #     b = float('nan')
+                                            # else:
+                                            #     # 桁落ち対策で式を変形
+                                            #     a = (bot_val**2 - top_val**2) / (bot_val + top_val)
+                                            #     a = a / ((bot_uxt**2 - top_uxt**2) / (bot_uxt + top_uxt))
+                                            #     b = (top_val**2 - (a * top_uxt)**2) / (top_val + a * top_uxt)
                                             if bot_uxt - top_uxt == 0:
                                                 a = float('nan')
                                                 b = float('nan')
                                             else:
-                                                # 桁落ち対策で式を変形
-                                                a = (bot_val**2 - top_val**2) / (bot_val + top_val)
-                                                a = a / ((bot_uxt**2 - top_uxt**2) / (bot_uxt + top_uxt))
-                                                b = (top_val**2 - (a * top_uxt)**2) / (top_val + a * top_uxt)
+                                                a = (bot_val - top_val) / (bot_uxt - top_uxt)
+                                                b = top_val - a * top_uxt
 
                                             adds.append( str('' if math.isnan(a) else a) )
                                             adds.append( str('' if math.isnan(b) else b) )
@@ -613,9 +626,11 @@ class MissingValueInterpolateCommand(PCommand):
                                                 if bot_uxt - top_uxt == 0:
                                                     a = float('nan')
                                                 else:
-                                                    # 桁落ち対策で式を変形
-                                                    a = (bot_val**2 - top_val**2) / (bot_val + top_val)
-                                                    a = a / ((bot_uxt**2 - top_uxt**2) / (bot_uxt + top_uxt))
+                                                ## 桁落ち対策として、式を変形 → 効果不明なため、外す
+                                                #     # 桁落ち対策で式を変形
+                                                #     a = (bot_val**2 - top_val**2) / (bot_val + top_val)
+                                                #     a = a / ((bot_uxt**2 - top_uxt**2) / (bot_uxt + top_uxt))
+                                                    a = (bot_val - top_val) / (bot_uxt - top_uxt)
 
                                                 val = a * now_uxt + top_val - a * top_uxt
 
@@ -644,6 +659,7 @@ class MissingValueInterpolateCommand(PCommand):
             # 補間式の要素名  対象項目に追加して、出力項目名を作成する
             res ={
                 'ip_3_3':'__3次補間_3次', 'ip_3_2':'__3次補間_2次', 'ip_3_1':'__3次補間_1次', 'ip_3_0':'__3次補間_0次',
+                'ip_3_x':'__3次補間_区間',
                 'ip_1_1':'__1次補間_1次', 'ip_1_0':'__1次補間_0次',
                 'ip_0_pre' : '__0次補間_前値'  ,
                 'ip_0_next': '__0次補間_後値'  , 'ip_0_next_pre' : '__0次補間_後値_前値',
@@ -723,6 +739,7 @@ class MissingValueInterpolateCommand(PCommand):
                     ipaddlist.append( i + ipflds['ip_3_2'] )
                     ipaddlist.append( i + ipflds['ip_3_1'] )
                     ipaddlist.append( i + ipflds['ip_3_0'] )
+                    ipaddlist.append( i + ipflds['ip_3_x'] )                    
                 elif ip_method == 'linear':
                     ipaddlist.append( i + ipflds['ip_1_1'] )
                     ipaddlist.append( i + ipflds['ip_1_0'] )
@@ -764,7 +781,7 @@ class MissingValueInterpolateCommand(PCommand):
             稼働・停止判定      9項目
                 'start','end','interval','fos','foe','fss','fse','ido','ids'
             補間式 (9項目)
-                ip_3_3 ...      3次スプラインの係数値。 3次、2次、1次、0次
+                ip_3_3 ...      3次スプラインの係数値。 3次、2次、1次、0次、区間開始
                 ip_1_1 ...      1次スプラインの係数値。 1次、0次
                 ip_0_pre        前行の値
                 ip_0_next       後行の値
@@ -917,8 +934,8 @@ class MissingValueInterpolateCommand(PCommand):
         ipaddlist = None
 
         # --- データ処理開始 ---
-        keylist= []                 # k=, 稼働停止判定時の稼働区間IDをセット
         remove_fields = []          # 後始末用項目名
+        keylist= []                 # k=, 稼働停止判定時の稼働区間IDをセット
 
         sorted = False
 
@@ -982,6 +999,10 @@ class MissingValueInterpolateCommand(PCommand):
 
             sorted = True
         elif time_type == 'datetime':
+            # 生成する項目が既にあれば、削除する
+            # mcutでは、存在しない項目指定はエラーだが、最後にワイルドカード※ で、回避する
+            f <<= nm.mcut(f= f"{aflds['unix_time']}*,{aflds_tmp['int']}*,{aflds_tmp['flac']}*", r= True)
+
             # UNIX時間の追加
             f <<= nm.mcal(a= aflds_tmp['int'], c= f'uxt( s2t(regexstr($s{{{time}}},"^[0-9]{{14,14}}|^[0-9]{{6,6}}") ) )')
             f <<= nm.mcal(a= aflds_tmp['flac'], c= f'regexstr($s{{{time}}},"[.][0-9]{{0,6}}$")')
@@ -1064,9 +1085,9 @@ class MissingValueInterpolateCommand(PCommand):
                     # j refers to one set of output column names (list)
                     for j in i[3]:
                         if 'non_ip' in args:
-                            tmp_field_name = ｊ + ipflds['ip_0_pre']
+                            tmp_field_name = j + ipflds['ip_0_pre']
                         else:
-                            tmp_field_name = i[2].replace('&', ｊ + dm2 + this_method)
+                            tmp_field_name = i[2].replace('&', j + dm2 + this_method)
 
                         top = aflds_tmp['top']
                         f <<= nm.mcal(a= tmp_field_name,
@@ -1274,6 +1295,7 @@ class MissingValueInterpolateCommand(PCommand):
                 if debug:
                     sys.stderr.write( 'TypeC methods : ' + ','.join(methods_input) + '\n' )
                     sys.stderr.write( 'TypeC keys    : ' +  keys + '\n' )
+                    sys.stderr.write( 'TypeC time    : ' +  aflds['unix_time'] + '\n' )
 
 
 
@@ -1322,13 +1344,9 @@ class MissingValueInterpolateCommand(PCommand):
             c1 = np.array(formulas[2])
             c2 = np.array(formulas[1])
             c3 = np.array(formulas[0])
-            coef_c0 = c0 - c1 * x_p + c2 * x_p**2 - c3 * x_p**3
-            coef_c1 = c1 - 2*c2*x_p + 3*c3*x_p**2
-            coef_c2 = c2 - 3*c3*x_p
-            coef_c3 = c3
 
             res = pd.DataFrame(
-                np.array( [x_p, coef_c0, coef_c1, coef_c2, coef_c3] ).T,
+                np.array( [x_p, c0, c1, c2, c3] ).T,
                 columns = ['x_p', 'coef_c0', 'coef_c1', 'coef_c2', 'coef_c3']
                 )
 
@@ -1373,7 +1391,7 @@ class MissingValueInterpolateCommand(PCommand):
                     for i in [x for x in iplist if (x[1] == m) and (f in x[3]) ]:
                         if non_ip:
                             if m == 'cubic_spline':
-                                for j in ['ip_3_3', 'ip_3_2', 'ip_3_1', 'ip_3_0']:
+                                for j in ['ip_3_x','ip_3_3', 'ip_3_2', 'ip_3_1', 'ip_3_0']:
                                     tmp_field_name = f + ipflds[j]
                                     header_adds.append( tmp_field_name )
                         else:
@@ -1419,12 +1437,15 @@ class MissingValueInterpolateCommand(PCommand):
                     #   for その手法を指定している項目別
                     #       if 補間値 計算 ・・・ 欠損値除外して、補間式計算し、欠損値は補間して出力
                     #       if 補間式 計算 ・・・ 欠損値除外して、補間式計算し、行区間を判定し対応する補間式を出力
+                    # 補足： 有効件数の閾値について
+                    #   理論的には、有効件数 3件 以上が必要
+                    #   ただし、挙動が不安定で SciPyエラーも起きたため、4件以上 を閾値とした
 
                     for mi in methods:
                         df = pd.DataFrame(kb,columns=header)
 
                         if 'cubic_spline' in methods:
-                            flds_num = 4      # 1つの算出で、出力する項目の数 （3次式 = 4）
+                            flds_num = 5      # 1つの算出で、出力する項目の数 （3次式 = 4+1）
                             fi_counter = -1   # 補間対象項目 fields の反復数のカウント
 
                             for fi in cubic_spline_fields:
@@ -1440,15 +1461,18 @@ class MissingValueInterpolateCommand(PCommand):
                                     df_target[fi]   = pd.to_numeric( df_target[fi],   errors='coerce')
                                     df_target[time] = pd.to_numeric( df_target[time], errors='coerce')
 
-                                    # 欠損値の行、有効値の行を、記録する
+                                    # 無効値の行、有効値の行を、記録する
+                                    # 有効： 欠損でない and 時間軸が次の時間と異なる   ※ 時間軸重複時は、先頭のみ有効とする
+                                    # 無効： 有効でないもの
                                     valid_data   = None    # 有効値のインデックス
                                     invalid_data = None    # 無効値のインデックス   #.index.values 
 
-                                    valid_data   = df_target[  ~( df_target[fi].isnull()) == True ] 
-                                    invalid_data = df_target[     df_target[fi].isnull()  == True ]  
+                                    valid_data   = df_target[ -(df_target[fi].isnull())  & (df_target[time] != df_target[time].shift(1))  ] 
+                                    invalid_data = df_target[  (df_target[fi].isnull())  | (df_target[time] == df_target[time].shift(1))  ]  
+
 
                                     # if there are enough points, use CubicSpline
-                                    if len(valid_data[time]) >= 2:
+                                    if len(valid_data[time]) >= 4:
                                         cubic_formulas = CubicSpline( valid_data[time], valid_data[fi] ) 
                                         df_coef = deforming_interpolation_coeff(cubic_formulas.x, cubic_formulas.c) 
 
@@ -1465,19 +1489,21 @@ class MissingValueInterpolateCommand(PCommand):
 
 
                                     # 係数列を追加
-                                    df[ header_adds[flds_num * fi_counter]   ] = float('nan')   # 3次係数
-                                    df[ header_adds[flds_num * fi_counter+1] ] = float('nan')   # 2次
-                                    df[ header_adds[flds_num * fi_counter+2] ] = float('nan')   # 1次
-                                    df[ header_adds[flds_num * fi_counter+3] ] = float('nan')   # 定数
+                                    df[ header_adds[flds_num * fi_counter]   ] = float('nan')   # 区間開始
+                                    df[ header_adds[flds_num * fi_counter+1] ] = float('nan')   # 3次係数
+                                    df[ header_adds[flds_num * fi_counter+2] ] = float('nan')   # 2次
+                                    df[ header_adds[flds_num * fi_counter+3] ] = float('nan')   # 1次
+                                    df[ header_adds[flds_num * fi_counter+4] ] = float('nan')   # 定数
 
-                                    df.loc[ valid_data.index, header_adds[flds_num * fi_counter]   ] = df_coef['coef_c3']
-                                    df.loc[ valid_data.index, header_adds[flds_num * fi_counter+1] ] = df_coef['coef_c2']
-                                    df.loc[ valid_data.index, header_adds[flds_num * fi_counter+2] ] = df_coef['coef_c1']
-                                    df.loc[ valid_data.index, header_adds[flds_num * fi_counter+3] ] = df_coef['coef_c0']
+                                    df.loc[ valid_data.index, header_adds[flds_num * fi_counter]   ] = df_coef['x_p']
+                                    df.loc[ valid_data.index, header_adds[flds_num * fi_counter+1] ] = df_coef['coef_c3']
+                                    df.loc[ valid_data.index, header_adds[flds_num * fi_counter+2] ] = df_coef['coef_c2']
+                                    df.loc[ valid_data.index, header_adds[flds_num * fi_counter+3] ] = df_coef['coef_c1']
+                                    df.loc[ valid_data.index, header_adds[flds_num * fi_counter+4] ] = df_coef['coef_c0']
 
                                     # 係数値の前行での補間　注意：inplace=True では、上手くいかないので、代入で実装
-                                    df[       [header_adds[flds_num * fi_counter],header_adds[flds_num * fi_counter+1],header_adds[flds_num * fi_counter+2],header_adds[flds_num * fi_counter+3]] 
-                                      ] = df[ [header_adds[flds_num * fi_counter],header_adds[flds_num * fi_counter+1],header_adds[flds_num * fi_counter+2],header_adds[flds_num * fi_counter+3]]
+                                    df[       [header_adds[flds_num * fi_counter],header_adds[flds_num * fi_counter+1],header_adds[flds_num * fi_counter+2],header_adds[flds_num * fi_counter+3],header_adds[flds_num * fi_counter+4]] 
+                                      ] = df[ [header_adds[flds_num * fi_counter],header_adds[flds_num * fi_counter+1],header_adds[flds_num * fi_counter+2],header_adds[flds_num * fi_counter+3],header_adds[flds_num * fi_counter+4]]
                                             ].fillna(method='ffill') 
 
                                 else:       # 補間値
@@ -1494,7 +1520,31 @@ class MissingValueInterpolateCommand(PCommand):
                                         df[ time ]                = pd.to_numeric( df[time], errors='coerce')
                                         df.set_index(time, drop=False, inplace=True)
 
-                                    df[ header_adds[fi_counter] ].interpolate(method='cubic', axis=0, inplace=True)
+                                    # 有効件数： 3件未満は、補間値でなく、元の入力値をセットする
+                                    # 時間軸、補間対象列 のdfを作成し、無効値をNaNに変換する
+                                    df_target = df[ [time, fi, header_adds[fi_counter]] ] 
+                                    df_target[fi]   = pd.to_numeric( df_target[fi],   errors='coerce')
+
+                                    # 欠損値の行、有効値の行を、記録する
+                                    valid_data   = None    # 有効値のインデックス
+                                    valid_data_not_null = df_target[  ~( df_target[fi].isnull()) == True ] 
+                                    valid_data_not_dup  = df_target[ df_target[time] != df_target[time].shift(1) ] 
+
+                                    # if there are enough points, use CubicSpline
+                                    # 時間軸に重複ありへの対処
+                                    #   時間軸の重複を除外したDataFrameを作成し、Pandasで補間し、結果を元のDataFrameに上書きする
+                                    #   重複時間は、同じ値がコピーされる
+                                    #   注意：Pandasスプライン補間の機能では、DataFrameの全体で、時間軸に重複ないことが前提になっている
+                                    #        スライスのような抽出データに対して補間すると、エラーになる
+                                    if len(valid_data_not_null[time]) >= 4:
+                                        if len(df[time]) == len(valid_data_not_dup[time]):
+                                            df[ header_adds[fi_counter] ].interpolate(method='cubic', axis=0, inplace=True)
+                                        else:
+                                            valid_data_not_dup.set_index(time, drop=False, inplace=True)
+                                            valid_data_not_dup[ header_adds[fi_counter] ].interpolate(method='cubic', axis=0, inplace=True)
+                                            df.loc[ df.index, header_adds[fi_counter] ] = valid_data_not_dup[ header_adds[fi_counter] ]
+                                    else:
+                                        pass
                     
                     if df is not None:
                         # 出力範囲： rbid == rbid_l
@@ -1718,7 +1768,8 @@ class TimeSeriesDataJoinCommand(PCommand):
         header_m = self.get_field_names(get_header_module_m)
 
         fi = nm.m2tee(i = input_filename_i)
-        
+
+               
         fm_mtee = nm.m2tee(i = input_filename_m)
         fm = NysolModule()
         fm.set_content(fm_mtee)
@@ -1740,6 +1791,10 @@ class TimeSeriesDataJoinCommand(PCommand):
                 args_iplist=args['iplist'], ipflds=ipflds, header=header_m,
                 parent_command=commandname)
 
+        # 停止判定： MeasurementPeriodIdentifyCommand()
+        cmd_mpi = MeasurementPeriodIdentifyCommand()
+        aflds = cmd_mpi.const('addflds')
+
         if debug:
             print(f'iplist: {iplist} \n')
 
@@ -1750,9 +1805,6 @@ class TimeSeriesDataJoinCommand(PCommand):
             # 入力m に、入力m の補間値項目名が、既に存在する場合
             raise Exception( 'ip_a' + err_msg['same field name'] )
 
-        # 補間式出力のための引数設定
-        args['non_ip']    = True
-        args['overwrite'] = True
 
         # key項目作成
         keys_m = [ x['Km'] for x in args['join_keys'] ]
@@ -1796,10 +1848,8 @@ class TimeSeriesDataJoinCommand(PCommand):
         # 補間式算出： MissingValueInterpolateCommand()
         # 参照データm に対して補間式を算出し、mnrjoinで係数を、入力データiへ紐づけて、補間値を計算する
         # 引数
-        #   args    このコマンドのargsを指定
-        #   inputs  参照データm
-        res = cmd.run(args=args, inputs={'i':fm})
-        fm  = res['o'].content
+        #   args_m   このコマンドのargsを指定
+        #   inputs   参照データm
 
         # unix時間の項目名取得
         time_m = args.get('time')
@@ -1824,9 +1874,34 @@ class TimeSeriesDataJoinCommand(PCommand):
             unix_time_m = time_m 
         
         unix_time_m_next = unix_time_m + '_next'
-        fm <<= nm.mslide(k= ','.join(keys_m),
+
+        # 補間式計算へ渡す引数の設定
+        args_m = {}
+        args_m = copy.deepcopy(args)
+        args_m['non_ip']    = True
+        args_m['overwrite'] = True
+        if 'k' in args_m:
+            del     args_m['k']        
+        if keys_m != ['']:
+            args_m['k'] = ','.join(keys_m)     # 補間式算出コマンドのキー項目は k
+
+        # 補間式の計算
+        res = cmd.run(args=args_m, inputs={'i':fm})
+        fm  = res['o'].content
+
+        # 停止判定時は、k へ、稼働区間ID aflds['ido'] を加える
+        # 停止期間は、値を結合させないようにするための設定
+        temp_mslide_keys = keys_m
+        if 'mpi' in args:
+            if temp_mslide_keys == ['']:
+                temp_mslide_keys = [aflds['ido']]
+            else:
+                temp_mslide_keys.append( aflds['ido'] )
+
+        # n=False ： この設定で、外挿を禁止し、内挿だけの区間を生成する
+        fm <<= nm.mslide(k= ','.join(temp_mslide_keys),
                          f= f'{unix_time_m}:{unix_time_m_next}',
-                         n=True, q=True, l=True)
+                         n=False, q=True, l=True)
 
         # --- 入力i の処理 ---
         # unix時間の項目作成
@@ -1845,9 +1920,14 @@ class TimeSeriesDataJoinCommand(PCommand):
 
         if time_type == 'datetime':
             unix_time_i = time_i + cmd.const('tmpflds')['uxt_sfx']
-            # UNIX時間の追加
             fld_n_int = '__INT__'
             fld_n_flac = '__FLAC__'
+
+            # 生成する項目が既にあれば、削除する
+            # mcutでは、存在しない項目指定はエラーだが、最後にワイルドカード※ で、回避する
+            fi <<= nm.mcut(f= f"{unix_time_i}*,{fld_n_int}*,{fld_n_flac}*", r= True)
+
+            # UNIX時間の追加
             fi <<= nm.mcal(a= fld_n_int, c= f'uxt( s2t(regexstr($s{{{time_i}}},"^[0-9]{{14,14}}|^[0-9]{{6,6}}") ) )')
             fi <<= nm.mcal(a= fld_n_flac, c= f'regexstr($s{{{time_i}}},"[.][0-9]{{0,6}}$")')
             fi <<= nm.mcal(a= unix_time_i, c = f'if( isnull($s{{{fld_n_flac}}}), $s{{{fld_n_int}}}, $s{{{fld_n_int}}}+$s{{{fld_n_flac}}} )')
@@ -1874,7 +1954,8 @@ class TimeSeriesDataJoinCommand(PCommand):
             fi <<= nm.m2tee(o = 'fi_before_mnrjoin.csv')
 
         fi <<= nm.mnrjoin(
-            m= fm, k= keys_i, K= keys_m, 
+            m= fm, 
+            k= ','.join(keys_i), K= ','.join(keys_m), 
             rf= unix_time_i + '%n',
             R=  unix_time_m + ',' + unix_time_m_next,
             n= True, N= False,
@@ -1896,7 +1977,7 @@ class TimeSeriesDataJoinCommand(PCommand):
         dm = '_'            # 補間値の出力項目名作成時の区切り文字
         method = None       # 手法
         outname = None      # 出力する補間値の項目名
-        ipval = None        # 補間値
+        # ipval = None        # 補間値
 
         now_time = unix_time_i  # 補間値を求める時間
         top_time = unix_time_m  # 区間の先頭の時間
@@ -1937,13 +2018,16 @@ class TimeSeriesDataJoinCommand(PCommand):
 
                 elif method == 'cubic_spline':                    
                     # now_time に対して、3次式 を計算する
+                    ip_3_x = fld + ipflds['ip_3_x']  # 区間開始
                     ip_3_3 = fld + ipflds['ip_3_3']  # 3次係数
                     ip_3_2 = fld + ipflds['ip_3_2']  # 2次係数
                     ip_3_1 = fld + ipflds['ip_3_1']  # 1次係数
                     ip_3_0 = fld + ipflds['ip_3_0']  # 定数項
                     
                     # 係数 * (時間^3)  のように、べき乗を先に計算するように明示する
-                    mcal_c_opt = f'${{{ip_3_3}}}*(${{{now_time}}}^3)+${{{ip_3_2}}}*(${{{now_time}}}^2)+${{{ip_3_1}}}*${{{now_time}}}+${{{ip_3_0}}}'
+                    # 計算式： c3*(x-xp)^3 + c2*(x-xp)^2 + c1*(x-xp) + c0
+                    #        c 係数   x now_time  xp 区間開始
+                    mcal_c_opt = f'${{{ip_3_3}}}*((${{{now_time}}}-${{{ip_3_x}}})^3)+${{{ip_3_2}}}*((${{{now_time}}}-${{{ip_3_x}}})^2)+${{{ip_3_1}}}*(${{{now_time}}}-${{{ip_3_x}}})+${{{ip_3_0}}}'
 
                 if len(all_outnames) != len(set(all_outnames)):
                     msg = generate_error_message(commandname,
@@ -2253,6 +2337,14 @@ class TimeAxisDataGenerateIn0Command(PCommand):
             tmp_span_list = sorted( [ x.split(',') for x in tmp_span_list ] )
 
             # 件数計算
+            interval_seconds = None     # datetime, date, year_month 用の定数
+            if time_type == 'datetime':
+                interval_seconds = float(interval)
+            elif time_type == 'date':
+                interval_seconds = float(interval) * 24 * 60 * 60
+            elif time_type == 'year_month':
+                interval_seconds = float(interval) * 30 * 24 * 60 * 60
+
             for k in tmp_span_list:
                 # 入力値のチェク
 
@@ -2278,7 +2370,7 @@ class TimeAxisDataGenerateIn0Command(PCommand):
                         else:
                             dt.append(res)
                     # 制限： timedelta.total_seconds()  270年以上で、マイクロ秒の精度を失う
-                    num = 1.0 + (dt[1] - dt[0]).total_seconds() // float(interval)
+                    num = 1.0 + (dt[1] - dt[0]).total_seconds() // float(interval_seconds)
 
                     span_list.append( [k[0],interval,num] )
 
@@ -2330,6 +2422,14 @@ class TimeAxisDataGenerateIn1Command(PCommand):
             else:
                 header = [time]
 
+            interval_seconds = None     # datetime, date, year_month 用の定数
+            if time_type == 'datetime':
+                interval_seconds = float(interval)
+            elif time_type == 'date':
+                interval_seconds = float(interval) * 24 * 60 * 60
+            elif time_type == 'year_month':
+                interval_seconds = float(interval) * 30 * 24 * 60 * 60
+
             headerflg = True
             for line in nm.mstdin().getline(header= True):
                 if headerflg:
@@ -2356,7 +2456,7 @@ class TimeAxisDataGenerateIn1Command(PCommand):
                                 dt.append(res)
                         
                         # 制限： timedelta.total_seconds()  270年以上で、マイクロ秒の精度を失う
-                        num = 1.0 + (dt[1] - dt[0]).total_seconds() // float(interval)
+                        num = 1.0 + (dt[1] - dt[0]).total_seconds() // float(interval_seconds)
 
                     # interval間隔の時系列出力
                     val = None
@@ -2497,6 +2597,9 @@ class TimeAxisDataGenerateIn1Command(PCommand):
                     interval = round(float(interval))
                 elif time_type == 'number':
                     interval = Decimal(interval)
+                elif time_type == 'datetime':
+                    interval = float(interval)
+
 
                 if interval <= 0:
                     raise Exception()
