@@ -62,13 +62,15 @@
       "type": "string",
       "label": "グループ化する項目名　(省略可)",
       "description": "・カンマ区切りで複数指定可\n・省略時は全ての行を同じグループとみなして処理される",
-      "optional": true
+      "optional": true,
+      "resizable": true
     },
     {
       "name": "f",
       "type": "string",
       "label": "対象とする項目名 (必須)",
-      "description": "・カンマ区切りで複数指定可\n・ワイルドカード(*,？ )使用可"
+      "description": "・カンマ区切りで複数指定可\n・ワイルドカード(*,？ )使用可",
+      "resizable": true
     },
     {
       "name": "t",

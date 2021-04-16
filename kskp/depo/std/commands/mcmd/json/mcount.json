@@ -46,13 +46,15 @@
       "name": "a",
       "type": "string",
       "label": "追加する行数の項目名",
-      "description": "「入力データの 1 行目を項目名行とみなさない。」指定時は、省略可"
+      "description": "「入力データの 1 行目を項目名行とみなさない。」指定時は、省略可",
+      "default": "グループ別の行数"
     },
     {
       "name": "k",
       "type": "string",
       "label": "グループ化する項目名",
-      "description": "・カンマ区切りで複数指定可\n・省略時は全ての行を同じグループとみなして処理される"
+      "description": "・カンマ区切りで複数指定可\n・省略時は全ての行を同じグループとみなして処理される",
+      "resizable": true
     },
     {
       "name": "assert_diffSize",

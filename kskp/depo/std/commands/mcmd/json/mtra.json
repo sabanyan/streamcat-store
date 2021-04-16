@@ -19,7 +19,8 @@
       "type": "string",
       "label": "変換キーの項目名",
       "optional": true,
-      "description": "カンマ区切りで複数指定可"
+      "description": "カンマ区切りで複数指定可",
+      "resizable": true
     },
     {
       "name": "delim",

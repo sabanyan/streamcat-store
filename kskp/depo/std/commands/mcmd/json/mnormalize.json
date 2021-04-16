@@ -69,14 +69,16 @@
       "name": "f",
       "type": "string",
       "label": "対象項目名と基準化項目名の指定 (必須)",
-      "description": "・対象項目名、基準化項目名の順で コロン区切りで指定する\n・カンマ区切りで複数指定可"
+      "description": "・対象項目名、基準化項目名の順で コロン区切りで指定する\n・カンマ区切りで複数指定可",
+      "resizable": true
     },
     {
       "name": "k",
       "type": "string",
       "label": "グループ化する項目名",
       "description": "・カンマ区切りで複数指定可\n・省略時は全ての行を同じグループとみなして処理される",
-      "optional": true
+      "optional": true,
+      "resizable": true
     },
     {
       "name": "bufcount",

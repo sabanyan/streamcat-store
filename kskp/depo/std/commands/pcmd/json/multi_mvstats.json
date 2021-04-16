@@ -56,7 +56,8 @@
       "name": "k",
       "type": "string",
       "label": "グループ化する項目名 (省略可)",
-      "description": "・カンマ区切りで複数指定可\n・省略時は全ての行を同じグループとみなして処理される"
+      "description": "・カンマ区切りで複数指定可\n・省略時は全ての行を同じグループとみなして処理される",
+      "resizable": true
     },
     {
       "name": "factlist",

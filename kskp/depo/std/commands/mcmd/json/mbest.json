@@ -32,7 +32,8 @@
       "type": "string",
       "label": "グループ化する項目名 (省略可)",
       "optional": true,
-      "description": "・カンマ区切りで複数指定可\n・省略時は全ての行を1つのグループとみなして処理する"
+      "description": "・カンマ区切りで複数指定可\n・省略時は全ての行を1つのグループとみなして処理する",
+      "resizable": true
     },
     {
       "name": "r",
