@@ -65,7 +65,6 @@
         "labels": [
           "暦型(YYYYMMDDhhmmss.小数6桁まで)、間隔単位：秒",
           "暦型(YYYYMMDD)、間隔単位：日",
-          "暦型(YYYMM)、間隔単位：月",
           "数値型"
         ],
         "values": [
