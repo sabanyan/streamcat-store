@@ -56,7 +56,7 @@ class TrashCan(Folder):
         ret['allowlist']['download'] = False
         ret['allowlist']['export'] = False
         ret['allowlist']['update'] = False
-        ret['allowlist']['delete'] = False
+        # ret['allowlist']['delete'] = False
         ret['allowlist']['move'] = False
         ret['allowlist']['copy'] = False
         return ret
