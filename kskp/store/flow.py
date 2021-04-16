@@ -399,6 +399,7 @@ class Flow(Datum):
         ret['modifiedAt'] = self.modified_at.strftime('%Y-%m-%d %H:%M:%S.%f')
         ret['editLock'] = self.edit_lock
         ret['allowlist']['execute'] = self.executable
+        ret['allowlist']['export'] = self._session.has_usr_admin()
         ret['allowlist']['lock'] = self.writable_without_edit_lock
         return ret
 
