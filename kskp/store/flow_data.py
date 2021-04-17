@@ -668,9 +668,11 @@ class FlowData():
             # ノードをマスクしたことを示すフラグを削除する
             del node['masked']
 
-    def to_json(self, contains_nodes=True):
+    def to_json(self, contains_nodes=True, minimize=False):
         if contains_nodes:
             flow_json = self._authorize(self._flow_json)
+            if minimize:
+                flow_json = self._minimize(flow_json)
             return flow_json
         else:
             return {
@@ -739,6 +741,24 @@ class FlowData():
                 continue
             if node['uuid'] == old_uuid:
                 node['uuid'] = new_uuid
+
+    def _minimize(self, flow_json):
+        nodes = flow_json.get('nodes')
+        if nodes is None:
+            return flow_json
+        for node in nodes:
+            if node.get('uuid') is None:
+                node.pop('uuid', None)
+            if node.get('makeCache') == False:
+                node.pop('makeCache', None)
+            if node.get('cacheCreatedAt') is None:
+                node.pop('cacheCreatedAt', None)
+            node.pop('position', None)
+            node.pop('size', None)
+            node.pop('error', None)
+            node.pop('invalid', None)
+            node.pop('srcsOrder', None)
+        return flow_json
 
     def _authorize(self, flow_json, use_exec_auth=False):
         """
