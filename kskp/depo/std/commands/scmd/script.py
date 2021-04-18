@@ -518,7 +518,7 @@ class DbSaverCommand(SaverCommand):
 
         # 列名の重複を避ける仕組みを作らなければならない
         creata_table = f"""
-        CREATE TABLE {schema_and_table_name} (
+        CREATE TABLE IF NOT EXISTS {schema_and_table_name} (
             {column_defs}
         )
         """
@@ -527,8 +527,18 @@ class DbSaverCommand(SaverCommand):
         from sqlalchemy import DDL, exc
         try:
             engine.execute(DDL(creata_table))
+        except exc.IntegrityError as e:
+            # 同時に同じ名称のテーブルを作成するとUniqueViolationの例外が送出される
+            # テーブル作成が完了すれば、他の接続での作成が失敗しても問題ではないので、例外を無視する
+            # PostgreSQLのSequenceはCSVのインポート処理などに置いて同期できないことが関係している?
+            # https://stackoverflow.com/questions/4448340/postgresql-duplicate-key-violates-unique-constraint
+            import psycopg2
+            if dbms.upper() == 'POSTGRESQL' and isinstance(e.__cause__, psycopg2.errors.UniqueViolation):
+                pass
+            else:
+                raise e
         except exc.SQLAlchemyError as e:
-            raise Exception('DBのテーブル作成に失敗しました(%s)' % str(e))
+            raise Exception(f'DBのテーブル作成に失敗しました({str(e)})')
 
     @staticmethod
     def _import_to_table(database_conn, schema_name, table_name, csv_columns, csv_input):
@@ -541,14 +551,14 @@ class DbSaverCommand(SaverCommand):
             else:
                 raise Exception('DBのインポート先DBMS種別が判定できませんでした')
         except Exception as e:
-            raise Exception('DBのテーブルへのインポートに失敗しました(%s)' % str(e))
+            raise Exception(f'DBのテーブルへのインポートに失敗しました({str(e)})')
 
     @staticmethod
     def _import_to_table_postgresql(db_uri, schema_name, table_name, csv_columns, csv_input):
         schema_and_table_name = schema_name + '.' + table_name if schema_name != '' else table_name
 
         # psycopg2からはCOPY文を発行できないようである
-        import io, psycopg2
+        import psycopg2
         with psycopg2.connect(db_uri) as conn:
             with conn.cursor() as cursor:
                 column_name_list = ','.join(csv_columns)
