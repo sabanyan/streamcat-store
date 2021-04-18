@@ -295,6 +295,8 @@ class DbLoaderCommand(SCommand):
                 import traceback
                 with open('/dev/stderr', 'w') as fpe:
                     traceback.print_exc(file=fpe)
+                    print(f'#ERROR# {str(e)}; DbLoaderCommand; ; ; ', file=fpe)
+                raise e
 
         # flushをしないと、デバッグ用のprintなども入ってしまう
         sys.stdout.flush()
@@ -431,6 +433,8 @@ class DbSaverCommand(SaverCommand):
                 with open('/dev/stderr', 'w') as fpe:
                     import traceback
                     traceback.print_exc(file=fpe)
+                    print(f'#ERROR# {str(e)}; DbSaverCommand; ; ; ', file=fpe)
+                raise e
             finally:
                 engine and engine.dispose()
 
