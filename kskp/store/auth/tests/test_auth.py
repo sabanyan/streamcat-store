@@ -3806,8 +3806,8 @@ class AuthTest(TestCaseBase):
                         }
                     }
         flow = self.factory3.data.find_by_uuid(flow.uuid)
-        link = FlowCommand(flow, vis_args)
-        lasts = execute(runnable=link, args={}, inputs={})
+        link = FlowCommand(flow)
+        lasts = execute(runnable=link, args={'vis':vis_args}, inputs={})
 
         # キャッシュのUUIDを取得する
         cache_frame_uuid = flow.flow_data.get_cache_frame_uuids()[0]
@@ -3888,8 +3888,8 @@ class AuthTest(TestCaseBase):
         self.assertIsNotNone(auths[5].modified_at)
 
         # 編集者は、複製したフローをプレビュー実行できること
-        link = FlowCommand(duplicated_flow, vis_args)
-        lasts = execute(runnable=link, args={}, inputs={})
+        link = FlowCommand(duplicated_flow)
+        lasts = execute(runnable=link, args={'vis':vis_args}, inputs={})
 
         # プロジェクトに属さないユーザは、複製したフローを取得できないこと
         with self.assertRaises(NotAuthorizedException):
@@ -3992,14 +3992,14 @@ class AuthTest(TestCaseBase):
 
         # USER3は、メインフローを実行できないこと
         flow2 = self.factory3.data.find_by_uuid(flow2.uuid)
-        link = FlowCommand(flow2, vis_args)
+        link = FlowCommand(flow2)
         with self.assertRaises(Exception):
-            execute(runnable=link, args={}, inputs={})
+            execute(runnable=link, args={'vis':vis_args}, inputs={})
 
         # USER2は、メインフローを実行できること
         flow2 = self.factory2.data.find_by_uuid(flow2.uuid)
-        link = FlowCommand(flow2, vis_args)
-        last = execute(runnable=link, args={}, inputs={})
+        link = FlowCommand(flow2)
+        last = execute(runnable=link, args={'vis':vis_args}, inputs={})
 
         # フローを削除する
         flow2.delete()
@@ -4109,8 +4109,8 @@ class AuthTest(TestCaseBase):
                             }
                         }
                     }
-        link = FlowCommand(flow1, vis_args)
-        lasts = execute(runnable=link, args={}, inputs={})
+        link = FlowCommand(flow1)
+        lasts = execute(runnable=link, args={'vis':vis_args}, inputs={})
 
         # キャッシュが作成されること
         cache_frame_uuids = flow1.flow_data.get_cache_frame_uuids()
@@ -4274,8 +4274,8 @@ class AuthTest(TestCaseBase):
                             }
                         }
                     }
-        link = FlowCommand(flow1, vis_args)
-        lasts = execute(runnable=link, args={}, inputs={})
+        link = FlowCommand(flow1)
+        lasts = execute(runnable=link, args={'vis':vis_args}, inputs={})
 
         # キャッシュが作成されること
         cache_frame_uuids = flow1.flow_data.get_cache_frame_uuids()

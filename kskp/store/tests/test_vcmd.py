@@ -201,7 +201,7 @@ class VCmdTestCase(TestCaseBase):
         root = self.factory.data.load_root()
         flow_data = FlowData(self.flow_csvtohtmltable)
         flow = root.create_flow('CSV to graph', flow_data)
-        flow_link = FlowCommand(flow, vis_args=vis_args)
-        lasts = execute(flow_link, {}, {})
+        flow_link = FlowCommand(flow)
+        lasts = execute(flow_link, {'vis':vis_args}, {})
         result = self.convert_from_activity_vis(lasts)['d1']
         return result
