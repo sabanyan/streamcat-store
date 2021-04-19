@@ -814,6 +814,7 @@ class CsvToTimeCompressionCommand(VisualizersBokehPlot):
         df[x_axis_column] = df[x_axis_column].astype(float)
 
         # title
+        data_title = " ".join(data) if len(data) != 0 else "データ系列の指定なし"
         df_x_minmax = self.doMsummary(df, None, x_axis_column, "min,max")
         df_y_minmax = self.doMsummary(df, None, y_axis_column, "min,max")
 
@@ -873,7 +874,7 @@ class CsvToTimeCompressionCommand(VisualizersBokehPlot):
         # Graph Plot
         plots = []
         for g in source:
-            title = "時間圧縮図:{}、 期間:{} ~ {}".format(g, source[g]["x_range"][0], source[g]["x_range"][1])
+            title = "{}:{}、 期間:{} ~ {}".format(data_title, g, source[g]["x_range"][0], source[g]["x_range"][1])
             tools = "pan,wheel_zoom,box_zoom,reset,save,box_select"
             plot = figure(
                 title=title,
@@ -888,7 +889,7 @@ class CsvToTimeCompressionCommand(VisualizersBokehPlot):
             for index in range(len(staticsArray)):
                 color = colors[index]
                 statics = staticsArray[index]
-                plot.line(source[g][result_column], source[g][statics], legend=statics, color=color, alpha=0.75, muted_color=color, muted_alpha=0.2)
+                plot.line(source[g][result_column], source[g][statics], legend_label=statics, color=color, alpha=0.75, muted_color=color, muted_alpha=0.2)
                 if display_pattern == "hatch" and index + 1 < len(staticsArray):
                         x = source[g][result_column]
                         y1 = source[g][staticsArray[index]]
