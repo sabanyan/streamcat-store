@@ -118,12 +118,12 @@
   "groups": [
     {
       "name": "axis_group",
-      "label": "軸の設定",
+      "label": "軸の設定（必須）ラベルは省略可",
       "params": ["x_axis","y_axis"]
     },
     {
       "name": "x_axis_group",
-      "label": "時間軸の設定",
+      "label": "時間軸の設定（必須）",
       "params": ["x_axis_format_select","x_axis_format_custom"],
       "description": "数値型、暦型のデータを時間軸に指定できます。\nただし、折れ線は、時間軸ではなく、データの順番で繋ぎます。"
     },
