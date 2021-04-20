@@ -915,7 +915,7 @@ class CsvToTimeCompressionCommand(VisualizersBokehPlot):
         # Graph Plot
         plots = []
         for g in source:
-            title = "{}:{}、 期間:{} ~ {}".format(data_title, g, source[g]["x_range"][0], source[g]["x_range"][1])
+            title = "{}:{}  期間:{} ~ {}  期間の分割数:{}".format(data_title, g, source[g]["x_range"][0], source[g]["x_range"][1], division)
             tools = "pan,wheel_zoom,box_zoom,reset,save,box_select"
             plot = figure(
                 title=title,
