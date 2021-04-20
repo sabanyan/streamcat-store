@@ -70,7 +70,6 @@
         "values": [
           "datetime",
           "date",
-          "year_month",
           "number"
         ]
       },
