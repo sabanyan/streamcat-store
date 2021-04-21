@@ -360,26 +360,24 @@ class Flow(Datum):
                 raise Exception(f'ゴミ箱にあるフロー({flow.label})は使用できません')
 
     @Constraints.set_project_role_on_set_cache
-    def set_cache(self, node_id, cache, ignore_lock=False):
+    def set_cache(self, node_id, cache, lock_uuid=None):
         """
         指定するノードidにキャッシュを設定する
         """
         self.flow_data._set_cache(node_id, cache.uuid)
-        # TODO: 暫定的に、キャッシュの設定ではフローJsonの排他制御をしない
-        self.update_data(self.label, self.flow_data, ignore_lock=ignore_lock)
+        self.update_data(self.label, self.flow_data, lock_uuid=lock_uuid)
 
-    def unset_cache(self, node_id, ignore_lock=False) -> str:
+    def unset_cache(self, node_id, ignore_lock=False, lock_uuid=None) -> str:
         """
         指定するノードidのキャッシュを削除する
         """
         unset_cache_uuid = self.flow_data._unset_cache(node_id)
         if unset_cache_uuid is None:
             return None
-        # TODO: 暫定的に、キャッシュの設定ではフローJsonの排他制御をしない
-        self.update_data(self.label, self.flow_data, ignore_lock=ignore_lock)
+        self.update_data(self.label, self.flow_data, ignore_lock=ignore_lock, lock_uuid=lock_uuid)
         return unset_cache_uuid
 
-    def unset_all_caches(self, ignore_lock=False):
+    def unset_all_caches(self, lock_uuid=None):
         """
         全てのキャッシュを削除する
         """
@@ -389,8 +387,7 @@ class Flow(Datum):
             if unset_cache_uuid is None:
                 continue
             unset_cache_uuids.append(unset_cache_uuid)
-        # TODO: 暫定的に、キャッシュの設定ではフローJsonの排他制御をしない
-        self.update_data(self.label, self.flow_data, ignore_lock=ignore_lock)
+        self.update_data(self.label, self.flow_data, lock_uuid=lock_uuid)
         return unset_cache_uuids
 
     @Constraints.set_project_role_on_set_cache

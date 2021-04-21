@@ -168,6 +168,7 @@ class CacheSaverCommand(SaverCommand):
 
     def run(self, args, inputs):
         from kskp.store import ApparentLast
+        from kskp.store.lock import LockedDatumException
 
         folder = self.get_result_folder(args)
         flow_label = args['flow_label']
@@ -191,17 +192,22 @@ class CacheSaverCommand(SaverCommand):
         # テスト実行の場合は実行するFlowをDBに保存していない
         if args['flow'] is not None:
             flow = args['flow']
-            node_id = args['datum_id']
-            # TODO: RunsCommand実行前にFlowにキャッシュありの情報を更新すると、同じフローの同時実行に支障があるだろう
-            # TODO: キャッシュのUUIDをフローJsonに設定するので、ロックによる排他制御をするべきだが
-            #       フロー実行とプレビュー実行のAPI引数に'lock'キーを追加する必要がある。
-            #       しかし、将来的にフローJsonにキャッシュのUUIDを設定しないようにする方針なので
-            #       APIのインタフェースの変更の手間を惜しんで、暫定的に排他制御を無視してキャッシュのUUIDを設定する。
-            flow.set_cache(node_id, cache, ignore_lock=True)
+            node_id = args['point_id']
+            lock_uuid = args['lock_uuid']
+            try:
+                flow.set_cache(node_id, cache, lock_uuid=lock_uuid)
+            except LockedDatumException as e:
+                # キャッシュが作成できなくてもフローの実行は中断しない
+                import warnings
+                warnings.warn(str(e) + '、キャッシュは作成できませんでした')
+                # 作成したCacheを削除する
+                cache.delete()
+                cache = None
 
         # NYSOLコマンドを作成する
         cmd = inputs['i'].content
-        cmd = self.append_writecsv_cmd(cmd, cache.path)
+        if cache is not None:
+            cmd = self.append_writecsv_cmd(cmd, cache.path)
         # 出力フレームをRunsCommandに渡す
         nysol_module = NysolModule(cmd)
         nysol_module.context['frame'] = cache
