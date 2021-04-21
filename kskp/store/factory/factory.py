@@ -282,7 +282,7 @@ class DatumFactory():
             root = new_root.reload()
         return root
 
-    def load_cache_folder(self):
+    def load_cache_folder(self) -> Folder:
         """
         キャッシュフォルダを取得する、存在しない場合は作成する
         """
