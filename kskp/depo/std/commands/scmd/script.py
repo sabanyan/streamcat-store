@@ -167,10 +167,13 @@ class CacheSaverCommand(SaverCommand):
         self.o_ports = [Port('o', 'mcmd'), Port('u', 'frame')]
 
     def run(self, args, inputs):
+        import warnings
         from kskp.store import ApparentLast
         from kskp.store.lock import LockedDatumException
+        from kskp.store.auth import NotAuthorizedException
 
         folder = self.get_result_folder(args)
+        flow = args['flow']
         flow_label = args['flow_label']
         point = args['point']
         point_label = point.label if point.label is not None else point.id
@@ -185,24 +188,24 @@ class CacheSaverCommand(SaverCommand):
         # Nysolの oオプションに空白のファイル名があるとエラーになるので、空白を置換する
         cache_label = cache_label.replace(' ', '_')
 
-        # Cacheフレームを作成する
-        cache = self.make_frame(folder, cache_label)
-
         # FlowのキャッシュUUIDを変更する
         # テスト実行の場合は実行するFlowをDBに保存していない
-        if args['flow'] is not None:
-            flow = args['flow']
+        if flow.writable:
             node_id = args['point_id']
             lock_uuid = args['lock_uuid']
+            # Cacheフレームを作成する
+            cache = self.make_frame(folder, cache_label)
             try:
                 flow.set_cache(node_id, cache, lock_uuid=lock_uuid)
-            except LockedDatumException as e:
-                # キャッシュが作成できなくてもフローの実行は中断しない
-                import warnings
+            except (LockedDatumException, NotAuthorizedException) as e:
+                # フローにキャッシュのUUIDを書き込めなくてもフローの実行は中断しない
                 warnings.warn(str(e) + '、キャッシュは作成できませんでした')
                 # 作成したCacheを削除する
-                cache.delete()
+                cache.writable and cache.delete()
                 cache = None
+        else:
+            warnings.warn(f'フロー({flow.label})の更新権限が無いため、キャッシュは作成できませんでした.')
+            cache = None
 
         # NYSOLコマンドを作成する
         cmd = inputs['i'].content
