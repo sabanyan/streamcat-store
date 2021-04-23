@@ -1788,3 +1788,108 @@ class FlowJsonTest(TestCaseBase):
         # フローJSONの検証エラーにより例外が送出されること
         with self.assertRaises(ValidationError):
             flow.save()
+
+    def test_validate_inner_flow(self):
+        """
+        type=flowのノードにFlowリテラルが記述できること
+        """
+        # ルートデータストアを取得する
+        root = self.factory.data.load_root()
+        # フローJSONを作成する
+        flow_json =  {
+            "label": "Flowのリテラル表記のテスト",
+            "ports": [[],[]],
+            "params": [],  
+            "nodes": [
+                {
+                    "id": "d", 
+                    "label": "testData", 
+                    "type": "frame", 
+                    "uuid": "30576973-0dc9-42e1-8fd6-aba699517043", 
+                    "dataSource": "csv"
+                }, 
+                {
+                    "id": "f1", 
+                    "label": "f1", 
+                    "type": "flow",
+                    "flow": {
+                        "label": "リテラル表記のフロー", 
+                        "description": "",
+                        "projectId": None, 
+                        "ports": [
+                            [
+                                {
+                                    "type": "frame", 
+                                    "label": "testData", 
+                                    "nodeId": "d"
+                                }
+                            ], 
+                            [
+                                {
+                                    "type": "frame", 
+                                    "label": "d1", 
+                                    "nodeId": "d1"
+                                }
+                            ]
+                        ], 
+                        "params": [], 
+                        "nodes": [
+                            {
+                                "id": "d", 
+                                "label": "testData", 
+                                "type": "frame", 
+                                "uuid": "30576973-0dc9-42e1-8fd6-aba699517043", 
+                                "dataSource": "csv"
+                            }, 
+                            {
+                                "id": "c1", 
+                                "label": "c1", 
+                                "type": "command", 
+                                "commandId": "mcombi",
+                                "args": {
+                                    "a": "date_combi", 
+                                    "f": "date", 
+                                    "n": "1", 
+                                    "s": "date"
+                                }, 
+                                "srcs": {
+                                    "i": "d"
+                                }, 
+                                "dsts": {
+                                    "o": "d1"
+                                }
+                            },
+                            {
+                                "id": "d1", 
+                                "label": "d1", 
+                                "type": "frame", 
+                                "dataSource": "csv"
+                            }
+                        ], 
+                        "creator": "ユーザー管理者", 
+                        "createdAt": "2021-04-23 14:14:22", 
+                    },
+                    "args": {}, 
+                    "srcs": {
+                        "d": "d"
+                    },
+                    "dsts": {
+                        "d1": "d1"
+                    }
+                },
+                {
+                    "id": "d1", 
+                    "label": "d1", 
+                    "type": "frame", 
+                    "dataSource": "csv"
+                }
+            ], 
+            "creator": "ユーザー管理者", 
+            "createdAt": "2021-04-23 14:16:55"
+        }
+        # ルートデータストアの直下にフローを作成する
+        flow = root.create_flow('フロー', FlowData(flow_json))
+        # フローJSONの検証エラーが送出されないこと
+        flow.save()
+        # フローを削除する
+        flow.delete()

@@ -204,7 +204,6 @@ class FlowData():
                 'required': [
                     'id',
                     'type',
-                    'uuid'
                 ],
                 'additionalProperties': False,
                 'properties': {
@@ -226,6 +225,10 @@ class FlowData():
                                 '$ref': '#/definitions/uuid'
                             }
                         ]
+                    },
+                    'flow': {
+                        # Flowリテラル
+                        '$ref': '#/definitions/Flow'
                     },
                     'args': {
                         '$ref': '#/definitions/Args'
