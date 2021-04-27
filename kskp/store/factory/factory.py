@@ -249,13 +249,21 @@ class DatumFactory():
         サブフローを取得する
         """
         from sqlalchemy import func, or_
-        # FIXIT : PostgreSQLのJSONB演算子を用いればSQLのみでサブフローを抽出できるはず
         return self._session.query(Datum).filter(Datum.type==Datum.FLOW_TYPE).\
                                           filter(
                                                 or_(
                                                     func.jsonb_array_length(Datum._data['flow']['ports'][0])>0,
                                                     func.jsonb_array_length(Datum._data['flow']['ports'][1])>0
                                                 )
+                                          ).all()
+
+    def find_all_stores(self):
+        """
+        データストアを取得する
+        """
+        return self._session.query(Datum).filter(
+                                                Datum.type.in_([Datum.DATABASE_TYPE,
+                                                                Datum.RFOLDER_TYPE])
                                           ).all()
 
     def load_root(self):

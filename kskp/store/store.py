@@ -1,4 +1,5 @@
 from kskp.core import Datum
+from kskp.core import Command
 
 class Store(Datum):
     """
@@ -143,70 +144,126 @@ class Store(Datum):
                     }
         return Flow(self._session, self, label, FlowData(flow_json))
 
-    def create_datasource(self, label, store, loader_step):
+    def create_datasource(self, label:str, store:Datum, loader:Command, loader_args:dict={}, params:list=[]):
         """
         コンストラクタ
         """
+        from datetime import datetime
         from kskp.store import Flow, FlowData
+
+        if len(loader.i_ports) != 1 or len(loader.o_ports) != 1 :
+            raise Exception('指定できるローダは1入力1出力のコマンドです')
+
         # PointとStepの繫がりを探索するFlowVisitorを使えばスマートに、Jsonデータを取得できるだろう
         flow_json = {
             "label": label,
-            "nodes": [
-                {
-                    "id": "d0",
-                    "type": "store",
-                    "uuid": store.uuid,
-                    "error": {},
-                    "label": store.label,
-                    "invalid": {},
-                    "makeCache": False,
-                    "dataSource": "csv",
-                    "cacheCreatedAt": None
-                },
-                {
-                    "id": "c1",
-                    "args": loader_step.args,
-                    "srcs": {
-                        loader_step.runnable.i_ports[0].label : "d0"
-                    },
-                    "dsts": {
-                        "o": "d"
-                    },
-                    "type": "command",
-                    "error": {},
-                    "label": "c1",
-                    "commandId": loader_step.runnable.name,
-                    "srcsOrder": [
-                        "i"
-                    ]
-                },
-                {
-                    "id": "d",
-                    "type": "frame",
-                    "uuid": None,
-                    "error": {},
-                    "label": "d",
-                    "invalid": {},
-                    "makeCache": False,
-                    "dataSource": "csv",
-                    "cacheCreatedAt": None
-                }
-            ],
+            "description": "",
+            "projectId": None,
+            "params": params,
             "ports": [
                 [],
                 [
                     {
-                        "type": "frame",
-                        "label": "d",
-                        "nodeId": "d"
+                        "label": "o",
+                        "nodeId": "d",
+                        "type": "frame"
                     }
                 ]
             ],
-            "params": [],
-            "creator": self.creator_str,
-            "createdAt": self.created_at_str,
+            "nodes": [
+                {
+                    "id": "s",
+                    "label": store.label,
+                    "type": "store",
+                    "uuid": store.uuid,
+                },
+                {
+                    "id": "c1",
+                    "label": "c1",
+                    "type": "command",
+                    "commandId": loader.name,
+                    "args": loader_args,
+                    "srcs": {
+                        loader.i_ports[0].label : "s"
+                    },
+                    "dsts": {
+                        "o": "d"
+                    }
+                },
+                {
+                    "id": "d",
+                    "label": "d",
+                    "type": "frame",
+                    "dataSource": "csv"
+                }
+            ],
+            "creator": self._session.user.name,
+            "createdAt": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        }
+        return Flow(self._session, self, label, FlowData(flow_json))
+
+    def create_datadest(self, label:str, store:Datum, saver:Command, saver_args:dict={}, params:list=[]):
+        """
+        コンストラクタ
+        """
+        from datetime import datetime
+        from kskp.store import Flow, FlowData
+
+        if len(saver.i_ports) != 2 or len(saver.o_ports) != 1 :
+            raise Exception('指定できるセーバは1入力1出力のコマンドです')
+
+        # PointとStepの繫がりを探索するFlowVisitorを使えばスマートに、Jsonデータを取得できるだろう
+        flow_json = {
+            "label": label,
+            "description": "",
             "projectId": None,
-            "description": ""
+            "params": params,
+            "ports": [
+                [
+                    {
+                        "label": "i",
+                        "nodeId": "d",
+                        "type": "frame"
+                    }
+                ],
+                []
+            ],
+            "nodes": [
+                {
+                    "id": "d",
+                    "label": "d",
+                    "type": "frame",
+                    "dataSource": "csv"
+                },
+                {
+                    "id": "s",
+                    "label": store.label,
+                    "type": "store",
+                    "uuid": store.uuid,
+                },
+                {
+                    "id": "c1",
+                    "label": "c1",
+                    "type": "command",
+                    "commandId": saver.name,
+                    "args": saver_args,
+                    "srcs": {
+                        saver.i_ports[0].label : "d",
+                        saver.i_ports[1].label : "s"
+                    },
+                    "dsts": {
+                        "o": "d1"
+                    }
+                },
+                {
+                    "id": "d1",
+                    "label": "d1",
+                    "type": "frame",
+                    "dataSource": "csv"
+                }
+            ],
+            "creator": self._session.user.name,
+            "createdAt": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         }
         return Flow(self._session, self, label, FlowData(flow_json))
 

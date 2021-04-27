@@ -392,6 +392,7 @@ class DbSaverCommand(SaverCommand):
         super().__init__()
         self.i_ports = [Port('i', 'frame'), Port('store', 'store')]
         self.o_ports = [Port('o', 'mcmd')]
+        self.name = 'db_saver'
 
     def run(self, args, inputs):
         DbSaverCommand._write_log('START')
@@ -457,7 +458,7 @@ class DbSaverCommand(SaverCommand):
 
         # Nysol Pythonのrunfunc関数を作成する
         cmd = inputs['i'].content
-        cmd <<= nm.msetstr(v=args["activity_uuid"], a='activity_uuid_kskp')
+        cmd <<= nm.msetstr(v=args['activity_uuid'], a='activity_uuid_kskp')
         cmd <<= nm.runfunc(bulk_inserter, database_conn=database_conn, schema_name=schema_name, table_name=table_name)
 
         # DataSourceを保存するフォルダを用意する
@@ -635,11 +636,10 @@ class DbSaverCommand(SaverCommand):
 
     @staticmethod
     def _create_data_source(parent, database, label, schema_name, table_name, activity_uuid):
-        from kskp.engine import Step
         from kskp.depo.std.commands import CommandLink
         args = {'schema_name':schema_name, 'table_name':table_name, 'activity_uuid_kskp':activity_uuid}
-        loader_step = Step('db_loader', CommandLink('db_loader').resolve(), args)
-        return parent.create_datasource(label, database, loader_step)
+        loader_cmd = CommandLink('db_loader').resolve()
+        return parent.create_datasource(label, database, loader_cmd, args)
 
     @staticmethod
     def _get_tmp_file_name():
@@ -703,6 +703,7 @@ class RemoteFolderSaverCommand(SaverCommand):
         super().__init__()
         self.i_ports = [Port('i', 'frame'), Port('store', 'store')]
         self.o_ports = [Port('o', 'mcmd')]
+        self.name = 'remotefolder_saver'
 
     def run(self, args, inputs):
         from kskp.core import Datum
@@ -752,11 +753,10 @@ class RemoteFolderSaverCommand(SaverCommand):
 
     @staticmethod
     def _create_data_source(parent, rfolder, label, file_path_str):
-        from kskp.engine import Step
         from kskp.depo.std.commands import CommandLink
         args = {'file_path':file_path_str}
-        loader_step = Step('remotefolder_loader', CommandLink('remotefolder_loader').resolve(), args)
-        return parent.create_datasource(label, rfolder, loader_step)
+        loader_cmd = CommandLink('remotefolder_loader').resolve()
+        return parent.create_datasource(label, rfolder, loader_cmd, args)
 
 
 class RunsCommand(SCommand):
