@@ -67,7 +67,7 @@ class RemoteFolderConn():
             else:
                 raise Exception(f'このOS({sys.platform})で実行するmountコマンドの引数指定が定義されていません')
         else:
-            raise Exception('undefined remote protocol found')
+            raise Exception(f'{self.protocol} is undefined protocol')
 
     def to_json(self):
         # self._conn_jsonに他のキーが入っている場合もあるので
