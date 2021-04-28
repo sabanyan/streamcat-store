@@ -1394,7 +1394,8 @@ class AuthTest(TestCaseBase):
         # フローJSONのうちnodes以外のキーは取得できること
         self.assertEqual(flow.flow_data.label, 'フロー')
         self.assertEqual(flow.flow_data.description, '')
-        self.assertEqual(flow.flow_data.ports, [[],[]])
+        self.assertEqual(flow.flow_data.i_ports, [])
+        self.assertEqual(flow.flow_data.o_ports, [])
         self.assertTrue(flow.flow_data.has_nodes)
 
         # フローJSONのうちnodesキーは取得できないこと
@@ -1931,7 +1932,8 @@ class AuthTest(TestCaseBase):
         # フローJSONは取得できること
         self.assertEqual(flow.flow_data.label, 'フロー')
         self.assertEqual(flow.flow_data.description, '')
-        self.assertEqual(flow.flow_data.ports, [[],[]])
+        self.assertEqual(flow.flow_data.i_ports, [])
+        self.assertEqual(flow.flow_data.o_ports, [])
         self.assertTrue(flow.flow_data.has_nodes)
         self.assertGreater(len(flow.flow_data.get_nodes()), 0)
 
@@ -2954,7 +2956,8 @@ class AuthTest(TestCaseBase):
         # フローJSONのうちnodes以外のキーは取得できること
         self.assertEqual(flow.flow_data.label, '殺した')
         self.assertEqual(flow.flow_data.description, '')
-        self.assertEqual(flow.flow_data.ports, [[],[]])
+        self.assertEqual(flow.flow_data.i_ports, [])
+        self.assertEqual(flow.flow_data.o_ports, [])
         self.assertTrue(flow.flow_data.has_nodes)
         self.assertEqual(len(flow.flow_data.get_nodes()), 1)
 

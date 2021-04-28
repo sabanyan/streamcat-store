@@ -351,7 +351,7 @@ class FlowData():
                 'type': 'object',
                 'required': [],
                 'additionalProperties': {
-                    'type': ['null', 'string', 'number', 'boolean', 'array']
+                    'type': ['null', 'string', 'number', 'boolean', 'array', 'object']
                 },
                 'propertyNames': {
                     'type': 'string'
@@ -535,9 +535,23 @@ class FlowData():
     def params(self) -> list:
         return self._flow_json.get('params')
 
+    # @property
+    # def ports(self) -> list:
+    #     return self._flow_json.get('ports')
+
     @property
-    def ports(self) -> list:
-        return self._flow_json.get('ports')
+    def i_ports(self) -> list:
+        ports = self._flow_json.get('ports')
+        if ports is None:
+            return []
+        return ports[0]
+
+    @property
+    def o_ports(self) -> list:
+        ports = self._flow_json.get('ports')
+        if ports is None:
+            return []
+        return ports[1]
 
     @property
     def has_nodes(self):
@@ -684,7 +698,7 @@ class FlowData():
                 'creator': self.creator,
                 'createdAt': self.created_at,
                 'params': self.params,
-                'ports': self.ports
+                'ports': [self.i_ports, self.o_ports]
             }
 
     def valid_flow_json_or_raise(self):

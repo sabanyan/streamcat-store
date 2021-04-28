@@ -497,7 +497,8 @@ class DbSaverCommand(SaverCommand):
             csv_header = csv.reader(csv.StringIO(header), delimiter=',', quotechar='"')
             # CSV列名を取得する
             for csv_column_names in csv_header:
-                return csv_column_names
+                # PostgreSQLでは列名に%を含められないようだ
+                return [name.replace('%','÷') for name in csv_column_names]
 
     @staticmethod
     def _get_csv_reader(f):
