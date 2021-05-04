@@ -68,10 +68,11 @@ class SaverCommand(SCommand):
         folder = self.get_result_folder(args)
         flow_label = args['flow_label']
         start_time = args['start_time']
+
         point = args.get('point')
         if point is None:
-            # TODO: point_idどっからとってこよう
-            point_label = 'point_id'
+            src_point = args.get('src_point')
+            point_label = src_point.label if src_point is not None else ''
         else:
             point_label = point.label if point.label is not None else point.id
 
@@ -469,8 +470,9 @@ class DbSaverCommand(SaverCommand):
         result_folder = self.make_folder(folder, flow_label, start_time_str1, start_time_str2)
 
         # 出力結果を取得するDataSourceをライブラリに登録する
-        # TODO: point_idどっからとってこよう
-        datasource = self._create_data_source(result_folder, database, 'point_id', schema_name, table_name, args['activity_uuid'])
+        src_point = args.get('src_point')
+        label = src_point.label if src_point is not None else ''
+        datasource = self._create_data_source(result_folder, database, label, schema_name, table_name, args['activity_uuid'])
         datasource.save()
 
         # 出力DataSourceをRunsCommandに渡す
@@ -742,8 +744,9 @@ class RemoteFolderSaverCommand(SaverCommand):
         result_folder = self.make_folder(folder, flow_label, start_time_str1, start_time_str2)
 
         # 出力結果を取得するDataSourceをライブラリに登録する
-        # TODO: point_idどっからとってこよう
-        datasource = self._create_data_source(result_folder, rfolder, 'point_id', path_str)
+        src_point = args.get('src_point')
+        label = src_point.label if src_point is not None else ''
+        datasource = self._create_data_source(result_folder, rfolder, label, path_str)
         datasource.save()
 
         # 出力DataSourceをRunsCommandに渡す
