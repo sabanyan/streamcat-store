@@ -11,7 +11,7 @@ setup(
         # インストールできない、そのためpsycopg2の代わりにpsycopg2-binaryをインストールする
         # 'psycopg2',
         'psycopg2-binary',
-        'SQLAlchemy<1.4.0',
+        'SQLAlchemy<1.5.0',
         'jsonschema',
         # 'alembic',
         'cryptography',

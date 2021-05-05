@@ -348,7 +348,7 @@ class DbLoaderCommand(SCommand):
         """
         SQL文を発行し結果を取得する
         """
-        from sqlalchemy import DDL, exc
+        from sqlalchemy import exc
         # 時間計測開始
         import time
         t1 = time.time()
@@ -512,10 +512,12 @@ class DbSaverCommand(SaverCommand):
 
     @staticmethod
     def _table_exists(engine, schema_name, table_name):
+        from sqlalchemy import inspect
+        inspector = inspect(engine)
         if schema_name == '':
-            return engine.dialect.has_table(engine, table_name)
+            return inspector.has_table(table_name)
         else:
-            return engine.dialect.has_table(engine, table_name, schema=schema_name)
+            return inspector.has_table(table_name, schema=schema_name)
 
     @staticmethod
     def _create_table(engine, dbms, schema_name, table_name, csv_columns):

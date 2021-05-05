@@ -181,15 +181,16 @@ class User(BaseModel):
 
     def _get_admin_role_flags(self):
         from sqlalchemy import func, case, null
+        from sqlalchemy.sql.expression import literal
         from .role import Role
         from .user_role import UserRole
 
         query = self._session.query(
                         func.count(
-                            case([(Role.uuid == Role.SYS_ADMIN_ROLE_UUID,1)],else_=null())
+                            case([(Role.uuid == literal(Role.SYS_ADMIN_ROLE_UUID),1)],else_=null())
                         ).label('sys_admin'),
                         func.count(
-                            case([(Role.uuid == Role.USR_ADMIN_ROLE_UUID,1)],else_=null())
+                            case([(Role.uuid == literal(Role.USR_ADMIN_ROLE_UUID),1)],else_=null())
                         ).label('usr_admin')
                     ).\
                     select_from(Role).\

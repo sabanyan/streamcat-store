@@ -145,7 +145,7 @@ class AuthzSession(Session):
     def _make_select_permissions(self):
         from sqlalchemy.sql.expression import select, literal_column
         
-        select_stmt = self._make_select_permissions_inner().as_scalar()
+        select_stmt = self._make_select_permissions_inner().scalar_subquery()
 
         # SELECT句内にWITH句を記述する必要があるが、SQLAlchemyではそれができないようだ
         # そのため、ここでWITH句を含むSELECT文をtextで記述してこれをメインのSELECT文に含める
@@ -208,7 +208,7 @@ class AuthzSession(Session):
         # 検索対象のDatumの編集ロックを権限の判定条件に含める条件
         exists_edit_lock = exists().where(and_(A0.c.datum_id==datum_id,
                                                 A0.c.role_id==Role.id,
-                                                Role.uuid==Role.EDIT_LOCK_ROLE_UUID))
+                                                Role.uuid==literal(Role.EDIT_LOCK_ROLE_UUID)))
 
         # 操作ユーザが所属するロールであることを指定する条件
         exists_user_role = exists().where(and_(UserRole.role_id==A0.c.role_id, UserRole.user_id==self.user.id))
@@ -352,7 +352,7 @@ class AuthzSession(Session):
 
         Labels = select([R.c.label]).\
                  select_from(R).\
-                 order_by(R.c.id).as_scalar()
+                 order_by(R.c.id).scalar_subquery()
                  # フォルダ階層順にソートするためidでソートする 
                  # as_scalar()を指定しないとメインのSELECT文にFROM句が付加されてしまう
 
@@ -624,20 +624,22 @@ class AuthzSession(Session):
         return result.owner == True
 
     def has_sys_admin(self) -> bool:
+        from sqlalchemy.sql.expression import literal
         from .user_role import UserRole
         from .role import Role
         query = self._session.query(Role).\
                             outerjoin(UserRole, UserRole.role_id==Role.id).\
-                            filter(Role.uuid == Role.SYS_ADMIN_ROLE_UUID).\
+                            filter(Role.uuid == literal(Role.SYS_ADMIN_ROLE_UUID)).\
                             filter(UserRole.user_id==self.user.id)
         return query.count() > 0
 
     def has_usr_admin(self) -> bool:
+        from sqlalchemy.sql.expression import literal
         from .user_role import UserRole
         from .role import Role
         query = self._session.query(Role).\
                             outerjoin(UserRole, UserRole.role_id==Role.id).\
-                            filter(Role.uuid == Role.USR_ADMIN_ROLE_UUID).\
+                            filter(Role.uuid == literal(Role.USR_ADMIN_ROLE_UUID)).\
                             filter(UserRole.user_id==self.user.id)
         return query.count() > 0       
 
