@@ -13,7 +13,7 @@ class UnAuthzFactory():
         from . import engine
 
         # セッションをつくる
-        session_maker = sessionmaker(engine)
+        session_maker = sessionmaker(engine, future=True)
 
         # セッションを保持する
         self._session = Session(session_maker, user=None)
@@ -111,7 +111,7 @@ class Factory():
         # ・session.commit()によるExpireでquery_expression()で設定されているreadableがNoneになる
         # ・これを回避するためexpire_on_commit=Falseとする、autoflush=Falseも必要!
         # ・session.rollback()によるExprireを回避する方法はない
-        session_maker = sessionmaker(bind=engine, expire_on_commit=False, autoflush=False)
+        session_maker = sessionmaker(bind=engine, expire_on_commit=False, autoflush=False, future=True)
 
         # セッションを保持する
         self._session = AuthzSession(session_maker, user)
