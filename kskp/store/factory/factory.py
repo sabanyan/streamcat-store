@@ -410,7 +410,9 @@ class DatumFactory():
         """
         ゴミ箱の中にある場合はTrueを返す
         """
-        sql = f"""
+        from sqlalchemy import text
+
+        sql = text(f"""
         WITH RECURSIVE R AS (
             SELECT id, parent_id, uuid, type, path FROM data WHERE uuid = '{uuid}'
             UNION ALL
@@ -418,7 +420,7 @@ class DatumFactory():
         )
         SELECT uuid, path, type FROM R
         WHERE type = '{Datum.TRASH_TYPE}'
-        """
+        """)
         try:
             results = self._session.execute(sql)
         except Exception as e:

@@ -187,10 +187,10 @@ class User(BaseModel):
 
         query = self._session.query(
                         func.count(
-                            case([(Role.uuid == literal(Role.SYS_ADMIN_ROLE_UUID),1)],else_=null())
+                            case((Role.uuid == literal(Role.SYS_ADMIN_ROLE_UUID),1),else_=null())
                         ).label('sys_admin'),
                         func.count(
-                            case([(Role.uuid == literal(Role.USR_ADMIN_ROLE_UUID),1)],else_=null())
+                            case((Role.uuid == literal(Role.USR_ADMIN_ROLE_UUID),1),else_=null())
                         ).label('usr_admin')
                     ).\
                     select_from(Role).\

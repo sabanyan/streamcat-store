@@ -56,6 +56,7 @@ def admin_exists():
     """
     管理者ロールに所属するユーザがいる場合はTrueを返す
     """
+    from sqlalchemy import text
 
     sql = f"""
     select count(*) from roles G
@@ -66,7 +67,7 @@ def admin_exists():
                                 where U.id = UG.user_id) )
     """
     # adminロールに所属するユーザ数をカウントする
-    count = engine.execute(sql).scalar()
+    count = engine.execute(text(sql)).scalar()
     return count > 0
 
 # テーブルを作成する

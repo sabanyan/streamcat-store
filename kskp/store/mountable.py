@@ -61,7 +61,9 @@ class Mountable():
         自身のエントリ以下にあるFrameとFlowが、自身のエントリ以下以外にあるFlowから参照される、
         そのようなFlowを全て返す
         """
-        sql = """
+        from sqlalchemy import text
+
+        sql = text(f"""
         WITH RECURSIVE R AS (
             SELECT id, uuid FROM data WHERE id = {id}
             UNION ALL
@@ -75,7 +77,7 @@ class Mountable():
         AND EXISTS (SELECT * FROM R
                     WHERE type in ('flow','frame')
                       AND to_tsvector(D.data) @@ to_tsquery(cast(R.uuid AS VARCHAR)))
-        """.format(id=self_id)
+        """)
         try:
             results = self._session.execute(sql)
             return [result[0] for result in results]
@@ -108,9 +110,10 @@ class Mountable():
         マウントされていないマウントポイントがあればマウントし直す
         """
         from pathlib import Path
+        from sqlalchemy import text
         from kskp.store.factory import DatumFactory
 
-        sql = """
+        sql = text(f"""
         WITH RECURSIVE R AS (
             SELECT id, parent_id, uuid, type, path FROM data WHERE id = {id}
             UNION ALL
@@ -119,7 +122,7 @@ class Mountable():
         SELECT uuid, path, type FROM R
         WHERE type = 'awss3' or type = 'rfolder'
         ORDER BY id
-        """.format(id=id)
+        """)
         try:
             results = session.execute(sql)
         except Exception as e:

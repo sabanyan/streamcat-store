@@ -325,14 +325,14 @@ class Datum(BaseModel):
 
         # cte: Common Table Expression WITH句のこと
         D0 = aliased(Datum, name='D0')
-        R = select([D0.id, D0.parent_id, D0.type]).select_from(D0).\
+        R = select(D0.id, D0.parent_id, D0.type).select_from(D0).\
             where(D0.id==self.id).\
             cte(name='R', recursive=True)
 
         # WITH句にUNION ALLを用いて再帰クエリとする
         D = aliased(Datum, name='D')
         R = R.union_all(
-                select([D.id, D.parent_id, D.type]).\
+                select(D.id, D.parent_id, D.type).\
                 select_from(R.join(D, and_(D.id==R.c.parent_id,
                                            R.c.type!=Datum.PROJECT_TYPE)))
             )
@@ -605,7 +605,7 @@ class Datum(BaseModel):
         # DataのTableオブジェクト
         D = Datum.__table__
 
-        select_stmt = select([Datum.uuid]).\
+        select_stmt = select(Datum.uuid).\
                       select_from(D).\
                       where(and_(Datum.type==Datum.FLOW_TYPE,
                                  Datum.uuid!=self.uuid, 
@@ -651,7 +651,7 @@ class Datum(BaseModel):
 
         # id : 検索対象Datumから葉ノードへの経路の全てのDatumのid
         D0 = aliased(Datum, name='D0')
-        R = select([D0.id, D0.uuid]).\
+        R = select(D0.id, D0.uuid).\
             select_from(D0).\
             where(D0.id==self.id).\
             cte(name='R', recursive=True) 
@@ -660,17 +660,17 @@ class Datum(BaseModel):
         # WITH句にUNION ALLを用いて再帰クエリとする
         D1 = aliased(Datum, name='D1')
         R = R.union_all(
-                select([D1.id, D1.uuid]).\
+                select(D1.id, D1.uuid).\
                 select_from(R.join(D1, D1.parent_id==R.c.id))
             )
 
         # ゴミ箱の中のDatumを全て取得する再帰クエリ
-        T = select([D0.id, D0.uuid]).\
+        T = select(D0.id, D0.uuid).\
             select_from(D0).\
             where(D0.type==Datum.TRASH_TYPE).\
             cte(name='T', recursive=True)
         T = T.union_all(
-                select([D1.id, D1.uuid]).\
+                select(D1.id, D1.uuid).\
                 select_from(T.join(D1, D1.parent_id==T.c.id))
             )
 
@@ -688,9 +688,9 @@ class Datum(BaseModel):
         #  U : 自分と自分の子孫以外のFlow
         #  U.ref_uuid : 自分と自分の子孫以外のFlowが参照しているuuid
         jsonpath = '$.flow.nodes?(@.type != "command" && @.type != "note").uuid'
-        U = select([D.c.uuid,
-                    D.c.label,
-                    func.jsonb_path_query(D.c.data, jsonpath).label('ref_uuid')]).\
+        U = select(D.c.uuid,
+                   D.c.label,
+                   func.jsonb_path_query(D.c.data, jsonpath).label('ref_uuid')).\
             select_from(D).\
             where(and_(D.c.type==Datum.FLOW_TYPE, not_exists_inner, not_exists_trash)).\
             alias('U')
@@ -701,7 +701,7 @@ class Datum(BaseModel):
         exists_inner = exists().where(predicate)
 
         # メインSQL
-        select_stmt = select([U.c.uuid,U.c.label,U.c.ref_uuid]).\
+        select_stmt = select(U.c.uuid,U.c.label,U.c.ref_uuid).\
                       select_from(U).\
                       where(exists_inner)
         

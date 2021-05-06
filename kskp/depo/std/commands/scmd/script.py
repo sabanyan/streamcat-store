@@ -293,7 +293,7 @@ class DbLoaderCommand(SCommand):
                 is_header = True
                 for result in results:
                     if is_header:
-                        print(','.join(result.keys()))
+                        print(','.join(result._fields))
                         is_header = False
                     # NULL値を空白にする
                     str_result = map(to_str, result)
@@ -349,24 +349,31 @@ class DbLoaderCommand(SCommand):
         SQL文を発行し結果を取得する
         """
         from sqlalchemy import exc
+        from sqlalchemy import text
         # 時間計測開始
         import time
         t1 = time.time()
 
-        if dbms.upper() != 'ORACLE':
-            try:
-                engine.execute('BEGIN')
-            except exc.SQLAlchemyError as e:
-                engine.execute('ROLLBACK')
-                raise Exception('トランザクションの開始に失敗しました(%s)' % str(e))
+        # if dbms.upper() != 'ORACLE':
+        #     try:
+        #         engine.execute('BEGIN')
+        #     except exc.SQLAlchemyError as e:
+        #         engine.execute('ROLLBACK')
+        #         raise Exception('トランザクションの開始に失敗しました(%s)' % str(e))
+
+        # try:
+        #     results = engine.execute(sql)
+        # except exc.SQLAlchemyError as e:
+        #     engine.execute('ROLLBACK')
+        #     raise Exception('SQLの実行に失敗しました %s' % sql)
+        # finally:
+        #     engine.execute('COMMIT')
 
         try:
-            results = engine.execute(sql)
+            with engine.begin() as conn:
+                results = conn.execute(text(sql))
         except exc.SQLAlchemyError as e:
-            engine.execute('ROLLBACK')
             raise Exception('SQLの実行に失敗しました %s' % sql)
-        finally:
-            engine.execute('COMMIT')
 
         # 時間計測終了
         t2 = time.time()
@@ -545,7 +552,8 @@ class DbSaverCommand(SaverCommand):
             creata_table += ';'
         from sqlalchemy import DDL, exc
         try:
-            engine.execute(DDL(creata_table))
+            with engine.begin() as conn:
+                conn.execute(DDL(creata_table))
         except exc.IntegrityError as e:
             # 同時に同じ名称のテーブルを作成するとUniqueViolationの例外が送出される
             # テーブル作成が完了すれば、他の接続での作成が失敗しても問題ではないので、例外を無視する

@@ -465,12 +465,12 @@ class ProjectFolder(Folder):
         exists_user_role = exists().where(and_(UserRole.user_id==User.id, UserRole.role_id==A.c.role_id))
         not_exists_role = ~exists().where(and_(Role.id==A.c.role_id, Role.uuid==except_role_uuid))
 
-        AU = select([
+        AU = select(
                 A.c.datum_id,
                 A.c.operation,
                 User.id.label('user_id'),
                 func.coalesce(func.bool_and(A.c.permission),false()).label('permission')
-             ]).\
+             ).\
              select_from(
                 A.outerjoin(User, or_(exists_user_role, User.self_role_id==A.c.role_id))
              ).\
@@ -495,13 +495,13 @@ class ProjectFolder(Folder):
                          WRITE_PERMISSIONS  : ProjectFolder.WRITER_MEMBER_TYPE,
                          OWNER_PERMISSIONS  : ProjectFolder.OWNER_MEMBER_TYPE},
                         value=func.sum(
-                                case([(AU.c.permission,
-                                    case([(AU.c.operation=='read',  Datum.PERMISSION_READ),
-                                          (AU.c.operation=='write', Datum.PERMISSION_WRITE),
-                                          (AU.c.operation=='exec',  Datum.PERMISSION_EXEC),
-                                          (AU.c.operation=='own',   Datum.PERMISSION_OWN)
-                                    ])
-                                )])
+                                case((AU.c.permission,
+                                    case((AU.c.operation=='read',  Datum.PERMISSION_READ),
+                                         (AU.c.operation=='write', Datum.PERMISSION_WRITE),
+                                         (AU.c.operation=='exec',  Datum.PERMISSION_EXEC),
+                                         (AU.c.operation=='own',   Datum.PERMISSION_OWN)
+                                    )
+                                ))
                               ),
                         else_=ProjectFolder.OTHER_MEMBER_TYPE
                     ).label('type')

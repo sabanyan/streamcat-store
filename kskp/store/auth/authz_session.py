@@ -46,11 +46,12 @@ class Session():
     def execute(self, sql):
         # テスト実行で二つのSessionを用いた時、片方のSessionで
         # search_pathが設定されないので、execute()の度に設定することにする
+        from sqlalchemy import text
         from kskp.core import _is_unittest, SCHEMA_NAME
         if _is_unittest():
             # カレントスキーマを設定する
             # (コミットされると、セッションが終了するまでその設定が持続する)
-            sql1 = f'SET search_path = {SCHEMA_NAME}; commit;'
+            sql1 = text(f'SET search_path = {SCHEMA_NAME}; commit;')
             self._session.execute(sql1)
 
         return self._session.execute(sql)
@@ -159,7 +160,7 @@ class AuthzSession(Session):
 
         # query.count()でSQLAlchemyがエラーを送出するため、
         # これを回避するためtextをselectオブジェクトでラップする
-        return select([literal_column(select_stmt_str)])
+        return select(literal_column(select_stmt_str))
 
     def _make_exists_readable(self):
         from sqlalchemy.sql.expression import exists, literal, text
@@ -195,7 +196,7 @@ class AuthzSession(Session):
         # id      : 検索対象DatumからRootDatumへの経路の全てのDatumのid
         # depth   : RootDatumからの深さ(検索対象Datum=1)
         D0 = aliased(Datum, name='D0')
-        R = select([D0.id.label('leaf_id'), D0.id, D0.parent_id, literal(1).label('depth')]).\
+        R = select(D0.id.label('leaf_id'), D0.id, D0.parent_id, literal(1).label('depth')).\
             select_from(D0).\
             where(D0.id==datum_id).\
             cte(name='R', recursive=True) 
@@ -204,7 +205,7 @@ class AuthzSession(Session):
         # WITH句にUNION ALLを用いて再帰クエリとする
         D = aliased(Datum, name='D')
         R = R.union_all(
-                select([R.c.leaf_id, D.id, D.parent_id, (R.c.depth+literal(1)).label('depth')]).\
+                select(R.c.leaf_id, D.id, D.parent_id, (R.c.depth+literal(1)).label('depth')).\
                 select_from(R.join(D, D.id==R.c.parent_id))
             )
 
@@ -221,17 +222,17 @@ class AuthzSession(Session):
         exists_user = exists().where(and_(User.self_role_id==A0.c.role_id, User.id==self.user.id))
 
         # 操作ユーザが複数のロールに所属する場合、対象のDatumの操作権限を判定する
-        A = select([
+        A = select(
                 A0.c.datum_id,
                 A0.c.operation,
                 func.coalesce(func.bool_and(A0.c.permission),false()).label('permission'),
                 func.bool_and(
-                    case([(
+                    case((
                         exists_edit_lock,
                         true()
-                    )], else_=A0.c.permission)
+                    ), else_=A0.c.permission)
                 ).label('permission_without_edit_lock')
-            ]).\
+            ).\
             select_from(A0).\
             where(
                 and_(
@@ -254,22 +255,22 @@ class AuthzSession(Session):
                     )
 
         # フォルダ権限のオーバライドを判定する
-        RA = select([
-                case([(
+        RA = select(
+                case((
                     # 編集ロック値を考慮しない権限の判定結果
                     auth_bool_and(A.c.permission_without_edit_lock),
                     case(
                         {'read' : Datum.PERMISSION_READ ,
                          # 更新権限は、編集ロック値を考慮しない権限と、考慮する権限の二つの判定結果を返す
-                         'write': case([(auth_bool_and(A.c.permission), 
-                                        Datum.PERMISSION_WRITE | Datum.PERMISSION_WRITER)],
+                         'write': case((auth_bool_and(A.c.permission), 
+                                        Datum.PERMISSION_WRITE | Datum.PERMISSION_WRITER),
                                         else_=Datum.PERMISSION_WRITER),
                          'exec' : Datum.PERMISSION_EXEC},
                         value=A.c.operation,
                         else_=0
                     )
-                )], else_=0).label('permission')
-             ]).\
+                ), else_=0).label('permission')
+             ).\
              select_from(
                  R.outerjoin(A, R.c.id==A.c.datum_id)
              ).\
@@ -278,7 +279,7 @@ class AuthzSession(Session):
              alias('RA')
 
         # 権限フラグのAND演算をする(SQLの集計関数を入れ子にできないのでSELECT文でラップする)
-        return select([func.sum(RA.c.permission).label('permissions')]).select_from(RA)
+        return select(func.sum(RA.c.permission).label('permissions')).select_from(RA)
 
     def _make_select_ownership(self, datum_id):
         """
@@ -297,7 +298,7 @@ class AuthzSession(Session):
         exists_user_role = exists().where(and_(UserRole.role_id==A.role_id, UserRole.user_id==self.user.id))
         exists_user = exists().where(and_(User.self_role_id==A.role_id, User.id==self.user.id))
 
-        select_stmt = select([func.coalesce(func.bool_and(A.permission),false()).label('owner')]).\
+        select_stmt = select(func.coalesce(func.bool_and(A.permission),false()).label('owner')).\
                             select_from(A).\
                             where(
                                 and_(
@@ -322,7 +323,7 @@ class AuthzSession(Session):
 
         D = aliased(Datum, name='D')
 
-        select_stmt = select([D.uuid]).\
+        select_stmt = select(D.uuid).\
                       select_from(D).\
                       where(D.id==datum_parent_id_column)
         return select_stmt
@@ -343,7 +344,7 @@ class AuthzSession(Session):
         # label : 検索対象Datumのlabel
         # id    : 検索対象DatumからRootDatumへの経路の全てのDatumのid
         D0 = aliased(Datum, name='D0')
-        R = select([D0._label.label('label'), D0.id, D0.parent_id]).\
+        R = select(D0._label.label('label'), D0.id, D0.parent_id).\
             select_from(D0).\
             where(D0.id==datum_parent_id_column).\
             cte(name='R', recursive=True) 
@@ -352,11 +353,11 @@ class AuthzSession(Session):
         # WITH句にUNION ALLを用いて再帰クエリとする
         D = aliased(Datum, name='D')
         R = R.union_all(
-                select([D._label, D.id, D.parent_id]).\
+                select(D._label, D.id, D.parent_id).\
                 select_from(R.join(D, D.id==R.c.parent_id))
             )
 
-        Labels = select([R.c.label]).\
+        Labels = select(R.c.label).\
                  select_from(R).\
                  order_by(R.c.id).scalar_subquery()
                  # フォルダ階層順にソートするためidでソートする 
@@ -376,7 +377,7 @@ class AuthzSession(Session):
         # WITH句を含むSELECT文をtextで記述してこれをメインのSELECT文に含める
         func_exp_str = str(func_exp.compile(compile_kwargs={'literal_binds': True}))
 
-        return select([literal_column(func_exp_str)])
+        return select(literal_column(func_exp_str))
 
     def get(self, datum_type, ident):
         from kskp.core import Datum

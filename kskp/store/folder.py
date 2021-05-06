@@ -206,7 +206,9 @@ class Folder(Store):
         エントリを削除するが、対応するファイルは削除しない
         この処理は自身と自身のエントリ以下の全てのエントリが対象である
         """
-        sql="""
+        from sqlalchemy import text
+
+        sql=text(f"""
         WITH RECURSIVE R AS (
             SELECT id FROM data WHERE id = {id}
             UNION ALL
@@ -215,7 +217,7 @@ class Folder(Store):
         DELETE FROM data D
         WHERE EXISTS (SELECT * FROM R
                       WHERE R.id = D.id);
-        """.format(id=self.id)
+        """)
 
         try:
             # フォルダレコードを削除する
