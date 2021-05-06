@@ -29,11 +29,11 @@ class Query():
     def _create_query(self, query, session):
         return Query(query, session)
 
-    def get(self, ident):
-        result = self._query.get(ident)
-        if Query._is_base_model(result):
-            result._session = self._session
-        return result
+    # def get(self, ident):
+    #     result = self._query.get(ident)
+    #     if Query._is_base_model(result):
+    #         result._session = self._session
+    #     return result
 
     def one(self):
         result = self._query.one()
@@ -98,15 +98,15 @@ class AuthzDatumQuery(Query):
     def _create_query(self, query, session):
         return AuthzDatumQuery(query, session)
 
-    def get(self, ident):
-        from kskp.core import Datum
-        result = self._query.get(ident)
-        if Query._is_base_model(result):
-            result._session = self._session
-            # 参照権限のないDatumの場合はNoneを返す
-            if isinstance(result, Datum) and not result.readable:
-                return None
-        return result
+    # def get(self, ident):
+    #     from kskp.core import Datum
+    #     result = self._query.get(ident)
+    #     if Query._is_base_model(result):
+    #         result._session = self._session
+    #         # 参照権限のないDatumの場合はNoneを返す
+    #         if isinstance(result, Datum) and not result.readable:
+    #             return None
+    #     return result
 
     def one(self):
         from kskp.core import Datum

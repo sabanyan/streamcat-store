@@ -59,6 +59,12 @@ class Session():
         query = self._session.query(datum_type, *args)
         return Query(query, self)
 
+    def get(self, datum_type, ident):
+        result = self._session.get(datum_type, ident)
+        if Query._is_base_model(result):
+            result._session = self
+        return result
+
     def add(self, obj, ignore_authz=False):
         self._session.add(obj)
 
@@ -372,6 +378,16 @@ class AuthzSession(Session):
 
         return select([literal_column(func_exp_str)])
 
+    def get(self, datum_type, ident):
+        from kskp.core import Datum
+        result = self._session.get(datum_type, ident)
+        if Query._is_base_model(result):
+            result._session = self
+            # 参照権限のないDatumの場合はNoneを返す
+            if isinstance(result, Datum) and not result.readable:
+                return None
+        return result
+
     def add(self, obj, ignore_authz=False):
         from kskp.core import Datum
         from kskp.store import Folder, Flow
@@ -443,7 +459,7 @@ class AuthzSession(Session):
         elif isinstance(obj, Auth):
             # ユーザ管理者かデータの所有者のみ、その権限を追加できる
             if not self.ownership(obj.datum_id) and not self.has_usr_admin():
-                datum = self._session.query(Datum).get(obj.datum_id)
+                datum = self._session.get(Datum, obj.datum_id)
                 raise NotAuthorizedException(f'{self.user}は{datum.label}に{obj.operation}権限を追加できませんでした')
             self._session.add(obj)
             self.flush(obj)

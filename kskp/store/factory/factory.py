@@ -469,7 +469,7 @@ class AuthFactory():
     def find_by_id(self, role_id, datum_id, operation):
         from kskp.store.auth import Auth
         # SQLAlchemyのidentity mapにキャッシュされていればそれを返す
-        authz = self._session.query(Auth).get((role_id, datum_id, operation))
+        authz = self._session.get(Auth, (role_id, datum_id, operation))
         if authz is None:
             raise Exception('No authz is found by designated id')
         return authz
@@ -664,7 +664,7 @@ class UserFactory():
 
     def find_by_id(self, user_id, except_states=None, allow_no_result=False) -> User:
         # SQLAlchemyのidentity mapにキャッシュされていればそれを返す
-        user = self._session.query(User).get(user_id)
+        user = self._session.get(User, user_id)
 
         if user is None and not allow_no_result:
             raise Exception(f'指定したUser({user_id})は存在しませんでした')
