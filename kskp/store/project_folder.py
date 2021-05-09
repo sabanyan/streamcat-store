@@ -266,15 +266,17 @@ class ProjectFolder(Folder):
         super().delete()
 
     def is_joined_user(self, user):
-        from sqlalchemy import exists, and_, or_
+        from sqlalchemy import exists, select, any_
         from kskp.store.auth import User, Auth, UserRole
 
-        exists_user_role = exists().where(and_(UserRole.user_id==user.id, UserRole.role_id==Auth.role_id))
-        exists_user = exists().where(and_(User.self_role_id==Auth.role_id, User.id==user.id))
+        # 操作ユーザの所属するロールを抽出するクエリ
+        UR = select(UserRole.role_id).select_from(UserRole).where(UserRole.user_id==user.id)
+        U  = select(User.self_role_id).select_from(User).where(User.id==user.id)
 
+        # ロールの抽出にはインデックスを参照させるためUNIONを用いる
         query = self._session.query(Auth).\
                      filter(Auth.datum_id==self.id).\
-                     filter(or_(exists_user_role, exists_user))
+                     filter(Auth.role_id==any_(UR.union_all(U)).scalar_subquery())
 
         return query.count() > 0
 

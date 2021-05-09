@@ -179,7 +179,7 @@ class AuthzSession(Session):
 
     def _make_select_permissions_inner(self, datum_id=None):
         from sqlalchemy.orm import aliased
-        from sqlalchemy.sql.expression import select, func, case, exists, literal, true, false, and_, or_, text
+        from sqlalchemy.sql.expression import select, func, case, exists, literal, true, false, and_, any_, text
         from kskp.core import Datum
         from .auth import Auth
         from .user import User
@@ -217,9 +217,9 @@ class AuthzSession(Session):
                                                 A0.c.role_id==Role.id,
                                                 Role.uuid==literal(Role.EDIT_LOCK_ROLE_UUID)))
 
-        # 操作ユーザが所属するロールであることを指定する条件
-        exists_user_role = exists().where(and_(UserRole.role_id==A0.c.role_id, UserRole.user_id==self.user.id))
-        exists_user = exists().where(and_(User.self_role_id==A0.c.role_id, User.id==self.user.id))
+        # 操作ユーザの所属するロールを抽出するクエリ
+        UR = select(UserRole.role_id).select_from(UserRole).where(UserRole.user_id==self.user.id)
+        U  = select(User.self_role_id).select_from(User).where(User.id==self.user.id)
 
         # 操作ユーザが複数のロールに所属する場合、対象のDatumの操作権限を判定する
         A = select(
@@ -237,7 +237,9 @@ class AuthzSession(Session):
             where(
                 and_(
                     A0.c.operation.in_([Auth.READ_OP, Auth.WRITE_OP, Auth.EXEC_OP]),
-                    or_(exists_user_role, exists_user)
+                    # 以下のようなORを含む条件はインデックスを参照しないためUNIONを用いる
+                    # or_(exists_user_role, exists_user)
+                    A0.c.role_id==any_(UR.union_all(U).scalar_subquery())
                 )
             ).\
             group_by(A0.c.datum_id, A0.c.operation).\
@@ -286,7 +288,7 @@ class AuthzSession(Session):
         操作ユーザがDatumの所有権を有するか判定する
         (フォルダの所有権はオーバーライドしない)
         """
-        from sqlalchemy import select, exists, func, false, and_, or_
+        from sqlalchemy import select, exists, func, false, and_, any_
         from sqlalchemy.orm import aliased
         from .auth import Auth
         from .user import User
@@ -294,9 +296,9 @@ class AuthzSession(Session):
 
         A = aliased(Auth, name='A')
 
-        # 操作ユーザが所属するロールであることを指定する条件
-        exists_user_role = exists().where(and_(UserRole.role_id==A.role_id, UserRole.user_id==self.user.id))
-        exists_user = exists().where(and_(User.self_role_id==A.role_id, User.id==self.user.id))
+        # 操作ユーザの所属するロールを抽出するクエリ
+        UR = select(UserRole.role_id).select_from(UserRole).where(UserRole.user_id==self.user.id)
+        U  = select(User.self_role_id).select_from(User).where(User.id==self.user.id)
 
         select_stmt = select(func.coalesce(func.bool_and(A.permission),false()).label('owner')).\
                             select_from(A).\
@@ -304,7 +306,7 @@ class AuthzSession(Session):
                                 and_(
                                     A.datum_id==datum_id,
                                     A.operation==Auth.OWN_OP,
-                                    or_(exists_user_role, exists_user)
+                                    A.role_id==any_(UR.union_all(U).scalar_subquery())
                                 )
                             )
         return select_stmt

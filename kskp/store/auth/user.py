@@ -489,34 +489,38 @@ class User(BaseModel):
         """
         所属する全てのロールを返す
         """
-        from sqlalchemy import exists, and_, or_
+        from sqlalchemy import select, any_
         from .role import Role
         from .user_role import UserRole
 
-        exists_user_role = exists().where(and_(UserRole.role_id==Role.id, UserRole.user_id==self.id))
-        exists_user = exists().where(and_(User.self_role_id==Role.id, User.id==self.id))
+        # 操作ユーザの所属するロールを抽出するクエリ
+        UR = select(UserRole.role_id).select_from(UserRole).where(UserRole.user_id==self.id)
+        U  = select(User.self_role_id).select_from(User).where(User.id==self.id)
 
+        # ロールの抽出にはインデックスを参照させるためUNIONを用いる
         query = self._session.query(Role).\
-                      filter(or_(exists_user_role, exists_user))
+                     filter(Role.id==any_(UR.union_all(U).scalar_subquery()))
         return query.order_by(Role.name).all()
 
     def get_joined_projects(self):
         """
         所属する全てのプロジェクトを返す
         """
-        from sqlalchemy import exists, and_, or_
+        from sqlalchemy import exists, select, and_, any_
         from kskp.core import Datum
         from kskp.store import ProjectFolder
         from .user_role import UserRole
         from .auth import Auth
 
-        exists_user_role = exists().where(and_(UserRole.role_id==Auth.role_id, UserRole.user_id==self.id))
-        exists_user = exists().where(and_(User.self_role_id==Auth.role_id, User.id==self.id))
+        # 操作ユーザの所属するロールを抽出するクエリ
+        UR = select(UserRole.role_id).select_from(UserRole).where(UserRole.user_id==self.id)
+        U  = select(User.self_role_id).select_from(User).where(User.id==self.id)
 
         exists_stmt = exists().where(
                                         and_(Auth.datum_id==ProjectFolder.id,
                                              Auth.permission==True,
-                                             or_(exists_user, exists_user_role)
+                                             # ロールの抽出にはインデックスを参照させるためUNIONを用いる
+                                             Auth.role_id==any_(UR.union_all(U).scalar_subquery())
                                         )
                                     )
 
