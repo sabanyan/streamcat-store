@@ -655,9 +655,9 @@ class UserFactory():
     def __init__(self, session):
         self._session = session
 
-    def create(self, email, name, password):
+    def create(self, email, name, password, issuer=None, subject=None):
         from kskp.store.auth import User
-        return User(self._session, email, name,  password)
+        return User(self._session, email, name, password, issuer=issuer, subject=subject)
 
     def find_all(self, except_states=None):
         query = self._session.query(User).order_by(User.email)
@@ -702,6 +702,17 @@ class UserFactory():
         except NoResultFound:
             raise Exception(f'指定したUser({email})は存在しませんでした')
 
+    def find_by_openid(self, issuer, subject, except_states=None) -> User:
+        """
+        指定されたissuerとsubjectのUserを取得する
+        """
+        try:
+            query = self._session.query(User).filter(User.issuer==issuer, User.subject==subject)
+            query = UserFactory._add_except_states_criteria(query, except_states)
+            return query.one()
+        except NoResultFound:
+            raise Exception(f'指定したUser({subject})は存在しませんでした')
+
     def find_by_keyword(self, keyword, except_states=None):
         """
         キーワードを含むユーザ名またはE-MailのUserを取得する
@@ -741,6 +752,37 @@ class UserFactory():
         query = self._session.query(User).filter(User.email==email)
         query = UserFactory._add_except_states_criteria(query, except_states)
         return query.count() > 0
+
+    def exists_by_openid(self, issuer, subject, except_states=None) -> bool:
+        query = self._session.query(User).filter(User.issuer==issuer, User.subject==subject)
+        query = UserFactory._add_except_states_criteria(query, except_states)
+        return query.count() > 0
+
+    def load_openid_user(self, email, name, issuer, subject):
+        """
+        OpenID Connectのアクセストークンからユーザを取得する
+        ユーザが存在しない場合は作成する
+        """
+        user_factory = UserFactory(self._session)
+
+        # ユーザが存在する場合は、それを返す
+        if user_factory.exists_by_openid(issuer, subject):
+            user = user_factory.find_by_openid(issuer, subject)
+            # ユーザが論理削除状態の場合は例外を送出する
+            if user.is_inactive:
+                raise Exception(f'指定したUser({email})は削除されました')
+            else:
+                return user
+
+        # ユーザが存在しない場合は、新規にユーザを作成する
+        # (passwordの指定がなければ自動生成する)
+        new_user = user_factory.create(email, name, password=None, issuer=issuer, subject=subject)
+        new_user.save()
+
+        # ランダムなパスワードを設定してユーザを登録状態にする
+        new_user.update_password(new_password=new_user._generate_password())
+
+        return new_user
 
     @staticmethod
     def _add_except_states_criteria(query, except_states):

@@ -1,7 +1,7 @@
 import os
 import uuid
 import sqlalchemy.types
-from sqlalchemy import Column, String
+from sqlalchemy import Column, String, UniqueConstraint
 from sqlalchemy.sql import operators
 from sqlalchemy.dialects.postgresql import INTEGER, UUID, ENUM
 from .exceptions import NotAuthorizedException
@@ -10,6 +10,13 @@ from . import BaseModel
 class User(BaseModel):
     # テーブル名の定義
     __tablename__ = 'users'
+
+    # テーブル定義の設定
+    __table_args__ = (
+        # 複合Unique制約の定義
+        # (OpenID Connectではissucerとsubjectでユーザを一意に識別する)
+        UniqueConstraint('issuer', 'subject', name='users_iss_sub_key'),
+    ) + BaseModel.__table_args__
 
     class MyString(sqlalchemy.types.TypeDecorator):
         """
@@ -56,8 +63,12 @@ class User(BaseModel):
     state         = Column(ENUM(INIT_STATE, TMP_STATE, ACTIVE_STATE, INACTIVE_STATE, name='user_state'), nullable=False)
     # 本人ロールのRoleId
     self_role_id  = Column(INTEGER, nullable=True)
+    # 認証サーバの識別子 (OpenID Connect)
+    issuer        = Column(String)
+    # 認証サーバ内でのユーザ識別子 (OpenID Connect)
+    subject       = Column(String)
 
-    def __init__(self, session, email, name, password=None):
+    def __init__(self, session, email, name, password=None, issuer=None, subject=None):
         """
         コンストラクタ
         """
@@ -79,6 +90,10 @@ class User(BaseModel):
         # 妥当なパスワードでない場合は例外を送出する
         self._valid_password_or_raise(new_password)
         self.password = self._get_encrypt_password(new_password)
+
+        # OpenID Connectのユーザ識別子を設定する
+        self.issuer = issuer
+        self.subject = subject
 
         # 本パスワードに変更する前は初期状態である
         self.state = User.INIT_STATE

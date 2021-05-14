@@ -109,7 +109,21 @@ else:
 try:
     from sqlalchemy import DDL
     alter_sql = DDL(f'ALTER TABLE data ADD COLUMN prev_parent_id INTEGER;')
-    with engine.connect() as conn:
+    with engine.begin() as conn:
+        conn.execute(alter_sql)
+except:
+    pass
+
+#
+# TODO: 後方互換性を保つためにissuerとsubject列がない場合は列を追加する
+
+try:
+    from sqlalchemy import DDL
+    alter_sql = DDL(f'ALTER TABLE users ADD COLUMN issuer VARCHAR;')
+    with engine.begin() as conn:
+        conn.execute(alter_sql)
+    alter_sql = DDL(f'ALTER TABLE users ADD COLUMN subject VARCHAR;')
+    with engine.begin() as conn:
         conn.execute(alter_sql)
 except:
     pass
