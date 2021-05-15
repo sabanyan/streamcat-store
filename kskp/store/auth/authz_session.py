@@ -124,10 +124,10 @@ class AuthzSession(Session):
             select_ownership = self._make_select_ownership(Datum.id)
             
             # Datumの親フォルダのuuidを取得する
-            select_parent_uuid = self._make_select_parent_uuid()
+            # select_parent_uuid = self._make_select_parent_uuid()
 
             # Datumのフォルダパスを取得する
-            select_folder_path = self._make_select_folder_path(Datum.parent_id)
+            # select_folder_path = self._make_select_folder_path(Datum.parent_id)
 
             # Datumの移動前のフォルダパスを取得する
             select_prev_folder_path = self._make_select_folder_path(Datum.prev_parent_id)
@@ -139,9 +139,10 @@ class AuthzSession(Session):
             query = self._session.query(Datum).\
                                   options(with_expression(Datum._permissions, select_permissions.label('permissions'))).\
                                   options(with_expression(Datum._ownership, select_ownership.label('ownership'))).\
-                                  options(with_expression(Datum._parent_uuid, select_parent_uuid.label('parent_uuid'))).\
-                                  options(with_expression(Datum._folder_path, select_folder_path.label('folder_path'))).\
                                   options(with_expression(Datum._prev_folder_path, select_prev_folder_path.label('prev_folder_path')))
+                                # 何故かfolder_pathとprev_folder_pathを同時にSELECT句で取得するとSQL文が遅くなる
+                                # ptions(with_expression(Datum._parent_uuid, select_parent_uuid.label('parent_uuid'))).\
+                                # options(with_expression(Datum._folder_path, select_folder_path.label('folder_path'))).\
 
             return AuthzDatumQuery(query, self)
 

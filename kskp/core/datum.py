@@ -547,8 +547,9 @@ class Datum(BaseModel):
                     'updateMember': False,
                     'lock'   : False,
                 },
-                'folderPath' : self.folder_path,
-                'folderUuid' : self.parent_uuid,
+                # 何故かfolder_pathとprev_folder_pathを同時にSELECT句で取得するとSQL文が遅くなる
+                # 'folderPath' : self.folder_path,
+                # 'folderUuid' : self.parent_uuid,
                 'prevFolderPath' : self.prev_folder_path,
                 'creator'   : self.creator_str,
                 'createdAt' : self.created_at_str }
