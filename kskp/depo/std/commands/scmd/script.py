@@ -21,16 +21,19 @@ class LoaderCommand(SCommand):
         self.name = 'loader'
 
     def run(self, args, inputs):
-        if not isinstance(inputs['folder'], Store):
-            t = type(inputs['folder'])
-            raise Exception(f'Loaderの入力にStore以外のデータ型({t})が入力されました')
-        folder = inputs['folder']
-        if not folder.path_exists:
-            raise Exception(f'ディレクトリ({folder.path})が存在しません')
+        # if not isinstance(inputs['folder'], Store):
+        #     t = type(inputs['folder'])
+        #     raise Exception(f'Loaderの入力にStore以外のデータ型({t})が入力されました')
+        # folder = inputs['folder']
+        # if not folder.path_exists:
+        #     raise Exception(f'ディレクトリ({folder.path})が存在しません')
+
+        datum_factory = args['datum_factory']
 
         # 指定したuuidのframeを取得する
         frame_uuid = args['uuid']
-        frame = folder.find_child_by_uuid(frame_uuid)
+        # frame = folder.find_child_by_uuid(frame_uuid)
+        frame = datum_factory.find_by_uuid(frame_uuid, type=Datum.FRAME_TYPE)
         if frame is None:
             raise Exception('No frame(%s) is found !' % frame_uuid)
         path = frame.path.as_posix()
@@ -60,8 +63,9 @@ class SaverCommand(SCommand):
     """
     def __init__(self):
         super().__init__()
-        self.i_ports = [Port('i', 'frame')]
+        self.i_ports = [Port('i', 'frame'), Port('folder', 'store')]
         self.o_ports = [Port('o', 'mcmd')]
+        self.name = 'saver'
 
     def run(self, args, inputs):
         # Frameを作成する

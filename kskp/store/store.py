@@ -210,7 +210,7 @@ class Store(Datum):
         from kskp.store import Flow, FlowData
 
         if len(saver.i_ports) != 2 or len(saver.o_ports) != 1 :
-            raise Exception('指定できるセーバは1入力1出力のコマンドです')
+            raise Exception(f'指定できるセーバは2入力1出力のコマンドです')
 
         # PointとStepの繫がりを探索するFlowVisitorを使えばスマートに、Jsonデータを取得できるだろう
         flow_json = {
