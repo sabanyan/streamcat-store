@@ -23,6 +23,8 @@ class User(BaseModel):
         SQLAlchemyにおいてString列のlike/ilike演算で検索語をエスケープする
         """
         impl = sqlalchemy.types.String
+        # キャッシュを許可する
+        cache_ok = True
 
         class comparator_factory(String.Comparator):
 

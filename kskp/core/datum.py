@@ -21,6 +21,8 @@ class Datum(BaseModel):
         SQLAlchemyにおいてpath列をpathオブジェクトで参照・登録できるようにする
         """
         impl = sqlalchemy.types.String
+        # キャッシュを許可する
+        cache_ok = True
 
         def process_bind_param(self, value, dialect):
             if value is None:
