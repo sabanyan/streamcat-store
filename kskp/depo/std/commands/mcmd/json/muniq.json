@@ -6,7 +6,8 @@
       "type": "string",
       "label": "単一化キーの項目名",
       "optional": true,
-      "description": "・カンマ区切りで複数指定可\n・省略時はキーがないため、任意の１行が出力される"
+      "description": "・カンマ区切りで複数指定可\n・省略時はキーがないため、任意の１行が出力される",
+      "resizable": true
     },
     {
       "name": "assert_diffSize",

@@ -513,11 +513,25 @@ class CsvToRepetitivieWaveCommand(VisualizersBokehPlot):
             raise Exception(ErrMsg['1'])
 
         # 必須項目チェック
-        if x_axis_column is None or y_axis_column is None or group is None or statics is None:
+        if x_axis_column is None or y_axis_column is None or statics is None:
             return 
 
         # dfの作成
         df = pd.DataFrame(matrix, columns=column_names)
+
+        # cleansing
+        cleansing_df = self.doCleansing(df)
+
+        keys = df.columns
+        values = cleansing_df.columns
+        dictionary = dict(zip(keys, values))
+
+        # cleansing column_names (remove unvaild char like %)
+        x_axis_column  = dictionary[x_axis_column]
+        y_axis_column  = dictionary[y_axis_column]
+        data_column = [dictionary[d] for d in data_column if d in dictionary.keys()]
+
+        df = cleansing_df
 
         # 無効値の置換処理
         invaildIndexNames = df[(df[y_axis_column] == '') | (df[y_axis_column] == 'Na') | (df[y_axis_column] == 'Inf') | (df[y_axis_column] == 'NaN')].index
@@ -776,6 +790,18 @@ class CsvToRepetitivieWaveCommand(VisualizersBokehPlot):
 
         return result_df
 
+    def doCleansing(self, df):
+        i = df.values.tolist()
+        i.insert(0,list(df.columns))
+        result = None
+        result <<= nm.mfldname(i=i, q=True).writelist(header=True)
+        result = result.run()
+
+        name = result.pop(0)
+        result_df = pd.DataFrame(result,columns=name)
+
+        return result_df
+
 class CsvToTimeCompressionCommand(VisualizersBokehPlot):
 
     def __init__(self):
@@ -792,6 +818,10 @@ class CsvToTimeCompressionCommand(VisualizersBokehPlot):
         y_axis_column  = y_axis[0]['column']
         y_axis_label   = y_axis[0]['label']
 
+        # 初期表示時
+        if x_axis_column is None and y_axis_column is None: 
+            raise Exception(ErrMsg['1'])
+            
         # データ系列の設定
         data     = args.get('data')   if args.get('data') is not None else []
 
@@ -810,10 +840,26 @@ class CsvToTimeCompressionCommand(VisualizersBokehPlot):
 
         # df
         df = pd.DataFrame(matrix, columns=column_names)
+        
+        # cleansing
+        cleansing_df = self.doCleansing(df)
+
+        keys = df.columns
+        values = cleansing_df.columns
+        dictionary = dict(zip(keys, values))
+
+        # cleansing column_names (remove unvaild char like %)
+        x_axis_column  = dictionary[x_axis_column]
+        y_axis_column  = dictionary[y_axis_column]
+        data = [dictionary[d] for d in data if d in dictionary.keys()]
+
+        df = cleansing_df
+
         df[y_axis_column] = df[y_axis_column].astype(float)
         df[x_axis_column] = df[x_axis_column].astype(float)
 
         # title
+        data_title = " ".join(data) if len(data) != 0 else "データ系列の指定なし"
         df_x_minmax = self.doMsummary(df, None, x_axis_column, "min,max")
         df_y_minmax = self.doMsummary(df, None, y_axis_column, "min,max")
 
@@ -873,7 +919,7 @@ class CsvToTimeCompressionCommand(VisualizersBokehPlot):
         # Graph Plot
         plots = []
         for g in source:
-            title = "時間圧縮図:{}、 期間:{} ~ {}".format(g, source[g]["x_range"][0], source[g]["x_range"][1])
+            title = "{}:{}  期間:{} ~ {}  期間の分割数:{}".format(data_title, g, source[g]["x_range"][0], source[g]["x_range"][1], division)
             tools = "pan,wheel_zoom,box_zoom,reset,save,box_select"
             plot = figure(
                 title=title,
@@ -888,7 +934,7 @@ class CsvToTimeCompressionCommand(VisualizersBokehPlot):
             for index in range(len(staticsArray)):
                 color = colors[index]
                 statics = staticsArray[index]
-                plot.line(source[g][result_column], source[g][statics], legend=statics, color=color, alpha=0.75, muted_color=color, muted_alpha=0.2)
+                plot.line(source[g][result_column], source[g][statics], legend_label=statics, color=color, alpha=0.75, muted_color=color, muted_alpha=0.2)
                 if display_pattern == "hatch" and index + 1 < len(staticsArray):
                         x = source[g][result_column]
                         y1 = source[g][staticsArray[index]]
@@ -914,6 +960,18 @@ class CsvToTimeCompressionCommand(VisualizersBokehPlot):
 
         return colors
 
+    def doCleansing(self, df):
+        i = df.values.tolist()
+        i.insert(0,list(df.columns))
+        result = None
+        result <<= nm.mfldname(i=i, q=True).writelist(header=True)
+        result = result.run()
+
+        name = result.pop(0)
+        result_df = pd.DataFrame(result,columns=name)
+
+        return result_df
+
     def doMsummary(self, df, k, f, c):
 
         i = df.values.tolist()
@@ -929,7 +987,6 @@ class CsvToTimeCompressionCommand(VisualizersBokehPlot):
         return result_df
 
     def doMbucket(self, df, k, f, n, F="1", rng=True):
-   
         i = df.values.tolist()
         i.insert(0,list(df.columns))
 

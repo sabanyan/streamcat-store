@@ -43,6 +43,24 @@ class TrashCan(Folder):
         for child in self.find_children():
             self._trash_all_inner(child)
 
+    def to_json(self):
+        ret = super().to_json()
+
+        # ゴミ箱直下では新規作成はできない
+        # ゴミ箱の変更・削除・移動もできない
+        ret['allowlist']['createProject'] = False
+        ret['allowlist']['createFolder'] = False
+        ret['allowlist']['createFile'] = False
+        ret['allowlist']['upload'] = False
+        ret['allowlist']['import'] = False
+        ret['allowlist']['download'] = False
+        ret['allowlist']['export'] = False
+        ret['allowlist']['update'] = False
+        # ret['allowlist']['delete'] = False
+        ret['allowlist']['move'] = False
+        ret['allowlist']['copy'] = False
+        return ret
+
     def _trash_all_inner(self, datum):
         if isinstance(datum, Folder) and datum.writable:
             # フォルダ直下のフォルダとファイルを削除する

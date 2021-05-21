@@ -72,13 +72,15 @@
       "type": "string",
       "label": "グループ化する項目名 (省略可)",
       "description": "・カンマ区切りで複数指定可\n・省略時は全ての行を同じグループとみなして処理される",
-      "optional": true
+      "optional": true,
+      "resizable": true
     },
     {
       "name": "f",
       "type": "string",
       "label": "展開する値の項目名 (必須)",
-      "description": "●列行展開の場合\n　・コンマ区切りで複数指定可\n　・ワイルドカード(*,?)使用可\n●行列展開の場合\n  ・値の項目を、１つのみ指定する"
+      "description": "●列行展開の場合\n　・コンマ区切りで複数指定可\n　・ワイルドカード(*,?)使用可\n●行列展開の場合\n  ・値の項目を、１つのみ指定する",
+      "resizable": true
     },
     {
       "name": "a",

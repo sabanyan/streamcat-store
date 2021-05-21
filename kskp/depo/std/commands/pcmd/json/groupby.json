@@ -5,18 +5,21 @@
       "name": "k",
       "type": "string",
       "label": "グループ化する項目名(必須)",
-      "description": "カンマ区切りで複数指定可"
+      "description": "カンマ区切りで複数指定可",
+      "resizable": true
     },
     {
       "name": "f",
       "type": "string",
       "label": "対象とする項目名 (必須)",
-      "description": "・カンマ区切りで複数指定可\n・ワイルドカード(*,？ )使用可"
+      "description": "・カンマ区切りで複数指定可\n・ワイルドカード(*,？ )使用可",
+      "resizable": true
     },
     {
       "name": "c",
       "type": "string",
-      "label": "統計量の指定と算出結果の列名の指定、演算の指定:作成列名 をカンマ区切りで与える（必須）"
+      "label": "統計量の指定と算出結果の列名の指定、演算の指定:作成列名 をカンマ区切りで与える（必須）",
+      "resizable": true
     },
     {
       "name": "delimiter",

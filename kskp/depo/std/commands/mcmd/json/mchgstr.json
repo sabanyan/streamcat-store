@@ -5,13 +5,15 @@
       "name": "c",
       "type": "string",
       "label": "置換の設定 (必須)",
+      "resizable": true,
       "description": "・置換対象となる文字列と、置換文字列を : 区切りで指定する\n・カンマ区切りで複数指定可"
     },
     {
       "name": "f",
       "type": "string",
       "label": "対象とする項目名 (必須)",
-      "description": "・カンマ区切りで複数指定可\n・ワイルドカード(*,？ )使用可"
+      "description": "・カンマ区切りで複数指定可\n・ワイルドカード(*,？ )使用可",
+      "resizable": true
     },
     {
       "name": "O",

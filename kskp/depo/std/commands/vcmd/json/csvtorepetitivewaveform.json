@@ -134,7 +134,8 @@
           "multiple": false,
           "labels": ["最小・平均・最大で表示", "25％分位・中央値・75%分位で表示"],
           "values": ["min,mean,max", "qtile1,median,qtile3"]
-        }
+        },
+        "default": "min,mean,max"
       },
       {
         "name": "width",
@@ -152,7 +153,7 @@
     "groups": [
       {
         "name": "axis_group",
-        "label": "軸の設定",
+        "label": "軸の設定（必須）ラベルは省略可",
         "params": ["event","x_axis","y_axis"]
       },
       {

@@ -5,14 +5,16 @@
       "name": "f",
       "type": "string",
       "label": "対象とする項目名と合計値の項目名の指定 (必須)",
-      "description": "・対象列名、合計値の項目名の順で コロン区切りで指定\n・カンマ区切りで複数指定可"
+      "description": "・対象列名、合計値の項目名の順で コロン区切りで指定\n・カンマ区切りで複数指定可",
+      "resizable": true
     },
     {
       "name": "k",
       "type": "string",
       "label": "グループ化する項目名",
       "optional": true,
-      "description": "カンマ区切りで複数指定可\n省略時は全ての行を同じグループとみなして処理される"
+      "description": "カンマ区切りで複数指定可\n省略時は全ての行を同じグループとみなして処理される",
+      "resizable": true
     },
     {
       "name": "n",

@@ -107,7 +107,7 @@
   "groups": [
     {
       "name": "axis_group",
-      "label": "軸の設定",
+      "label": "軸の設定（必須）ラベルは省略可",
       "params": ["x_axis","y_axis"]
     },
     {

@@ -163,7 +163,7 @@ class FlowDumper:
 
         return tar_file_path
 
-    def restore_archive(self, parent, archive_name, stream):
+    def restore_archive(self, parent, folder_label, file_name, stream):
         # 展開処理
         import uuid
         tar_dir_path = Path('/tmp') / str(uuid.uuid4())
@@ -200,7 +200,7 @@ class FlowDumper:
                     if file.parent == tar_dir_path:
                         # アーカイブ内のトップディレクトリの場合、
                         # ルート直下にプロジェクトフォルダを作成する
-                        folder = parent.create_project_folder(file.name)
+                        folder = self._create_folder(parent, folder_label or file.name)
                         folder.save()
                         folders[file] = folder
                     elif file.parent in folders:
@@ -216,7 +216,7 @@ class FlowDumper:
                 else:
                     # 親フォルダがない場合はルート直下に作る
                     if default_top_folder is None:
-                        default_top_folder = parent.create_project_folder(archive_name)
+                        default_top_folder = self._create_folder(parent, folder_label or file_name)
                         default_top_folder.save()
                     folder = default_top_folder
 
@@ -285,3 +285,14 @@ class FlowDumper:
         with tarfile.open(fileobj=stream, mode='r|*') as tar:
             tar.extractall(tar_dir_path)
             return [member for member in tar.getmembers()]
+
+    def _create_folder(self, parent:Datum, label) -> Datum:
+        """
+        展開したファイルを格納するフォルダを作成する
+        """
+        if parent.is_root:
+            # ルートフォルダにフォルダは作成できない
+            return parent.create_project_folder(label)
+        else:
+            # ルートフォルダ以外にプロジェクトは作成できない
+            return parent.create_folder(label)

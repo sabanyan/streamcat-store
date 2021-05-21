@@ -11,7 +11,7 @@
       "name": "f",
       "type": "string",
       "label": "対象とする項目名 (必須)",
-      "description": "要素を１つ指定する"
+      "description": "・項目名を１つ指定する"
     },
     {
       "name": "n",
@@ -31,7 +31,8 @@
       "type": "string",
       "label": "グループ化する項目名 (省略可)",
       "optional": true,
-      "description": "カンマ区切りで複数指定可\n省略時は全ての行を同じグループとみなして処理される"
+      "description": "カンマ区切りで複数指定可\n省略時は全ての行を同じグループとみなして処理される",
+      "resizable": true
     },
     {
       "name": "p",
