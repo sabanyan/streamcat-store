@@ -14,6 +14,7 @@ from .exceptions import (
 from .store_model import Store as StoreModel
 from .store import Store, NysolModule, ModuleStore, List, ApparentLast
 from .mountable import Mountable
+from .file import File
 from .frame import Frame
 from .activity import Activity
 from .vis import Vis, BokehPlotVis
