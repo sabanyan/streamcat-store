@@ -279,6 +279,10 @@ class Store(Datum):
         cache.is_cache = True
         return cache
 
+    def create_document(self, label, content_type, stream):
+        from kskp.store import Document
+        return Document(self._session, self, label, content_type, stream)
+
     def create_trashcan(self):
         from kskp.store import TrashCan
         return TrashCan(self._session, self)

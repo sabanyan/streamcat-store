@@ -16,6 +16,7 @@ from .store import Store, NysolModule, ModuleStore, List, ApparentLast
 from .mountable import Mountable
 from .file import File
 from .frame import Frame
+from .document import Document
 from .activity import Activity
 from .vis import Vis, BokehPlotVis
 from .flow_data import FlowData

@@ -9,7 +9,7 @@ class File(Datum):
     # 64MB
     READ_BUFFER_SIZE = 64 * 1024 * 1024
 
-    def __init__(self, session, parent, datum_type, label, mime_type, stream):
+    def __init__(self, session, parent, datum_type, label, content_type, stream):
         """
         コンストラクタ
         stream : Frameデータのファイルストリームを指定する
@@ -21,11 +21,11 @@ class File(Datum):
         self.stream = stream
 
         # data列の値を作成する
-        self._data = {'mime_type':mime_type}
+        self._data = {'content_type':content_type}
 
     @Constraints.prohibit_save_on_root
     @Constraints.set_project_role_on_adding
-    def save(self, file_path=None):
+    def save(self, file_path=None, content_type=None):
         """
         Fileを保存する
         """
@@ -39,6 +39,8 @@ class File(Datum):
             self._path = Datum.make_unique_path(self._path)
         elif file_path.exists():
             self._path = file_path
+            if content_type is not None:
+                self._data.update({'content_type':content_type})
         else:
             raise Exception(f'指定したファイル({file_path})が存在しないためFrameを保存できません')
 
