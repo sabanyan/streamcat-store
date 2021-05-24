@@ -374,6 +374,9 @@ class FlowData():
                     'type': {
                         'type': 'string'
                     },
+                    'optional': {
+                        'type': 'boolean'
+                    },
                     'uuid': {
                         '$ref': '#/definitions/uuid'
                     }
