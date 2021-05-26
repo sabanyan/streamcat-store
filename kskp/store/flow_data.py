@@ -224,6 +224,9 @@ class FlowData():
                     'type': {
                         'const': 'flow'
                     },
+                    'classification': {
+                        'type': 'string'
+                    },
                     'uuid': {
                         'anyOf': [
                             {
