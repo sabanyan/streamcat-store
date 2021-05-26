@@ -205,6 +205,14 @@ class FlowData():
                     'id',
                     'type',
                 ],
+                'oneOf': [
+                    {
+                        'required': ['uuid']
+                    },
+                    {
+                        'required': ['flow']
+                    }
+                ],
                 'additionalProperties': False,
                 'properties': {
                     'id': {
