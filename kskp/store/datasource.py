@@ -32,7 +32,7 @@ class DataSource(Flow):
                     "id": "c1",
                     "args": loader_step.args,
                     "srcs": {
-                        loader_step.runnable.i_ports[0].label : "d0"
+                        loader_step.command.i_ports[0].label : "d0"
                     },
                     "dsts": {
                         "o": "d"
@@ -40,7 +40,7 @@ class DataSource(Flow):
                     "type": "command",
                     "error": {},
                     "label": "c1",
-                    "commandId": loader_step.runnable.name,
+                    "commandId": loader_step.command.name,
                     "srcsOrder": [
                         "i"
                     ]
