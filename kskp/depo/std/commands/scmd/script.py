@@ -750,6 +750,11 @@ class RemoteFolderSaverCommand(SaverCommand):
         cmd = inputs['i'].content
         cmd <<= nm.m2tee(o=path_str)
 
+        # NYSOL-Pythonの=oオプションはファイルは作成するが、ディレクトリは作成しない
+        # そのため、NYSOL-Pythonの実行前にディレクトリを作成する必要がある
+        # (なお、runfuncの実行時点で作成してもエラーになった)
+        self._make_dir(file_path.parent)
+
         # DataSourceを保存するフォルダを用意する
         flow_label = args['flow_label']
         start_time = args['start_time'].astimezone()
@@ -768,6 +773,20 @@ class RemoteFolderSaverCommand(SaverCommand):
         nysol_module.context['frame'] = datasource
 
         return {'o': nysol_module}  
+
+    @staticmethod
+    def _make_dir(path):
+        """
+        ディレクトリを作成する
+        """
+        try:
+            # ディレクトリ(path列で指定されるディレクトリ)がなければ作成する
+            if not path.is_dir():
+                os.makedirs(path, exist_ok=True)
+            return path
+        except PermissionError as e:
+            # ファイルに対する権限がない場合
+            raise e
 
     @staticmethod
     def _create_data_source(parent, rfolder, label, file_path_str):
