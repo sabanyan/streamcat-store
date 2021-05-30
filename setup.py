@@ -12,6 +12,7 @@ setup(
         # 'psycopg2',
         'psycopg2-binary',
         'SQLAlchemy<1.5.0',
+        'APScheduler',
         'jsonschema',
         # 'alembic',
         'cryptography',

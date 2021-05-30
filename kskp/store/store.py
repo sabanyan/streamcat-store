@@ -279,6 +279,10 @@ class Store(Datum):
         cache.is_cache = True
         return cache
 
+    def create_schedule(self, label, runnable_uuid, args={}, inputs={}, trigger={}):
+        from kskp.store.scheduler import Schedule
+        return Schedule(self._session, self, label, runnable_uuid, args, inputs, trigger)
+
     def create_trashcan(self):
         from kskp.store import TrashCan
         return TrashCan(self._session, self)

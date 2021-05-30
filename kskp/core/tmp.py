@@ -48,9 +48,9 @@ class Tmp():
         # Tmpファイルの作成ディレクトリが環境変数で指定されていれば、
         # その場所に作成する
         if 'TMP' in os.environ :
-            return Path(os.environ('TMP'))
+            return Path(os.environ.get('TMP'))
         elif 'TEMP' in os.environ :
-            return Path(os.environ('TEMP'))
+            return Path(os.environ.get('TEMP'))
         else:
             return Path('/tmp')
 
