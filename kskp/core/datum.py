@@ -56,6 +56,7 @@ class Datum(BaseModel):
     FRAME_TYPE = 'frame'
     COMMAND_TYPE  = 'command'
     ACTIVITY_TYPE = 'activity'
+    DOCUMENT_TYPE = 'document'
     TRASH_TYPE = 'trash'
     # 将来の拡張のために予約するtype値
     APPLICATION_TYPE = 'app'
