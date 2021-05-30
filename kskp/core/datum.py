@@ -758,7 +758,7 @@ class Datum(BaseModel):
         return label.translate(trans_table)
 
     @staticmethod
-    def make_unique_path(path, except_path=None):
+    def make_unique_path(path:Path, except_path=None) -> Path:
         """
         同じ名称のファイルが既に存在する場合、末尾に数字を付加したファイル名で作成する
         except_path : 存在チェックを除外するファイル名
