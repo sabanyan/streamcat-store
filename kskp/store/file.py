@@ -150,6 +150,10 @@ class File(Datum):
             self._session.commit()
 
     @property
+    def content_type(self):
+        return self._data.get('content_type', '')
+
+    @property
     def file_size(self):
         if self.file_exists:
             return self._path.stat().st_size
