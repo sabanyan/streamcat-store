@@ -742,7 +742,9 @@ class RemoteFolderSaverCommand(SaverCommand):
         dir_path = args['dir_path']
 
         # 出力ファイルパスを作成する
-        file_path = rfolder.path / dir_path.strip('/') / 'point_id' 
+        src_point = args.get('src_point')
+        label = src_point.label if src_point is not None else ''
+        file_path = rfolder.path / dir_path.strip('/') / label
         file_path = Datum.make_unique_path(file_path)
         path_str = file_path.as_posix()
 
