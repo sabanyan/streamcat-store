@@ -248,14 +248,23 @@ class DatumFactory():
         """
         サブフローを取得する
         """
-        from sqlalchemy import func, or_
-        return self._session.query(Datum).filter(Datum.type==Datum.FLOW_TYPE).\
-                                          filter(
-                                                or_(
-                                                    func.jsonb_array_length(Datum._data['flow']['ports'][0])>0,
-                                                    func.jsonb_array_length(Datum._data['flow']['ports'][1])>0
-                                                )
-                                          ).all()
+        from sqlalchemy import exists, and_, literal
+        from kskp.store.auth import Auth
+
+        # 検索対象のDatumの編集ロックを権限の判定条件に含める条件
+        exists_edit_lock = exists().where(and_(Auth.datum_id==Datum.id,
+                                               Auth.role_id==Role.id,
+                                               Role.uuid==literal(Role.EDIT_LOCK_ROLE_UUID)))
+        # 編集ロック=ONのフローをサブフローとして抽出する
+        return self._session.query(Datum).filter(Datum.type==Datum.FLOW_TYPE)\
+                                         .filter(exists_edit_lock).all()
+
+                                        #   filter(
+                                        #         or_(
+                                        #             func.jsonb_array_length(Datum._data['flow']['ports'][0])>0,
+                                        #             func.jsonb_array_length(Datum._data['flow']['ports'][1])>0
+                                        #         )
+                                        #   ).all()
 
     def find_all_stores(self):
         """
