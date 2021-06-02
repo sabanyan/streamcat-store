@@ -32,10 +32,10 @@ class LoaderCommand(SCommand):
 
         # 指定したuuidのframeを取得する
         frame_uuid = args['uuid']
+        if frame_uuid is None or frame_uuid=='':
+            raise Exception('入力ファイルを指定してください')
         # frame = folder.find_child_by_uuid(frame_uuid)
         frame = datum_factory.find_by_uuid(frame_uuid, type=Datum.FRAME_TYPE)
-        if frame is None:
-            raise Exception('No frame(%s) is found !' % frame_uuid)
         path = frame.path.as_posix()
 
         if frame.encoding is None:
