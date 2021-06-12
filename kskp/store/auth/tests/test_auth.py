@@ -11,211 +11,239 @@ from ...tests.test_case_base import TestCaseBase
 class AuthTest(TestCaseBase):
 
     def setUp(self):
-        pass
-
-    def tearDown(self):
-        pass
-
-    # フローJSON
-    # mnewnumber -> d(cache=on) -> mcut -> d1(out=on)
-    flow_json = {
-        "label": "flow", 
-        "nodes": [
-        {
-            "id": "d", 
-            "type": "frame", 
-            "uuid": None, 
-            "label": "d", 
-            "makeCache": True, 
-            "dataSource": "csv", 
-            "cacheCreatedAt": None
-        }, 
-        {
-            "id": "c", 
-            "args": {
-            "I": "1", 
-            "S": "1", 
-            "a": "a", 
-            "l": "10"
-            }, 
-            "dsts": {
-            "o": "d"
-            },
-            "srcs": {}, 
-            "type": "command", 
-            "label": "c", 
-            "commandId": "mnewnumber", 
-            "srcsOrder": []
-        }, 
-        {
-            "id": "d1", 
-            "type": "frame", 
-            "uuid": None, 
-            "label": "d1", 
-            "makeCache": False, 
-            "dataSource": "csv", 
-            "cacheCreatedAt": None
-        }, 
-        {
-            "id": "c1", 
-            "args": {
-            "f": "*"
-            }, 
-            "dsts": {
-            "o": "d1"
-            }, 
-            "srcs": {
-            "i": "d"
-            }, 
-            "type": "command", 
-            "label": "c1", 
-            "commandId": "mcut", 
-            "srcsOrder": [
-            "i"
-            ]
-        }
-        ], 
-        "ports": [
-        [], 
-        [
+        # フローJSON
+        # mnewnumber -> d(cache=on) -> mcut -> d1(out=on)
+        self.flow_json = {
+            "label": "flow", 
+            "nodes": [
             {
-            "type": "frame", 
-            "label": "d1", 
-            "nodeId": "d1"
-            }
-        ]
-        ], 
-        "params": [], 
-        "creator": "ユーザー管理者", 
-        "createdAt": "2020-10-04 17:45:16", 
-        "projectId": None, 
-        "description": ""
-    }
-
-    # d(in=on) -> column_unique_name -> d1(out=on)
-    flow2_json = {
-        "label": "flow2", 
-        "nodes": [
-        {
-            "id": "d", 
-            "type": "frame", 
-            "value": [["顧客", "数量", "金額"],
-                      ["A", 1, 10],
-                      ["A", 2, 20],
-                      ["B", 1, 30],
-                      ["B", 3, 40],
-                      ["B", 1, 50]],
-            "label": "testData",
-            "makeCache": False, 
-            "dataSource": "csv", 
-            "cacheCreatedAt": None
-        }, 
-        {
-            "id": "d1", 
-            "type": "frame", 
-            "uuid": None, 
-            "label": "d1", 
-            "makeCache": False, 
-            "dataSource": "csv", 
-            "cacheCreatedAt": None
-        }, 
-        {
-            "id": "c1", 
-            "args": {
-                "d": "^^"
-            }, 
-            "dsts": {
-                "o": "d1"
-            }, 
-            "srcs": {
-                "i": "d"
-            }, 
-            "type": "command", 
-            "label": "c1", 
-            "commandId": "column_unique_name", 
-            "srcsOrder": [
-                "i"
-            ]
-        }
-        ], 
-        "ports": [
-        [
-            {
+                "id": "d", 
                 "type": "frame", 
-                "label": "testData", 
-                "nodeId": "d"
-            }
-        ], 
-        [
+                "uuid": None, 
+                "label": "d", 
+                "makeCache": True, 
+                "dataSource": "csv", 
+                "cacheCreatedAt": None
+            }, 
             {
+                "id": "c", 
+                "args": {
+                "I": "1", 
+                "S": "1", 
+                "a": "a", 
+                "l": "10"
+                }, 
+                "dsts": {
+                "o": "d"
+                },
+                "srcs": {}, 
+                "type": "command", 
+                "label": "c", 
+                "commandId": "mnewnumber", 
+                "srcsOrder": []
+            }, 
+            {
+                "id": "d1", 
+                "type": "frame", 
+                "uuid": None, 
+                "label": "d1", 
+                "makeCache": False, 
+                "dataSource": "csv", 
+                "cacheCreatedAt": None
+            }, 
+            {
+                "id": "c1", 
+                "args": {
+                "f": "*"
+                }, 
+                "dsts": {
+                "o": "d1"
+                }, 
+                "srcs": {
+                "i": "d"
+                }, 
+                "type": "command", 
+                "label": "c1", 
+                "commandId": "mcut", 
+                "srcsOrder": [
+                "i"
+                ]
+            },
+            {
+                "id": 'o0', 
+                "label": "ライブラリ出力🖨", 
+                "type": "flow", 
+                "classification": "data_dest",
+                "srcs": {
+                    "d": 'd1'
+                },
+                "dsts": {}, 
+                "uuid": self.data_dst.uuid
+            }
+            ], 
+            "ports": [
+            [], 
+            [
+                {
                 "type": "frame", 
                 "label": "d1", 
                 "nodeId": "d1"
-            }
-        ]
-        ], 
-        "params": [], 
-        "creator": "ユーザ管理者", 
-        "createdAt": "2020-11-19 11:31:10", 
-        "projectId": None, 
-        "description": ""
-    }
+                }
+            ]
+            ], 
+            "params": [], 
+            "creator": "ユーザー管理者", 
+            "createdAt": "2020-10-04 17:45:16", 
+            "projectId": None, 
+            "description": ""
+        }
 
-    # d(in=on) -> sub_flow -> d1(out=on)
-    flow3_json = {
-        "label": "flow3",
-        "nodes": [
+        # d(in=on) -> column_unique_name -> d1(out=on)
+        self.flow2_json = {
+            "label": "flow2", 
+            "nodes": [
             {
-                "id": "d",
-                "type": "frame",
-                "uuid": None,
-                "label": "0byte",
-                "makeCache": False,
-                "dataSource": "csv",
+                "id": "d", 
+                "type": "frame", 
+                "value": [["顧客", "数量", "金額"],
+                        ["A", 1, 10],
+                        ["A", 2, 20],
+                        ["B", 1, 30],
+                        ["B", 3, 40],
+                        ["B", 1, 50]],
+                "label": "testData",
+                "makeCache": False, 
+                "dataSource": "csv", 
                 "cacheCreatedAt": None
-            },
+            }, 
             {
-                "id": "d1",
-                "type": "frame",
-                "uuid": None,
-                "label": "d1",
-                "makeCache": False,
-                "dataSource": "csv",
+                "id": "d1", 
+                "type": "frame", 
+                "uuid": None, 
+                "label": "d1", 
+                "makeCache": False, 
+                "dataSource": "csv", 
                 "cacheCreatedAt": None
-            },
+            }, 
             {
-                "id": "f1",
-                "args": {},
+                "id": "c1", 
+                "args": {
+                    "d": "^^"
+                }, 
                 "dsts": {
-                    "d1": "d1"
-                },
+                    "o": "d1"
+                }, 
                 "srcs": {
-                    "d": "d"
-                },
-                "type": "flow",
-                "uuid": None,
-                "label": "f1",
+                    "i": "d"
+                }, 
+                "type": "command", 
+                "label": "c1", 
+                "commandId": "column_unique_name", 
                 "srcsOrder": [
-                    "d"
+                    "i"
                 ]
+            },
+            {
+                "id": 'o0', 
+                "label": "ライブラリ出力🖨", 
+                "type": "flow", 
+                "classification": "data_dest",
+                "srcs": {
+                    "d": 'd1'
+                },
+                "dsts": {}, 
+                "uuid": self.data_dst.uuid
             }
-        ],
-        "ports": [
-            [],
+            ], 
+            "ports": [
             [
                 {
-                    "type": "frame",
-                    "label": "d1",
+                    "type": "frame", 
+                    "label": "testData", 
+                    "nodeId": "d"
+                }
+            ], 
+            [
+                {
+                    "type": "frame", 
+                    "label": "d1", 
                     "nodeId": "d1"
                 }
             ]
-        ],
-        "params": [],
-        "creator": "ユーザー管理者",
-        "createdAt": "2020-11-20 09:20:50",
-        "projectId": None,
-        "description": ""
-    }
+            ], 
+            "params": [], 
+            "creator": "ユーザ管理者", 
+            "createdAt": "2020-11-19 11:31:10", 
+            "projectId": None, 
+            "description": ""
+        }
+
+        # d(in=on) -> sub_flow -> d1(out=on)
+        self.flow3_json = {
+            "label": "flow3",
+            "nodes": [
+                {
+                    "id": "d",
+                    "type": "frame",
+                    "uuid": None,
+                    "label": "0byte",
+                    "makeCache": False,
+                    "dataSource": "csv",
+                    "cacheCreatedAt": None
+                },
+                {
+                    "id": "d1",
+                    "type": "frame",
+                    "uuid": None,
+                    "label": "d1",
+                    "makeCache": False,
+                    "dataSource": "csv",
+                    "cacheCreatedAt": None
+                },
+                {
+                    "id": "f1",
+                    "args": {},
+                    "dsts": {
+                        "d1": "d1"
+                    },
+                    "srcs": {
+                        "d": "d"
+                    },
+                    "type": "flow",
+                    "uuid": None,
+                    "label": "f1",
+                    "srcsOrder": [
+                        "d"
+                    ]
+                },
+                {
+                    "id": 'o0', 
+                    "label": "ライブラリ出力🖨", 
+                    "type": "flow", 
+                    "classification": "data_dest",
+                    "srcs": {
+                        "d": 'd1'
+                    },
+                    "dsts": {}, 
+                    "uuid": self.data_dst.uuid
+                }
+            ],
+            "ports": [
+                [],
+                [
+                    {
+                        "type": "frame",
+                        "label": "d1",
+                        "nodeId": "d1"
+                    }
+                ]
+            ],
+            "params": [],
+            "creator": "ユーザー管理者",
+            "createdAt": "2020-11-20 09:20:50",
+            "projectId": None,
+            "description": ""
+        }
 
     def get_flow3_json(self, subflow_uuid):
         """

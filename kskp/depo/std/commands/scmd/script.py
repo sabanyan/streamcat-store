@@ -75,8 +75,7 @@ class SaverCommand(SCommand):
 
         point = args.get('point')
         if point is None:
-            src_point = args.get('src_point')
-            point_label = src_point.label if src_point is not None else ''
+            point_label = self.get_label(args.get('src_point'))
         else:
             point_label = point.label if point.label is not None else point.id
 
@@ -122,6 +121,15 @@ class SaverCommand(SCommand):
             raise Exception(f'{class_name}の引数(args)にFolder以外のデータ型({t})が入力されました')
         # Folderオブジェクトを返す
         return args['result_folder']
+
+    def get_label(self, point):
+        """
+        出力ファイルのラベルを取得する
+        """
+        if point is None:
+            return ''
+        else:
+            return point.label or point.id
 
     def append_writecsv_cmd(self, cmd, frame_path):
         abs_frame_path = frame_path.as_posix()
@@ -481,8 +489,7 @@ class DbSaverCommand(SaverCommand):
         result_folder = self.make_folder(folder, flow_label, start_time_str1, start_time_str2)
 
         # 出力結果を取得するDataSourceをライブラリに登録する
-        src_point = args.get('src_point')
-        label = src_point.label if src_point is not None else ''
+        label = self.get_label(args.get('src_point'))
         datasource = self._create_data_source(result_folder, database, label, schema_name, table_name, args['activity_uuid'])
         datasource.save()
 
@@ -742,8 +749,7 @@ class RemoteFolderSaverCommand(SaverCommand):
         dir_path = args['dir_path']
 
         # 出力ファイルパスを作成する
-        src_point = args.get('src_point')
-        label = src_point.label if src_point is not None else ''
+        label = self.get_label(args.get('src_point'))
         file_path = rfolder.path / dir_path.strip('/') / label
         file_path = Datum.make_unique_path(file_path)
         path_str = file_path.as_posix()
@@ -765,8 +771,6 @@ class RemoteFolderSaverCommand(SaverCommand):
         result_folder = self.make_folder(folder, flow_label, start_time_str1, start_time_str2)
 
         # 出力結果を取得するDataSourceをライブラリに登録する
-        src_point = args.get('src_point')
-        label = src_point.label if src_point is not None else ''
         datasource = self._create_data_source(result_folder, rfolder, label, path_str)
         datasource.save()
 

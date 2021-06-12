@@ -777,10 +777,10 @@ class AssertCmdTest(TestCaseBase):
         出力で、入力データの3行目以降不一致判定が出ることを期待する。
         エラー判定はfalse        
         """
-        json_flow = copy.deepcopy(self.simple_assert_json)
-        json_flow['ports'] = [[],[{'nodeId':'d1', 'label':'d1', 'type':'frame'}]]
+        flow_json = copy.deepcopy(self.simple_assert_json)
+        flow_json['nodes'].append(self.create_data_dst_node('d1'))
 
-        flow = self.root.create_flow(json_flow['label'], FlowData(json_flow))
+        flow = self.root.create_flow(flow_json['label'], FlowData(flow_json))
         flow_link = FlowCommand(flow)
         lasts = execute(flow_link, {}, {})
         lasts = convert_from_activity(lasts)
@@ -824,10 +824,10 @@ class AssertCmdTest(TestCaseBase):
         出力で、入力データが一致という判定が出ることを期待する。
         エラー判定はfalse     
         """
-        json_flow = copy.deepcopy(self.flow_json_same)
-        json_flow['ports'] = [[],[{'nodeId':'d1', 'label':'d1', 'type':'frame'}]]
+        flow_json = copy.deepcopy(self.flow_json_same)
+        flow_json['nodes'].append(self.create_data_dst_node('d1'))
 
-        flow = self.root.create_flow(json_flow['label'], FlowData(json_flow))
+        flow = self.root.create_flow(flow_json['label'], FlowData(flow_json))
         flow_link = FlowCommand(flow)
         lasts = execute(flow_link, {}, {})
         lasts = convert_from_activity(lasts)
@@ -869,10 +869,10 @@ class AssertCmdTest(TestCaseBase):
         出力で入力データ全行が不一致判定が出ることを期待する。
         エラー判定はfalse     
         """
-        json_flow = copy.deepcopy(self.sequential_assert_json)
-        json_flow['ports'] = [[],[{'nodeId':'d2', 'label':'d2', 'type':'frame'}]]
+        flow_json = copy.deepcopy(self.sequential_assert_json)
+        flow_json['nodes'].append(self.create_data_dst_node('d2'))
 
-        flow = self.root.create_flow(json_flow['label'], FlowData(json_flow))
+        flow = self.root.create_flow(flow_json['label'], FlowData(flow_json))
         flow_link = FlowCommand(flow)
         lasts = execute(flow_link, {}, {})
         lasts = convert_from_activity(lasts)
@@ -927,10 +927,11 @@ class AssertCmdTest(TestCaseBase):
         出力で、入力データが3行目以降不一致という判定が出ることを期待する。
         エラー判定はfalse
         """
-        json_flow = copy.deepcopy(self.double_assert_json)
-        json_flow['ports'] = [[],[{'nodeId':'d1', 'label':'d1', 'type':'frame'},{'nodeId':'d2', 'label':'d2', 'type':'frame'}]]
+        flow_json = copy.deepcopy(self.double_assert_json)
+        flow_json['nodes'].append(self.create_data_dst_node('d1'))
+        flow_json['nodes'].append(self.create_data_dst_node('d2'))
 
-        flow = self.root.create_flow(json_flow['label'], FlowData(json_flow))
+        flow = self.root.create_flow(flow_json['label'], FlowData(flow_json))
         flow_link = FlowCommand(flow)
         lasts = execute(flow_link, {}, {})
         lasts = convert_from_activity(lasts)
@@ -1000,10 +1001,10 @@ class AssertCmdTest(TestCaseBase):
         出力で、入力データが全行不一致という判定が出ることを期待する。
         エラー判定はtrue
         """
-        json_flow = copy.deepcopy(self.one_side_error_json)
-        json_flow['ports'] = [[],[{'nodeId':'d2', 'label':'d2', 'type':'frame'}]]
+        flow_json = copy.deepcopy(self.one_side_error_json)
+        flow_json['nodes'].append(self.create_data_dst_node('d2'))
 
-        flow = self.root.create_flow(json_flow['label'], FlowData(json_flow))
+        flow = self.root.create_flow(flow_json['label'], FlowData(flow_json))
         flow_link = FlowCommand(flow)
         lasts = execute(flow_link, {}, {})
         lasts = convert_from_activity(lasts)
@@ -1052,10 +1053,10 @@ class AssertCmdTest(TestCaseBase):
         出力で、入力データが一致という判定が出ることを期待する。
         エラー判定はtrue
         """
-        json_flow = copy.deepcopy(self.both_same_error_json)
-        json_flow['ports'] = [[],[{'nodeId':'d2', 'label':'d2', 'type':'frame'}]]
+        flow_json = copy.deepcopy(self.both_same_error_json)
+        flow_json['nodes'].append(self.create_data_dst_node('d2'))
 
-        flow = self.root.create_flow(json_flow['label'], FlowData(json_flow))
+        flow = self.root.create_flow(flow_json['label'], FlowData(flow_json))
         flow_link = FlowCommand(flow)
         lasts = execute(flow_link, {}, {})
         lasts = convert_from_activity(lasts)
@@ -1097,10 +1098,10 @@ class AssertCmdTest(TestCaseBase):
         出力で、入力データが不一致という判定が出ることを期待する。
         エラー判定はtrue
         """
-        json_flow = copy.deepcopy(self.both_error_json)
-        json_flow['ports'] = [[],[{'nodeId':'d2', 'label':'d2', 'type':'frame'}]]
+        flow_json = copy.deepcopy(self.both_error_json)
+        flow_json['nodes'].append(self.create_data_dst_node('d2'))
 
-        flow = self.root.create_flow(json_flow['label'], FlowData(json_flow))
+        flow = self.root.create_flow(flow_json['label'], FlowData(flow_json))
         flow_link = FlowCommand(flow)
         lasts = execute(flow_link, {}, {})
         lasts = convert_from_activity(lasts)
@@ -1143,10 +1144,10 @@ class AssertCmdTest(TestCaseBase):
         出力でその旨を通知することと、テスト失敗の判定が出ることを期待する。
         エラー判定はfalse     
         """
-        json_flow = copy.deepcopy(self.dlimit_overred_json)
-        json_flow['ports'] = [[],[{'nodeId':'d2', 'label':'d2', 'type':'frame'}]]
+        flow_json = copy.deepcopy(self.dlimit_overred_json)
+        flow_json['nodes'].append(self.create_data_dst_node('d2'))
 
-        flow = self.root.create_flow(json_flow['label'], FlowData(json_flow))
+        flow = self.root.create_flow(flow_json['label'], FlowData(flow_json))
         flow_link = FlowCommand(flow)
         lasts = execute(flow_link, {}, {})
         lasts = convert_from_activity(lasts)
