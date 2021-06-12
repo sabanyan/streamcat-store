@@ -167,7 +167,7 @@ class CommandLink:
     def resolve(self):
         return self.select_runnable(self.command_id)
 
-    def select_runnable(self, runnable_id):
+    def select_runnable(self, runnable_id) -> Command:
         """
         idとなる文字列を受け取ってrunnableのインスタンスを返却する
         """
