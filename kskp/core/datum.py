@@ -804,7 +804,7 @@ class Datum(BaseModel):
             return path
 
     @staticmethod
-    def is_valid_uuid(uuid):
+    def is_valid_uuid(uuid) -> bool:
         """
         uuidの形式チェック
         """

@@ -2779,7 +2779,7 @@ class AuthTest(TestCaseBase):
         out_frame = AuthTest.get_frame_from_lasts(lasts)
 
         # プロジェクト管理者は、フローのキャッシュを参照できること
-        cache_frame_uuid = flow.flow_data.get_cache_frame_uuids()[0]
+        cache_frame_uuid = next(iter(flow.flow_data.get_cache_frame_uuids()))
         cache_frame = self.factory2.data.find_by_uuid(cache_frame_uuid)
 
         # フローをプロジェクト2に移動する
@@ -2884,7 +2884,7 @@ class AuthTest(TestCaseBase):
         out_frame = AuthTest.get_frame_from_lasts(lasts)
 
         # プロジェクト管理者は、フローのキャッシュを参照できること
-        cache_frame_uuid = flow.flow_data.get_cache_frame_uuids()[0]
+        cache_frame_uuid = next(iter(flow.flow_data.get_cache_frame_uuids()))
         cache_frame = self.factory2.data.find_by_uuid(cache_frame_uuid)
 
         # フローをキャッシュフォルダに移動する
@@ -3687,7 +3687,7 @@ class AuthTest(TestCaseBase):
             self.factory3.data.find_by_uuid(out_frame.uuid)
 
         # プロジェクト管理者は、フローのキャッシュを参照できること
-        cache_frame_uuid = flow.flow_data.get_cache_frame_uuids()[0]
+        cache_frame_uuid = next(iter(flow.flow_data.get_cache_frame_uuids()))
         cache_frame = self.factory2.data.find_by_uuid(cache_frame_uuid)
         # プロジェクト管理者は、フローのキャッシュを更新できること
         cache_frame.update_label('キャッシュ㊗')
@@ -3740,7 +3740,7 @@ class AuthTest(TestCaseBase):
         self.assertEqual(out_frame.label, '神戸⚓️')
 
         # プロジェクト管理者は、フローのキャッシュを参照できること
-        cache_frame_uuid = flow.flow_data.get_cache_frame_uuids()[0]
+        cache_frame_uuid = next(iter(flow.flow_data.get_cache_frame_uuids()))
         cache_frame = self.factory2.data.find_by_uuid(cache_frame_uuid)
         # プロジェクト管理者は、フローのキャッシュを更新できること
         cache_frame.update_label('琵琶湖🛥')
@@ -3841,7 +3841,7 @@ class AuthTest(TestCaseBase):
         lasts = execute(command=link, args={'vis':vis_args}, inputs={})
 
         # キャッシュのUUIDを取得する
-        cache_frame_uuid = flow.flow_data.get_cache_frame_uuids()[0]
+        cache_frame_uuid = next(iter(flow.flow_data.get_cache_frame_uuids()))
         cache_frame = self.factory3.data.find_by_uuid(cache_frame_uuid)
 
         # 編集者は、フローを複製する
@@ -3849,7 +3849,7 @@ class AuthTest(TestCaseBase):
         duplicated_flow = flow.duplicate('君も寝具にしてやろうか?😈')
 
         # 複製したキャッシュのUUIDを取得する
-        duplicated_cache_frame_uuid = duplicated_flow.flow_data.get_cache_frame_uuids()[0]
+        duplicated_cache_frame_uuid = next(iter(duplicated_flow.flow_data.get_cache_frame_uuids()))
         duplicated_cache_frame = self.factory3.data.find_by_uuid(duplicated_cache_frame_uuid)
 
         # キャッシュが複製されていることを検証する

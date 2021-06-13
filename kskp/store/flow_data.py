@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import List, Callable
 
 class FlowData():
     """
@@ -546,7 +546,7 @@ class FlowData():
         self._flow_json['createdAt'] = created_at
 
     @property
-    def params(self) -> list:
+    def params(self) -> List[dict]:
         return self._flow_json.get('params')
 
     # @property
@@ -554,14 +554,14 @@ class FlowData():
     #     return self._flow_json.get('ports')
 
     @property
-    def i_ports(self) -> list:
+    def i_ports(self) -> List[dict]:
         ports = self._flow_json.get('ports')
         if ports is None:
             return []
         return ports[0]
 
     @property
-    def o_ports(self) -> list:
+    def o_ports(self) -> List[dict]:
         ports = self._flow_json.get('ports')
         if ports is None:
             return []
@@ -571,16 +571,43 @@ class FlowData():
     def has_nodes(self):
         return 'nodes' in self._flow_json
 
-    def get_src_frame_uuids(self):
+    def get_args_uuids(self):
         """
-        参照する入力frameを全て取得する
+        引数で指定されたUUIDを全て取得する
         """
-        ret = []
+        from kskp.core import Datum
+        rets = set()
 
         if not self.has_nodes:
-            return ret
+            return rets
 
         for node in self.get_nodes():
+            # サブフローやコマンドの引数に設定されているUUIDを取得する
+            if node['type'] in ('flow', 'command') and 'args' in node:
+                # TODO: フレーム以外のUUIDも含まれてしまう
+                uuids = [v for k, v in node['args'].items() if isinstance(v, str) and Datum.is_valid_uuid(v)]
+                rets.update(uuids)
+            if node['type'] == 'flow' and 'flow' in node:
+                # インラインSub Flowの中で参照するUUIDを取得する
+                sub_flow_data =  FlowData(node['flow'])
+                rets.update(sub_flow_data.get_args_uuids())
+        return rets
+
+    def get_src_frame_uuids(self):
+        """
+        参照する入力frameのUUIDを全て取得する
+        """
+        rets = set()
+
+        if not self.has_nodes:
+            return rets
+
+        for node in self.get_nodes():
+            if node['type'] == 'flow' and 'flow' in node:
+                # インラインSub Flowの中で参照するframeを取得する
+                sub_flow_data =  FlowData(node['flow'])
+                rets.update(sub_flow_data.get_src_frame_uuids())
+                continue
             if node['type'] != 'frame':
                 continue
             if 'cacheCreatedAt' in node and\
@@ -590,21 +617,24 @@ class FlowData():
                 continue
             if 'uuid' not in node or node['uuid'] is None or node['uuid'] == '':
                 continue
-            if node['uuid'] in ret:
-                continue
-            ret.append(node['uuid'])
-        return ret
+            rets.add(node['uuid'])
+        return rets
 
     def get_cache_frame_uuids(self):
         """
-        参照するキャッシュframeを全て取得する
+        参照するキャッシュframeのUUIDを全て取得する
         """
-        ret = []
+        rets = set()
         
         if not self.has_nodes:
-            return ret
+            return rets
 
         for node in self.get_nodes():
+            if node['type'] == 'flow' and 'flow' in node:
+                # インラインSub Flowの中で参照するキャッシュframeを取得する
+                sub_flow_data =  FlowData(node['flow'])
+                rets.update(sub_flow_data.get_cache_frame_uuids())
+                continue
             if node['type'] != 'frame':
                 continue
             if 'cacheCreatedAt' not in node or\
@@ -614,48 +644,52 @@ class FlowData():
                 continue
             if 'uuid' not in node or node['uuid'] is None or node['uuid'] == '':
                 continue
-            if node['uuid'] in ret:
-                continue
-            ret.append(node['uuid'])
-        return ret
+            rets.add(node['uuid'])
+        return rets
 
     def get_sub_flow_uuids(self):
         """
-        参照するSub Flowを全て取得する
+        参照するSub FlowのUUIDを全て取得する
         """
-        ret = []
+        rets = set()
 
         if not self.has_nodes:
-            return ret
+            return rets
 
         for node in self.get_nodes():
+            if node['type'] == 'flow' and 'flow' in node:
+                # インラインSub Flowの中で参照するSub Flowを取得する
+                sub_flow_data =  FlowData(node['flow'])
+                rets.update(sub_flow_data.get_sub_flow_uuids())
+                continue
             if node['type'] != 'flow':
                 continue
             if 'uuid' not in node or node['uuid'] is None or node['uuid'] == '':
                 continue
-            if node['uuid'] in ret:
-                continue
-            ret.append(node['uuid'])
-        return ret
+            rets.add(node['uuid'])
+        return rets
 
     def get_store_uuids(self):
         """
-        参照するStoreを全て取得する
+        参照するStoreのUUIDを全て取得する
         """
-        ret = []
+        rets = set()
 
         if not self.has_nodes:
-            return ret
+            return rets
 
         for node in self.get_nodes():
+            if node['type'] == 'flow' and 'flow' in node:
+                # インラインSub Flowの中で参照するStoreを取得する
+                sub_flow_data =  FlowData(node['flow'])
+                rets.update(sub_flow_data.get_store_uuids())
+                continue
             if node['type'] != 'store':
                 continue
             if 'uuid' not in node or node['uuid'] is None or node['uuid'] == '':
                 continue
-            if node['uuid'] in ret:
-                continue
-            ret.append(node['uuid'])
-        return ret
+            rets.add(node['uuid'])
+        return rets
 
     def copy(self):
         """
@@ -664,7 +698,7 @@ class FlowData():
         import copy
         return FlowData(copy.deepcopy(self._flow_json))
 
-    def get_nodes(self, use_exec_auth=False) -> list:
+    def get_nodes(self, use_exec_auth=False) -> List[dict]:
         flow_json = self._authorize(self._flow_json, use_exec_auth)
         return flow_json.get('nodes')
 
@@ -763,15 +797,23 @@ class FlowData():
 
     def _replace_uuid(self, old_uuid, new_uuid):
         """
-        指定するuuidを置き換える
+        指定するUUIDを置き換える
         """
         if 'nodes' not in self._flow_json:
             return
         for node in self._flow_json.get('nodes'):
-            if 'uuid' not in node:
-                continue
-            if node['uuid'] == old_uuid:
-                node['uuid'] = new_uuid
+            if 'uuid' in node:
+                if node['uuid'] == old_uuid:
+                    node['uuid'] = new_uuid
+            elif node.get('type') == 'command' or node.get('type') == 'flow':
+                # サブフローやコマンドの引数に設定されているUUIDを置き換える
+                for key, uuid in node['args'].items():
+                    if uuid == old_uuid:
+                        node['args'][key] = new_uuid
+                # インラインSub Flow内で参照するUUIDを置き換える
+                if 'flow' in node:
+                    flow_data = FlowData(node['flow'])
+                    flow_data._replace_uuid(old_uuid, new_uuid)
 
     def _minimize(self, flow_json):
         nodes = flow_json.get('nodes')
@@ -791,7 +833,7 @@ class FlowData():
             node.pop('srcsOrder', None)
         return flow_json
 
-    def _authorize(self, flow_json, use_exec_auth=False):
+    def _authorize(self, flow_json:dict, use_exec_auth=False):
         """
         権限の判定と、参照権限のないノードのマスキングをする
         """

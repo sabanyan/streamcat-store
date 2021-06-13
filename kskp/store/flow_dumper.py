@@ -4,11 +4,14 @@ from kskp.core import Datum
 
 class FlowDumper:
     def __init__(self, factory):
-        # SQLAlchemy Session
+        # Factory
         self.factory = factory
 
         if not self.factory._session.has_usr_admin():
             raise Exception('ユーザー管理者以外は、フローのエクスポート/インポートはできません')
+
+        # ルートフォルダはフォルダと区別して記録する
+        self.ROOT_TYPE = 'root'
 
         import uuid
         self.tmp_path = Path('/tmp')
@@ -39,7 +42,7 @@ class FlowDumper:
 
         return (archive_path, archive_name)
 
-    def _get_folder(self, parent_tmp_path, gathered_uuids, folder_uuid):
+    def _get_folder(self, parent_tmp_path, gathered_uuids:set, folder_uuid):
         from .folder import Folder
         folder = self.factory.data.find_by_uuid(folder_uuid)
         if not isinstance(folder, Folder):
@@ -60,59 +63,92 @@ class FlowDumper:
 
         return gathered_uuids
 
-    def _get_flow(self, parent_tmp_path, gathered_uuids, flow_uuid):
-        import os
+    def _get_flow(self, parent_tmp_path, gathered_uuids:set, flow_uuid):
+        import os, warnings
 
-        (frame_uuids, store_uuids, flow_uuids) = self._get_flows_and_frames(flow_uuid, exclude_uuids=gathered_uuids)
+        (args_uuids, frame_uuids, store_uuids, flow_uuids) = self._get_flows_and_frames(flow_uuid, exclude_uuids=gathered_uuids)
 
+        # (UUID, type, label, edit_lock)
         uuid_type_label = []
+
+        # argsで指定されたUUIDのtypeを判定する
+        for args_uuid in args_uuids:
+            if self.factory.data.exists(args_uuid):
+                datum = self.factory.data.find_by_uuid(args_uuid)
+                # type別に振り分けて、次の処理に丸投げする
+                if datum.type == Datum.FRAME_TYPE:
+                    frame_uuids.append(datum.uuid)
+                elif datum.type == Datum.DATABASE_TYPE:
+                    store_uuids.append(datum.uuid)
+                elif datum.type == Datum.RFOLDER_TYPE:
+                    store_uuids.append(datum.uuid)
+                elif datum.type == Datum.FLOW_TYPE:
+                    flow_uuids.append(datum.uuid)
+            else:
+                # Datumが存在しない場合はスキップする
+                warnings.warn(f'Not Exists Datum : {args_uuid}')
 
         for frame_uuid in frame_uuids:
             frame = self.factory.data.find_by_uuid(frame_uuid, type=Datum.FRAME_TYPE)
             if frame is None or not frame.file_exists:
                 # フレームファイルが存在しない場合はスキップする
+                warnings.warn(f'Not Exists file path : {frame._path}')
                 continue
             tmp_frame_link = parent_tmp_path / (frame.uuid + '.csv')
             if not tmp_frame_link.exists():
                 os.symlink(frame.path, tmp_frame_link)
-            uuid_type_label.append((frame.uuid, frame.type, frame.label))
+            uuid_type_label.append((frame.uuid, frame.type, frame.label, 'False'))
 
         for store_uuid in store_uuids:
-            if not self.factory.data.exists(store_uuid, type=Datum.DATABASE_TYPE):
+            if self.factory.data.exists(store_uuid, type=Datum.DATABASE_TYPE) or \
+               self.factory.data.exists(store_uuid, type=Datum.RFOLDER_TYPE):
+                # データベースまたはリモートフォルダストアの場合
+                store = self.factory.data.find_by_uuid(store_uuid)
+                store_path = parent_tmp_path / (store.uuid + '.json')
+                with store_path.open('w') as f:
+                    f.write(json.dumps(store.conn.to_json(), indent=2, ensure_ascii=False))
+                uuid_type_label.append((store.uuid, store.type, store.label, 'False'))
+            elif self.factory.data.exists(store_uuid, type=Datum.FOLDER_TYPE):
+                # フォルダの場合
+                store = self.factory.data.find_by_uuid(store_uuid)
+                store_path = parent_tmp_path / (store.uuid + '.json')
+                with store_path.open('w') as f:
+                    # フォルダの場合は空ファイルを作成する
+                    f.write('')
+                # ルートフォルダの場合はtype='root'で記録する
+                store_type = self.ROOT_TYPE if store.is_root else store.type
+                uuid_type_label.append((store.uuid, store_type, store.label, 'False'))
+            else:
+                warnings.warn(f'Unknown type of store : {store_uuid}')
                 continue
-            database = self.factory.data.find_by_uuid(store_uuid, type=Datum.DATABASE_TYPE)
-            database_path = parent_tmp_path / (database.uuid + '.json')
-            with database_path.open('w') as f:
-                f.write(json.dumps(database.conn.to_json(), indent=2, ensure_ascii=False))
-            uuid_type_label.append((database.uuid, database.type, database.label))   
 
         for flow_uuid in flow_uuids:
+            # フローの場合
             flow = self.factory.data.find_by_uuid(flow_uuid, type=Datum.FLOW_TYPE)
             flow_path = parent_tmp_path / (flow.uuid + '.json')
             with flow_path.open('w') as f:
                 f.write(json.dumps(flow.flow_data.to_json(), indent=2, ensure_ascii=False))
-            uuid_type_label.append((flow.uuid, flow.type, flow.label))
+            uuid_type_label.append((flow.uuid, flow.type, flow.label, str(flow.edit_lock)))
 
         # uuidとlabelの対応表をファイルに出力する
+        from kskp.core import KSKPBaseModel
         with self.labels_path.open('a') as f:
-            for uuid, type, label in uuid_type_label:
-                f.write(uuid)
-                f.write(',')
-                f.write(type)
-                f.write(',')
-                f.write(label)
-                f.write('\n')
+            for uuid, type, label, edit_lock in uuid_type_label:
+                line = KSKPBaseModel.join([uuid, type, label, edit_lock], doublequote=True)
+                f.write(line)
 
         return gathered_uuids
 
-    def _get_flows_and_frames(self, flow_uuid, exclude_uuids):
+    def _get_flows_and_frames(self, flow_uuid, exclude_uuids:set):
         flow = self.factory.data.find_by_uuid(flow_uuid, type=Datum.FLOW_TYPE)
 
+        args_uuids = flow.flow_data.get_args_uuids()
         src_frame_uuids = flow.flow_data.get_src_frame_uuids()
         cache_frame_uuids = flow.flow_data.get_cache_frame_uuids()
         store_uuids = flow.flow_data.get_store_uuids()
         sub_flow_uuids = flow.flow_data.get_sub_flow_uuids()
 
+        reference_args = []
         reference_frames = []
         reference_stores = []
         reference_flows = []
@@ -120,6 +156,11 @@ class FlowDumper:
         if flow_uuid not in exclude_uuids:
             reference_flows.append(flow_uuid)
             exclude_uuids.add(flow_uuid)
+
+        for args_uuid in args_uuids:
+            if args_uuid not in exclude_uuids:
+                reference_args.append(args_uuid)
+                exclude_uuids.add(args_uuid)
 
         for src_frame_uuid in src_frame_uuids:
             if src_frame_uuid not in exclude_uuids:
@@ -138,15 +179,17 @@ class FlowDumper:
 
         for sub_flow_uuid in sub_flow_uuids:
             if sub_flow_uuid not in exclude_uuids:
-                (frame_uuids, store_uuids, flow_uuids) = self._get_flows_and_frames(sub_flow_uuid, exclude_uuids)
+                (args_uuids, frame_uuids, store_uuids, flow_uuids) = self._get_flows_and_frames(sub_flow_uuid, exclude_uuids)
+                reference_args.extend(args_uuids)
                 reference_frames.extend(frame_uuids)
                 reference_stores.extend(store_uuids)
                 reference_flows.extend(flow_uuids)
+                exclude_uuids.union(args_uuids)
                 exclude_uuids.union(frame_uuids)
                 exclude_uuids.union(store_uuids)
                 exclude_uuids.union(flow_uuids)
 
-        return (reference_frames, reference_stores, reference_flows)
+        return (reference_args, reference_frames, reference_stores, reference_flows)
 
     def _make_archive(self):
         # 圧縮ファイル名
@@ -220,7 +263,7 @@ class FlowDumper:
                         default_top_folder.save()
                     folder = default_top_folder
 
-                (datum_type, label) = type_labels[file.stem]
+                (datum_type, label, edit_lock) = type_labels[file.stem]
                 if datum_type == Datum.FRAME_TYPE:
                     file.parent
                     with file.open('rb') as f:
@@ -230,49 +273,71 @@ class FlowDumper:
                 elif datum_type == Datum.DATABASE_TYPE:
                     from .database_conn import DatabaseConn
                     with file.open('r') as f:
-                        d = f.read()
-                        db = json.loads(d)
+                        db = json.loads(f.read())
                     db_conn = DatabaseConn(db)
                     database = folder.create_database(label, db_conn)
                     uuid_conv_table[file.stem] = database.uuid
                     database.save()
+                elif datum_type == Datum.RFOLDER_TYPE:
+                    from .remote_folder_conn import RemoteFolderConn
+                    with file.open('r') as f:
+                        r = json.loads(f.read())
+                    rfolder_conn = RemoteFolderConn(r)
+                    rfolder = folder.create_remote_folder(label, rfolder_conn)
+                    uuid_conv_table[file.stem] = rfolder.uuid
+                    rfolder.save()
+                elif datum_type == Datum.FOLDER_TYPE:
+                    folder = folder.create_folder(label)
+                    uuid_conv_table[file.stem] = folder.uuid
+                    folder.save()
+                elif datum_type == self.ROOT_TYPE:
+                    # インポート先のルートフォルダのUUIDに変換する
+                    uuid_conv_table[file.stem] = self.factory.data.load_root().uuid
                 elif datum_type == Datum.FLOW_TYPE:
                     from .flow_data import FlowData
                     with file.open('r') as f:
-                        d = f.read()
-                        flow_json = json.loads(d)
+                        flow_json = json.loads(f.read())
                     flow = folder.create_flow(label, FlowData(flow_json))
-                    flow_uuids[file.stem] = flow.uuid
+                    flow_uuids[file.stem] = (flow.uuid, edit_lock)
                     uuid_conv_table[file.stem] = flow.uuid
                     flow.save()
             except Exception as e:
                 raise Exception(f'ERROR! at {file.name} : {str(e)}')
 
         # Flowの参照uuidを変更する
-        for new_flow_uuid in flow_uuids.values():
+        for new_flow_uuid, flow_edit_lock in flow_uuids.values():
             flow = self.factory.data.find_by_uuid(new_flow_uuid, type=Datum.FLOW_TYPE)
             flow.replace_uuids(uuid_conv_table)
             flow.update_data(flow.label, flow.flow_data)
+            # 編集ロックを設定する
+            flow.set_edit_lock(flow_edit_lock)
 
         # 展開したファイルを削除する
         import shutil
         shutil.rmtree(tar_dir_path)
 
     def _read_labels(self, file):
+        from kskp.core import KSKPBaseModel
         type_labels = {}
         try:
             with file.open('r') as f:
                 import os
                 line = f.readline().rstrip(os.linesep)
                 while line:
-                    columns = line.split(',', maxsplit=2)
+                    columns = KSKPBaseModel.split(line)
                     # uuidを読み込む
                     uuid = columns[0]
                     # typeを読み込む
                     type = columns[1]
                     # ラベル名を読み込む
                     label = columns[2]
-                    type_labels[uuid] = (type, label)
+                    # 編集ロックの有無を読み込む
+                    if len(columns) > 3:
+                        edit_lock = True if columns[3]=='True' else False
+                    else:
+                        edit_lock = False
+                    # Dictを作成する
+                    type_labels[uuid] = (type, label, edit_lock)
                     # 次の行を読み込む
                     line = f.readline().rstrip(os.linesep)
                 return type_labels

@@ -1576,13 +1576,16 @@ class AlignColumns(Command):
         """
         CSV行の列数を数える
         """
-        return len(AlignColumns._line_to_list(header))
+        from kskp.core import KSKPBaseModel
+        return len(KSKPBaseModel.split(header))
 
     def _align_line(line, num_columns):
         """
         CSV行の列を指定列数に揃える
         """
-        line_list = AlignColumns._line_to_list(line)
+        from kskp.core import KSKPBaseModel
+
+        line_list = KSKPBaseModel.split(line)
         len_line = len(line_list)
 
         if len_line == num_columns:
@@ -1591,23 +1594,9 @@ class AlignColumns(Command):
             # CSV行の最後に空文字を追加する
             line_list[len_line:len_line] = [''] * (num_columns-len_line)
             # listをCSV行の文字列に変換する
-            return AlignColumns._list_to_line(line_list)
+            return KSKPBaseModel.join(line_list)
         else:
-            return AlignColumns._list_to_line(line_list[0:num_columns])
-
-    def _line_to_list(line):
-        import csv
-        reader = csv.reader([line], delimiter=",", doublequote=True, quotechar='"', skipinitialspace=False)
-        return next(reader)
-
-    def _list_to_line(line_list):
-        import csv
-        from io import StringIO
-        # listをCSV行の文字列に変換する
-        ret = StringIO()
-        writer = csv.writer(ret, lineterminator='\n')
-        writer.writerow(line_list)
-        return ret.getvalue()
+            return AlignColumns.join(line_list[0:num_columns])
 
 class ToListCommand(Command):
     """

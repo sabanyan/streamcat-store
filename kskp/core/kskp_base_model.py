@@ -1,3 +1,4 @@
+from typing import List
 from sqlalchemy import Column, text
 from sqlalchemy.dialects.postgresql import INTEGER, TIMESTAMP
 from sqlalchemy.ext.declarative import declared_attr
@@ -48,6 +49,35 @@ class KSKPBaseModel(object):
         if session is not None and session.user is not None:
             self._creator_id = session.user.id
             self._modifier_id = session.user.id
+
+    @staticmethod
+    def split(line:str):
+        """
+        文字列を","で分割する
+        """
+        import csv
+        reader = csv.reader([line], delimiter=",", doublequote=True, quotechar='"', skipinitialspace=False)
+        return next(reader)
+
+    @staticmethod
+    def join(line_list:List[str], doublequote=False):
+        """
+        文字列リストを","で結合する
+        """
+        import csv
+        from io import StringIO
+
+        if doublequote:
+            # unix: 行終端記号として '\n' を用い全てのフィールドをクォートする
+            dialect = 'unix'
+        else:
+            dialect = 'excel'
+        
+        # listをCSV行の文字列に変換する
+        ret = StringIO()
+        writer = csv.writer(ret, dialect=dialect, lineterminator='\n')
+        writer.writerow(line_list)
+        return ret.getvalue()
 
     @staticmethod
     def _get_encrypt_password(password):

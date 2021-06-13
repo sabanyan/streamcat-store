@@ -1615,6 +1615,126 @@ class FlowJsonTest(TestCaseBase):
         # フローを削除する
         flow.delete()
 
+    def test_validate_inner_flow(self):
+        """
+        type=flowのノードにFlowリテラルが記述できること
+        """
+        # ルートデータストアを取得する
+        root = self.factory.data.load_root()
+
+        # プロジェクトを作成する
+        project = root.create_project_folder('Mighty mouse')
+        project.save()
+        project = project.reload()
+
+        # プロジェクトの下にフレームを作成する
+        import io
+        frame = project.create_frame('Magic mouse', io.BytesIO(b'date,amount\n20100101,2300'))
+        frame.uuid = '28f41407-e457-414c-a62c-e9507adb4b97'
+        frame.save()
+
+        # フローJSONを作成する
+        flow_json =  {
+            "label": "Flowのリテラル表記のテスト",
+            "ports": [[],[]],
+            "params": [],  
+            "nodes": [
+                {
+                    "id": "d", 
+                    "label": "testData", 
+                    "type": "frame", 
+                    "uuid": "28f41407-e457-414c-a62c-e9507adb4b97", 
+                    "dataSource": "csv"
+                }, 
+                {
+                    "id": "f1", 
+                    "label": "f1", 
+                    "type": "flow",
+                    "flow": {
+                        "label": "リテラル表記のフロー", 
+                        "description": "",
+                        "projectId": None, 
+                        "ports": [
+                            [
+                                {
+                                    "type": "frame", 
+                                    "label": "testData", 
+                                    "nodeId": "d"
+                                }
+                            ], 
+                            [
+                                {
+                                    "type": "frame", 
+                                    "label": "d1", 
+                                    "nodeId": "d1"
+                                }
+                            ]
+                        ], 
+                        "params": [], 
+                        "nodes": [
+                            {
+                                "id": "d", 
+                                "label": "testData", 
+                                "type": "frame", 
+                                "uuid": "28f41407-e457-414c-a62c-e9507adb4b97", 
+                                "dataSource": "csv"
+                            }, 
+                            {
+                                "id": "c1", 
+                                "label": "c1", 
+                                "type": "command", 
+                                "commandId": "mcombi",
+                                "args": {
+                                    "a": "date_combi", 
+                                    "f": "date", 
+                                    "n": "1", 
+                                    "s": "date"
+                                }, 
+                                "srcs": {
+                                    "i": "d"
+                                }, 
+                                "dsts": {
+                                    "o": "d1"
+                                }
+                            },
+                            {
+                                "id": "d1", 
+                                "label": "d1", 
+                                "type": "frame", 
+                                "dataSource": "csv"
+                            }
+                        ], 
+                        "creator": "ユーザー管理者", 
+                        "createdAt": "2021-04-23 14:14:22", 
+                    },
+                    "args": {}, 
+                    "srcs": {
+                        "d": "d"
+                    },
+                    "dsts": {
+                        "d1": "d1"
+                    }
+                },
+                {
+                    "id": "d1", 
+                    "label": "d1", 
+                    "type": "frame", 
+                    "dataSource": "csv"
+                }
+            ], 
+            "creator": "ユーザー管理者", 
+            "createdAt": "2021-04-23 14:16:55"
+        }
+        # プロジェクトの直下にフローを作成する
+        flow = project.create_flow('フロー', FlowData(flow_json))
+        # フローJSONの検証エラーが送出されないこと
+        flow.save()
+
+        # プロジェクトをほかす
+        project.throw_away()
+        # ゴミ箱を空にする
+        self.factory.data.find_trashcan().trash_all()
+
     def test_validate_port_id(self):
         """
         ポートid属性に日本語文字列の値が設定できること
@@ -1789,9 +1909,9 @@ class FlowJsonTest(TestCaseBase):
         with self.assertRaises(ValidationError):
             flow.save()
 
-    def test_validate_inner_flow(self):
+    def test_validate_error_inner_flow(self):
         """
-        type=flowのノードにFlowリテラルが記述できること
+        Flowリテラルが参照するUUIDが参照できない場合はエラーになること
         """
         # ルートデータストアを取得する
         root = self.factory.data.load_root()
@@ -1889,7 +2009,6 @@ class FlowJsonTest(TestCaseBase):
         }
         # ルートデータストアの直下にフローを作成する
         flow = root.create_flow('フロー', FlowData(flow_json))
-        # フローJSONの検証エラーが送出されないこと
-        flow.save()
-        # フローを削除する
-        flow.delete()
+        # フローJSONの検証エラーにより例外が送出されること
+        with self.assertRaises(Exception):
+            flow.save()
