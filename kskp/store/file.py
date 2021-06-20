@@ -106,21 +106,6 @@ class File(Datum):
         self._modifier_id = (modifier or self._session.user).id
         self._session.update(self)
 
-    def throw_away(self):
-        """
-        Frameをゴミ箱にほかす
-        """
-        from kskp.store.factory import DatumFactory
-        factory = DatumFactory(self._session)
-        trash_folder = factory.load_trash_folder()
-
-        # 削除しようとするframeが、フローで使用されている場合は例外を送出する
-        using_flow_uuids = self.get_flow_uuids_using_me()
-        if len(using_flow_uuids) > 0:
-            raise Exception(f"このCSVファイルはフロー({using_flow_uuids[0]['reference_label']})で使用しているため削除できません")
-
-        return self.move(trash_folder.uuid)
-
     @Constraints.delete_role_when_isolated
     def delete(self):
         """

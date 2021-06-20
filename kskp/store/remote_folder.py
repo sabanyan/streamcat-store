@@ -1,5 +1,5 @@
 from kskp.core import Datum, Constraints
-from .folder import Folder
+from .store import Store
 from .mountable import Mountable
 from .remote_folder_conn import RemoteFolderConn
 
@@ -7,7 +7,7 @@ from .remote_folder_conn import RemoteFolderConn
 # TODO: 継承元をFolderからStoreに変更する。
 # Folderは下にファイルやフォルダを作成できるものという定義なので
 # 
-class RemoteFolder(Folder, Mountable):
+class RemoteFolder(Store, Mountable):
 
     __mapper_args__ = {
         'polymorphic_identity' : 'rfolder'
@@ -17,10 +17,7 @@ class RemoteFolder(Folder, Mountable):
         """
         コンストラクタ
         """
-        super().__init__(session, parent, label)
-
-        # データタイプを設定する
-        self.type = Datum.RFOLDER_TYPE
+        super().__init__(session, parent, Datum.RFOLDER_TYPE, label)
 
         # data列の値を作成する
         if remoteFolderConn is None:
@@ -94,10 +91,10 @@ class RemoteFolder(Folder, Mountable):
         共有フォルダを削除する
         """
         # 自身のフォルダ以下のフレームが、自身のフォルダ以下以外にあるフローから参照されている場合は、例外を送出する
-        flow_uuids = self.get_flow_uuids_using_me()
-        if len(flow_uuids) > 0:
-            raise Exception(
-                f'フロー{flow_uuids[0]["reference_label"]}で使用しているCSVファイルが登録解除対象になっているため削除できません')
+        using_flow_uuids = self.get_flow_uuids_using_me()
+        if len(using_flow_uuids) > 0:
+            raise Exception(f"このStoreはローダ・セーバ({using_flow_uuids[0]['reference_label']})で使用しているため削除できません")
+
         try:
             # フォルダレコードを削除する
             self._session.delete(self)
@@ -128,15 +125,6 @@ class RemoteFolder(Folder, Mountable):
 
     def to_json(self):
         ret = super().to_json()
-
-        # リモートフォルダは接続情報を保持するだけのDatumなので
-        # その下にフォルダやファイルを作成できない
-        # TODO: Folderを継承しないようにしたい
-        del ret['allowlist']['createProject']
-        del ret['allowlist']['createFolder']
-        del ret['allowlist']['createFile']
-        del ret['allowlist']['upload']
-
         if self.readable:
             ret.update(self.conn.to_json())
         return ret

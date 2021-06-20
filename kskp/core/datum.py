@@ -468,6 +468,11 @@ class Datum(BaseModel):
         factory = DatumFactory(self._session)
         trash_folder = factory.load_trash_folder()
 
+        # 削除しようとするDatumが、フローで使用されている場合は例外を送出する
+        using_flow_uuids = self.get_flow_uuids_using_me()
+        if len(using_flow_uuids) > 0:
+            raise Exception(f"このファイルはフロー({using_flow_uuids[0]['reference_label']})で使用しているため削除できません")
+
         return self.move(trash_folder.uuid)
 
     def put_back(self):
@@ -642,11 +647,20 @@ class Datum(BaseModel):
         SELECT U.uuid, U.label
         FROM (SELECT D.uuid as uuid,
                      D.label as label,
-                     jsonb_path_query(
-                         D.data,
-                         '$.flow.nodes?(@.type != "command" && @.type != "note").uuid'
-                     ) AS ref_uuid
-              FROM data D
+                     COALESCE(ref_uuid0, ref_uuid1) AS ref_uuid
+              FROM (SELECT D.uuid  AS uuid,
+                           D.label AS label
+                           JSONB_PATH_QUERY(
+                                D.data,
+                                '$.flow.nodes?(@.type != "command" && @.type != "note").uuid?(@!=null)'
+                           ) AS ref_uuid0,
+                           JSONB_PATH_QUERY(
+                                D.data,
+                                '$.flow.nodes?(@.type == "flow").*.uuid?(@!=null)'
+                           ) AS ref_uuid1
+                    FROM
+                        data) D
+
               WHERE D.type = 'flow'
                 AND NOT EXISTS (SELECT * FROM R WHERE R.id = D.id)) U
         WHERE EXISTS (SELECT * FROM R
@@ -691,7 +705,13 @@ class Datum(BaseModel):
         #  R : 自分と自分の子孫
         #  U : 自分と自分の子孫以外のFlow
         #  U.ref_uuid : 自分と自分の子孫以外のFlowが参照しているuuid
-        jsonpath = '$.flow.nodes?(@.type != "command" && @.type != "note").uuid'
+
+        # ノードから参照するUUID
+        # ..property : 指定されたプロパティ名を再帰的に検索し、このプロパティ名を持つすべての値の配列を返す
+        #              (ただしPostgreSQLでは .**.property で指定するようだ)
+        jsonpath = '$.flow.nodes?(@.type != "command" && @.type != "note").**.uuid?(@!=null)'
+
+        # NOTE: jsonb_path_query()をcoalesce()の引数に指定できない
         U = select(D.c.uuid,
                    D.c.label,
                    func.jsonb_path_query(D.c.data, jsonpath).label('ref_uuid')).\
@@ -707,8 +727,9 @@ class Datum(BaseModel):
         # メインSQL
         select_stmt = select(U.c.uuid,U.c.label,U.c.ref_uuid).\
                       select_from(U).\
-                      where(exists_inner)
-        
+                      where(exists_inner).\
+                      distinct()
+
         # SQLを発行する
         results = self._session.execute(select_stmt)
         return [{'reference_uuid' :result[0],
