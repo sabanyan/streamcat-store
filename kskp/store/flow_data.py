@@ -593,7 +593,7 @@ class FlowData():
                 rets.update(sub_flow_data.get_args_uuids())
         return rets
 
-    def get_src_frame_uuids(self):
+    def get_src_frame_uuids(self, ignore_authz=False):
         """
         参照する入力frameのUUIDを全て取得する
         """
@@ -602,7 +602,12 @@ class FlowData():
         if not self.has_nodes:
             return rets
 
-        for node in self.get_nodes():
+        if ignore_authz:
+            nodes = self._flow_json.get('nodes', [])
+        else:
+            nodes = self.get_nodes()
+
+        for node in nodes:
             if node['type'] == 'flow' and 'flow' in node:
                 # インラインSub Flowの中で参照するframeを取得する
                 sub_flow_data =  FlowData(node['flow'])
@@ -647,7 +652,7 @@ class FlowData():
             rets.add(node['uuid'])
         return rets
 
-    def get_sub_flow_uuids(self):
+    def get_sub_flow_uuids(self, ignore_authz=False):
         """
         参照するSub FlowのUUIDを全て取得する
         """
@@ -656,7 +661,12 @@ class FlowData():
         if not self.has_nodes:
             return rets
 
-        for node in self.get_nodes():
+        if ignore_authz:
+            nodes = self._flow_json.get('nodes', [])
+        else:
+            nodes = self.get_nodes()
+
+        for node in nodes:
             if node['type'] == 'flow' and 'flow' in node:
                 # インラインSub Flowの中で参照するSub Flowを取得する
                 sub_flow_data =  FlowData(node['flow'])
@@ -858,6 +868,12 @@ class FlowData():
                         from kskp.store.auth import NotAuthorizedException
                         raise NotAuthorizedException(f'共有フロー({node.get("id")})の実行権限がありません')
                 elif not flow_data._is_readable(node_uuid):
+                    # 
+                    # TODO: uuid=Noneの場合は参照整合性の検証の対象外になるので
+                    #       ダミーのUUIDを設定する方がいいかもしれない
+                    #       ただし、現在はフローエディタでエラーになるだろう
+                    # node['uuid'] = '00000000-0000-0000-0000-000000000000'
+                    # 
                     node['uuid'] = None
                     node['label'] = '******'
                     # ノードをマスクしたことを示すフラグを追加する

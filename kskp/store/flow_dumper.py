@@ -208,7 +208,7 @@ class FlowDumper:
 
     def restore_archive(self, parent, folder_label, file_name, stream):
         # 展開処理
-        import uuid
+        import uuid, warnings
         tar_dir_path = Path('/tmp') / str(uuid.uuid4())
         extracted_members = self._extract_archive(tar_dir_path, stream)
 
@@ -300,7 +300,12 @@ class FlowDumper:
                     flow = folder.create_flow(label, FlowData(flow_json))
                     flow_uuids[file.stem] = (flow.uuid, edit_lock)
                     uuid_conv_table[file.stem] = flow.uuid
-                    flow.save()
+                    # 参照先Datumを先にライブラリに登録できるとは限らないので
+                    # フローの保存時に参照先Datumの確認をしない
+                    # 
+                    # TODO: 編集ロック=ONにする時に確認することで、Publishなフローについては参照整合性を保証する
+                    # 
+                    flow.save(disable_validate_reference=True)
             except Exception as e:
                 raise Exception(f'ERROR! at {file.name} : {str(e)}')
 
@@ -310,7 +315,11 @@ class FlowDumper:
             flow.replace_uuids(uuid_conv_table)
             flow.update_data(flow.label, flow.flow_data)
             # 編集ロックを設定する
-            flow.set_edit_lock(flow_edit_lock)
+            try:
+                flow.set_edit_lock(flow_edit_lock)
+            except Exception as e:
+                # 参照整合性が無いフローでもライブラリに登録する
+                warnings.warn(f'Failed to set edit_lock : {flow.uuid}')
 
         # 展開したファイルを削除する
         import shutil

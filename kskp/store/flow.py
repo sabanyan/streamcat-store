@@ -61,7 +61,7 @@ class Flow(Datum):
 
     @Constraints.prohibit_save_on_root
     @Constraints.set_project_role_on_adding
-    def save(self):
+    def save(self, disable_validate_reference=False):
         """
         Flowを保存する
         """
@@ -74,7 +74,9 @@ class Flow(Datum):
         self.flow_data.valid_flow_json_or_raise()
 
         # フローデータの妥当性を検証する
-        self.valid_uuids_in_flowdata_or_raise()
+        # NOTE: フローのインポート時はファイルのインポート順によっては例外が発生するため、
+        #       disable_validate_reference=Trueにしている
+        disable_validate_reference or self.valid_uuids_in_flowdata_or_raise()
 
         try:
             # Dataテーブルにレコードを新規追加する
@@ -344,7 +346,8 @@ class Flow(Datum):
         from kskp.store.factory import DatumFactory
         factory = DatumFactory(self._session)
         # 参照するフレームがゴミ箱に存在しないことを確認する
-        for frame_uuid in self.flow_data.get_src_frame_uuids():
+        # (ignore_authz=True: ノードUUIDのマスキングをしない)
+        for frame_uuid in self.flow_data.get_src_frame_uuids(ignore_authz=True):
             if not factory.exists(frame_uuid):
                 raise Exception(f'参照するフレーム({frame_uuid})は存在しません')
             elif factory.trashed(frame_uuid):
@@ -352,7 +355,8 @@ class Flow(Datum):
                 raise Exception(f'ゴミ箱にあるフレーム({frame.label})は使用できません')
 
         # 参照するサブフローがゴミ箱に存在しないことを確認する
-        for flow_uuid in self.flow_data.get_sub_flow_uuids():
+        # (ignore_authz=True: ノードUUIDのマスキングをしない)
+        for flow_uuid in self.flow_data.get_sub_flow_uuids(ignore_authz=True):
             if not factory.exists(flow_uuid):
                 raise Exception(f'参照するフロー({flow_uuid})は存在しません')
             elif factory.trashed(flow_uuid):

@@ -1,3 +1,4 @@
+import io
 import unittest
 import pprint
 from datetime import datetime
@@ -16,6 +17,12 @@ class FlowJsonTest(TestCaseBase):
         """
         # ルートデータストアを取得する
         root = self.factory.data.load_root()
+        # 参照先フレームを作成する
+        frame = root.create_frame('CSV', io.BytesIO(b''))
+        frame.save()
+        # 参照先サブフローを作成する
+        sub_flow = root.create_flow('サブフロー', FlowData({}))
+        sub_flow.save()
         # (おそらく)全ての文法要素を含んだフローJSON
         flow_json1 ={
             'label': 'share',
@@ -27,7 +34,7 @@ class FlowJsonTest(TestCaseBase):
                     'height': 38
                 },
                 'type': 'frame',
-                'uuid': 'd8b65fa1-9960-4955-b6b2-74ab490ec3c4',
+                'uuid': frame.uuid,
                 'error': {},
                 'label': 'testData',
                 'invalid': {},
@@ -115,7 +122,7 @@ class FlowJsonTest(TestCaseBase):
                 },
                 'srcs': {},
                 'type': 'flow',
-                'uuid': '02f77dc2-e319-4fda-bbc5-0bb0f14501b4',
+                'uuid': sub_flow.uuid,
                 'error': {},
                 'label': 'f1',
                 'invalid': {},
@@ -255,6 +262,27 @@ class FlowJsonTest(TestCaseBase):
         """
         # ルートデータストアを取得する
         root = self.factory.data.load_root()
+        # 参照先フレームを作成する
+        frame1 = root.create_frame('CSV1', io.BytesIO(b''))
+        frame1.save()
+        frame2 = root.create_frame('CSV2', io.BytesIO(b''))
+        frame2.save()
+        frame3 = root.create_frame('CSV3', io.BytesIO(b''))
+        frame3.save()
+        frame4 = root.create_frame('CSV4', io.BytesIO(b''))
+        frame4.save()
+        # 参照先サブフローを作成する
+        sub_flow1 = root.create_flow('サブフロー1', FlowData({}))
+        sub_flow1.save()
+        sub_flow2 = root.create_flow('サブフロー2', FlowData({}))
+        sub_flow2.save()
+        sub_flow3 = root.create_flow('サブフロー3', FlowData({}))
+        sub_flow3.save()
+        sub_flow4 = root.create_flow('サブフロー4', FlowData({}))
+        sub_flow4.save()
+        sub_flow5 = root.create_flow('サブフロー5', FlowData({}))
+        sub_flow5.save()
+
         # サンプルフローJSON
         flow_json ={
             "label": "データセットv0.2.1_10分割＆R2TAG21phase単位分割&R2TAG9変化点分割_集計v01",
@@ -266,7 +294,7 @@ class FlowJsonTest(TestCaseBase):
                         "height": 38
                     },
                     "type": "frame",
-                    "uuid": "ef23896a-5b05-40ae-92f7-9b531e4f0cb7",
+                    "uuid": frame1.uuid,
                     "error": {},
                     "label": "RESULT",
                     "invalid": {},
@@ -285,7 +313,7 @@ class FlowJsonTest(TestCaseBase):
                         "height": 38
                     },
                     "type": "frame",
-                    "uuid": "d41487ff-77c4-4549-b909-9a1f263a8f3b",
+                    "uuid": frame2.uuid,
                     "error": {},
                     "label": "R2_SER4-11 終了時刻13:48:59 全体処理時間1秒",
                     "invalid": {},
@@ -304,7 +332,7 @@ class FlowJsonTest(TestCaseBase):
                         "height": 38
                     },
                     "type": "frame",
-                    "uuid": "0c01ec98-655e-465a-8238-a719217542b2",
+                    "uuid": frame3.uuid,
                     "error": {},
                     "label": "R1_SER4-11 終了時刻13:48:59 全体処理時間1秒",
                     "invalid": {},
@@ -349,7 +377,7 @@ class FlowJsonTest(TestCaseBase):
                         "d": "d14"
                     },
                     "type": "flow",
-                    "uuid": "500cdd4e-7119-42d2-bf02-1e031cebd263",
+                    "uuid": sub_flow1.uuid,
                     "error": {},
                     "label": "__R2TAG9波形分割__",
                     "invalid": {},
@@ -451,7 +479,7 @@ class FlowJsonTest(TestCaseBase):
                         "d3": "d3"
                     },
                     "type": "flow",
-                    "uuid": "4c033419-3fa4-45a0-a61e-0aebbc731142",
+                    "uuid": sub_flow2.uuid,
                     "error": {},
                     "label": "データセットv0.1_集計",
                     "invalid": {},
@@ -501,7 +529,7 @@ class FlowJsonTest(TestCaseBase):
                         "d3": "d4"
                     },
                     "type": "flow",
-                    "uuid": "4c033419-3fa4-45a0-a61e-0aebbc731142",
+                    "uuid": sub_flow2.uuid,
                     "error": {},
                     "label": "データセットv0.1_集計",
                     "invalid": {},
@@ -603,7 +631,7 @@ class FlowJsonTest(TestCaseBase):
                         "d3": "d6"
                     },
                     "type": "flow",
-                    "uuid": "4c033419-3fa4-45a0-a61e-0aebbc731142",
+                    "uuid": sub_flow2.uuid,
                     "error": {},
                     "label": "データセットv0.1_集計",
                     "invalid": {},
@@ -946,7 +974,7 @@ class FlowJsonTest(TestCaseBase):
                         "d": "d19"
                     },
                     "type": "flow",
-                    "uuid": "7fa63f51-8995-4675-8873-48793ed11d49",
+                    "uuid": sub_flow3.uuid,
                     "error": {},
                     "label": "__NULL値あり列の削除__",
                     "invalid": {},
@@ -1070,7 +1098,7 @@ class FlowJsonTest(TestCaseBase):
                         "d3": "d15"
                     },
                     "type": "flow",
-                    "uuid": "7aa7d023-8fbd-4356-a72c-cc10bc1a907f",
+                    "uuid": sub_flow4.uuid,
                     "error": {},
                     "label": "_集計_ロット単位v0.1",
                     "invalid": {},
@@ -1118,7 +1146,7 @@ class FlowJsonTest(TestCaseBase):
                         "d3": "d14"
                     },
                     "type": "flow",
-                    "uuid": "7aa7d023-8fbd-4356-a72c-cc10bc1a907f",
+                    "uuid": sub_flow4.uuid,
                     "error": {},
                     "label": "_集計_ロット単位v0.1",
                     "invalid": {},
@@ -1265,7 +1293,7 @@ class FlowJsonTest(TestCaseBase):
                         "d": "d14"
                     },
                     "type": "flow",
-                    "uuid": "2e16e8e4-0eab-4795-8adb-aacc9ee50968",
+                    "uuid": sub_flow5.uuid,
                     "error": {},
                     "label": "__要望1:特徴量_R2TAG39_変化点間の区間キー付与__",
                     "invalid": {},
@@ -1366,7 +1394,7 @@ class FlowJsonTest(TestCaseBase):
                         "d3": "d17"
                     },
                     "type": "flow",
-                    "uuid": "4c033419-3fa4-45a0-a61e-0aebbc731142",
+                    "uuid": sub_flow2.uuid,
                     "error": {},
                     "label": "データセットv0.1_集計",
                     "invalid": {},
@@ -1385,7 +1413,7 @@ class FlowJsonTest(TestCaseBase):
                         "height": 38
                     },
                     "type": "frame",
-                    "uuid": "f7f86ed3-1813-4c15-97af-e98b560f67fc",
+                    "uuid": frame4.uuid,
                     "error": {},
                     "label": "Expected Data",
                     "invalid": {},
@@ -1523,6 +1551,9 @@ class FlowJsonTest(TestCaseBase):
         """
         # ルートデータストアを取得する
         root = self.factory.data.load_root()
+        # 参照先サブフローを作成する
+        sub_flow1 = root.create_flow('サブフロー1', FlowData({}))
+        sub_flow1.save()
         # フローJSONを作成する
         flow_json = {
             'projectId': 1,
@@ -1548,7 +1579,7 @@ class FlowJsonTest(TestCaseBase):
                         "d3": "d14"
                     },
                     "type": "flow",
-                    "uuid": "7aa7d023-8fbd-4356-a72c-cc10bc1a907f",
+                    "uuid": sub_flow1.uuid,
                     "error": {},
                     "label": "_集計_ロット単位v0.1",
                     "invalid": {},
