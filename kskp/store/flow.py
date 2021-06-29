@@ -32,25 +32,23 @@ class Flow(Datum):
 
     @property
     def flow_data(self):
-        def is_readable(uuid):
-            """
-            指定されたuuidのDatumのreadableの値を取得する
-            """
-            data = self._session.query(Datum).filter(Datum.uuid==uuid).all(ignore_authz=True)
-            if len(data) == 0:
-                return False
-            return data[0].readable
+        from typing import List
 
-        def is_executable(uuid):
+        def select_unreadables(uuids:List[str]) -> List[str]:
             """
-            指定されたuuidのDatumのexecutableの値を取得する
+            指定したuuidのうち参照権限の無いuuidを返す
             """
-            data = self._session.query(Datum).filter(Datum.uuid==uuid).all(ignore_authz=True)
-            if len(data) == 0:
-                return False
-            return data[0].executable
+            results = self._session.query(Datum).filter(Datum.uuid.in_(uuids)).all(ignore_authz=True)
+            return [result.uuid for result in results if not result.readable]
 
-        return FlowData(self._data['flow'], is_readable, is_executable, self._readable_or_raise, self._executable_or_raise)
+        def select_unexecutables(uuids:List[str]) -> List[str]:
+            """
+            指定したuuidのうち実行権限の無いuuidを返す
+            """
+            results = self._session.query(Datum).filter(Datum.uuid.in_(uuids)).all(ignore_authz=True)
+            return [result.uuid for result in results if not result.executable]
+
+        return FlowData(self._data['flow'], select_unreadables, select_unexecutables, self._readable_or_raise, self._executable_or_raise)
 
     def _executable_or_raise(self):
         from kskp.store.auth import NotAuthorizedException

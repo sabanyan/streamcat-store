@@ -503,19 +503,19 @@ class FlowData():
 
     def __init__(self,
                  flow_json:dict = {},
-                 is_readable:Callable[[str],bool] = None,
-                 is_executable:Callable[[str],bool] = None,
+                 select_unreadables:Callable[[List[str]],List[str]] = None,
+                 select_unexecutables:Callable[[List[str]],List[str]] = None,
                  readable_or_raise:Callable[[],None] = None, 
                  executable_or_raise:Callable[[],None] = None):
         self._flow_json = flow_json
 
         # readable_or_raise()が指定されない場合は権限判定をしない
-        true_func = lambda uuid: True
-        empty_func = lambda: None
-        self._is_readable = is_readable or true_func
-        self._is_executable = is_executable or true_func
-        self._readable_or_raise = readable_or_raise or empty_func
-        self._executable_or_raise = executable_or_raise or empty_func
+        empty_func = lambda uuids: []
+        noop_func = lambda: None
+        self._select_unreadables = select_unreadables or empty_func
+        self._select_unexecutables = select_unexecutables or empty_func
+        self._readable_or_raise = readable_or_raise or noop_func
+        self._executable_or_raise = executable_or_raise or noop_func
 
     @property
     def label(self) -> str:
@@ -743,9 +743,12 @@ class FlowData():
             # ノードをマスクしたことを示すフラグを削除する
             del node['masked']
 
-    def to_json(self, contains_nodes=True, minimize=False):
+    def to_json(self, contains_nodes=True, minimize=False, ignore_authz=False):
         if contains_nodes:
-            flow_json = self._authorize(self._flow_json)
+            if ignore_authz:
+                flow_json = self._flow_json
+            else:
+                flow_json = self._authorize(self._flow_json)
             if minimize:
                 flow_json = self._minimize(flow_json)
             return flow_json
@@ -858,16 +861,31 @@ class FlowData():
         def mask_unreadble_nodes(flow_data, nodes, use_exec_auth):
             if nodes is None:
                 return
+
+            # フローが参照するUUIDを集める
+            flow_uuids = set()
+            other_uuids = set()
             for node in nodes:
                 node_uuid = node.get('uuid')
                 if node_uuid is None or node_uuid=='':
                     continue
                 elif node.get('type')=='flow' and use_exec_auth:
-                    if not flow_data._is_executable(node_uuid):
-                        # フロー実行のための参照であれば、ノードのマスキングではなく例外を送出する
-                        from kskp.store.auth import NotAuthorizedException
-                        raise NotAuthorizedException(f'共有フロー({node.get("id")})の実行権限がありません')
-                elif not flow_data._is_readable(node_uuid):
+                    flow_uuids.add(node_uuid)
+                else:
+                    other_uuids.add(node_uuid)
+
+            # フローが参照するUUIDのうち実行権限の無いFlowのUUID
+            unexecutables = flow_data._select_unexecutables(flow_uuids)
+            # フローが参照するUUIDのうち参照権限の無いDatumのUUID
+            unreadables = flow_data._select_unreadables(other_uuids)
+
+            for node in nodes:
+                node_uuid = node.get('uuid')
+                if node_uuid in unexecutables:
+                    # フロー実行のための参照であれば、ノードのマスキングではなく例外を送出する
+                    from kskp.store.auth import NotAuthorizedException
+                    raise NotAuthorizedException(f'共有フロー({node.get("id")})の実行権限がありません')
+                elif node_uuid in unreadables:
                     # 
                     # TODO: uuid=Noneの場合は参照整合性の検証の対象外になるので
                     #       ダミーのUUIDを設定する方がいいかもしれない
