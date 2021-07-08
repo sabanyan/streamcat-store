@@ -109,6 +109,7 @@ class Datum(BaseModel):
                                 COMMAND_TYPE,
                                 SCHEDULE_TYPE,
                                 ACTIVITY_TYPE,
+                                DOCUMENT_TYPE,
                                 TRASH_TYPE,
                                 APPLICATION_TYPE,
                                 EXCEL_TYPE,
