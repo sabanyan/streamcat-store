@@ -553,6 +553,10 @@ class Folder(Store):
         from kskp.store import Document
         return Document(self._session, self, label, content_type, stream)
 
+    def create_schedule(self, label:str, runnable_uuid:str, args={}, inputs={}, trigger={}):
+        from kskp.store.scheduler import Schedule
+        return Schedule(self._session, self, label, runnable_uuid, args, inputs, trigger)
+
     def create_trashcan(self):
         from kskp.store import TrashCan
         return TrashCan(self._session, self)

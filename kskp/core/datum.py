@@ -55,6 +55,7 @@ class Datum(BaseModel):
     FLOW_TYPE  = 'flow'
     FRAME_TYPE = 'frame'
     COMMAND_TYPE  = 'command'
+    SCHEDULE_TYPE = 'schedule'
     ACTIVITY_TYPE = 'activity'
     DOCUMENT_TYPE = 'document'
     TRASH_TYPE = 'trash'
@@ -106,6 +107,7 @@ class Datum(BaseModel):
                                 FLOW_TYPE,
                                 FRAME_TYPE,
                                 COMMAND_TYPE,
+                                SCHEDULE_TYPE,
                                 ACTIVITY_TYPE,
                                 TRASH_TYPE,
                                 APPLICATION_TYPE,
