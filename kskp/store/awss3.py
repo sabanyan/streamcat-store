@@ -2,7 +2,7 @@ from kskp.core import Datum, Constraints
 from .folder import Folder
 from .mountable import Mountable
 
-class AwsS3(Folder, Mountable):
+class AwsS3(Mountable, Folder):
 
     __mapper_args__ = {
         'polymorphic_identity' : 'awss3'

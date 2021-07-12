@@ -3,11 +3,8 @@ from .store import Store
 from .mountable import Mountable
 from .remote_folder_conn import RemoteFolderConn
 
-# 
-# TODO: 継承元をFolderからStoreに変更する。
-# Folderは下にファイルやフォルダを作成できるものという定義なので
-# 
-class RemoteFolder(Store, Mountable):
+# Mountable.pathをDatum.pathより優先させるため、先にMountableを継承すること
+class RemoteFolder(Mountable, Store):
 
     __mapper_args__ = {
         'polymorphic_identity' : 'rfolder'
@@ -49,8 +46,6 @@ class RemoteFolder(Store, Mountable):
             self = self.reload()
             # フォルダに紐付くディレクトリ(path列で指定されるディレクトリ)がなければ作成する
             self._make_dir(self_path)
-            # ここでリモートフォルダをマウントする
-            self.mount(self_path)
         except Exception as e:
             self.unmount(self_path)
             self._remove_dir(self_path)

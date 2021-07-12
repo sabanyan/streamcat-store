@@ -6,6 +6,33 @@ class Mountable():
     """
     mount可能な抽象クラス
     """
+
+    @property
+    def path(self):
+        # 参照権限が無ければ例外を送出する
+        self._readable_or_raise()
+
+        if self._path is None or self._path == '':
+            return None
+
+        if self.id is None:
+            # 絶対パスを返す
+            # DBに未保存の場合は、マウントしない
+            return Datum._to_abs_path(self._path)
+
+        if not Mountable.is_mount(self._path):
+            try:
+                # マウントしていない場合は、ここでマウント処理する
+                Mountable.remount(self._session, self.id)
+            except Exception as e:
+                # 再マウント処理に失敗しても例外を送出しない
+                # (ここで例外を送出するとexists(path)で存在チェックができなくなる)
+                import warnings
+                warnings.warn(f'Mount処理に失敗しました {e}')
+
+        # 絶対パスを返す
+        return Datum._to_abs_path(self._path)
+
     def mount(self, mount_point_path):
         # self_abs_path = mount_point_path
         # path = Path(self_abs_path)

@@ -176,56 +176,14 @@ class Datum(BaseModel):
 
     @property
     def path(self):
-        from kskp.store import Mountable
-        # 
-        # TODO:
-        # remount()処理はここに記述せずに、Mountable側でpathプロパティを再定義して
-        # そこで、remount()処理を記述したいと思う。
-        # 
-
         # 参照権限が無ければ例外を送出する
         self._readable_or_raise()
 
         if self._path is None or self._path == '':
             return None
 
-        if self._path.exists():
-            # ここで_pathがマウントポイントで、かつUnmount状態のとき、そのまま_pathを返してしまうと、
-            # children_getter._synchronize()によりS3バケットが空になってしまうので以下の場合分けを行う
-            if self._path.is_dir:
-                if isinstance(self, Mountable):
-                    # _pathがディレクトリで、かつマウントポイントの場合、再マウント処理をする
-                    Mountable.remount(self._session, self.id)
-                    # return Path(self._path)
-                else:
-                    # _pathがディレクトリで、かつマウントポイントでない場合は、再マウント処理はしない
-                    # return Path(self._path)
-                    pass
-            else:
-                # _pathが(ディレクトリでない)ファイルで、かつ存在する場合は、再マウント処理はしない
-                # return Path(self._path)
-                pass
-        else:
-            if self.id is None:
-                # 再マウント処理ができない場合
-                # return Path(self._path)
-                pass
-            else:
-                # pathに対応するファイルまたはディレクトリが無い場合、再マウント処理する
-                Mountable.remount(self._session, self.id)
-                if not self._path.exists():
-                    # 再マウント処理をしてもファイルまたはディレクトリがない場合は、例外を送出する
-                    # (ここで例外を送出するとexists(path)で存在チェックができなくなる)
-                    # raise Exception('No file or directory of the path property exists.')
-                    pass
-                # return Path(self._path)
-                pass
-
-        # 必ず相対pathを返す
-        # return Path(self._to_rel_path(self._path))
-
         # 絶対パスを返す
-        return Path(Datum._to_abs_path(self._path))
+        return Datum._to_abs_path(self._path)
 
     @property
     def path_exists(self):
@@ -812,14 +770,14 @@ class Datum(BaseModel):
             return body + '_1' + ext
 
     @staticmethod
-    def _to_abs_path(path):
+    def _to_abs_path(path:Path):
         if path.is_absolute():
             return path
         else:
             return Datum.STORE_DIR / path
 
     @staticmethod
-    def _to_rel_path(path):
+    def _to_rel_path(path:Path):
         # if path.startswith('/'):
         if path.is_absolute():
             # ディレクトリトラバーサルには対応していない

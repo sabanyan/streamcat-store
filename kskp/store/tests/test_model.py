@@ -376,13 +376,16 @@ class LibraryTest(TestCaseBase):
             # フォルダの直下にリモートフォルダを作成する
             conn = RemoteFolderConn(self.conn_json)
             folder = self.save_rfolder(from_folder, 'リモートフォルダ3', conn)
+            # Mountする
+            # (Mountするとmove()では対応ディレクトリは移動されない)
+            folder.path
             # 作成したフォルダのラベルを変更する
             folder.move(to_folder.uuid, self.USER2)
             # ラベルとディレクトリパスのみが変更されることを検証する
             self.assertEqual(folder.id, folder.id)
             self.assertEqual(folder.parent_id, folder.parent_id)
             self.assertEqual(folder.uuid, folder.uuid)
-            # Moutableなフォルダは移動してもパスは変わらない
+            # Mount済みのリモートフォルダは移動してもパスは変わらない
             self.assertEqual(folder.path, from_folder.path / 'リモートフォルダ3')
             self.assertEqual(folder.type, folder.type)
             self.assertEqual(folder.label, 'リモートフォルダ3')
