@@ -1700,3 +1700,36 @@ class ToTListCommand(Command):
 
         # pass output
         return {'o': NysolModule(cmd)}
+
+class ToNamedPipeCommand(Command):
+    """
+    名前付きパイプを作成しそこに結果を出力する
+    """
+    def __init__(self):
+        super().__init__()
+        self.i_ports = [Port('i', 'frame')]
+        self.o_ports = [Port('o', 'mcmd')]
+
+    def run(self, args, inputs):
+        import os
+        from kskp.store import Stream
+
+        named_pipe = ToNamedPipeCommand._create_tmp_named_pipe()
+        os.mkfifo(named_pipe)
+
+        cmd = inputs['i'].content
+        cmd <<= nm.m2tee(o=named_pipe.as_posix(), nfn=True)
+
+        nysol_module = NysolModule(cmd)
+        nysol_module.context['stream'] = Stream(named_pipe)
+
+        return {'o': nysol_module}
+
+    @staticmethod
+    def _create_tmp_named_pipe():
+        from kskp.core import Tmp
+        import uuid
+        # 一意なファイル名を作成する
+        file_name  = '__KSKPTMP_' + 'PIPE_' + str(uuid.uuid4())[0:8]
+        # TmpファイルPath
+        return Tmp._get_tmp_directory() / file_name

@@ -137,6 +137,7 @@ class CommandLink:
         'align' : AlignColumns(),
         'to_list' : ToListCommand(),
         'to_tlist' : ToTListCommand(),
+        'to_pipe' : ToNamedPipeCommand(),
         # IoT コマンド
         'ts_polation' : MissingValueInterpolateCommand(),
         'ts_mpid' : MeasurementPeriodIdentifyCommand(),
