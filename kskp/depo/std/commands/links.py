@@ -136,6 +136,7 @@ class CommandLink:
         'convtocp932' : ConvEncoding(),
         'align' : AlignColumns(),
         'to_list' : ToListCommand(),
+        'to_tlist' : ToTListCommand(),
         # IoT コマンド
         'ts_polation' : MissingValueInterpolateCommand(),
         'ts_mpid' : MeasurementPeriodIdentifyCommand(),

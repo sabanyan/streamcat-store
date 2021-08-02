@@ -1667,3 +1667,36 @@ class ToListCommand(Command):
 
         # pass output
         return {'o': NysolModule(cmd)}
+
+class ToTListCommand(Command):
+    """
+    入力データを[列名, 値(1行目), 値(2行目),..]の形式のPython Listに出力する
+    """
+    def __init__(self):
+        super().__init__()
+        self.i_ports = [Port('i', 'frame')]
+        self.o_ports = [Port('o', 'dict')]
+
+    def run(self, args, inputs):
+        import uuid
+        # 重複しない列名を用意する
+        seq_col_name = str(uuid.uuid4())[0:8]
+
+        cmd = inputs['i'].content
+
+        # グラフ表示に不要な列を削除してメモリ使用量を低減する
+        data_columns = args.get('data_column', [])
+        x_axises = [item['column'] for item in args.get('x_axis') if item['column'] is not None]
+        y_axises = [item['column'] for item in args.get('y_axis') if item['column'] is not None]
+        required_cols = ','.join(data_columns + x_axises + y_axises) or '*'
+        cmd <<= nm.mcut(f=required_cols)
+
+        # mcross後の列名重複を避けるため連番キーを付加する
+        cmd <<= nm.mnumber(I=1, S=0, a=seq_col_name, e='seq', q=True)
+
+        # hv.Dataset()は{列名 : [値,...]}の形式で入力を受付けるため行列を入れ替える
+        cmd <<= nm.mcross(a='fld', f='*', s=f'{seq_col_name}%n', q=True)
+        cmd <<= nm.writelist(nfn=True)
+
+        # pass output
+        return {'o': NysolModule(cmd)}
