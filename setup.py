@@ -23,10 +23,10 @@ setup(
         'scipy',
         'pandas==0.24.2',
         'sklearn',
-        # matplotlibはholoviewsが使用する
+        # matplotlibとbokehはholoviewsが使用する
         'matplotlib',
-        'holoviews',
-        'param',
         'bokeh==2.3.0',
+        'holoviews',
+        'param'
     ],
 )

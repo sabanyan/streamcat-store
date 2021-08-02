@@ -1401,7 +1401,59 @@ class RowRangeCommand(Command):
         # cmd <<= nm.mbest(q=True, fr=offset, size=limit)
 
         # pass output
-        return {'o': NysolModule(cmd)} 
+        return {'o': NysolModule(cmd)}
+
+class RowRandomCommand(Command):
+    """
+    無作為に行を抽出する
+    """
+    def __init__(self):
+        super().__init__()
+        self.i_ports = [Port('i', 'frame')]
+        self.o_ports = [Port('o', 'frame')]
+
+    def run(self, args, inputs):
+        def filter(size):
+            import random
+            try:
+                # ヘッダ行を出力する
+                header = sys.stdin.readline()
+                print(header, end='')
+
+                # 無作為に行を抽出しバッファメモリに格納する
+                # NOTE: https://stackoverflow.com/a/232248/624900
+                buffer = []
+                line_num = 0
+                for line in sys.stdin:
+                    n = line_num + 1.0
+                    if n <= size:
+                        buffer.append(line)
+                    elif random.random() < size/n:
+                        loc = random.randint(0, size-1)
+                        buffer[loc] = line
+                    line_num += 1
+
+                # バッファメモリを標準出力へ出力する
+                for line in buffer:
+                    print(line, end='')
+
+                # flushをする
+                sys.stdout.flush()
+            except Exception as e:
+                with open('/dev/stderr', 'w') as fpe:
+                    import traceback
+                    traceback.print_exc(file=fpe)
+                    print(f'#ERROR# {str(e)}; RowRandomCommand; ; ; ', file=fpe)
+                raise
+
+        # 抽出行数の取得
+        limit = int(args.get('limit')) if args.get('limit') else 0
+
+        cmd = inputs['i'].content
+        cmd <<= nm.runfunc(filter, size=limit)
+
+        # pass output
+        return {'o': NysolModule(cmd)}
 
 class ConvToUtf8(Command):
     """

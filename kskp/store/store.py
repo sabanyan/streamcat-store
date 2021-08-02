@@ -134,7 +134,6 @@ class NysolModule(Datum):
         else:
             return nysol_cmd.__class__.__name__
 
-
     def __ilshift__(self, other):
         raise Exception(f'NysolModule({str(self._content)})に"<<="演算子は使えません')
 
@@ -142,7 +141,7 @@ class List(Datum):
     """
     リスト構造のデータを表す
     """
-    def __init__(self, content=None):
+    def __init__(self, content:list=None):
         super().__init__(None, None, 'list', None)
         self._content = content
         self._encoding = None

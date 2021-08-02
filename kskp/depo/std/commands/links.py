@@ -131,6 +131,7 @@ class CommandLink:
         'multi_mvsim': MvSimCommand(),
         'plaintext2csv': PlainText2Csv(),
         'rowrange': RowRangeCommand(),
+        'rowrandom': RowRandomCommand(),
         'convtoutf8' : ConvEncoding(),
         'convtocp932' : ConvEncoding(),
         'align' : AlignColumns(),

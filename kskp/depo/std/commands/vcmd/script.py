@@ -75,6 +75,51 @@ class VisualizersBokehPlot(VisualizersCommand):
 
         return {'o': ApparentLast(inputs['i'].out_point, vis)} 
 
+    @staticmethod
+    def cast_to_float(vals):
+        """
+        数値型に型を変換する
+        """
+        try:
+            # 数値に変換できない値はNaN値に変換される
+            num_vals = np.genfromtxt(vals, dtype=float, autostrip=True)
+            # np.genfromtxt()によって空文字の要素は削除されるので、その場合は変換しない
+            if num_vals.size < vals.size:
+                return vals
+            # NaN値の割合を算出する
+            nan_ratio = np.count_nonzero(np.isnan(num_vals)) / num_vals.size
+            # NaN値の割合が一定数を超えた場合は変換しない
+            if nan_ratio > 0.5:
+                return vals
+            return num_vals
+        except ValueError:
+            return vals
+
+    @staticmethod
+    def cast_to_datetime(vals):
+        """
+        日付時刻文字列を自動認識して日付時刻型に変換する
+        """
+        from dateutil import parser
+        try:
+            f = np.frompyfunc(parser.parse, nin=1, nout=1)
+            return f(vals)
+        except:
+            return VisualizersBokehPlot.cast_to_float(vals)
+
+    @staticmethod
+    def cast_to_datetime_by_format(vals, format:str):
+        """
+        指定した書式の文字列から日付時刻型に変換する
+        """
+        from datetime import datetime
+        caster = lambda x: datetime.strptime(x, format)
+        try:
+            f = np.frompyfunc(caster, nin=1, nout=1)
+            return f(vals)
+        except:
+            return VisualizersBokehPlot.cast_to_float(vals)
+
     def direct_product_by_keys(self, df, keys):
         """
         キー項目の直積を求める

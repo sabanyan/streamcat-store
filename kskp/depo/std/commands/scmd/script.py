@@ -956,7 +956,7 @@ class RunsCommand(SCommand):
                     list = List(results[i])
                     rets[i_port_name] = ApparentLast(None, frame or list)
                 else:
-                    rets[i_port_name] = ApparentLast(None, frame, exs_list)
+                    rets[i_port_name] = ApparentLast(None, frame, exs=exs_list)
                 i += 1
 
             return rets
