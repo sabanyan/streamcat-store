@@ -1665,7 +1665,6 @@ class ToListCommand(Command):
         # ヘッダ扱いすると、重複列名や空列名があるとエラーになる
         cmd <<= nm.writelist(nfn=True)
 
-        # pass output
         return {'o': NysolModule(cmd)}
 
 class ToTListCommand(Command):
@@ -1675,12 +1674,10 @@ class ToTListCommand(Command):
     def __init__(self):
         super().__init__()
         self.i_ports = [Port('i', 'frame')]
-        self.o_ports = [Port('o', 'dict')]
+        self.o_ports = [Port('o', 'list')]
 
     def run(self, args, inputs):
         import uuid
-        # 重複しない列名を用意する
-        seq_col_name = str(uuid.uuid4())[0:8]
 
         cmd = inputs['i'].content
 
@@ -1688,9 +1685,12 @@ class ToTListCommand(Command):
         data_columns = args.get('data_column', [])
         x_axises = [item['column'] for item in args.get('x_axis') if item['column'] is not None]
         y_axises = [item['column'] for item in args.get('y_axis') if item['column'] is not None]
-        required_cols = ','.join(data_columns + x_axises + y_axises) or '*'
-        cmd <<= nm.mcut(f=required_cols)
+        # nm.mcutは重複列名を指定するとエラーになるので、setを用いて重複列名を一つに纏める
+        col_names = ','.join(set(data_columns + x_axises + y_axises)) or '*'
+        cmd <<= nm.mcut(f=col_names)
 
+        # 重複しない列名を用意する
+        seq_col_name = str(uuid.uuid4())[0:8]
         # mcross後の列名重複を避けるため連番キーを付加する
         cmd <<= nm.mnumber(I=1, S=0, a=seq_col_name, e='seq', q=True)
 
@@ -1698,7 +1698,6 @@ class ToTListCommand(Command):
         cmd <<= nm.mcross(a='fld', f='*', s=f'{seq_col_name}%n', q=True)
         cmd <<= nm.writelist(nfn=True)
 
-        # pass output
         return {'o': NysolModule(cmd)}
 
 class ToNamedPipeCommand(Command):
