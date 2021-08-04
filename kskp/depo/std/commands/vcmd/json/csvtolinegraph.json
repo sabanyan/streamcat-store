@@ -96,7 +96,7 @@
       "type": "number",
       "label": "表示の件数",
       "description": "件数分をデータから無作為に抽出します",
-      "default": 100
+      "default": 1000
     }
   ],
   "groups": [
