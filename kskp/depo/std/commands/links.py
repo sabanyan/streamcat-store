@@ -209,14 +209,22 @@ class CommandsPathLink(PathLink):
         CommandsPathLink.COMMAND_JSONS[path_str] = []
 
         for command_path in path.iterdir():
-            if not command_path.suffix == '.json':
-                continue
-            command_json = command_path.read_text(encoding='utf-8')
-            command_data = json.loads(command_json)
-            # 読み込んだコマンドJSONはメモリ(dict)に保持する
-            CommandsPathLink.COMMAND_JSONS[path_str].append(command_data)
+            command_data = CommandsPathLink._read_command_json(command_path)
+            if command_data:
+                # 読み込んだコマンドJSONはメモリ(dict)に保持する
+                CommandsPathLink.COMMAND_JSONS[path_str].append(command_data)
 
         return CommandsPathLink.COMMAND_JSONS[path_str]
+
+    @staticmethod
+    def _read_command_json(command_path:Path):
+        if not command_path.suffix == '.json':
+            return None
+        try:
+            command_json = command_path.read_text(encoding='utf-8')
+            return json.loads(command_json)
+        except Exception as e:
+            raise Exception(f'コマンドJSON({command_path})の読み込みに失敗しました ({e})')
 
     def __init__(self, source:PathFileSource):
         super().__init__(source)
