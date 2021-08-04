@@ -69,10 +69,10 @@
       "type"  :"select",
       "label" :"横軸列：時間軸　フォーマット",
       "options":{
-        "labels": ["暦型（YYYYMMDDhhmmss.小数６桁まで）","数値型","ユーザー指定"],
-        "values": ["nysol","float","custom"]
+        "labels": ["自動","暦型（YYYYMMDDhhmmss.小数６桁まで）","ユーザー指定"],
+        "values": ["auto","nysol","custom"]
       },
-      "default":"nysol"
+      "default":"auto"
     },
     {
       "name"  :"x_axis_format_custom",
@@ -92,27 +92,11 @@
       "default": []
     },
     {
-      "name": "offset",
-      "type": "number",
-      "label": "表示の開始（１始まりの行番号）"
-    },
-    {
       "name": "limit",
       "type": "number",
       "label": "表示の件数",
+      "description": "件数分をデータから無作為に抽出します",
       "default": 100
-    },
-    {
-      "name": "width",
-      "type": "number",
-      "label": "横軸（ドット）",
-      "default": 1000
-    },
-    {
-      "name": "height",
-      "type": "number",
-      "label": "縦軸（ドット）",
-      "default": 600
     }
   ],
   "groups": [
@@ -134,13 +118,8 @@
     },
     {
       "name": "offset_group",
-      "label": "データ表示範囲の設定",
-      "params": ["offset","limit"]
-    },
-    {
-      "name": "graph_size",
-      "label": "グラフサイズの設定",
-      "params": ["width","height"]
+      "label": "データ表示件数の設定",
+      "params": ["limit"]
     }
   ],
   "url": ""

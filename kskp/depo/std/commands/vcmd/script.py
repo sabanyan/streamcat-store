@@ -3,77 +3,98 @@ import nysol.mcmd as nm
 from kskp.core import Command, Port
 
 ErrMsg={
-        '1': "VisualizeInitException"
+    '1': "VisualizeInitException"
 }
 
-class VisualizersCommand(Command):
+class VCommand(Command):
     def __init__(self):
         super().__init__()
         self.i_ports = [Port('i', 'list')]
-        self.o_ports = [Port('o', 'vis')]
+        self.o_ports = [Port('o', 'last')]
 
     def run(self, args, inputs):
         pass
 
-class VisualizersHtml(VisualizersCommand):
+class CsvToTableCommand(VCommand):
     """
-    Bokehを使うコマンドと分けたかったのでとりあえず作成
-    とりあえず感が半端ない。。。
+    テーブル表示を出力する
     """
-    def __init__(self):
-        super().__init__()
-
-class CsvToTableCommand(VisualizersHtml):
-    def __init__(self):
-        super().__init__()
-
     def run(self, args, inputs):
         """
         ListデータをVisデータにして返す
         """
-        from kskp.store import ApparentLast
-        from kskp.store import Vis
+        from kskp.store import ApparentLast, Vis
 
         # 直前のRunsCommandがエラーを返した場合、直後のActivityCommandにエラーを渡す
         if inputs['i'].has_exs:
             return {'o': inputs['i']}
 
-        # 結果はVisに入れて返す
+        # 入力値としてListDatumを取得する
         list_datum = inputs['i'].datum
+
+        # 結果はVisに入れて返す
         column_names = list_datum[0] if len(list_datum) > 0 else []
         matrix = list_datum[1:] if len(list_datum) > 1 else [[]]
         vis = Vis(None, None, 'csv_to_table', column_names, matrix)
-
         return {'o': ApparentLast(inputs['i'].out_point, vis)}  
 
-class VisualizersBokehPlot(VisualizersCommand):
+class HoloviewsBaseCommand(VCommand):
     """
-    Bokehを使うとき用
+    HoloViewsを用いてグラフを出力する
     """
     def __init__(self):
         super().__init__()
 
+        # Bokehを用いてグラフを描画する
+        hv.extension('bokeh')
+        self.renderer = hv.renderer('bokeh')
+
     def run(self, args, inputs):
-        from kskp.store import ApparentLast
-        from kskp.store import BokehPlotVis
+        from bokeh.embed import components
+        from kskp.store import ApparentLast, BokehPlotVis
 
         # 直前のRunsCommandがエラーを返した場合、直後のActivityCommandにエラーを渡す
         if inputs['i'].has_exs:
             return {'o': inputs['i']}
 
+        # 入力値としてListDatumを取得する
         list_datum = inputs['i'].datum
-        column_names = list_datum[0] if len(list_datum) > 0 else []
-        matrix = list_datum[1:] if len(list_datum) > 1 else [[]]
-        p = self.plot(args, column_names, matrix)
-        script1, div1 = components(p)
 
+        # 先頭行はnm.mcrossが出力した項目名行なので除外する
+        # 最終行はnm.mnumberで付加した連番なので除外する
+        column_names = [datum[0] for datum in list_datum][1:-1]
+        matrix = list_datum[1:-1] if len(list_datum) > 1 else [[]]
+
+        # データを用意する
+        # NOTE: hv.Dataset.sort()を実行するにはnp.array型でなければならない
+        matrix_dict = {row[0]:np.array(row[1:]) for row in matrix}
+
+        # プロットする
+        plot = self.plot(args, column_names, matrix_dict)
+
+        # HTML要素を取得する
+        script, div = components(plot)
+
+        # 結果はVisに入れて返す
         label = self.__class__.__name__
-        vis = BokehPlotVis(None, None, label, column_names, script1, div1)
-
-        # とりあえず動くようにするため
-        # vis.data = nm.runfunc(lambda : None)
-
+        vis = BokehPlotVis(None, None, label, column_names, script, div)
         return {'o': ApparentLast(inputs['i'].out_point, vis)} 
+
+    def plot(self, args, column_names:list, matrix_dict:dict):
+        """
+        ビジュアライズを描画、保存する
+        """
+        pass
+
+    @staticmethod
+    def set_common_opts(overlay):
+        """
+        グラフ共通のオプションを設定する
+        """
+        # aspect          : グラフ表示域の縦横比率
+        # responsive      : グラフ表示域をWebブラウザの表示サイズに合わせる
+        # toolbar         : ツールバーの表示位置
+        return overlay.opts(aspect=1.5, responsive=True, toolbar='right', framewise=True)
 
     @staticmethod
     def cast_to_float(vals):
@@ -105,7 +126,7 @@ class VisualizersBokehPlot(VisualizersCommand):
             f = np.frompyfunc(parser.parse, nin=1, nout=1)
             return f(vals)
         except:
-            return VisualizersBokehPlot.cast_to_float(vals)
+            return HoloviewsBaseCommand.cast_to_float(vals)
 
     @staticmethod
     def cast_to_datetime_by_format(vals, format:str):
@@ -118,7 +139,20 @@ class VisualizersBokehPlot(VisualizersCommand):
             f = np.frompyfunc(caster, nin=1, nout=1)
             return f(vals)
         except:
-            return VisualizersBokehPlot.cast_to_float(vals)
+            return HoloviewsBaseCommand.cast_to_float(vals)
+
+    @staticmethod
+    def get_dimension(axis:list):
+        if axis is None or not isinstance(axis, list) or len(axis)==0:
+            raise Exception(f'axisが指定されていない、またはlist型ではありません ({axis})')
+        axis_column = axis[0].get('column')
+        if axis_column is None:
+            # エラメッセージ'VisualizeInitException'はエラーダイアログを表示しない
+            raise Exception(ErrMsg['1'])
+        axis_label = axis[0].get('label', '').strip() or axis_column
+
+        # 軸を設定する
+        return hv.Dimension(axis_column, label=axis_label)
 
     def direct_product_by_keys(self, df, keys):
         """
@@ -173,18 +207,6 @@ class VisualizersBokehPlot(VisualizersCommand):
         """
         return self._get_proper_column(column_names, 4)
 
-    def _proper_x_size(self):
-        """
-        X軸のサイズを決定する
-        """
-        return 1000
-
-    def _proper_y_size(self):
-        """
-        Y軸のサイズを決定する
-        """
-        return 600
-
 # グラフ化に必要なものの準備
 # 
 # TODO: これらのImportは、テストスクリプトの実行時に、以下のWarningを出力している
@@ -194,339 +216,210 @@ import pandas as pd
 import numpy as np
 import holoviews as hv
 from bokeh.plotting import figure
-from bokeh.embed import components
 from bokeh.palettes import Dark2_5 as palette
 from bokeh.layouts import gridplot
 from bokeh.models import Select, ColumnDataSource, Span
-from bokeh.models.callbacks import CustomJS
-import pprint
 import itertools
 
-hv.extension('bokeh')
+class CsvToLineGraphCommand(HoloviewsBaseCommand):
+    """
+    折線推移グラフを出力する
+    """
+    def plot(self, args, column_names:list, matrix_dict:dict):
+        # X軸(時間軸)を取得する
+        time_dim = HoloviewsBaseCommand.get_dimension(args.get('x_axis'))
+        # Y軸を取得する
+        val_dim = HoloviewsBaseCommand.get_dimension(args.get('y_axis'))
 
-class CsvToLineGraphCommand(VisualizersBokehPlot):
-    def __init__(self):
-        super().__init__()
+        # 時刻値への型変換関数を取得する
+        cast_to_datetime = CsvToLineGraphCommand.get_datetime_cast_func(args)
 
-    def plot(self, args, column_names, matrix):
-        """
-        ビジュアライズを描画、保存する。
-        """
-        # 軸の設定
-        x_axis          = args.get('x_axis')
-        x_axis_column   = x_axis[0]['column'] # 必須
-        x_axis_label    = x_axis[0]['label'] 
+        # データ系列を取得する
+        data_columns = args.get('data_column', [])
 
-        x_axis_format_select = args.get('x_axis_format_select') if args.get('x_axis_format_select') else None
+        # holoviewsに格納するデータを用意する
+        key_dimensions = [time_dim,val_dim] + data_columns
+        ds = hv.Dataset(matrix_dict, kdims=key_dimensions)
+        # 文字列から数値/日付型へ型変換する
+        x_expr = hv.dim(time_dim, cast_to_datetime)
+        y_expr = hv.dim(val_dim, HoloviewsBaseCommand.cast_to_float)
+        ds = ds.transform((time_dim, x_expr), (val_dim, y_expr))
+        # 時間軸の列でソートする
+        ds = ds.sort([time_dim])
+
+        if len(data_columns) == 0:
+            # データ系列の指定がない場合
+            curves = ds.to(hv.Curve, time_dim, val_dim)
+            scatters = ds.to(hv.Scatter, time_dim, val_dim).opts(size=5, tools=['hover'])
+            overlay = curves * scatters
+        else:
+            # データ系列の指定がある場合
+            ds = ds.select(selection_specs=data_columns)
+            curves = ds.to(hv.Curve, time_dim, val_dim)
+            scatters = ds.to(hv.Scatter, time_dim, val_dim).opts(size=5, tools=['hover'])
+            overlay = curves * scatters
+            # X/Y軸とデータ系列の列が重複している場合は.overlay()を使用しない
+            if not isinstance(overlay, hv.Overlay):
+                overlay = overlay.overlay()
+
+        # グラフ固有のオプションを設定する
+        # legend_position : データ系列一覧の表示位置
+        overlay = overlay.opts(legend_position='top')
+
+        # グラフ共通のオプションを設定する
+        overlay =  HoloviewsBaseCommand.set_common_opts(overlay)
+
+        # グラフをプロットする
+        return self.renderer.get_plot(overlay).state
+
+    @staticmethod
+    def get_datetime_cast_func(args):
+        # 時間軸の書式
+        x_axis_format_select = args.get('x_axis_format_select')
         x_axis_format_custom = args.get('x_axis_format_custom')
 
-        y_axis          = args.get('y_axis')
-        y_axis_column   = y_axis[0]['column'] # 必須
-        y_axis_label    = y_axis[0]['label']
-
-        # データ系列の設定
-        data_column     = args.get('data_column') if args.get('data_column') is not None else []
-
-        # データ表示範囲の設定
-        #offset          = int(args.get('offset'))   if args.get('offset')   else 0
-        #limit           = int(args.get('limit'))    if args.get('limit')    else None
-
-        # グラフサイズの設定
-        graph_width     = int(args.get('width'))
-        graph_height    = int(args.get('height'))
-
-        # 初期表示時
-        if x_axis_column is None and y_axis_column is None: 
-            raise Exception(ErrMsg['1'])
-
-        # dfの作成
-        df = pd.DataFrame(matrix, columns=column_names)
-        
-        # 無効値の置換処理
-        invaildIndexNames = df[(df[y_axis_column] == '') | (df[y_axis_column] == 'Na') | (df[y_axis_column] == 'Inf') | (df[y_axis_column] == 'NaN')].index
-        df.drop(invaildIndexNames , inplace=True)
-
-        invaildIndexNames = df[(df[x_axis_column] == '') | (df[x_axis_column] == 'Na') | (df[x_axis_column] == 'Inf') | (df[x_axis_column] == 'NaN')].index
-        df.drop(invaildIndexNames , inplace=True)
-
-        # Data Typeの指定
-
-        # 折れ線グラフ（時系列用）
-        # 横軸：date
-        # 縦軸：float
-        # データ系列：string
-        timeseries_format_nysol = "%Y%m%d%H%M%S.%f"
-        timeseries_format_custom = args.get('x_axis_format_custom')
-
-        if x_axis_format_select == "nysol":
-            df[x_axis_column] = pd.to_datetime(df[x_axis_column], format=timeseries_format_nysol)
-        elif x_axis_format_select == "float":
-            df[x_axis_column] = df[x_axis_column].astype(float)
-        elif x_axis_format_select == "custom":
-            df[x_axis_column] = pd.to_datetime(df[x_axis_column], format=timeseries_format_custom)   
-     
-
-        df[y_axis_column] = df[y_axis_column].astype(float)
-        df[data_column] = df[data_column].astype(str)
-
-        hv.extension('bokeh')
-
-        if len(data_column) > 0:
-            results = self.direct_product_by_keys(df, data_column)
-            named_dfs = self.process_df(df, results)
+        # 時間軸の書式を設定する
+        if x_axis_format_select == 'nysol':
+            cast_to_datetime = lambda x: HoloviewsBaseCommand.cast_to_datetime_by_format(x, '%Y%m%d%H%M%S.%f')
+        elif x_axis_format_select == 'custom': 
+            cast_to_datetime = lambda x: HoloviewsBaseCommand.cast_to_datetime_by_format(x, x_axis_format_custom)
         else:
-            named_dfs = {}
-            named_dfs['all'] = df
+            cast_to_datetime = HoloviewsBaseCommand.cast_to_datetime
 
-        # 3. 折れ線の作成
-        line_list = {}
-        scatter_list = {}
-        for label, df in named_dfs.items():
-            line_list[label] = hv.Curve(df, x_axis_column, y_axis_column).opts(framewise=True)
-            scatter_list[label] = hv.Scatter(df, x_axis_column, y_axis_column).opts(framewise=True, size=5)
+        return cast_to_datetime
 
-        ndoverlay = hv.NdOverlay(line_list)
-        scatter = hv.NdOverlay(scatter_list)
-        overlay = (ndoverlay * scatter).opts(legend_position='top',
-                                                 width=graph_width, height=graph_height,
-                                                 xlabel=x_axis_label, ylabel=y_axis_label)
+class CsvToHistogramCommand(HoloviewsBaseCommand):
+    """
+    ヒストグラムを出力する
+    """
+    def plot(self, args, column_names:list, matrix_dict:dict):
+        # X軸を取得する
+        x_dim = HoloviewsBaseCommand.get_dimension(args.get('x_axis'))
 
-
-        renderer = hv.renderer('bokeh')
-        plot = renderer.get_plot(overlay).state
-
-        return plot
-
-class CsvToHistogramCommand(VisualizersBokehPlot):
-    def __init__(self):
-        super().__init__()
-
-    def plot(self, args, column_names, matrix):
-        """
-        ListデータをVisデータにして返す
-        """
-
-        # 軸の設定
-        x_axis          = args.get('x_axis')
-        x_axis_column   = x_axis[0]['column']
-        x_axis_label    = x_axis[0]['label']
-
-        # 縦軸列：頻度
-        y_axis_label    = ""
-
-        # データ系列の設定
-        data_column     = args.get('data_column') if args.get('data_column') is not None else []
-
-        # データ表示範囲の設定
-        #offset          = int(args.get('offset'))   if args.get('offset')   else 0
-        #limit           = int(args.get('limit'))    if args.get('limit')    else None
+        # データ系列を取得する
+        data_columns = args.get('data_column', [])
 
         # グラフ表示要素の設定
-        bins            = int(args.get('bins')) if args.get('bins') else None
-        
-        # グラフサイズの設定
-        graph_width     = int(args.get('width'))
-        graph_height    = int(args.get('height'))
-        
-        # 初期表示時
-        if x_axis_column is None: 
-            raise Exception(ErrMsg['1'])
+        bins = int(args.get('bins')) if args.get('bins') else None
 
-        # dfの作成
-        df = pd.DataFrame(matrix, columns=column_names)
+        # holoviewsに格納するデータを用意する
+        key_dimensions = [x_dim] + data_columns
+        ds = hv.Dataset(matrix_dict, kdims=key_dimensions)
+        # 文字列から数値型へ型変換する
+        x_expr = hv.dim(x_dim, HoloviewsBaseCommand.cast_to_float)
+        ds = ds.transform((x_dim, x_expr))
 
-        # 無効値の置換処理
-        invaildIndexNames = df[(df[x_axis_column] == '') | (df[x_axis_column] == 'Na') | (df[x_axis_column] == 'Inf') | (df[x_axis_column] == 'NaN')].index
-        df.drop(invaildIndexNames , inplace=True)
+        # TODO: bins引数の指定が無視される
+        # https://github.com/holoviz/holoviews/issues/4651
 
-        # Data Typeの指定
-        # ヒストグラム
-        # 横軸：date
-        # 縦軸：float
-        # データ系列：string
-
-        df[x_axis_column] = df[x_axis_column].astype(float)
-        df[data_column] = df[data_column].astype(str)
-
-        hv.extension('bokeh')
-
-        if len(data_column) > 0:
-            results = self.direct_product_by_keys(df, data_column)
-            named_dfs = self.process_df(df, results)
+        if len(data_columns) == 0:
+            # データ系列の指定がない場合
+            overlay = ds.hist(x_dim, bins=bins, adjoin=False)
+            # tools=['hover'] : Hover表示
+            overlay = overlay.opts(tools=['hover'])
         else:
-            named_dfs = {}
-            named_dfs['all'] = df
+            # データ系列の指定がある場合
+            overlay = ds.hist(x_dim, groupby=data_columns, bins=bins, adjoin=False, alpha=0.5, muted_alpha=0.1)
+            # legend_position : データ系列一覧の表示位置
+            # (groupby指定がある場合はHoverが表示されない)
+            overlay = overlay.opts(legend_position='top')
 
-        # 3. ヒストグラムの作成
-        hist_list = {}
-        
-        for label, df in named_dfs.items():
-            hist, edges = np.histogram(df[x_axis_column].tolist(), bins=bins)
-            hist_list[label] = hv.Histogram((edges, hist)).opts(muted_alpha=0.1)
+        # グラフ共通のオプションを設定する
+        overlay = HoloviewsBaseCommand.set_common_opts(overlay)
 
-        ndoverlay = hv.NdOverlay(hist_list).opts(legend_position='top',
-                                                 width=graph_width, height=graph_height,
-                                                 xlabel=x_axis_label, ylabel=y_axis_label)
+        # グラフをプロットする
+        return self.renderer.get_plot(overlay).state
 
-        renderer = hv.renderer('bokeh')
-        plot = renderer.get_plot(ndoverlay).state
-        
-        return plot
+class CsvToBoxplotCommand(HoloviewsBaseCommand):
+    """
+    箱ひげ図を出力する
+    """
+    def plot(self, args, column_names:list, matrix_dict:dict):
+        # X軸を取得する
+        y_dim = HoloviewsBaseCommand.get_dimension(args.get('y_axis'))
 
-    def _infer_bins_columns(self, column_names):
-        """
-        Binsになりそうなデータ列を取得する
-        """
-        return [self._get_proper_column(column_names, 4)]
+        # データ系列を取得する
+        data_columns = args.get('data_column', [])
 
-class CsvToBoxplotCommand(VisualizersBokehPlot):
-    def __init__(self):
-        super().__init__()
-        
-    def plot(self, args, column_names, matrix):
-        """
-        ListデータをVisデータにして返す
-        """
-        # 縦軸列：観測値
-        y_axis          = args.get('y_axis')
-        y_axis_column   = y_axis[0]['column']
-        y_axis_label    = y_axis[0]['label']
+        # holoviewsに格納するデータを用意する
+        key_dimensions = [y_dim] + data_columns
+        ds = hv.Dataset(matrix_dict, kdims=key_dimensions)
+        # 文字列から数値型へ型変換する
+        y_expr = hv.dim(y_dim, HoloviewsBaseCommand.cast_to_float)
+        ds = ds.transform((y_dim, y_expr))
 
-        x_axis_label    = ""
+        if len(data_columns) == 0:
+            # データ系列の指定がない場合
+            overlay = ds.to(hv.BoxWhisker, kdims=[], vdims=y_dim)
+        else:
+            # データ系列の指定がある場合
+            overlay = ds.to(hv.BoxWhisker, kdims=data_columns, vdims=y_dim)
 
-        # データ系列の設定
-        data_column     = args.get('data_column')   if args.get('data_column') is not None else []
+        # グラフ固有のオプションを設定する
+        # legend_position : データ系列一覧の表示位置
+        # tools=['hover'] : Hover表示
+        overlay = overlay.opts(legend_position='top', tools=['hover'])
 
-        # データ表示範囲の設定
-        #offset          = int(args.get('offset'))   if args.get('offset')   else 0
-        #limit           = int(args.get('limit'))    if args.get('limit')    else None
+        # グラフ共通のオプションを設定する
+        overlay = HoloviewsBaseCommand.set_common_opts(overlay)
+
+        # グラフをプロットする
+        return self.renderer.get_plot(overlay).state
+
+class CsvToScatterCommand(HoloviewsBaseCommand):
+    """
+    散布図を出力する
+    """
+    def plot(self, args, column_names:list, matrix_dict:dict):
+        # X軸を取得する
+        x_dim = HoloviewsBaseCommand.get_dimension(args.get('x_axis'))
+        # Y軸を取得する
+        y_dim = HoloviewsBaseCommand.get_dimension(args.get('y_axis'))
+
+        # データ系列を取得する
+        data_columns = args.get('data_column', [])
 
         # グラフ表示要素の設定
-        bins            = int(args.get('bins')) if args.get('bins') else None
-        
-        # グラフサイズの設定
-        graph_width     = int(args.get('width')) if args.get('width') else self._proper_x_size()
-        graph_height    = int(args.get('height')) if args.get('height') else self._proper_y_size()
+        withoutContourLine = args.get('withoutContourLine', False)
 
-        graph_title     = ""
+        # holoviewsに格納するデータを用意する
+        key_dimensions = [x_dim,y_dim] + data_columns
+        ds = hv.Dataset(matrix_dict, kdims=key_dimensions)
+        # 文字列から数値/日付型へ型変換する
+        x_expr = hv.dim(x_dim, HoloviewsBaseCommand.cast_to_datetime)
+        y_expr = hv.dim(y_dim, HoloviewsBaseCommand.cast_to_datetime)
+        ds = ds.transform((x_dim, x_expr), (y_dim, y_expr))
 
-        # 初期表示時
-        if y_axis_column is None: 
-            raise Exception(ErrMsg['1'])
-
-        # NysolPythonの結果をpandasのDataFrameに変換する
-        # dfの作成
-        df = pd.DataFrame(matrix, columns=column_names)
-        
-        # Data Typeの指定
-        # 箱ひげ図
-        # 縦軸：float
-        # データ系列：string
-
-        # 無効値の置換処理
-        invaildIndexNames = df[(df[y_axis_column] == '') | (df[y_axis_column] == 'Na') | (df[y_axis_column] == 'Inf') | (df[y_axis_column] == 'NaN')].index
-        df.drop(invaildIndexNames , inplace=True)
-
-        df[y_axis_column] = df[y_axis_column].astype(float)
-        df[data_column] = df[data_column].astype(str)
-
-        boxwhisker = hv.BoxWhisker(df, kdims=data_column, vdims=y_axis_column, label=graph_title)
-        boxwhisker.opts(width=graph_width, height=graph_height, xlabel=x_axis_label, ylabel=y_axis_label)
-
-        renderer = hv.renderer('bokeh')
-        plot=renderer.get_plot(boxwhisker).state
-
-        return plot
-
-class CsvToScatterCommand(VisualizersBokehPlot):
-    def __init__(self):
-        super().__init__()
-
-    def plot(self, args, column_names, matrix):
-        """
-        ListデータをVisデータにして返す
-        """
-        # 軸の設定
-        x_axis          = args.get('x_axis')
-        x_axis_column   = x_axis[0]['column']
-        x_axis_label    = x_axis[0]['label']
-
-        y_axis          = args.get('y_axis')
-        y_axis_column   = y_axis[0]['column']
-        y_axis_label    = y_axis[0]['label']
-
-        # データ系列の設定
-        data_column     = args.get('data_column')   if args.get('data_column') is not None else []
-
-        # データ表示範囲の設定
-        #offset          = int(args.get('offset'))   if args.get('offset')   else 0
-        #limit           = int(args.get('limit'))    if args.get('limit')    else None
-
-        # グラフ表示要素の設定
-        withoutContourLine  = args.get('withoutContourLine') if args.get('withoutContourLine') else False
-        
-        pp = pprint.PrettyPrinter(indent=4)
-        pp.pprint(withoutContourLine)
-        pp.pprint("-----------------------")
-        # グラフサイズの設定
-        graph_width     = int(args.get('width'))
-        graph_height    = int(args.get('height'))
-
-        # 初期表示時
-        if x_axis_column is None and y_axis_column is None: 
-            raise Exception(ErrMsg['1'])
-
-        # dfの作成
-        df = pd.DataFrame(matrix, columns=column_names)
-
-        # Data Typeの指定
-        # 散布図
-        # 横軸：float
-        # 縦軸：float
-        # データ系列：string
-
-        # 無効値の置換処理
-        invaildIndexNames = df[(df[y_axis_column] == '') | (df[y_axis_column] == 'Na') | (df[y_axis_column] == 'Inf') | (df[y_axis_column] == 'NaN')].index
-        df.drop(invaildIndexNames , inplace=True)
-
-        invaildIndexNames = df[(df[x_axis_column] == '') | (df[x_axis_column] == 'Na') | (df[x_axis_column] == 'Inf') | (df[x_axis_column] == 'NaN')].index
-        df.drop(invaildIndexNames , inplace=True)
-        
-        df[x_axis_column] = df[x_axis_column].astype(float)
-        df[y_axis_column] = df[y_axis_column].astype(float)
-        df[data_column] = df[data_column].astype(str)
-        hv.extension('bokeh')
-        
-        if len(data_column) > 0:
-            results = self.direct_product_by_keys(df, data_column)
-            named_dfs = self.process_df(df, results)
+        if len(data_columns) == 0:
+            # データ系列の指定がない場合
+            overlay = ds.to(hv.Scatter, x_dim, y_dim).opts(size=5, muted_alpha=0.1, tools=['hover'])
         else:
-            named_dfs = {}
-            named_dfs['all'] = df
-        
-        # 3. 散布図の作成
-        scatter_list = {}
-        for label, _df in named_dfs.items():
-            scatter_list[label] = hv.Scatter(_df, x_axis_column, vdims=[y_axis_column]).opts(muted_alpha=0.1, size=6)
-
-        ndoverlay = hv.NdOverlay(scatter_list).opts(legend_position='top',
-                                                 width=int(graph_width), height=int(graph_height),
-                                                 xlabel=x_axis_label, ylabel=y_axis_label)
+            # データ系列の指定がある場合
+            ds = ds.select(selection_specs=data_columns)
+            overlay = ds.to(hv.Scatter, x_dim, y_dim).opts(size=5, muted_alpha=0.1, tools=['hover'])
+            # X/Y軸とデータ系列の列が重複している場合は.overlay()を使用しない
+            if not isinstance(overlay, hv.Overlay):
+                overlay = overlay.overlay()
 
         if not withoutContourLine:
-            b = hv.Bivariate(df[[x_axis_column, y_axis_column]]).opts(show_legend=False, bandwidth=0.5, axiswise=True, line_width=2, colorbar=False, alpha=0.1)
-            ndoverlay = ndoverlay * b
+            b = hv.Bivariate(ds).opts(show_legend=False, bandwidth=0.5, axiswise=True, line_width=2, colorbar=False, alpha=0.1)
+            overlay = overlay * b
 
-        renderer = hv.renderer('bokeh')
-        plot = renderer.get_plot(ndoverlay).state
-        
-        return plot
+        # グラフ固有のオプションを設定する
+        # legend_position : データ系列一覧の表示位置
+        overlay = overlay.opts(legend_position='top')
 
-class CsvToRepetitivieWaveCommand(VisualizersBokehPlot):
-    def __init__(self):
-        super().__init__()
+        # グラフ共通のオプションを設定する
+        overlay = HoloviewsBaseCommand.set_common_opts(overlay)
 
-    def plot(self, args, column_names, matrix):
+        # グラフをプロットする
+        return self.renderer.get_plot(overlay).state
+
+class CsvToRepetitivieWaveCommand(HoloviewsBaseCommand):
+    """
+    反復波形図を出力する
+    """
+    def plot(self, args, column_names:list, matrix_dict:dict):
         # 軸の設定
         event = args.get('event') if args.get('event') else None
 
@@ -548,10 +441,6 @@ class CsvToRepetitivieWaveCommand(VisualizersBokehPlot):
         disableStatics = args.get('disableStatics') if args.get('disableStatics') else False
         disableEvent = args.get('disableEvent') if args.get('disableEvent') else False
         statics = args.get('statics') if args.get('statics') else None
-        
-        # グラフサイズの設定
-        graph_width = args.get('width')
-        graph_height = args.get('height')
 
         # 初期表示時
         if x_axis_column is None and y_axis_column is None: 
@@ -562,7 +451,7 @@ class CsvToRepetitivieWaveCommand(VisualizersBokehPlot):
             return 
 
         # dfの作成
-        df = pd.DataFrame(matrix, columns=column_names)
+        df = pd.DataFrame(matrix_dict)
 
         # cleansing
         cleansing_df = self.doCleansing(df)
@@ -606,7 +495,7 @@ class CsvToRepetitivieWaveCommand(VisualizersBokehPlot):
             result_df = df.query(queryStr)
             result_df[x_axis_column] = result_df[x_axis_column].astype(float)
             xs_event = result_df[x_axis_column].unique().tolist()
-            
+
         # plots
         plots = []
 
@@ -617,7 +506,7 @@ class CsvToRepetitivieWaveCommand(VisualizersBokehPlot):
             named_dfs = self.process_df(df, results)
         else:
             named_dfs['all'] = df
-                
+
         # source
         source = {}
         for label, n_df in named_dfs.items():
@@ -668,7 +557,7 @@ class CsvToRepetitivieWaveCommand(VisualizersBokehPlot):
             # 点
             if disableMarker != True:
                 plot.circle('x', 'y', source=source[label], legend=label, color=color, alpha=0.9, muted_color=color, muted_alpha=0.2, size=5)
-        
+
         # 起点
         if disableEvent != True and xs_event is not None:
             for x in xs_event:
@@ -758,14 +647,16 @@ class CsvToRepetitivieWaveCommand(VisualizersBokehPlot):
 
             # 起点
             if disableEvent != True and xs_event is not None:
+                s = None
                 for x in xs_event:
                     s = Span(location= x, dimension='height', line_color='black', line_dash='dashed', line_width=3, line_alpha=0.3)
-                statics_plot.add_layout(s)
+                if s is not None:
+                    statics_plot.add_layout(s)
 
             # plot設定
             statics_plot.legend.location = "top_left"
             statics_plot.legend.click_policy = "mute"
-                   
+
         # select(グループ属性)
         select = None
         if group is not None and unique_group is not None:
@@ -774,8 +665,8 @@ class CsvToRepetitivieWaveCommand(VisualizersBokehPlot):
         plots.append(plot)
         if statics_plot is not None:
             plots.append(statics_plot)
-        
-        return gridplot(plots, ncols=1, plot_width=graph_width, plot_height=graph_height, toolbar_location="right")
+
+        return gridplot(plots, ncols=1, sizing_mode='stretch_width', toolbar_location="right") 
     
     def toColumnDataSource(self, keys, values):  
         return ColumnDataSource(data=dict(zip(keys, values)))
@@ -793,6 +684,8 @@ class CsvToRepetitivieWaveCommand(VisualizersBokehPlot):
         return colors
 
     def get_select(self, plot, group, unique_group):
+        from bokeh.models.callbacks import CustomJS
+
         values = unique_group
         values.insert(0, '')
 
@@ -820,7 +713,7 @@ class CsvToRepetitivieWaveCommand(VisualizersBokehPlot):
 
 
         return s
-    
+
     def doMsummary(self, df, k, f, c):
 
         i = df.values.tolist()
@@ -847,12 +740,11 @@ class CsvToRepetitivieWaveCommand(VisualizersBokehPlot):
 
         return result_df
 
-class CsvToTimeCompressionCommand(VisualizersBokehPlot):
-
-    def __init__(self):
-        super().__init__()
-
-    def plot(self, args, column_names, matrix):
+class CsvToTimeCompressionCommand(HoloviewsBaseCommand):
+    """
+    時間圧縮図を出力する
+    """
+    def plot(self, args, column_names:list, matrix_dict:dict):
 
         # 軸の設定
         x_axis         = args.get('x_axis')
@@ -866,25 +758,17 @@ class CsvToTimeCompressionCommand(VisualizersBokehPlot):
         # 初期表示時
         if x_axis_column is None and y_axis_column is None: 
             raise Exception(ErrMsg['1'])
-            
+
         # データ系列の設定
         data     = args.get('data')   if args.get('data') is not None else []
-
-        # データ表示範囲の設定
-        #offset          = int(args.get('offset'))   if args.get('offset')   else 0
-        #limit           = int(args.get('limit'))    if args.get('limit')    else None
 
         # グラフ表示要素の設定
         division        = args.get('division')
         statics         = args.get('statics')
         display_pattern = args.get('display_pattern')
-        
-        # グラフサイズの設定
-        graph_width     = int(args.get('width'))
-        graph_height    = int(args.get('height'))
 
         # df
-        df = pd.DataFrame(matrix, columns=column_names)
+        df = pd.DataFrame(matrix_dict, columns=column_names)
         
         # cleansing
         cleansing_df = self.doCleansing(df)
@@ -920,7 +804,7 @@ class CsvToTimeCompressionCommand(VisualizersBokehPlot):
         else:
             named_dfs = {}
             named_dfs['all'] = df
-   
+
         def rangesToPoints(df, column):
             for index, row in df.iterrows():
                 array = df.at[index, column].split("_")
@@ -990,10 +874,8 @@ class CsvToTimeCompressionCommand(VisualizersBokehPlot):
             plot.legend.click_policy = "mute"
             plots.append(plot)
 
-        result = gridplot(plots, ncols=1, plot_width=graph_width, plot_height=graph_height, toolbar_location="right") 
-        
-        return result
-    
+        return gridplot(plots, ncols=1, sizing_mode='stretch_width', toolbar_location="right") 
+
     def get_colors(self, size):
         i = 0
         colors = []
@@ -1043,4 +925,3 @@ class CsvToTimeCompressionCommand(VisualizersBokehPlot):
         result_df = pd.DataFrame(result,columns=name)
 
         return result_df
-

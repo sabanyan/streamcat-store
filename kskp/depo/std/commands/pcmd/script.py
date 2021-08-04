@@ -1682,11 +1682,16 @@ class ToTListCommand(Command):
         cmd = inputs['i'].content
 
         # グラフ表示に不要な列を削除してメモリ使用量を低減する
+        x_axises = [item['column'] for item in args.get('x_axis', []) if item['column'] is not None]
+        y_axises = [item['column'] for item in args.get('y_axis', []) if item['column'] is not None]
         data_columns = args.get('data_column', [])
-        x_axises = [item['column'] for item in args.get('x_axis') if item['column'] is not None]
-        y_axises = [item['column'] for item in args.get('y_axis') if item['column'] is not None]
+
+        # 反復波形図でのみ使用する引数
+        events = [args.get('event')] if args.get('event') else []
+        groups = [args.get('group')] if args.get('group') else []
+
         # nm.mcutは重複列名を指定するとエラーになるので、setを用いて重複列名を一つに纏める
-        col_names = ','.join(set(data_columns + x_axises + y_axises)) or '*'
+        col_names = ','.join(set(x_axises + y_axises + data_columns + events + groups)) or '*'
         cmd <<= nm.mcut(f=col_names)
 
         # 重複しない列名を用意する

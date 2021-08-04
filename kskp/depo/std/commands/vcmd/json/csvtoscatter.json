@@ -65,6 +65,12 @@
       }
     },
     {
+      "name": "withoutContourLine",
+      "type": "boolean",
+      "label": "等高線を表示しない",
+      "optional": false
+    },
+    {
       "name": "data_column",
       "type": "column",
       "options":{
@@ -75,33 +81,11 @@
       "description": "データ系列を表す項目名（復数可、順序は指定不可）を指定します\n指定した項目の値（復数項目時はそれぞれの値の組合せ）を系列として設定します"
     },
     {
-      "name": "offset",
-      "type": "number",
-      "label": "表示の開始（１始まりの行番号）"
-    },
-    {
       "name": "limit",
       "type": "number",
       "label": "表示の件数",
+      "description": "件数分をデータから無作為に抽出します",
       "default": 100
-    },
-    {
-      "name": "withoutContourLine",
-      "type": "boolean",
-      "label": "等高線を表示しない",
-      "optional": false
-    },
-    {
-      "name": "width",
-      "type": "number",
-      "label": "横軸（ドット）",
-      "default": 1000
-    },
-    {
-      "name": "height",
-      "type": "number",
-      "label": "縦軸（ドット）",
-      "default": 600
     }
   ],
   "groups": [
@@ -111,24 +95,19 @@
       "params": ["x_axis","y_axis"]
     },
     {
+      "name": "graph_group",
+      "label": "グラフ表示要素の設定",
+      "params": ["withoutContourLine"]
+    },
+    {
       "name": "data_group",
       "label": "データ系列の設定",
       "params": ["data_column"]
     },
     {
       "name": "offset_group",
-      "label": "データ表示範囲の設定",
-      "params": ["offset","limit"]
-    },
-    {
-      "name": "graph_group",
-      "label": "グラフ表示要素の設定",
-      "params": ["withoutContourLine"]
-    },
-    {
-      "name": "graph_size",
-      "label": "グラフサイズの設定",
-      "params": ["width","height"]
+      "label": "データ表示件数の設定",
+      "params": ["limit"]
     }
   ],
   "url": ""

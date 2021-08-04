@@ -73,18 +73,6 @@
         "label": "データ系列"
       },
       {
-        "name": "offset",
-        "type": "number",
-        "label": "表示の開始（１始まりの行番号）",
-        "default": 1
-      },
-      {
-        "name": "limit",
-        "type": "number",
-        "label": "表示の件数",
-        "default": 100
-      },
-      {
         "name": "division",
         "type": "number",
         "label": "期間の分割数",
@@ -113,16 +101,11 @@
         "default": "line"
       },
       {
-        "name": "width",
+        "name": "limit",
         "type": "number",
-        "label": "横幅（ドット）",
-        "default": 1000
-      },
-      {
-        "name": "height",
-        "type": "number",
-        "label": "縦幅（ドット）",
-        "default": 600
+        "label": "表示の件数",
+        "description": "件数分をデータから無作為に抽出します",
+        "default": 100
       }
     ],
     "groups": [
@@ -137,19 +120,14 @@
         "params": ["data"]
       },
       {
-        "name": "offset_group",
-        "label": "データ表示範囲の設定",
-        "params": ["offset","limit"]
-      },
-      {
         "name": "graph_group",
         "label": "グラフ表示要素の設定",
         "params": ["division","statics","display_pattern"]
       },
       {
-        "name": "graph_size",
-        "label": "グラフサイズの設定",
-        "params": ["width","height"]
+        "name": "offset_group",
+        "label": "データ表示件数の設定",
+        "params": ["limit"]
       }
     ],
     "url": ""
