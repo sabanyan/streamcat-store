@@ -9,7 +9,7 @@ ErrMsg={
 class VCommand(Command):
     def __init__(self):
         super().__init__()
-        self.i_ports = [Port('i', 'list')]
+        self.i_ports = [Port('i', 'list'), Port('m', 'list')]
         self.o_ports = [Port('o', 'last')]
 
     def run(self, args, inputs):
@@ -59,10 +59,11 @@ class HoloviewsBaseCommand(VCommand):
 
         # 入力値としてListDatumを取得する
         list_datum = inputs['i'].datum
+        # ヘッダ行を取得する
+        column_names = inputs['m'].datum[0][0:]
 
         # 先頭行はnm.mcrossが出力した項目名行なので除外する
         # 最終行はnm.mnumberで付加した連番なので除外する
-        column_names = [datum[0] for datum in list_datum][1:-1]
         matrix = list_datum[1:-1] if len(list_datum) > 1 else [[]]
 
         # データを用意する

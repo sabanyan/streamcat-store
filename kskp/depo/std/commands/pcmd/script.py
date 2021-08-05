@@ -1674,7 +1674,7 @@ class ToTListCommand(Command):
     def __init__(self):
         super().__init__()
         self.i_ports = [Port('i', 'frame')]
-        self.o_ports = [Port('o', 'list')]
+        self.o_ports = [Port('o', 'mcmd'), Port('u', 'mcmd')]
 
     def run(self, args, inputs):
         import uuid
@@ -1690,6 +1690,12 @@ class ToTListCommand(Command):
         events = [args.get('event')] if args.get('event') else []
         groups = [args.get('group')] if args.get('group') else []
 
+        # 項目名行を取得する
+        # NOTE: 一回のnm.runs()実行でデータとmcut前のヘッダを取得するため、ここでデータとヘッダへ2分岐する
+        cmd <<= nm.mbest(fr=0, to=sys.maxsize, q=True)
+        cmd_u = cmd.redirect('u')
+        cmd_u <<= nm.writelist(header=True)
+
         # nm.mcutは重複列名を指定するとエラーになるので、setを用いて重複列名を一つに纏める
         col_names = ','.join(set(x_axises + y_axises + data_columns + events + groups)) or '*'
         cmd <<= nm.mcut(f=col_names)
@@ -1703,7 +1709,7 @@ class ToTListCommand(Command):
         cmd <<= nm.mcross(a='fld', f='*', s=f'{seq_col_name}%n', q=True)
         cmd <<= nm.writelist(nfn=True)
 
-        return {'o': NysolModule(cmd)}
+        return {'o': NysolModule(cmd), 'u': NysolModule(cmd_u)}
 
 class ToNamedPipeCommand(Command):
     """
