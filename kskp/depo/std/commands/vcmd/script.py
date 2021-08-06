@@ -155,6 +155,17 @@ class HoloviewsBaseCommand(VCommand):
         # 軸を設定する
         return hv.Dimension(axis_column, label=axis_label)
 
+    def make_plot(self, overlay):
+        from numpy.linalg import LinAlgError
+        try:
+            # グラフをプロットする
+            return self.renderer.get_plot(overlay).state
+        except LinAlgError:
+            # NOTE: singular matrix (特異行列)は、逆行列が計算できないもののこと
+            raise Exception('この軸の設定からは等高線を計算できません。等高線を表示しないを設定ください')
+        except Exception:
+            raise Exception('この軸の設定からはグラフを表示できません')
+
     def direct_product_by_keys(self, df, keys):
         """
         キー項目の直積を求める
@@ -271,7 +282,7 @@ class CsvToLineGraphCommand(HoloviewsBaseCommand):
         overlay =  HoloviewsBaseCommand.set_common_opts(overlay)
 
         # グラフをプロットする
-        return self.renderer.get_plot(overlay).state
+        return self.make_plot(overlay)
 
     @staticmethod
     def get_datetime_cast_func(args):
@@ -312,15 +323,17 @@ class CsvToHistogramCommand(HoloviewsBaseCommand):
 
         # TODO: bins引数の指定が無視される
         # https://github.com/holoviz/holoviews/issues/4651
+        try:
+            overlay = ds.hist(x_dim, groupby=data_columns, bins=bins, adjoin=False, alpha=0.5, muted_alpha=0.1)
+        except Exception:
+            raise Exception('この軸の設定からはグラフを表示できません')
 
         if len(data_columns) == 0:
             # データ系列の指定がない場合
-            overlay = ds.hist(x_dim, bins=bins, adjoin=False)
             # tools=['hover'] : Hover表示
             overlay = overlay.opts(tools=['hover'])
         else:
             # データ系列の指定がある場合
-            overlay = ds.hist(x_dim, groupby=data_columns, bins=bins, adjoin=False, alpha=0.5, muted_alpha=0.1)
             # legend_position : データ系列一覧の表示位置
             # (groupby指定がある場合はHoverが表示されない)
             overlay = overlay.opts(legend_position='top')
@@ -329,7 +342,7 @@ class CsvToHistogramCommand(HoloviewsBaseCommand):
         overlay = HoloviewsBaseCommand.set_common_opts(overlay)
 
         # グラフをプロットする
-        return self.renderer.get_plot(overlay).state
+        return self.make_plot(overlay)
 
 class CsvToBoxplotCommand(HoloviewsBaseCommand):
     """
@@ -365,13 +378,14 @@ class CsvToBoxplotCommand(HoloviewsBaseCommand):
         overlay = HoloviewsBaseCommand.set_common_opts(overlay)
 
         # グラフをプロットする
-        return self.renderer.get_plot(overlay).state
+        return self.make_plot(overlay)
 
 class CsvToScatterCommand(HoloviewsBaseCommand):
     """
     散布図を出力する
     """
     def plot(self, args, column_names:list, matrix_dict:dict):
+
         # X軸を取得する
         x_dim = HoloviewsBaseCommand.get_dimension(args.get('x_axis'))
         # Y軸を取得する
@@ -414,7 +428,7 @@ class CsvToScatterCommand(HoloviewsBaseCommand):
         overlay = HoloviewsBaseCommand.set_common_opts(overlay)
 
         # グラフをプロットする
-        return self.renderer.get_plot(overlay).state
+        return self.make_plot(overlay)
 
 class CsvToRepetitivieWaveCommand(HoloviewsBaseCommand):
     """
@@ -729,6 +743,7 @@ class CsvToRepetitivieWaveCommand(HoloviewsBaseCommand):
 
         return result_df
 
+    # TODO: この関数の処理内容が不明
     def doCleansing(self, df):
         i = df.values.tolist()
         i.insert(0,list(df.columns))
@@ -888,6 +903,7 @@ class CsvToTimeCompressionCommand(HoloviewsBaseCommand):
 
         return colors
 
+    # TODO: この関数の処理内容が不明
     def doCleansing(self, df):
         i = df.values.tolist()
         i.insert(0,list(df.columns))

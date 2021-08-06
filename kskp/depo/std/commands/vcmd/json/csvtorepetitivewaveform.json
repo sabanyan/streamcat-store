@@ -140,14 +140,14 @@
         "params": ["event","x_axis","y_axis"]
       },
       {
-        "name": "data_group",
-        "label": "データ系列の設定",
-        "params": ["data_column","group"]
-      },
-      {
         "name": "graph_group",
         "label": "グラフ表示要素の設定",
         "params": ["disableTooltips","disableMarker","disableStatics","disableEvent","statics"]
+      },
+      {
+        "name": "data_group",
+        "label": "データ系列の設定",
+        "params": ["data_column","group"]
       },
       {
         "name": "offset_group",
