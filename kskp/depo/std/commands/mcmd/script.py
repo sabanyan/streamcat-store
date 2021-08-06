@@ -801,7 +801,10 @@ class MsedCommand(Command):
 
     def run(self, args, inputs):
         cmd_o = inputs['i'].content
-        cmd_o <<= nm.msed(args)
+        my_args = args.copy()
+        if 'v' not in args:
+            my_args['v'] = ''
+        cmd_o <<= nm.msed(my_args)
         nysol_module_o= NysolModule()
         nysol_module_o.set_content(cmd_o)
         return {'o': nysol_module_o}
