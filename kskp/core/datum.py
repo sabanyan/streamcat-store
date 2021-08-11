@@ -341,12 +341,6 @@ class Datum(BaseModel):
         elif not self._session.writable(to_folder):
             raise NotAuthorizedException((f'{self._session.user}は{to_folder.label}の更新権限がないため{self.label}を移動できません'))
 
-        # # 移動対象がマウントポイントの場合は、path列を変更することはマウントポイントを変更することになるので
-        # # とりあえずエラーとする
-        # from kskp.store import Mountable
-        # if isinstance(self, Mountable):
-        #     raise Exception('マウントポイントフォルダを移動することはできません')
-
         if parent_uuid == self.uuid:
             raise Exception('移動先と移動元の指定が同じです')
 

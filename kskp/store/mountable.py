@@ -4,7 +4,7 @@ from kskp.core import Datum
 
 class Mountable():
     """
-    mount可能な抽象クラス
+    マウント可能データストア
     """
 
     @property

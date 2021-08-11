@@ -268,7 +268,7 @@ class DatumFactory():
 
     def find_all_stores(self):
         """
-        データストアを取得する
+        データストアを全て取得する
         """
         return self._session.query(Datum).filter(
                                                 Datum.type.in_([Datum.DATABASE_TYPE,

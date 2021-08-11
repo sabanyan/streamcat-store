@@ -210,7 +210,7 @@ class FlowDumper:
         # 展開処理
         import uuid, warnings
         tar_dir_path = Path('/tmp') / str(uuid.uuid4())
-        extracted_members = self._extract_archive(tar_dir_path, stream)
+        extracted_members = FlowDumper._extract_archive(tar_dir_path, stream)
 
         flow_uuids  = {}
         # uuidの変換テーブル {old_uuid : new_uuid}
@@ -221,7 +221,7 @@ class FlowDumper:
         for member in extracted_members:
             file = tar_dir_path / member.name
             if file.name == 'labels.txt':
-                type_labels = self._read_labels(file)
+                type_labels = FlowDumper._read_labels(file)
                 break
         if type_labels == {}:
             raise Exception('labels.txtが存在しません')
@@ -243,7 +243,7 @@ class FlowDumper:
                     if file.parent == tar_dir_path:
                         # アーカイブ内のトップディレクトリの場合、
                         # ルート直下にプロジェクトフォルダを作成する
-                        folder = self._create_folder(parent, folder_label or file.name)
+                        folder = FlowDumper._create_folder(parent, folder_label or file.name)
                         folder.save()
                         folders[file] = folder
                     elif file.parent in folders:
@@ -259,7 +259,7 @@ class FlowDumper:
                 else:
                     # 親フォルダがない場合はルート直下に作る
                     if default_top_folder is None:
-                        default_top_folder = self._create_folder(parent, folder_label or file_name)
+                        default_top_folder = FlowDumper._create_folder(parent, folder_label or file_name)
                         default_top_folder.save()
                     folder = default_top_folder
 
@@ -325,7 +325,8 @@ class FlowDumper:
         import shutil
         shutil.rmtree(tar_dir_path)
 
-    def _read_labels(self, file):
+    @staticmethod
+    def _read_labels(file:Path):
         from kskp.core import KSKPBaseModel
         type_labels = {}
         try:
@@ -353,14 +354,16 @@ class FlowDumper:
         except Exception as e:
             raise Exception(f'ERROR! at {file.name} : {str(e)}')
 
-    def _extract_archive(self, tar_dir_path, stream):
+    @staticmethod
+    def _extract_archive(tar_dir_path:Path, stream):
         import tarfile
         # 'r|*' : 圧縮または無圧縮形式のアーカイブを読み込みモードで開く
         with tarfile.open(fileobj=stream, mode='r|*') as tar:
             tar.extractall(tar_dir_path)
             return [member for member in tar.getmembers()]
 
-    def _create_folder(self, parent:Datum, label) -> Datum:
+    @staticmethod
+    def _create_folder(parent:Datum, label:str) -> Datum:
         """
         展開したファイルを格納するフォルダを作成する
         """

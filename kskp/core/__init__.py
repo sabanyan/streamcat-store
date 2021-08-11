@@ -82,9 +82,9 @@ if _is_unittest():
     # テストスクリプト実行時のDB接続先
     db_port = int(os.getenv('KSKP_DB_PORT', 5432))
     database_uri_candidates=[
-        f'postgresql://kskp:{_db_password}@localhost:{db_port}/kskp',
-        f'postgresql://kskp:{_db_password}@db/kskp',
-        f'postgresql://kskp:{"J2-pH|%B"}@kskp.cr4gfi5zl5xm.ap-northeast-1.rds.amazonaws.com/kskp'
+        f'postgresql://kskp:{_db_password}@localhost:{db_port}/kskp?application_name=kskp-test',
+        f'postgresql://kskp:{_db_password}@db/kskp?application_name=kskp-test',
+        f'postgresql://kskp:{"J2-pH|%B"}@kskp.cr4gfi5zl5xm.ap-northeast-1.rds.amazonaws.com/kskp?application_name=kskp-test'
     ]
     # DBに接続する
     engine = _get_db_engine(database_uri_candidates)
@@ -96,7 +96,7 @@ if _is_unittest():
 else:
     # 通常実行時のDB接続先
     database_uri_candidates=[
-        f'postgresql://kskp:{_db_password}@db/kskp'
+        f'postgresql://kskp:{_db_password}@db/kskp?application_name=kskp'
     ]
     # DBに接続する
     engine = _get_db_engine(database_uri_candidates)
@@ -108,7 +108,7 @@ else:
 #
 try:
     from sqlalchemy import DDL
-    alter_sql = DDL(f'ALTER TABLE data ADD COLUMN prev_parent_id INTEGER;')
+    alter_sql = DDL(f'ALTER TABLE data ADD COLUMN IF NOT EXISTS prev_parent_id INTEGER;')
     with engine.begin() as conn:
         conn.execute(alter_sql)
 except:
@@ -116,13 +116,12 @@ except:
 
 #
 # TODO: 後方互換性を保つためにissuerとsubject列がない場合は列を追加する
-
 try:
     from sqlalchemy import DDL
-    alter_sql = DDL(f'ALTER TABLE users ADD COLUMN issuer VARCHAR;')
+    alter_sql = DDL(f'ALTER TABLE users ADD COLUMN IF NOT EXISTS issuer VARCHAR;')
     with engine.begin() as conn:
         conn.execute(alter_sql)
-    alter_sql = DDL(f'ALTER TABLE users ADD COLUMN subject VARCHAR;')
+    alter_sql = DDL(f'ALTER TABLE users ADD COLUMN IF NOT EXISTS subject VARCHAR;')
     with engine.begin() as conn:
         conn.execute(alter_sql)
 except:
