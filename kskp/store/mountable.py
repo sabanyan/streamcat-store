@@ -33,9 +33,12 @@ class Mountable():
         # 絶対パスを返す
         return Datum._to_abs_path(self._path)
 
-    def mount(self, mount_point_path):
-        # self_abs_path = mount_point_path
-        # path = Path(self_abs_path)
+    def mount(self, mount_point_path=None):
+        # 引数(mount_point_path)にpathプロパティを指定する時にMount処理が発生するのを防ぐため
+        # 引数(mount_point_path)が設定されない場合は、自身の_pathを使用する
+        if mount_point_path is None:
+            mount_point_path = Datum._to_abs_path(self._path)
+
         if not mount_point_path.exists():
             raise Exception('mount point(%s) does not exist' % mount_point_path)
         elif not mount_point_path.is_dir():
@@ -58,11 +61,17 @@ class Mountable():
         except subprocess.CalledProcessError as e:
             raise Exception('"mount" command returned error --> ' + str(e))
 
-    def unmount(self, mount_point_path):
-        # self_abs_path = mount_point_path
-        # path = Path(self_abs_path)
+    def unmount(self, mount_point_path=None):
+        # 引数(mount_point_path)にpathプロパティを指定する時にMount処理が発生するのを防ぐため
+        # 引数(mount_point_path)が設定されない場合は、自身の_pathを使用する
+        if mount_point_path is None:
+            mount_point_path = Datum._to_abs_path(self._path)
+
+        # マウントポイントがない場合は処理を終了する
         if not mount_point_path.exists():
-            raise Exception('sudo mount point(%s) does not exist' % mount_point_path)
+            import warnings
+            warnings.warn('mount point(%s) does not exist' % mount_point_path)
+            return
 
         # python3.7でis_mount()は追加される
         if not Mountable.is_mount(mount_point_path):
@@ -115,10 +124,10 @@ class Mountable():
             self._session.commit()
 
     @staticmethod
-    def _exec_command(command_line):
+    def _exec_command(command_line:str, env:dict=None):
         import shlex
         # mountコマンドの有無を確認する
-        sub = subprocess.run(shlex.split(command_line), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        sub = subprocess.run(shlex.split(command_line), env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         # サブプロセスのリターンコードがNGの場合は例外を送出する
         sub.check_returncode()
         # 出力結果を返す
