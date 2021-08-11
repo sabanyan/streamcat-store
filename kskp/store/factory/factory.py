@@ -440,6 +440,17 @@ class DatumFactory():
 
         return len([result for result in results]) > 0
 
+    def unmount_all(self):
+        """
+        全てのマウント可能データストアのマウントを解除する
+        """
+        # 全てのマウント可能データストアを取得する
+        mountables = self._session.query(Datum).filter(
+                                                    Datum.type.in_([Datum.RFOLDER_TYPE])
+                                                ).all()
+        # マウント解除する
+        for mountable in mountables:
+            mountable.unmount()
 
 class StoreFactory():
 
