@@ -1298,3 +1298,244 @@ class AssertCommand(SCommand):
         # 差分をCSVで出力する
         cmd = nm.runfunc(format_to_csv, diff_list=diff_list, parent_path=parent_path, verbose=verbose, exceed_limit=exceed_limit)
         return {'o': NysolModule(cmd)}
+
+class DumpCommand(SCommand):
+    """
+    KSKPシステムのDumpファイルを取得する
+    """
+    from pathlib import Path
+    from tarfile import TarFile
+
+    def __init__(self):
+        super().__init__()
+        self.i_ports = []
+        self.o_ports = [Port('o', 'path')]
+        self.META_FILE_NAME = 'meta.txt'
+
+    def run(self, args, inputs):
+        from pathlib import Path
+        # Sessionを取得する
+        if 'datum_factory' not in args:
+            raise Exception('引数(datum_factory)にDatumFactoryを指定してください')
+        session = args['datum_factory']._session
+
+        try:
+            # 全てのテーブルをLockする
+            self._lock_all_tables(session)
+
+            with self._open_archive() as archive:
+                # ライブラリのディレクトリをDumpする
+                #  --syncオプションでインストールした環境では、
+                #  files/cmn/はマウントポイントになりDump対象にならない、そのためfiles/cmn/を指定する
+                library_root_path = Datum.STORE_DIR / Datum.DEFAULT_LIBRARY_PATH
+                self._add_files(archive, library_root_path)
+                # PostgreSQLをDumpする
+                self._add_meta(archive)
+
+        except Exception as e:
+            raise Exception(f'Dumpできませんでした ({e})')
+
+        # アーカイブファイルのファイルパスを返す
+        return {'o': Path(archive.name)}
+
+    @staticmethod
+    def _lock_all_tables(session):
+        # 全てのテーブルをロックする
+        # ・競合するロックが解除されるまで待機する
+        # ・EXCLUSIVE MODE : このロックモードを保持するトランザクションと並行して実行できる処理は、テーブルの読み取りだけ
+        session.execute('LOCK TABLE data,auths,roles,users_roles,users,stores IN EXCLUSIVE MODE;')
+
+    def _open_archive(self):
+        import tarfile
+        from kskp.core import Tmp
+        # アーカイブファイルを作成する
+        tar_file_path = Tmp.create_file()
+        # シンボリックリンクはリンク先ファイルを圧縮する
+        return tarfile.open(tar_file_path, mode='w:gz', dereference=True)
+
+    def _add_files(self, archive:TarFile, file_path:Path):
+        """
+        ライブラリのディレクトリをDumpする
+        """
+        from kskp.store import Mountable
+        if not file_path.exists():
+            # ファイルが存在しない場合はアーカイブに追加しない
+            return
+        elif file_path.is_dir() and not Mountable.is_mount(file_path):
+            # 空のディレクトリでもアーカイブに追加する
+            self._add_file(archive, file_path)
+            # ディレクトリ以下のファイルを全てアーカイブに追加する
+            for child_path in file_path.iterdir():
+                self._add_files(archive, child_path)
+        else:
+            # ファイルをアーカイブに追加する
+            # マウント中のマウントポイントの場合はそのディレクトリのみを追加する
+            self._add_file(archive, file_path)
+
+    def _add_file(self, archive:TarFile, file_path:Path):
+        relative_path = Datum._to_rel_path(file_path)
+        archive.add(file_path, arcname=relative_path, recursive=False)
+                
+    def _add_meta(self, archive:TarFile):
+        """
+        PostgreSQLをDumpする
+        """
+        from kskp.core import Tmp, _db_password
+        from kskp.store import Mountable
+        host = 'db'
+        user = 'kskp'
+        database = 'kskp'
+        schema = 'public'
+        dump_file = Tmp.create_file()
+        # pg_dumpコマンドを実行する
+        # --clean: データベースオブジェクトを作成するコマンドの前に、データベースオブジェクトを整理(削除)するコマンドを書き出す
+        # --if-exists: データベースオブジェクトを初期化するときに、条件コマンドを使う(つまり、IF EXISTS句を追加する)
+        pg_dump_command = f'pg_dump --clean --if-exists -f {dump_file} -h {host} -U {user} -n {schema} {database}'
+        Mountable._exec_command(pg_dump_command, env={'PGPASSWORD':_db_password})
+        # アーカイブに追加する
+        archive.add(dump_file, arcname=self.META_FILE_NAME, recursive=False)
+
+class RestoreCommand(SCommand):
+    """
+    KSKPシステムのDumpファイルをリストアする
+    """
+    from typing import List
+    from pathlib import Path
+    from tarfile import TarInfo
+
+    def __init__(self):
+        super().__init__()
+        self.i_ports = [Port('i', 'stream')]
+        self.o_ports = [Port('o', 'bool')]
+        self.META_FILE_NAME = 'meta.txt'
+        self.META_FILE_PATH = Datum.STORE_DIR / self.META_FILE_NAME
+        # 
+        import threading
+        self._thread_lock = threading.Lock()
+
+    def run(self, args, inputs):
+        # Sessionを取得する
+        if 'factory' not in args:
+            raise Exception('引数(factory)にFactoryを指定してください')
+        factory = args['factory']
+
+        # ファイルストリームを取得する
+        stream = inputs['i']
+        if stream is None:
+            raise Exception('リストアするDumpデータが空です')
+
+        # リストア処理をスレッドセーフで実行する
+        with self._thread_lock:
+            self._restore_all(factory, stream)
+
+        # Noneは返せないのでとりあえずTrueを返す
+        return {'o': True}
+
+    def _restore_all(self, factory, stream):
+        """
+        KSKPをリストアする
+        """
+        import shutil
+        from datetime import datetime
+
+        try:
+            # マウントポイントは移動・削除できないので、ここで全てのマウントを解除する
+            factory.data.unmount_all()
+            # psqlコマンドでリストアする前に全てのDBコネクションを閉じる必要がある
+            factory.close()
+        except Exception as e:
+            raise Exception(f'マウントが解除できませんでした ({e})')
+
+        # PostgreSQLへのActive状態の接続があれば例外を送出する
+        active_connections = [result for result in factory.get_active_connections()]
+        if len(active_connections) > 0:
+            application_name = active_connections[0]['application_name']
+            client_addr = active_connections[0]['client_addr']
+            raise Exception(f'PostgreSQLへのActive状態の接続({application_name}@{client_addr})が存在するためリストアできません')
+
+        try:
+            # ライブラリのルートディレクトリ名を用意する
+            library_root_path = Datum.STORE_DIR / Datum.DEFAULT_LIBRARY_PATH
+            # ライブラリの退避後のディレクトリ名を作成する
+            library_backup_dir_name = Datum.DEFAULT_LIBRARY_PATH.name + '_backup' + datetime.now().strftime('%Y%m%d')
+            library_backup_path = Datum.STORE_DIR / library_backup_dir_name
+
+            # ライブラリの既存ルートディレクトリが在れば退避する
+            if library_root_path.exists():
+                # ディレクトリ名が重複する場合はリネームする
+                library_backup_path = Datum.make_unique_path(library_backup_path)
+                # ライブラリのルートディレクトリ名を変更して退避する
+                Datum.move_file(library_root_path, library_backup_path)
+
+            # ライブラリのディレクトリをリストアする
+            from kskp.store import FlowDumper
+            extracted_members = FlowDumper._extract_archive(Datum.STORE_DIR, stream)
+
+            # KSKPのDumpファイルが妥当であることを確認する
+            self._members_are_valid_or_raise(extracted_members)
+
+            # PostgreSQLのpublicスキーマをリストアする
+            self._restore_meta(self.META_FILE_PATH)
+        except Exception as e:
+            # PostgreSQLのDumpファイルを削除する
+            self.META_FILE_PATH.unlink()
+            # 退避したライブラリのルートディレクトリを復帰する
+            if library_root_path.exists() and library_backup_path.exists():
+                # ライブラリのルートディレクトリと退避したディレクトリが両方存在すれば、
+                # ルートディレクトリへの展開が失敗している可能性があるので削除する
+                shutil.rmtree(library_root_path)
+            if not library_root_path.exists() and library_backup_path.exists():
+                # 退避したライブラリのルートディレクトリが存在すれば、それを復帰する
+                Datum.move_file(library_backup_path, library_root_path)
+            raise Exception(f'リストアできませんでした! ({e})')
+
+        try:
+            # PostgreSQLのDumpファイルを削除する
+            self.META_FILE_PATH.unlink()
+        except Exception as e:
+            import warnings
+            warnings.warn(f'PostgreSQLのDumpファイル({self.META_FILE_PATH})を削除できませんでした ({e})')
+
+        try:
+            # 退避したライブラリの既存ディレクトリを削除する
+            library_backup_path.exists() and shutil.rmtree(library_backup_path)
+        except Exception as e:
+            import warnings
+            warnings.warn(f'退避したライブラリのディレクトリ({library_backup_path})を削除できませんでした ({e})')
+
+    def _members_are_valid_or_raise(self, members:List[TarInfo]):
+        member_paths = [member.name for member in members]
+        # meta.txtが含まれていること
+        if self.META_FILE_NAME not in member_paths:
+            raise Exception(f'KSKPのDumpファイルに{self.META_FILE_NAME}が存在しません')
+        # ライブラリルートが存在すること
+        if Datum.DEFAULT_LIBRARY_PATH.name not in member_paths:
+            raise Exception(f'KSKPのDumpファイルに{self.DEFAULT_LIBRARY_PATH}が存在しません')
+
+    def _restore_meta(self, dump_file:Path):
+        import subprocess
+        from kskp.core import _db_password
+        from kskp.store import Mountable
+        if not dump_file.is_file():
+            raise Exception(f'{self.META_FILE_NAME}がテキストファイルではありません')
+        host = 'db'
+        user = 'kskp'
+        database = 'kskp'
+        # コマンド文字列を作成する
+        # --no-psqlrc : ~/.psqlrcを読み込まない (指定しない場合returncode=1でエラーになる)
+        # --single-transaction : リストア処理を1トランザクションで実行する
+        # NOTE: Schema名はDumpファイル内で指定されている
+        pg_restore_command = f'psql --no-psqlrc --single-transaction -f {dump_file} -h {host} -U {user} -d {database}'
+        try:
+            # psqlコマンドを実行する
+            Mountable._exec_command(pg_restore_command, env={'PGPASSWORD':_db_password})
+        except subprocess.CalledProcessError as e:
+            if e.returncode == 1:
+                raise Exception(f'A fatal error of its own occurs (e.g., out of memory, file not found) ({e})')
+            elif e.returncode == 2:
+                raise Exception(f'The connection to the server went bad and the session was not interactive ({e})')
+            elif e.returncode == 3:
+                raise Exception(f'An error occurred in a script and the variable ON_ERROR_STOP was set ({e})')
+            else:
+                raise e
+

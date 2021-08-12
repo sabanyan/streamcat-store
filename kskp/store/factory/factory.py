@@ -135,6 +135,38 @@ class Factory():
     def close(self):
         self._session.close()
 
+    def get_active_connections(self):
+        """
+        PostgreSQLへのActive状態の接続の有無を確認する
+        """
+        from sqlalchemy import text
+
+        database_name = 'kskp'
+
+        sql = text(f"""
+        SELECT
+            pid,
+            query_start,
+            client_addr,
+            application_name,
+            query
+        FROM
+            pg_stat_activity
+        WHERE
+            /* このSQLの実行で用いる接続は除外する */
+            pid <>  pg_backend_pid()
+        AND datname = '{database_name}'
+        AND state = 'active'
+        """)
+
+        try:
+            return self._session.execute(sql)
+        except Exception as e:
+            self._session.rollback()
+            raise e
+        finally:
+            pass
+
     @property
     def data(self):
         return self._data
