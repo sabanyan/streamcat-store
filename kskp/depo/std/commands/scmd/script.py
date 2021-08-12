@@ -1319,6 +1319,9 @@ class DumpCommand(SCommand):
             raise Exception('引数(datum_factory)にDatumFactoryを指定してください')
         session = args['datum_factory']._session
 
+        if not session.has_usr_admin():
+            raise Exception('ユーザー管理者以外は、KSKPのバックアップデータを取得できません')
+
         try:
             # 全てのテーブルをLockする
             self._lock_all_tables(session)
@@ -1414,10 +1417,13 @@ class RestoreCommand(SCommand):
         self._thread_lock = threading.Lock()
 
     def run(self, args, inputs):
-        # Sessionを取得する
+        # Factoryを取得する
         if 'factory' not in args:
             raise Exception('引数(factory)にFactoryを指定してください')
         factory = args['factory']
+
+        if not factory._session.has_usr_admin():
+            raise Exception('ユーザー管理者以外は、KSKPをリストアできません')
 
         # ファイルストリームを取得する
         stream = inputs['i']
