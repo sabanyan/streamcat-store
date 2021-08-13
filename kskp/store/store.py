@@ -1,4 +1,5 @@
-from kskp.core import Datum
+from typing import Iterator
+from kskp.core import Datum, KSKPBaseModel
 
 class Store(Datum):
     """
@@ -134,7 +135,6 @@ class NysolModule(Datum):
         else:
             return nysol_cmd.__class__.__name__
 
-
     def __ilshift__(self, other):
         raise Exception(f'NysolModule({str(self._content)})に"<<="演算子は使えません')
 
@@ -142,7 +142,7 @@ class List(Datum):
     """
     リスト構造のデータを表す
     """
-    def __init__(self, content=None):
+    def __init__(self, content:list=None):
         super().__init__(None, None, 'list', None)
         self._content = content
         self._encoding = None
@@ -171,6 +171,44 @@ class List(Datum):
 
     def __len__(self):
         return len(self._content)
+
+class Stream(Datum):
+    """
+    ストリーム構造のデータを表す
+    """
+    def __init__(self, connection=None):
+        super().__init__(None, None, 'stream', None)
+        self._content = connection
+        self._encoding = None
+
+    def set_content(self, content):
+        self._content = content
+
+    @property
+    def content(self):
+        raise NotImplementedError('content')
+
+    @property
+    def encoding(self):
+        return self._encoding
+
+    @encoding.setter
+    def encoding(self, encoding):
+        self._encoding = encoding
+
+    def __ilshift__(self, other):
+        raise Exception(f'List({str(self._content)})に"<<="演算子は使えません')
+
+    def __iter__(self) -> Iterator[list]:
+        for line in open(self._content):
+            yield KSKPBaseModel.split(line)
+
+    def dtor(self):
+        """
+        終了処理
+        """
+        # 名前付きパイプを削除する
+        self._content.unlink()
 
 class ApparentLast(Store):
     """

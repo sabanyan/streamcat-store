@@ -1401,7 +1401,59 @@ class RowRangeCommand(Command):
         # cmd <<= nm.mbest(q=True, fr=offset, size=limit)
 
         # pass output
-        return {'o': NysolModule(cmd)} 
+        return {'o': NysolModule(cmd)}
+
+class RowRandomCommand(Command):
+    """
+    無作為に行を抽出する
+    """
+    def __init__(self):
+        super().__init__()
+        self.i_ports = [Port('i', 'frame')]
+        self.o_ports = [Port('o', 'frame')]
+
+    def run(self, args, inputs):
+        def filter(size):
+            import random
+            try:
+                # ヘッダ行を出力する
+                header = sys.stdin.readline()
+                print(header, end='')
+
+                # 無作為に行を抽出しバッファメモリに格納する
+                # NOTE: https://stackoverflow.com/a/232248/624900
+                buffer = []
+                line_num = 0
+                for line in sys.stdin:
+                    n = line_num + 1.0
+                    if n <= size:
+                        buffer.append(line)
+                    elif random.random() < size/n:
+                        loc = random.randint(0, size-1)
+                        buffer[loc] = line
+                    line_num += 1
+
+                # バッファメモリを標準出力へ出力する
+                for line in buffer:
+                    print(line, end='')
+
+                # flushをする
+                sys.stdout.flush()
+            except Exception as e:
+                with open('/dev/stderr', 'w') as fpe:
+                    import traceback
+                    traceback.print_exc(file=fpe)
+                    print(f'#ERROR# {str(e)}; RowRandomCommand; ; ; ', file=fpe)
+                raise
+
+        # 抽出行数の取得
+        limit = int(args.get('limit')) if args.get('limit') else 0
+
+        cmd = inputs['i'].content
+        cmd <<= nm.runfunc(filter, size=limit)
+
+        # pass output
+        return {'o': NysolModule(cmd)}
 
 class ConvToUtf8(Command):
     """
@@ -1613,5 +1665,81 @@ class ToListCommand(Command):
         # ヘッダ扱いすると、重複列名や空列名があるとエラーになる
         cmd <<= nm.writelist(nfn=True)
 
-        # pass output
         return {'o': NysolModule(cmd)}
+
+class ToTListCommand(Command):
+    """
+    入力データを[列名, 値(1行目), 値(2行目),..]の形式のPython Listに出力する
+    """
+    def __init__(self):
+        super().__init__()
+        self.i_ports = [Port('i', 'frame')]
+        self.o_ports = [Port('o', 'mcmd'), Port('u', 'mcmd')]
+
+    def run(self, args, inputs):
+        import uuid
+
+        cmd = inputs['i'].content
+
+        # グラフ表示に不要な列を削除してメモリ使用量を低減する
+        x_axises = [item['column'] for item in args.get('x_axis', []) if item['column'] is not None]
+        y_axises = [item['column'] for item in args.get('y_axis', []) if item['column'] is not None]
+        data_columns = args.get('data_column', [])
+
+        # 反復波形図でのみ使用する引数
+        event_columns = [args.get('event_column')] if args.get('event_column') else []
+        groups = [args.get('group')] if args.get('group') else []
+
+        # 項目名行を取得する
+        # NOTE: 一回のnm.runs()実行でデータとmcut前のヘッダを取得するため、ここでデータとヘッダへ2分岐する
+        cmd <<= nm.mbest(fr=0, to=sys.maxsize, q=True)
+        cmd_u = cmd.redirect('u')
+        cmd_u <<= nm.writelist(header=True)
+
+        # nm.mcutは重複列名を指定するとエラーになるので、setを用いて重複列名を一つに纏める
+        col_names = ','.join(set(x_axises + y_axises + data_columns + event_columns + groups)) or '*'
+        cmd <<= nm.mcut(f=col_names)
+
+        # 重複しない列名を用意する
+        seq_col_name = str(uuid.uuid4())[0:8]
+        # mcross後の列名重複を避けるため連番キーを付加する
+        cmd <<= nm.mnumber(I=1, S=0, a=seq_col_name, e='seq', q=True)
+
+        # hv.Dataset()は{列名 : [値,...]}の形式で入力を受付けるため行列を入れ替える
+        cmd <<= nm.mcross(a='fld', f='*', s=f'{seq_col_name}%n', q=True)
+        cmd <<= nm.writelist(nfn=True)
+
+        return {'o': NysolModule(cmd), 'u': NysolModule(cmd_u)}
+
+class ToNamedPipeCommand(Command):
+    """
+    名前付きパイプを作成しそこに結果を出力する
+    """
+    def __init__(self):
+        super().__init__()
+        self.i_ports = [Port('i', 'frame')]
+        self.o_ports = [Port('o', 'mcmd')]
+
+    def run(self, args, inputs):
+        import os
+        from kskp.store import Stream
+
+        named_pipe = ToNamedPipeCommand._create_tmp_named_pipe()
+        os.mkfifo(named_pipe)
+
+        cmd = inputs['i'].content
+        cmd <<= nm.m2tee(o=named_pipe.as_posix(), nfn=True)
+
+        nysol_module = NysolModule(cmd)
+        nysol_module.context['stream'] = Stream(named_pipe)
+
+        return {'o': nysol_module}
+
+    @staticmethod
+    def _create_tmp_named_pipe():
+        from kskp.core import Tmp
+        import uuid
+        # 一意なファイル名を作成する
+        file_name  = '__KSKPTMP_' + 'PIPE_' + str(uuid.uuid4())[0:8]
+        # TmpファイルPath
+        return Tmp._get_tmp_directory() / file_name

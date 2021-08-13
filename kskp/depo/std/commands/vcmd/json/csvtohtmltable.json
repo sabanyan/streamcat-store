@@ -23,12 +23,12 @@
     {
       "name": "offset",
       "type": "number",
-      "label": "テーブル表示を行う開始行"
+      "label": "表示開始行"
     },
     {
       "name": "limit",
       "type": "number",
-      "label": "表示対象のデータ数",
+      "label": "表示行数",
       "default": 100
     }
   ],

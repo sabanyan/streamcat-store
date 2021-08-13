@@ -33,6 +33,12 @@ class Vis(Datum):
         result['reader'] = self._data['matrix']
         return result
 
+    def dtor(self):
+        """
+        終了処理
+        """
+        self._data['matrix'].dtor()
+
 
 class BokehPlotVis(Vis):
     def __init__(self, session, parent, label, column_names, script, div):
