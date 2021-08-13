@@ -1687,7 +1687,7 @@ class ToTListCommand(Command):
         data_columns = args.get('data_column', [])
 
         # 反復波形図でのみ使用する引数
-        events = [args.get('event')] if args.get('event') else []
+        event_columns = [args.get('event_column')] if args.get('event_column') else []
         groups = [args.get('group')] if args.get('group') else []
 
         # 項目名行を取得する
@@ -1697,7 +1697,7 @@ class ToTListCommand(Command):
         cmd_u <<= nm.writelist(header=True)
 
         # nm.mcutは重複列名を指定するとエラーになるので、setを用いて重複列名を一つに纏める
-        col_names = ','.join(set(x_axises + y_axises + data_columns + events + groups)) or '*'
+        col_names = ','.join(set(x_axises + y_axises + data_columns + event_columns + groups)) or '*'
         cmd <<= nm.mcut(f=col_names)
 
         # 重複しない列名を用意する

@@ -395,7 +395,7 @@ class CsvToScatterCommand(HoloviewsBaseCommand):
         data_columns = args.get('data_column', [])
 
         # グラフ表示要素の設定
-        withoutContourLine = args.get('withoutContourLine', False)
+        contourLine = args.get('contourLine', False)
 
         # holoviewsに格納するデータを用意する
         key_dimensions = [x_dim,y_dim] + data_columns
@@ -416,7 +416,8 @@ class CsvToScatterCommand(HoloviewsBaseCommand):
             if not isinstance(overlay, hv.Overlay):
                 overlay = overlay.overlay()
 
-        if not withoutContourLine:
+        if contourLine:
+            # 等高線を表示する
             b = hv.Bivariate(ds).opts(show_legend=False, bandwidth=0.5, axiswise=True, line_width=2, colorbar=False, alpha=0.1)
             overlay = overlay * b
 
@@ -436,7 +437,7 @@ class CsvToRepetitivieWaveCommand(HoloviewsBaseCommand):
     """
     def plot(self, args, column_names:list, matrix_dict:dict):
         # 軸の設定
-        event = args.get('event') if args.get('event') else None
+        event_column = args.get('event_column', None)
 
         x_axis          = args.get('x_axis')
         x_axis_column   = x_axis[0]['column']
@@ -451,18 +452,17 @@ class CsvToRepetitivieWaveCommand(HoloviewsBaseCommand):
         group           = args.get('group') if args.get('group') else None
 
         # グラフ表示要素の設定
-        disableTooltips = args.get('disableTooltips') if args.get('disableTooltips') else False
-        disableMarker = args.get('disableMarker') if args.get('disableMarker') else False
-        disableStatics = args.get('disableStatics') if args.get('disableStatics') else False
-        disableEvent = args.get('disableEvent') if args.get('disableEvent') else False
-        statics = args.get('statics') if args.get('statics') else None
+        marker = args.get('marker', False)
+        statics = args.get('statics', False)
+        event = args.get('event', False)
+        statics_type = args.get('statics_type', None)
 
         # 初期表示時
         if x_axis_column is None and y_axis_column is None: 
             raise Exception(ErrMsg['1'])
 
         # 必須項目チェック
-        if x_axis_column is None or y_axis_column is None or statics is None:
+        if x_axis_column is None or y_axis_column is None or statics_type is None:
             return 
 
         # dfの作成
@@ -505,8 +505,8 @@ class CsvToRepetitivieWaveCommand(HoloviewsBaseCommand):
 
         # 起点の初期化
         xs_event = None
-        if event is not None:
-            queryStr = "{0}=='{1}'".format(event, "0")
+        if event_column is not None:
+            queryStr = "{0}=='{1}'".format(event_column, "0")
             result_df = df.query(queryStr)
             result_df[x_axis_column] = result_df[x_axis_column].astype(float)
             xs_event = result_df[x_axis_column].unique().tolist()
@@ -547,14 +547,15 @@ class CsvToRepetitivieWaveCommand(HoloviewsBaseCommand):
         title = "反復波形図"
         tools = "pan,wheel_zoom,box_zoom,reset,save,box_select"
         tooltips = None
-        if disableTooltips != True:
-            tooltips = [
-                ("凡例", "@label"),
-                (x_axis_column, "@x"),
-                (y_axis_column, "@y")
-            ]
-            if group is not None:
-                tooltips.append((group, "@group"))
+
+        # ToolTip
+        tooltips = [
+            ("凡例", "@label"),
+            (x_axis_column, "@x"),
+            (y_axis_column, "@y")
+        ]
+        if group is not None:
+            tooltips.append((group, "@group"))
 
         plot = figure(
             title=title,
@@ -570,11 +571,11 @@ class CsvToRepetitivieWaveCommand(HoloviewsBaseCommand):
             # 線
             plot.line('x', 'y', source=source[label], legend=label, color=color, alpha=0.75, muted_color=color, muted_alpha=0.2, line_width=2)
             # 点
-            if disableMarker != True:
+            if marker:
                 plot.circle('x', 'y', source=source[label], legend=label, color=color, alpha=0.9, muted_color=color, muted_alpha=0.2, size=5)
 
         # 起点
-        if disableEvent != True and xs_event is not None:
+        if event and xs_event is not None:
             for x in xs_event:
                 s = Span(location= x,
                                 dimension='height', line_color='black',
@@ -587,10 +588,10 @@ class CsvToRepetitivieWaveCommand(HoloviewsBaseCommand):
 
         # 反復波形図(統計量)
         statics_plot = None
-        if disableStatics == False and statics is not None:
+        if statics and statics_type is not None:
             k = x_axis_column
             f = y_axis_column
-            c = statics #"min,mean,max,qtile1,median,qtile3"
+            c = statics_type #"min,mean,max,qtile1,median,qtile3"
             i = df.values.tolist()
             i.insert(0,list(df.columns))
 
@@ -628,12 +629,13 @@ class CsvToRepetitivieWaveCommand(HoloviewsBaseCommand):
             title = "反復波形図(統計量)"
             tools = "pan,wheel_zoom,box_zoom,reset,save,box_select"
             tooltips = None
-            if disableTooltips != True:
-                tooltips = [
-                    ("凡例", "@label"),
-                    (x_axis_column, "@x"),
-                    (y_axis_column, "@y")
-                ]
+
+            # ToolTip
+            tooltips = [
+                ("凡例", "@label"),
+                (x_axis_column, "@x"),
+                (y_axis_column, "@y")
+            ]
 
             statics_plot = figure(
                 title=title,
@@ -648,7 +650,7 @@ class CsvToRepetitivieWaveCommand(HoloviewsBaseCommand):
                 # 線
                 statics_plot.line('x', 'y', source=ColumnDataSource(data=statics_source[label]), legend=label, color=color, alpha=0.75, muted_color=color, muted_alpha=0.2,line_width=2)
                 # 点
-                if disableMarker != True:
+                if marker:
                     statics_plot.circle('x', 'y', source=ColumnDataSource(data=statics_source[label]), legend=label, color=color, alpha=0.9, muted_color=color, muted_alpha=0.2, size=5)
                 # 面
                 keys = list(statics_source.keys())
@@ -661,7 +663,7 @@ class CsvToRepetitivieWaveCommand(HoloviewsBaseCommand):
                         statics_plot.varea(x=x, y1=y1, y2=y2, fill_color='#cccccc', alpha=0.3)
 
             # 起点
-            if disableEvent != True and xs_event is not None:
+            if event and xs_event is not None:
                 s = None
                 for x in xs_event:
                     s = Span(location= x, dimension='height', line_color='black', line_dash='dashed', line_width=3, line_alpha=0.3)
@@ -780,7 +782,7 @@ class CsvToTimeCompressionCommand(HoloviewsBaseCommand):
 
         # グラフ表示要素の設定
         division        = args.get('division')
-        statics         = args.get('statics')
+        statics_type    = args.get('statics_type')
         display_pattern = args.get('display_pattern')
 
         # df
@@ -826,7 +828,7 @@ class CsvToTimeCompressionCommand(HoloviewsBaseCommand):
                 array = df.at[index, column].split("_")
                 df.at[index, column] = '0' if array[0] == '' else array[0]
 
-        staticsArray = statics.split(",")
+        staticsArray = statics_type.split(",")
         source = {}
         for label, _df in named_dfs.items():
 
@@ -853,7 +855,7 @@ class CsvToTimeCompressionCommand(HoloviewsBaseCommand):
             source[label]["y_range"] = [float(y_min),float(y_max)]
 
             # 統計量
-            df_summary = self.doMsummary(df_bucket, result_column, y_axis_column, statics)
+            df_summary = self.doMsummary(df_bucket, result_column, y_axis_column, statics_type)
             rangesToPoints(df_summary, result_column)
             df_summary = df_summary.sort_values(result_column)
 

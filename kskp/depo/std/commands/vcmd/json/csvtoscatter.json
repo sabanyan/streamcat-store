@@ -21,6 +21,17 @@
   ],
   "params": [
     {
+      "name": "offset",
+      "type": "number",
+      "label": "表示開始行"
+    },
+    {
+      "name": "limit",
+      "type": "number",
+      "label": "表示行数",
+      "default": 1000
+    },
+    {
       "name": "x_axis",
       "type": "list",
       "elements": [
@@ -65,11 +76,11 @@
       }
     },
     {
-      "name": "withoutContourLine",
+      "name": "contourLine",
       "type": "boolean",
-      "label": "等高線を表示しない",
+      "label": "等高線を表示する",
       "optional": false,
-      "default": true
+      "default": false
     },
     {
       "name": "data_column",
@@ -91,6 +102,11 @@
   ],
   "groups": [
     {
+      "name": "offset_group",
+      "label": "データ表示範囲の設定",
+      "params": ["offset","limit"]
+    },
+    {
       "name": "axis_group",
       "label": "軸の設定（必須）ラベルは省略可",
       "params": ["x_axis","y_axis"]
@@ -98,17 +114,12 @@
     {
       "name": "graph_group",
       "label": "グラフ表示要素の設定",
-      "params": ["withoutContourLine"]
+      "params": ["contourLine"]
     },
     {
       "name": "data_group",
       "label": "データ系列の設定",
       "params": ["data_column"]
-    },
-    {
-      "name": "offset_group",
-      "label": "データ表示件数の設定",
-      "params": ["limit"]
     }
   ],
   "url": ""

@@ -21,7 +21,18 @@
     ],
     "params": [
       {
-        "name": "event",
+        "name": "offset",
+        "type": "number",
+        "label": "表示開始行"
+      },
+      {
+        "name": "limit",
+        "type": "number",
+        "label": "表示行数",
+        "default": 1000
+      },
+      {
+        "name": "event_column",
         "label": "起点列",
         "type": "column",
         "options": {
@@ -91,31 +102,25 @@
         "label": "グループ化属性"
       },
       {
-        "name": "disableTooltips",
+        "name": "marker",
         "type": "boolean",
-        "label": "ツールチップを表示しない",
-        "default":false
-      },
-      {
-        "name": "disableMarker",
-        "type": "boolean",
-        "label": "マーカーを表示しない",
-        "default":false
+        "label": "マーカーを表示する",
+        "default":true
       },  
-      {
-        "name": "disableStatics",
-        "type": "boolean",
-        "label": "統計量グラフを表示しない",
-        "default":false
-      },  
-      {
-        "name": "disableEvent",
-        "type": "boolean",
-        "label": "起点を表示しない",
-        "default":false
-      }, 
       {
         "name": "statics",
+        "type": "boolean",
+        "label": "統計量グラフを表示する",
+        "default":true
+      },  
+      {
+        "name": "event",
+        "type": "boolean",
+        "label": "起点を表示する",
+        "default":true
+      }, 
+      {
+        "name": "statics_type",
         "label": "表示する統計量",
         "type": "select",
         "options": {
@@ -135,24 +140,24 @@
     ],
     "groups": [
       {
+        "name": "offset_group",
+        "label": "データ表示範囲の設定",
+        "params": ["offset","limit"]
+      },
+      {
         "name": "axis_group",
         "label": "軸の設定（必須）ラベルは省略可",
-        "params": ["event","x_axis","y_axis"]
+        "params": ["event_column","x_axis","y_axis"]
       },
       {
         "name": "graph_group",
         "label": "グラフ表示要素の設定",
-        "params": ["disableTooltips","disableMarker","disableStatics","disableEvent","statics"]
+        "params": ["marker","statics","event","statics_type"]
       },
       {
         "name": "data_group",
         "label": "データ系列の設定",
         "params": ["data_column","group"]
-      },
-      {
-        "name": "offset_group",
-        "label": "データ表示件数の設定",
-        "params": ["limit"]
       }
     ],
     "url": ""
