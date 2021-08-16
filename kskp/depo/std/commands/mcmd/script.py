@@ -69,6 +69,10 @@ class McatCommand(Command):
                 cmd = nm.m2tee(i=input.content)
                 inputs_for_arg_i.append(cmd)
 
+        if len(inputs_for_arg_i) == 0:
+            # 入力データがない場合でも例外を送出しない
+            return {'o': NysolModule(nm.m2tee(i='/dev/null'))}
+
         my_args = args.copy()
         my_args['i'] = inputs_for_arg_i
         cmd_o = nm.m2cat(my_args)
