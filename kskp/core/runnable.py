@@ -47,6 +47,35 @@ class Port:
     def __ne__(self, other):
         return self.label != other.label
 
+    def __lt__(self, other):
+        """
+        label名で大小比較する (数字 < 文字 とする)
+        """
+        # お互いのlabel名が'*'で始まる場合は、それに続く文字列が数字か否か判定する
+        if self.label[0] == '*' and other.label[0] == '*':
+            self_label = self.label[1:]
+            other_label = other.label[1:]
+        else:
+            self_label = self.label
+            other_label = other.label
+
+        # 数字文字列か否かを判定する
+        self_label_is_str = not self_label.isdigit()
+        other_label_is_str = not other_label.isdigit()
+
+        # 大小比較する
+        if self_label_is_str and other_label_is_str:
+            return self_label < other_label
+        elif self_label_is_str:
+            return False
+        elif other_label_is_str:
+            return True
+        else:
+            return int(self_label) < int(other_label)
+
+    def __gt__(self, other):
+        return not self < other
+
 class Parameter:
     """
     パラメータ定義1つを表す
