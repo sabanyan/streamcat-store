@@ -181,7 +181,7 @@ class CacheSaverCommand(SaverCommand):
 
     def run(self, args, inputs):
         import warnings
-        from kskp.store import ApparentLast
+        from kskp.store import ApparentOut
         from kskp.store.lock import LockedDatumException
         from kskp.store.auth import NotAuthorizedException
 
@@ -229,7 +229,7 @@ class CacheSaverCommand(SaverCommand):
         nysol_module.context['frame'] = cache
 
         # 出力Port(u)はActivityコマンドに繋げてCacheフレームを渡す
-        return {'o': nysol_module, 'u': ApparentLast(point, cache)}
+        return {'o': nysol_module, 'u': ApparentOut(point, cache)}
 
     def make_frame(self, parent, label):
         import io
@@ -823,7 +823,7 @@ class RunsCommand(SCommand):
     def run(self, args, inputs):
         import psutil
         from multiprocessing import Process, Manager, Pipe
-        from kskp.store import List, ApparentLast, CommandException
+        from kskp.store import List, ApparentOut, CommandException
 
         def do_runs(nm_list, results, exs, out):
             """
@@ -860,10 +860,10 @@ class RunsCommand(SCommand):
         exception_exists = False
         for i_port_name, input in inputs.items():
             if isinstance(input, CommandException):
-                rets[i_port_name] = ApparentLast(None, None, [input])
+                rets[i_port_name] = ApparentOut(None, None, [input])
                 exception_exists = True
             elif isinstance(input, (NysolModule, List)):
-                rets[i_port_name] = ApparentLast(None, input.context.get('frame'))
+                rets[i_port_name] = ApparentOut(None, input.context.get('frame'))
             else:
                 raise Exception(f'RunsCommandにNysolModuleまたはCommandException以外のデータ型({input})が入力されました')
 
@@ -954,9 +954,9 @@ class RunsCommand(SCommand):
                 frame = nysol_module.context.get('frame')
                 if len(exs_list) == 0:
                     list = List(results[i])
-                    rets[i_port_name] = ApparentLast(None, frame or list)
+                    rets[i_port_name] = ApparentOut(None, frame or list)
                 else:
-                    rets[i_port_name] = ApparentLast(None, frame, exs=exs_list)
+                    rets[i_port_name] = ApparentOut(None, frame, exs=exs_list)
                 i += 1
 
             return rets
@@ -981,7 +981,7 @@ class ActivityCommand(SCommand):
         self.o_ports = [Port('o', 'activity')]
 
     def run(self, args, inputs):
-        from kskp.store import ApparentLast
+        from kskp.store import ApparentOut
         from kskp.store import CommandException
 
         activity = args['activity']
@@ -993,17 +993,17 @@ class ActivityCommand(SCommand):
 
             if isinstance(input, CommandException):
                 # RunsCommandの前のコマンドで例外が送出された場合はframeは生成されない
-                last = ApparentLast(out_point, None, [input])
-            elif isinstance(input, ApparentLast):
-                last = input
-                last.out_point = out_point
+                out = ApparentOut(out_point, None, [input])
+            elif isinstance(input, ApparentOut):
+                out = input
+                out.out_point = out_point
             else:
                 raise Exception(f'ActivityCommandにApparentLastまたはCommandException以外のデータ型({input})が入力されました')
 
             # Activityにlastを追加する
-            activity.add(last)
+            activity.add(out)
 
-        if activity.count_lasts() == len(points):
+        if activity.count_outs() == len(points):
             # Activityを全て集め終えたら実行結果情報を保存する
             # (今は出力ファイル名にその情報を刻んでいる)
             activity.save()

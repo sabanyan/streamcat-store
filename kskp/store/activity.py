@@ -24,17 +24,17 @@ class Activity(Datum):
 
         # data列の値を作成する
         # (同じインスタンスのpointの場合もあることに注意!!)
-        # [ApparentLast(point, datum, exs)]
-        self._lasts = []
+        # [ApparentOut(point, datum, exs)]
+        self._outs = []
         self._data = {'start_time' : start_time, 'flow_uuid' : flow_uuid}
 
-    def add(self, last):
-        self._lasts.append(last)
+    def add(self, out):
+        self._outs.append(out)
 
     @property
     def is_success(self):
-        for last in self._lasts:
-            if last.has_exs:
+        for out in self._outs:
+            if out.has_exs:
                 return False
         return True
 
@@ -42,46 +42,46 @@ class Activity(Datum):
         """
         例外があれば、そのうち一つを送出する
         """
-        for last in self._lasts:
-            if last.has_exs:
-                raise last.exs[0]
+        for out in self._outs:
+            if out.has_exs:
+                raise out.exs[0]
         return
 
     def delete_all_frames(self):
         """
         全てのFrame(Cache含む)を削除する
         """
-        for last in self._lasts:
-            if last.has_frame:
-                last.datum.delete()
-                last.datum = None
+        for out in self._outs:
+            if out.has_frame:
+                out.datum.delete()
+                out.datum = None
 
     @property
     def exs(self):
-        return [(last.out_point, last.exs) for last in self._lasts if not last.has_cache and last.has_exs]
+        return [(out.out_point, out.exs) for out in self._outs if not out.has_cache and out.has_exs]
 
     @property
-    def lasts(self):
+    def outs(self):
         # Cacheは返さない
         # 同じPointにCacheとFrame(CacheとVis)が紐づくとややこしい
-        return [(last.out_point, last.datum) for last in self._lasts if not last.has_cache]
+        return [(out.out_point, out.datum) for out in self._outs if not out.has_cache]
 
     @property
     def frames(self):
         """
         作成したフレームのリストを返す
         """
-        return [(last.out_point, last.datum) for last in self._lasts if not last.has_cache and last.has_frame]
+        return [(out.out_point, out.datum) for out in self._outs if not out.has_cache and out.has_frame]
 
     @property
     def caches(self):
         """
         作成したキャッシュのリストを返す
         """
-        return [(last.out_point, last.datum) for last in self._lasts if last.has_cache]
+        return [(out.out_point, out.datum) for out in self._outs if out.has_cache]
 
-    def count_lasts(self):
-        return len(self._lasts)
+    def count_outs(self):
+        return len(self._outs)
 
     def save(self):
         from datetime import datetime, timezone
@@ -90,12 +90,12 @@ class Activity(Datum):
         end_time = datetime.utcnow().replace(tzinfo=timezone.utc)
         end_time_str = end_time.astimezone().strftime('%H:%M:%S')
         # 出力フレームのラベルに終了時刻と所要時間を付加する
-        for last in self._lasts:
-            if last.datum is None or last.datum.label is None:
+        for out in self._outs:
+            if out.datum is None or out.datum.label is None:
                 # エラーが発生した、またはプレビューのlastはframeのlabelの変更は必要ない
                 continue
 
-            new_label = last.datum.label + ' 終了時刻' + end_time_str
+            new_label = out.datum.label + ' 終了時刻' + end_time_str
             elapsed_time = (end_time - self._data['start_time']).total_seconds()
             if elapsed_time < 60.0:
                 elapsed_time_str = str(round(elapsed_time))
@@ -104,15 +104,15 @@ class Activity(Datum):
                 elapsed_time_str = str(round(elapsed_time / 60, 2))
                 new_label = new_label + ' 全体処理時間' + elapsed_time_str + '分'
 
-            if isinstance(last.datum, Frame):
-                if last.datum.is_cache:
+            if isinstance(out.datum, Frame):
+                if out.datum.is_cache:
                     # Cacheの場合
                     # 対応ファイルの文字コードと改行コードを推測してその結果を登録する
-                    last.datum.update_encoding_newline()
+                    out.datum.update_encoding_newline()
                 else:
                     # Frameの場合
                     # 対応ファイルの文字コードと改行コードを推測してその結果を登録する
-                    last.datum.update_encoding_newline()
-                    last.datum.update_label_only(new_label)
-            elif isinstance(last.datum, Flow):
-                last.datum.update_label(new_label)
+                    out.datum.update_encoding_newline()
+                    out.datum.update_label_only(new_label)
+            elif isinstance(out.datum, Flow):
+                out.datum.update_label(new_label)

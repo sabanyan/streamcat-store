@@ -185,16 +185,16 @@ class VCmdTestCase(TestCaseBase):
         self.assertIsInstance(result['div'], str)
         self.assertIsInstance(result['script'], str)
 
-    def convert_from_activity_vis(self, lasts):
+    def convert_from_activity_vis(self, outs):
         """
         execute()の戻り値であるActivityから
         pointのidとvisのDictに置き換える
         """
         from kskp.store import Activity
         # Activityを取得して返り値とする
-        for point_id, datum in lasts.items():
+        for point_id, datum in outs.items():
             if isinstance(datum, Activity):
-                return {point.id : vis.result for point, vis in datum.lasts}
+                return {point.id : vis.result for point, vis in datum.outs}
 
     def exec_flow(self, vis_args):
         from kskp.store import FlowData
@@ -202,6 +202,6 @@ class VCmdTestCase(TestCaseBase):
         flow_data = FlowData(self.flow_csvtohtmltable)
         flow = root.create_flow('CSV to graph', flow_data)
         flow_link = FlowCommand(flow)
-        lasts = execute(flow_link, {'vis':vis_args}, {})
-        result = self.convert_from_activity_vis(lasts)['d1']
+        outs = execute(flow_link, {'vis':vis_args}, {})
+        result = self.convert_from_activity_vis(outs)['d1']
         return result

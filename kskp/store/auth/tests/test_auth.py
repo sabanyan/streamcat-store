@@ -259,15 +259,15 @@ class AuthTest(TestCaseBase):
 
         return flow3_json
 
-    def get_frame_from_lasts(lasts):
+    def get_frame_from_lasts(outs):
         """
         lastsから出力結果Frameを1つ返す
         """
         from kskp.store import Activity
-        activities = [ datum for point_id, datum in lasts.items() if isinstance(datum, Activity)]
+        activities = [ datum for point_id, datum in outs.items() if isinstance(datum, Activity)]
         # Engineの実行により例外が発生した場合は送出する
         activities[0].raise_one()
-        return activities[0].lasts[0][1]
+        return activities[0].outs[0][1]
 
     # 
     # SQLAlchemy Session

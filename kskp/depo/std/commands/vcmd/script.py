@@ -10,7 +10,7 @@ class VCommand(Command):
     def __init__(self):
         super().__init__()
         self.i_ports = [Port('i', 'list'), Port('m', 'list')]
-        self.o_ports = [Port('o', 'last')]
+        self.o_ports = [Port('o', 'out')]
 
     def run(self, args, inputs):
         pass
@@ -23,7 +23,7 @@ class CsvToTableCommand(VCommand):
         """
         ListデータをVisデータにして返す
         """
-        from kskp.store import ApparentLast, Vis
+        from kskp.store import ApparentOut, Vis
 
         # 直前のRunsCommandがエラーを返した場合、直後のActivityCommandにエラーを渡す
         if inputs['i'].has_exs:
@@ -36,7 +36,7 @@ class CsvToTableCommand(VCommand):
         column_names = list_datum[0] if len(list_datum) > 0 else []
         matrix = list_datum[1:] if len(list_datum) > 1 else [[]]
         vis = Vis(None, None, 'csv_to_table', column_names, matrix)
-        return {'o': ApparentLast(inputs['i'].out_point, vis)}  
+        return {'o': ApparentOut(inputs['i'].out_point, vis)}  
 
 class HoloviewsBaseCommand(VCommand):
     """
@@ -51,7 +51,7 @@ class HoloviewsBaseCommand(VCommand):
 
     def run(self, args, inputs):
         from bokeh.embed import components
-        from kskp.store import ApparentLast, BokehPlotVis
+        from kskp.store import ApparentOut, BokehPlotVis
 
         # 直前のRunsCommandがエラーを返した場合、直後のActivityCommandにエラーを渡す
         if inputs['i'].has_exs:
@@ -79,7 +79,7 @@ class HoloviewsBaseCommand(VCommand):
         # 結果はVisに入れて返す
         label = self.__class__.__name__
         vis = BokehPlotVis(None, None, label, column_names, script, div)
-        return {'o': ApparentLast(inputs['i'].out_point, vis)} 
+        return {'o': ApparentOut(inputs['i'].out_point, vis)} 
 
     def plot(self, args, column_names:list, matrix_dict:dict):
         """
