@@ -371,8 +371,10 @@ class AuthzSession(Session):
         # フォルダパスの先頭に'/'を付加する、フォルダパスがない場合はNULLを返す   
         func_exp = case(
                          # Labelsの件数が0件の場合、ARRAY_TO_STRING関数は空文字を返す
-                        {'': None},
-                        value=func_exp,
+                        # NOTE: SQLAlchemy2.0対応 (RemovedIn20Warningの抑止)
+                        # {'': None},
+                        # value=func_exp,
+                        (func_exp=='', None),
                         else_=func.concat('/', func_exp)
                     )
 
