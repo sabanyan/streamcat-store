@@ -1,4 +1,5 @@
-from kskp.core import Datum
+from kskp.core import Datum, Constraints
+from kskp.store import ApparentOut
 
 class Activity(Datum):
     """
@@ -9,7 +10,7 @@ class Activity(Datum):
         'polymorphic_identity' : 'activity'
     }
 
-    def __init__(self, session, parent, label, flow_uuid):
+    def __init__(self, session, parent, label, flow):
         """
         コンストラクタ
         """
@@ -18,17 +19,20 @@ class Activity(Datum):
         # Activityはファイルに保存せず、データベースに保存する
         self._path = None
 
+        # 対象のフローを保持する
+        self._flow = flow
+
         # 処理の開始時刻を取得する
         from datetime import datetime, timezone
-        start_time = datetime.utcnow().replace(tzinfo=timezone.utc)
+        self._start_time = datetime.utcnow().replace(tzinfo=timezone.utc)
 
         # data列の値を作成する
         # (同じインスタンスのpointの場合もあることに注意!!)
         # [ApparentOut(point, datum, exs)]
         self._outs = []
-        self._data = {'start_time' : start_time, 'flow_uuid' : flow_uuid}
+        self._data = {'flow_uuid': flow.uuid, 'start_time': str(self._start_time)}
 
-    def add(self, out):
+    def add(self, out:ApparentOut):
         self._outs.append(out)
 
     @property
@@ -83,36 +87,89 @@ class Activity(Datum):
     def count_outs(self):
         return len(self._outs)
 
+    @Constraints.prohibit_save_on_root
+    @Constraints.set_project_role_on_adding_activity
     def save(self):
         from datetime import datetime, timezone
-        from kskp.store import Flow, Frame
+        from kskp.store import Frame
+
         # 現在時刻を取得する
         end_time = datetime.utcnow().replace(tzinfo=timezone.utc)
-        end_time_str = end_time.astimezone().strftime('%H:%M:%S')
-        # 出力フレームのラベルに終了時刻と所要時間を付加する
+
+        outs = []
+        caches = []
+        exs = []
         for out in self._outs:
-            if out.datum is None or out.datum.label is None:
-                # エラーが発生した、またはプレビューのlastはframeのlabelの変更は必要ない
-                continue
+            out_item = {'id': out.out_point.id, 'label': out.out_point.label}
 
-            new_label = out.datum.label + ' 終了時刻' + end_time_str
-            elapsed_time = (end_time - self._data['start_time']).total_seconds()
-            if elapsed_time < 60.0:
-                elapsed_time_str = str(round(elapsed_time))
-                new_label = new_label + ' 全体処理時間' + elapsed_time_str + '秒'
+            if not out.has_cache and out.has_exs:
+                # 出力Pointで例外が発生した場合
+                out_item['message'] = str(out.exs[0])
+                exs.append(out_item)
             else:
-                elapsed_time_str = str(round(elapsed_time / 60, 2))
-                new_label = new_label + ' 全体処理時間' + elapsed_time_str + '分'
+                out_item['datum'] = out.datum.uuid
+                # 出力Pointで結果を出力した場合
+                outs.append(out_item)
+                # 出力PointでCacheを出力した場合
+                if out.has_cache:
+                    caches.append(out_item)
+                # Frameの場合、対応ファイルの文字コードと改行コードを推測してその結果を登録する
+                if isinstance(out.datum, Frame):
+                    out.datum.update_encoding_newline()
+                # 結果Datumのラベル名を変更する
+                self._update_label(out.datum, end_time)
 
-            if isinstance(out.datum, Frame):
-                if out.datum.is_cache:
-                    # Cacheの場合
-                    # 対応ファイルの文字コードと改行コードを推測してその結果を登録する
-                    out.datum.update_encoding_newline()
-                else:
-                    # Frameの場合
-                    # 対応ファイルの文字コードと改行コードを推測してその結果を登録する
-                    out.datum.update_encoding_newline()
-                    out.datum.update_label_only(new_label)
-            elif isinstance(out.datum, Flow):
-                out.datum.update_label(new_label)
+        # 現在時刻を格納する
+        self._data['end_time'] = str(end_time)
+        # 出力情報を格納する
+        self._data['outs'] = outs
+        self._data['caches'] = caches
+        self._data['exs'] = exs
+
+        try:
+            # Dataテーブルにレコードを新規追加する
+            self._session.add(self)
+        except Exception as e:
+            self._session.rollback()
+            raise e
+        finally:
+            self._session.commit()
+
+    def _update_label(self, datum:Datum, end_time):
+        """
+        結果Datumのラベル名を変更する
+        """
+        from kskp.store import Flow, Frame
+
+        end_time_str = end_time.astimezone().strftime('%H:%M:%S')
+        new_label = datum.label + ' 終了時刻' + end_time_str
+
+        elapsed_time = (end_time - self._start_time).total_seconds()
+        if elapsed_time < 60.0:
+            elapsed_time_str = str(round(elapsed_time))
+            new_label = new_label + ' 全体処理時間' + elapsed_time_str + '秒'
+        else:
+            elapsed_time_str = str(round(elapsed_time / 60, 2))
+            new_label = new_label + ' 全体処理時間' + elapsed_time_str + '分'
+
+        if isinstance(datum, Frame):
+            datum.update_label_only(new_label)
+        elif isinstance(datum, Flow):
+            datum.update_label(new_label)
+
+    def to_json(self):
+        ret = super().to_json()
+        # 
+        ret['flow_uuid']  = self._data['flow_uuid']
+        ret['start_time'] = self._data['start_time']
+        ret['end_time']   = self._data['end_time']
+        ret['outs']       = self._data['outs']
+        ret['caches']     = self._data['caches']
+        ret['exs']        = self._data['exs']
+        # allowlist
+        ret['allowlist']['update'] = False
+        ret['allowlist']['delete'] = False
+        ret['allowlist']['move'] = False
+        ret['allowlist']['copy'] = False 
+        ret['allowlist']['download'] = False
+        return ret
