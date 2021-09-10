@@ -986,6 +986,7 @@ class ActivityCommand(SCommand):
 
         activity = args['activity']
         points = args['points']
+        is_vis = args['is_vis']
 
         for port_id, input in inputs.items():
             # 出力ポイント
@@ -1004,9 +1005,10 @@ class ActivityCommand(SCommand):
             activity.add(out)
 
         if activity.count_outs() == len(points):
+            # プレビュー実行以外の場合
             # Activityを全て集め終えたら実行結果情報を保存する
             # (今は出力ファイル名にその情報を刻んでいる)
-            activity.save()
+            not is_vis and activity.save()
             # Activityを出力Pointに渡し、処理を終了する
             return {'o': activity}
         else:

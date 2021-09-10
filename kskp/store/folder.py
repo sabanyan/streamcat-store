@@ -252,9 +252,9 @@ class Folder(Store):
     def to_json(self):
         ret = super().to_json()
 
-        if self.is_cache_folder():
-            # キャッシュフォルダ直下では新規作成はできない
-            # キャッシュフォルダの変更・削除・移動もできない
+        if self.is_cache_folder() or self.is_activity_folder():
+            # キャッシュフォルダ・アクティビティフォルダ直下では新規作成はできない
+            # キャッシュフォルダ・アクティビティフォルダの変更・削除・移動もできない
             ret['allowlist']['createProject'] = False
             ret['allowlist']['createFolder'] = False
             ret['allowlist']['createFile'] = False
@@ -557,14 +557,22 @@ class Folder(Store):
         from kskp.store.scheduler import Schedule
         return Schedule(self._session, self, label, runnable_uuid, args, inputs, trigger)
 
+    def create_activity(self, label:str, flow):
+        from kskp.store import Activity
+        return Activity(self._session, self, label, flow)
+
     def create_trashcan(self):
         from kskp.store import TrashCan
         return TrashCan(self._session, self)
 
     def is_system_folder(self):
         from kskp.core import Datum
-        return self.uuid in (Datum.FLOW_FOLDER_UUID, Datum.RESULT_FOLDER_UUID, Datum.CACHE_FOLDER_UUID)
+        return self.uuid in (Datum.FLOW_FOLDER_UUID, Datum.RESULT_FOLDER_UUID, Datum.CACHE_FOLDER_UUID, Datum.ACTIVITY_FOLDER_UUID)
 
     def is_cache_folder(self):
         from kskp.core import Datum
         return self.uuid == Datum.CACHE_FOLDER_UUID
+
+    def is_activity_folder(self):
+        from kskp.core import Datum
+        return self.uuid == Datum.ACTIVITY_FOLDER_UUID

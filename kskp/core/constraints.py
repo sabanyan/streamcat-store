@@ -58,6 +58,8 @@ class Constraints():
                 raise Exception('ルートフォルダは移動できません')
             elif myself.uuid == Datum.CACHE_FOLDER_UUID:
                 raise Exception('キャッシュフォルダは移動できません')
+            elif myself.uuid == Datum.ACTIVITY_FOLDER_UUID:
+                raise Exception('アクティビティフォルダは移動できません')
             elif isinstance(myself, TrashCan):
                 raise Exception('ゴミ箱は移動できません')
 
@@ -94,7 +96,7 @@ class Constraints():
     def set_project_role_on_adding(func):
         """
         プロジェクト以外のDatumを新規追加した場合、
-        everyoneロールとプロジェクトロールを設定する
+        everyoneロールを設定する
         """
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
@@ -186,6 +188,52 @@ class Constraints():
 
             # キャッシュフォルダへ行ってらっしゃい! 頑張るんだぞ
             return func(*args, **kwargs)
+
+        return wrapper
+
+    @staticmethod
+    def set_project_role_on_adding_activity(func):
+        """
+        Activityを作成する時にプロジェクトロールを設定する
+        """
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            from sqlalchemy.orm.exc import NoResultFound
+
+            if func.__name__ != 'save':
+                raise Exception('このDecoratorはActivity.save()以外をデコレートできません')
+
+            result = func(*args, **kwargs)
+
+            # self
+            activity = args[0]
+
+            from kskp.store import Activity
+            if not isinstance(activity, Activity):
+                raise Exception('このDecoratorはActivity.save()以外をデコレートできません')
+
+            try:
+                # 自分のプロジェクトを取得する
+                my_project = activity._flow.find_my_project()
+            except NoResultFound:
+                # 自分のプロジェクトがない場合はプロジェクトロールを設定しない
+                return result
+
+            # Activityにプロジェクトロールを設定する
+            readers_role = my_project._load_readers_role()
+            readers_role.init_authz(activity.id, read=True, write=None)
+
+            # ユーザ管理者は全てのActivityの参照、及び権限の変更ができること
+            from kskp.store.factory import RoleFactory
+            usr_admin_role = RoleFactory(activity._session).load_usr_admin_role()
+            usr_admin_role.init_authz(activity.id, True, False, own=True)
+
+            # 本人ロールからActiviyの権限を削除する
+            creator = activity._session.user
+            creator_role = creator.load_self_role()
+            creator_role.clear_authz(activity.id)
+
+            return result
 
         return wrapper
 
@@ -395,7 +443,6 @@ class Constraints():
             # 
             else:
                 return func(*args, **kwargs)
-       
 
         return wrapper
 

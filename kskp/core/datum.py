@@ -76,6 +76,8 @@ class Datum(BaseModel):
     CACHE_FOLDER_LABEL = 'キャッシュ'
     FLOW_FOLDER_UUID  = 'ff37fe34-9c25-4ad0-b74a-affda3712a45'
     FLOW_FOLDER_LABEL = 'フロー'
+    ACTIVITY_FOLDER_UUID = 'aa2799ba-798e-4fa3-984c-b3fad92fd162'
+    ACTIVITY_FOLDER_LABEL = 'アクティビティ'
 
     # AuthzSessionが返す権限設定ののビットフラグ(_permissions)
     PERMISSION_READ   = 0b1_00_0_0

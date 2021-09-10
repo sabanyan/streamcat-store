@@ -351,6 +351,26 @@ class DatumFactory():
             # 参照権限設定後にもう一度取得し直す
             return folder.reload()
 
+    def load_activity_folder(self) -> Folder:
+        """
+        アクティビティフォルダを取得する、存在しない場合は作成する
+        """
+        # 特定用途のフォルダのUUIDは決め打ちである
+        uuid = Datum.ACTIVITY_FOLDER_UUID
+        label = Datum.ACTIVITY_FOLDER_LABEL
+
+        if self.exists(uuid):
+            return self.find_by_uuid(uuid)
+        else:
+            folder = self._make_system_folder(uuid, label)
+            # アクティビティフォルダは、everyoneにRW権限、user_admin権限にOを設定する
+            self._permit_to_everyone(folder.id, read=True, write=True)
+            self._permit_to_usradmin(folder.id, own=True)
+            # 作成ユーザの権限を全て削除する
+            self._delete_self_auth(folder)
+            # 参照権限設定後にもう一度取得し直す
+            return folder.reload()    
+
     def load_flow_folder(self):
         """
         フローフォルダを取得する、存在しない場合は作成する

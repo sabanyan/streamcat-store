@@ -269,6 +269,18 @@ class AuthTest(TestCaseBase):
         activities[0].raise_one()
         return activities[0].outs[0][1]
 
+    def _get_activity(outs:dict):
+        """
+        execute()の戻り値から
+        pointのidとframeのDictに置き換える
+        """
+        from kskp.store import Activity
+        # Activityを取得して返り値とする
+        for point_id, datum in outs.items():
+            if isinstance(datum, Activity):
+                return datum
+        return 
+
     # 
     # SQLAlchemy Session
     # 
@@ -3188,6 +3200,11 @@ class AuthTest(TestCaseBase):
         with self.assertRaises(Exception):
             cache_folder.move(project.uuid)
 
+        # アクティビティフォルダは移動できないこと
+        activity_folder = self.factory.data.load_activity_folder()
+        with self.assertRaises(Exception):
+            activity_folder.move(project.uuid)
+
         # ゴミ箱は移動できないこと
         trashcan = self.factory.data.load_trash_folder()
         with self.assertRaises(Exception):
@@ -3651,6 +3668,44 @@ class AuthTest(TestCaseBase):
 
         # プロジェクトを削除する
         project.delete()
+
+    def test_cannot_read_activity_by_other_user(self):
+        """
+        プロジェクトメンバ以外のユーザがActivityを参照できないこと
+        """
+        # ルートフォルダを取得する
+        root = self.factory2.data.load_root()
+        # ルートフォルダの下にプロジェクトを作成する
+        project = root.create_project_folder('お腹ぺこぺこペコリーヌ')
+        project.save()
+        project = project.reload()
+
+        # プロジェクトの下にフローを作成する
+        flow_data = FlowData(copy.deepcopy(self.flow_json))
+        flow = project.create_flow('コッコロママ', flow_data)
+        flow.save()
+        flow = flow.reload() 
+
+        # フローを実行する
+        from kskp.engine import execute, FlowCommand
+        link = FlowCommand(flow)
+        outs = execute(command=link, args={}, inputs={})
+        # Activityを取得する
+        activity = AuthTest._get_activity(outs)
+
+        # プロジェクト管理者は、フローのActivityを参照できること
+        activity = self.factory2.data.find_by_uuid(activity.uuid)
+
+        # プロジェクトメンバ以外のユーザは、フローのActivityを参照できないこと
+        with self.assertRaises(NotAuthorizedException):
+            self.factory3.data.find_by_uuid(activity.uuid)
+
+        # プロジェクトをゴミ箱にほかす
+        project.throw_away()
+
+        # ゴミ箱を空にする
+        trashcan = self.factory2.data.find_trashcan()
+        trashcan.trash_all()
 
     def test_cannot_read_cache_by_other_user(self):
         """
@@ -4520,6 +4575,45 @@ class AuthTest(TestCaseBase):
         self.assertEqual(role, usr_admin_role)
         self.assertEqual(cache_auths[2].operation, 'own')
         self.assertEqual(cache_auths[2].permission, True)
+
+    def test_activity_folder_auths(self):
+        """
+        アクティビティフォルダの権限設定を検証する
+        """
+        # アクティビティフォルダを取得する
+        activity = self.factory.data.load_activity_folder()
+
+        # アクティビティフォルダの権限を取得する
+        activity_auths = self.factory.auth.find_all_by_datum_id(activity.id)
+
+        # システムロールを取得する
+        everyone_role = self.factory.role.load_everyone_role()
+        usr_admin_role = self.factory.role.load_usr_admin_role()
+        
+        # アクティビティフォルダには、everyoneにRW権限が設定されること
+        # システムフォルダには、usr_adminにO権限が設定されること
+        # システムフォルダには、作成者の本人ロールの権限が設定されていないこと
+
+        # 権限設定の数は正しいこと
+        self.assertEqual(len(activity_auths), 3)
+
+        # everyone read
+        role = self.factory.role.find_by_id(activity_auths[0].role_id)
+        self.assertEqual(role, everyone_role)
+        self.assertEqual(activity_auths[0].operation, 'read')
+        self.assertEqual(activity_auths[0].permission, True)
+
+        # everyone write
+        role = self.factory.role.find_by_id(activity_auths[1].role_id)
+        self.assertEqual(role, everyone_role)
+        self.assertEqual(activity_auths[1].operation, 'write')
+        self.assertEqual(activity_auths[1].permission, True)
+
+        # usr_admin own
+        role = self.factory.role.find_by_id(activity_auths[2].role_id)
+        self.assertEqual(role, usr_admin_role)
+        self.assertEqual(activity_auths[2].operation, 'own')
+        self.assertEqual(activity_auths[2].permission, True)
 
     def test_trash_folder_auths(self):
         """
