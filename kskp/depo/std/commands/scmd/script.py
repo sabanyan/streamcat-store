@@ -599,7 +599,8 @@ class DbSaverCommand(SaverCommand):
         import psycopg2
         with psycopg2.connect(db_uri) as conn:
             with conn.cursor() as cursor:
-                column_name_list = ','.join(csv_columns)
+                # 指定する列名を".."でエスケープする
+                column_name_list = '"' + '","'.join(csv_columns) + '"'
                 sql = f'COPY {schema_and_table_name} ({column_name_list}) FROM STDIN WITH CSV HEADER'
                 cursor.copy_expert(sql, sys.stdin, size=8192)
 

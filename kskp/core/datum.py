@@ -1,10 +1,9 @@
 """
 いわゆるルートクラスであるDatumを定義している
 """
-import os
 import sqlalchemy.types
 from pathlib import Path
-from sqlalchemy import Column, String, text
+from sqlalchemy import Column, String
 from sqlalchemy.sql import operators
 from sqlalchemy.orm import query_expression
 from sqlalchemy.dialects.postgresql import INTEGER, JSONB, ENUM, UUID
@@ -72,11 +71,11 @@ class Datum(BaseModel):
 
     RESULT_FOLDER_UUID  = 'aacb4914-0695-40fc-b14b-95b7f1f81707'
     RESULT_FOLDER_LABEL = '実行結果'
-    CACHE_FOLDER_UUID  = 'cc9f050d-b007-414e-a6e0-6d31a9c13395'
-    CACHE_FOLDER_LABEL = 'キャッシュ'
-    FLOW_FOLDER_UUID  = 'ff37fe34-9c25-4ad0-b74a-affda3712a45'
-    FLOW_FOLDER_LABEL = 'フロー'
-    ACTIVITY_FOLDER_UUID = 'aa2799ba-798e-4fa3-984c-b3fad92fd162'
+    CACHE_FOLDER_UUID   = 'cc9f050d-b007-414e-a6e0-6d31a9c13395'
+    CACHE_FOLDER_LABEL  = 'キャッシュ'
+    FLOW_FOLDER_UUID    = 'ff37fe34-9c25-4ad0-b74a-affda3712a45'
+    FLOW_FOLDER_LABEL   = 'フロー'
+    ACTIVITY_FOLDER_UUID  = 'aa2799ba-798e-4fa3-984c-b3fad92fd162'
     ACTIVITY_FOLDER_LABEL = 'アクティビティ'
 
     # AuthzSessionが返す権限設定ののビットフラグ(_permissions)
@@ -98,8 +97,6 @@ class Datum(BaseModel):
     parent_id    = Column(INTEGER)
     prev_parent_id = Column(INTEGER)
     uuid         = Column(UUID, nullable=False, unique=True)
-    _path        = Column('path', PathType, nullable=False)
-    _label       = Column('label', String)
     # PostgreSQLのENUM型の要素を変更してもSQLAlchemyから自動的に変更がかからないので手動で変更する必要がある
     type         = Column(ENUM( PROJECT_TYPE,
                                 FOLDER_TYPE,
@@ -123,7 +120,10 @@ class Datum(BaseModel):
                                 HTML_TYPE,
                                 UNKNOWN_TYPE,
                                 name='data_type'), nullable=False)
+    _label       = Column('label', String)
+    _path        = Column('path', PathType, nullable=False)
     _data        = Column('data', JSONB)
+    _desc        = Column('desc', String)
 
     # 各種権限(queryで追加した列の結果を格納する)
     _permissions = query_expression()
@@ -156,6 +156,12 @@ class Datum(BaseModel):
         import uuid
         self.uuid = str(uuid.uuid4())
 
+        # type
+        self.type = datum_type
+
+        # label
+        self._label = Datum.escape_label(label)
+
         # pathは親フォルダのpathを引き継ぐ
         if parent is None:
             # 親フォルダがない場合はデフォルトパスとする
@@ -164,17 +170,20 @@ class Datum(BaseModel):
             dir_name = Datum.escape_filename(label)
             self._path = parent._path / dir_name
 
-        # label
-        self._label = Datum.escape_label(label)
-
-        # type
-        self.type = datum_type
-
         # DBに保存する前のDatumへの参照と更新権限は制限しない
         self._permissions = Datum.PERMISSION_READ | Datum.PERMISSION_WRITE
 
         # Engineから参照する
         self.context = {}
+
+    @property
+    def label(self):
+        if self._label is None or self._label == '':
+            if self._data is None:
+                return ''
+            return self._data.get('label') or ''
+        else:
+            return self._label
 
     @property
     def path(self):
@@ -192,13 +201,8 @@ class Datum(BaseModel):
         return self._path.exists()
 
     @property
-    def label(self):
-        if self._label is None or self._label == '':
-            if self._data is None:
-                return ''
-            return self._data.get('label') or ''
-        else:
-            return self._label
+    def desc(self):
+        return self._desc or ''
 
     @property
     def readable(self):
@@ -587,7 +591,7 @@ class Datum(BaseModel):
         そのようなFlowを全て返す
         """
         from sqlalchemy.orm import aliased
-        from sqlalchemy.sql.expression import select, func, exists, and_, cast
+        from sqlalchemy.sql.expression import select, func, exists, and_, cast, text
 
         sql = """
         WITH RECURSIVE
@@ -754,6 +758,7 @@ class Datum(BaseModel):
         """
         ファイル名の末尾に'_1'を付加する、既に'_数字'が末尾にある場合は数字をインクリメントする。
         """
+        import os
         (body, ext) = os.path.splitext(filename)
         # 後ろから1番目の'_'でファイル名を区切る
         bodylist = body.rsplit('_', 1)
