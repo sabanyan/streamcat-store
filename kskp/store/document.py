@@ -7,10 +7,10 @@ class Document(File):
         'polymorphic_identity' : 'document'
     }
 
-    def __init__(self, session, parent, label, content_type, stream):
+    def __init__(self, session, parent, label, stream):
         """
         コンストラクタ
         stream : データのファイルストリームを指定する
         """
-        super().__init__(session, parent, Datum.DOCUMENT_TYPE, label, content_type, stream)
+        super().__init__(session, parent, Datum.DOCUMENT_TYPE, label, stream)
 

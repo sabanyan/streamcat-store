@@ -9,7 +9,7 @@ class File(Datum):
     # 64MB
     READ_BUFFER_SIZE = 64 * 1024 * 1024
 
-    def __init__(self, session, parent, datum_type, label, content_type, stream):
+    def __init__(self, session, parent, datum_type, label, stream):
         """
         コンストラクタ
         stream : Frameデータのファイルストリームを指定する
@@ -17,11 +17,18 @@ class File(Datum):
         # TODO: とりあえずUNKNOWN_TYPE
         super().__init__(session, parent, datum_type, label)
 
-        # ファイルストリームを保持する
-        self.stream = stream
+        # ファイルストリームからファイルタイプを判定する
+        if stream is not None and hasattr(stream, 'seek'):
+            content_type = File._detect_content_type(stream)
+        else:
+            # 0Byteファイルの場合はCSVファイルとして扱う
+            content_type = 'text/csv'
 
         # data列の値を作成する
         self._data = {'content_type':content_type}
+
+        # ファイルストリームを保持する
+        self.stream = stream
 
     @Constraints.prohibit_save_on_root
     @Constraints.set_project_role_on_adding
@@ -156,6 +163,27 @@ class File(Datum):
         import time
         wk = time.localtime(self._path.stat().st_mtime)
         return time.strftime('%Y/%m/%d %H:%M', wk)
+
+    @staticmethod
+    def _detect_content_type(stream):
+        """
+        指定されたファイルのファイルタイプを判別する
+        """
+        import magic
+
+        chunk_size = 1024
+
+        # ファイルストリームからファイルタイプを判定する
+        chunk = stream.read(chunk_size)
+        if not chunk:
+            # 0Byteファイルの場合はCSVファイルとして扱う
+            return 'text/csv'
+        content_type = magic.from_buffer(chunk, mime=True)
+
+        # streamの読み込み位置をリセットする
+        stream.seek(0)
+
+        return content_type
 
     def _make_file(self, path):
         """

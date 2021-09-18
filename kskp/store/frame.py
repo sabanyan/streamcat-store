@@ -17,7 +17,11 @@ class Frame(File):
         コンストラクタ
         stream : Frameデータのファイルストリームを指定する
         """
-        super().__init__(session, parent, Datum.FRAME_TYPE, label, 'csv/text', stream)
+        super().__init__(session, parent, Datum.FRAME_TYPE, label, stream)
+
+        # python-magicはCSVファイルを'text/plain'と判定するため、'text/csv'に変更する
+        if 'content_type' in self._data and self._data['content_type'] == 'text/plain':
+            self._data['content_type'] = 'text/csv'
 
         # ファイルストリームの文字コードを推測する
         if stream is not None and hasattr(stream, 'seek'):

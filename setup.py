@@ -16,6 +16,7 @@ setup(
         'jsonschema',
         # 'alembic',
         'cryptography',
+        'python-magic',
         'chardet',
         # 'awscli',
         # 'cx_Oracle',

@@ -549,9 +549,9 @@ class Folder(Store):
         cache.is_cache = True
         return cache
 
-    def create_document(self, label, content_type, stream):
+    def create_document(self, label, stream):
         from kskp.store import Document
-        return Document(self._session, self, label, content_type, stream)
+        return Document(self._session, self, label, stream)
 
     def create_schedule(self, label:str, runnable_uuid:str, args={}, inputs={}, trigger={}):
         from kskp.store.scheduler import Schedule
