@@ -46,18 +46,17 @@ class Datum(BaseModel):
     DEFAULT_LIBRARY_PATH = Path('cmn')
 
     # type列の値の定義
-    PROJECT_TYPE = 'project'
-    FOLDER_TYPE  = 'folder'
-    AWSS3_TYPE   = 'awss3'
-    RFOLDER_TYPE = 'rfolder'
+    PROJECT_TYPE  = 'project'
+    FOLDER_TYPE   = 'folder'
+    AWSS3_TYPE    = 'awss3'
+    RFOLDER_TYPE  = 'rfolder'
     DATABASE_TYPE = 'database'
-    FLOW_TYPE  = 'flow'
-    FRAME_TYPE = 'frame'
+    FLOW_TYPE     = 'flow'
     COMMAND_TYPE  = 'command'
     SCHEDULE_TYPE = 'schedule'
     ACTIVITY_TYPE = 'activity'
+    FRAME_TYPE    = 'frame'
     DOCUMENT_TYPE = 'document'
-    TRASH_TYPE = 'trash'
     # 将来の拡張のために予約するtype値
     APPLICATION_TYPE = 'app'
     EXCEL_TYPE = 'excel'
@@ -67,6 +66,7 @@ class Datum(BaseModel):
     IMAGE_TYPE = 'image'
     TEXT_TYPE  = 'text'
     HTML_TYPE  = 'html'
+    TRASH_TYPE = 'trash'
     UNKNOWN_TYPE = 'unknown'
 
     RESULT_FOLDER_UUID  = 'aacb4914-0695-40fc-b14b-95b7f1f81707'
@@ -104,12 +104,11 @@ class Datum(BaseModel):
                                 RFOLDER_TYPE,
                                 DATABASE_TYPE,
                                 FLOW_TYPE,
-                                FRAME_TYPE,
                                 COMMAND_TYPE,
                                 SCHEDULE_TYPE,
                                 ACTIVITY_TYPE,
+                                FRAME_TYPE,
                                 DOCUMENT_TYPE,
-                                TRASH_TYPE,
                                 APPLICATION_TYPE,
                                 EXCEL_TYPE,
                                 PDF_TYPE,
@@ -118,6 +117,7 @@ class Datum(BaseModel):
                                 IMAGE_TYPE,
                                 TEXT_TYPE,
                                 HTML_TYPE,
+                                TRASH_TYPE,
                                 UNKNOWN_TYPE,
                                 name='data_type'), nullable=False)
     _label       = Column('label', String)
