@@ -23,13 +23,9 @@ class Frame(File):
         if 'content_type' in self._data and self._data['content_type'] == 'text/plain':
             self._data['content_type'] = 'text/csv'
 
-        # ファイルストリームの文字コードを推測する
-        if stream is not None and hasattr(stream, 'seek'):
-            encoding = Frame._detect_encoding(stream)
-            newline = Frame._detect_newline_code(stream)
-        else:
-            encoding = 'UNKNOWN'
-            newline = 'UNKNOWN'
+        # ファイルストリームの文字コードと改行コードを推測する
+        encoding = Frame._detect_encoding(stream)
+        newline = Frame._detect_newline_code(stream)
 
         # data列に追記する
         self._data.update({'encoding':encoding, 'newline':newline})
@@ -124,11 +120,15 @@ class Frame(File):
         from chardet.universaldetector import UniversalDetector
         detector = UniversalDetector(lang_filter=LanguageFilter.CJK)
 
-        max_feed_num = 100
-        chunk_size = 1024
+        MAX_FEED_NUM = 100
+        CHUNK_SIZE = 1024
 
-        for i in range(max_feed_num):
-            chunk = stream.read(chunk_size)
+        # ファイルストリームの文字コードを推測する
+        if stream is None and not hasattr(stream, 'seek'):
+            return 'UNKNOWN'
+
+        for i in range(MAX_FEED_NUM):
+            chunk = stream.read(CHUNK_SIZE)
             if not chunk:
                 break
             # 一定Byteずつ食わせる
@@ -150,15 +150,19 @@ class Frame(File):
 
     @staticmethod
     def _detect_newline_code(stream):
-        max_feed_num = 100
-        chunk_size = 1024
+        MAX_FEED_NUM = 100
+        CHUNK_SIZE = 1024
 
         crlf_count = 0
         lf_count = 0
         cr_count = 0
 
-        for i in range(max_feed_num):
-            chunk = stream.read(chunk_size)
+        # ファイルストリームの文字コードを推測する
+        if stream is None and not hasattr(stream, 'seek'):
+            return 'UNKNOWN'
+
+        for i in range(MAX_FEED_NUM):
+            chunk = stream.read(CHUNK_SIZE)
             if not chunk:
                 break
             crlf = chunk.count(b'\r\n')

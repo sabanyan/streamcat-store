@@ -537,6 +537,22 @@ class Folder(Store):
         }
         return Flow(self._session, self, label, FlowData(flow_json))
 
+    def create_file(self, label, stream, maybe_csv=False):
+        """
+        ファイルストリームからファイルタイプを判定して
+        FrameまたはDocumentを作成する
+        """
+        from kskp.store import File
+        content_type = File.detect_content_type(stream)
+
+        if content_type == 'text/csv':
+            return self.create_frame(label, stream)
+        elif content_type == 'text/plain' and maybe_csv:
+            # テキストファイル、かつ多分CSVだと指定されたらCSVと判定する
+            return self.create_frame(label, stream)
+        else:
+            return self.create_document(label, stream)
+
     def create_frame(self, label, stream):
         from kskp.store import Frame
         return Frame(self._session, self, label, stream)

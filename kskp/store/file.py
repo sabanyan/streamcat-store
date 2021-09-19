@@ -18,11 +18,7 @@ class File(Datum):
         super().__init__(session, parent, datum_type, label)
 
         # ファイルストリームからファイルタイプを判定する
-        if stream is not None and hasattr(stream, 'seek'):
-            content_type = File._detect_content_type(stream)
-        else:
-            # 0Byteファイルの場合はCSVファイルとして扱う
-            content_type = 'text/csv'
+        content_type = File.detect_content_type(stream)
 
         # data列の値を作成する
         self._data = {'content_type':content_type}
@@ -165,16 +161,20 @@ class File(Datum):
         return time.strftime('%Y/%m/%d %H:%M', wk)
 
     @staticmethod
-    def _detect_content_type(stream):
+    def detect_content_type(stream):
         """
         指定されたファイルのファイルタイプを判別する
         """
         import magic
 
-        chunk_size = 1024
+        CHUNK_SIZE = 1024
+
+        # 0Byteファイルの場合はCSVファイルとして扱う
+        if stream is None or not hasattr(stream, 'seek'):          
+            return 'text/csv'
 
         # ファイルストリームからファイルタイプを判定する
-        chunk = stream.read(chunk_size)
+        chunk = stream.read(CHUNK_SIZE)
         if not chunk:
             # 0Byteファイルの場合はCSVファイルとして扱う
             return 'text/csv'
