@@ -240,7 +240,6 @@ class FlowJsonTest(TestCaseBase):
                 {
                 'name': 'new_param1',
                 'type': 'string',
-                'uuid': '9a289268-2267-443e-8ef8-2aeb774a0be2',
                 'label': 'new_param1'
                 }
             ],

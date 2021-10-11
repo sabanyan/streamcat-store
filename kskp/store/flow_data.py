@@ -387,9 +387,6 @@ class FlowData():
                     },
                     'optional': {
                         'type': 'boolean'
-                    },
-                    'uuid': {
-                        '$ref': '#/definitions/uuid'
                     }
                 }
             },
