@@ -226,7 +226,7 @@ class Constraints():
             # ユーザ管理者は全てのActivityの参照、及び権限の変更ができること
             from kskp.store.factory import RoleFactory
             usr_admin_role = RoleFactory(activity._session).load_usr_admin_role()
-            usr_admin_role.init_authz(activity.id, True, False, own=True)
+            usr_admin_role.init_authz(activity.id, read=True, write=None, own=True)
 
             # 本人ロールからActiviyの権限を削除する
             creator = activity._session.user
