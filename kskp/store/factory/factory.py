@@ -1,4 +1,4 @@
-from typing import Union
+from typing import List, Union
 from sqlalchemy.orm.exc import NoResultFound
 from kskp.core import Datum
 from kskp.store import Folder, TrashCan
@@ -289,14 +289,9 @@ class DatumFactory():
                                                Role.uuid==literal(Role.EDIT_LOCK_ROLE_UUID)))
         # 編集ロック=ONのフローをサブフローとして抽出する
         return self._session.query(Datum).filter(Datum.type==Datum.FLOW_TYPE)\
-                                         .filter(exists_edit_lock).all()
-
-                                        #   filter(
-                                        #         or_(
-                                        #             func.jsonb_array_length(Datum._data['flow']['ports'][0])>0,
-                                        #             func.jsonb_array_length(Datum._data['flow']['ports'][1])>0
-                                        #         )
-                                        #   ).all()
+                                         .filter(exists_edit_lock)\
+                                         .order_by(Datum._label, Datum.id)\
+                                         .all()
 
     def find_all_stores(self):
         """
@@ -305,7 +300,9 @@ class DatumFactory():
         return self._session.query(Datum).filter(
                                                 Datum.type.in_([Datum.DATABASE_TYPE,
                                                                 Datum.RFOLDER_TYPE])
-                                          ).all()
+                                          )\
+                                         .order_by(Datum._label, Datum.id)\
+                                         .all()
 
     def load_root(self):
         """
@@ -533,6 +530,8 @@ class StoreFactory():
 
 
 class AuthFactory():
+    from kskp.store.auth import Auth
+
     def __init__(self, session):
         self._session = session
 
@@ -540,7 +539,7 @@ class AuthFactory():
         from kskp.store.auth import Auth
         return Auth(self._session, role_id, datum_id, operation, permission)
 
-    def find_by_id(self, role_id, datum_id, operation):
+    def find_by_id(self, role_id, datum_id, operation) -> Auth:
         from kskp.store.auth import Auth
         # SQLAlchemyのidentity mapにキャッシュされていればそれを返す
         authz = self._session.get(Auth, (role_id, datum_id, operation))
@@ -548,7 +547,7 @@ class AuthFactory():
             raise Exception('No authz is found by designated id')
         return authz
 
-    def find_all_by_datum_id(self, datum_id):
+    def find_all_by_datum_id(self, datum_id) -> List[Auth]:
         from kskp.store.auth import Auth
         query = self._session.query(Auth).filter(Auth.datum_id==datum_id)
         return query.order_by(Auth.role_id, Auth.operation).all()

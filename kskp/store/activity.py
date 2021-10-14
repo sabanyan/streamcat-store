@@ -157,6 +157,35 @@ class Activity(Datum):
         elif isinstance(datum, Flow):
             datum.update_label(new_label)
 
+    def throw_away(self, lock_uuid=None):
+        """
+        Activityをゴミ箱にほかす
+        (テスト用)
+        """
+        from kskp.store.factory import DatumFactory
+        factory = DatumFactory(self._session)
+        trash_folder = factory.load_trash_folder()
+
+        try:
+            return self.move(trash_folder.uuid)
+        except Exception as e:
+            raise e
+
+    @Constraints.delete_role_when_isolated
+    def delete(self):
+        """
+        Activityを削除する
+        (テスト用)
+        """
+        try:
+            # Activityを削除する
+            self._session.delete(self)
+        except Exception as e:
+            self._session.rollback()
+            raise e
+        finally:
+            self._session.commit()
+
     def to_json(self):
         ret = super().to_json()
         # 
