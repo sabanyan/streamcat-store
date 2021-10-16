@@ -160,6 +160,11 @@ class Flow(Datum):
         # マスクされたノードがあればマスクを外す
         flow_data.unmask_nodes(prev_flow_json=self._data['flow'])
 
+        # 
+        # TODO: フローJSONの書式修正による後方互換!
+        # 
+        flow_data.remove_uuid_from_param()
+
         # 不正なフローJSONがDBに格納されないよう、ここで書式の検証をする
         flow_data.valid_flow_json_or_raise()
 

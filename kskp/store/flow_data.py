@@ -759,6 +759,19 @@ class FlowData():
                 'ports': [self.i_ports, self.o_ports]
             }
 
+    def remove_uuid_from_param(self):
+        """
+        後方互換のため、paramからuuid属性を削除する
+        """
+        if 'params' not in self._flow_json:
+            return
+
+        for param in self._flow_json.get('params'):
+            # paramにuuid属性が在ればこれを削除する
+            if 'uuid' in param:
+                del param['uuid']
+        return
+
     def valid_flow_json_or_raise(self):
         """
         フローJSONの書式に従っていない場合は例外を送出する
