@@ -68,6 +68,11 @@ class Flow(Datum):
         if self.parent_id is None and DatumFactory(self._session).count_root() > 0:
             raise Exception('You can not add another root flow. A root already exists.')
 
+        # 
+        # TODO: フローJSONの書式修正による後方互換!
+        # 
+        self.flow_data.remove_uuid_from_param()
+
         # 不正なフローJSONがDBに格納されないよう、ここで書式の検証をする
         self.flow_data.valid_flow_json_or_raise()
 
