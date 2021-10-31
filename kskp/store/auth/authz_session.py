@@ -213,9 +213,11 @@ class AuthzSession(Session):
         A0 = Auth.__table__
 
         # 検索対象のDatumの編集ロックを権限の判定条件に含める条件
-        exists_edit_lock = exists().where(and_(A0.c.datum_id==datum_id,
-                                                A0.c.role_id==Role.id,
-                                                Role.uuid==literal(Role.EDIT_LOCK_ROLE_UUID)))
+        datum_is_edit_locked = and_(A0.c.datum_id==datum_id,
+                                    A0.c.role_id==select(Role.id).\
+                                                  select_from(Role).\
+                                                  where(Role.uuid==literal(Role.EDIT_LOCK_ROLE_UUID)).\
+                                                  scalar_subquery())
 
         # 操作ユーザの所属するロールを抽出するクエリ
         UR = select(UserRole.role_id).select_from(UserRole).where(UserRole.user_id==self.user.id)
@@ -228,7 +230,7 @@ class AuthzSession(Session):
                 func.coalesce(func.bool_and(A0.c.permission),false()).label('permission'),
                 func.bool_and(
                     case((
-                        exists_edit_lock,
+                        datum_is_edit_locked,
                         true()
                     ), else_=A0.c.permission)
                 ).label('permission_without_edit_lock')
