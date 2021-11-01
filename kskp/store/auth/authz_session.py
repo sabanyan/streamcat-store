@@ -97,13 +97,14 @@ class AuthzSession(Session):
             raise Exception('AuthzSessionに設定したuserがNoneです')
         self._user = user
 
-    def query(self, datum_type, *args):
+    def query(self, datum_type, *args, **kwargs):
         """
         参照用途でquery()を使用する場合は、AuthsテーブルとJOINする
         pathとdataプロパティは参照された時に権限を判定し、NGなら例外を送出する
         """
         import inspect
         from sqlalchemy.orm import with_expression
+        from sqlalchemy.sql.expression import null
         from kskp.core import Datum
         from .authz_query import Query, AuthzDatumQuery
 
@@ -127,10 +128,16 @@ class AuthzSession(Session):
             select_parent_uuid = self._make_select_parent_uuid()
 
             # Datumのフォルダパスを取得する
-            select_folder_path = self._make_select_folder_path(Datum.parent_id)
+            if kwargs.get('folder_path'):
+                select_folder_path = self._make_select_folder_path(Datum.parent_id)
+            else:
+                select_folder_path = null()
 
             # Datumの移動前のフォルダパスを取得する
-            select_prev_folder_path = self._make_select_folder_path(Datum.prev_parent_id)
+            if kwargs.get('prev_folder_path'):
+                select_prev_folder_path = self._make_select_folder_path(Datum.prev_parent_id)
+            else:
+                select_prev_folder_path = null()
 
             # read=TrueのDatumのみ抽出する
             # exists_readable = self._make_exists_readable()
@@ -179,7 +186,7 @@ class AuthzSession(Session):
 
     def _make_select_permissions_inner(self, datum_id=None):
         from sqlalchemy.orm import aliased
-        from sqlalchemy.sql.expression import select, func, case, exists, literal, true, false, and_, any_, text
+        from sqlalchemy.sql.expression import select, func, case, literal, true, false, and_, any_, text
         from kskp.core import Datum
         from .auth import Auth
         from .user import User
@@ -213,6 +220,7 @@ class AuthzSession(Session):
         A0 = Auth.__table__
 
         # 検索対象のDatumの編集ロックを権限の判定条件に含める条件
+        # TODO: permission_without_edit_lock列の追加でSELECT文が有意に遅くなっている
         datum_is_edit_locked = and_(A0.c.datum_id==datum_id,
                                     A0.c.role_id==select(Role.id).\
                                                   select_from(Role).\
@@ -290,7 +298,7 @@ class AuthzSession(Session):
         操作ユーザがDatumの所有権を有するか判定する
         (フォルダの所有権はオーバーライドしない)
         """
-        from sqlalchemy import select, exists, func, false, and_, any_
+        from sqlalchemy import select, func, false, and_, any_
         from sqlalchemy.orm import aliased
         from .auth import Auth
         from .user import User

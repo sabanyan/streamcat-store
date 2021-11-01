@@ -173,6 +173,9 @@ class Datum(BaseModel):
         # DBに保存する前のDatumへの参照と更新権限は制限しない
         self._permissions = Datum.PERMISSION_READ | Datum.PERMISSION_WRITE
 
+        # DBに保存する前は空文字を設定する
+        self._folder_path = ''
+
         # Engineから参照する
         self.context = {}
 
@@ -249,16 +252,17 @@ class Datum(BaseModel):
         """
         自身の親フォルダまでのフォルダパスを返す
         """
-        # _folder_path=None場合は、DataumがDBに保存されてないで
+        # _folder_path=''の場合は、DataumがDBに保存されてないので
         # その場合は親フォルダのfolder_pathと親フォルダのラベルからフォルダパス文字列を作成する
-        if self._folder_path is None:
-            if self.is_root:
-                return '/'
+        # (TODO: この機能は削除したい)
+        if self._folder_path=='':
             parent = self.find_parent()
             if parent.is_root:
-                return parent.folder_path + parent.label
+                return '/' + parent.label
             else:
-                return parent.folder_path + '/' + parent.label
+                parent_folder_path = parent.folder_path
+                # 親フォルダのフォルダパスが取得できない場合はNoneを返す
+                return parent_folder_path and (parent_folder_path + '/' + parent.label)
         else:
             return self._folder_path
 

@@ -279,7 +279,7 @@ class Folder(Store):
     # Create Methods
     # 
 
-    def find_children(self):
+    def find_children(self, prev_folder_path=False):
         """
         自分の直下の子Datumを全て取得する
         """
@@ -288,8 +288,9 @@ class Folder(Store):
         # 参照権限が無ければ直下の子Datumは取得できない
         self._readable_or_raise()
 
-        data = self._session.query(Datum).filter(Datum.parent_id==self.id).\
-                            order_by(Datum.type, desc(Datum.created_at)).all()
+        data = self._session.query(Datum, prev_folder_path=prev_folder_path).\
+                             filter(Datum.parent_id==self.id).\
+                             order_by(Datum.type, desc(Datum.created_at)).all()
         return data
 
     def find_children_by_label(self, label, type=None):

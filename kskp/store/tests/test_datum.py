@@ -13,9 +13,6 @@ class DatumTest(TestCaseBase):
         # ルートフォルダを取得する
         root = self.factory.data.load_root()
 
-        # ルートフォルダのfolder_pathの値を取得できること
-        self.assertEqual(root.folder_path, '/')
-
         # ルートフォルダの下にフォルダ1を作成する
         folder1 = root.create_folder('テストフォルダ1')
 
@@ -29,7 +26,7 @@ class DatumTest(TestCaseBase):
         self.assertEqual(folder1.folder_path, '/' + root.label)
 
         # フォルダ1をリロードする
-        folder1 = folder1.reload()
+        folder1 = self.factory.data.find_by_uuid(folder1.uuid, folder_path=True)
 
         # folder_pathの値を取得できること
         self.assertEqual(folder1.folder_path, '/' + root.label)

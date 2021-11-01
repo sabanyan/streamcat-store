@@ -218,14 +218,14 @@ class DatumFactory():
 
         return datum
 
-    def find_by_uuid(self, uuid, type=None) -> Datum:
+    def find_by_uuid(self, uuid, type=None, folder_path=False) -> Datum:
         """
         指定されたuuidを持つDatumを取得する
         """
         # UUID値の形式チェックをする
         Datum.valid_uuid_or_raise(uuid)
 
-        query = self._session.query(Datum).filter(Datum.uuid==uuid)
+        query = self._session.query(Datum, folder_path=folder_path).filter(Datum.uuid==uuid)
 
         if type is not None:
             query = query.filter(Datum.type==type)
