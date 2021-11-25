@@ -24,13 +24,13 @@ class Activity(Datum):
 
         # 処理の開始時刻を取得する
         from datetime import datetime, timezone
-        self._start_time = datetime.utcnow().replace(tzinfo=timezone.utc)
+        self._start_at = datetime.utcnow().replace(tzinfo=timezone.utc)
 
         # data列の値を作成する
         # (同じインスタンスのpointの場合もあることに注意!!)
         # [ApparentOut(point, datum, exs)]
         self._outs = []
-        self._data = {'flow_uuid': flow.uuid, 'start_time': str(self._start_time)}
+        self._data = {'flowUuid': flow.uuid, 'startAt': str(self._start_at)}
 
     def add(self, out:ApparentOut):
         self._outs.append(out)
@@ -94,7 +94,7 @@ class Activity(Datum):
         from kskp.store import Frame
 
         # 現在時刻を取得する
-        end_time = datetime.utcnow().replace(tzinfo=timezone.utc)
+        end_at = datetime.utcnow().replace(tzinfo=timezone.utc)
 
         outs = []
         caches = []
@@ -117,10 +117,10 @@ class Activity(Datum):
                 if isinstance(out.datum, Frame):
                     out.datum.update_encoding_newline()
                 # 結果Datumのラベル名を変更する
-                self._update_label(out.datum, end_time)
+                self._update_label(out.datum, end_at)
 
         # 現在時刻を格納する
-        self._data['end_time'] = str(end_time)
+        self._data['endAt'] = str(end_at)
         # 出力情報を格納する
         self._data['outs'] = outs
         self._data['caches'] = caches
@@ -135,16 +135,16 @@ class Activity(Datum):
         finally:
             self._session.commit()
 
-    def _update_label(self, datum:Datum, end_time):
+    def _update_label(self, datum:Datum, end_at):
         """
         結果Datumのラベル名を変更する
         """
         from kskp.store import Flow, Frame
 
-        end_time_str = end_time.astimezone().strftime('%H:%M:%S')
+        end_time_str = end_at.astimezone().strftime('%H:%M:%S')
         new_label = datum.label + ' 終了時刻' + end_time_str
 
-        elapsed_time = (end_time - self._start_time).total_seconds()
+        elapsed_time = (end_at - self._start_at).total_seconds()
         if elapsed_time < 60.0:
             elapsed_time_str = str(round(elapsed_time))
             new_label = new_label + ' 全体処理時間' + elapsed_time_str + '秒'
@@ -187,14 +187,24 @@ class Activity(Datum):
             self._session.commit()
 
     def to_json(self):
+
+        # 後方互換のため旧名称のキーでの取得も試みる
+        def get_value(primary_key:str, secondary_key:str):
+            if primary_key in self._data:
+                return self._data[primary_key]
+            elif secondary_key in self._data:
+                return self._data[secondary_key]
+            else:
+                return None
+
         ret = super().to_json()
         # 
-        ret['flow_uuid']  = self._data['flow_uuid']
-        ret['start_time'] = self._data['start_time']
-        ret['end_time']   = self._data['end_time']
-        ret['outs']       = self._data['outs']
-        ret['caches']     = self._data['caches']
-        ret['exs']        = self._data['exs']
+        ret['flowUuid'] = get_value('flowUuid', 'flow_uuid')
+        ret['startAt']  = get_value('startAt', 'start_time')
+        ret['endAt']    = get_value('endAt', 'end_time')
+        ret['outs']     = self._data.get('outs', [])
+        ret['caches']   = self._data.get('caches', [])
+        ret['exs']      = self._data.get('exs', [])
         # allowlist
         ret['allowlist']['update'] = False
         ret['allowlist']['delete'] = False

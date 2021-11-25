@@ -18,7 +18,7 @@ class LibraryTest(TestCaseBase):
         'hostname' : "18.178.64.116",
         'domain'   : "WORKGROUP",
         'directory': "share",
-        'user_id'  : "samba",
+        'userId'  : "samba",
         'password' : "kskanalytics"
     }
 

@@ -14,7 +14,7 @@ class DelTest(TestCaseBase):
       'hostname' : "kskp.cr4gfi5zl5xm.ap-northeast-1.rds.amazonaws.com", 
       'port'     : 5432, 
       'database' : "kskp", 
-      'user_id'  : "kskp", 
+      'userId'  : "kskp", 
       'password' : r'J2-pH|%B'
     }
     database_conn = DatabaseConn(conn_json)
@@ -24,7 +24,7 @@ class DelTest(TestCaseBase):
         'hostname' : "18.178.64.116",
         'domain'   : "WORKGROUP",
         'directory': "share",
-        'user_id'  : "samba",
+        'userId'  : "samba",
         'password' : "kskanalytics"
     }
     remote_folder_conn = RemoteFolderConn(conn_json)

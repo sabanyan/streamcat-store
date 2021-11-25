@@ -26,11 +26,11 @@ class Lock():
         self.modified_at = created_at
     
     def to_json(self):
-        return {'uuid'       : self.uuid,
-                'target'     : self.target_uuid,
-                'creator'    : self.creator.name,
-                'created_at' : self.created_at.strftime('%Y-%m-%d %H:%M:%S'),
-                'modified_at': self.modified_at.strftime('%Y-%m-%d %H:%M:%S')}
+        return {'uuid'      : self.uuid,
+                'target'    : self.target_uuid,
+                'creator'   : self.creator.name,
+                'createdAt' : self.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                'modifiedAt': self.modified_at.strftime('%Y-%m-%d %H:%M:%S')}
 
 class LockManager():
     """

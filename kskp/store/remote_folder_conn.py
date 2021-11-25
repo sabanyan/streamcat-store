@@ -35,7 +35,7 @@ class RemoteFolderConn():
     @property
     def user_id(self) -> str:
         self._readable_or_raise()
-        return self._conn_json.get('user_id')
+        return self._conn_json.get('userId')
 
     @property
     def password(self) -> str:
@@ -76,5 +76,5 @@ class RemoteFolderConn():
                 'hostname' : self.hostname,
                 'domain'   : self.domain,
                 'directory': self.directory,
-                'user_id'  : self.user_id,
+                'userId'  : self.user_id,
                 'password' : self.password}

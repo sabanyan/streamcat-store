@@ -71,7 +71,7 @@ class SaverCommand(SCommand):
         # Frameを作成する
         folder = self.get_result_folder(args)
         flow_label = args['flow_label']
-        start_time = args['start_time']
+        start_at = args['start_at']
 
         point = args.get('point')
         if point is None:
@@ -80,10 +80,10 @@ class SaverCommand(SCommand):
             point_label = point.label if point.label is not None else point.id
 
         # UTC日時はここで現地時間(環境変数TZの値)に設定される
-        start_time = start_time.astimezone()
-        start_time_str1 = start_time.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
-        start_time_str2 = start_time.strftime('%Y%m%d.%H%M%S.%f')[:-3]
-        sub_folder = self.make_folder(folder, flow_label, start_time_str1, start_time_str2)
+        start_at = start_at.astimezone()
+        start_at_str1 = start_at.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
+        start_at_str2 = start_at.strftime('%Y%m%d.%H%M%S.%f')[:-3]
+        sub_folder = self.make_folder(folder, flow_label, start_at_str1, start_at_str2)
         frame = self.make_frame(sub_folder, point_label)
         # ラベル名とファイル名はコンストラクタで別々に指定できるようにすれば
         # 改めてupdate_label_only()を行う必要はなくなる
@@ -190,14 +190,14 @@ class CacheSaverCommand(SaverCommand):
         flow_label = args['flow_label']
         point = args['point']
         point_label = point.label if point.label is not None else point.id
-        start_time = args['start_time']
+        start_at = args['start_at']
 
         # UTC日時はここで現地時間(環境変数TZの値)に設定される
-        start_time = start_time.astimezone()
-        start_time_str = start_time.strftime('%Y%m%d.%H%M%S.%f')[:-3]
+        start_at = start_at.astimezone()
+        start_at_str = start_at.strftime('%Y%m%d.%H%M%S.%f')[:-3]
         
         # ラベル名を作成する
-        cache_label = flow_label + '_' + point_label + '_' + start_time_str
+        cache_label = flow_label + '_' + point_label + '_' + start_at_str
         # Nysolの oオプションに空白のファイル名があるとエラーになるので、空白を置換する
         cache_label = cache_label.replace(' ', '_')
 
@@ -483,10 +483,10 @@ class DbSaverCommand(SaverCommand):
 
         # DataSourceを保存するフォルダを用意する
         flow_label = args['flow_label']
-        start_time = args['start_time'].astimezone()
-        start_time_str1 = start_time.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
-        start_time_str2 = start_time.strftime('%Y%m%d.%H%M%S.%f')[:-3]
-        result_folder = self.make_folder(folder, flow_label, start_time_str1, start_time_str2)
+        start_at = args['start_at'].astimezone()
+        start_at_str1 = start_at.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
+        start_at_str2 = start_at.strftime('%Y%m%d.%H%M%S.%f')[:-3]
+        result_folder = self.make_folder(folder, flow_label, start_at_str1, start_at_str2)
 
         # 出力結果を取得するDataSourceをライブラリに登録する
         label = self.get_label(args.get('src_point'))
@@ -637,7 +637,7 @@ class DbSaverCommand(SaverCommand):
         # 一括してINSERTする行数
         batch_rows = 10000
 
-        user_id = database_conn['user_id']
+        user_id = database_conn['userId']
         password = database_conn['password']
         dsnStr = cx_Oracle.makedsn(database_conn['hostname'], database_conn['port'], database_conn['database'])
         with cx_Oracle.connect(user_id, password, dsnStr, encoding='UTF-8', nencoding='UTF-8') as conn:
@@ -766,10 +766,10 @@ class RemoteFolderSaverCommand(SaverCommand):
 
         # DataSourceを保存するフォルダを用意する
         flow_label = args['flow_label']
-        start_time = args['start_time'].astimezone()
-        start_time_str1 = start_time.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
-        start_time_str2 = start_time.strftime('%Y%m%d.%H%M%S.%f')[:-3]
-        result_folder = self.make_folder(folder, flow_label, start_time_str1, start_time_str2)
+        start_at = args['start_at'].astimezone()
+        start_at_str1 = start_at.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
+        start_at_str2 = start_at.strftime('%Y%m%d.%H%M%S.%f')[:-3]
+        result_folder = self.make_folder(folder, flow_label, start_at_str1, start_at_str2)
 
         # 出力結果を取得するDataSourceをライブラリに登録する
         datasource = self._create_data_source(result_folder, rfolder, label, path_str)
@@ -1197,7 +1197,7 @@ class AssertCommand(SCommand):
                 point_id = args['asserted_point']
                 is_true = False
                 raise_exs = i_is_exs or m_is_exs
-                time_str = KSKPBaseModel._datetime_to_local_time_str(args['start_time'])
+                time_str = KSKPBaseModel._datetime_to_local_time_str(args['start_at'])
                 exceed_limit_str = str(exceed_limit)
 
                 # is_trueの判定 と diffの出力
