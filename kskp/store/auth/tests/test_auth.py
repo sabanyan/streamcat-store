@@ -1680,11 +1680,11 @@ class AuthTest(TestCaseBase):
         
         # フォルダ1は更新できない
         with self.assertRaises(NotAuthorizedException):
-            folder1.update_data('フォルダ10')
+            folder1.update_label('フォルダ10')
 
         # フォルダ2は更新できない
         with self.assertRaises(NotAuthorizedException):
-            folder2.update_data('フォルダ20')
+            folder2.update_label('フォルダ20')
 
         # フローは更新できないこと
         with self.assertRaises(NotAuthorizedException):
@@ -2167,13 +2167,13 @@ class AuthTest(TestCaseBase):
         # 編集者は、プロジェクトのラベルを変更できること
         project = self.factory2.data.find_by_uuid(project.uuid)
         with self.assertRaises(NotAuthorizedException):
-            project.update_data('阪神電車')
+            project.update_label('阪神電車')
         self.assertEqual(project.label, '半休電車')
 
         # 閲覧者は、プロジェクトのラベルを変更できないこと
         project = self.factory3.data.find_by_uuid(project.uuid)
         with self.assertRaises(NotAuthorizedException):
-            project.update_data('近鉄電車')
+            project.update_label('近鉄電車')
         self.assertEqual(project.label, '半休電車')
 
         # プロジェクトをほかして、ゴミ箱を空にする
@@ -2338,7 +2338,7 @@ class AuthTest(TestCaseBase):
 
         # 元のプロジェクト管理者は、プロジェクトを更新できないこと
         with self.assertRaises(NotAuthorizedException):
-            project.update_data('ぷろじぇくと1')
+            project.update_label('ぷろじぇくと1')
 
     def test_join_project2(self):
         """
@@ -2374,7 +2374,7 @@ class AuthTest(TestCaseBase):
 
         # 元のプロジェクト管理者は、プロジェクトを更新できないこと
         with self.assertRaises(NotAuthorizedException):
-            project.update_data('ぷろじぇくと1')
+            project.update_label('ぷろじぇくと1')
 
     def test_join_project3(self):
         """
@@ -2410,7 +2410,7 @@ class AuthTest(TestCaseBase):
         self.assertEqual(members, [member1, member2])
 
         # ユーザ管理者は、プロジェクトは更新できること
-        project.update_data('ぷろじぇくと1')
+        project.update_label('ぷろじぇくと1')
 
         # プロジェクトは削除する
         project.delete()
@@ -2449,7 +2449,7 @@ class AuthTest(TestCaseBase):
         self.assertEqual(members, [member2, member1])
 
         # ユーザ管理者は、プロジェクトは更新できること
-        project.update_data('ぷろじぇくと2')
+        project.update_label('ぷろじぇくと2')
 
         # プロジェクトは削除する
         project.delete()
@@ -2608,7 +2608,7 @@ class AuthTest(TestCaseBase):
 
         # ユーザ管理者は、フォルダの参照・更新ができること
         folder = self.factory.data.find_by_uuid(folder.uuid)
-        folder.update_data('德川家康')
+        folder.update_label('德川家康')
 
         # ユーザ管理者は、フォルダの参照・更新・実行のプロパティがTrueであること
         self.assertTrue(folder.readable)
@@ -3377,7 +3377,7 @@ class AuthTest(TestCaseBase):
 
         # ユーザ管理者はプロジェクトの参照・更新ができること
         project = self.factory.data.find_by_uuid(project.uuid)
-        project.update_data('これにて一件落着')
+        project.update_label('これにて一件落着')
 
         # ユーザ管理者はプロジェクトをほかせること
         project.throw_away()
@@ -3468,7 +3468,7 @@ class AuthTest(TestCaseBase):
 
         # 閲覧者はゴミを更新できないこと
         with self.assertRaises(NotAuthorizedException):
-            folder.update_data('不埒な悪行三昧')
+            folder.update_label('不埒な悪行三昧')
         with self.assertRaises(NotAuthorizedException):
             flow.update_data('醜い浮き世の鬼を', FlowData())
 
@@ -3597,7 +3597,7 @@ class AuthTest(TestCaseBase):
 
         # 閲覧者は、形代フォルダを更新できないこと
         with self.assertRaises(NotAuthorizedException):
-            trashed_folder.update_data('お隣の田中さんまた出世されたんですってよ')
+            trashed_folder.update_label('お隣の田中さんまた出世されたんですってよ')
 
         # 閲覧者は、形代フォルダをほかす前の場所に戻せないこと
         with self.assertRaises(NotAuthorizedException):
@@ -3649,7 +3649,7 @@ class AuthTest(TestCaseBase):
         flow = self.factory3.data.find_by_uuid(flow.uuid)
 
         # 編集者はゴミを更新できること
-        folder.update_data('簡単にはお〜しえないっ')
+        folder.update_label('簡単にはお〜しえないっ')
         flow.update_data('こんなに素敵なことを〜', FlowData())
 
         # 編集者はゴミを元の場所に戻せること

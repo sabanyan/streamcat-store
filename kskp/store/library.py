@@ -180,7 +180,7 @@ class Library:
         """
         with Factory(modifier) as factory:
             folder = factory.data.find_by_uuid(folder_uuid)
-            return folder.update_data(label)
+            return folder.update_label(label)
 
     @staticmethod
     def save_folder(parent_uuid, label, creator=None):

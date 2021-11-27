@@ -97,7 +97,7 @@ class ProjectFolder(Folder):
         self_role = self.creator.load_self_role()
         self_role.clear_authz(self.id)
 
-    def update_data(self, label, modifier=None):
+    def update_label(self, label, modifier=None):
         """
         Projectのlabel列を更新する
         """
@@ -106,7 +106,7 @@ class ProjectFolder(Folder):
             raise NotAuthorizedException(f'プロジェクト管理者以外のメンバはプロジェクト({self.label})の名称を変更できません')
 
         # 更新処理はFolderクラスと同じ
-        super().update_data(label, modifier=modifier)
+        super().update_label(label, modifier=modifier)
 
     def _find_readers_role(self):
         """

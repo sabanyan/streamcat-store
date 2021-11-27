@@ -190,7 +190,6 @@ class Schedule(Datum):
             raise
 
     def conv_to_utc_datetime(self, trigger:dict):
-
         from kskp.core import KSKPBaseModel
 
         trigger_type = trigger.get('type')
@@ -224,8 +223,6 @@ class Schedule(Datum):
 
         else:
             raise Exception(f'Unknown trigger type ! ({trigger_type})')
-
-
 
     @property
     def runnable(self):
@@ -270,26 +267,6 @@ class Schedule(Datum):
             raise e
         finally:
             self._session.commit()
-
-    def update_label(self, label, modifier=None):
-        """
-        Scheduleのラベルを更新する
-        """
-        # ラベルに'\0'が含まれていれば取り除く
-        new_label = Datum.escape_label(label)
-
-        try:
-            # ラベルを更新する
-            self._label = new_label
-            self._modifier_id = (modifier or self._session.user).id
-            self._session.update(self)
-        except Exception as e:
-            self._session.rollback()
-            raise e
-        finally:
-            self._session.commit()
-
-        return self
 
     def update_data(self, label, runnable, args={}, inputs={}, trigger={}, modifier=None):
         """

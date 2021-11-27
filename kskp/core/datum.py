@@ -327,6 +327,25 @@ class Datum(BaseModel):
         factory._session._session.expire(self, ['_permissions'])
         return factory.find_by_id(self.id)
 
+    def update_label(self, label, modifier=None):
+        """
+        Datumのラベルを更新する
+        """
+        # ラベルに'\0'が含まれていれば取り除く
+        new_label = Datum.escape_label(label)
+
+        try:
+            # ラベルを更新する
+            self._label = new_label
+            self._modifier_id = (modifier or self._session.user).id
+            self._session.update(self)
+        except Exception as e:
+            self._session.rollback()
+            raise e
+        finally:
+            self._session.commit()
+        return self
+
     @Constraints.prohibit_move_to_root
     @Constraints.prohibit_move_system_folder
     @Constraints.set_project_role_on_moving

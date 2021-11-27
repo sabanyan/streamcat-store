@@ -48,7 +48,7 @@ class Folder(Store):
         finally:
             self._session.commit()
 
-    def update_data(self, label, modifier=None):
+    def update_label(self, label, modifier=None):
         """
         Folderのlabel列を更新する
         """

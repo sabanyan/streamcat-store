@@ -142,7 +142,7 @@ class LibraryTest(TestCaseBase):
         # ルートデータストアの直下にフォルダを作成する
         folder = self.save_folder(root, 'フォルダ0')
         # 作成したフォルダのラベルを変更する
-        updated_folder = folder.update_data('新しいフォルダ', self.USER2)
+        updated_folder = folder.update_label('新しいフォルダ', self.USER2)
         # ラベルとディレクトリパスのみが変更されることを検証する
         self.assertEqual(updated_folder.id, folder.id)
         self.assertEqual(updated_folder.parent_id, folder.parent_id)
@@ -1088,7 +1088,7 @@ class LibraryTest(TestCaseBase):
         # ルートデータストアの直下にフォルダを作成する
         folder = self.save_folder(root, 'フォルダB')
         # 作成したフォルダのラベルを変更する
-        updated_folder = folder.update_data('/新しい\0フォルダ/', self.USER2)
+        updated_folder = folder.update_label('/新しい\0フォルダ/', self.USER2)
         # ラベルとディレクトリパスでは'/'や'\0'は使われない
         self.assertEqual(updated_folder.path, root.path / '／新しいフォルダ／')
         self.assertEqual(updated_folder.label, '/新しいフォルダ/')
