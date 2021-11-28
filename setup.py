@@ -22,11 +22,11 @@ setup(
         # 'cx_Oracle',
         'numpy',
         'scipy',
-        'pandas==0.24.2',
+        'pandas',
         'sklearn',
         # matplotlibとbokehはholoviewsが使用する
         'matplotlib',
-        'bokeh==2.3.0',
+        'bokeh',
         'holoviews',
         'param'
     ],
