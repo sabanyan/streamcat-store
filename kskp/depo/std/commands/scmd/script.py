@@ -1097,7 +1097,7 @@ class AssertCommand(SCommand):
                 
             return is_exs
 
-        def create_diff_list(i_output_path, m_output_path, i_is_exs, m_is_exs, dlimit):
+        def create_diff_list(i_output_path, m_output_path, i_is_exs, m_is_exs, dlimit, inputs):
             """
             2ファイル間での差分取得を行う
             dlimitは差分検出上限数、これを超えたら全体が間違っていると判断する
@@ -1125,8 +1125,12 @@ class AssertCommand(SCommand):
             # 差分取得上限数超過判定
             exceed_limit = False
 
-            with i_output_path.open()as i_tmp:
-                with m_output_path.open()as m_tmp:
+            # 入力データの文字コードを取得する
+            i_source_encoding = inputs['i'].encoding
+            m_source_encoding = inputs['m'].encoding
+
+            with i_output_path.open(encoding=i_source_encoding)as i_tmp:
+                with m_output_path.open(encoding=m_source_encoding)as m_tmp:
                     row_number = None
                     i_port_output = i_tmp
                     m_port_output = m_tmp
@@ -1292,7 +1296,7 @@ class AssertCommand(SCommand):
         m_is_exs = write_to_file(inputs, 'm', m_output_path)
 
         # それぞれの入力portから得られたCSVを比較し、その差分を取得する
-        diff_list, exceed_limit = create_diff_list(i_output_path, m_output_path, i_is_exs, m_is_exs, dlimit)
+        diff_list, exceed_limit = create_diff_list(i_output_path, m_output_path, i_is_exs, m_is_exs, dlimit, inputs)
         
         # フローの親フォルダのパスを取得する
         # NOTE: runfunc内でDBにアクセスすると、psycopg2.OperationalErrorが送出される
@@ -1354,7 +1358,7 @@ class DumpCommand(SCommand):
     def _open_archive(self):
         import tarfile
         from kskp.core import Tmp
-        # アーカイブファイルを作成する
+        # アーカイブファイルを作成する
         tar_file_path = Tmp.create_file()
         # シンボリックリンクはリンク先ファイルを圧縮する
         return tarfile.open(tar_file_path, mode='w:gz', dereference=True)
