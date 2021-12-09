@@ -1758,7 +1758,7 @@ class AuthTest(TestCaseBase):
         with self.assertRaises(NotAuthorizedException):
             flow.flow_data.get_nodes(use_exec_auth=True)
 
-        # フローを再取得する
+        # フローを再取得する
         flow = flow.reload()
 
         # フローJSONのnodesを取得できること

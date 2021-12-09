@@ -29,7 +29,7 @@ class CsvToTableCommand(VCommand):
         if inputs['i'].has_exs:
             return {'o': inputs['i']}
 
-        # 入力値としてListDatumを取得する
+        # 入力値としてListDatumを取得する
         list_datum = inputs['i'].datum
 
         # 結果はVisに入れて返す
@@ -57,7 +57,7 @@ class HoloviewsBaseCommand(VCommand):
         if inputs['i'].has_exs:
             return {'o': inputs['i']}
 
-        # 入力値としてListDatumを取得する
+        # 入力値としてListDatumを取得する
         list_datum = inputs['i'].datum
         # ヘッダ行を取得する
         column_names = inputs['m'].datum[0][0:]

@@ -1520,10 +1520,10 @@ class RestoreCommand(SCommand):
         member_paths = [member.name for member in members]
         # meta.txtが含まれていること
         if self.META_FILE_NAME not in member_paths:
-            raise Exception(f'KSKPのDumpファイルに{self.META_FILE_NAME}が存在しません')
+            raise Exception(f'KSKPのDumpファイルに{self.META_FILE_NAME}が存在しません')
         # ライブラリルートが存在すること
         if Datum.DEFAULT_LIBRARY_PATH.name not in member_paths:
-            raise Exception(f'KSKPのDumpファイルに{self.DEFAULT_LIBRARY_PATH}が存在しません')
+            raise Exception(f'KSKPのDumpファイルに{self.DEFAULT_LIBRARY_PATH}が存在しません')
 
     def _restore_meta(self, dump_file:Path):
         import subprocess
