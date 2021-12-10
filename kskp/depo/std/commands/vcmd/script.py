@@ -1,10 +1,18 @@
 # ビジュアライズコマンド
 import nysol.mcmd as nm
 from kskp.core import Command, Port
+from kskp.store import CommandException
 
 ErrMsg={
     '1': "VisualizeInitException"
 }
+
+class NoneArgumentsException(CommandException):
+    """
+    VCommandへの引数が指定されていない場合に通知する例外
+    """
+    def __init__(self):
+        super().__init__(Exception("VCommandに引数が指定されていません"))
 
 class VCommand(Command):
     def __init__(self):
@@ -70,11 +78,15 @@ class HoloviewsBaseCommand(VCommand):
         # NOTE: hv.Dataset.sort()を実行するにはnp.array型でなければならない
         matrix_dict = {row[0]:np.array(row[1:]) for row in matrix}
 
-        # プロットする
-        plot = self.plot(args, column_names, matrix_dict)
-
-        # HTML要素を取得する
-        script, div = components(plot)
+        try:
+            # プロットする
+            plot = self.plot(args, column_names, matrix_dict)
+            # HTML要素を取得する
+            script, div = components(plot)
+        except NoneArgumentsException:
+            # 初期表示時など引数指定がない場合はエラーとせず、空の結果を返す
+            # NOTE: 本来は引数指定がなければフロントエラーはAPIを発行すべきではない
+            script, div = '<script></script>', '<div></div>'
 
         # 結果はVisに入れて返す
         label = self.__class__.__name__
@@ -149,7 +161,7 @@ class HoloviewsBaseCommand(VCommand):
         axis_column = axis[0].get('column')
         if axis_column is None:
             # エラメッセージ'VisualizeInitException'はエラーダイアログを表示しない
-            raise Exception(ErrMsg['1'])
+            raise NoneArgumentsException()
         axis_label = axis[0].get('label', '').strip() or axis_column
 
         # 軸を設定する
@@ -459,7 +471,7 @@ class CsvToRepetitivieWaveCommand(HoloviewsBaseCommand):
 
         # 初期表示時
         if x_axis_column is None and y_axis_column is None: 
-            raise Exception(ErrMsg['1'])
+            raise NoneArgumentsException()
 
         # 必須項目チェック
         if x_axis_column is None or y_axis_column is None or statics_type is None:
@@ -775,7 +787,7 @@ class CsvToTimeCompressionCommand(HoloviewsBaseCommand):
 
         # 初期表示時
         if x_axis_column is None and y_axis_column is None: 
-            raise Exception(ErrMsg['1'])
+            raise NoneArgumentsException()
 
         # データ系列の設定
         data     = args.get('data')   if args.get('data') is not None else []
