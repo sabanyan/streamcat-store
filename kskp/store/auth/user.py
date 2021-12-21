@@ -232,7 +232,7 @@ class User(BaseModel):
 
     def _join_everyone_role(self):
         # everyoneロールに所属させる
-        # (everyoneロールの作成者であるユーザ管理者のみがユーザを追加できる)
+        # (everyoneロールの作成者であるユーザ管理者のみがユーザを追加できる)
         from .role import Role
         from ..factory import RoleFactory
         everyone_role = RoleFactory(self._session).load_everyone_role()
@@ -240,7 +240,7 @@ class User(BaseModel):
 
     def _join_edit_lock_role(self):
         # edit_lockロールに所属させる
-        # (edit_lockロールの作成者であるユーザ管理者のみがユーザを追加できる)
+        # (edit_lockロールの作成者であるユーザ管理者のみがユーザを追加できる)
         from .role import Role
         from ..factory import RoleFactory
         edit_lock_role = RoleFactory(self._session).load_edit_lock_role()

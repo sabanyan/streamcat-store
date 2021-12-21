@@ -32,7 +32,7 @@ class FlowDumper:
         else:
             raise Exception(f'指定された({uuid})のフォルダまたはフローが存在しませんでした')
 
-        # アーカイブファイルを作成する
+        # アーカイブファイルを作成する
         archive_path = self._make_archive()
 
         # アーカイブされたファイルを削除する
