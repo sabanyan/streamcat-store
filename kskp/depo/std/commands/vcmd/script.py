@@ -17,7 +17,7 @@ class NoneArgumentsException(CommandException):
 class VCommand(Command):
     def __init__(self):
         super().__init__()
-        self.i_ports = [Port('i', 'datum'), Port('m', 'datum')]
+        self.i_ports = [Port('i', 'out'), Port('m', 'out')]
         self.o_ports = [Port('o', 'out')]
 
     def run(self, args, inputs):

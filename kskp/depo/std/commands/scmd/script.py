@@ -813,7 +813,7 @@ class RunsCommand(SCommand):
     def __init__(self):
         super().__init__()
         self.i_ports = [Port('*', 'mcmd')]
-        self.o_ports = [Port('*', 'datum')]
+        self.o_ports = [Port('*', 'out')]
 
     def run_nysol(self, nm_list):
         # NYSOL Pythonを実行する
@@ -965,7 +965,7 @@ class FieldNamesCommand(RunsCommand):
     def __init__(self):
         super().__init__()
         self.i_ports = [Port('*', 'mcmd')]
-        self.o_ports = [Port('*', 'datum')]
+        self.o_ports = [Port('*', 'out')]
 
     def run_nysol(self, nm_list):
         ret = []
@@ -977,7 +977,7 @@ class FieldNamesCommand(RunsCommand):
 class ActivityCommand(SCommand):
     def __init__(self):
         super().__init__()
-        self.i_ports = [Port('*', 'datum')]
+        self.i_ports = [Port('*', 'out')]
         self.o_ports = [Port('o', 'activity')]
 
     def run(self, args, inputs):

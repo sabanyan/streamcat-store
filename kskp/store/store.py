@@ -110,7 +110,7 @@ class NysolModule(Datum):
     nysol_pythonコマンドをラップするクラス
     """
     def __init__(self, nysol_cmd=None):
-        super().__init__(None, None, 'nm', self._get_name(nysol_cmd))
+        super().__init__(None, None, 'mcmd', self._get_name(nysol_cmd))
         self._content = nysol_cmd
         self._encoding = None
 
