@@ -107,7 +107,7 @@ class ModuleStore(Store):
 
 class NysolModule(Datum):
     """
-    NysolModuleをラップするクラス
+    nysol_pythonコマンドをラップするクラス
     """
     def __init__(self, nysol_cmd=None):
         super().__init__(None, None, 'nm', self._get_name(nysol_cmd))
@@ -116,6 +116,12 @@ class NysolModule(Datum):
 
     def set_content(self, module):
         self._content = module
+
+    def _get_name(self, nysol_cmd):
+        if nysol_cmd is None:
+            return None
+        else:
+            return nysol_cmd.__class__.__name__
 
     @property
     def content(self):
@@ -129,21 +135,33 @@ class NysolModule(Datum):
     def encoding(self, encoding):
         self._encoding = encoding
 
-    def _get_name(self, nysol_cmd):
-        if nysol_cmd is None:
-            return None
-        else:
-            return nysol_cmd.__class__.__name__
-
     def __ilshift__(self, other):
         raise Exception(f'NysolModule({str(self._content)})に"<<="演算子は使えません')
 
-class List(Datum):
+class BeamModule(Datum):
     """
-    リスト構造のデータを表す
+    Apache Beam PTransformをラップするクラス
+    """
+    def __init__(self, beam_cmd=None):
+        super().__init__(None, None, 'beam', self._get_name(beam_cmd))
+        self._content = beam_cmd
+
+    def _get_name(self, beam_cmd):
+        if beam_cmd is None:
+            return None
+        else:
+            return beam_cmd.__class__.__name__
+
+    @property
+    def content(self):
+        return self._content
+
+class Matrix(Datum):
+    """
+    行列型のデータを表す
     """
     def __init__(self, content:list=None):
-        super().__init__(None, None, 'list', None)
+        super().__init__(None, None, 'matrix', None)
         self._content = content
         self._encoding = None
 
@@ -152,8 +170,9 @@ class List(Datum):
 
     @property
     def content(self):
-        import nysol.mcmd as nm
-        return nm.m2tee(i=self._content)
+        # import nysol.mcmd as nm
+        # return nm.m2tee(i=self._content)
+        return self._content
 
     @property
     def encoding(self):
@@ -164,7 +183,7 @@ class List(Datum):
         self._encoding = encoding
 
     def __ilshift__(self, other):
-        raise Exception(f'List({str(self._content)})に"<<="演算子は使えません')
+        raise Exception(f'Matrix({str(self._content)})に"<<="演算子は使えません')
 
     def __getitem__(self, index):
         return self._content[index]
@@ -227,7 +246,7 @@ class ApparentOut(Store):
 
     @property
     def has_list(self):
-        return self.datum is not None and isinstance(self.datum, List)
+        return self.datum is not None and isinstance(self.datum, Matrix)
 
     @property
     def has_frame(self):

@@ -150,7 +150,7 @@ class TestCaseBase(unittest.TestCase):
                 "ports": [
                     [
                       {
-                        "type": "frame", 
+                        "types": ["frame", "matrix"], 
                         "label": "i", 
                         "nodeId": "d"
                       }

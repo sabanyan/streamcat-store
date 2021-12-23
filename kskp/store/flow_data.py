@@ -394,10 +394,11 @@ class FlowData():
                 'type': 'object',
                 'required': [
                     'label',
-                    'nodeId',
-                    'type'
+                    'nodeId'
                 ],
                 'additionalProperties': False,
+                # typeまたはtypesのどちらかの指定を必須とする
+                'minProperties': 3,
                 'properties': {
                     'label': {
                         '$ref': '#/definitions/portId'
@@ -406,7 +407,16 @@ class FlowData():
                         '$ref': '#/definitions/id'
                     },
                     'type': {
-                        'type': 'string'
+                        'type': 'string',
+                    },
+                    # Portの型を複数指定する場合はtypesで指定する
+                    'types': {
+                        'type': 'array',
+                        'minItems': 1,
+                        'uniqueItems': True,
+                        'items': {
+                            'type': 'string'
+                        }
                     }
                 }
             },

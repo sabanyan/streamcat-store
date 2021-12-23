@@ -12,7 +12,7 @@ from .exceptions import (
     FieldForbiddenCharacterException
 )
 from .store_model import Store as StoreModel
-from .store import Store, NysolModule, ModuleStore, List, Stream, ApparentOut
+from .store import Store, NysolModule, BeamModule, ModuleStore, Matrix, Stream, ApparentOut
 from .mountable import Mountable
 from .file import File
 from .frame import Frame

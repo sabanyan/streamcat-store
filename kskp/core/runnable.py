@@ -28,15 +28,54 @@ class Command(Datum):
     def dtor(self, args={}):
         pass
 
+class Types:
+    """
+    データ型
+    複数指定されたデータ型のうち、いずれかの型の値を持つことを意味する
+    """
+    def __init__(self, types:list) -> None:
+        self._types = types
+
+    def __repr__(self):
+        return str([t for t in self._types])
+
+    def __contains__(self, type):
+        """
+        in演算子のオーバーロード
+        """
+        if isinstance(type, str):
+            return self.__contains_sub(type)
+        elif isinstance(type, Types):
+            # いずれかの型同士が一致すればTrueとする
+            for t in type._types:
+                if self.__contains_sub(t):
+                    return True
+            return False
+
+    def __contains_sub(self, type):
+        # TODO: サブフローのフローJSONにはPortの型に'frame'が記述されているため、
+        # 後方互換として'frame'は'mcmd'と読み替えて比較する
+        type1 = 'mcmd' if type == 'frame' else type
+        types = ['mcmd' if t == 'frame' else t for t in self._types]
+
+        return type1 in types
+
 class Port:
     """
     データ(Datum)の入力・出力の口。
     runnableなクラス(CommandやFlow)にそれぞれ、
     入力はi_ports属性・出力はo_ports属性として使われる
     """
-    def __init__(self, label, port_type):
+    def __init__(self, label:str, port_types):
         self.label = label
-        self.type = port_type
+        if isinstance(port_types, str):
+            self.types = Types([port_types])
+        elif isinstance(port_types, list):
+            self.types = Types(port_types)
+        elif isinstance(port_types, Types):
+            self.types = port_types
+        else:
+            raise Exception('port_typesに不正な型の値が指定されました')
 
     def __repr__(self):
         return f'<Port({self.label})>'

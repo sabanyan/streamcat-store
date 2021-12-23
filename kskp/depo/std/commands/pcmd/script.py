@@ -1510,8 +1510,8 @@ class ConvEncoding(Command):
     """
     def __init__(self):
         super().__init__()
-        self.i_ports = [Port('i', 'frame')]
-        self.o_ports = [Port('o', 'frame')]
+        self.i_ports = [Port('i', ['mcmd','matrix'])]
+        self.o_ports = [Port('o', 'mcmd')]
 
     def run(self, args, inputs):
 
@@ -1572,6 +1572,9 @@ class ConvEncoding(Command):
         if source_encoding==args['target_newline'] or source_encoding=='ascii':
             target_encoding = nysol_module.encoding
         else:
+            # runfuncの入力にリストを指定できないため、m2teeで入力する
+            if nysol_module.type == 'matrix':
+                cmd = nm.m2tee(i=cmd)
             cmd <<= nm.runfunc( convert_encoding,
                                 source_encoding=source_encoding,
                                 source_newline=source_newline,
@@ -1656,8 +1659,8 @@ class ToListCommand(Command):
     """
     def __init__(self):
         super().__init__()
-        self.i_ports = [Port('i', 'frame')]
-        self.o_ports = [Port('o', 'list')]
+        self.i_ports = [Port('i', 'mcmd')]
+        self.o_ports = [Port('o', 'mcmd')]
 
     def run(self, args, inputs):
         cmd = inputs['i'].content
@@ -1673,7 +1676,7 @@ class ToTListCommand(Command):
     """
     def __init__(self):
         super().__init__()
-        self.i_ports = [Port('i', 'frame')]
+        self.i_ports = [Port('i', 'mcmd')]
         self.o_ports = [Port('o', 'mcmd'), Port('u', 'mcmd')]
 
     def run(self, args, inputs):
@@ -1717,7 +1720,7 @@ class ToNamedPipeCommand(Command):
     """
     def __init__(self):
         super().__init__()
-        self.i_ports = [Port('i', 'frame')]
+        self.i_ports = [Port('i', 'mcmd')]
         self.o_ports = [Port('o', 'mcmd')]
 
     def run(self, args, inputs):

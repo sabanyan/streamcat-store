@@ -1,4 +1,5 @@
-from kskp.core import Datum, Command, Port
+from kskp.core import Command, Port
+from kskp.store import Matrix
 
 class Square(Command):
     """
@@ -7,29 +8,9 @@ class Square(Command):
     """
     def __init__(self):
         super().__init__()
-        self.i_ports = [Port('i', 'integer')]
-        self.o_ports = [Port('o_sq', 'integer')]
+        self.i_ports = [Port('i', 'matrix')]
+        self.o_ports = [Port('o_sq', 'matrix')]
 
     def run(self, args, inputs):
-        # 厳密にはframeじゃないが、まぁテスト用のコマンドなので
-        # ラップするのはなんでもいいかなと思いframeにした。
-        i = inputs['i'].content if isinstance(inputs['i'], Integer) else inputs['i']
-        frame = Integer()
-        frame.set_content([[i[0][0] ** 2]])
-        return {self.o_ports[0].label: frame}
-
-class Integer(Datum):
-    """
-    テスト用のクラス
-    下記のSquareCommandで使うdatumをラップするためのもの
-    """
-    def __init__(self):
-        super().__init__(None, None, 'test', None)
-        self._content = None
-
-    def set_content(self, module):
-        self._content = module
-
-    @property
-    def content(self):
-        return self._content
+        m = inputs['i'].content if isinstance(inputs['i'], Matrix) else inputs['i']
+        return {self.o_ports[0].label : Matrix([[m[0][0] ** 2]])}

@@ -21,13 +21,19 @@ class LoaderCommand(SCommand):
         self.name = 'loader'
 
     def run(self, args, inputs):
-        # if not isinstance(inputs['folder'], Store):
-        #     t = type(inputs['folder'])
-        #     raise Exception(f'Loaderの入力にStore以外のデータ型({t})が入力されました')
-        # folder = inputs['folder']
-        # if not folder.path_exists:
-        #     raise Exception(f'ディレクトリ({folder.path})が存在しません')
+        # ファイルパスと文字コードを取得する
+        path, encoding = self._get_frame(args)
 
+        cmd = nm.m2tee(i=path)
+        # mreadで存在しないファイルパスを指定するとDockerごと落ちる -> 0.3.10で修正済
+        # mreadは巨大ファイルの読み込みが遅い(全行入力してる?)
+        # cmd = nm.mread({'i':path, 'n':65535})
+        nysol_module = NysolModule(cmd)
+        # frameの文字コードを次のコマンドに渡す
+        nysol_module.encoding = encoding
+        return {'o': nysol_module}
+
+    def _get_frame(self, args):
         datum_factory = args['datum_factory']
 
         # 指定したuuidのframeを取得する
@@ -47,14 +53,8 @@ class LoaderCommand(SCommand):
             # frameの文字コードを取得する
             encoding = frame.encoding
 
-        cmd = nm.m2tee(i=path)
-        # mreadで存在しないファイルパスを指定するとDockerごと落ちる -> 0.3.10で修正済
-        # mreadは巨大ファイルの読み込みが遅い(全行入力してる?)
-        # cmd = nm.mread({'i':path, 'n':65535})
-        nysol_module = NysolModule(cmd)
-        # frameの文字コードを次のコマンドに渡す
-        nysol_module.encoding = encoding
-        return {'o': nysol_module}
+        # ファイルパスと文字コードを返す
+        return path, encoding
 
 class SaverCommand(SCommand):
     """
@@ -410,7 +410,7 @@ class DbSaverCommand(SaverCommand):
     """
     def __init__(self):
         super().__init__()
-        self.i_ports = [Port('i', 'frame'), Port('store', 'store')]
+        self.i_ports = [Port('i', ['mcmd','matrix']), Port('store', 'store')]
         self.o_ports = [Port('o', 'mcmd')]
         self.name = 'db_saver'
 
@@ -477,8 +477,7 @@ class DbSaverCommand(SaverCommand):
         database_conn['database_uri'] = database.conn.get_database_uri()
 
         # Nysol Pythonのrunfunc関数を作成する
-        cmd = inputs['i'].content
-        cmd <<= nm.msetstr(v=args['activity_uuid'], a='activity_uuid_kskp')
+        cmd = nm.msetstr(v=args['activity_uuid'], a='activity_uuid_kskp', i=inputs['i'].content)
         cmd <<= nm.runfunc(bulk_inserter, database_conn=database_conn, schema_name=schema_name, table_name=table_name)
 
         # DataSourceを保存するフォルダを用意する
@@ -814,7 +813,7 @@ class RunsCommand(SCommand):
     def __init__(self):
         super().__init__()
         self.i_ports = [Port('*', 'mcmd')]
-        self.o_ports = [Port('*', 'datum?')]
+        self.o_ports = [Port('*', 'datum')]
 
     def run_nysol(self, nm_list):
         # NYSOL Pythonを実行する
@@ -824,7 +823,7 @@ class RunsCommand(SCommand):
     def run(self, args, inputs):
         import psutil
         from multiprocessing import Process, Manager, Pipe
-        from kskp.store import List, ApparentOut, CommandException
+        from kskp.store import Matrix, ApparentOut, CommandException
 
         def do_runs(nm_list, results, exs, out):
             """
@@ -863,7 +862,7 @@ class RunsCommand(SCommand):
             if isinstance(input, CommandException):
                 rets[i_port_name] = ApparentOut(None, None, [input])
                 exception_exists = True
-            elif isinstance(input, (NysolModule, List)):
+            elif isinstance(input, (NysolModule, Matrix)):
                 rets[i_port_name] = ApparentOut(None, input.context.get('frame'))
             else:
                 raise Exception(f'RunsCommandにNysolModuleまたはCommandException以外のデータ型({input})が入力されました')
@@ -954,8 +953,8 @@ class RunsCommand(SCommand):
                 # プレビューの場合はframe=Noneである
                 frame = nysol_module.context.get('frame')
                 if len(exs_list) == 0:
-                    list = List(results[i])
-                    rets[i_port_name] = ApparentOut(None, frame or list)
+                    matrix = Matrix(results[i])
+                    rets[i_port_name] = ApparentOut(None, frame or matrix)
                 else:
                     rets[i_port_name] = ApparentOut(None, frame, exs=exs_list)
                 i += 1
@@ -966,7 +965,7 @@ class FieldNamesCommand(RunsCommand):
     def __init__(self):
         super().__init__()
         self.i_ports = [Port('*', 'mcmd')]
-        self.o_ports = [Port('*', 'datum?')]
+        self.o_ports = [Port('*', 'datum')]
 
     def run_nysol(self, nm_list):
         ret = []
@@ -1002,7 +1001,7 @@ class ActivityCommand(SCommand):
             else:
                 raise Exception(f'ActivityCommandにApparentLastまたはCommandException以外のデータ型({input})が入力されました')
 
-            # Activityにlastを追加する
+            # Activityにoutを追加する
             activity.add(out)
 
         if activity.count_outs() == len(points):
@@ -1060,7 +1059,7 @@ class AssertCommand(SCommand):
             一時ファイルへフローの結果を書き出し
             エラー発生もここで確認する
             """
-            from kskp.store import List
+            from kskp.store import Matrix
 
             # 入力値
             input = inputs[port_name]
@@ -1072,11 +1071,10 @@ class AssertCommand(SCommand):
             if isinstance(input, Exception):
                 result = [input]
                 is_exs = True
-            elif isinstance(input, (NysolModule, List)):
+            elif isinstance(input, (NysolModule, Matrix)):
                 # RunsCommand を確認したら、実行結果にエラーがない場合にはframeが返却され、エラーが発生した場合はlistが返却される
                 # この後の型による分岐で、エラーのもののみの対応を行っているの問題はないのでは
-                nysol_cmd = input.content
-                nysol_cmd <<= nm.m2tee(o=output_path.as_posix())
+                nysol_cmd = nm.m2tee(i=input.content, o=output_path.as_posix())
                 result = RunsCommand().run({}, {port_name:NysolModule(nysol_cmd)})[port_name]
             else:
                 raise Exception("入力ポート" + port_name + "に <type: " + str(type(input)) + " >は対応していません")
