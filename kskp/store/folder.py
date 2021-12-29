@@ -437,7 +437,7 @@ class Folder(Store):
                     {
                         "label": "o",
                         "nodeId": "d",
-                        "type": "frame"
+                        "types": loader.o_ports[0].types._types
                     }
                 ]
             ],
@@ -494,7 +494,7 @@ class Folder(Store):
                     {
                         "label": "i",
                         "nodeId": "d",
-                        "type": "frame"
+                        "types": saver.i_ports[0].types._types
                     }
                 ],
                 []

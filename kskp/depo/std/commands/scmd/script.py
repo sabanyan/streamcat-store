@@ -24,7 +24,7 @@ class LoaderCommand(SCommand):
         # ファイルパスと文字コードを取得する
         path, encoding = self._get_frame(args)
 
-        cmd = nm.m2tee(i=path)
+        cmd = nm.m2tee(i=path.as_posix())
         # mreadで存在しないファイルパスを指定するとDockerごと落ちる -> 0.3.10で修正済
         # mreadは巨大ファイルの読み込みが遅い(全行入力してる?)
         # cmd = nm.mread({'i':path, 'n':65535})
@@ -42,12 +42,12 @@ class LoaderCommand(SCommand):
             raise Exception('入力ファイルを指定してください')
         # frame = folder.find_child_by_uuid(frame_uuid)
         frame = datum_factory.find_by_uuid(frame_uuid, type=Datum.FRAME_TYPE)
-        path = frame.path.as_posix()
+        path = frame.path
 
         if frame.encoding is None:
             from kskp.store import Frame
             # frameの文字コードが未判定の場合はここで判定する
-            with open(path, 'rb') as f:
+            with path.open(mode='rb') as f:
                 encoding = Frame._detect_encoding(f)
         else:
             # frameの文字コードを取得する
