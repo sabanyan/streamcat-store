@@ -206,7 +206,7 @@ class AuthzSession(Session):
         R = select(D0.id.label('leaf_id'), D0.id, D0.parent_id, literal(1).label('depth')).\
             select_from(D0).\
             where(D0.id==datum_id).\
-            cte(name='R', recursive=True) 
+            cte(name='R', recursive=True)
             # cte: Common Table Expression WITH句のこと
 
         # WITH句にUNION ALLを用いて再帰クエリとする

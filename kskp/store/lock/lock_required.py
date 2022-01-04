@@ -17,7 +17,7 @@ def lock_required(func):
         if 'lock_uuid' in kwargs and kwargs['lock_uuid'] is not None:
             # 引数で指定されたロックの有無を判定する
             if not lock_manager.contains(kwargs['lock_uuid']):
-                raise LockedDatumException('ロックが強制解除された、または有効期限が切れました')
+                raise LockedDatumException('排他ロックが強制解除された、または有効期限が切れました')
             return func(*args, **kwargs)
         else:
             # 引数でロックのuuidが指定されなかった場合は、ここでロックを取得する

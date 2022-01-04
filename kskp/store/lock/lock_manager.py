@@ -4,20 +4,20 @@ from datetime import datetime, timedelta
 
 class LockedDatumException(Exception):
     """
-    Datumをロックするのに失敗したことを通知する例外
+    Datumを排他ロックするのに失敗したことを通知する例外
     """
     pass
 
 class Lock():
     """
-    ロック情報
+    排他ロック情報
     """
     def __init__(self, target_uuid, creator, created_at):
         """
-        uuid        : ロックのuuid
-        target_uuid : ロック対象のuuid
-        creator     : ロックの作成者
-        created_at  : ロックの作成時刻
+        uuid        : 排他ロックのuuid
+        target_uuid : 排他ロック対象のuuid
+        creator     : 排他ロックの作成者
+        created_at  : 排他ロックの作成時刻
         """
         self.uuid = str(uuid.uuid4())
         self.target_uuid = target_uuid
@@ -34,7 +34,7 @@ class Lock():
 
 class LockManager():
     """
-    ロックを管理する(スレッドセーフ)
+    排他ロックを管理する(スレッドセーフ)
     """
     def __init__(self, valid_seconds):
         self._thread_lock = threading.Lock()

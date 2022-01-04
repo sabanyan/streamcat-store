@@ -45,7 +45,7 @@ class ProjectFolder(Folder):
 
     def move(self, parent_uuid, modifier=None):
         """
-        ゴミ箱へにほかされるか、ゴミ箱から元の場所に戻す場合を除いて
+        ゴミ箱へほかされるか、ゴミ箱から元の場所に戻す場合を除いて
         プロジェクトは移動できない
         """
         from kskp.store.factory import DatumFactory
@@ -266,7 +266,7 @@ class ProjectFolder(Folder):
         super().delete()
 
     def is_joined_user(self, user):
-        from sqlalchemy import exists, select, any_
+        from sqlalchemy import select, any_
         from kskp.store.auth import User, Auth, UserRole
 
         # 操作ユーザの所属するロールを抽出するクエリ
