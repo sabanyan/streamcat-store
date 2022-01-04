@@ -743,10 +743,10 @@ class UserFactory():
             raise Exception(f'指定したUser({user_id})は存在しませんでした')
 
         if except_states is not None:
-            if isinstance(except_states, list) and user.state in except_states:
-                raise Exception(f'指定したUser({user_id})は論理削除されています')
-            else:
+            if not isinstance(except_states, list):
                 raise Exception(f'except_statesにはNoneかlist型を指定してください')
+            if user.state in except_states:
+                raise Exception(f'指定したUser({user_id})は存在しませんでした.')
         
         return user
 
