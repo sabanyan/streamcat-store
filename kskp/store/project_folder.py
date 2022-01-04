@@ -106,7 +106,7 @@ class ProjectFolder(Folder):
             raise NotAuthorizedException(f'プロジェクト管理者以外のメンバはプロジェクト({self.label})の名称を変更できません')
 
         # 更新処理はFolderクラスと同じ
-        super().update_label(label, modifier=modifier)
+        return super().update_label(label, modifier=modifier)
 
     def _find_readers_role(self):
         """
