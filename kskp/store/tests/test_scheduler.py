@@ -174,3 +174,14 @@ class SchdulerTest(TestCaseBase):
         flow.delete()
         project1.delete()
 
+    def test_trashed_schedule(self):
+        """
+        ゴミ箱に捨てたスケジュールはスケジューラから解除されること
+        """
+        pass
+
+    def test_trash_executed_schedule(self):
+        """
+        起動中のスケジュールをゴミ箱に捨てられないこと
+        """
+        pass

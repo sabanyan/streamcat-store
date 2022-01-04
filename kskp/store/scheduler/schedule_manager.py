@@ -37,6 +37,7 @@ class ScheduleManager():
         """
         ライブラリにある全てのスケジュールをスケジューラに登録する
         """
+        # TODO: ゴミ箱にほかされたスケジュールは登録解除したい
         schedules = datumFactory.find_all(type=Datum.SCHEDULE_TYPE)
         for schedule in schedules:
             if not self.contains(schedule.uuid):

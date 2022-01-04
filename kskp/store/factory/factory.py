@@ -238,7 +238,7 @@ class DatumFactory():
 
         return datum
 
-    def find_all(self, type=None, except_label=None) -> Datum:
+    def find_all(self, type=None, except_trash=False, except_label=None) -> Datum:
         """
         全てのDatumを取得する
         """
@@ -246,6 +246,9 @@ class DatumFactory():
         query = self._session.query(Datum)
         if type is not None:
             query = query.filter(Datum.type==type)
+        if except_trash:
+            # ゴミ箱にほかされたDatumは除外する
+            query = query.filter(~self._make_exists_trashed(Datum.uuid))
         if except_label is not None:
             query = query.filter(Datum._label!=except_label)
         return query.order_by(Datum.type, desc(Datum.created_at)).all()
@@ -468,26 +471,42 @@ class DatumFactory():
         """
         ゴミ箱の中にある場合はTrueを返す
         """
-        from sqlalchemy import text
+        from sqlalchemy import select, func, and_
 
-        sql = text(f"""
-        WITH RECURSIVE R AS (
-            SELECT id, parent_id, uuid, type, path FROM data WHERE uuid = '{uuid}'
-            UNION ALL
-            SELECT D.id, D.parent_id, D.uuid, D.type, D.path FROM data D JOIN R ON D.id = R.parent_id
-        )
-        SELECT uuid, path, type FROM R
-        WHERE type = '{Datum.TRASH_TYPE}'
-        """)
+        sql = select(func.count()).\
+              select_from(Datum).\
+              where(and_(
+                    Datum.uuid==uuid,
+                    self._make_exists_trashed(uuid)
+              ))
         try:
-            results = self._session.execute(sql)
+            results = self._session.execute(sql).scalar()
         except Exception as e:
             self._session.rollback()
             raise e
         finally:
             pass
 
-        return len([result for result in results]) > 0
+        return results > 0
+
+    def _make_exists_trashed(self, uuid:str):
+        from sqlalchemy import select, exists
+        from sqlalchemy.orm import aliased
+
+        # ゴミ箱の中のDatumを全て取得する再帰クエリ
+        D0 = aliased(Datum, name='D0')
+        D1 = aliased(Datum, name='D1')
+        T = select(D0.id, D0.uuid).\
+            select_from(D0).\
+            where(D0.type==Datum.TRASH_TYPE).\
+            cte(name='T', recursive=True)
+        T = T.union_all(
+                select(D1.id, D1.uuid).\
+                select_from(T.join(D1, D1.parent_id==T.c.id))
+            )
+
+        # 指定されたUUIDのDatumがゴミ箱内に存在する場合は抽出する
+        return exists().where(T.c.uuid==uuid)
 
     def unmount_all(self):
         """
