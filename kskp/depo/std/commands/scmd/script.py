@@ -1405,7 +1405,7 @@ class DumpCommand(SCommand):
 
 class RestoreCommand(SCommand):
     """
-    KSKPシステムのDumpファイルをリストアする
+    KSKPシステムのDumpファイルを復元する
     """
     from typing import List
     from pathlib import Path
@@ -1428,14 +1428,14 @@ class RestoreCommand(SCommand):
         factory = args['factory']
 
         if not factory._session.has_usr_admin():
-            raise Exception('ユーザー管理者以外は、KSKPをリストアできません')
+            raise Exception('ユーザー管理者以外は、KSKPを復元できません')
 
         # ファイルストリームを取得する
         stream = inputs['i']
         if stream is None:
-            raise Exception('リストアするDumpデータが空です')
+            raise Exception('復元するDumpデータが空です')
 
-        # リストア処理をスレッドセーフで実行する
+        # 復元処理をスレッドセーフで実行する
         with self._thread_lock:
             self._restore_all(factory, stream)
 
@@ -1444,7 +1444,7 @@ class RestoreCommand(SCommand):
 
     def _restore_all(self, factory, stream):
         """
-        KSKPをリストアする
+        KSKPを復元する
         """
         import shutil
         from datetime import datetime
@@ -1462,7 +1462,7 @@ class RestoreCommand(SCommand):
         if len(active_connections) > 0:
             application_name = active_connections[0]['application_name']
             client_addr = active_connections[0]['client_addr']
-            raise Exception(f'PostgreSQLへのActive状態の接続({application_name}@{client_addr})が存在するためリストアできません')
+            raise Exception(f'PostgreSQLへのActive状態の接続({application_name}@{client_addr})が存在するため復元できません')
 
         try:
             # ライブラリのルートディレクトリ名を用意する
@@ -1478,14 +1478,14 @@ class RestoreCommand(SCommand):
                 # ライブラリのルートディレクトリ名を変更して退避する
                 Datum.move_file(library_root_path, library_backup_path)
 
-            # ライブラリのディレクトリをリストアする
+            # ライブラリのディレクトリを復元する
             from kskp.store import FlowDumper
             extracted_members = FlowDumper._extract_archive(Datum.STORE_DIR, stream)
 
             # KSKPのDumpファイルが妥当であることを確認する
             self._members_are_valid_or_raise(extracted_members)
 
-            # PostgreSQLのpublicスキーマをリストアする
+            # PostgreSQLのpublicスキーマを復元する
             self._restore_meta(self.META_FILE_PATH)
         except Exception as e:
             # PostgreSQLのDumpファイルを削除する
@@ -1498,7 +1498,7 @@ class RestoreCommand(SCommand):
             if not library_root_path.exists() and library_backup_path.exists():
                 # 退避したライブラリのルートディレクトリが存在すれば、それを復帰する
                 Datum.move_file(library_backup_path, library_root_path)
-            raise Exception(f'リストアできませんでした! ({e})')
+            raise Exception(f'復元できませんでした! ({e})')
 
         try:
             # PostgreSQLのDumpファイルを削除する
