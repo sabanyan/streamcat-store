@@ -248,6 +248,7 @@ class DatumFactory():
             query = query.filter(Datum.type==type)
         if except_trash:
             # ゴミ箱にほかされたDatumは除外する
+            # NOTE: この条件を付与するとかなり遅くなる
             query = query.filter(~self._make_exists_trashed(Datum.uuid))
         if except_label is not None:
             query = query.filter(Datum._label!=except_label)
@@ -278,6 +279,19 @@ class DatumFactory():
         if trashcan is None:
             raise Exception('no trush can is found by designated id.')
         return trashcan
+
+    def find_all_projects(self, on_root:bool=False, except_label:str=None):
+        """
+        プロジェクトを全て取得する
+        """
+        query = self._session.query(Datum).\
+                filter(Datum.type==Datum.PROJECT_TYPE)
+        if on_root:
+            query = query.filter(self._make_exists_on_root(Datum.parent_id))
+        if except_label is not None:
+            query = query.filter(Datum._label!=except_label)
+        # 速度向上のため、order_byを指定しない
+        return query.all()
 
     def find_all_subflows(self):
         """
@@ -488,6 +502,19 @@ class DatumFactory():
             pass
 
         return results > 0
+
+    def _make_exists_on_root(self, parent_id:str):
+        from sqlalchemy import select, exists
+        from sqlalchemy.orm import aliased
+
+        # ルートフォルダ直下のDatumを全て取得するクエリ
+        D0 = aliased(Datum, name='D0')
+        T = select(D0.id).\
+            select_from(D0).\
+            where(D0.parent_id == None)
+
+        # 指定されたUUIDのDatumがルートフォルダ直下に存在する場合は抽出する
+        return exists().where(T.c.id==parent_id)
 
     def _make_exists_trashed(self, uuid:str):
         from sqlalchemy import select, exists

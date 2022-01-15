@@ -490,12 +490,18 @@ class ProjectFolder(Folder):
         WRITE_PERMISSIONS  = READER_PERMISSIONS | Datum.PERMISSION_WRITE
         OWNER_PERMISSIONS  = WRITE_PERMISSIONS  | Datum.PERMISSION_OWN
 
+        # プロジェクトへの参加タイプのソート順を定義する
+        MEMBER_TYPE_CONV = {0: ProjectFolder.OWNER_MEMBER_TYPE,
+                            1: ProjectFolder.WRITER_MEMBER_TYPE,
+                            2: ProjectFolder.READER_MEMBER_TYPE,
+                            9: ProjectFolder.UNKNOWN_TYPE}
+
         query = self._session.query(
                     User,
                     case(
-                        {READER_PERMISSIONS : ProjectFolder.READER_MEMBER_TYPE,
-                         WRITE_PERMISSIONS  : ProjectFolder.WRITER_MEMBER_TYPE,
-                         OWNER_PERMISSIONS  : ProjectFolder.OWNER_MEMBER_TYPE},
+                        {READER_PERMISSIONS : 2,
+                         WRITE_PERMISSIONS  : 1,
+                         OWNER_PERMISSIONS  : 0},
                         value=func.sum(
                                 case((AU.c.permission,
                                     case((AU.c.operation=='read',  Datum.PERMISSION_READ),
@@ -505,19 +511,19 @@ class ProjectFolder(Folder):
                                     )
                                 ))
                               ),
-                        else_=ProjectFolder.OTHER_MEMBER_TYPE
-                    ).label('type')
+                        else_=9
+                    ).label('int_type')
                 ).\
                 select_from(AU).\
                 join(User, User.id==AU.c.user_id).\
                 group_by(User.id).\
-                order_by('type', User.name)
+                order_by('int_type', User.name)
 
         # Queryオブジェクトに代わりここでUserオブジェクトにsessionを設定する
         members = []
         for row in query.all():
             user = row[0]
-            type = row[1]
+            type = MEMBER_TYPE_CONV.get(row[1])
             user._session = self._session
             members.append(ProjectFolder.Member(user, type))
         return members

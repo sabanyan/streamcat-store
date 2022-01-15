@@ -22,7 +22,7 @@ class Flow(Datum):
         if not isinstance(flow_data, FlowData):
             raise Exception(f'Flow.__init__()の引数flow_dataに{type(flow_data).__name__}型が渡されましたFlowData型を渡してください.')
 
-        self._data = {'label' : label, 'flow' : flow_data.to_json()}
+        self._data = {'label':label, 'flow':flow_data.to_json()}
 
         # DBに保存する前のFlowへの参照と更新と実行権限は制限しない
         self._permissions = Datum.PERMISSION_READ | Datum.PERMISSION_WRITE | Datum.PERMISSION_EXEC
@@ -349,6 +349,10 @@ class Flow(Datum):
         # write=Falseでedit_lock_roleに参加する全てのユーザはこのフローの更新権限を失う
         edit_lock_value = not value and None
         edit_lock_role.init_authz(self.id, read=None, write=edit_lock_value)
+
+        # self._permissionsを更新する
+        # (編集ロックとself.writableの値を同期させる)
+        self.reload()
 
     def valid_uuids_in_flowdata_or_raise(self):
         from kskp.store.factory import DatumFactory

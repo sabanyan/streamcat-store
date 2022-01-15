@@ -3004,6 +3004,8 @@ class AuthTest(TestCaseBase):
         # フローを編集ロックする
         flow.edit_lock = True
         self.assertTrue(flow.edit_lock)
+        self.assertTrue(flow.readable)
+        self.assertFalse(flow.writable)
 
         # 編集ロックされたフローは更新できないこと
         with self.assertRaises(EditLockedException):
@@ -3020,6 +3022,8 @@ class AuthTest(TestCaseBase):
         # 編集ロックを解除する
         flow.edit_lock = False
         self.assertFalse(flow.edit_lock)
+        self.assertTrue(flow.readable)
+        self.assertTrue(flow.writable)
 
         # 編集ロックが解除されたフローは更新できること
         flow_data = FlowData(copy.deepcopy(self.flow_json))
@@ -3057,10 +3061,14 @@ class AuthTest(TestCaseBase):
         # フローを編集ロックする
         flow.edit_lock = True
         self.assertTrue(flow.edit_lock)
+        self.assertTrue(flow.readable)
+        self.assertFalse(flow.writable)
 
         # 編集ロックを解除する
         flow.edit_lock = False
         self.assertFalse(flow.edit_lock)
+        self.assertTrue(flow.readable)
+        self.assertTrue(flow.writable)
 
         # 閲覧者は編集ロックの値を変更できないこと
         flow = self.factory3.data.find_by_uuid(flow.uuid)
@@ -3071,13 +3079,19 @@ class AuthTest(TestCaseBase):
         
         # 閲覧者でも編集ロックの値を参照できること
         self.assertFalse(flow.edit_lock)
+        self.assertTrue(flow.readable)
+        self.assertFalse(flow.writable)
 
         # 編集者は編集ロックの値を変更できること
         flow = self.factory0.data.find_by_uuid(flow.uuid)
         flow.edit_lock = True
         self.assertTrue(flow.edit_lock)
+        self.assertTrue(flow.readable)
+        self.assertFalse(flow.writable)
         flow.edit_lock = False
         self.assertFalse(flow.edit_lock)
+        self.assertTrue(flow.readable)
+        self.assertTrue(flow.writable)
         
         # 編集者は編集ロックの値を参照できること
         self.assertFalse(flow.edit_lock)
@@ -3119,6 +3133,8 @@ class AuthTest(TestCaseBase):
         # フローを編集ロックする
         flow.edit_lock = True
         self.assertTrue(flow.edit_lock)
+        self.assertTrue(flow.readable)
+        self.assertFalse(flow.writable)
 
         # 編集ロックされたフローは移動できないこと
         with self.assertRaises(EditLockedException):
@@ -3130,6 +3146,8 @@ class AuthTest(TestCaseBase):
         # 編集ロックを解除する
         flow.edit_lock = False
         self.assertFalse(flow.edit_lock)
+        self.assertTrue(flow.readable)
+        self.assertTrue(flow.writable)
 
         # 設定した編集ロックに基づいた_permissionsの値を再設定する
         # (編集ロックの設定のたびにreload()するのはテストコードの記述者にとっては面倒だが
