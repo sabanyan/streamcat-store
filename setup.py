@@ -21,9 +21,11 @@ setup(
         # 'awscli',
         # 'cx_Oracle',
         'numpy',
-        'scipy',
+        # Alpineでは、scipyのインストールに失敗する
+        # 'scipy',
         'pandas',
-        'sklearn',
+        # sklearnはkcmdでしか使っていない
+        # 'sklearn',
         # matplotlibとbokehはholoviewsが使用する
         'matplotlib',
         'bokeh',
