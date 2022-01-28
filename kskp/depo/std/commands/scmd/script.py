@@ -909,7 +909,7 @@ class RunsCommand(SCommand):
                     # (出力バッファがFULLになるとサブプロセスが終了しないので注意)
                     # (既に開いているファイル記述子をWrapするためにopenを用いている
                     #  recv_connオブジェクトでcloseするのでclosefd=Falseとする)
-                    for line in open(recv_conn.fileno(), mode='r', closefd=False):
+                    for line in open(recv_conn.fileno(), mode='r', closefd=False, encoding='utf-8'):
                         print(line, end='', file=sys.stderr)
                         sys.stderr.flush()
                         if line.startswith('#ERROR#') and 'script RUN KGERROR runmain on kgshell' not in line:
