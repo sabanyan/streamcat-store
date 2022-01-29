@@ -183,6 +183,10 @@ class File(Datum):
         # streamの読み込み位置をリセットする
         stream.seek(0)
 
+        # NOTE: CSVのmimetypeはCentOSとDebianで異なる?
+        if content_type == 'application/csv':
+            content_type = 'text/csv'
+
         return content_type
 
     def _make_file(self, path):
