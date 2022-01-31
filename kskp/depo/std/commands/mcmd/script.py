@@ -523,55 +523,31 @@ class McatCommand(MCommand):
 class MchkcsvCommand(MCommand):
     """
     Mchkcsvコマンド
-    nysol_pythonにはないので、nm.cmdでNYSOLのmchkcsvを動かしている
+    nysol_pythonにCSV検証機能があるのでそれを利用しているが、おそらく非公開機能だと思われる
     """
     def __init__(self):
         super().__init__()
         self.i_ports = [Port('i', 'mcmd')]
         self.o_ports = [Port('o', 'mcmd')]
-    
-    def run(self, args, inputs):
-        import sys
 
+    def run(self, args, inputs):
         def filter():
-            import traceback
+            import sys
+            import nysol.util as util
             try:
-                table = str.maketrans({'"': '""'})
-                for line in sys.stdin:
-                    # VisするときにMChkcsvの出力をNYSOL Pythonに渡すので、
-                    # CSVデータに変換する
-                    line = line.rstrip('\n')
-                    line = line.translate(table)
-                    print('"' + line + '"')
+                # i=''で入力に標準入力を指定する
+                # local=Trueで結果を日本語で表示する
+                util.mchkcsv(i='', nfn=args.get('nfn'), local=True)
+
                 # flushをする
                 sys.stdout.flush()
             except Exception as e:
                 with open('/dev/stderr', 'w') as fpe:
+                    import traceback
                     traceback.print_exc(file=fpe)
+                    print(f'#ERROR# {str(e)}; TestCommand; ; ; ', file=fpe)
+                raise
 
-        # flushをしないと、デバッグ用のprintなども入ってしまう
-        sys.stdout.flush()
-
-        # チェックのみ実行するオプション
-        is_diag = 'diag' in args and args['diag']
-
-        args_str = self.make_args(args)
-
-        cmd = nm.cmd(args_str, i=inputs['i'].content)
-        if is_diag:
-            # Visで2回実行、かつrunfuncすると?しばしば固まる
-            cmd <<= nm.runfunc(filter)
-            # cmd <<= nm.cmd('mchkcsv a=#,##,###,####,#####')
-
-        # output
+        cmd = inputs['i'].content
+        cmd <<= nm.runfunc(filter)
         return {'o': NysolModule(cmd)}
-
-    def make_args(self, args):
-        args_string = 'mchkcsv'
-        for key,value in args.items():
-            if isinstance(value, bool):
-                if value == True:
-                    args_string +=  ' -' + key
-            else:
-                args_string += ' %s=%s' % (key, value)
-        return args_string
