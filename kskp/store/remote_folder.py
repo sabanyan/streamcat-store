@@ -1,13 +1,10 @@
 from kskp.core import Datum, Constraints
-from .folder import Folder
+from .store import Store
 from .mountable import Mountable
 from .remote_folder_conn import RemoteFolderConn
 
-# 
-# TODO: 継承元をFolderからStoreに変更する。
-# Folderは下にファイルやフォルダを作成できるものという定義なので
-# 
-class RemoteFolder(Folder, Mountable):
+# Mountable.pathをDatum.pathより優先させるため、先にMountableを継承すること
+class RemoteFolder(Mountable, Store):
 
     __mapper_args__ = {
         'polymorphic_identity' : 'rfolder'
@@ -17,10 +14,7 @@ class RemoteFolder(Folder, Mountable):
         """
         コンストラクタ
         """
-        super().__init__(session, parent, label)
-
-        # データタイプを設定する
-        self.type = Datum.RFOLDER_TYPE
+        super().__init__(session, parent, Datum.RFOLDER_TYPE, label)
 
         # data列の値を作成する
         if remoteFolderConn is None:
@@ -47,10 +41,11 @@ class RemoteFolder(Folder, Mountable):
         try:
             # Dataテーブルにレコードを新規追加する
             self._session.add(self)
+            # マウントするには参照権限が必要だが、session.add()がself.permissionsをNoneにするため
+            # reload()してpermissionsを再読み込みする
+            self = self.reload()
             # フォルダに紐付くディレクトリ(path列で指定されるディレクトリ)がなければ作成する
             self._make_dir(self_path)
-            # ここでリモートフォルダをマウントする
-            self.mount(self_path)
         except Exception as e:
             self.unmount(self_path)
             self._remove_dir(self_path)
@@ -61,32 +56,22 @@ class RemoteFolder(Folder, Mountable):
 
     def update_data(self, label, remoteFolderConn, modifier=None):
         """
-        共有フォルダのdata列を更新する
+        共有フォルダのlabel列を更新する
+        (path及び対応ファイル名は変更しない)
         """
         # ラベルに'\0'が含まれていれば取り除く
         new_label = Datum.escape_label(label)
 
-        # ラベル名からファイルパスを作成する
-        old_path = self._path
-        new_path = old_path.parent / Datum.escape_filename(new_label)
-        new_path = Datum.make_unique_path(new_path, except_path=old_path)
-
         try:
-            # ディレクトリ名の移動によって他のDatumのpathが変更が必要であれば変更する
-            self._update_same_path(old_path, new_path, modifier)
-            self._update_include_path(old_path, new_path, modifier)
-
             # レコードを更新する
-            # data = {'conn' : remoteFolderConn.to_json()}
-            # data = self.data.copy()
-            # data['conn'] = remoteFolderConn.to_json()
             self._label = new_label
             self._data['conn'] = remoteFolderConn.to_json()
             self._modifier_id = (modifier or self._session.user).id
             self._session.update(self)
 
-            # ファイルを移動する
-            Datum.move_file(old_path, new_path)
+            # マウント中のディレクトリ名は変更できない
+            # -> OSError: [Errno 16] Device or resource busy
+            # Datum.move_file(old_path, new_path)
         except Exception as e:
             self._session.rollback()
             raise e
@@ -101,14 +86,13 @@ class RemoteFolder(Folder, Mountable):
         共有フォルダを削除する
         """
         # 自身のフォルダ以下のフレームが、自身のフォルダ以下以外にあるフローから参照されている場合は、例外を送出する
-        uuids = self._get_flow_uuids_using_other_datum(self.id)
-        if len(uuids) > 0:
-            raise Exception(
-                'フロー(%s)で使用しているCSVファイルが登録解除対象になっているため削除できません' % uuids[0])
-        try:
-            # 自身のフォルダ以下の全てのフォルダとドキュメントをエントリーから削除する
-            self._remove_reference_only_recursively()
+        using_flow_uuids = self.get_flow_uuids_using_me()
+        if len(using_flow_uuids) > 0:
+            raise Exception(f"このStoreはローダ・セーバ({using_flow_uuids[0]['reference_label']})で使用しているため削除できません")
 
+        try:
+            # フォルダレコードを削除する
+            self._session.delete(self)
             # 共有フォルダをマウント解除する
             self.unmount(self._path)
             # ディレクトリを削除する

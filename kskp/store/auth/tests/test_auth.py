@@ -11,211 +11,239 @@ from ...tests.test_case_base import TestCaseBase
 class AuthTest(TestCaseBase):
 
     def setUp(self):
-        pass
-
-    def tearDown(self):
-        pass
-
-    # フローJSON
-    # mnewnumber -> d(cache=on) -> mcut -> d1(out=on)
-    flow_json = {
-        "label": "flow", 
-        "nodes": [
-        {
-            "id": "d", 
-            "type": "frame", 
-            "uuid": None, 
-            "label": "d", 
-            "makeCache": True, 
-            "dataSource": "csv", 
-            "cacheCreatedAt": None
-        }, 
-        {
-            "id": "c", 
-            "args": {
-            "I": "1", 
-            "S": "1", 
-            "a": "a", 
-            "l": "10"
-            }, 
-            "dsts": {
-            "o": "d"
-            },
-            "srcs": {}, 
-            "type": "command", 
-            "label": "c", 
-            "commandId": "mnewnumber", 
-            "srcsOrder": []
-        }, 
-        {
-            "id": "d1", 
-            "type": "frame", 
-            "uuid": None, 
-            "label": "d1", 
-            "makeCache": False, 
-            "dataSource": "csv", 
-            "cacheCreatedAt": None
-        }, 
-        {
-            "id": "c1", 
-            "args": {
-            "f": "*"
-            }, 
-            "dsts": {
-            "o": "d1"
-            }, 
-            "srcs": {
-            "i": "d"
-            }, 
-            "type": "command", 
-            "label": "c1", 
-            "commandId": "mcut", 
-            "srcsOrder": [
-            "i"
-            ]
-        }
-        ], 
-        "ports": [
-        [], 
-        [
+        # フローJSON
+        # mnewnumber -> d(cache=on) -> mcut -> d1(out=on)
+        self.flow_json = {
+            "label": "flow", 
+            "nodes": [
             {
-            "type": "frame", 
-            "label": "d1", 
-            "nodeId": "d1"
-            }
-        ]
-        ], 
-        "params": [], 
-        "creator": "ユーザー管理者", 
-        "createdAt": "2020-10-04 17:45:16", 
-        "projectId": None, 
-        "description": ""
-    }
-
-    # d(in=on) -> column_unique_name -> d1(out=on)
-    flow2_json = {
-        "label": "flow2", 
-        "nodes": [
-        {
-            "id": "d", 
-            "type": "frame", 
-            "value": [["顧客", "数量", "金額"],
-                      ["A", 1, 10],
-                      ["A", 2, 20],
-                      ["B", 1, 30],
-                      ["B", 3, 40],
-                      ["B", 1, 50]],
-            "label": "testData",
-            "makeCache": False, 
-            "dataSource": "csv", 
-            "cacheCreatedAt": None
-        }, 
-        {
-            "id": "d1", 
-            "type": "frame", 
-            "uuid": None, 
-            "label": "d1", 
-            "makeCache": False, 
-            "dataSource": "csv", 
-            "cacheCreatedAt": None
-        }, 
-        {
-            "id": "c1", 
-            "args": {
-                "d": "^^"
-            }, 
-            "dsts": {
-                "o": "d1"
-            }, 
-            "srcs": {
-                "i": "d"
-            }, 
-            "type": "command", 
-            "label": "c1", 
-            "commandId": "column_unique_name", 
-            "srcsOrder": [
-                "i"
-            ]
-        }
-        ], 
-        "ports": [
-        [
-            {
+                "id": "d", 
                 "type": "frame", 
-                "label": "testData", 
-                "nodeId": "d"
-            }
-        ], 
-        [
+                "uuid": None, 
+                "label": "d", 
+                "makeCache": True, 
+                "dataSource": "csv", 
+                "cacheCreatedAt": None
+            }, 
             {
+                "id": "c", 
+                "args": {
+                "I": "1", 
+                "S": "1", 
+                "a": "a", 
+                "l": "10"
+                }, 
+                "dsts": {
+                "o": "d"
+                },
+                "srcs": {}, 
+                "type": "command", 
+                "label": "c", 
+                "commandId": "mnewnumber", 
+                "srcsOrder": []
+            }, 
+            {
+                "id": "d1", 
+                "type": "frame", 
+                "uuid": None, 
+                "label": "d1", 
+                "makeCache": False, 
+                "dataSource": "csv", 
+                "cacheCreatedAt": None
+            }, 
+            {
+                "id": "c1", 
+                "args": {
+                "f": "*"
+                }, 
+                "dsts": {
+                "o": "d1"
+                }, 
+                "srcs": {
+                "i": "d"
+                }, 
+                "type": "command", 
+                "label": "c1", 
+                "commandId": "mcut", 
+                "srcsOrder": [
+                "i"
+                ]
+            },
+            {
+                "id": 'o0', 
+                "label": "ライブラリ出力🖨", 
+                "type": "flow", 
+                "classification": "data_dest",
+                "srcs": {
+                    "d": 'd1'
+                },
+                "dsts": {}, 
+                "uuid": self.data_dst.uuid
+            }
+            ], 
+            "ports": [
+            [], 
+            [
+                {
                 "type": "frame", 
                 "label": "d1", 
                 "nodeId": "d1"
-            }
-        ]
-        ], 
-        "params": [], 
-        "creator": "ユーザ管理者", 
-        "createdAt": "2020-11-19 11:31:10", 
-        "projectId": None, 
-        "description": ""
-    }
+                }
+            ]
+            ], 
+            "params": [], 
+            "creator": "ユーザー管理者", 
+            "createdAt": "2020-10-04 17:45:16", 
+            "projectId": None, 
+            "description": ""
+        }
 
-    # d(in=on) -> sub_flow -> d1(out=on)
-    flow3_json = {
-        "label": "flow3",
-        "nodes": [
+        # d(in=on) -> column_unique_name -> d1(out=on)
+        self.flow2_json = {
+            "label": "flow2", 
+            "nodes": [
             {
-                "id": "d",
-                "type": "frame",
-                "uuid": None,
-                "label": "0byte",
-                "makeCache": False,
-                "dataSource": "csv",
+                "id": "d", 
+                "type": "frame", 
+                "value": [["顧客", "数量", "金額"],
+                        ["A", 1, 10],
+                        ["A", 2, 20],
+                        ["B", 1, 30],
+                        ["B", 3, 40],
+                        ["B", 1, 50]],
+                "label": "testData",
+                "makeCache": False, 
+                "dataSource": "csv", 
                 "cacheCreatedAt": None
-            },
+            }, 
             {
-                "id": "d1",
-                "type": "frame",
-                "uuid": None,
-                "label": "d1",
-                "makeCache": False,
-                "dataSource": "csv",
+                "id": "d1", 
+                "type": "frame", 
+                "uuid": None, 
+                "label": "d1", 
+                "makeCache": False, 
+                "dataSource": "csv", 
                 "cacheCreatedAt": None
-            },
+            }, 
             {
-                "id": "f1",
-                "args": {},
+                "id": "c1", 
+                "args": {
+                    "d": "^^"
+                }, 
                 "dsts": {
-                    "d1": "d1"
-                },
+                    "o": "d1"
+                }, 
                 "srcs": {
-                    "d": "d"
-                },
-                "type": "flow",
-                "uuid": None,
-                "label": "f1",
+                    "i": "d"
+                }, 
+                "type": "command", 
+                "label": "c1", 
+                "commandId": "column_unique_name", 
                 "srcsOrder": [
-                    "d"
+                    "i"
                 ]
+            },
+            {
+                "id": 'o0', 
+                "label": "ライブラリ出力🖨", 
+                "type": "flow", 
+                "classification": "data_dest",
+                "srcs": {
+                    "d": 'd1'
+                },
+                "dsts": {}, 
+                "uuid": self.data_dst.uuid
             }
-        ],
-        "ports": [
-            [],
+            ], 
+            "ports": [
             [
                 {
-                    "type": "frame",
-                    "label": "d1",
+                    "type": "frame", 
+                    "label": "testData", 
+                    "nodeId": "d"
+                }
+            ], 
+            [
+                {
+                    "type": "frame", 
+                    "label": "d1", 
                     "nodeId": "d1"
                 }
             ]
-        ],
-        "params": [],
-        "creator": "ユーザー管理者",
-        "createdAt": "2020-11-20 09:20:50",
-        "projectId": None,
-        "description": ""
-    }
+            ], 
+            "params": [], 
+            "creator": "ユーザ管理者", 
+            "createdAt": "2020-11-19 11:31:10", 
+            "projectId": None, 
+            "description": ""
+        }
+
+        # d(in=on) -> sub_flow -> d1(out=on)
+        self.flow3_json = {
+            "label": "flow3",
+            "nodes": [
+                {
+                    "id": "d",
+                    "type": "frame",
+                    "uuid": None,
+                    "label": "0byte",
+                    "makeCache": False,
+                    "dataSource": "csv",
+                    "cacheCreatedAt": None
+                },
+                {
+                    "id": "d1",
+                    "type": "frame",
+                    "uuid": None,
+                    "label": "d1",
+                    "makeCache": False,
+                    "dataSource": "csv",
+                    "cacheCreatedAt": None
+                },
+                {
+                    "id": "f1",
+                    "args": {},
+                    "dsts": {
+                        "d1": "d1"
+                    },
+                    "srcs": {
+                        "d": "d"
+                    },
+                    "type": "flow",
+                    "uuid": None,
+                    "label": "f1",
+                    "srcsOrder": [
+                        "d"
+                    ]
+                },
+                {
+                    "id": 'o0', 
+                    "label": "ライブラリ出力🖨", 
+                    "type": "flow", 
+                    "classification": "data_dest",
+                    "srcs": {
+                        "d": 'd1'
+                    },
+                    "dsts": {}, 
+                    "uuid": self.data_dst.uuid
+                }
+            ],
+            "ports": [
+                [],
+                [
+                    {
+                        "type": "frame",
+                        "label": "d1",
+                        "nodeId": "d1"
+                    }
+                ]
+            ],
+            "params": [],
+            "creator": "ユーザー管理者",
+            "createdAt": "2020-11-20 09:20:50",
+            "projectId": None,
+            "description": ""
+        }
 
     def get_flow3_json(self, subflow_uuid):
         """
@@ -231,15 +259,27 @@ class AuthTest(TestCaseBase):
 
         return flow3_json
 
-    def get_frame_from_lasts(lasts):
+    def get_frame_from_lasts(outs):
         """
         lastsから出力結果Frameを1つ返す
         """
         from kskp.store import Activity
-        activities = [ datum for point_id, datum in lasts.items() if isinstance(datum, Activity)]
+        activities = [ datum for point_id, datum in outs.items() if isinstance(datum, Activity)]
         # Engineの実行により例外が発生した場合は送出する
         activities[0].raise_one()
-        return activities[0].lasts[0][1]
+        return activities[0].outs[0][1]
+
+    def _get_activity(outs:dict):
+        """
+        execute()の戻り値から
+        pointのidとframeのDictに置き換える
+        """
+        from kskp.store import Activity
+        # Activityを取得して返り値とする
+        for point_id, datum in outs.items():
+            if isinstance(datum, Activity):
+                return datum
+        return 
 
     # 
     # SQLAlchemy Session
@@ -994,13 +1034,19 @@ class AuthTest(TestCaseBase):
         (保守性向上のためシステムが用意するロールのIDは固定したい)
         """
         everyone_role = self.factory.role.load_everyone_role()
+        edit_lock_role = self.factory.role.load_edit_lock_role()
         sys_admin_role = self.factory.role.load_sys_admin_role()
         usr_admin_role = self.factory.role.load_usr_admin_role()
 
-        # everyoneは1、システム管理者は2、ユーザ管理者は3
+        # TODO: 本当は以下のようにIDを採番したい
+        # everyone  : 1
+        # sys_admin : 2
+        # usr_admin : 3
+        # edit_lock : 4
         self.assertEqual(everyone_role.id, 1)
-        self.assertEqual(sys_admin_role.id, 2)
-        self.assertEqual(usr_admin_role.id, 3)
+        self.assertEqual(edit_lock_role.id, 2)
+        self.assertEqual(sys_admin_role.id, 3)
+        self.assertEqual(usr_admin_role.id, 4)
 
     # 
     # Auths
@@ -1388,7 +1434,8 @@ class AuthTest(TestCaseBase):
         # フローJSONのうちnodes以外のキーは取得できること
         self.assertEqual(flow.flow_data.label, 'フロー')
         self.assertEqual(flow.flow_data.description, '')
-        self.assertEqual(flow.flow_data.ports, [[],[]])
+        self.assertEqual(flow.flow_data.i_ports, [])
+        self.assertEqual(flow.flow_data.o_ports, [])
         self.assertTrue(flow.flow_data.has_nodes)
 
         # フローJSONのうちnodesキーは取得できないこと
@@ -1633,11 +1680,11 @@ class AuthTest(TestCaseBase):
         
         # フォルダ1は更新できない
         with self.assertRaises(NotAuthorizedException):
-            folder1.update_data('フォルダ10')
+            folder1.update_label('フォルダ10')
 
         # フォルダ2は更新できない
         with self.assertRaises(NotAuthorizedException):
-            folder2.update_data('フォルダ20')
+            folder2.update_label('フォルダ20')
 
         # フローは更新できないこと
         with self.assertRaises(NotAuthorizedException):
@@ -1711,7 +1758,7 @@ class AuthTest(TestCaseBase):
         with self.assertRaises(NotAuthorizedException):
             flow.flow_data.get_nodes(use_exec_auth=True)
 
-        # フローを再取得する
+        # フローを再取得する
         flow = flow.reload()
 
         # フローJSONのnodesを取得できること
@@ -1925,7 +1972,8 @@ class AuthTest(TestCaseBase):
         # フローJSONは取得できること
         self.assertEqual(flow.flow_data.label, 'フロー')
         self.assertEqual(flow.flow_data.description, '')
-        self.assertEqual(flow.flow_data.ports, [[],[]])
+        self.assertEqual(flow.flow_data.i_ports, [])
+        self.assertEqual(flow.flow_data.o_ports, [])
         self.assertTrue(flow.flow_data.has_nodes)
         self.assertGreater(len(flow.flow_data.get_nodes()), 0)
 
@@ -2119,13 +2167,13 @@ class AuthTest(TestCaseBase):
         # 編集者は、プロジェクトのラベルを変更できること
         project = self.factory2.data.find_by_uuid(project.uuid)
         with self.assertRaises(NotAuthorizedException):
-            project.update_data('阪神電車')
+            project.update_label('阪神電車')
         self.assertEqual(project.label, '半休電車')
 
         # 閲覧者は、プロジェクトのラベルを変更できないこと
         project = self.factory3.data.find_by_uuid(project.uuid)
         with self.assertRaises(NotAuthorizedException):
-            project.update_data('近鉄電車')
+            project.update_label('近鉄電車')
         self.assertEqual(project.label, '半休電車')
 
         # プロジェクトをほかして、ゴミ箱を空にする
@@ -2290,7 +2338,7 @@ class AuthTest(TestCaseBase):
 
         # 元のプロジェクト管理者は、プロジェクトを更新できないこと
         with self.assertRaises(NotAuthorizedException):
-            project.update_data('ぷろじぇくと1')
+            project.update_label('ぷろじぇくと1')
 
     def test_join_project2(self):
         """
@@ -2326,7 +2374,7 @@ class AuthTest(TestCaseBase):
 
         # 元のプロジェクト管理者は、プロジェクトを更新できないこと
         with self.assertRaises(NotAuthorizedException):
-            project.update_data('ぷろじぇくと1')
+            project.update_label('ぷろじぇくと1')
 
     def test_join_project3(self):
         """
@@ -2362,7 +2410,7 @@ class AuthTest(TestCaseBase):
         self.assertEqual(members, [member1, member2])
 
         # ユーザ管理者は、プロジェクトは更新できること
-        project.update_data('ぷろじぇくと1')
+        project.update_label('ぷろじぇくと1')
 
         # プロジェクトは削除する
         project.delete()
@@ -2401,7 +2449,7 @@ class AuthTest(TestCaseBase):
         self.assertEqual(members, [member2, member1])
 
         # ユーザ管理者は、プロジェクトは更新できること
-        project.update_data('ぷろじぇくと2')
+        project.update_label('ぷろじぇくと2')
 
         # プロジェクトは削除する
         project.delete()
@@ -2560,7 +2608,7 @@ class AuthTest(TestCaseBase):
 
         # ユーザ管理者は、フォルダの参照・更新ができること
         folder = self.factory.data.find_by_uuid(folder.uuid)
-        folder.update_data('德川家康')
+        folder.update_label('德川家康')
 
         # ユーザ管理者は、フォルダの参照・更新・実行のプロパティがTrueであること
         self.assertTrue(folder.readable)
@@ -2736,14 +2784,14 @@ class AuthTest(TestCaseBase):
         flow = flow.reload() 
 
         # フローを実行する
-        from kskp.engine import execute, FlowJsonLink
-        link = FlowJsonLink(flow, self.factory2)
-        lasts = execute(link=link, args={}, inputs={})
+        from kskp.engine import execute, FlowCommand
+        link = FlowCommand(flow)
+        lasts = execute(command=link, args={}, inputs={})
         # フローの実行結果を取得する
         out_frame = AuthTest.get_frame_from_lasts(lasts)
 
         # プロジェクト管理者は、フローのキャッシュを参照できること
-        cache_frame_uuid = flow.flow_data.get_cache_frame_uuids()[0]
+        cache_frame_uuid = next(iter(flow.flow_data.get_cache_frame_uuids()))
         cache_frame = self.factory2.data.find_by_uuid(cache_frame_uuid)
 
         # フローをプロジェクト2に移動する
@@ -2841,14 +2889,14 @@ class AuthTest(TestCaseBase):
         flow = flow.reload() 
 
         # フローを実行する
-        from kskp.engine import execute, FlowJsonLink
-        link = FlowJsonLink(flow, self.factory2)
-        lasts = execute(link=link, args={}, inputs={})
+        from kskp.engine import execute, FlowCommand
+        link = FlowCommand(flow)
+        lasts = execute(command=link, args={}, inputs={})
         # フローの実行結果を取得する
         out_frame = AuthTest.get_frame_from_lasts(lasts)
 
         # プロジェクト管理者は、フローのキャッシュを参照できること
-        cache_frame_uuid = flow.flow_data.get_cache_frame_uuids()[0]
+        cache_frame_uuid = next(iter(flow.flow_data.get_cache_frame_uuids()))
         cache_frame = self.factory2.data.find_by_uuid(cache_frame_uuid)
 
         # フローをキャッシュフォルダに移動する
@@ -2948,13 +2996,16 @@ class AuthTest(TestCaseBase):
         # フローJSONのうちnodes以外のキーは取得できること
         self.assertEqual(flow.flow_data.label, '殺した')
         self.assertEqual(flow.flow_data.description, '')
-        self.assertEqual(flow.flow_data.ports, [[],[]])
+        self.assertEqual(flow.flow_data.i_ports, [])
+        self.assertEqual(flow.flow_data.o_ports, [])
         self.assertTrue(flow.flow_data.has_nodes)
         self.assertEqual(len(flow.flow_data.get_nodes()), 1)
 
         # フローを編集ロックする
         flow.edit_lock = True
         self.assertTrue(flow.edit_lock)
+        self.assertTrue(flow.readable)
+        self.assertFalse(flow.writable)
 
         # 編集ロックされたフローは更新できないこと
         with self.assertRaises(EditLockedException):
@@ -2971,6 +3022,8 @@ class AuthTest(TestCaseBase):
         # 編集ロックを解除する
         flow.edit_lock = False
         self.assertFalse(flow.edit_lock)
+        self.assertTrue(flow.readable)
+        self.assertTrue(flow.writable)
 
         # 編集ロックが解除されたフローは更新できること
         flow_data = FlowData(copy.deepcopy(self.flow_json))
@@ -3008,10 +3061,14 @@ class AuthTest(TestCaseBase):
         # フローを編集ロックする
         flow.edit_lock = True
         self.assertTrue(flow.edit_lock)
+        self.assertTrue(flow.readable)
+        self.assertFalse(flow.writable)
 
         # 編集ロックを解除する
         flow.edit_lock = False
         self.assertFalse(flow.edit_lock)
+        self.assertTrue(flow.readable)
+        self.assertTrue(flow.writable)
 
         # 閲覧者は編集ロックの値を変更できないこと
         flow = self.factory3.data.find_by_uuid(flow.uuid)
@@ -3022,13 +3079,19 @@ class AuthTest(TestCaseBase):
         
         # 閲覧者でも編集ロックの値を参照できること
         self.assertFalse(flow.edit_lock)
+        self.assertTrue(flow.readable)
+        self.assertFalse(flow.writable)
 
         # 編集者は編集ロックの値を変更できること
         flow = self.factory0.data.find_by_uuid(flow.uuid)
         flow.edit_lock = True
         self.assertTrue(flow.edit_lock)
+        self.assertTrue(flow.readable)
+        self.assertFalse(flow.writable)
         flow.edit_lock = False
         self.assertFalse(flow.edit_lock)
+        self.assertTrue(flow.readable)
+        self.assertTrue(flow.writable)
         
         # 編集者は編集ロックの値を参照できること
         self.assertFalse(flow.edit_lock)
@@ -3070,6 +3133,8 @@ class AuthTest(TestCaseBase):
         # フローを編集ロックする
         flow.edit_lock = True
         self.assertTrue(flow.edit_lock)
+        self.assertTrue(flow.readable)
+        self.assertFalse(flow.writable)
 
         # 編集ロックされたフローは移動できないこと
         with self.assertRaises(EditLockedException):
@@ -3081,6 +3146,8 @@ class AuthTest(TestCaseBase):
         # 編集ロックを解除する
         flow.edit_lock = False
         self.assertFalse(flow.edit_lock)
+        self.assertTrue(flow.readable)
+        self.assertTrue(flow.writable)
 
         # 設定した編集ロックに基づいた_permissionsの値を再設定する
         # (編集ロックの設定のたびにreload()するのはテストコードの記述者にとっては面倒だが
@@ -3150,6 +3217,11 @@ class AuthTest(TestCaseBase):
         cache_folder = self.factory.data.load_cache_folder()
         with self.assertRaises(Exception):
             cache_folder.move(project.uuid)
+
+        # アクティビティフォルダは移動できないこと
+        activity_folder = self.factory.data.load_activity_folder()
+        with self.assertRaises(Exception):
+            activity_folder.move(project.uuid)
 
         # ゴミ箱は移動できないこと
         trashcan = self.factory.data.load_trash_folder()
@@ -3323,7 +3395,7 @@ class AuthTest(TestCaseBase):
 
         # ユーザ管理者はプロジェクトの参照・更新ができること
         project = self.factory.data.find_by_uuid(project.uuid)
-        project.update_data('これにて一件落着')
+        project.update_label('これにて一件落着')
 
         # ユーザ管理者はプロジェクトをほかせること
         project.throw_away()
@@ -3414,7 +3486,7 @@ class AuthTest(TestCaseBase):
 
         # 閲覧者はゴミを更新できないこと
         with self.assertRaises(NotAuthorizedException):
-            folder.update_data('不埒な悪行三昧')
+            folder.update_label('不埒な悪行三昧')
         with self.assertRaises(NotAuthorizedException):
             flow.update_data('醜い浮き世の鬼を', FlowData())
 
@@ -3543,7 +3615,7 @@ class AuthTest(TestCaseBase):
 
         # 閲覧者は、形代フォルダを更新できないこと
         with self.assertRaises(NotAuthorizedException):
-            trashed_folder.update_data('お隣の田中さんまた出世されたんですってよ')
+            trashed_folder.update_label('お隣の田中さんまた出世されたんですってよ')
 
         # 閲覧者は、形代フォルダをほかす前の場所に戻せないこと
         with self.assertRaises(NotAuthorizedException):
@@ -3595,7 +3667,7 @@ class AuthTest(TestCaseBase):
         flow = self.factory3.data.find_by_uuid(flow.uuid)
 
         # 編集者はゴミを更新できること
-        folder.update_data('簡単にはお〜しえないっ')
+        folder.update_label('簡単にはお〜しえないっ')
         flow.update_data('こんなに素敵なことを〜', FlowData())
 
         # 編集者はゴミを元の場所に戻せること
@@ -3615,6 +3687,44 @@ class AuthTest(TestCaseBase):
         # プロジェクトを削除する
         project.delete()
 
+    def test_cannot_read_activity_by_other_user(self):
+        """
+        プロジェクトメンバ以外のユーザがActivityを参照できないこと
+        """
+        # ルートフォルダを取得する
+        root = self.factory2.data.load_root()
+        # ルートフォルダの下にプロジェクトを作成する
+        project = root.create_project_folder('お腹ぺこぺこペコリーヌ')
+        project.save()
+        project = project.reload()
+
+        # プロジェクトの下にフローを作成する
+        flow_data = FlowData(copy.deepcopy(self.flow_json))
+        flow = project.create_flow('コッコロママ', flow_data)
+        flow.save()
+        flow = flow.reload() 
+
+        # フローを実行する
+        from kskp.engine import execute, FlowCommand
+        link = FlowCommand(flow)
+        outs = execute(command=link, args={}, inputs={})
+        # Activityを取得する
+        activity = AuthTest._get_activity(outs)
+
+        # プロジェクト管理者は、フローのActivityを参照できること
+        activity = self.factory2.data.find_by_uuid(activity.uuid)
+
+        # プロジェクトメンバ以外のユーザは、フローのActivityを参照できないこと
+        with self.assertRaises(NotAuthorizedException):
+            self.factory3.data.find_by_uuid(activity.uuid)
+
+        # プロジェクトをゴミ箱にほかす
+        project.throw_away()
+
+        # ゴミ箱を空にする
+        trashcan = self.factory2.data.find_trashcan()
+        trashcan.trash_all()
+
     def test_cannot_read_cache_by_other_user(self):
         """
         プロジェクトメンバ以外のユーザがキャッシュを参照できないこと
@@ -3633,9 +3743,9 @@ class AuthTest(TestCaseBase):
         flow = flow.reload() 
 
         # フローを実行する
-        from kskp.engine import execute, FlowJsonLink
-        link = FlowJsonLink(flow, self.factory2)
-        lasts = execute(link=link, args={}, inputs={})
+        from kskp.engine import execute, FlowCommand
+        link = FlowCommand(flow)
+        lasts = execute(command=link, args={}, inputs={})
         # フローの実行結果を取得する
         out_frame = AuthTest.get_frame_from_lasts(lasts)
 
@@ -3650,7 +3760,7 @@ class AuthTest(TestCaseBase):
             self.factory3.data.find_by_uuid(out_frame.uuid)
 
         # プロジェクト管理者は、フローのキャッシュを参照できること
-        cache_frame_uuid = flow.flow_data.get_cache_frame_uuids()[0]
+        cache_frame_uuid = next(iter(flow.flow_data.get_cache_frame_uuids()))
         cache_frame = self.factory2.data.find_by_uuid(cache_frame_uuid)
         # プロジェクト管理者は、フローのキャッシュを更新できること
         cache_frame.update_label('キャッシュ㊗')
@@ -3683,9 +3793,9 @@ class AuthTest(TestCaseBase):
         flow = flow.reload() 
 
         # フローを実行する
-        from kskp.engine import execute, FlowJsonLink
-        link = FlowJsonLink(flow, self.factory2)
-        lasts = execute(link=link, args={}, inputs={})
+        from kskp.engine import execute, FlowCommand
+        link = FlowCommand(flow)
+        lasts = execute(command=link, args={}, inputs={})
         # フローの実行結果を取得する
         out_frame = AuthTest.get_frame_from_lasts(lasts)
 
@@ -3703,7 +3813,7 @@ class AuthTest(TestCaseBase):
         self.assertEqual(out_frame.label, '神戸⚓️')
 
         # プロジェクト管理者は、フローのキャッシュを参照できること
-        cache_frame_uuid = flow.flow_data.get_cache_frame_uuids()[0]
+        cache_frame_uuid = next(iter(flow.flow_data.get_cache_frame_uuids()))
         cache_frame = self.factory2.data.find_by_uuid(cache_frame_uuid)
         # プロジェクト管理者は、フローのキャッシュを更新できること
         cache_frame.update_label('琵琶湖🛥')
@@ -3749,11 +3859,11 @@ class AuthTest(TestCaseBase):
         project.join_member(ProjectFolder.Member(self.USER3, ProjectFolder.READER_MEMBER_TYPE))
 
         # USER3は、フローにキャッシュのuuidを書き込めないので、フローを実行できない
-        from kskp.engine import execute, FlowJsonLink
+        from kskp.engine import execute, FlowCommand
         flow = self.factory3.data.find_by_uuid(flow.uuid)
-        link = FlowJsonLink(flow, self.factory3)
+        link = FlowCommand(flow)
         with self.assertRaises(CommandException) as e:
-            lasts = execute(link=link, args={}, inputs={})
+            lasts = execute(command=link, args={}, inputs={})
             AuthTest.get_frame_from_lasts(lasts)
         # CommandExceptionはNotAuthorizedExceptionを再送出していること
         self.assertIsInstance(e.exception.innerException, NotAuthorizedException)
@@ -3790,7 +3900,7 @@ class AuthTest(TestCaseBase):
         flow = flow.reload()
 
         # 編集者は、フローをプレビュー実行して、キャッシュファイルを作成する
-        from kskp.engine import execute, FlowJsonLink
+        from kskp.engine import execute, FlowCommand
         vis_args = { "d1" : 
                         {"args" :
                             {"visualizer" : "csvtohtmltable",
@@ -3800,11 +3910,11 @@ class AuthTest(TestCaseBase):
                         }
                     }
         flow = self.factory3.data.find_by_uuid(flow.uuid)
-        link = FlowJsonLink(flow, self.factory3, vis_args)
-        lasts = execute(link=link, args={}, inputs={})
+        link = FlowCommand(flow)
+        lasts = execute(command=link, args={'vis':vis_args}, inputs={})
 
         # キャッシュのUUIDを取得する
-        cache_frame_uuid = flow.flow_data.get_cache_frame_uuids()[0]
+        cache_frame_uuid = next(iter(flow.flow_data.get_cache_frame_uuids()))
         cache_frame = self.factory3.data.find_by_uuid(cache_frame_uuid)
 
         # 編集者は、フローを複製する
@@ -3812,7 +3922,7 @@ class AuthTest(TestCaseBase):
         duplicated_flow = flow.duplicate('君も寝具にしてやろうか?😈')
 
         # 複製したキャッシュのUUIDを取得する
-        duplicated_cache_frame_uuid = duplicated_flow.flow_data.get_cache_frame_uuids()[0]
+        duplicated_cache_frame_uuid = next(iter(duplicated_flow.flow_data.get_cache_frame_uuids()))
         duplicated_cache_frame = self.factory3.data.find_by_uuid(duplicated_cache_frame_uuid)
 
         # キャッシュが複製されていることを検証する
@@ -3882,13 +3992,12 @@ class AuthTest(TestCaseBase):
         self.assertIsNotNone(auths[5].modified_at)
 
         # 編集者は、複製したフローをプレビュー実行できること
-        link = FlowJsonLink(duplicated_flow, self.factory3, vis_args)
-        lasts = execute(link=link, args={}, inputs={})
+        link = FlowCommand(duplicated_flow)
+        lasts = execute(command=link, args={'vis':vis_args}, inputs={})
 
-        # プロジェクトに属さないユーザは、複製したフローをプレビュー実行できないこと
+        # プロジェクトに属さないユーザは、複製したフローを取得できないこと
         with self.assertRaises(NotAuthorizedException):
-            link = FlowJsonLink(duplicated_flow, self.factory0, vis_args)
-            lasts = execute(link=link, args={}, inputs={})
+            self.factory0.data.find_by_uuid(duplicated_flow.uuid)
 
         # フローを削除する
         flow.delete()
@@ -3974,8 +4083,7 @@ class AuthTest(TestCaseBase):
         # マスキングのフラグが存在しないこと
         self.assertNotIn('masked', nodes[2])
 
-        # USER3は、メインフローを実行できないこと
-        from kskp.engine import execute, FlowJsonLink
+        from kskp.engine import execute, FlowCommand
         vis_args = {
           "d1": {
             "args": {
@@ -3985,13 +4093,17 @@ class AuthTest(TestCaseBase):
             }
           }
         }
-        link = FlowJsonLink(flow2, self.factory3, vis_args)
+
+        # USER3は、メインフローを実行できないこと
+        flow2 = self.factory3.data.find_by_uuid(flow2.uuid)
+        link = FlowCommand(flow2)
         with self.assertRaises(Exception):
-            execute(link=link, args={}, inputs={})
+            execute(command=link, args={'vis':vis_args}, inputs={})
 
         # USER2は、メインフローを実行できること
-        link = FlowJsonLink(flow2, self.factory2, vis_args)
-        last = execute(link=link, args={}, inputs={})
+        flow2 = self.factory2.data.find_by_uuid(flow2.uuid)
+        link = FlowCommand(flow2)
+        last = execute(command=link, args={'vis':vis_args}, inputs={})
 
         # フローを削除する
         flow2.delete()
@@ -4101,8 +4213,8 @@ class AuthTest(TestCaseBase):
                             }
                         }
                     }
-        link = FlowCommand(flow1, vis_args)
-        lasts = execute(runnable=link, args={}, inputs={})
+        link = FlowCommand(flow1)
+        lasts = execute(command=link, args={'vis':vis_args}, inputs={})
 
         # キャッシュが作成されること
         cache_frame_uuids = flow1.flow_data.get_cache_frame_uuids()
@@ -4266,8 +4378,8 @@ class AuthTest(TestCaseBase):
                             }
                         }
                     }
-        link = FlowCommand(flow1, vis_args)
-        lasts = execute(runnable=link, args={}, inputs={})
+        link = FlowCommand(flow1)
+        lasts = execute(command=link, args={'vis':vis_args}, inputs={})
 
         # キャッシュが作成されること
         cache_frame_uuids = flow1.flow_data.get_cache_frame_uuids()
@@ -4278,8 +4390,8 @@ class AuthTest(TestCaseBase):
             self.assertTrue(cache_frame.path_exists)
 
         # キャッシュを削除する
-        cache_d_uuid = flow1.flow_data.unset_cache('d')
-        cache_d1_uuid = flow1.flow_data.unset_cache('d1')
+        cache_d_uuid = flow1.unset_cache('d')
+        cache_d1_uuid = flow1.unset_cache('d1')
         self.assertIsNotNone(cache_d_uuid)
         self.assertIsNotNone(cache_d1_uuid)
 
@@ -4481,6 +4593,45 @@ class AuthTest(TestCaseBase):
         self.assertEqual(role, usr_admin_role)
         self.assertEqual(cache_auths[2].operation, 'own')
         self.assertEqual(cache_auths[2].permission, True)
+
+    def test_activity_folder_auths(self):
+        """
+        アクティビティフォルダの権限設定を検証する
+        """
+        # アクティビティフォルダを取得する
+        activity = self.factory.data.load_activity_folder()
+
+        # アクティビティフォルダの権限を取得する
+        activity_auths = self.factory.auth.find_all_by_datum_id(activity.id)
+
+        # システムロールを取得する
+        everyone_role = self.factory.role.load_everyone_role()
+        usr_admin_role = self.factory.role.load_usr_admin_role()
+        
+        # アクティビティフォルダには、everyoneにRW権限が設定されること
+        # システムフォルダには、usr_adminにO権限が設定されること
+        # システムフォルダには、作成者の本人ロールの権限が設定されていないこと
+
+        # 権限設定の数は正しいこと
+        self.assertEqual(len(activity_auths), 3)
+
+        # everyone read
+        role = self.factory.role.find_by_id(activity_auths[0].role_id)
+        self.assertEqual(role, everyone_role)
+        self.assertEqual(activity_auths[0].operation, 'read')
+        self.assertEqual(activity_auths[0].permission, True)
+
+        # everyone write
+        role = self.factory.role.find_by_id(activity_auths[1].role_id)
+        self.assertEqual(role, everyone_role)
+        self.assertEqual(activity_auths[1].operation, 'write')
+        self.assertEqual(activity_auths[1].permission, True)
+
+        # usr_admin own
+        role = self.factory.role.find_by_id(activity_auths[2].role_id)
+        self.assertEqual(role, usr_admin_role)
+        self.assertEqual(activity_auths[2].operation, 'own')
+        self.assertEqual(activity_auths[2].permission, True)
 
     def test_trash_folder_auths(self):
         """

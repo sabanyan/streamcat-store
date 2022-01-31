@@ -1,4 +1,5 @@
 import json
+from typing import List
 from pathlib import Path
 from kskp.core import Command
 
@@ -25,6 +26,7 @@ class CommandLink:
     COMMAND_TABLE = {
         # テスト用コマンド
         'square': Square(),
+        'raise' : RaiseCommand(),
         # mコマンド
         'mcut': McutCommand(),
         'mselstr': MselstrCommand(),
@@ -129,9 +131,13 @@ class CommandLink:
         'multi_mvsim': MvSimCommand(),
         'plaintext2csv': PlainText2Csv(),
         'rowrange': RowRangeCommand(),
-        'convtoutf8' : ConvToUtf8(),
+        'rowrandom': RowRandomCommand(),
+        'convtoutf8' : ConvEncoding(),
+        'convtocp932' : ConvEncoding(),
         'align' : AlignColumns(),
         'to_list' : ToListCommand(),
+        'to_tlist' : ToTListCommand(),
+        'to_pipe' : ToNamedPipeCommand(),
         # IoT コマンド
         'ts_polation' : MissingValueInterpolateCommand(),
         'ts_mpid' : MeasurementPeriodIdentifyCommand(),
@@ -159,13 +165,13 @@ class CommandLink:
         'runs' : RunsCommand()
     }
 
-    def __init__(self, command_id):
+    def __init__(self, command_id:str):
         self.command_id = command_id
 
     def resolve(self):
         return self.select_runnable(self.command_id)
 
-    def select_runnable(self, runnable_id):
+    def select_runnable(self, runnable_id) -> Command:
         """
         idとなる文字列を受け取ってrunnableのインスタンスを返却する
         """
@@ -177,15 +183,14 @@ class Source:
     pass
 
 class PathFileSource(Source):
-    def __init__(self, path):
+    def __init__(self, path:Path):
         self.path = path
 
     def data(self):
-        from pathlib import Path
         return [PathLink(p) for p in Path(self.path).iterdir()]
 
 class PathLink(Command):
-    def __init__(self, source: PathFileSource):
+    def __init__(self, source:PathFileSource):
         super().__init__()
         self.context.update({'source': source})
 
@@ -193,25 +198,51 @@ class PathLink(Command):
         return f"PathLink({repr(self.context['source'].path.as_posix())})"
 
 class CommandsPathLink(PathLink):
-    def __init__(self, source):
+
+    # {path_str : command_data}
+    COMMAND_JSONS = {}
+
+    @staticmethod
+    def _read_command_jsons(path:Path):
+        # COMMAND_JSONSのハッシュキー
+        path_str = path.as_posix()
+        CommandsPathLink.COMMAND_JSONS[path_str] = []
+
+        for command_path in path.iterdir():
+            command_data = CommandsPathLink._read_command_json(command_path)
+            if command_data:
+                # 読み込んだコマンドJSONはメモリ(dict)に保持する
+                CommandsPathLink.COMMAND_JSONS[path_str].append(command_data)
+
+        return CommandsPathLink.COMMAND_JSONS[path_str]
+
+    @staticmethod
+    def _read_command_json(command_path:Path):
+        if not command_path.suffix == '.json':
+            return None
+        try:
+            command_json = command_path.read_text(encoding='utf-8')
+            return json.loads(command_json)
+        except Exception as e:
+            raise Exception(f'コマンドJSON({command_path})の読み込みに失敗しました ({e})')
+
+    def __init__(self, source:PathFileSource):
         super().__init__(source)
 
-    def run(self, args=None, inputs=None):
+    def run(self, args=None, inputs=None) -> List[dict]:
         """
         コマンド定義のJSONを読んで一覧を返す
         """
         if self.context['source'].path is None:
             return
 
-        commands = []
-        for command_path in self.context['source'].path.iterdir():
-            if not command_path.suffix == '.json':
-                continue
-            command_json = command_path.read_text(encoding='utf-8')
-            command_data = json.loads(command_json)
-            commands.append(command_data)
-
-        return commands
+        path = self.context['source'].path
+        path_str = path.as_posix()
+        if path_str in CommandsPathLink.COMMAND_JSONS:
+            # メモリ(dict)にコマンドJSONがある場合はメモリから読み込む
+            return CommandsPathLink.COMMAND_JSONS[path_str]
+        else:
+            return CommandsPathLink._read_command_jsons(path)
 
     def resolve(self, args=None, inputs=None):
         """
@@ -225,7 +256,7 @@ class CommandsPathFileSource(PathFileSource):
     コマンドJSONの一覧が入ったパスを持つsource
     """
 
-    def __init__(self, visible_command):
+    def __init__(self, visible_command:str):
         path = Path(__file__).resolve()
         commands_path = path.parent / visible_command / 'json'
         if commands_path.exists():

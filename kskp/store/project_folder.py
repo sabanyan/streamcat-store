@@ -45,7 +45,7 @@ class ProjectFolder(Folder):
 
     def move(self, parent_uuid, modifier=None):
         """
-        ゴミ箱へにほかされるか、ゴミ箱から元の場所に戻す場合を除いて
+        ゴミ箱へほかされるか、ゴミ箱から元の場所に戻す場合を除いて
         プロジェクトは移動できない
         """
         from kskp.store.factory import DatumFactory
@@ -97,7 +97,7 @@ class ProjectFolder(Folder):
         self_role = self.creator.load_self_role()
         self_role.clear_authz(self.id)
 
-    def update_data(self, label, modifier=None):
+    def update_label(self, label, modifier=None):
         """
         Projectのlabel列を更新する
         """
@@ -106,7 +106,7 @@ class ProjectFolder(Folder):
             raise NotAuthorizedException(f'プロジェクト管理者以外のメンバはプロジェクト({self.label})の名称を変更できません')
 
         # 更新処理はFolderクラスと同じ
-        super().update_data(label, modifier=modifier)
+        return super().update_label(label, modifier=modifier)
 
     def _find_readers_role(self):
         """
@@ -266,15 +266,17 @@ class ProjectFolder(Folder):
         super().delete()
 
     def is_joined_user(self, user):
-        from sqlalchemy import exists, and_, or_
+        from sqlalchemy import select, any_
         from kskp.store.auth import User, Auth, UserRole
 
-        exists_user_role = exists().where(and_(UserRole.user_id==user.id, UserRole.role_id==Auth.role_id))
-        exists_user = exists().where(and_(User.self_role_id==Auth.role_id, User.id==user.id))
+        # 操作ユーザの所属するロールを抽出するクエリ
+        UR = select(UserRole.role_id).select_from(UserRole).where(UserRole.user_id==user.id)
+        U  = select(User.self_role_id).select_from(User).where(User.id==user.id)
 
+        # ロールの抽出にはインデックスを参照させるためUNIONを用いる
         query = self._session.query(Auth).\
                      filter(Auth.datum_id==self.id).\
-                     filter(or_(exists_user_role, exists_user))
+                     filter(Auth.role_id==any_(UR.union_all(U)).scalar_subquery())
 
         return query.count() > 0
 
@@ -465,12 +467,12 @@ class ProjectFolder(Folder):
         exists_user_role = exists().where(and_(UserRole.user_id==User.id, UserRole.role_id==A.c.role_id))
         not_exists_role = ~exists().where(and_(Role.id==A.c.role_id, Role.uuid==except_role_uuid))
 
-        AU = select([
+        AU = select(
                 A.c.datum_id,
                 A.c.operation,
                 User.id.label('user_id'),
                 func.coalesce(func.bool_and(A.c.permission),false()).label('permission')
-             ]).\
+             ).\
              select_from(
                 A.outerjoin(User, or_(exists_user_role, User.self_role_id==A.c.role_id))
              ).\
@@ -488,34 +490,40 @@ class ProjectFolder(Folder):
         WRITE_PERMISSIONS  = READER_PERMISSIONS | Datum.PERMISSION_WRITE
         OWNER_PERMISSIONS  = WRITE_PERMISSIONS  | Datum.PERMISSION_OWN
 
+        # プロジェクトへの参加タイプのソート順を定義する
+        MEMBER_TYPE_CONV = {0: ProjectFolder.OWNER_MEMBER_TYPE,
+                            1: ProjectFolder.WRITER_MEMBER_TYPE,
+                            2: ProjectFolder.READER_MEMBER_TYPE,
+                            9: ProjectFolder.UNKNOWN_TYPE}
+
         query = self._session.query(
                     User,
                     case(
-                        {READER_PERMISSIONS : ProjectFolder.READER_MEMBER_TYPE,
-                         WRITE_PERMISSIONS  : ProjectFolder.WRITER_MEMBER_TYPE,
-                         OWNER_PERMISSIONS  : ProjectFolder.OWNER_MEMBER_TYPE},
+                        {READER_PERMISSIONS : 2,
+                         WRITE_PERMISSIONS  : 1,
+                         OWNER_PERMISSIONS  : 0},
                         value=func.sum(
-                                case([(AU.c.permission,
-                                    case([(AU.c.operation=='read',  Datum.PERMISSION_READ),
-                                          (AU.c.operation=='write', Datum.PERMISSION_WRITE),
-                                          (AU.c.operation=='exec',  Datum.PERMISSION_EXEC),
-                                          (AU.c.operation=='own',   Datum.PERMISSION_OWN)
-                                    ])
-                                )])
+                                case((AU.c.permission,
+                                    case((AU.c.operation=='read',  Datum.PERMISSION_READ),
+                                         (AU.c.operation=='write', Datum.PERMISSION_WRITE),
+                                         (AU.c.operation=='exec',  Datum.PERMISSION_EXEC),
+                                         (AU.c.operation=='own',   Datum.PERMISSION_OWN)
+                                    )
+                                ))
                               ),
-                        else_=ProjectFolder.OTHER_MEMBER_TYPE
-                    ).label('type')
+                        else_=9
+                    ).label('int_type')
                 ).\
                 select_from(AU).\
                 join(User, User.id==AU.c.user_id).\
                 group_by(User.id).\
-                order_by('type', User.name)
+                order_by('int_type', User.name)
 
         # Queryオブジェクトに代わりここでUserオブジェクトにsessionを設定する
         members = []
         for row in query.all():
             user = row[0]
-            type = row[1]
+            type = MEMBER_TYPE_CONV.get(row[1])
             user._session = self._session
             members.append(ProjectFolder.Member(user, type))
         return members

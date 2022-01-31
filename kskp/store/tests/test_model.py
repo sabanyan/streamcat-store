@@ -15,10 +15,10 @@ class LibraryTest(TestCaseBase):
 
     conn_json = {
         'protocol' : 'smb',
-        'hostname' : "kskds-HP-Workstation-z620.local",
+        'hostname' : "18.178.64.116",
         'domain'   : "WORKGROUP",
         'directory': "share",
-        'user_id'  : "ksk-ds",
+        'userId'  : "samba",
         'password' : "kskanalytics"
     }
 
@@ -142,7 +142,7 @@ class LibraryTest(TestCaseBase):
         # ルートデータストアの直下にフォルダを作成する
         folder = self.save_folder(root, 'フォルダ0')
         # 作成したフォルダのラベルを変更する
-        updated_folder = folder.update_data('新しいフォルダ', self.USER2)
+        updated_folder = folder.update_label('新しいフォルダ', self.USER2)
         # ラベルとディレクトリパスのみが変更されることを検証する
         self.assertEqual(updated_folder.id, folder.id)
         self.assertEqual(updated_folder.parent_id, folder.parent_id)
@@ -371,18 +371,22 @@ class LibraryTest(TestCaseBase):
             # ルートデータストアを取得する
             root = self.factory.data.load_root()
             # ルートデータストアの直下にフォルダを作成する
+            from_folder = self.save_folder(root, 'フォルダAABB')
             to_folder = self.save_folder(root, 'フォルダaabb')
-            # ルートデータストアの直下にリモートフォルダを作成する
+            # フォルダの直下にリモートフォルダを作成する
             conn = RemoteFolderConn(self.conn_json)
-            folder = self.save_rfolder(root, 'リモートフォルダ3', conn)
+            folder = self.save_rfolder(from_folder, 'リモートフォルダ3', conn)
+            # Mountする
+            # (Mountするとmove()では対応ディレクトリは移動されない)
+            folder.path
             # 作成したフォルダのラベルを変更する
             folder.move(to_folder.uuid, self.USER2)
             # ラベルとディレクトリパスのみが変更されることを検証する
             self.assertEqual(folder.id, folder.id)
             self.assertEqual(folder.parent_id, folder.parent_id)
             self.assertEqual(folder.uuid, folder.uuid)
-            # Moutableなフォルダは移動してもパスは変わらない
-            self.assertEqual(folder.path, root.path / 'リモートフォルダ3')
+            # Mount済みのリモートフォルダは移動してもパスは変わらない
+            self.assertEqual(folder.path, from_folder.path / 'リモートフォルダ3')
             self.assertEqual(folder.type, folder.type)
             self.assertEqual(folder.label, 'リモートフォルダ3')
             self.assertEqual(folder.creator, self.USER1)
@@ -395,10 +399,10 @@ class LibraryTest(TestCaseBase):
             folder.put_back()
             # ラベルとディレクトリパスのみが変更されることを検証する
             self.assertEqual(folder.id, folder.id)
-            self.assertEqual(folder.parent_id, root.id)
+            self.assertEqual(folder.parent_id, from_folder.id)
             self.assertEqual(folder.uuid, folder.uuid)
             # Moutableなフォルダは移動してもパスは変わらない
-            self.assertEqual(folder.path, root.path / 'リモートフォルダ3')
+            self.assertEqual(folder.path, from_folder.path / 'リモートフォルダ3')
             self.assertEqual(folder.type, folder.type)
             self.assertEqual(folder.label, 'リモートフォルダ3')
             self.assertEqual(folder.creator, self.USER1)
@@ -1084,7 +1088,7 @@ class LibraryTest(TestCaseBase):
         # ルートデータストアの直下にフォルダを作成する
         folder = self.save_folder(root, 'フォルダB')
         # 作成したフォルダのラベルを変更する
-        updated_folder = folder.update_data('/新しい\0フォルダ/', self.USER2)
+        updated_folder = folder.update_label('/新しい\0フォルダ/', self.USER2)
         # ラベルとディレクトリパスでは'/'や'\0'は使われない
         self.assertEqual(updated_folder.path, root.path / '／新しいフォルダ／')
         self.assertEqual(updated_folder.label, '/新しいフォルダ/')

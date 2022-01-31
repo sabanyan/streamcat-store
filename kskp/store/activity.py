@@ -1,4 +1,5 @@
-from kskp.core import Datum
+from kskp.core import Datum, Constraints
+from kskp.store import ApparentOut
 
 class Activity(Datum):
     """
@@ -9,7 +10,7 @@ class Activity(Datum):
         'polymorphic_identity' : 'activity'
     }
 
-    def __init__(self, session, parent, label, flow_uuid):
+    def __init__(self, session, parent, label, flow):
         """
         コンストラクタ
         """
@@ -18,23 +19,26 @@ class Activity(Datum):
         # Activityはファイルに保存せず、データベースに保存する
         self._path = None
 
+        # 対象のフローを保持する
+        self._flow = flow
+
         # 処理の開始時刻を取得する
         from datetime import datetime, timezone
-        start_time = datetime.utcnow().replace(tzinfo=timezone.utc)
+        self._start_at = datetime.utcnow().replace(tzinfo=timezone.utc)
 
         # data列の値を作成する
         # (同じインスタンスのpointの場合もあることに注意!!)
-        # [ApparentLast(point, datum, exs)]
-        self._lasts = []
-        self._data = {'start_time' : start_time, 'flow_uuid' : flow_uuid}
+        # [ApparentOut(point, datum, exs)]
+        self._outs = []
+        self._data = {'flowUuid': flow.uuid, 'startAt': str(self._start_at)}
 
-    def add(self, last):
-        self._lasts.append(last)
+    def add(self, out:ApparentOut):
+        self._outs.append(out)
 
     @property
     def is_success(self):
-        for last in self._lasts:
-            if last.has_exs:
+        for out in self._outs:
+            if out.has_exs:
                 return False
         return True
 
@@ -42,63 +46,169 @@ class Activity(Datum):
         """
         例外があれば、そのうち一つを送出する
         """
-        for last in self._lasts:
-            if last.has_exs:
-                raise last.exs[0]
+        for out in self._outs:
+            if out.has_exs:
+                raise out.exs[0]
         return
 
     def delete_all_frames(self):
         """
         全てのFrame(Cache含む)を削除する
         """
-        for last in self._lasts:
-            if last.has_frame:
-                last.datum.delete()
-                last.datum = None
+        for out in self._outs:
+            if out.has_frame:
+                out.datum.delete()
+                out.datum = None
 
     @property
     def exs(self):
-        return [(last.out_point, last.exs) for last in self._lasts if not last.has_cache and last.has_exs]
+        return [(out.out_point, out.exs) for out in self._outs if not out.has_cache and out.has_exs]
 
     @property
-    def lasts(self):
+    def outs(self):
         # Cacheは返さない
         # 同じPointにCacheとFrame(CacheとVis)が紐づくとややこしい
-        return [(last.out_point, last.datum) for last in self._lasts if not last.has_cache]
+        return [(out.out_point, out.datum) for out in self._outs if not out.has_cache]
 
-    def count_lasts(self):
-        return len(self._lasts)
+    @property
+    def frames(self):
+        """
+        作成したフレームのリストを返す
+        """
+        return [(out.out_point, out.datum) for out in self._outs if not out.has_cache and out.has_frame]
 
+    @property
+    def caches(self):
+        """
+        作成したキャッシュのリストを返す
+        """
+        return [(out.out_point, out.datum) for out in self._outs if out.has_cache]
+
+    def count_outs(self):
+        return len(self._outs)
+
+    @Constraints.prohibit_save_on_root
+    @Constraints.set_project_role_on_adding_activity
     def save(self):
         from datetime import datetime, timezone
-        from kskp.store import Frame, DataSource
+        from kskp.store import Frame
+
         # 現在時刻を取得する
-        end_time = datetime.utcnow().replace(tzinfo=timezone.utc)
-        end_time_str = end_time.astimezone().strftime('%H:%M:%S')
-        # 出力フレームのラベルに終了時刻と所要時間を付加する
-        for last in self._lasts:
-            if last.datum is None or last.datum.label is None:
-                # エラーが発生した、またはプレビューのlastはframeのlabelの変更は必要ない
-                continue
+        end_at = datetime.utcnow().replace(tzinfo=timezone.utc)
 
-            new_label = last.datum.label + ' 終了時刻' + end_time_str
-            elapsed_time = (end_time - self._data['start_time']).total_seconds()
-            if elapsed_time < 60.0:
-                elapsed_time_str = str(round(elapsed_time))
-                new_label = new_label + ' 全体処理時間' + elapsed_time_str + '秒'
+        outs = []
+        caches = []
+        exs = []
+        for out in self._outs:
+            out_item = {'id': out.out_point.id, 'label': out.out_point.label}
+
+            if not out.has_cache and out.has_exs:
+                # 出力Pointで例外が発生した場合
+                out_item['message'] = str(out.exs[0])
+                exs.append(out_item)
             else:
-                elapsed_time_str = str(round(elapsed_time / 60, 2))
-                new_label = new_label + ' 全体処理時間' + elapsed_time_str + '分'
+                out_item['datum'] = out.datum.uuid
+                # 出力Pointで結果を出力した場合
+                outs.append(out_item)
+                # 出力PointでCacheを出力した場合
+                if out.has_cache:
+                    caches.append(out_item)
+                # Frameの場合、対応ファイルの文字コードと改行コードを推測してその結果を登録する
+                if isinstance(out.datum, Frame):
+                    out.datum.update_encoding_newline()
+                # 結果Datumのラベル名を変更する
+                self._update_label(out.datum, end_at)
 
-            if isinstance(last.datum, Frame):
-                if last.datum.is_cache:
-                    # Cacheの場合
-                    # 対応ファイルの文字コードと改行コードを推測してその結果を登録する
-                    last.datum.update_encoding_newline()
-                else:
-                    # Frameの場合
-                    # 対応ファイルの文字コードと改行コードを推測してその結果を登録する
-                    last.datum.update_encoding_newline()
-                    last.datum.update_label_only(new_label)
-            elif isinstance(last.datum, DataSource):
-                last.datum.update_data(new_label, last.datum.flow_data.to_json())
+        # 現在時刻を格納する
+        self._data['endAt'] = str(end_at)
+        # 出力情報を格納する
+        self._data['outs'] = outs
+        self._data['caches'] = caches
+        self._data['exs'] = exs
+
+        try:
+            # Dataテーブルにレコードを新規追加する
+            self._session.add(self)
+        except Exception as e:
+            self._session.rollback()
+            raise e
+        finally:
+            self._session.commit()
+
+    def _update_label(self, datum:Datum, end_at):
+        """
+        結果Datumのラベル名を変更する
+        """
+        from kskp.store import Flow, Frame
+
+        end_time_str = end_at.astimezone().strftime('%H:%M:%S')
+        new_label = datum.label + ' 終了時刻' + end_time_str
+
+        elapsed_time = (end_at - self._start_at).total_seconds()
+        if elapsed_time < 60.0:
+            elapsed_time_str = str(round(elapsed_time))
+            new_label = new_label + ' 全体処理時間' + elapsed_time_str + '秒'
+        else:
+            elapsed_time_str = str(round(elapsed_time / 60, 2))
+            new_label = new_label + ' 全体処理時間' + elapsed_time_str + '分'
+
+        if isinstance(datum, Frame):
+            datum.update_label_only(new_label)
+        elif isinstance(datum, Flow):
+            datum.update_label(new_label)
+
+    def throw_away(self, lock_uuid=None):
+        """
+        Activityをゴミ箱にほかす
+        (テスト用)
+        """
+        from kskp.store.factory import DatumFactory
+        factory = DatumFactory(self._session)
+        trash_folder = factory.load_trash_folder()
+
+        try:
+            return self.move(trash_folder.uuid)
+        except Exception as e:
+            raise e
+
+    @Constraints.delete_role_when_isolated
+    def delete(self):
+        """
+        Activityを削除する
+        (テスト用)
+        """
+        try:
+            # Activityを削除する
+            self._session.delete(self)
+        except Exception as e:
+            self._session.rollback()
+            raise e
+        finally:
+            self._session.commit()
+
+    def to_json(self):
+
+        # 後方互換のため旧名称のキーでの取得も試みる
+        def get_value(primary_key:str, secondary_key:str):
+            if primary_key in self._data:
+                return self._data[primary_key]
+            elif secondary_key in self._data:
+                return self._data[secondary_key]
+            else:
+                return None
+
+        ret = super().to_json()
+        # 
+        ret['flowUuid'] = get_value('flowUuid', 'flow_uuid')
+        ret['startAt']  = get_value('startAt', 'start_time')
+        ret['endAt']    = get_value('endAt', 'end_time')
+        ret['outs']     = self._data.get('outs', [])
+        ret['caches']   = self._data.get('caches', [])
+        ret['exs']      = self._data.get('exs', [])
+        # allowlist
+        ret['allowlist']['update'] = False
+        ret['allowlist']['delete'] = False
+        ret['allowlist']['move'] = False
+        ret['allowlist']['copy'] = False 
+        ret['allowlist']['download'] = False
+        return ret

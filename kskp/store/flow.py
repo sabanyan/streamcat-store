@@ -22,35 +22,33 @@ class Flow(Datum):
         if not isinstance(flow_data, FlowData):
             raise Exception(f'Flow.__init__()の引数flow_dataに{type(flow_data).__name__}型が渡されましたFlowData型を渡してください.')
 
-        self._data = {'label' : label, 'flow' : flow_data.to_json()}
+        self._data = {'label':label, 'flow':flow_data.to_json()}
 
         # DBに保存する前のFlowへの参照と更新と実行権限は制限しない
         self._permissions = Datum.PERMISSION_READ | Datum.PERMISSION_WRITE | Datum.PERMISSION_EXEC
 
         # フローデータの妥当性を検証する
-        self.valid_uuids_in_flowdata_or_raise()
+        # self.valid_uuids_in_flowdata_or_raise()
 
     @property
     def flow_data(self):
-        def is_readable(uuid):
-            """
-            指定されたuuidのDatumのreadableの値を取得する
-            """
-            data = self._session.query(Datum).filter(Datum.uuid==uuid).all(ignore_authz=True)
-            if len(data) == 0:
-                return False
-            return data[0].readable
+        from typing import List
 
-        def is_executable(uuid):
+        def select_unreadables(uuids:List[str]) -> List[str]:
             """
-            指定されたuuidのDatumのexecutableの値を取得する
+            指定したuuidのうち参照権限の無いuuidを返す
             """
-            data = self._session.query(Datum).filter(Datum.uuid==uuid).all(ignore_authz=True)
-            if len(data) == 0:
-                return False
-            return data[0].executable
+            results = self._session.query(Datum).filter(Datum.uuid.in_(uuids)).all(ignore_authz=True)
+            return [result.uuid for result in results if not result.readable]
 
-        return FlowData(self._data['flow'], is_readable, is_executable, self._readable_or_raise, self._executable_or_raise)
+        def select_unexecutables(uuids:List[str]) -> List[str]:
+            """
+            指定したuuidのうち実行権限の無いuuidを返す
+            """
+            results = self._session.query(Datum).filter(Datum.uuid.in_(uuids)).all(ignore_authz=True)
+            return [result.uuid for result in results if not result.executable]
+
+        return FlowData(self._data['flow'], select_unreadables, select_unexecutables, self._readable_or_raise, self._executable_or_raise)
 
     def _executable_or_raise(self):
         from kskp.store.auth import NotAuthorizedException
@@ -61,7 +59,7 @@ class Flow(Datum):
 
     @Constraints.prohibit_save_on_root
     @Constraints.set_project_role_on_adding
-    def save(self):
+    def save(self, disable_validate_reference=False):
         """
         Flowを保存する
         """
@@ -69,6 +67,20 @@ class Flow(Datum):
         from kskp.store.factory import DatumFactory
         if self.parent_id is None and DatumFactory(self._session).count_root() > 0:
             raise Exception('You can not add another root flow. A root already exists.')
+
+        # 
+        # TODO: フローJSONの書式修正による後方互換!
+        # 
+        self.flow_data.remove_uuid_from_param()
+
+        # 不正なフローJSONがDBに格納されないよう、ここで書式の検証をする
+        self.flow_data.valid_flow_json_or_raise()
+
+        # フローデータの妥当性を検証する
+        # NOTE: フローのインポート時はファイルのインポート順によっては例外が発生するため、
+        #       disable_validate_reference=Trueにしている
+        disable_validate_reference or self.valid_uuids_in_flowdata_or_raise()
+
         try:
             # Dataテーブルにレコードを新規追加する
             self._session.add(self)
@@ -129,8 +141,6 @@ class Flow(Datum):
         #     if not Flow.exists(flow_uuid):
         #         raise Exception(f'フロー({flow_uuid})がライブラリにありません')
 
-        # フローデータの妥当性を検証する
-        self.valid_uuids_in_flowdata_or_raise()
 
         # ラベルに'\0'が含まれていれば取り除く
         new_label = Datum.escape_label(label)
@@ -154,6 +164,17 @@ class Flow(Datum):
 
         # マスクされたノードがあればマスクを外す
         flow_data.unmask_nodes(prev_flow_json=self._data['flow'])
+
+        # 
+        # TODO: フローJSONの書式修正による後方互換!
+        # 
+        flow_data.remove_uuid_from_param()
+
+        # 不正なフローJSONがDBに格納されないよう、ここで書式の検証をする
+        flow_data.valid_flow_json_or_raise()
+
+        # フローデータの妥当性を検証する
+        self.valid_uuids_in_flowdata_or_raise()
 
         try:
             # レコードを更新する
@@ -329,42 +350,50 @@ class Flow(Datum):
         edit_lock_value = not value and None
         edit_lock_role.init_authz(self.id, read=None, write=edit_lock_value)
 
+        # self._permissionsを更新する
+        # (編集ロックとself.writableの値を同期させる)
+        self.reload()
+
     def valid_uuids_in_flowdata_or_raise(self):
         from kskp.store.factory import DatumFactory
         factory = DatumFactory(self._session)
         # 参照するフレームがゴミ箱に存在しないことを確認する
-        for frame_uuid in self.flow_data.get_src_frame_uuids():
-            if factory.trashed(frame_uuid):
+        # (ignore_authz=True: ノードUUIDのマスキングをしない)
+        for frame_uuid in self.flow_data.get_src_frame_uuids(ignore_authz=True):
+            if not factory.exists(frame_uuid):
+                raise Exception(f'参照するフレーム({frame_uuid})は存在しません')
+            elif factory.trashed(frame_uuid):
                 frame = factory.find_by_uuid(frame_uuid)
                 raise Exception(f'ゴミ箱にあるフレーム({frame.label})は使用できません')
 
         # 参照するサブフローがゴミ箱に存在しないことを確認する
-        for flow_uuid in self.flow_data.get_sub_flow_uuids():
-            if factory.trashed(flow_uuid):
+        # (ignore_authz=True: ノードUUIDのマスキングをしない)
+        for flow_uuid in self.flow_data.get_sub_flow_uuids(ignore_authz=True):
+            if not factory.exists(flow_uuid):
+                raise Exception(f'参照するフロー({flow_uuid})は存在しません')
+            elif factory.trashed(flow_uuid):
                 flow = factory.find_by_uuid(flow_uuid)
                 raise Exception(f'ゴミ箱にあるフロー({flow.label})は使用できません')
 
     @Constraints.set_project_role_on_set_cache
-    def set_cache(self, node_id, cache, ignore_lock=False):
+    def set_cache(self, node_id, cache, lock_uuid=None):
         """
         指定するノードidにキャッシュを設定する
         """
         self.flow_data._set_cache(node_id, cache.uuid)
-        # TODO: 暫定的に、キャッシュの設定ではフローJsonの排他制御をしない
-        self.update_data(self.label, self.flow_data, ignore_lock=ignore_lock)
+        self.update_data(self.label, self.flow_data, lock_uuid=lock_uuid)
 
-    def unset_cache(self, node_id, ignore_lock=False) -> str:
+    def unset_cache(self, node_id, ignore_lock=False, lock_uuid=None) -> str:
         """
         指定するノードidのキャッシュを削除する
         """
         unset_cache_uuid = self.flow_data._unset_cache(node_id)
         if unset_cache_uuid is None:
             return None
-        # TODO: 暫定的に、キャッシュの設定ではフローJsonの排他制御をしない
-        self.update_data(self.label, self.flow_data, ignore_lock=ignore_lock)
+        self.update_data(self.label, self.flow_data, ignore_lock=ignore_lock, lock_uuid=lock_uuid)
         return unset_cache_uuid
 
-    def unset_all_caches(self, ignore_lock=False):
+    def unset_all_caches(self, lock_uuid=None):
         """
         全てのキャッシュを削除する
         """
@@ -374,8 +403,7 @@ class Flow(Datum):
             if unset_cache_uuid is None:
                 continue
             unset_cache_uuids.append(unset_cache_uuid)
-        # TODO: 暫定的に、キャッシュの設定ではフローJsonの排他制御をしない
-        self.update_data(self.label, self.flow_data, ignore_lock=ignore_lock)
+        self.update_data(self.label, self.flow_data, lock_uuid=lock_uuid)
         return unset_cache_uuids
 
     @Constraints.set_project_role_on_set_cache
@@ -402,76 +430,3 @@ class Flow(Datum):
         ret['allowlist']['export'] = self._session.has_usr_admin()
         ret['allowlist']['lock'] = self.writable_without_edit_lock
         return ret
-
-    @staticmethod
-    def create_flow(request_json, creator, data_source_name=None):
-        """
-        フローを作成する
-        TODO: とりあえず、model.pyから移動した
-        """
-        import uuid
-        import functools
-        from datetime import datetime, timedelta, timezone
-
-        if data_source_name is None:
-            data_source_name = str(uuid.uuid4())
-
-        def add_data_source_to_flow(source):
-            '''
-            フローに作成時にデータソースをつけるためのデコレータ
-            '''
-            def _deco(func):
-                @functools.wraps(func)
-                def deco():
-                    if source is None:
-                        return func()
-
-                    if not source.get('uuid'):
-                        return func()
-
-                    data = func()
-                    data_source = {
-                        "id": "i",
-                        "type": source.get('type'),
-                        "dataSource": "csv",
-                        "uuid": source.get('uuid'),
-                        "label": source.get('label')
-                    }
-
-                    data['nodes'] = []
-                    data['nodes'].append(data_source)
-                    return data
-                return deco
-            return _deco
-
-        def add_activity_to_flow(creator):
-            '''
-            フローに作成時に作成履歴をつけるためのデコレータ
-            '''
-            def _deco(func):
-                @functools.wraps(func)
-                def deco():
-                    data = func()
-                    data['creator'] = creator.name
-                    JST = timezone(timedelta(hours=+9), 'JST')
-                    data['createdAt'] = datetime.now(JST).strftime('%Y-%m-%d %H:%M:%S')
-                    return data
-                return deco
-            return _deco
-
-        @add_data_source_to_flow(request_json.get('datasource'))
-        @add_activity_to_flow(creator)
-        def make_flow_json():
-            data = {
-                # 'projectId': get_project_by_uuid(request_json.get('project_uuid')),
-                'projectId': None,
-                'label': request_json.get('name'),
-                'ports': [[],[]],
-                'params': [],
-                'description': ""
-            }
-            return data
-
-        data = make_flow_json()
-
-        return FlowData(data)

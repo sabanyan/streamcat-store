@@ -1,10 +1,9 @@
 """
 いわゆるルートクラスであるDatumを定義している
 """
-import os
 import sqlalchemy.types
 from pathlib import Path
-from sqlalchemy import Column, String, text
+from sqlalchemy import Column, String
 from sqlalchemy.sql import operators
 from sqlalchemy.orm import query_expression
 from sqlalchemy.dialects.postgresql import INTEGER, JSONB, ENUM, UUID
@@ -21,6 +20,8 @@ class Datum(BaseModel):
         SQLAlchemyにおいてpath列をpathオブジェクトで参照・登録できるようにする
         """
         impl = sqlalchemy.types.String
+        # キャッシュを許可する
+        cache_ok = True
 
         def process_bind_param(self, value, dialect):
             if value is None:
@@ -45,16 +46,17 @@ class Datum(BaseModel):
     DEFAULT_LIBRARY_PATH = Path('cmn')
 
     # type列の値の定義
-    PROJECT_TYPE = 'project'
-    FOLDER_TYPE  = 'folder'
-    AWSS3_TYPE   = 'awss3'
-    RFOLDER_TYPE = 'rfolder'
+    PROJECT_TYPE  = 'project'
+    FOLDER_TYPE   = 'folder'
+    AWSS3_TYPE    = 'awss3'
+    RFOLDER_TYPE  = 'rfolder'
     DATABASE_TYPE = 'database'
-    FLOW_TYPE  = 'flow'
-    FRAME_TYPE = 'frame'
+    FLOW_TYPE     = 'flow'
     COMMAND_TYPE  = 'command'
+    SCHEDULE_TYPE = 'schedule'
     ACTIVITY_TYPE = 'activity'
-    TRASH_TYPE = 'trash'
+    FRAME_TYPE    = 'frame'
+    DOCUMENT_TYPE = 'document'
     # 将来の拡張のために予約するtype値
     APPLICATION_TYPE = 'app'
     EXCEL_TYPE = 'excel'
@@ -64,14 +66,17 @@ class Datum(BaseModel):
     IMAGE_TYPE = 'image'
     TEXT_TYPE  = 'text'
     HTML_TYPE  = 'html'
+    TRASH_TYPE = 'trash'
     UNKNOWN_TYPE = 'unknown'
 
     RESULT_FOLDER_UUID  = 'aacb4914-0695-40fc-b14b-95b7f1f81707'
     RESULT_FOLDER_LABEL = '実行結果'
-    CACHE_FOLDER_UUID  = 'cc9f050d-b007-414e-a6e0-6d31a9c13395'
-    CACHE_FOLDER_LABEL = 'キャッシュ'
-    FLOW_FOLDER_UUID  = 'ff37fe34-9c25-4ad0-b74a-affda3712a45'
-    FLOW_FOLDER_LABEL = 'フロー'
+    CACHE_FOLDER_UUID   = 'cc9f050d-b007-414e-a6e0-6d31a9c13395'
+    CACHE_FOLDER_LABEL  = 'キャッシュ'
+    FLOW_FOLDER_UUID    = 'ff37fe34-9c25-4ad0-b74a-affda3712a45'
+    FLOW_FOLDER_LABEL   = 'フロー'
+    ACTIVITY_FOLDER_UUID  = 'aa2799ba-798e-4fa3-984c-b3fad92fd162'
+    ACTIVITY_FOLDER_LABEL = 'アクティビティ'
 
     # AuthzSessionが返す権限設定ののビットフラグ(_permissions)
     PERMISSION_READ   = 0b1_00_0_0
@@ -92,8 +97,6 @@ class Datum(BaseModel):
     parent_id    = Column(INTEGER)
     prev_parent_id = Column(INTEGER)
     uuid         = Column(UUID, nullable=False, unique=True)
-    _path        = Column('path', PathType, nullable=False)
-    _label       = Column('label', String)
     # PostgreSQLのENUM型の要素を変更してもSQLAlchemyから自動的に変更がかからないので手動で変更する必要がある
     type         = Column(ENUM( PROJECT_TYPE,
                                 FOLDER_TYPE,
@@ -101,10 +104,11 @@ class Datum(BaseModel):
                                 RFOLDER_TYPE,
                                 DATABASE_TYPE,
                                 FLOW_TYPE,
-                                FRAME_TYPE,
                                 COMMAND_TYPE,
+                                SCHEDULE_TYPE,
                                 ACTIVITY_TYPE,
-                                TRASH_TYPE,
+                                FRAME_TYPE,
+                                DOCUMENT_TYPE,
                                 APPLICATION_TYPE,
                                 EXCEL_TYPE,
                                 PDF_TYPE,
@@ -113,9 +117,13 @@ class Datum(BaseModel):
                                 IMAGE_TYPE,
                                 TEXT_TYPE,
                                 HTML_TYPE,
+                                TRASH_TYPE,
                                 UNKNOWN_TYPE,
                                 name='data_type'), nullable=False)
+    _label       = Column('label', String)
+    _path        = Column('path', PathType, nullable=False)
     _data        = Column('data', JSONB)
+    _desc        = Column('desc', String)
 
     # 各種権限(queryで追加した列の結果を格納する)
     _permissions = query_expression()
@@ -148,6 +156,12 @@ class Datum(BaseModel):
         import uuid
         self.uuid = str(uuid.uuid4())
 
+        # type
+        self.type = datum_type
+
+        # label
+        self._label = Datum.escape_label(label)
+
         # pathは親フォルダのpathを引き継ぐ
         if parent is None:
             # 親フォルダがない場合はデフォルトパスとする
@@ -156,74 +170,14 @@ class Datum(BaseModel):
             dir_name = Datum.escape_filename(label)
             self._path = parent._path / dir_name
 
-        # label
-        self._label = Datum.escape_label(label)
-
-        # type
-        self.type = datum_type
-
         # DBに保存する前のDatumへの参照と更新権限は制限しない
         self._permissions = Datum.PERMISSION_READ | Datum.PERMISSION_WRITE
 
+        # DBに保存する前は空文字を設定する
+        self._folder_path = ''
+
         # Engineから参照する
         self.context = {}
-
-    @property
-    def path(self):
-        from kskp.store import Mountable
-        # 
-        # TODO:
-        # remount()処理はここに記述せずに、Mountable側でpathプロパティを再定義して
-        # そこで、remount()処理を記述したいと思う。
-        # 
-
-        # 参照権限が無ければ例外を送出する
-        self._readable_or_raise()
-
-        if self._path is None or self._path == '':
-            return None
-
-        if self._path.exists():
-            # ここで_pathがマウントポイントで、かつUnmount状態のとき、そのまま_pathを返してしまうと、
-            # children_getter._synchronize()によりS3バケットが空になってしまうので以下の場合分けを行う
-            if self._path.is_dir:
-                if isinstance(self, Mountable):
-                    # _pathがディレクトリで、かつマウントポイントの場合、再マウント処理をする
-                    Mountable.remount(self._session, self.id)
-                    # return Path(self._path)
-                else:
-                    # _pathがディレクトリで、かつマウントポイントでない場合は、再マウント処理はしない
-                    # return Path(self._path)
-                    pass
-            else:
-                # _pathが(ディレクトリでない)ファイルで、かつ存在する場合は、再マウント処理はしない
-                # return Path(self._path)
-                pass
-        else:
-            if self.id is None:
-                # 再マウント処理ができない場合
-                # return Path(self._path)
-                pass
-            else:
-                # pathに対応するファイルまたはディレクトリが無い場合、再マウント処理する
-                Mountable.remount(self._session, self.id)
-                if not self._path.exists():
-                    # 再マウント処理をしてもファイルまたはディレクトリがない場合は、例外を送出する
-                    # (ここで例外を送出するとexists(path)で存在チェックができなくなる)
-                    # raise Exception('No file or directory of the path property exists.')
-                    pass
-                # return Path(self._path)
-                pass
-
-        # 必ず相対pathを返す
-        # return Path(self._to_rel_path(self._path))
-
-        # 絶対パスを返す
-        return Path(Datum._to_abs_path(self._path))
-
-    @property
-    def path_exists(self):
-        return self._path.exists()
 
     @property
     def label(self):
@@ -233,6 +187,25 @@ class Datum(BaseModel):
             return self._data.get('label') or ''
         else:
             return self._label
+
+    @property
+    def path(self):
+        # 参照権限が無ければ例外を送出する
+        self._readable_or_raise()
+
+        if self._path is None or self._path == '':
+            return None
+
+        # 絶対パスを返す
+        return Datum._to_abs_path(self._path)
+
+    @property
+    def path_exists(self):
+        return self._path.exists()
+
+    @property
+    def desc(self):
+        return self._desc or ''
 
     @property
     def readable(self):
@@ -279,16 +252,17 @@ class Datum(BaseModel):
         """
         自身の親フォルダまでのフォルダパスを返す
         """
-        # _folder_path=None場合は、DataumがDBに保存されてないで
+        # _folder_path=''の場合は、DataumがDBに保存されてないので
         # その場合は親フォルダのfolder_pathと親フォルダのラベルからフォルダパス文字列を作成する
-        if self._folder_path is None:
-            if self.is_root:
-                return '/'
+        # (TODO: この機能は削除したい)
+        if self._folder_path=='':
             parent = self.find_parent()
             if parent.is_root:
-                return parent.folder_path + parent.label
+                return '/' + parent.label
             else:
-                return parent.folder_path + '/' + parent.label
+                parent_folder_path = parent.folder_path
+                # 親フォルダのフォルダパスが取得できない場合はNoneを返す
+                return parent_folder_path and (parent_folder_path + '/' + parent.label)
         else:
             return self._folder_path
 
@@ -303,16 +277,6 @@ class Datum(BaseModel):
     @property
     def is_root(self):
         return self.parent_id is None
-
-    # @property
-    # def prev_parent_id(self):
-    #     if self._data is None:
-    #         return None
-    #     return self._data.get('prev_parent_id')
-
-    # @prev_parent_id.setter
-    # def prev_parent_id(self, id):
-    #     self._data['prev_parent_id'] = id
 
     @property
     def data_is_empty(self):
@@ -335,14 +299,14 @@ class Datum(BaseModel):
 
         # cte: Common Table Expression WITH句のこと
         D0 = aliased(Datum, name='D0')
-        R = select([D0.id, D0.parent_id, D0.type]).select_from(D0).\
+        R = select(D0.id, D0.parent_id, D0.type).select_from(D0).\
             where(D0.id==self.id).\
             cte(name='R', recursive=True)
 
         # WITH句にUNION ALLを用いて再帰クエリとする
         D = aliased(Datum, name='D')
         R = R.union_all(
-                select([D.id, D.parent_id, D.type]).\
+                select(D.id, D.parent_id, D.type).\
                 select_from(R.join(D, and_(D.id==R.c.parent_id,
                                            R.c.type!=Datum.PROJECT_TYPE)))
             )
@@ -362,6 +326,25 @@ class Datum(BaseModel):
         # Sessionにあるself._permissionsを期限切れ状態にしてDBからリロードされるようにする
         factory._session._session.expire(self, ['_permissions'])
         return factory.find_by_id(self.id)
+
+    def update_label(self, label, modifier=None):
+        """
+        Datumのラベルを更新する
+        """
+        # ラベルに'\0'が含まれていれば取り除く
+        new_label = Datum.escape_label(label)
+
+        try:
+            # ラベルを更新する
+            self._label = new_label
+            self._modifier_id = (modifier or self._session.user).id
+            self._session.update(self)
+        except Exception as e:
+            self._session.rollback()
+            raise e
+        finally:
+            self._session.commit()
+        return self
 
     @Constraints.prohibit_move_to_root
     @Constraints.prohibit_move_system_folder
@@ -386,12 +369,6 @@ class Datum(BaseModel):
             raise Exception('移動先の指定はフォルダ、プロジェクトまたはゴミ箱のUUIDしか許可していません')
         elif not self._session.writable(to_folder):
             raise NotAuthorizedException((f'{self._session.user}は{to_folder.label}の更新権限がないため{self.label}を移動できません'))
-
-        # # 移動対象がマウントポイントの場合は、path列を変更することはマウントポイントを変更することになるので
-        # # とりあえずエラーとする
-        # from kskp.store import Mountable
-        # if isinstance(self, Mountable):
-        #     raise Exception('マウントポイントフォルダを移動することはできません')
 
         if parent_uuid == self.uuid:
             raise Exception('移動先と移動元の指定が同じです')
@@ -475,6 +452,11 @@ class Datum(BaseModel):
         factory = DatumFactory(self._session)
         trash_folder = factory.load_trash_folder()
 
+        # 削除しようとするDatumが、フローで使用されている場合は例外を送出する
+        using_flow_uuids = self.get_flow_uuids_using_me()
+        if len(using_flow_uuids) > 0:
+            raise Exception(f"このファイルはフロー({using_flow_uuids[0]['reference_label']})で使用しているため削除できません")
+
         return self.move(trash_folder.uuid)
 
     def put_back(self):
@@ -527,21 +509,6 @@ class Datum(BaseModel):
                 return [datum.move(prev_parent_uuid)], []
             except Exception as e:
                 return [], [e]
-
-    # def _get_folder_path(self, parent_id):
-    #     from kskp.store.auth import NotAuthorizedException
-    #     from kskp.store.factory import DatumFactory
-
-    #     factory = DatumFactory(self._session)
-    #     if parent_id is None or not factory.exists_by_id(parent_id):
-    #         return None
-    #     else:
-    #         try:
-    #             parent = factory.find_by_id(parent_id)
-    #         except NotAuthorizedException:
-    #             # 参照権限がないため移動元の親Datumが取得できない場合、Noneを返す
-    #             return None
-    #         return '/' + '/'.join([folder.get('label') for folder in parent.get_folder_path()])
 
     def __repr__(self):
         return f'Datum({self.id}, {self._label}, {self.type})'
@@ -631,7 +598,7 @@ class Datum(BaseModel):
         # DataのTableオブジェクト
         D = Datum.__table__
 
-        select_stmt = select([Datum.uuid]).\
+        select_stmt = select(Datum.uuid).\
                       select_from(D).\
                       where(and_(Datum.type==Datum.FLOW_TYPE,
                                  Datum.uuid!=self.uuid, 
@@ -647,7 +614,7 @@ class Datum(BaseModel):
         そのようなFlowを全て返す
         """
         from sqlalchemy.orm import aliased
-        from sqlalchemy.sql.expression import select, func, exists, and_, cast
+        from sqlalchemy.sql.expression import select, func, exists, and_, cast, text
 
         sql = """
         WITH RECURSIVE
@@ -664,11 +631,20 @@ class Datum(BaseModel):
         SELECT U.uuid, U.label
         FROM (SELECT D.uuid as uuid,
                      D.label as label,
-                     jsonb_path_query(
-                         D.data,
-                         '$.flow.nodes?(@.type != "command" && @.type != "note").uuid'
-                     ) AS ref_uuid
-              FROM data D
+                     COALESCE(ref_uuid0, ref_uuid1) AS ref_uuid
+              FROM (SELECT D.uuid  AS uuid,
+                           D.label AS label
+                           JSONB_PATH_QUERY(
+                                D.data,
+                                '$.flow.nodes?(@.type != "command" && @.type != "note").uuid?(@!=null)'
+                           ) AS ref_uuid0,
+                           JSONB_PATH_QUERY(
+                                D.data,
+                                '$.flow.nodes?(@.type == "flow").*.uuid?(@!=null)'
+                           ) AS ref_uuid1
+                    FROM
+                        data) D
+
               WHERE D.type = 'flow'
                 AND NOT EXISTS (SELECT * FROM R WHERE R.id = D.id)) U
         WHERE EXISTS (SELECT * FROM R
@@ -677,7 +653,7 @@ class Datum(BaseModel):
 
         # id : 検索対象Datumから葉ノードへの経路の全てのDatumのid
         D0 = aliased(Datum, name='D0')
-        R = select([D0.id, D0.uuid]).\
+        R = select(D0.id, D0.uuid).\
             select_from(D0).\
             where(D0.id==self.id).\
             cte(name='R', recursive=True) 
@@ -686,17 +662,17 @@ class Datum(BaseModel):
         # WITH句にUNION ALLを用いて再帰クエリとする
         D1 = aliased(Datum, name='D1')
         R = R.union_all(
-                select([D1.id, D1.uuid]).\
+                select(D1.id, D1.uuid).\
                 select_from(R.join(D1, D1.parent_id==R.c.id))
             )
 
         # ゴミ箱の中のDatumを全て取得する再帰クエリ
-        T = select([D0.id, D0.uuid]).\
+        T = select(D0.id, D0.uuid).\
             select_from(D0).\
             where(D0.type==Datum.TRASH_TYPE).\
             cte(name='T', recursive=True)
         T = T.union_all(
-                select([D1.id, D1.uuid]).\
+                select(D1.id, D1.uuid).\
                 select_from(T.join(D1, D1.parent_id==T.c.id))
             )
 
@@ -713,10 +689,16 @@ class Datum(BaseModel):
         #  R : 自分と自分の子孫
         #  U : 自分と自分の子孫以外のFlow
         #  U.ref_uuid : 自分と自分の子孫以外のFlowが参照しているuuid
-        jsonpath = '$.flow.nodes?(@.type != "command" && @.type != "note").uuid'
-        U = select([D.c.uuid,
-                    D.c.label,
-                    func.jsonb_path_query(D.c.data, jsonpath).label('ref_uuid')]).\
+
+        # ノードから参照するUUID
+        # ..property : 指定されたプロパティ名を再帰的に検索し、このプロパティ名を持つすべての値の配列を返す
+        #              (ただしPostgreSQLでは .**.property で指定するようだ)
+        jsonpath = '$.flow.nodes?(@.type != "command" && @.type != "note").**.uuid?(@!=null)'
+
+        # NOTE: jsonb_path_query()をcoalesce()の引数に指定できない
+        U = select(D.c.uuid,
+                   D.c.label,
+                   func.jsonb_path_query(D.c.data, jsonpath).label('ref_uuid')).\
             select_from(D).\
             where(and_(D.c.type==Datum.FLOW_TYPE, not_exists_inner, not_exists_trash)).\
             alias('U')
@@ -727,10 +709,11 @@ class Datum(BaseModel):
         exists_inner = exists().where(predicate)
 
         # メインSQL
-        select_stmt = select([U.c.uuid,U.c.label,U.c.ref_uuid]).\
+        select_stmt = select(U.c.uuid,U.c.label,U.c.ref_uuid).\
                       select_from(U).\
-                      where(exists_inner)
-        
+                      where(exists_inner).\
+                      distinct()
+
         # SQLを発行する
         results = self._session.execute(select_stmt)
         return [{'reference_uuid' :result[0],
@@ -781,7 +764,7 @@ class Datum(BaseModel):
         return label.translate(trans_table)
 
     @staticmethod
-    def make_unique_path(path, except_path=None):
+    def make_unique_path(path:Path, except_path=None) -> Path:
         """
         同じ名称のファイルが既に存在する場合、末尾に数字を付加したファイル名で作成する
         except_path : 存在チェックを除外するファイル名
@@ -798,6 +781,7 @@ class Datum(BaseModel):
         """
         ファイル名の末尾に'_1'を付加する、既に'_数字'が末尾にある場合は数字をインクリメントする。
         """
+        import os
         (body, ext) = os.path.splitext(filename)
         # 後ろから1番目の'_'でファイル名を区切る
         bodylist = body.rsplit('_', 1)
@@ -810,14 +794,14 @@ class Datum(BaseModel):
             return body + '_1' + ext
 
     @staticmethod
-    def _to_abs_path(path):
+    def _to_abs_path(path:Path):
         if path.is_absolute():
             return path
         else:
             return Datum.STORE_DIR / path
 
     @staticmethod
-    def _to_rel_path(path):
+    def _to_rel_path(path:Path):
         # if path.startswith('/'):
         if path.is_absolute():
             # ディレクトリトラバーサルには対応していない
@@ -826,7 +810,7 @@ class Datum(BaseModel):
             return path
 
     @staticmethod
-    def is_valid_uuid(uuid):
+    def is_valid_uuid(uuid) -> bool:
         """
         uuidの形式チェック
         """

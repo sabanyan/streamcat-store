@@ -12,14 +12,16 @@ from .exceptions import (
     FieldForbiddenCharacterException
 )
 from .store_model import Store as StoreModel
-from .store import Store, NysolModule, ModuleStore, List, ApparentLast
+from .store import Store, NysolModule, BeamModule, ModuleStore, Matrix, Stream, ApparentOut
 from .mountable import Mountable
+from .file import File
 from .frame import Frame
+from .document import Document
 from .activity import Activity
 from .vis import Vis, BokehPlotVis
 from .flow_data import FlowData
 from .flow import Flow
-from .datasource import DataSource
+# from .datasource import DataSource
 from .folder import Folder
 from .project_folder import ProjectFolder
 from .trashcan import TrashCan

@@ -29,11 +29,11 @@ class Query():
     def _create_query(self, query, session):
         return Query(query, session)
 
-    def get(self, ident):
-        result = self._query.get(ident)
-        if Query._is_base_model(result):
-            result._session = self._session
-        return result
+    # def get(self, ident):
+    #     result = self._query.get(ident)
+    #     if Query._is_base_model(result):
+    #         result._session = self._session
+    #     return result
 
     def one(self):
         result = self._query.one()
@@ -98,15 +98,15 @@ class AuthzDatumQuery(Query):
     def _create_query(self, query, session):
         return AuthzDatumQuery(query, session)
 
-    def get(self, ident):
-        from kskp.core import Datum
-        result = self._query.get(ident)
-        if Query._is_base_model(result):
-            result._session = self._session
-            # 参照権限のないDatumの場合はNoneを返す
-            if isinstance(result, Datum) and not result.readable:
-                return None
-        return result
+    # def get(self, ident):
+    #     from kskp.core import Datum
+    #     result = self._query.get(ident)
+    #     if Query._is_base_model(result):
+    #         result._session = self._session
+    #         # 参照権限のないDatumの場合はNoneを返す
+    #         if isinstance(result, Datum) and not result.readable:
+    #             return None
+    #     return result
 
     def one(self):
         from kskp.core import Datum
@@ -175,9 +175,9 @@ class AuthzDatumQuery(Query):
              join(table('roles'), text('auths.role_id=roles.id')).\
              join(table('users_roles'), text(f'roles.id=users_roles.role_id and users_roles.user_id={self._user.id}'))
         
-        tb = select([text('bool_and(auths.permission) AS write')]).select_from(ta).\
+        tb = select(text('bool_and(auths.permission) AS write')).select_from(ta).\
              where(text(f"auths.datum_id=data.id AND auths.operation='{Auth.WRITE_OP}' ")).alias('V')
 
-        stmt = exists(select([1]).select_from(tb).where(text('write=True')))
+        stmt = exists(select(1).select_from(tb).where(text('write=True')))
         
         return stmt

@@ -1,5 +1,5 @@
 import copy
-from kskp.engine import execute, FlowJsonLink
+from kskp.engine import execute, FlowCommand
 from kskp.store import FlowData
 from .test_case_base import TestCaseBase
 
@@ -17,45 +17,42 @@ class AssertCmdTest(TestCaseBase):
         "label": "テストフロ",
         "params": [],
         "description": "",
-        "ports": [
-            [],
-            []
-        ],
+        "ports": [[],[]],
         "nodes": [
             {
-            "id": "i",
-            "type": "frame",
-            "label": "テストデータ",
-            "value": [['顧客','数量','金額'],
-                ['A',1,10],
-                ['A',2,20],
-                ['B',1,30],
-                ['B',3,40],
-                ['B',1,50]],
-            "dataSource": "csv"
+                "id": "i",
+                "label": "テストデータ",
+                "type": "frame",
+                "value": [['顧客','数量','金額'],
+                    ['A',1,10],
+                    ['A',2,20],
+                    ['B',1,30],
+                    ['B',3,40],
+                    ['B',1,50]],
+                "dataSource": "csv"
             },
             {
-            "type": "frame",
-            "id": "d1",
-            "label": "d1",
-            "uuid": None,
-            "dataSource": "csv"
+                "id": "d1",
+                "type": "frame",
+                "label": "d1",
+                "uuid": None,
+                "dataSource": "csv"
             },
             {
-            "type": "command",
-            "id": "c1",
-            "label": "c1",
-            "srcs": {
-                "i": "i"
-            },
-            "dsts": {
-                "o": "d1"
-            },
-            "args": {
-                "f": "0,1",
-                "x": True
-            },
-            "commandId": "mcut"
+                "id": "c1",
+                "label": "c1",
+                "type": "command",
+                "srcs": {
+                    "i": "i"
+                },
+                "dsts": {
+                    "o": "d1"
+                },
+                "args": {
+                    "f": "0,1",
+                    "x": True
+                },
+                "commandId": "mcut"
             }
         ]
     }
@@ -64,15 +61,12 @@ class AssertCmdTest(TestCaseBase):
         "label": "テストフロ",
         "params": [],
         "description": "",
-        "ports": [
-            [],
-            []
-        ],
+        "ports": [[],[]],
         "nodes": [
             {
                 "id": "i",
-                "type": "frame",
                 "label": "テストデータ",
+                "type": "frame",
                 "value": [['顧客','数量','金額'],
                     ['A',1,10],
                     ['A',2,20],
@@ -82,16 +76,16 @@ class AssertCmdTest(TestCaseBase):
                 "dataSource": "csv"
             },
             {
-                "type": "frame",
                 "id": "d1",
                 "label": "d1",
+                "type": "frame",
                 "uuid": None,
                 "dataSource": "csv"
             },
             {
                 "id": "i2",
-                "type": "frame",
                 "label": "テストデータ2",
+                "type": "frame",
                 "value": [['顧客','数量','金額'],
                     ['A',1,10],
                     ['B',1,30]],
@@ -99,20 +93,19 @@ class AssertCmdTest(TestCaseBase):
             },
             {
                 "id": "c1",
+                "label": "c1",
+                "type": "command",
+                "commandId": "assert",
                 "args": {
                     "dlimit": "10"
                 },
                 "dsts": {
-                "o": "d1"
+                    "o": "d1"
                 },
                 "srcs": {
-                "i": "i",
-                "m": "i2"
-                },
-                "type": "command",
-                "error": {},
-                "label": "c1",
-                "commandId": "assert"
+                    "i": "i",
+                    "m": "i2"
+                }
             }
         ]
     }
@@ -121,15 +114,12 @@ class AssertCmdTest(TestCaseBase):
         "label": "テストフロ",
         "params": [],
         "description": "",
-        "ports": [
-            [],
-            []
-        ],
+        "ports": [[],[]],
         "nodes": [
             {
                 "id": "i",
-                "type": "frame",
                 "label": "テストデータ",
+                "type": "frame",
                 "value": [['顧客','数量','金額'],
                     ['A',1,10],
                     ['A',2,20],
@@ -139,16 +129,16 @@ class AssertCmdTest(TestCaseBase):
                 "dataSource": "csv"
             },
             {
-                "type": "frame",
                 "id": "d1",
                 "label": "d1",
+                "type": "frame",
                 "uuid": None,
                 "dataSource": "csv"
             },
             {
                 "id": "i2",
-                "type": "frame",
                 "label": "テストデータ2",
+                "type": "frame",
                 "value": [['顧客','数量','金額'],
                     ['A',1,10],
                     ['A',2,20],
@@ -159,21 +149,20 @@ class AssertCmdTest(TestCaseBase):
             },
             {
                 "id": "c1",
+                "label": "c1",
+                "type": "command",
+                "commandId": "assert",
                 "args": {
                     "verbose": True,
                     "dlimit": "10"
                 },
                 "dsts": {
-                "o": "d1"
+                    "o": "d1"
                 },
                 "srcs": {
-                "i": "i",
-                "m": "i2"
-                },
-                "type": "command",
-                "error": {},
-                "label": "c1",
-                "commandId": "assert"
+                    "i": "i",
+                    "m": "i2"
+                }
             }
         ]
     }
@@ -182,15 +171,12 @@ class AssertCmdTest(TestCaseBase):
         "label": "テストフロ",
         "params": [],
         "description": "",
-        "ports": [
-            [],
-            []
-        ],
+        "ports": [[],[]],
         "nodes": [
             {
                 "id": "i",
-                "type": "frame",
                 "label": "テストデータ",
+                "type": "frame",
                 "value": [['顧客','数量','金額'],
                     ['A',1,10],
                     ['A',2,20],
@@ -200,23 +186,23 @@ class AssertCmdTest(TestCaseBase):
                 "dataSource": "csv"
             },
             {
-                "type": "frame",
                 "id": "d1",
                 "label": "d1",
+                "type": "frame",
                 "uuid": None,
                 "dataSource": "csv"
             },
             {
-                "type": "frame",
                 "id": "d2",
                 "label": "d2",
+                "type": "frame",
                 "uuid": None,
                 "dataSource": "csv"
             },
             {
                 "id": "i2",
-                "type": "frame",
                 "label": "テストデータ2",
+                "type": "frame",
                 "value": [['顧客','数量','金額'],
                     ['A',1,10],
                     ['B',1,30]],
@@ -224,39 +210,37 @@ class AssertCmdTest(TestCaseBase):
             },
             {
                 "id": "c1",
+                "label": "c1",
+                "type": "command",
+                "commandId": "assert",
                 "args": {
                     "verbose": True,
                     "dlimit": "10"
                 },
                 "dsts": {
-                "o": "d1"
+                    "o": "d1"
                 },
                 "srcs": {
-                "i": "i",
-                "m": "i2"
-                },
-                "type": "command",
-                "error": {},
-                "label": "c1",
-                "commandId": "assert"
+                    "i": "i",
+                    "m": "i2"
+                }
             },
             {
                 "id": "c2",
+                "label": "c2",
+                "type": "command",
+                "commandId": "assert",
                 "args": {
                     "verbose": True,
                     "dlimit": "10"
                 },
                 "dsts": {
-                "o": "d2"
+                    "o": "d2"
                 },
                 "srcs": {
-                "i": "i",
-                "m": "d1"
-                },
-                "type": "command",
-                "error": {},
-                "label": "c2",
-                "commandId": "assert"
+                    "i": "i",
+                    "m": "d1"
+                }
             }
         ]
     }
@@ -265,15 +249,12 @@ class AssertCmdTest(TestCaseBase):
         "label": "テストフロ",
         "params": [],
         "description": "",
-        "ports": [
-            [],
-            []
-        ],
+        "ports": [[],[]],
         "nodes": [
             {
                 "id": "i",
-                "type": "frame",
                 "label": "テストデータ",
+                "type": "frame",
                 "value": [['顧客','数量','金額'],
                     ['A',1,10],
                     ['A',2,20],
@@ -283,23 +264,23 @@ class AssertCmdTest(TestCaseBase):
                 "dataSource": "csv"
             },
             {
-                "type": "frame",
                 "id": "d1",
                 "label": "d1",
+                "type": "frame",
                 "uuid": None,
                 "dataSource": "csv"
             },
             {
-                "type": "frame",
                 "id": "d2",
                 "label": "d2",
+                "type": "frame",
                 "uuid": None,
                 "dataSource": "csv"
             },
             {
                 "id": "i2",
-                "type": "frame",
                 "label": "テストデータ2",
+                "type": "frame",
                 "value": [['顧客','数量','金額'],
                     ['A',1,10],
                     ['B',1,30]],
@@ -307,39 +288,37 @@ class AssertCmdTest(TestCaseBase):
             },
             {
                 "id": "c1",
+                "label": "c1",
+                "type": "command",
+                "commandId": "assert",
                 "args": {
                     "verbose": True,
                     "dlimit": "10"
                 },
                 "dsts": {
-                "o": "d1"
+                    "o": "d1"
                 },
                 "srcs": {
-                "i": "i",
-                "m": "i2"
-                },
-                "type": "command",
-                "error": {},
-                "label": "c1",
-                "commandId": "assert"
+                    "i": "i",
+                    "m": "i2"
+                }
             },
             {
                 "id": "c2",
+                "label": "c2",
+                "type": "command",
+                "commandId": "assert",
                 "args": {
                     "verbose": True,
                     "dlimit": "10"
                 },
                 "dsts": {
-                "o": "d2"
+                    "o": "d2"
                 },
                 "srcs": {
-                "i": "i",
-                "m": "i2"
-                },
-                "type": "command",
-                "error": {},
-                "label": "c2",
-                "commandId": "assert"
+                    "i": "i",
+                    "m": "i2"
+                }
             }
         ]
     }
@@ -348,15 +327,12 @@ class AssertCmdTest(TestCaseBase):
         "label": "テストフロ",
         "params": [],
         "description": "",
-        "ports": [
-            [],
-            []
-        ],
+        "ports": [[],[]],
         "nodes": [
             {
                 "id": "i",
-                "type": "frame",
                 "label": "テストデータ",
+                "type": "frame",
                 "value": [['顧客','数量','金額'],
                     ['A',1,10],
                     ['A',2,20],
@@ -366,16 +342,16 @@ class AssertCmdTest(TestCaseBase):
                 "dataSource": "csv"
             },
             {
-                "type": "frame",
                 "id": "d1",
                 "label": "d1",
+                "type": "frame",
                 "uuid": None,
                 "dataSource": "csv"
             },
             {
                 "id": "c2",
-                "type": "command",
                 "label": "c2",
+                "type": "command",
                 "commandId": "mnewnumber",
                 "args": {},
                 "srcs": {},
@@ -385,36 +361,28 @@ class AssertCmdTest(TestCaseBase):
                 "error": {}
             },
             {
-                "type": "frame",
                 "id": "d2",
                 "label": "d2",
-                "uuid": None,
-                "dataSource": "csv"
-            },
-            {
                 "type": "frame",
-                "id": "d2",
-                "label": "d2",
                 "uuid": None,
                 "dataSource": "csv"
             },
             {
                 "id": "c1",
+                "label": "c1",
+                "type": "command",
+                "commandId": "assert",
                 "args": {
                     "verbose": True,
                     "dlimit": "10"
                 },
                 "dsts": {
-                "o": "d2"
+                    "o": "d2"
                 },
                 "srcs": {
-                "i": "i",
-                "m": "d1"
-                },
-                "type": "command",
-                "error": {},
-                "label": "c1",
-                "commandId": "assert"
+                    "i": "i",
+                    "m": "d1"
+                }
             }
         ]
     }
@@ -423,80 +391,67 @@ class AssertCmdTest(TestCaseBase):
         "label": "テストフロ",
         "params": [],
         "description": "",
-        "ports": [
-            [],
-            []
-        ],
+        "ports": [[],[]],
         "nodes": [
             {
                 "id": "c3",
-                "type": "command",
                 "label": "c3",
+                "type": "command",
                 "commandId": "mnewnumber",
                 "args": {},
                 "srcs": {},
                 "dsts": {
                     "o": "d3"
-                },
-                "error": {}
+                }
             },
             {
-                "type": "frame",
                 "id": "d3",
                 "label": "d3",
-                "uuid": None,
-                "dataSource": "csv"
-            },
-            {
                 "type": "frame",
-                "id": "d1",
-                "label": "d1",
                 "uuid": None,
                 "dataSource": "csv"
             },
             {
                 "id": "c2",
-                "type": "command",
                 "label": "c2",
+                "type": "command",
                 "commandId": "mnewnumber",
                 "args": {},
                 "srcs": {},
                 "dsts": {
                     "o": "d1"
-                },
-                "error": {}
+                }
             },
             {
-                "type": "frame",
                 "id": "d1",
                 "label": "d1",
-                "uuid": None,
-                "dataSource": "csv"
-            },
-            {
                 "type": "frame",
-                "id": "d2",
-                "label": "d2",
                 "uuid": None,
                 "dataSource": "csv"
             },
             {
                 "id": "c1",
+                "label": "c1",
+                "type": "command",
+                "commandId": "assert",
                 "args": {
                     "verbose": True,
                     "dlimit": "10"
                 },
-                "dsts": {
-                "o": "d2"
-                },
                 "srcs": {
-                "i": "d3",
-                "m": "d1"
+                    "i": "d3",
+                    "m": "d1"
                 },
-                "type": "command",
-                "error": {},
-                "label": "c1",
-                "commandId": "assert"
+                "dsts": {
+                    "o": "d2"
+                }
+            },
+            {
+                "id": "d2",
+                "label": "d2",
+                "type": "frame",
+                "uuid": None,
+                "dataSource": "csv"
             }
         ]
     }
@@ -505,80 +460,74 @@ class AssertCmdTest(TestCaseBase):
         "label": "テストフロ",
         "params": [],
         "description": "",
-        "ports": [
-            [],
-            []
-        ],
+        "ports": [[],[]],
         "nodes": [
             {
                 "id": "c3",
-                "type": "command",
                 "label": "c3",
+                "type": "command",
                 "commandId": "mnewnumber",
                 "args": {},
                 "srcs": {},
                 "dsts": {
                     "o": "d3"
-                },
-                "error": {}
+                }
             },
             {
-                "type": "frame",
                 "id": "d3",
                 "label": "d3",
+                "type": "frame",
                 "uuid": None,
                 "dataSource": "csv"
             },
             {
+                "id": "d4",
+                "label": "d4",
                 "type": "frame",
-                "id": "d1",
-                "label": "d1",
-                "uuid": None,
-                "dataSource": "csv"
-            },
-            {
-                "id": "c2",
-                "type": "command",
-                "label": "c2",
-                "commandId": "mnewrand",
-                "args": {},
-                "srcs": {},
-                "dsts": {
-                    "o": "d1"
-                },
-                "error": {}
-            },
-            {
-                "type": "frame",
-                "id": "d1",
-                "label": "d1",
-                "uuid": None,
-                "dataSource": "csv"
-            },
-            {
-                "type": "frame",
-                "id": "d2",
-                "label": "d2",
                 "uuid": None,
                 "dataSource": "csv"
             },
             {
                 "id": "c1",
+                "label": "c1",
+                "type": "command",
+                "commandId": "assert",
                 "args": {
                     "verbose": True,
                     "dlimit": "10"
                 },
-                "dsts": {
-                "o": "d2"
-                },
                 "srcs": {
-                "i": "d3",
-                "m": "d1"
+                    "i": "d3",
+                    "m": "d4"
                 },
+                "dsts": {
+                    "o": "d2"
+                }
+            },
+            {
+                "id": "d2",
+                "label": "d2",
+                "type": "frame",
+                "uuid": None,
+                "dataSource": "csv"
+            },
+            {
+                "id": "c2",
+                "label": "c2",
                 "type": "command",
-                "error": {},
-                "label": "c1",
-                "commandId": "assert"
+                "commandId": "mnewrand",
+                "args": {},
+                "srcs": {},
+                "dsts": {
+                    "o": "d4"
+                }
+            },
+            {
+                "id": "d1",
+                "label": "d1",
+                "type": "frame",
+                "uuid": None,
+                "dataSource": "csv"
             }
         ]
     }
@@ -587,15 +536,12 @@ class AssertCmdTest(TestCaseBase):
         "label": "テストフロ",
         "params": [],
         "description": "",
-        "ports": [
-            [],
-            []
-        ],
+        "ports": [[],[]],
         "nodes": [
             {
                 "id": "i",
-                "type": "frame",
                 "label": "テストデータ",
+                "type": "frame",
                 "value": [['顧客','数量','金額'],
                     ['A',1,10],
                     ['A',2,20],
@@ -605,16 +551,16 @@ class AssertCmdTest(TestCaseBase):
                 "dataSource": "csv"
             },
             {
-                "type": "frame",
                 "id": "d1",
                 "label": "d1",
+                "type": "frame",
                 "uuid": None,
                 "dataSource": "csv"
             },
             {
                 "id": "i2",
-                "type": "frame",
                 "label": "テストデータ2",
+                "type": "frame",
                 "value": [['顧客','数量','金額'],
                     ['A',1,10],
                     ['B',1,30]],
@@ -622,8 +568,8 @@ class AssertCmdTest(TestCaseBase):
             },
             {
                 "id": "c2",
-                "type": "command",
                 "label": "c2",
+                "type": "command",
                 "commandId": "groupby2",
                 "args": {
                     "clist":[
@@ -677,55 +623,52 @@ class AssertCmdTest(TestCaseBase):
                 },
                 "dsts": {
                     "o": "d3"
-                },
-                "error": {}
+                }
             },
             {
-                "type": "frame",
                 "id": "d3",
                 "label": "d3",
+                "type": "frame",
                 "uuid": None,
                 "dataSource": "csv"
             },
             {
                 "id": "c1",
+                "label": "c1",
+                "type": "command",
+                "commandId": "assert",
                 "args": {
                     "verbose": True,
                     "dlimit": "10"
                 },
                 "dsts": {
-                "o": "d1"
+                    "o": "d1"
                 },
                 "srcs": {
-                "i": "i",
-                "m": "d3"
-                },
-                "type": "command",
-                "error": {},
-                "label": "c1",
-                "commandId": "assert"
+                    "i": "i",
+                    "m": "d3"
+                }
             }
         ]
     }
 
     dlimit_overred_json = {
         "label": "テストフロ",
-        "ports": [
-            [],
-            []
-        ],
+        "ports": [[],[]],
         "params": [],
         "description": "",
         "nodes": [
             {
                 "id": "d",
-                "type": "frame",
-                "error": {},
                 "label": "テストデータ1",
+                "type": "frame",
                 "dataSource": "csv"
             },
             {
                 "id": "c",
+                "label": "c",
+                "type": "command",
+                "commandId": "mnewnumber",
                 "args": {
                     "I": "1",
                     "S": "100",
@@ -736,21 +679,19 @@ class AssertCmdTest(TestCaseBase):
                     "o": "d"
                 },
                 "srcs": {},
-                "type": "command",
-                "error": {},
-                "label": "c",
-                "commandId": "mnewnumber",
                 "srcsOrder": []
             },
             {
                 "id": "d1",
                 "type": "frame",
-                "error": {},
                 "label": "テストデータ2",
                 "dataSource": "csv"
             },
             {
                 "id": "c1",
+                "label": "c1",
+                "type": "command",
+                "commandId": "mnewnumber",
                 "args": {
                     "I": "1",
                     "S": "1",
@@ -761,21 +702,19 @@ class AssertCmdTest(TestCaseBase):
                     "o": "d1"
                 },
                 "srcs": {},
-                "type": "command",
-                "error": {},
-                "label": "c1",
-                "commandId": "mnewnumber",
                 "srcsOrder": []
             },
             {
                 "id": "d2",
-                "type": "frame",
-                "error": {},
                 "label": "d2",
+                "type": "frame",
                 "dataSource": "csv"
             },
             {
                 "id": "c2",
+                "label": "c2",
+                "type": "command",
+                "commandId": "assert",
                 "args": {
                     "verbose": True,
                     "dlimit": "10"
@@ -787,10 +726,6 @@ class AssertCmdTest(TestCaseBase):
                     "i": "d1",
                     "m": "d"
                 },
-                "type": "command",
-                "error": {},
-                "label": "c2",
-                "commandId": "assert",
                 "srcsOrder": [
                     "i",
                     "m"
@@ -842,11 +777,11 @@ class AssertCmdTest(TestCaseBase):
         出力で、入力データの3行目以降不一致判定が出ることを期待する。
         エラー判定はfalse        
         """
-        json_flow = copy.deepcopy(self.simple_assert_json)
-        json_flow['ports'] = [[],[{'nodeId':'d1', 'label':'d1', 'type':'frame'}]]
+        flow_json = copy.deepcopy(self.simple_assert_json)
+        flow_json['nodes'].append(self.create_data_dst_node('d1'))
 
-        flow = self.root.create_flow(json_flow['label'], FlowData(json_flow))
-        flow_link = FlowJsonLink(flow, self.factory)
+        flow = self.root.create_flow(flow_json['label'], FlowData(flow_json))
+        flow_link = FlowCommand(flow)
         lasts = execute(flow_link, {}, {})
         lasts = convert_from_activity(lasts)
 
@@ -889,11 +824,11 @@ class AssertCmdTest(TestCaseBase):
         出力で、入力データが一致という判定が出ることを期待する。
         エラー判定はfalse     
         """
-        json_flow = copy.deepcopy(self.flow_json_same)
-        json_flow['ports'] = [[],[{'nodeId':'d1', 'label':'d1', 'type':'frame'}]]
+        flow_json = copy.deepcopy(self.flow_json_same)
+        flow_json['nodes'].append(self.create_data_dst_node('d1'))
 
-        flow = self.root.create_flow(json_flow['label'], FlowData(json_flow))
-        flow_link = FlowJsonLink(flow, self.factory)
+        flow = self.root.create_flow(flow_json['label'], FlowData(flow_json))
+        flow_link = FlowCommand(flow)
         lasts = execute(flow_link, {}, {})
         lasts = convert_from_activity(lasts)
         # 正解データ内のuuid, タイムスタンプはダミー、テスト実行時には、毎回変動するので、出力がされているかどうかのみ確認する
@@ -934,11 +869,11 @@ class AssertCmdTest(TestCaseBase):
         出力で入力データ全行が不一致判定が出ることを期待する。
         エラー判定はfalse     
         """
-        json_flow = copy.deepcopy(self.sequential_assert_json)
-        json_flow['ports'] = [[],[{'nodeId':'d2', 'label':'d2', 'type':'frame'}]]
+        flow_json = copy.deepcopy(self.sequential_assert_json)
+        flow_json['nodes'].append(self.create_data_dst_node('d2'))
 
-        flow = self.root.create_flow(json_flow['label'], FlowData(json_flow))
-        flow_link = FlowJsonLink(flow, self.factory)
+        flow = self.root.create_flow(flow_json['label'], FlowData(flow_json))
+        flow_link = FlowCommand(flow)
         lasts = execute(flow_link, {}, {})
         lasts = convert_from_activity(lasts)
 
@@ -992,11 +927,12 @@ class AssertCmdTest(TestCaseBase):
         出力で、入力データが3行目以降不一致という判定が出ることを期待する。
         エラー判定はfalse
         """
-        json_flow = copy.deepcopy(self.double_assert_json)
-        json_flow['ports'] = [[],[{'nodeId':'d1', 'label':'d1', 'type':'frame'},{'nodeId':'d2', 'label':'d2', 'type':'frame'}]]
+        flow_json = copy.deepcopy(self.double_assert_json)
+        flow_json['nodes'].append(self.create_data_dst_node('d1'))
+        flow_json['nodes'].append(self.create_data_dst_node('d2'))
 
-        flow = self.root.create_flow(json_flow['label'], FlowData(json_flow))
-        flow_link = FlowJsonLink(flow, self.factory)
+        flow = self.root.create_flow(flow_json['label'], FlowData(flow_json))
+        flow_link = FlowCommand(flow)
         lasts = execute(flow_link, {}, {})
         lasts = convert_from_activity(lasts)
 
@@ -1065,11 +1001,11 @@ class AssertCmdTest(TestCaseBase):
         出力で、入力データが全行不一致という判定が出ることを期待する。
         エラー判定はtrue
         """
-        json_flow = copy.deepcopy(self.one_side_error_json)
-        json_flow['ports'] = [[],[{'nodeId':'d2', 'label':'d2', 'type':'frame'}]]
+        flow_json = copy.deepcopy(self.one_side_error_json)
+        flow_json['nodes'].append(self.create_data_dst_node('d2'))
 
-        flow = self.root.create_flow(json_flow['label'], FlowData(json_flow))
-        flow_link = FlowJsonLink(flow, self.factory)
+        flow = self.root.create_flow(flow_json['label'], FlowData(flow_json))
+        flow_link = FlowCommand(flow)
         lasts = execute(flow_link, {}, {})
         lasts = convert_from_activity(lasts)
 
@@ -1117,11 +1053,11 @@ class AssertCmdTest(TestCaseBase):
         出力で、入力データが一致という判定が出ることを期待する。
         エラー判定はtrue
         """
-        json_flow = copy.deepcopy(self.both_same_error_json)
-        json_flow['ports'] = [[],[{'nodeId':'d2', 'label':'d2', 'type':'frame'}]]
+        flow_json = copy.deepcopy(self.both_same_error_json)
+        flow_json['nodes'].append(self.create_data_dst_node('d2'))
 
-        flow = self.root.create_flow(json_flow['label'], FlowData(json_flow))
-        flow_link = FlowJsonLink(flow, self.factory)
+        flow = self.root.create_flow(flow_json['label'], FlowData(flow_json))
+        flow_link = FlowCommand(flow)
         lasts = execute(flow_link, {}, {})
         lasts = convert_from_activity(lasts)
 
@@ -1162,11 +1098,11 @@ class AssertCmdTest(TestCaseBase):
         出力で、入力データが不一致という判定が出ることを期待する。
         エラー判定はtrue
         """
-        json_flow = copy.deepcopy(self.both_error_json)
-        json_flow['ports'] = [[],[{'nodeId':'d2', 'label':'d2', 'type':'frame'}]]
+        flow_json = copy.deepcopy(self.both_error_json)
+        flow_json['nodes'].append(self.create_data_dst_node('d2'))
 
-        flow = self.root.create_flow(json_flow['label'], FlowData(json_flow))
-        flow_link = FlowJsonLink(flow, self.factory)
+        flow = self.root.create_flow(flow_json['label'], FlowData(flow_json))
+        flow_link = FlowCommand(flow)
         lasts = execute(flow_link, {}, {})
         lasts = convert_from_activity(lasts)
 
@@ -1208,11 +1144,11 @@ class AssertCmdTest(TestCaseBase):
         出力でその旨を通知することと、テスト失敗の判定が出ることを期待する。
         エラー判定はfalse     
         """
-        json_flow = copy.deepcopy(self.dlimit_overred_json)
-        json_flow['ports'] = [[],[{'nodeId':'d2', 'label':'d2', 'type':'frame'}]]
+        flow_json = copy.deepcopy(self.dlimit_overred_json)
+        flow_json['nodes'].append(self.create_data_dst_node('d2'))
 
-        flow = self.root.create_flow(json_flow['label'], FlowData(json_flow))
-        flow_link = FlowJsonLink(flow, self.factory)
+        flow = self.root.create_flow(flow_json['label'], FlowData(flow_json))
+        flow_link = FlowCommand(flow)
         lasts = execute(flow_link, {}, {})
         lasts = convert_from_activity(lasts)
 
@@ -1293,6 +1229,6 @@ def convert_from_activity(lasts):
     # Activityを取得して返り値とする
     for point_id, datum in lasts.items():
         if isinstance(datum, Activity):
-            return {point.id : frame for point, frame in datum.lasts}
+            return {point.id : frame for point, frame in datum.outs}
 
             

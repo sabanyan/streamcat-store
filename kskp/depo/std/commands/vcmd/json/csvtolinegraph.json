@@ -21,6 +21,17 @@
   ],
   "params": [
     {
+      "name": "offset",
+      "type": "number",
+      "label": "表示開始行"
+    },
+    {
+      "name": "limit",
+      "type": "number",
+      "label": "表示行数",
+      "default": 1000
+    },
+    {
       "name": "x_axis",
       "type": "list",
       "elements": [
@@ -69,10 +80,10 @@
       "type"  :"select",
       "label" :"横軸列：時間軸　フォーマット",
       "options":{
-        "labels": ["暦型（YYYYMMDDhhmmss.小数６桁まで）","数値型","ユーザー指定"],
-        "values": ["nysol","float","custom"]
+        "labels": ["自動","暦型（YYYYMMDDhhmmss.小数６桁まで）","ユーザー指定"],
+        "values": ["auto","nysol","custom"]
       },
-      "default":"nysol"
+      "default":"auto"
     },
     {
       "name"  :"x_axis_format_custom",
@@ -90,32 +101,14 @@
       "label": "データ系列",
       "description": "データ系列を表す項目名（復数可、順序は指定不可）を指定します\n指定した項目の値（復数項目時はそれぞれの値の組合せ）を系列として設定します",
       "default": []
-    },
-    {
-      "name": "offset",
-      "type": "number",
-      "label": "表示の開始（１始まりの行番号）"
-    },
-    {
-      "name": "limit",
-      "type": "number",
-      "label": "表示の件数",
-      "default": 100
-    },
-    {
-      "name": "width",
-      "type": "number",
-      "label": "横軸（ドット）",
-      "default": 1000
-    },
-    {
-      "name": "height",
-      "type": "number",
-      "label": "縦軸（ドット）",
-      "default": 600
     }
   ],
   "groups": [
+    {
+      "name": "offset_group",
+      "label": "データ表示範囲の設定",
+      "params": ["offset","limit"]
+    },
     {
       "name": "axis_group",
       "label": "軸の設定（必須）ラベルは省略可",
@@ -131,16 +124,6 @@
       "name": "data_group",
       "label": "データ系列の設定",
       "params": ["data_column"]
-    },
-    {
-      "name": "offset_group",
-      "label": "データ表示範囲の設定",
-      "params": ["offset","limit"]
-    },
-    {
-      "name": "graph_size",
-      "label": "グラフサイズの設定",
-      "params": ["width","height"]
     }
   ],
   "url": ""

@@ -1,17 +1,44 @@
-import shlex
 import subprocess
 from time import sleep
-from pathlib import Path
-
 from kskp.core import Datum
 
 class Mountable():
     """
-    mount可能な抽象クラス
+    マウント可能データストア
     """
-    def mount(self, mount_point_path):
-        # self_abs_path = mount_point_path
-        # path = Path(self_abs_path)
+
+    @property
+    def path(self):
+        # 参照権限が無ければ例外を送出する
+        self._readable_or_raise()
+
+        if self._path is None or self._path == '':
+            return None
+
+        if self.id is None:
+            # 絶対パスを返す
+            # DBに未保存の場合は、マウントしない
+            return Datum._to_abs_path(self._path)
+
+        if not Mountable.is_mount(self._path):
+            try:
+                # マウントしていない場合は、ここでマウント処理する
+                Mountable.remount(self._session, self.id)
+            except Exception as e:
+                # 再マウント処理に失敗しても例外を送出しない
+                # (ここで例外を送出するとexists(path)で存在チェックができなくなる)
+                import warnings
+                warnings.warn(f'Mount処理に失敗しました {e}')
+
+        # 絶対パスを返す
+        return Datum._to_abs_path(self._path)
+
+    def mount(self, mount_point_path=None):
+        # 引数(mount_point_path)にpathプロパティを指定する時にMount処理が発生するのを防ぐため
+        # 引数(mount_point_path)が設定されない場合は、自身の_pathを使用する
+        if mount_point_path is None:
+            mount_point_path = Datum._to_abs_path(self._path)
+
         if not mount_point_path.exists():
             raise Exception('mount point(%s) does not exist' % mount_point_path)
         elif not mount_point_path.is_dir():
@@ -34,11 +61,17 @@ class Mountable():
         except subprocess.CalledProcessError as e:
             raise Exception('"mount" command returned error --> ' + str(e))
 
-    def unmount(self, mount_point_path):
-        # self_abs_path = mount_point_path
-        # path = Path(self_abs_path)
+    def unmount(self, mount_point_path=None):
+        # 引数(mount_point_path)にpathプロパティを指定する時にMount処理が発生するのを防ぐため
+        # 引数(mount_point_path)が設定されない場合は、自身の_pathを使用する
+        if mount_point_path is None:
+            mount_point_path = Datum._to_abs_path(self._path)
+
+        # マウントポイントがない場合は処理を終了する
         if not mount_point_path.exists():
-            raise Exception('sudo mount point(%s) does not exist' % mount_point_path)
+            import warnings
+            warnings.warn('mount point(%s) does not exist' % mount_point_path)
+            return
 
         # python3.7でis_mount()は追加される
         if not Mountable.is_mount(mount_point_path):
@@ -48,7 +81,7 @@ class Mountable():
             # マウント解除を実行する
             # (/etc/sudoersに %admin ALL = (ALL) NOPASSWD:/sbin/umount
             #  を追加するとテスト実行時にはパスワードを聞かれない)
-            umount_cmd = 'sudo umount %s' % mount_point_path.as_posix()
+            umount_cmd = f'sudo umount "{mount_point_path.as_posix()}"'
             umount_ret= Mountable._exec_command(umount_cmd)
 
             # 念のためWAITを入れています
@@ -64,7 +97,9 @@ class Mountable():
         自身のエントリ以下にあるFrameとFlowが、自身のエントリ以下以外にあるFlowから参照される、
         そのようなFlowを全て返す
         """
-        sql = """
+        from sqlalchemy import text
+
+        sql = text(f"""
         WITH RECURSIVE R AS (
             SELECT id, uuid FROM data WHERE id = {id}
             UNION ALL
@@ -78,20 +113,21 @@ class Mountable():
         AND EXISTS (SELECT * FROM R
                     WHERE type in ('flow','frame')
                       AND to_tsvector(D.data) @@ to_tsquery(cast(R.uuid AS VARCHAR)))
-        """.format(id=self_id)
+        """)
         try:
-            results = self.session.execute(sql)
+            results = self._session.execute(sql)
             return [result[0] for result in results]
         except Exception as e:
-            self.session.rollback()
+            self._session.rollback()
             raise e
         finally:
-            self.session.commit()
+            self._session.commit()
 
     @staticmethod
-    def _exec_command(command_line):
+    def _exec_command(command_line:str, env:dict=None):
+        import shlex
         # mountコマンドの有無を確認する
-        sub = subprocess.run(shlex.split(command_line), stdout = subprocess.PIPE, stderr=subprocess.PIPE)
+        sub = subprocess.run(shlex.split(command_line), env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         # サブプロセスのリターンコードがNGの場合は例外を送出する
         sub.check_returncode()
         # 出力結果を返す
@@ -109,7 +145,11 @@ class Mountable():
         ルートデータストアから指定されたidのDatumまでの経路において、
         マウントされていないマウントポイントがあればマウントし直す
         """
-        sql = """
+        from pathlib import Path
+        from sqlalchemy import text
+        from kskp.store.factory import DatumFactory
+
+        sql = text(f"""
         WITH RECURSIVE R AS (
             SELECT id, parent_id, uuid, type, path FROM data WHERE id = {id}
             UNION ALL
@@ -118,7 +158,7 @@ class Mountable():
         SELECT uuid, path, type FROM R
         WHERE type = 'awss3' or type = 'rfolder'
         ORDER BY id
-        """.format(id=id)
+        """)
         try:
             results = session.execute(sql)
         except Exception as e:
@@ -128,13 +168,13 @@ class Mountable():
             # session.commit()
             pass
 
+        factory = DatumFactory(session)
+
         for result in results:
-            mount_point_path = Path(Datum._to_abs_path(result[1]))
+            mount_point_path = Datum._to_abs_path(Path(result[1]))
             if not Mountable.is_mount(mount_point_path):
                 uuid = str(result[0])
                 type = str(result[2])
-                from kskp.store.factory import DatumFactory
-                factory = DatumFactory(session)
                 if type == Datum.AWSS3_TYPE:
                     awss3 = factory.find_by_uuid(uuid)
                     awss3.mount(mount_point_path)

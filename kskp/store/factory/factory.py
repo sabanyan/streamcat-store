@@ -1,11 +1,8 @@
-from typing import Union
+from typing import List, Union
 from sqlalchemy.orm.exc import NoResultFound
 from kskp.core import Datum
-from kskp.store import Folder
-from kskp.store import TrashCan
-from kskp.store.auth import UserRole
-from kskp.store.auth import Role
-from kskp.store.auth import User
+from kskp.store import Folder, TrashCan
+from kskp.store.auth import User, Role, UserRole
 
 
 class UnAuthzFactory():
@@ -16,7 +13,7 @@ class UnAuthzFactory():
         from . import engine
 
         # セッションをつくる
-        session_maker = sessionmaker(engine)
+        session_maker = sessionmaker(engine, future=True)
 
         # セッションを保持する
         self._session = Session(session_maker, user=None)
@@ -114,7 +111,7 @@ class Factory():
         # ・session.commit()によるExpireでquery_expression()で設定されているreadableがNoneになる
         # ・これを回避するためexpire_on_commit=Falseとする、autoflush=Falseも必要!
         # ・session.rollback()によるExprireを回避する方法はない
-        session_maker = sessionmaker(bind=engine, expire_on_commit=False, autoflush=False)
+        session_maker = sessionmaker(bind=engine, expire_on_commit=False, autoflush=False, future=True)
 
         # セッションを保持する
         self._session = AuthzSession(session_maker, user)
@@ -137,6 +134,38 @@ class Factory():
 
     def close(self):
         self._session.close()
+
+    def get_active_connections(self):
+        """
+        PostgreSQLへのActive状態の接続の有無を確認する
+        """
+        from sqlalchemy import text
+
+        database_name = 'kskp'
+
+        sql = text(f"""
+        SELECT
+            pid,
+            query_start,
+            client_addr,
+            application_name,
+            query
+        FROM
+            pg_stat_activity
+        WHERE
+            /* このSQLの実行で用いる接続は除外する */
+            pid <>  pg_backend_pid()
+        AND datname = '{database_name}'
+        AND state = 'active'
+        """)
+
+        try:
+            return self._session.execute(sql)
+        except Exception as e:
+            self._session.rollback()
+            raise e
+        finally:
+            pass
 
     @property
     def data(self):
@@ -172,10 +201,6 @@ class DatumFactory():
         from kskp.store import Folder
         return Folder(self._session, None, label)
 
-    def create_datasource(self, parent, label, store, loader_step):
-        from kskp.store import DataSource
-        return DataSource(self._session, parent, label, store, loader_step)
-
     def find_by_id(self, id, type=None) -> Datum:
         """
         指定されたidを持つDatumを取得する
@@ -190,18 +215,17 @@ class DatumFactory():
             datum = query.one()
         except NoResultFound:
             raise Exception(f'指定したDatum({id})は存在しませんでした')
-        # datum.session = self._session
 
         return datum
 
-    def find_by_uuid(self, uuid, type=None) -> Datum:
+    def find_by_uuid(self, uuid, type=None, folder_path=False) -> Datum:
         """
         指定されたuuidを持つDatumを取得する
         """
         # UUID値の形式チェックをする
         Datum.valid_uuid_or_raise(uuid)
 
-        query = self._session.query(Datum).filter(Datum.uuid==uuid)
+        query = self._session.query(Datum, folder_path=folder_path).filter(Datum.uuid==uuid)
 
         if type is not None:
             query = query.filter(Datum.type==type)
@@ -211,11 +235,10 @@ class DatumFactory():
             datum = query.one()
         except NoResultFound:
             raise Exception(f'指定したDatum({uuid})は存在しませんでした')
-        # datum.session = self._session
 
         return datum
 
-    def find_all(self, type=None, except_label=None) -> Datum:
+    def find_all(self, type=None, except_trash=False, except_label=None) -> Datum:
         """
         全てのDatumを取得する
         """
@@ -223,6 +246,10 @@ class DatumFactory():
         query = self._session.query(Datum)
         if type is not None:
             query = query.filter(Datum.type==type)
+        if except_trash:
+            # ゴミ箱にほかされたDatumは除外する
+            # NOTE: この条件を付与するとかなり遅くなる
+            query = query.filter(~self._make_exists_trashed(Datum.uuid))
         if except_label is not None:
             query = query.filter(Datum._label!=except_label)
         return query.order_by(Datum.type, desc(Datum.created_at)).all()
@@ -241,8 +268,6 @@ class DatumFactory():
             return None
         elif len(roots) > 1:
             raise Exception('More than 2 roots exist!!')
-
-        # roots[0].session = self._session
         
         return roots[0]
 
@@ -255,34 +280,46 @@ class DatumFactory():
             raise Exception('no trush can is found by designated id.')
         return trashcan
 
-    def find_all_subflows(self, no_inputs=True, no_outputs=True):
+    def find_all_projects(self, on_root:bool=False, except_label:str=None):
+        """
+        プロジェクトを全て取得する
+        """
+        query = self._session.query(Datum).\
+                filter(Datum.type==Datum.PROJECT_TYPE)
+        if on_root:
+            query = query.filter(self._make_exists_on_root(Datum.parent_id))
+        if except_label is not None:
+            query = query.filter(Datum._label!=except_label)
+        # 速度向上のため、order_byを指定しない
+        return query.all()
+
+    def find_all_subflows(self):
         """
         サブフローを取得する
-        no_inputs  =False : 入力ポートのないサブフローは取得しない
-        no_outputs =False : 出力ポートのないサブフローは取得しない
         """
-        # FIXIT : PostgreSQLのJSONB演算子を用いればSQLのみでサブフローを抽出できるはず
-        flows = self._session.query(Datum).filter(Datum.type==Datum.FLOW_TYPE).all()
+        from sqlalchemy import exists, and_, literal
+        from kskp.store.auth import Auth
 
-        subflows = []
-        for flow in flows:
+        # 検索対象のDatumの編集ロックを権限の判定条件に含める条件
+        exists_edit_lock = exists().where(and_(Auth.datum_id==Datum.id,
+                                               Auth.role_id==Role.id,
+                                               Role.uuid==literal(Role.EDIT_LOCK_ROLE_UUID)))
+        # 編集ロック=ONのフローをサブフローとして抽出する
+        return self._session.query(Datum).filter(Datum.type==Datum.FLOW_TYPE)\
+                                         .filter(exists_edit_lock)\
+                                         .order_by(Datum._label, Datum.id)\
+                                         .all()
 
-            flow_data = flow.flow_data
-            # onの時にno_inputs（＝inputsがない）のサブフローは出さない
-            if no_inputs:
-                if len(flow_data.ports[0]) == 0:
-                    continue
-
-            # onの時にno_outputs（＝outputsがない）のサブフローは出さない
-            if no_outputs:
-                if len(flow_data.ports[1]) == 0:
-                    continue
-
-            if len(flow_data.ports[0]) > 0 or len(flow_data.ports[1]) > 0:
-                # flow.session = self._session
-                subflows.append(flow)
-
-        return subflows
+    def find_all_stores(self):
+        """
+        データストアを全て取得する
+        """
+        return self._session.query(Datum).filter(
+                                                Datum.type.in_([Datum.DATABASE_TYPE,
+                                                                Datum.RFOLDER_TYPE])
+                                          )\
+                                         .order_by(Datum._label, Datum.id)\
+                                         .all()
 
     def load_root(self):
         """
@@ -308,7 +345,7 @@ class DatumFactory():
             root = new_root.reload()
         return root
 
-    def load_cache_folder(self):
+    def load_cache_folder(self) -> Folder:
         """
         キャッシュフォルダを取得する、存在しない場合は作成する
         """
@@ -327,6 +364,26 @@ class DatumFactory():
             self._delete_self_auth(folder)
             # 参照権限設定後にもう一度取得し直す
             return folder.reload()
+
+    def load_activity_folder(self) -> Folder:
+        """
+        アクティビティフォルダを取得する、存在しない場合は作成する
+        """
+        # 特定用途のフォルダのUUIDは決め打ちである
+        uuid = Datum.ACTIVITY_FOLDER_UUID
+        label = Datum.ACTIVITY_FOLDER_LABEL
+
+        if self.exists(uuid):
+            return self.find_by_uuid(uuid)
+        else:
+            folder = self._make_system_folder(uuid, label)
+            # アクティビティフォルダは、everyoneにRW権限、user_admin権限にOを設定する
+            self._permit_to_everyone(folder.id, read=True, write=True)
+            self._permit_to_usradmin(folder.id, own=True)
+            # 作成ユーザの権限を全て削除する
+            self._delete_self_auth(folder)
+            # 参照権限設定後にもう一度取得し直す
+            return folder.reload()    
 
     def load_flow_folder(self):
         """
@@ -428,25 +485,67 @@ class DatumFactory():
         """
         ゴミ箱の中にある場合はTrueを返す
         """
-        sql = f"""
-        WITH RECURSIVE R AS (
-            SELECT id, parent_id, uuid, type, path FROM data WHERE uuid = '{uuid}'
-            UNION ALL
-            SELECT D.id, D.parent_id, D.uuid, D.type, D.path FROM data D JOIN R ON D.id = R.parent_id
-        )
-        SELECT uuid, path, type FROM R
-        WHERE type = '{Datum.TRASH_TYPE}'
-        """
+        from sqlalchemy import select, func, and_
+
+        sql = select(func.count()).\
+              select_from(Datum).\
+              where(and_(
+                    Datum.uuid==uuid,
+                    self._make_exists_trashed(uuid)
+              ))
         try:
-            results = self._session.execute(sql)
+            results = self._session.execute(sql).scalar()
         except Exception as e:
             self._session.rollback()
             raise e
         finally:
             pass
 
-        return len([result for result in results]) > 0
+        return results > 0
 
+    def _make_exists_on_root(self, parent_id:str):
+        from sqlalchemy import select, exists
+        from sqlalchemy.orm import aliased
+
+        # ルートフォルダ直下のDatumを全て取得するクエリ
+        D0 = aliased(Datum, name='D0')
+        T = select(D0.id).\
+            select_from(D0).\
+            where(D0.parent_id == None)
+
+        # 指定されたUUIDのDatumがルートフォルダ直下に存在する場合は抽出する
+        return exists().where(T.c.id==parent_id)
+
+    def _make_exists_trashed(self, uuid:str):
+        from sqlalchemy import select, exists
+        from sqlalchemy.orm import aliased
+
+        # ゴミ箱の中のDatumを全て取得する再帰クエリ
+        D0 = aliased(Datum, name='D0')
+        D1 = aliased(Datum, name='D1')
+        T = select(D0.id, D0.uuid).\
+            select_from(D0).\
+            where(D0.type==Datum.TRASH_TYPE).\
+            cte(name='T', recursive=True)
+        T = T.union_all(
+                select(D1.id, D1.uuid).\
+                select_from(T.join(D1, D1.parent_id==T.c.id))
+            )
+
+        # 指定されたUUIDのDatumがゴミ箱内に存在する場合は抽出する
+        return exists().where(T.c.uuid==uuid)
+
+    def unmount_all(self):
+        """
+        全てのマウント可能データストアのマウントを解除する
+        """
+        # 全てのマウント可能データストアを取得する
+        mountables = self._session.query(Datum).filter(
+                                                    Datum.type.in_([Datum.RFOLDER_TYPE])
+                                                ).all()
+        # マウント解除する
+        for mountable in mountables:
+            mountable.unmount()
 
 class StoreFactory():
 
@@ -477,6 +576,8 @@ class StoreFactory():
 
 
 class AuthFactory():
+    from kskp.store.auth import Auth
+
     def __init__(self, session):
         self._session = session
 
@@ -484,15 +585,15 @@ class AuthFactory():
         from kskp.store.auth import Auth
         return Auth(self._session, role_id, datum_id, operation, permission)
 
-    def find_by_id(self, role_id, datum_id, operation):
+    def find_by_id(self, role_id, datum_id, operation) -> Auth:
         from kskp.store.auth import Auth
         # SQLAlchemyのidentity mapにキャッシュされていればそれを返す
-        authz = self._session.query(Auth).get((role_id, datum_id, operation))
+        authz = self._session.get(Auth, (role_id, datum_id, operation))
         if authz is None:
             raise Exception('No authz is found by designated id')
         return authz
 
-    def find_all_by_datum_id(self, datum_id):
+    def find_all_by_datum_id(self, datum_id) -> List[Auth]:
         from kskp.store.auth import Auth
         query = self._session.query(Auth).filter(Auth.datum_id==datum_id)
         return query.order_by(Auth.role_id, Auth.operation).all()
@@ -671,9 +772,9 @@ class UserFactory():
     def __init__(self, session):
         self._session = session
 
-    def create(self, email, name, password):
+    def create(self, email, name, password, issuer=None, subject=None):
         from kskp.store.auth import User
-        return User(self._session, email, name,  password)
+        return User(self._session, email, name, password, issuer=issuer, subject=subject)
 
     def find_all(self, except_states=None):
         query = self._session.query(User).order_by(User.email)
@@ -682,16 +783,16 @@ class UserFactory():
 
     def find_by_id(self, user_id, except_states=None, allow_no_result=False) -> User:
         # SQLAlchemyのidentity mapにキャッシュされていればそれを返す
-        user = self._session.query(User).get(user_id)
+        user = self._session.get(User, user_id)
 
         if user is None and not allow_no_result:
             raise Exception(f'指定したUser({user_id})は存在しませんでした')
 
         if except_states is not None:
-            if isinstance(except_states, list) and user.state in except_states:
-                raise Exception(f'指定したUser({user_id})は論理削除されています')
-            else:
+            if not isinstance(except_states, list):
                 raise Exception(f'except_statesにはNoneかlist型を指定してください')
+            if user.state in except_states:
+                raise Exception(f'指定したUser({user_id})は存在しませんでした.')
         
         return user
 
@@ -717,6 +818,17 @@ class UserFactory():
             return query.one()
         except NoResultFound:
             raise Exception(f'指定したUser({email})は存在しませんでした')
+
+    def find_by_openid(self, issuer, subject, except_states=None) -> User:
+        """
+        指定されたissuerとsubjectのUserを取得する
+        """
+        try:
+            query = self._session.query(User).filter(User.issuer==issuer, User.subject==subject)
+            query = UserFactory._add_except_states_criteria(query, except_states)
+            return query.one()
+        except NoResultFound:
+            raise Exception(f'指定したUser({subject})は存在しませんでした')
 
     def find_by_keyword(self, keyword, except_states=None):
         """
@@ -757,6 +869,37 @@ class UserFactory():
         query = self._session.query(User).filter(User.email==email)
         query = UserFactory._add_except_states_criteria(query, except_states)
         return query.count() > 0
+
+    def exists_by_openid(self, issuer, subject, except_states=None) -> bool:
+        query = self._session.query(User).filter(User.issuer==issuer, User.subject==subject)
+        query = UserFactory._add_except_states_criteria(query, except_states)
+        return query.count() > 0
+
+    def load_openid_user(self, email, name, issuer, subject):
+        """
+        OpenID Connectのアクセストークンからユーザを取得する
+        ユーザが存在しない場合は作成する
+        """
+        user_factory = UserFactory(self._session)
+
+        # ユーザが存在する場合は、それを返す
+        if user_factory.exists_by_openid(issuer, subject):
+            user = user_factory.find_by_openid(issuer, subject)
+            # ユーザが論理削除状態の場合は例外を送出する
+            if user.is_inactive:
+                raise Exception(f'指定したUser({email})は削除されました')
+            else:
+                return user
+
+        # ユーザが存在しない場合は、新規にユーザを作成する
+        # (passwordの指定がなければ自動生成する)
+        new_user = user_factory.create(email, name, password=None, issuer=issuer, subject=subject)
+        new_user.save()
+
+        # ランダムなパスワードを設定してユーザを登録状態にする
+        new_user.update_password(new_password=new_user._generate_password())
+
+        return new_user
 
     @staticmethod
     def _add_except_states_criteria(query, except_states):

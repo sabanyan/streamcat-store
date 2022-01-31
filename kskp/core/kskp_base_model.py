@@ -1,3 +1,5 @@
+import datetime
+from typing import List
 from sqlalchemy import Column, text
 from sqlalchemy.dialects.postgresql import INTEGER, TIMESTAMP
 from sqlalchemy.ext.declarative import declared_attr
@@ -50,6 +52,35 @@ class KSKPBaseModel(object):
             self._modifier_id = session.user.id
 
     @staticmethod
+    def split(line:str):
+        """
+        文字列を","で分割する
+        """
+        import csv
+        reader = csv.reader([line], delimiter=",", doublequote=True, quotechar='"', skipinitialspace=False)
+        return next(reader)
+
+    @staticmethod
+    def join(line_list:List[str], doublequote=False):
+        """
+        文字列リストを","で結合する
+        """
+        import csv
+        from io import StringIO
+
+        if doublequote:
+            # unix: 行終端記号として '\n' を用い全てのフィールドをクォートする
+            dialect = 'unix'
+        else:
+            dialect = 'excel'
+        
+        # listをCSV行の文字列に変換する
+        ret = StringIO()
+        writer = csv.writer(ret, dialect=dialect, lineterminator='\n')
+        writer.writerow(line_list)
+        return ret.getvalue()
+
+    @staticmethod
     def _get_encrypt_password(password):
         """
         パスワードを暗号化する
@@ -80,15 +111,23 @@ class KSKPBaseModel(object):
             return None
 
     @staticmethod
-    def _datetime_to_local_time_str(d):
-        import datetime
+    def _datetime_to_local_time_str(d:datetime.datetime) -> str:
         if d is None:
             return ''
         # DBに格納されている日時はUTCなので、タイムゾーンをUTCに設定する
         d_at_utc = d.replace(tzinfo=datetime.timezone.utc)
-        # UTC日時はここで現地時間(環境変数TZの値)に設定される
+        # UTC日時はここで現地時間(環境変数TZの値)に変換する
         d_at_local = d_at_utc.astimezone()
         return d_at_local.strftime('%Y-%m-%d %H:%M:%S')
+
+    def local_time_str_to_datetime(d_str:str) -> datetime.datetime:
+        import os
+        from dateutil import tz
+        # 指定される日付文字列は現地時間(環境変数TZの値)なので、タイムゾーンをそれに設定する
+        local_tz = tz.gettz(os.environ.get('TZ', 'UTC'))
+        d_at_local = datetime.datetime.strptime(d_str, '%Y-%m-%d %H:%M:%S').replace(tzinfo=local_tz)
+        # 現地時間はここでUTC日時に変換する
+        return d_at_local.astimezone(datetime.timezone.utc)
 
     @property
     def creator(self):

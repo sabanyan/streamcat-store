@@ -1,6 +1,4 @@
-import os
-
-from kskp.core import Datum, Constraints
+from kskp.core import Datum, Command, Constraints
 from .store import Store
 
 class Folder(Store):
@@ -50,9 +48,9 @@ class Folder(Store):
         finally:
             self._session.commit()
 
-    def update_data(self, label, modifier=None):
+    def update_label(self, label, modifier=None):
         """
-        Folderのdata列を更新する
+        Folderのlabel列を更新する
         """
         # ラベルに'\0'が含まれていれば取り除く
         new_label = Datum.escape_label(label)
@@ -206,7 +204,9 @@ class Folder(Store):
         エントリを削除するが、対応するファイルは削除しない
         この処理は自身と自身のエントリ以下の全てのエントリが対象である
         """
-        sql="""
+        from sqlalchemy import text
+
+        sql=text(f"""
         WITH RECURSIVE R AS (
             SELECT id FROM data WHERE id = {id}
             UNION ALL
@@ -215,7 +215,7 @@ class Folder(Store):
         DELETE FROM data D
         WHERE EXISTS (SELECT * FROM R
                       WHERE R.id = D.id);
-        """.format(id=self.id)
+        """)
 
         try:
             # フォルダレコードを削除する
@@ -252,9 +252,9 @@ class Folder(Store):
     def to_json(self):
         ret = super().to_json()
 
-        if self.is_cache_folder():
-            # キャッシュフォルダ直下では新規作成はできない
-            # キャッシュフォルダの変更・削除・移動もできない
+        if self.is_cache_folder() or self.is_activity_folder():
+            # キャッシュフォルダ・アクティビティフォルダ直下では新規作成はできない
+            # キャッシュフォルダ・アクティビティフォルダの変更・削除・移動もできない
             ret['allowlist']['createProject'] = False
             ret['allowlist']['createFolder'] = False
             ret['allowlist']['createFile'] = False
@@ -275,61 +275,321 @@ class Folder(Store):
             ret['allowlist']['export'] = has_usr_admin
         return ret
 
-    def _make_dir(self, path):
+    # 
+    # Create Methods
+    # 
+
+    def find_children(self, prev_folder_path=False):
         """
-        Folderに対応するディレクトリを作成する
+        自分の直下の子Datumを全て取得する
         """
-        try:
-            # フォルダに紐付くディレクトリ(path列で指定されるディレクトリ)がなければ作成する
-            if not path.is_dir():
-                os.makedirs(path, exist_ok=True)
-            return path
-        except PermissionError as e:
-            # ファイルに対する権限がない場合
-            raise e
+        from sqlalchemy import desc
 
-    def _remove_dir(self, path):
+        # 参照権限が無ければ直下の子Datumは取得できない
+        self._readable_or_raise()
+
+        data = self._session.query(Datum, prev_folder_path=prev_folder_path).\
+                             filter(Datum.parent_id==self.id).\
+                             order_by(Datum.type, desc(Datum.created_at)).all()
+        return data
+
+    def find_children_by_label(self, label, type=None):
         """
-        Folderに対応するディレクトリを削除する
+        指定したuuidの親と指定したラベル名のレコードを全て取得する
         """
-        from kskp.store import Mountable
+        from sqlalchemy import desc
+        from sqlalchemy.orm import aliased
 
-        # 全てのフォルダから紐づかないディレクトリは物理削除する
-        dir_path = path
-        try:
-            while dir_path != '' and dir_path != '/':
-                # 自分以外で同じディレクトリパス(相対パス)を使用しているフォルダの有無を確認する
-                if self._dir_path_exists(dir_path, except_id=self.id):
-                    break
-                elif Mountable.is_mount(dir_path):
-                    # マウント中のフォルダは削除しない
-                    break
-                else:
-                    if dir_path.is_dir():
-                        dir_path.rmdir()
-                    dir_path = dir_path.parent
-        except PermissionError as e:
-            # ディレクトリに対する権限がない場合
-            raise e
-        except OSError as e:
-            import errno
-            if e.errno == errno.ENOTEMPTY:
-                # [Errno 39] Directory not empty
-                file_path = next(dir_path.glob('*'))
-                raise OSError(e.errno, f'Directory({dir_path}) is not removed. File({file_path}) exists in Directory')
-            raise e
+        # 参照権限が無ければ直下の子Datumは取得できない
+        self._readable_or_raise()
 
-    def _dir_path_exists(self, dir_path, except_id):
-        rel_path = Datum._to_rel_path(dir_path)
+        f2 = aliased(Datum)
+        sub_query = self._session.query(f2)
+        query = self._session.query(Datum)\
+                        .filter(sub_query.filter(f2.id==Datum.parent_id)
+                                         .filter(f2.uuid==self.uuid).exists())\
+                        .filter(Datum._label==label)
 
-        results = self._session.query(Datum._path)\
-                 .filter(Datum._path.like(rel_path.as_posix() + '%'))\
-                 .filter(Datum.id != except_id).all()
+        if type is not None:
+            query = query.filter(Datum.type==type)
 
-        for result in results:
-            if result._path == dir_path:
-                return True
-            if os.path.commonpath([result._path, dir_path]) == dir_path:
+        # フロー名フォルダが重複している場合は最も新しいフォルダに結果を格納する
+        query = query.order_by(Datum.type, desc(Datum.created_at))
+
+        return query.all()
+
+    def find_child_by_uuid(self, uuid):
+        """
+        自分の直下の子から指定されたUUIDのDatumを取得する
+        """
+
+        # 参照権限が無ければ直下の子Datumは取得できない
+        self._readable_or_raise()
+
+        # UUID値の形式チェックをする
+        Datum.valid_uuid_or_raise(uuid)
+
+        data = self._session.query(Datum).filter(Datum.parent_id==self.id).\
+                            filter(Datum.uuid==uuid).one()
+
+        return data
+
+    def count_children(self):
+        # 参照権限が無ければ直下の子Datumは取得できない
+        self._readable_or_raise()
+        return self._session.query(Datum).filter(Datum.parent_id==self.id).count()
+
+    def make_unique_label(self, label, except_uuid=None):
+        """
+        指定する親データストア内で、同じ名称のラベルがすでにある場合、末尾に数字を付加したラベル名を返す
+        """
+        children = self.find_children()
+        while Folder._label_exists_in_Data(label, children, except_uuid):
+            # 後ろから1番目の'_'でラベル名を区切る
+            label_elems = label.rsplit('_', 1)
+            if len(label_elems) == 2 and label_elems[1].isdecimal():
+                nextNumber = int(label_elems[1]) + 1
+                label = label_elems[0] + '_' + str(nextNumber)
+            else:
+                # 開始番号は1を飛び越して2?!
+                label = label + '_2'
+        return label
+
+    @staticmethod
+    def _label_exists_in_Data(label, data, except_uuid):
+        """
+        dataの中にlabelを使用しているdatumがあればTrueを返す
+        """
+        for datum in data:
+            if datum.label == label and (except_uuid is None or datum.uuid != except_uuid):
                 return True
         return False
 
+    def create_folder(self, label):
+        from kskp.store import Folder
+        return Folder(self._session, self, label)
+
+    def create_project_folder(self, label):
+        from kskp.store import ProjectFolder
+        return ProjectFolder(self._session, self, label)
+
+    def create_awss3(self, label, bucket_name):
+        from kskp.store import AwsS3
+        return AwsS3(self._session, self, label, bucket_name)
+
+    def create_database(self, label, database_conn):
+        from kskp.store import Database
+        return Database(self._session, self, label, database_conn)
+
+    def create_remote_folder(self, label, remoteFolderConn):
+        from kskp.store import RemoteFolder
+        return RemoteFolder(self._session, self, label, remoteFolderConn)
+
+    def create_flow(self, label, flow_data):
+        from kskp.store import Flow
+        return Flow(self._session, self, label, flow_data)
+
+    def create_simple_flow(self, label, data_source):
+        from kskp.store import Flow, FlowData
+        flow_json = {
+                        "label": label,
+                        "nodes": [
+                            {
+                                "id": "d",
+                                "type": "frame",
+                                "uuid": data_source.uuid,
+                                "error": {},
+                                "label": data_source.label,
+                                "invalid": {},
+                                "makeCache": False,
+                                "dataSource": "csv",
+                                "cacheCreatedAt": None
+                            }
+                        ],
+                        "ports": [[],[]],
+                        "params": [],
+                        "creator": self._session.user.name,
+                        "createdAt": data_source.created_at_str,
+                        "projectId": None,
+                        "description": ""
+                    }
+        return Flow(self._session, self, label, FlowData(flow_json))
+
+    def create_datasource(self, label:str, store:Datum, loader:Command, loader_args:dict={}, params:list=[]):
+        """
+        コンストラクタ
+        """
+        from datetime import datetime
+        from kskp.store import Flow, FlowData
+
+        if len(loader.i_ports) != 1 or len(loader.o_ports) != 1 :
+            raise Exception('指定できるローダは1入力1出力のコマンドです')
+
+        # PointとStepの繫がりを探索するFlowVisitorを使えばスマートに、Jsonデータを取得できるだろう
+        flow_json = {
+            "label": label,
+            "description": "",
+            "projectId": None,
+            "params": params,
+            "ports": [
+                [],
+                [
+                    {
+                        "label": "o",
+                        "nodeId": "d",
+                        "type": "frame"
+                    }
+                ]
+            ],
+            "nodes": [
+                {
+                    "id": "s",
+                    "label": store.label,
+                    "type": "store",
+                    "uuid": store.uuid,
+                },
+                {
+                    "id": "c1",
+                    "label": "c1",
+                    "type": "command",
+                    "commandId": loader.name,
+                    "args": loader_args,
+                    "srcs": {
+                        loader.i_ports[0].label : "s"
+                    },
+                    "dsts": {
+                        "o": "d"
+                    }
+                },
+                {
+                    "id": "d",
+                    "label": "d",
+                    "type": "frame",
+                    "dataSource": "csv"
+                }
+            ],
+            "creator": self._session.user.name,
+            "createdAt": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        }
+        return Flow(self._session, self, label, FlowData(flow_json))
+
+    def create_datadest(self, label:str, store:Datum, saver:Command, saver_args:dict={}, params:list=[]):
+        """
+        コンストラクタ
+        """
+        from datetime import datetime
+        from kskp.store import Flow, FlowData
+
+        if len(saver.i_ports) != 2 or len(saver.o_ports) != 1 :
+            raise Exception(f'指定できるセーバは2入力1出力のコマンドです')
+
+        # PointとStepの繫がりを探索するFlowVisitorを使えばスマートに、Jsonデータを取得できるだろう
+        flow_json = {
+            "label": label,
+            "description": "",
+            "projectId": None,
+            "params": params,
+            "ports": [
+                [
+                    {
+                        "label": "i",
+                        "nodeId": "d",
+                        "type": "frame"
+                    }
+                ],
+                []
+            ],
+            "nodes": [
+                {
+                    "id": "d",
+                    "label": "d",
+                    "type": "frame",
+                    "dataSource": "csv"
+                },
+                {
+                    "id": "s",
+                    "label": store.label,
+                    "type": "store",
+                    "uuid": store.uuid,
+                },
+                {
+                    "id": "c1",
+                    "label": "c1",
+                    "type": "command",
+                    "commandId": saver.name,
+                    "args": saver_args,
+                    "srcs": {
+                        saver.i_ports[0].label : "d",
+                        saver.i_ports[1].label : "s"
+                    },
+                    "dsts": {
+                        "o": "d1"
+                    }
+                },
+                {
+                    "id": "d1",
+                    "label": "d1",
+                    "type": "frame",
+                    "dataSource": "csv"
+                }
+            ],
+            "creator": self._session.user.name,
+            "createdAt": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        }
+        return Flow(self._session, self, label, FlowData(flow_json))
+
+    def create_file(self, label, stream, maybe_csv=False):
+        """
+        ファイルストリームからファイルタイプを判定して
+        FrameまたはDocumentを作成する
+        """
+        from kskp.store import File
+        content_type = File.detect_content_type(stream)
+
+        if content_type == 'text/csv':
+            return self.create_frame(label, stream)
+        elif content_type == 'text/plain' and maybe_csv:
+            # テキストファイル、かつ多分CSVだと指定されたらCSVと判定する
+            return self.create_frame(label, stream)
+        else:
+            return self.create_document(label, stream)
+
+    def create_frame(self, label, stream):
+        from kskp.store import Frame
+        return Frame(self._session, self, label, stream)
+
+    def create_cache(self, label, stream):
+        # Cacheクラスはtype='frame'なので保存時にSQLAlchemyエラーになる
+        # そのためキャッシュにはFrameクラスを用いる
+        from kskp.store import Frame
+        cache = Frame(self._session, self, label, stream)
+        cache.is_cache = True
+        return cache
+
+    def create_document(self, label, stream):
+        from kskp.store import Document
+        return Document(self._session, self, label, stream)
+
+    def create_schedule(self, label:str, runnable_uuid:str, args={}, inputs={}, trigger={}):
+        from kskp.store.scheduler import Schedule
+        return Schedule(self._session, self, label, runnable_uuid, args, inputs, trigger)
+
+    def create_activity(self, label:str, flow):
+        from kskp.store import Activity
+        return Activity(self._session, self, label, flow)
+
+    def create_trashcan(self):
+        from kskp.store import TrashCan
+        return TrashCan(self._session, self)
+
+    def is_system_folder(self):
+        from kskp.core import Datum
+        return self.uuid in (Datum.FLOW_FOLDER_UUID, Datum.RESULT_FOLDER_UUID, Datum.CACHE_FOLDER_UUID, Datum.ACTIVITY_FOLDER_UUID)
+
+    def is_cache_folder(self):
+        from kskp.core import Datum
+        return self.uuid == Datum.CACHE_FOLDER_UUID
+
+    def is_activity_folder(self):
+        from kskp.core import Datum
+        return self.uuid == Datum.ACTIVITY_FOLDER_UUID

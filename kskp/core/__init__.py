@@ -12,14 +12,17 @@ def _get_db_engine(database_uri_candidates):
     SQLAlchemyのEnginオブジェクトを作成する
     """
     def _check_connection(database_uri):
-        from sqlalchemy import create_engine
+        from sqlalchemy import create_engine, select
         from sqlalchemy.exc import OperationalError
         try:
             # DBに接続する
             # echo=TrueでSQLログがコンソールに出力される
-            engine = create_engine(database_uri, echo=False)
-            # DBへの接続を確認する
-            engine.execute('SELECT 1')
+            engine = create_engine(database_uri, echo=False, future=True)
+            # engine.begin()  : close()でCOMMITを発行する
+            # engine.connect(): close()でROLLBACKを発行する
+            with engine.connect() as conn:
+                # DBへの接続を確認する (SELECT 1)
+                conn.execute(select(1))
             return engine
         except OperationalError as e:
             # DBに接続できなかった場合
@@ -48,9 +51,14 @@ def _make_test_schema(engine):
 
     def _create_schema(engine, schema_name):
         # スキーマを作成する
-        from sqlalchemy import DDL, exc
+        from sqlalchemy import inspect, exc
+        from sqlalchemy.schema import CreateSchema
+        # スキーマが既に作成ずみならば作成しない
+        if inspect(engine).get_sequence_names(schema=schema_name):
+            return
         try:
-            engine.execute(DDL(f'CREATE SCHEMA IF NOT EXISTS {schema_name}'))
+            with engine.begin() as conn:
+                conn.execute(CreateSchema(schema_name))
         except exc.OperationalError as e:
             raise Exception('テストケース実行で使用するデータベーススキーマを作成できませんでした')
 
@@ -74,24 +82,21 @@ if _is_unittest():
     # テストスクリプト実行時のDB接続先
     db_port = int(os.getenv('KSKP_DB_PORT', 5432))
     database_uri_candidates=[
-        f'postgresql://kskp:{_db_password}@localhost:{db_port}/kskp',
-        f'postgresql://kskp:{_db_password}@db/kskp',
-        f'postgresql://kskp:{"J2-pH|%B"}@kskp.cr4gfi5zl5xm.ap-northeast-1.rds.amazonaws.com/kskp'
+        f'postgresql://kskp:{_db_password}@localhost:{db_port}/kskp?application_name=KSKP-Test',
+        f'postgresql://kskp:{_db_password}@db/kskp?application_name=KSKP-Test',
+        f'postgresql://kskp:{"J2-pH|%B"}@kskp.cr4gfi5zl5xm.ap-northeast-1.rds.amazonaws.com/kskp?application_name=KSKP-Test'
     ]
     # DBに接続する
     engine = _get_db_engine(database_uri_candidates)
-
     # テスト用スキーマ名を設定する
     SCHEMA_NAME = _make_test_schema(engine)
-    # カレントスキーマを設定する
-    # (コミットされると、セッションが終了するまでその設定が持続する)
-    sql = f'SET SESSION search_path = {SCHEMA_NAME}; commit;'
-    engine.execute(sql)
+    # デフォルトのスキーマを設定したengineを作成する
+    engine = engine.execution_options(schema_translate_map={None: SCHEMA_NAME})
 
 else:
     # 通常実行時のDB接続先
     database_uri_candidates=[
-        f'postgresql://kskp:{_db_password}@db/kskp'
+        f'postgresql://kskp:{_db_password}@db/kskp?application_name=KSKP'
     ]
     # DBに接続する
     engine = _get_db_engine(database_uri_candidates)
@@ -102,8 +107,23 @@ else:
 # TODO: 後方互換性を保つためにprev_parent_id列がない場合は列を追加する
 #
 try:
-    alter_sql = f'ALTER TABLE data ADD COLUMN prev_parent_id INTEGER;'
-    engine.execute(alter_sql)
+    from sqlalchemy import DDL
+    alter_sql = DDL(f'ALTER TABLE data ADD COLUMN IF NOT EXISTS prev_parent_id INTEGER;')
+    with engine.begin() as conn:
+        conn.execute(alter_sql)
+except:
+    pass
+
+#
+# TODO: 後方互換性を保つためにissuerとsubject列がない場合は列を追加する
+try:
+    from sqlalchemy import DDL
+    alter_sql = DDL(f'ALTER TABLE users ADD COLUMN IF NOT EXISTS issuer VARCHAR;')
+    with engine.begin() as conn:
+        conn.execute(alter_sql)
+    alter_sql = DDL(f'ALTER TABLE users ADD COLUMN IF NOT EXISTS subject VARCHAR;')
+    with engine.begin() as conn:
+        conn.execute(alter_sql)
 except:
     pass
 

@@ -10,9 +10,9 @@ class Role(BaseModel):
         """
         Userとロールへの参加タイプを纏める
         """
-        def __init__(self, user, owner=False):
+        def __init__(self, user, owner:bool=False):
             self.user = user
-            self.owner = owner 
+            self.owner = owner
 
         def to_json(self):
             ret = self.user.to_json()

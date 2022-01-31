@@ -48,4 +48,9 @@ with UnAuthzFactory() as unauthz_factory:
 
         # システムフォルダを作成する
         factory.data.load_cache_folder()
+        factory.data.load_activity_folder()
         factory.data.load_trash_folder()
+
+        # ライブラリにある全てのスケジュールをスケジューラに登録する
+        from ..scheduler import schedule_manager
+        schedule_manager.load_from_library(factory.data)

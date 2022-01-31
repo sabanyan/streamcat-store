@@ -46,11 +46,12 @@ class Session():
     def execute(self, sql):
         # テスト実行で二つのSessionを用いた時、片方のSessionで
         # search_pathが設定されないので、execute()の度に設定することにする
+        from sqlalchemy import text
         from kskp.core import _is_unittest, SCHEMA_NAME
         if _is_unittest():
             # カレントスキーマを設定する
             # (コミットされると、セッションが終了するまでその設定が持続する)
-            sql1 = f'SET search_path = {SCHEMA_NAME}; commit;'
+            sql1 = text(f'SET search_path = {SCHEMA_NAME}; commit;')
             self._session.execute(sql1)
 
         return self._session.execute(sql)
@@ -58,6 +59,12 @@ class Session():
     def query(self, datum_type, *args):
         query = self._session.query(datum_type, *args)
         return Query(query, self)
+
+    def get(self, datum_type, ident):
+        result = self._session.get(datum_type, ident)
+        if Query._is_base_model(result):
+            result._session = self
+        return result
 
     def add(self, obj, ignore_authz=False):
         self._session.add(obj)
@@ -90,13 +97,14 @@ class AuthzSession(Session):
             raise Exception('AuthzSessionに設定したuserがNoneです')
         self._user = user
 
-    def query(self, datum_type, *args):
+    def query(self, datum_type, *args, **kwargs):
         """
         参照用途でquery()を使用する場合は、AuthsテーブルとJOINする
         pathとdataプロパティは参照された時に権限を判定し、NGなら例外を送出する
         """
         import inspect
         from sqlalchemy.orm import with_expression
+        from sqlalchemy.sql.expression import null
         from kskp.core import Datum
         from .authz_query import Query, AuthzDatumQuery
 
@@ -120,10 +128,16 @@ class AuthzSession(Session):
             select_parent_uuid = self._make_select_parent_uuid()
 
             # Datumのフォルダパスを取得する
-            select_folder_path = self._make_select_folder_path(Datum.parent_id)
+            if kwargs.get('folder_path'):
+                select_folder_path = self._make_select_folder_path(Datum.parent_id)
+            else:
+                select_folder_path = null()
 
             # Datumの移動前のフォルダパスを取得する
-            select_prev_folder_path = self._make_select_folder_path(Datum.prev_parent_id)
+            if kwargs.get('prev_folder_path'):
+                select_prev_folder_path = self._make_select_folder_path(Datum.prev_parent_id)
+            else:
+                select_prev_folder_path = null()
 
             # read=TrueのDatumのみ抽出する
             # exists_readable = self._make_exists_readable()
@@ -145,7 +159,7 @@ class AuthzSession(Session):
     def _make_select_permissions(self):
         from sqlalchemy.sql.expression import select, literal_column
         
-        select_stmt = self._make_select_permissions_inner().as_scalar()
+        select_stmt = self._make_select_permissions_inner().scalar_subquery()
 
         # SELECT句内にWITH句を記述する必要があるが、SQLAlchemyではそれができないようだ
         # そのため、ここでWITH句を含むSELECT文をtextで記述してこれをメインのSELECT文に含める
@@ -153,7 +167,7 @@ class AuthzSession(Session):
 
         # query.count()でSQLAlchemyがエラーを送出するため、
         # これを回避するためtextをselectオブジェクトでラップする
-        return select([literal_column(select_stmt_str)])
+        return select(literal_column(select_stmt_str))
 
     def _make_exists_readable(self):
         from sqlalchemy.sql.expression import exists, literal, text
@@ -172,7 +186,7 @@ class AuthzSession(Session):
 
     def _make_select_permissions_inner(self, datum_id=None):
         from sqlalchemy.orm import aliased
-        from sqlalchemy.sql.expression import select, func, case, exists, literal, true, false, and_, or_, text
+        from sqlalchemy.sql.expression import select, func, case, literal, true, false, and_, any_, text
         from kskp.core import Datum
         from .auth import Auth
         from .user import User
@@ -189,16 +203,16 @@ class AuthzSession(Session):
         # id      : 検索対象DatumからRootDatumへの経路の全てのDatumのid
         # depth   : RootDatumからの深さ(検索対象Datum=1)
         D0 = aliased(Datum, name='D0')
-        R = select([D0.id.label('leaf_id'), D0.id, D0.parent_id, literal(1).label('depth')]).\
+        R = select(D0.id.label('leaf_id'), D0.id, D0.parent_id, literal(1).label('depth')).\
             select_from(D0).\
             where(D0.id==datum_id).\
-            cte(name='R', recursive=True) 
+            cte(name='R', recursive=True)
             # cte: Common Table Expression WITH句のこと
 
         # WITH句にUNION ALLを用いて再帰クエリとする
         D = aliased(Datum, name='D')
         R = R.union_all(
-                select([R.c.leaf_id, D.id, D.parent_id, (R.c.depth+literal(1)).label('depth')]).\
+                select(R.c.leaf_id, D.id, D.parent_id, (R.c.depth+literal(1)).label('depth')).\
                 select_from(R.join(D, D.id==R.c.parent_id))
             )
 
@@ -206,31 +220,36 @@ class AuthzSession(Session):
         A0 = Auth.__table__
 
         # 検索対象のDatumの編集ロックを権限の判定条件に含める条件
-        exists_edit_lock = exists().where(and_(A0.c.datum_id==datum_id,
-                                                A0.c.role_id==Role.id,
-                                                Role.uuid==Role.EDIT_LOCK_ROLE_UUID))
+        # TODO: permission_without_edit_lock列の追加でSELECT文が有意に遅くなっている
+        datum_is_edit_locked = and_(A0.c.datum_id==datum_id,
+                                    A0.c.role_id==select(Role.id).\
+                                                  select_from(Role).\
+                                                  where(Role.uuid==literal(Role.EDIT_LOCK_ROLE_UUID)).\
+                                                  scalar_subquery())
 
-        # 操作ユーザが所属するロールであることを指定する条件
-        exists_user_role = exists().where(and_(UserRole.role_id==A0.c.role_id, UserRole.user_id==self.user.id))
-        exists_user = exists().where(and_(User.self_role_id==A0.c.role_id, User.id==self.user.id))
+        # 操作ユーザの所属するロールを抽出するクエリ
+        UR = select(UserRole.role_id).select_from(UserRole).where(UserRole.user_id==self.user.id)
+        U  = select(User.self_role_id).select_from(User).where(User.id==self.user.id)
 
         # 操作ユーザが複数のロールに所属する場合、対象のDatumの操作権限を判定する
-        A = select([
+        A = select(
                 A0.c.datum_id,
                 A0.c.operation,
                 func.coalesce(func.bool_and(A0.c.permission),false()).label('permission'),
                 func.bool_and(
-                    case([(
-                        exists_edit_lock,
+                    case((
+                        datum_is_edit_locked,
                         true()
-                    )], else_=A0.c.permission)
+                    ), else_=A0.c.permission)
                 ).label('permission_without_edit_lock')
-            ]).\
+            ).\
             select_from(A0).\
             where(
                 and_(
                     A0.c.operation.in_([Auth.READ_OP, Auth.WRITE_OP, Auth.EXEC_OP]),
-                    or_(exists_user_role, exists_user)
+                    # 以下のようなORを含む条件はインデックスを参照しないためUNIONを用いる
+                    # or_(exists_user_role, exists_user)
+                    A0.c.role_id==any_(UR.union_all(U).scalar_subquery())
                 )
             ).\
             group_by(A0.c.datum_id, A0.c.operation).\
@@ -248,22 +267,22 @@ class AuthzSession(Session):
                     )
 
         # フォルダ権限のオーバライドを判定する
-        RA = select([
-                case([(
+        RA = select(
+                case((
                     # 編集ロック値を考慮しない権限の判定結果
                     auth_bool_and(A.c.permission_without_edit_lock),
                     case(
                         {'read' : Datum.PERMISSION_READ ,
                          # 更新権限は、編集ロック値を考慮しない権限と、考慮する権限の二つの判定結果を返す
-                         'write': case([(auth_bool_and(A.c.permission), 
-                                        Datum.PERMISSION_WRITE | Datum.PERMISSION_WRITER)],
+                         'write': case((auth_bool_and(A.c.permission), 
+                                        Datum.PERMISSION_WRITE | Datum.PERMISSION_WRITER),
                                         else_=Datum.PERMISSION_WRITER),
                          'exec' : Datum.PERMISSION_EXEC},
                         value=A.c.operation,
                         else_=0
                     )
-                )], else_=0).label('permission')
-             ]).\
+                ), else_=0).label('permission')
+             ).\
              select_from(
                  R.outerjoin(A, R.c.id==A.c.datum_id)
              ).\
@@ -272,14 +291,14 @@ class AuthzSession(Session):
              alias('RA')
 
         # 権限フラグのAND演算をする(SQLの集計関数を入れ子にできないのでSELECT文でラップする)
-        return select([func.sum(RA.c.permission).label('permissions')]).select_from(RA)
+        return select(func.sum(RA.c.permission).label('permissions')).select_from(RA)
 
     def _make_select_ownership(self, datum_id):
         """
         操作ユーザがDatumの所有権を有するか判定する
         (フォルダの所有権はオーバーライドしない)
         """
-        from sqlalchemy import select, exists, func, false, and_, or_
+        from sqlalchemy import select, func, false, and_, any_
         from sqlalchemy.orm import aliased
         from .auth import Auth
         from .user import User
@@ -287,17 +306,17 @@ class AuthzSession(Session):
 
         A = aliased(Auth, name='A')
 
-        # 操作ユーザが所属するロールであることを指定する条件
-        exists_user_role = exists().where(and_(UserRole.role_id==A.role_id, UserRole.user_id==self.user.id))
-        exists_user = exists().where(and_(User.self_role_id==A.role_id, User.id==self.user.id))
+        # 操作ユーザの所属するロールを抽出するクエリ
+        UR = select(UserRole.role_id).select_from(UserRole).where(UserRole.user_id==self.user.id)
+        U  = select(User.self_role_id).select_from(User).where(User.id==self.user.id)
 
-        select_stmt = select([func.coalesce(func.bool_and(A.permission),false()).label('owner')]).\
+        select_stmt = select(func.coalesce(func.bool_and(A.permission),false()).label('owner')).\
                             select_from(A).\
                             where(
                                 and_(
                                     A.datum_id==datum_id,
                                     A.operation==Auth.OWN_OP,
-                                    or_(exists_user_role, exists_user)
+                                    A.role_id==any_(UR.union_all(U).scalar_subquery())
                                 )
                             )
         return select_stmt
@@ -316,7 +335,7 @@ class AuthzSession(Session):
 
         D = aliased(Datum, name='D')
 
-        select_stmt = select([D.uuid]).\
+        select_stmt = select(D.uuid).\
                       select_from(D).\
                       where(D.id==datum_parent_id_column)
         return select_stmt
@@ -337,7 +356,7 @@ class AuthzSession(Session):
         # label : 検索対象Datumのlabel
         # id    : 検索対象DatumからRootDatumへの経路の全てのDatumのid
         D0 = aliased(Datum, name='D0')
-        R = select([D0._label.label('label'), D0.id, D0.parent_id]).\
+        R = select(D0._label.label('label'), D0.id, D0.parent_id).\
             select_from(D0).\
             where(D0.id==datum_parent_id_column).\
             cte(name='R', recursive=True) 
@@ -346,13 +365,13 @@ class AuthzSession(Session):
         # WITH句にUNION ALLを用いて再帰クエリとする
         D = aliased(Datum, name='D')
         R = R.union_all(
-                select([D._label, D.id, D.parent_id]).\
+                select(D._label, D.id, D.parent_id).\
                 select_from(R.join(D, D.id==R.c.parent_id))
             )
 
-        Labels = select([R.c.label]).\
+        Labels = select(R.c.label).\
                  select_from(R).\
-                 order_by(R.c.id).as_scalar()
+                 order_by(R.c.id).scalar_subquery()
                  # フォルダ階層順にソートするためidでソートする 
                  # as_scalar()を指定しないとメインのSELECT文にFROM句が付加されてしまう
 
@@ -362,15 +381,27 @@ class AuthzSession(Session):
         # フォルダパスの先頭に'/'を付加する、フォルダパスがない場合はNULLを返す   
         func_exp = case(
                          # Labelsの件数が0件の場合、ARRAY_TO_STRING関数は空文字を返す
-                        {'': None},
-                        value=func_exp,
+                        # NOTE: SQLAlchemy2.0対応 (RemovedIn20Warningの抑止)
+                        # {'': None},
+                        # value=func_exp,
+                        (func_exp=='', None),
                         else_=func.concat('/', func_exp)
                     )
 
         # WITH句を含むSELECT文をtextで記述してこれをメインのSELECT文に含める
         func_exp_str = str(func_exp.compile(compile_kwargs={'literal_binds': True}))
 
-        return select([literal_column(func_exp_str)])
+        return select(literal_column(func_exp_str))
+
+    def get(self, datum_type, ident):
+        from kskp.core import Datum
+        result = self._session.get(datum_type, ident)
+        if Query._is_base_model(result):
+            result._session = self
+            # 参照権限のないDatumの場合はNoneを返す
+            if isinstance(result, Datum) and not result.readable:
+                return None
+        return result
 
     def add(self, obj, ignore_authz=False):
         from kskp.core import Datum
@@ -443,7 +474,7 @@ class AuthzSession(Session):
         elif isinstance(obj, Auth):
             # ユーザ管理者かデータの所有者のみ、その権限を追加できる
             if not self.ownership(obj.datum_id) and not self.has_usr_admin():
-                datum = self._session.query(Datum).get(obj.datum_id)
+                datum = self._session.get(Datum, obj.datum_id)
                 raise NotAuthorizedException(f'{self.user}は{datum.label}に{obj.operation}権限を追加できませんでした')
             self._session.add(obj)
             self.flush(obj)
@@ -624,20 +655,22 @@ class AuthzSession(Session):
         return result.owner == True
 
     def has_sys_admin(self) -> bool:
+        from sqlalchemy.sql.expression import literal
         from .user_role import UserRole
         from .role import Role
         query = self._session.query(Role).\
                             outerjoin(UserRole, UserRole.role_id==Role.id).\
-                            filter(Role.uuid == Role.SYS_ADMIN_ROLE_UUID).\
+                            filter(Role.uuid == literal(Role.SYS_ADMIN_ROLE_UUID)).\
                             filter(UserRole.user_id==self.user.id)
         return query.count() > 0
 
     def has_usr_admin(self) -> bool:
+        from sqlalchemy.sql.expression import literal
         from .user_role import UserRole
         from .role import Role
         query = self._session.query(Role).\
                             outerjoin(UserRole, UserRole.role_id==Role.id).\
-                            filter(Role.uuid == Role.USR_ADMIN_ROLE_UUID).\
+                            filter(Role.uuid == literal(Role.USR_ADMIN_ROLE_UUID)).\
                             filter(UserRole.user_id==self.user.id)
         return query.count() > 0       
 

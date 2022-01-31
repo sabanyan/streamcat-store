@@ -1,24 +1,528 @@
-from typing import Callable
+from typing import List, Callable
 
 class FlowData():
     """
     Flowデータを表す
     """
+    # Flow Jsonの定義
+    FLOW_JSON_SCHEMA = {
+        "title" : "Flow JSON Schema",
+        "description" : "This is a schema that verifies Flow JSON.",
+        '$schema': 'http://json-schema.org/draft-07/schema#',
+        '$ref': '#/definitions/Flow',
+        'definitions': {
+            'Flow': {
+                'type': 'object',
+                'required': [],
+                'additionalProperties': False,
+                'properties': {
+                    'label': {
+                        'type': ['null', 'string']
+                    },
+                    'description': {
+                        'type': ['null', 'string']
+                    },
+                    'creator': {
+                        'type': ['null', 'string']
+                    },
+                    'createdAt': {
+                        'type': ['null', 'string']
+                    },
+                    'projectId': {
+                        'type': ['null', 'integer']
+                    },
+                    'datasource':{
+                        'type': 'object',
+                        '$ref': '#/definitions/FrameNode',
+                    },
+                    'nodes': {
+                        'type': 'array',
+                        'items': {
+                            'anyOf': [
+                                {
+                                    'type': 'object',
+                                    '$ref': '#/definitions/FrameNode'
+                                },
+                                {
+                                    'type': 'object',
+                                    '$ref': '#/definitions/CommandNode'
+                                },
+                                {
+                                    'type': 'object',
+                                    '$ref': '#/definitions/FlowNode'
+                                },
+                                {
+                                    'type': 'object',
+                                    '$ref': '#/definitions/NoteNode'
+                                },
+                                {
+                                    'type': 'object',
+                                    '$ref': '#/definitions/IntNode'
+                                }
+                            ]
+                        }
+                    },
+                    'params': {
+                        'type': 'array',
+                        'items': {
+                            '$ref': '#/definitions/Param'
+                        }
+                    },
+                    'ports': {
+                        'type': 'array',
+                        'maxItems': 2,
+                        'minItems': 2,
+                        'items': {
+                            'type': 'array',
+                            'items': {
+                                '$ref': '#/definitions/Port'
+                            }
+                        }
+                    }
+                }
+            },
+            'FrameNode': {
+                'type': 'object',
+                'required': [
+                    'id',
+                    'type'
+                ],
+                'additionalProperties': False,
+                'properties': {
+                    'id': {
+                        '$ref': '#/definitions/id'
+                    },
+                    'label': {
+                        'type': 'string'
+                    },
+                    'type': {
+                        'enum': ['frame', 'store', 'int']
+                    },
+                    'uuid': {
+                        'anyOf': [
+                            {
+                                'type': 'null'
+                            },
+                            {
+                                '$ref': '#/definitions/uuid'
+                            }
+                        ]
+                    },
+                    'value': {
+                        'anyOf': [
+                            {
+                                'type': 'array',
+                                'items': {
+                                    'type': 'array',
+                                    'items': {
+                                        'type': ['null', 'string', 'number', 'boolean']
+                                    }
+                                }
+                            },
+                            {
+                                'type': 'null'
+                            }
+                        ]
+                    },
+                    'makeCache': {
+                        'type': 'boolean'
+                    },
+                    'dataSource': {
+                        'type': 'string',
+                        'pattern': '^[0-9a-zA-Z_]+$'
+                    },
+                    'cacheCreatedAt': {
+                        'type': ['null', 'string']
+                    },
+                    'position': {
+                        '$ref': '#/definitions/Position'
+                    },
+                    'size': {
+                        '$ref': '#/definitions/Size'
+                    },
+                    'error': {
+                        '$ref': '#/definitions/Error'
+                    },
+                    'invalid': {
+                        '$ref': '#/definitions/Error'
+                    }
+                }
+            },
+            'CommandNode': {
+                'type': 'object',
+                'required': [
+                    'id',
+                    'type',
+                    'commandId'
+                ],
+                'additionalProperties': False,
+                'properties': {
+                    'id': {
+                        '$ref': '#/definitions/id'
+                    },
+                    'label': {
+                        'type': 'string'
+                    },
+                    'type': {
+                        'const': 'command'
+                    },
+                    'commandId': {
+                        'type': 'string',
+                        'pattern': '^[0-9a-zA-Z_]+$'
+                    },
+                    'args': {
+                        '$ref': '#/definitions/Args'
+                    },
+                    'srcs': {
+                        '$ref': '#/definitions/Srcs'
+                    },
+                    'dsts': {
+                        '$ref': '#/definitions/Dsts'
+                    },
+                    'position': {
+                        '$ref': '#/definitions/Position'
+                    },
+                    'size': {
+                        '$ref': '#/definitions/Size'
+                    },
+                    'srcsOrder': {
+                        'type': 'array',
+                        'items': {
+                            '$ref': '#/definitions/portId'
+                        }
+                    },
+                    'error': {
+                        '$ref': '#/definitions/Error'
+                    },
+                    'invalid': {
+                        '$ref': '#/definitions/Error'
+                    }
+                }
+            },
+            'FlowNode': {
+                'type': 'object',
+                'required': [
+                    'id',
+                    'type',
+                ],
+                'oneOf': [
+                    {
+                        'required': ['uuid']
+                    },
+                    {
+                        'required': ['flow']
+                    }
+                ],
+                'additionalProperties': False,
+                'properties': {
+                    'id': {
+                        '$ref': '#/definitions/id'
+                    },
+                    'label': {
+                        'type': 'string'
+                    },
+                    'type': {
+                        'const': 'flow'
+                    },
+                    'classification': {
+                        'type': 'string'
+                    },
+                    'uuid': {
+                        'anyOf': [
+                            {
+                                'type': 'null'
+                            },
+                            {
+                                '$ref': '#/definitions/uuid'
+                            }
+                        ]
+                    },
+                    'flow': {
+                        # Flowリテラル
+                        '$ref': '#/definitions/Flow'
+                    },
+                    'args': {
+                        '$ref': '#/definitions/Args'
+                    },
+                    'srcs': {
+                        '$ref': '#/definitions/Srcs'
+                    },
+                    'dsts': {
+                        '$ref': '#/definitions/Dsts'
+                    },
+                    'masked': {
+                        'type': 'boolean'
+                    },
+                    'position': {
+                        '$ref': '#/definitions/Position'
+                    },
+                    'size': {
+                        '$ref': '#/definitions/Size'
+                    },
+                    'srcsOrder': {
+                        'type': 'array',
+                        'items': {
+                            '$ref': '#/definitions/portId'
+                        }
+                    },
+                    'error': {
+                        '$ref': '#/definitions/Error'
+                    },
+                    'invalid': {
+                        '$ref': '#/definitions/Error'
+                    }
+                }
+            },
+            'NoteNode': {
+                'type': 'object',
+                'required': [
+                    'id',
+                    'type',
+                    'title'
+                ],
+                'additionalProperties': False,
+                'properties': {
+                    'id': {
+                        '$ref': '#/definitions/id'
+                    },
+                    'label': {
+                        'type': 'string'
+                    },
+                    'type': {
+                        'const': 'note'
+                    },
+                    'title': {
+                        'type': 'string'
+                    },
+                    'content': {
+                        'type': 'string'
+                    },
+                    'fontSize': {
+                        'type': 'number',
+                        'minimum': 0
+                    },
+                    'color': {
+                        'type': 'string'
+                    },
+                    'position': {
+                        '$ref': '#/definitions/Position'
+                    },
+                    'size': {
+                        '$ref': '#/definitions/Size'
+                    },
+                    'error': {
+                        '$ref': '#/definitions/Error'
+                    },
+                    'invalid': {
+                        '$ref': '#/definitions/Error'
+                    }
+                }
+            },
+            'IntNode': {
+                'type': 'object',
+                'required': [
+                    'id',
+                    'type',
+                    'value'
+                ],
+                'additionalProperties': False,
+                'properties': {
+                    'id': {
+                        '$ref': '#/definitions/id'
+                    },
+                    'label': {
+                        'type': 'string'
+                    },
+                    'type': {
+                        'const': 'int'
+                    },
+                    'value': {
+                        'anyOf': [
+                            {
+                                'type': 'array',
+                                'maxItems': 1,
+                                'minItems': 1,
+                                'items': {
+                                    'type': 'array',
+                                    'maxItems': 1,
+                                    'minItems': 1,
+                                    'items': {
+                                        'type': ['null', 'string', 'number', 'boolean']
+                                    }
+                                }
+                            }
+                        ]
+                    },
+                    'uuid': {
+                        'const': 'null'
+                    }
+                }
+            },
+            'Args': {
+                'type': 'object',
+                'required': [],
+                'additionalProperties': {
+                    'type': ['null', 'string', 'number', 'boolean', 'array', 'object']
+                },
+                'propertyNames': {
+                    'type': 'string'
+                }
+            },
+            'Param': {
+                'type': 'object',
+                'required': [
+                    'name',
+                    'type'
+                ],
+                'additionalProperties': False,
+                'properties': {
+                    'name': {
+                        'type': 'string'
+                    },
+                    'label': {
+                        'type': 'string'
+                    },
+                    'type': {
+                        'type': 'string'
+                    },
+                    'optional': {
+                        'type': 'boolean'
+                    }
+                }
+            },
+            'Port': {
+                'type': 'object',
+                'required': [
+                    'label',
+                    'nodeId'
+                ],
+                'additionalProperties': False,
+                # typeまたはtypesのどちらかの指定を必須とする
+                'minProperties': 3,
+                'properties': {
+                    'label': {
+                        '$ref': '#/definitions/portId'
+                    },
+                    'nodeId': {
+                        '$ref': '#/definitions/id'
+                    },
+                    'type': {
+                        'type': 'string',
+                    },
+                    # Portの型を複数指定する場合はtypesで指定する
+                    'types': {
+                        'type': 'array',
+                        'minItems': 1,
+                        'uniqueItems': True,
+                        'items': {
+                            'type': 'string'
+                        }
+                    }
+                }
+            },
+            'Srcs': {
+                'type': 'object',
+                'required': [],
+                'additionalProperties': {
+                    '$ref': '#/definitions/id'
+                },
+                'propertyNames': {
+                    '$ref': '#/definitions/portId'
+                }
+            },
+            'Dsts': {
+                'type': 'object',
+                'required': [],
+                'additionalProperties': {
+                    '$ref': '#/definitions/id'
+                },
+                'propertyNames': {
+                    '$ref': '#/definitions/portId'
+                }
+            },
+            'Position': {
+                'type': 'object',
+                'required': [
+                    'x',
+                    'y'
+                ],
+                'additionalProperties': False,
+                'properties': {
+                    'x': {
+                        'type': 'number',
+                        'minimum': 0
+                    },
+                    'y': {
+                        'type': 'number',
+                        'minimum': 0
+                    }
+                }
+            },
+            'Size': {
+                'type': 'object',
+                'required': [
+                    'height',
+                    'width'
+                ],
+                'additionalProperties': False,
+                'properties': {
+                    'width': {
+                        'type': 'number',
+                        'minimum': 0
+                    },
+                    'height': {
+                        'type': 'number',
+                        'minimum': 0
+                    }
+                }
+            },
+            'Error': {
+                'type': 'object',
+                'additionalProperties': False,
+                'patternProperties': {
+                    '^[0-9a-zA-Z_]+$': {
+                        'type': 'array',
+                        'items': {
+                            'type': 'string'
+                        }
+                    }
+                }
+            },
+            'id': {
+                'id': 'id',
+                'type': 'string',
+                'pattern': '^[0-9a-zA-Z_]+$'
+            },
+            'uuid': {
+                'id': 'uuid',
+                'type': 'string',
+                # The format of uuid was added in JSON Schema spec version 2019-09 (previously known as draft-08). 
+                'pattern': '^[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}$'
+            },
+            'portId': {
+                'id': 'portId',
+                'type': 'string'
+                # ポートidはラベルとしても用いられている
+                # 'pattern': '^[0-9a-zA-Z_*]+$'
+            }
+        }
+    }
+
     def __init__(self,
                  flow_json:dict = {},
-                 is_readable:Callable[[str],bool] = None,
-                 is_executable:Callable[[str],bool] = None,
+                 select_unreadables:Callable[[List[str]],List[str]] = None,
+                 select_unexecutables:Callable[[List[str]],List[str]] = None,
                  readable_or_raise:Callable[[],None] = None, 
                  executable_or_raise:Callable[[],None] = None):
         self._flow_json = flow_json
 
         # readable_or_raise()が指定されない場合は権限判定をしない
-        true_func = lambda uuid: True
-        empty_func = lambda: None
-        self._is_readable = is_readable or true_func
-        self._is_executable = is_executable or true_func
-        self._readable_or_raise = readable_or_raise or empty_func
-        self._executable_or_raise = executable_or_raise or empty_func
+        empty_func = lambda uuids: []
+        noop_func = lambda: None
+        self._select_unreadables = select_unreadables or empty_func
+        self._select_unexecutables = select_unexecutables or empty_func
+        self._readable_or_raise = readable_or_raise or noop_func
+        self._executable_or_raise = executable_or_raise or noop_func
 
     @property
     def label(self) -> str:
@@ -49,27 +553,73 @@ class FlowData():
         self._flow_json['createdAt'] = created_at
 
     @property
-    def params(self) -> list:
+    def params(self) -> List[dict]:
         return self._flow_json.get('params')
 
+    # @property
+    # def ports(self) -> list:
+    #     return self._flow_json.get('ports')
+
     @property
-    def ports(self) -> list:
-        return self._flow_json.get('ports')
+    def i_ports(self) -> List[dict]:
+        ports = self._flow_json.get('ports')
+        if ports is None:
+            return []
+        return ports[0]
+
+    @property
+    def o_ports(self) -> List[dict]:
+        ports = self._flow_json.get('ports')
+        if ports is None:
+            return []
+        return ports[1]
 
     @property
     def has_nodes(self):
         return 'nodes' in self._flow_json
 
-    def get_src_frame_uuids(self):
+    def get_args_uuids(self):
         """
-        参照する入力frameを全て取得する
+        引数で指定されたUUIDを全て取得する
         """
-        ret = []
+        from kskp.core import Datum
+        rets = set()
 
         if not self.has_nodes:
-            return ret
+            return rets
 
         for node in self.get_nodes():
+            # サブフローやコマンドの引数に設定されているUUIDを取得する
+            if node['type'] in ('flow', 'command') and 'args' in node:
+                # TODO: フレーム以外のUUIDも含まれてしまう
+                uuids = [v for k, v in node['args'].items() if isinstance(v, str) and Datum.is_valid_uuid(v)]
+                rets.update(uuids)
+            if node['type'] == 'flow' and 'flow' in node:
+                # インラインSub Flowの中で参照するUUIDを取得する
+                sub_flow_data =  FlowData(node['flow'])
+                rets.update(sub_flow_data.get_args_uuids())
+        return rets
+
+    def get_src_frame_uuids(self, ignore_authz=False):
+        """
+        参照する入力frameのUUIDを全て取得する
+        """
+        rets = set()
+
+        if not self.has_nodes:
+            return rets
+
+        if ignore_authz:
+            nodes = self._flow_json.get('nodes', [])
+        else:
+            nodes = self.get_nodes()
+
+        for node in nodes:
+            if node['type'] == 'flow' and 'flow' in node:
+                # インラインSub Flowの中で参照するframeを取得する
+                sub_flow_data =  FlowData(node['flow'])
+                rets.update(sub_flow_data.get_src_frame_uuids())
+                continue
             if node['type'] != 'frame':
                 continue
             if 'cacheCreatedAt' in node and\
@@ -79,21 +629,24 @@ class FlowData():
                 continue
             if 'uuid' not in node or node['uuid'] is None or node['uuid'] == '':
                 continue
-            if node['uuid'] in ret:
-                continue
-            ret.append(node['uuid'])
-        return ret
+            rets.add(node['uuid'])
+        return rets
 
     def get_cache_frame_uuids(self):
         """
-        参照するキャッシュframeを全て取得する
+        参照するキャッシュframeのUUIDを全て取得する
         """
-        ret = []
+        rets = set()
         
         if not self.has_nodes:
-            return ret
+            return rets
 
         for node in self.get_nodes():
+            if node['type'] == 'flow' and 'flow' in node:
+                # インラインSub Flowの中で参照するキャッシュframeを取得する
+                sub_flow_data =  FlowData(node['flow'])
+                rets.update(sub_flow_data.get_cache_frame_uuids())
+                continue
             if node['type'] != 'frame':
                 continue
             if 'cacheCreatedAt' not in node or\
@@ -103,48 +656,57 @@ class FlowData():
                 continue
             if 'uuid' not in node or node['uuid'] is None or node['uuid'] == '':
                 continue
-            if node['uuid'] in ret:
-                continue
-            ret.append(node['uuid'])
-        return ret
+            rets.add(node['uuid'])
+        return rets
 
-    def get_sub_flow_uuids(self):
+    def get_sub_flow_uuids(self, ignore_authz=False):
         """
-        参照するSub Flowを全て取得する
+        参照するSub FlowのUUIDを全て取得する
         """
-        ret = []
+        rets = set()
 
         if not self.has_nodes:
-            return ret
+            return rets
 
-        for node in self.get_nodes():
+        if ignore_authz:
+            nodes = self._flow_json.get('nodes', [])
+        else:
+            nodes = self.get_nodes()
+
+        for node in nodes:
+            if node['type'] == 'flow' and 'flow' in node:
+                # インラインSub Flowの中で参照するSub Flowを取得する
+                sub_flow_data =  FlowData(node['flow'])
+                rets.update(sub_flow_data.get_sub_flow_uuids())
+                continue
             if node['type'] != 'flow':
                 continue
             if 'uuid' not in node or node['uuid'] is None or node['uuid'] == '':
                 continue
-            if node['uuid'] in ret:
-                continue
-            ret.append(node['uuid'])
-        return ret
+            rets.add(node['uuid'])
+        return rets
 
     def get_store_uuids(self):
         """
-        参照するStoreを全て取得する
+        参照するStoreのUUIDを全て取得する
         """
-        ret = []
+        rets = set()
 
         if not self.has_nodes:
-            return ret
+            return rets
 
         for node in self.get_nodes():
+            if node['type'] == 'flow' and 'flow' in node:
+                # インラインSub Flowの中で参照するStoreを取得する
+                sub_flow_data =  FlowData(node['flow'])
+                rets.update(sub_flow_data.get_store_uuids())
+                continue
             if node['type'] != 'store':
                 continue
             if 'uuid' not in node or node['uuid'] is None or node['uuid'] == '':
                 continue
-            if node['uuid'] in ret:
-                continue
-            ret.append(node['uuid'])
-        return ret
+            rets.add(node['uuid'])
+        return rets
 
     def copy(self):
         """
@@ -153,7 +715,7 @@ class FlowData():
         import copy
         return FlowData(copy.deepcopy(self._flow_json))
 
-    def get_nodes(self, use_exec_auth=False) -> list:
+    def get_nodes(self, use_exec_auth=False) -> List[dict]:
         flow_json = self._authorize(self._flow_json, use_exec_auth)
         return flow_json.get('nodes')
 
@@ -168,7 +730,7 @@ class FlowData():
             return
         for node in nodes:
             # フローエディタでノードの削除・追加を行うことで、Nodeのidは再利用されることに注意すること
-            # その場合、再利用されたidでもmaskedキーはないノードなので、マスキング解除の対象ノードには
+            # その場合、再利用されたidでもmaskedキーはないノードなので、マスキング解除の対象ノードには
             # ならない
 
             # フローエディタでuuidがNoneのノードを追加できないので、uuidがNoneのノードはマスキング
@@ -188,9 +750,14 @@ class FlowData():
             # ノードをマスクしたことを示すフラグを削除する
             del node['masked']
 
-    def to_json(self, contains_nodes=True):
+    def to_json(self, contains_nodes=True, minimize=False, ignore_authz=False):
         if contains_nodes:
-            flow_json = self._authorize(self._flow_json)
+            if ignore_authz:
+                flow_json = self._flow_json
+            else:
+                flow_json = self._authorize(self._flow_json)
+            if minimize:
+                flow_json = self._minimize(flow_json)
             return flow_json
         else:
             return {
@@ -199,8 +766,31 @@ class FlowData():
                 'creator': self.creator,
                 'createdAt': self.created_at,
                 'params': self.params,
-                'ports': self.ports
+                'ports': [self.i_ports, self.o_ports]
             }
+
+    def remove_uuid_from_param(self):
+        """
+        後方互換のため、paramからuuid属性を削除する
+        """
+        if 'params' not in self._flow_json:
+            return
+
+        for param in self._flow_json.get('params'):
+            # paramにuuid属性が在ればこれを削除する
+            if 'uuid' in param:
+                del param['uuid']
+        return
+
+    def valid_flow_json_or_raise(self):
+        """
+        フローJSONの書式に従っていない場合は例外を送出する
+        """
+        from jsonschema import validate, ValidationError
+        try:
+            validate(self._flow_json, FlowData.FLOW_JSON_SCHEMA)
+        except ValidationError as e:
+            raise
 
     def _set_cache(self, node_id, cache_uuid):
         """
@@ -240,17 +830,43 @@ class FlowData():
 
     def _replace_uuid(self, old_uuid, new_uuid):
         """
-        指定するuuidを置き換える
+        指定するUUIDを置き換える
         """
         if 'nodes' not in self._flow_json:
             return
         for node in self._flow_json.get('nodes'):
-            if 'uuid' not in node:
-                continue
-            if node['uuid'] == old_uuid:
-                node['uuid'] = new_uuid
+            if 'uuid' in node:
+                if node['uuid'] == old_uuid:
+                    node['uuid'] = new_uuid
+            elif node.get('type') == 'command' or node.get('type') == 'flow':
+                # サブフローやコマンドの引数に設定されているUUIDを置き換える
+                for key, uuid in node['args'].items():
+                    if uuid == old_uuid:
+                        node['args'][key] = new_uuid
+                # インラインSub Flow内で参照するUUIDを置き換える
+                if 'flow' in node:
+                    flow_data = FlowData(node['flow'])
+                    flow_data._replace_uuid(old_uuid, new_uuid)
 
-    def _authorize(self, flow_json, use_exec_auth=False):
+    def _minimize(self, flow_json):
+        nodes = flow_json.get('nodes')
+        if nodes is None:
+            return flow_json
+        for node in nodes:
+            if node.get('uuid') is None:
+                node.pop('uuid', None)
+            if node.get('makeCache') == False:
+                node.pop('makeCache', None)
+            if node.get('cacheCreatedAt') is None:
+                node.pop('cacheCreatedAt', None)
+            node.pop('position', None)
+            node.pop('size', None)
+            node.pop('error', None)
+            node.pop('invalid', None)
+            node.pop('srcsOrder', None)
+        return flow_json
+
+    def _authorize(self, flow_json:dict, use_exec_auth=False):
         """
         権限の判定と、参照権限のないノードのマスキングをする
         """
@@ -265,16 +881,37 @@ class FlowData():
         def mask_unreadble_nodes(flow_data, nodes, use_exec_auth):
             if nodes is None:
                 return
+
+            # フローが参照するUUIDを集める
+            flow_uuids = set()
+            other_uuids = set()
             for node in nodes:
                 node_uuid = node.get('uuid')
                 if node_uuid is None or node_uuid=='':
                     continue
                 elif node.get('type')=='flow' and use_exec_auth:
-                    if not flow_data._is_executable(node_uuid):
-                        # フロー実行のための参照であれば、ノードのマスキングではなく例外を送出する
-                        from kskp.store.auth import NotAuthorizedException
-                        raise NotAuthorizedException(f'共有フロー({node.get("id")})の実行権限がありません')
-                elif not flow_data._is_readable(node_uuid):
+                    flow_uuids.add(node_uuid)
+                else:
+                    other_uuids.add(node_uuid)
+
+            # フローが参照するUUIDのうち実行権限の無いFlowのUUID
+            unexecutables = flow_data._select_unexecutables(flow_uuids)
+            # フローが参照するUUIDのうち参照権限の無いDatumのUUID
+            unreadables = flow_data._select_unreadables(other_uuids)
+
+            for node in nodes:
+                node_uuid = node.get('uuid')
+                if node_uuid in unexecutables:
+                    # フロー実行のための参照であれば、ノードのマスキングではなく例外を送出する
+                    from kskp.store.auth import NotAuthorizedException
+                    raise NotAuthorizedException(f'共有フロー({node.get("id")})の実行権限がありません')
+                elif node_uuid in unreadables:
+                    # 
+                    # TODO: uuid=Noneの場合は参照整合性の検証の対象外になるので
+                    #       ダミーのUUIDを設定する方がいいかもしれない
+                    #       ただし、現在はフローエディタでエラーになるだろう
+                    # node['uuid'] = '00000000-0000-0000-0000-000000000000'
+                    # 
                     node['uuid'] = None
                     node['label'] = '******'
                     # ノードをマスクしたことを示すフラグを追加する
@@ -306,6 +943,9 @@ class FlowData():
         
         # 指定したidのノードがない場合はNoneを返す
         return None
+
+    def __repr__(self):
+        return self.label or ''
 
     def __eq__(self, other):
         return self._flow_json == other._flow_json

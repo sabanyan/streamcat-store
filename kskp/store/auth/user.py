@@ -1,7 +1,7 @@
 import os
 import uuid
 import sqlalchemy.types
-from sqlalchemy import Column, String
+from sqlalchemy import Column, String, UniqueConstraint
 from sqlalchemy.sql import operators
 from sqlalchemy.dialects.postgresql import INTEGER, UUID, ENUM
 from .exceptions import NotAuthorizedException
@@ -11,11 +11,20 @@ class User(BaseModel):
     # テーブル名の定義
     __tablename__ = 'users'
 
+    # テーブル定義の設定
+    __table_args__ = (
+        # 複合Unique制約の定義
+        # (OpenID Connectではissucerとsubjectでユーザを一意に識別する)
+        UniqueConstraint('issuer', 'subject', name='users_iss_sub_key'),
+    ) + BaseModel.__table_args__
+
     class MyString(sqlalchemy.types.TypeDecorator):
         """
         SQLAlchemyにおいてString列のlike/ilike演算で検索語をエスケープする
         """
         impl = sqlalchemy.types.String
+        # キャッシュを許可する
+        cache_ok = True
 
         class comparator_factory(String.Comparator):
 
@@ -56,8 +65,12 @@ class User(BaseModel):
     state         = Column(ENUM(INIT_STATE, TMP_STATE, ACTIVE_STATE, INACTIVE_STATE, name='user_state'), nullable=False)
     # 本人ロールのRoleId
     self_role_id  = Column(INTEGER, nullable=True)
+    # 認証サーバの識別子 (OpenID Connect)
+    issuer        = Column(String)
+    # 認証サーバ内でのユーザ識別子 (OpenID Connect)
+    subject       = Column(String)
 
-    def __init__(self, session, email, name, password=None):
+    def __init__(self, session, email, name, password=None, issuer=None, subject=None):
         """
         コンストラクタ
         """
@@ -79,6 +92,10 @@ class User(BaseModel):
         # 妥当なパスワードでない場合は例外を送出する
         self._valid_password_or_raise(new_password)
         self.password = self._get_encrypt_password(new_password)
+
+        # OpenID Connectのユーザ識別子を設定する
+        self.issuer = issuer
+        self.subject = subject
 
         # 本パスワードに変更する前は初期状態である
         self.state = User.INIT_STATE
@@ -181,15 +198,16 @@ class User(BaseModel):
 
     def _get_admin_role_flags(self):
         from sqlalchemy import func, case, null
+        from sqlalchemy.sql.expression import literal
         from .role import Role
         from .user_role import UserRole
 
         query = self._session.query(
                         func.count(
-                            case([(Role.uuid == Role.SYS_ADMIN_ROLE_UUID,1)],else_=null())
+                            case((Role.uuid == literal(Role.SYS_ADMIN_ROLE_UUID),1),else_=null())
                         ).label('sys_admin'),
                         func.count(
-                            case([(Role.uuid == Role.USR_ADMIN_ROLE_UUID,1)],else_=null())
+                            case((Role.uuid == literal(Role.USR_ADMIN_ROLE_UUID),1),else_=null())
                         ).label('usr_admin')
                     ).\
                     select_from(Role).\
@@ -214,7 +232,7 @@ class User(BaseModel):
 
     def _join_everyone_role(self):
         # everyoneロールに所属させる
-        # (everyoneロールの作成者であるユーザ管理者のみがユーザを追加できる)
+        # (everyoneロールの作成者であるユーザ管理者のみがユーザを追加できる)
         from .role import Role
         from ..factory import RoleFactory
         everyone_role = RoleFactory(self._session).load_everyone_role()
@@ -222,7 +240,7 @@ class User(BaseModel):
 
     def _join_edit_lock_role(self):
         # edit_lockロールに所属させる
-        # (edit_lockロールの作成者であるユーザ管理者のみがユーザを追加できる)
+        # (edit_lockロールの作成者であるユーザ管理者のみがユーザを追加できる)
         from .role import Role
         from ..factory import RoleFactory
         edit_lock_role = RoleFactory(self._session).load_edit_lock_role()
@@ -488,34 +506,38 @@ class User(BaseModel):
         """
         所属する全てのロールを返す
         """
-        from sqlalchemy import exists, and_, or_
+        from sqlalchemy import select, any_
         from .role import Role
         from .user_role import UserRole
 
-        exists_user_role = exists().where(and_(UserRole.role_id==Role.id, UserRole.user_id==self.id))
-        exists_user = exists().where(and_(User.self_role_id==Role.id, User.id==self.id))
+        # 操作ユーザの所属するロールを抽出するクエリ
+        UR = select(UserRole.role_id).select_from(UserRole).where(UserRole.user_id==self.id)
+        U  = select(User.self_role_id).select_from(User).where(User.id==self.id)
 
+        # ロールの抽出にはインデックスを参照させるためUNIONを用いる
         query = self._session.query(Role).\
-                      filter(or_(exists_user_role, exists_user))
+                     filter(Role.id==any_(UR.union_all(U).scalar_subquery()))
         return query.order_by(Role.name).all()
 
     def get_joined_projects(self):
         """
         所属する全てのプロジェクトを返す
         """
-        from sqlalchemy import exists, and_, or_
+        from sqlalchemy import exists, select, and_, any_
         from kskp.core import Datum
         from kskp.store import ProjectFolder
         from .user_role import UserRole
         from .auth import Auth
 
-        exists_user_role = exists().where(and_(UserRole.role_id==Auth.role_id, UserRole.user_id==self.id))
-        exists_user = exists().where(and_(User.self_role_id==Auth.role_id, User.id==self.id))
+        # 操作ユーザの所属するロールを抽出するクエリ
+        UR = select(UserRole.role_id).select_from(UserRole).where(UserRole.user_id==self.id)
+        U  = select(User.self_role_id).select_from(User).where(User.id==self.id)
 
         exists_stmt = exists().where(
                                         and_(Auth.datum_id==ProjectFolder.id,
                                              Auth.permission==True,
-                                             or_(exists_user, exists_user_role)
+                                             # ロールの抽出にはインデックスを参照させるためUNIONを用いる
+                                             Auth.role_id==any_(UR.union_all(U).scalar_subquery())
                                         )
                                     )
 

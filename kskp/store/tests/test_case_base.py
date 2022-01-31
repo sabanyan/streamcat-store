@@ -38,6 +38,11 @@ class TestCaseBase(unittest.TestCase):
         cls.USER2 = test_user
         cls.USER3 = test_user2
 
+        # ルートフォルダを作成する
+        cls.root = cls.factory.data.load_root()
+        # ライブラリデータデストを作成する
+        cls.data_dst = cls._create_data_dst(cls.root)
+
     @classmethod
     def tearDownClass(cls):
         # ライブラリフォルダを削除する
@@ -50,6 +55,142 @@ class TestCaseBase(unittest.TestCase):
         cls.factory2.close()
         cls.factory3.close()
         # スキーマを破棄する
-        from kskp.core import engine, SCHEMA_NAME
         from sqlalchemy import DDL
-        engine.execute(DDL(f'DROP SCHEMA IF EXISTS {SCHEMA_NAME} CASCADE'))
+        from kskp.core import engine, SCHEMA_NAME
+        with engine.begin() as conn:
+            conn.execute(DDL(f'DROP SCHEMA IF EXISTS {SCHEMA_NAME} CASCADE'))
+
+    @classmethod
+    def _create_data_dst(cls, root):
+        """
+        ライブラリデータデストを作成する
+        """
+        from kskp.store import ProjectFolder, FlowData
+        # フォルダを作成する
+        project = root.create_project_folder('データデスト📂')
+        project.save()
+        project = project.reload()
+
+        # データデストフローを作成する
+        data_dst_json = {
+            "label": "ライブラリデータデスト💾",
+            "ports": [
+                [
+                    {
+                    "type": "frame", 
+                    "label": "i", 
+                    "nodeId": "d"
+                    }
+                ], 
+                []
+            ], 
+            "params": [],
+            "nodes": [
+                {
+                    "id": "d", 
+                    "type": "frame", 
+                    "label": "d", 
+                    "dataSource": "csv"
+                }, 
+                {
+                    "id": "s", 
+                    "type": "store", 
+                    "uuid": root.uuid, 
+                    "label": "ライブラリ"
+                }, 
+                {
+                    "id": "c1", 
+                    "args": {}, 
+                    "dsts": {
+                    "o": "d1"
+                    }, 
+                    "srcs": {
+                    "i": "d", 
+                    "folder": "s"
+                    }, 
+                    "type": "command", 
+                    "label": "c1", 
+                    "commandId": "saver"
+                }, 
+                {
+                    "id": "d1", 
+                    "type": "frame", 
+                    "label": "d1", 
+                    "dataSource": "csv"
+                }
+            ]
+        }
+        data_dst_flow = project.create_flow('ライブラリデータデスト💾', FlowData(data_dst_json))
+        data_dst_flow.save()
+
+        # 全てのテストユーザが実行可能にする
+        member0 = ProjectFolder.Member(cls.USER0, ProjectFolder.READER_MEMBER_TYPE)
+        member1 = ProjectFolder.Member(cls.USER1, ProjectFolder.OWNER_MEMBER_TYPE)
+        member2 = ProjectFolder.Member(cls.USER2, ProjectFolder.READER_MEMBER_TYPE)
+        member3 = ProjectFolder.Member(cls.USER3, ProjectFolder.READER_MEMBER_TYPE)
+        project.init_members([member0, member1, member2, member3], last_modified_at=project.modified_at)
+
+        return data_dst_flow.reload()
+
+    def create_data_dst_node(self, src_node_id:str) -> dict:
+        """
+        ライブラリデータデストノードを作成する
+        """
+        return {
+            "id": 'o_' + src_node_id, 
+            "label": "ライブラリ", 
+            "type": "flow", 
+            "classification": "data_dest",
+            "srcs": {
+                "d": src_node_id
+            },
+            "dsts": {}, 
+            "flow": {
+                "label": "ライブラリ",
+                "ports": [
+                    [
+                      {
+                        "types": ["frame", "matrix"], 
+                        "label": "i", 
+                        "nodeId": "d"
+                      }
+                    ], 
+                    []
+                ], 
+                "params": [],
+                "nodes": [
+                    {
+                      "id": "d", 
+                      "type": "frame", 
+                      "label": "d", 
+                      "dataSource": "csv"
+                    }, 
+                    {
+                      "id": "s", 
+                      "type": "store", 
+                      "uuid": self.root.uuid, 
+                      "label": "ライブラリ"
+                    }, 
+                    {
+                      "id": "c1", 
+                      "args": {}, 
+                      "dsts": {
+                        "o": "d1"
+                      }, 
+                      "srcs": {
+                        "i": "d", 
+                        "folder": "s"
+                      }, 
+                      "type": "command", 
+                      "label": "c1", 
+                      "commandId": "saver"
+                    }, 
+                    {
+                      "id": "d1", 
+                      "type": "frame", 
+                      "label": "d1", 
+                      "dataSource": "csv"
+                    }
+                ]
+            }
+        }

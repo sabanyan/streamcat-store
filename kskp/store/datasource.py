@@ -2,6 +2,10 @@ from .flow import Flow
 from .flow_data import FlowData
 
 class DataSource(Flow):
+    """
+    Flowを継承し、かつSQLAlchemyのpolymorphic_identity='flow'の設定は、SQLAlchemyの制約でできない
+    そのため、DataSourceクラスを放棄する
+    """
     def __init__(self, session, parent, label, store, loader_step):
         """
         コンストラクタ
@@ -28,7 +32,7 @@ class DataSource(Flow):
                     "id": "c1",
                     "args": loader_step.args,
                     "srcs": {
-                        loader_step.runnable.i_ports[0].name : "d0"
+                        loader_step.command.i_ports[0].label : "d0"
                     },
                     "dsts": {
                         "o": "d"
@@ -36,7 +40,7 @@ class DataSource(Flow):
                     "type": "command",
                     "error": {},
                     "label": "c1",
-                    "commandId": loader_step.runnable.name,
+                    "commandId": loader_step.command.name,
                     "srcsOrder": [
                         "i"
                     ]
