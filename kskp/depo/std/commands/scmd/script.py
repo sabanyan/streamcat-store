@@ -1489,7 +1489,7 @@ class RestoreCommand(SCommand):
             self._restore_meta(self.META_FILE_PATH)
         except Exception as e:
             # PostgreSQLのDumpファイルを削除する
-            self.META_FILE_PATH.unlink()
+            self.META_FILE_PATH.unlink(missing_ok=True)
             # 退避したライブラリのルートディレクトリを復帰する
             if library_root_path.exists() and library_backup_path.exists():
                 # ライブラリのルートディレクトリと退避したディレクトリが両方存在すれば、
