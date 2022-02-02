@@ -75,7 +75,7 @@ class AuthTest(TestCaseBase):
                 "type": "flow", 
                 "classification": "data_dest",
                 "srcs": {
-                    "d": 'd1'
+                    "i": 'd1'
                 },
                 "dsts": {}, 
                 "uuid": self.data_dst.uuid
@@ -149,7 +149,7 @@ class AuthTest(TestCaseBase):
                 "type": "flow", 
                 "classification": "data_dest",
                 "srcs": {
-                    "d": 'd1'
+                    "i": 'd1'
                 },
                 "dsts": {}, 
                 "uuid": self.data_dst.uuid
@@ -207,7 +207,7 @@ class AuthTest(TestCaseBase):
                         "d1": "d1"
                     },
                     "srcs": {
-                        "d": "d"
+                        "testData": "d"
                     },
                     "type": "flow",
                     "uuid": None,
@@ -222,7 +222,7 @@ class AuthTest(TestCaseBase):
                     "type": "flow", 
                     "classification": "data_dest",
                     "srcs": {
-                        "d": 'd1'
+                        "i": 'd1'
                     },
                     "dsts": {}, 
                     "uuid": self.data_dst.uuid
@@ -4036,7 +4036,7 @@ class AuthTest(TestCaseBase):
         # ラベルがマスキングされていること
         self.assertEqual(nodes[2]['label'], '******')
         self.assertEqual(nodes[2]['args'], {})
-        self.assertEqual(nodes[2]['srcs'], {'d':'d'})
+        self.assertEqual(nodes[2]['srcs'], {'testData':'d'})
         self.assertEqual(nodes[2]['dsts'], {'d1':'d1'})
         self.assertEqual(nodes[2]['srcsOrder'], ['d'])
         # マスキングのフラグが設定されていること
@@ -4059,7 +4059,7 @@ class AuthTest(TestCaseBase):
         # USER2は、参照権限があるのでマスキングされていないこと
         self.assertEqual(nodes[2]['label'], 'f1')
         self.assertEqual(nodes[2]['args'], {})
-        self.assertEqual(nodes[2]['srcs'], {'d':'d'})
+        self.assertEqual(nodes[2]['srcs'], {'testData':'d'})
         self.assertEqual(nodes[2]['dsts'], {'d1':'d1'})
         self.assertEqual(nodes[2]['srcsOrder'], ['d'])
         # マスキングのフラグが存在しないこと

@@ -142,7 +142,7 @@ class TestCaseBase(unittest.TestCase):
             "type": "flow", 
             "classification": "data_dest",
             "srcs": {
-                "d": src_node_id
+                "i": src_node_id
             },
             "dsts": {}, 
             "flow": {
