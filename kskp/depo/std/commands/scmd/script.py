@@ -802,6 +802,28 @@ class RemoteFolderSaverCommand(SaverCommand):
         return parent.create_datasource(label, rfolder, loader_cmd, args)
 
 
+
+class ContinuousLoaderCommand(SCommand):
+    """
+    指定したファイルから入力データを待ち受ける
+    """
+    def __init__(self):
+        super().__init__()
+        self.i_ports = []
+        self.o_ports = [Port('o', 'mcmd')]
+        self.name = 'cloader'
+
+    def run(self, args, inputs):
+        # オプション指定されたファイルパスを取得する
+        file_path = args.get('file_path')
+        if file_path is None:
+            raise Exception('file_pathがNoneです')
+ 
+        # tail -f コマンドでファイルから入力を待ち受ける
+        cmd = nm.cmd(f'tail -n 20000 -f {file_path}')
+
+        return {'o': NysolModule(cmd)}
+
 class RunsCommand(SCommand):
 
     # 最低必要ディスクサイズ(1Mbyte)
