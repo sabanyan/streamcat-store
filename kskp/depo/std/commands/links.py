@@ -166,6 +166,7 @@ class CommandLink:
         'runs' : RunsCommand(),
         # Beamコマンド
         'beam_loader' : BeamLoaderCommand(),
+        'beam_rowrandom': BeamRowRandomCommand(),
         'beam_tolist' : BeamToListCommand(),
         'beam_run'    : BeamRunCommand()
     }

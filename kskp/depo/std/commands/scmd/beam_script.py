@@ -6,6 +6,7 @@ import apache_beam as beam
 from apache_beam.io.filesystems import FileSystems
 from apache_beam.transforms import PTransform
 from apache_beam.transforms.core import _ReiterableChain
+from apache_beam.transforms.combiners import Sample
 
 from kskp.core import Port
 from kskp.store import BeamModule
@@ -43,7 +44,90 @@ class BeamLoaderCommand(LoaderCommand):
         # BeamModuleを返す
         return {'o': BeamModule(ptransform)}
 
+class BeamRowrangeCommand(SCommand):
+    def __init__(self):
+        super().__init__()
+        self.i_ports = [Port('i', 'beam')]
+        self.o_ports = [Port('o', 'beam')]
 
+    def run(self, args, inputs):
+
+
+
+        def rowrange(lists:Tuple[List]) -> Iterable[List]:
+            row_count = 1
+            
+
+            
+
+        # 入力PortからPTransformを取得する
+        ptransform:PTransform = inputs['i'].content
+
+        ptransform |= (
+              'rowrange' >> beam.CombineGlobally(rowrange)
+        )
+
+
+    @staticmethod
+    @beam.ptransform_fn
+    @beam.typehints.with_input_types(beam.PCollection, str)
+    @beam.typehints.with_output_types(None)
+    def WriteToNamedPipe(pcoll:beam.PCollection, fifo_path:str) -> beam.PCollection[None]:
+        # 名前付きPIPEを書き込み用に開き、ファイル記述子を取得する
+        fd1 = os.open(fifo_path, flags=os.O_RDWR |os.O_NONBLOCK)
+
+
+        def reducer(lines) -> Iterable[List[str]]:
+
+            first = True
+
+            for line in lines:
+                if first:
+                    if isinstance(line, tuple):
+                        ret = line
+                    else:
+                        ret = tuple([line])
+                    first = False
+                else:
+                    # *ret : create a new tuple of elements from the original tuple
+                    ret = (*ret, line)
+
+            return ret
+
+        def write_line(lines) -> Iterable[List[str]]:
+            # ファイル記述子からStremを作成する
+            text_io = open(fd1, mode='wb', closefd=False, buffering=0)
+            # 
+            d = pickle.dumps(lines)
+            # Stremにデータを書き込む
+            text_io.write(d)
+
+        return (
+            pcoll
+            # | 'Write File' >> beam.ParDo(write_line)
+            | 'Write File' >> beam.CombineGlobally(reducer)
+            | 'www' >> beam.ParDo(write_line)
+        )
+        
+class BeamRowRandomCommand(SCommand):
+    """
+    無作為に行を抽出する
+    """
+    def __init__(self):
+        super().__init__()
+        self.i_ports = [Port('i', 'frame')]
+        self.o_ports = [Port('o', 'frame')]
+
+    def run(self, args, inputs):
+        # 入力PortからPTransformを取得する
+        ptransform:PTransform = inputs['i'].content
+
+        # 無作為に行を抽出するPTransformを作成する
+        # ptransform |= Sample.FixedSizeGlobally(10)
+
+        # BeamModuleを返す
+        return {'o': BeamModule(ptransform)}
+    
 class BeamToListCommand(SCommand):
     """
     入力データを名前付きPIPEに出力する
