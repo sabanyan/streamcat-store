@@ -48,7 +48,7 @@ class Library:
         戻り値      : Frameオブジェクト
         """
         with UnAuthzFactory() as factory:
-            admin_user = factory.find_user_by_email('admin@kskp.io')
+            admin_user = factory.find_user_by_email('admin@streamcat.io')
         with Factory(admin_user) as factory:
             return factory.data.find_by_uuid(frame_uuid)
 
@@ -104,7 +104,7 @@ class Library:
         戻り値      : なし
         """
         with UnAuthzFactory() as factory:
-            admin_user = factory.find_user_by_email('admin@kskp.io')
+            admin_user = factory.find_user_by_email('admin@streamcat.io')
         with Factory(admin_user) as factory:
             frame = factory.data.find_by_uuid(frame_uuid)
             frame.delete()
@@ -118,7 +118,7 @@ class Library:
         戻り値      : Flowオブジェクト
         """
         with UnAuthzFactory() as factory:
-            admin_user = factory.find_user_by_email('admin@kskp.io')
+            admin_user = factory.find_user_by_email('admin@streamcat.io')
         with Factory(admin_user) as factory:
             return factory.data.find_by_uuid(flow_uuid)
 
@@ -157,7 +157,7 @@ class Library:
         戻り値      : なし
         """
         with UnAuthzFactory() as factory:
-            admin_user = factory.find_user_by_email('admin@kskp.io')
+            admin_user = factory.find_user_by_email('admin@streamcat.io')
         with Factory(admin_user) as factory:
             flow = factory.data.find_by_uuid(flow_uuid)
             flow.delete()
@@ -169,7 +169,7 @@ class Library:
         フォルダを取得する
         """
         with UnAuthzFactory() as factory:
-            admin_user = factory.find_user_by_email('admin@kskp.io')
+            admin_user = factory.find_user_by_email('admin@streamcat.io')
         with Factory(admin_user) as factory:
             return factory.data.find_by_uuid(folder_uuid)
 
@@ -200,7 +200,7 @@ class Library:
         フォルダを削除する
         """
         with UnAuthzFactory() as factory:
-            admin_user = factory.find_user_by_email('admin@kskp.io')
+            admin_user = factory.find_user_by_email('admin@streamcat.io')
         with Factory(admin_user) as factory:
             folder = factory.data.find_by_uuid(folder_uuid)
             folder.delete()
@@ -211,7 +211,7 @@ class Library:
         AWS S3フォルダを取得する
         """
         with UnAuthzFactory() as factory:
-            admin_user = factory.find_user_by_email('admin@kskp.io')
+            admin_user = factory.find_user_by_email('admin@streamcat.io')
         with Factory(admin_user) as factory:
             return factory.data.find_by_uuid(awss3_uuid)
 
@@ -242,7 +242,7 @@ class Library:
         AWS S3フォルダを削除する
         """
         with UnAuthzFactory() as factory:
-            admin_user = factory.find_user_by_email('admin@kskp.io')
+            admin_user = factory.find_user_by_email('admin@streamcat.io')
         with Factory(admin_user) as factory:
             awss3 = factory.data.find_by_uuid(awss3_uuid)
             awss3.delete()

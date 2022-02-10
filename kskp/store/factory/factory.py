@@ -30,7 +30,7 @@ class UnAuthzFactory():
         """
         from kskp.store.auth import User, Role
 
-        SYS_ADMIN_USER_EMAIL = 'Admin@kskp.io'
+        SYS_ADMIN_USER_EMAIL = 'Admin@streamcat.io'
         SYS_ADMIN_USER_NAME = 'システム管理者'
 
         user_factory = UserFactory(self._session)
@@ -64,7 +64,7 @@ class UnAuthzFactory():
         """
         from kskp.store.auth import Role
 
-        USR_ADMIN_USER_EMAIL = 'admin@kskp.io'
+        USR_ADMIN_USER_EMAIL = 'admin@streamcat.io'
         USR_ADMIN_USER_NAME = 'ユーザー管理者'
 
         user_factory = UserFactory(self._session)

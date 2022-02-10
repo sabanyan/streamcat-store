@@ -639,15 +639,15 @@ class AuthTest(TestCaseBase):
         Userの作成・取得・削除を検証する
         """
         # 新規ユーザを追加する
-        new_user = self.factory.user.create('test-man@kskp.io', 'I AM TEST', '123abc(*)A')
+        new_user = self.factory.user.create('test-man@streamcat.io', 'I AM TEST', '123abc(*)A')
         new_user.save()
 
         # 新規ユーザを取得する
-        new_user = self.factory.user.find_by_email('test-man@kskp.io')
+        new_user = self.factory.user.find_by_email('test-man@streamcat.io')
         # 取得したユーザの値を検証する
         self.assertIsNotNone(new_user.id)
         self.assertIsNotNone(new_user.uuid)
-        self.assertEqual(new_user.email, 'test-man@kskp.io')
+        self.assertEqual(new_user.email, 'test-man@streamcat.io')
         self.assertEqual(new_user.name, 'I AM TEST')
         self.assertIsNone(new_user.self_role_id)
         self.assertEqual(new_user.creator, self.USER1)
@@ -660,14 +660,14 @@ class AuthTest(TestCaseBase):
         new_user.delete()
         # 削除後のユーザは取得できない
         with self.assertRaises(Exception):
-            self.factory.user.find_by_email('test-man@kskp.io')
+            self.factory.user.find_by_email('test-man@streamcat.io')
 
     def test_create_user_by_user(self):
         """
         一般ユーザは、ユーザの作成ができないこと
         """
         # 新規ユーザを追加する
-        new_user = self.factory2.user.create('test-man2@kskp.io', 'I AM TEST', '123abc(*)A')
+        new_user = self.factory2.user.create('test-man2@streamcat.io', 'I AM TEST', '123abc(*)A')
         with self.assertRaises(NotAuthorizedException):
             new_user.save()
 
@@ -676,7 +676,7 @@ class AuthTest(TestCaseBase):
         一般ユーザは、他ユーザの変更ができないこと
         """
         # 新規ユーザを追加する
-        new_user = self.factory.user.create('test-man3@kskp.io', 'I AM TEST', '123abc(*)C')
+        new_user = self.factory.user.create('test-man3@streamcat.io', 'I AM TEST', '123abc(*)C')
         new_user.save()
 
         # 他ユーザで再取得する
@@ -696,7 +696,7 @@ class AuthTest(TestCaseBase):
             new_user.update_name('new name')
 
         # ユーザ名・E-Mail・パスワードは変更されていないこと
-        self.assertEqual(new_user.email, 'test-man3@kskp.io')
+        self.assertEqual(new_user.email, 'test-man3@streamcat.io')
         self.assertEqual(new_user.password, new_user_password)
         self.assertEqual(new_user.name, 'I AM TEST')
 
@@ -705,7 +705,7 @@ class AuthTest(TestCaseBase):
         一般ユーザは、他ユーザの削除ができないこと
         """
         # 新規ユーザを追加する
-        new_user = self.factory.user.create('test-man4@kskp.io', 'I AM TEST', '123abc(*)D')
+        new_user = self.factory.user.create('test-man4@streamcat.io', 'I AM TEST', '123abc(*)D')
         new_user.save()
 
         # 他ユーザで再取得する
@@ -716,7 +716,7 @@ class AuthTest(TestCaseBase):
             new_user.delete()
 
         # 削除後のユーザは取得できる
-        new_user = self.factory.user.find_by_email('test-man4@kskp.io')
+        new_user = self.factory.user.find_by_email('test-man4@streamcat.io')
         self.assertIsNotNone(new_user)
 
     def test_cannot_set_same_email(self):
@@ -725,17 +725,17 @@ class AuthTest(TestCaseBase):
         既に登録済みのemailと同じemailに変更できないこと
         """
         # 新規ユーザを追加する
-        new_user1 = self.factory.user.create('wow@kskp.io', 'I AM TEST', '123abc(*)C')
+        new_user1 = self.factory.user.create('wow@streamcat.io', 'I AM TEST', '123abc(*)C')
         new_user1.save()
 
         # 他のユーザと同じメールアドレスでユーザを作成できないこと
         with self.assertRaises(Exception):
-            new_user2 = self.factory.user.create('wow@kskp.io', 'I AM TEST 2', None)
+            new_user2 = self.factory.user.create('wow@streamcat.io', 'I AM TEST 2', None)
             new_user2.save()
 
         # 他のユーザと同じメールアドレスに変更できないこと
         with self.assertRaises(Exception):
-            new_user2.update_email('wow@kskp.io')
+            new_user2.update_email('wow@streamcat.io')
 
         # ユーザを削除する
         new_user1.delete()
@@ -830,8 +830,8 @@ class AuthTest(TestCaseBase):
         システム管理者とユーザ管理者に付番されるIDを検証する
         (保守性向上のためシステムが用意するユーザのIDは固定したい)
         """
-        sys_user = self.factory.user.find_by_email('Admin@kskp.io')
-        usr_user = self.factory.user.find_by_email('admin@kskp.io')
+        sys_user = self.factory.user.find_by_email('Admin@streamcat.io')
+        usr_user = self.factory.user.find_by_email('admin@streamcat.io')
 
         # システム管理者のIDは1、ユーザ管理者のIDは2
         self.assertEqual(sys_user.id, 1)

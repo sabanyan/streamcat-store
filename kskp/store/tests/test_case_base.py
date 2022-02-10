@@ -8,16 +8,16 @@ class TestCaseBase(unittest.TestCase):
     def setUpClass(cls):
         # ユーザ管理者を取得する
         with UnAuthzFactory() as factory:
-            sys_admin_user = factory.find_user_by_email('Admin@kskp.io')
-            usr_admin_user = factory.find_user_by_email('admin@kskp.io')
+            sys_admin_user = factory.find_user_by_email('Admin@streamcat.io')
+            usr_admin_user = factory.find_user_by_email('admin@streamcat.io')
         # 管理者ユーザのFactoryをOpenする
         cls.factory0 = Factory(sys_admin_user)
         cls.factory = Factory(usr_admin_user)
         # テストユーザ1を作成する
-        test_user = cls.factory.user.create('test@kskp.io', 'Test', '123abc(*)A')
+        test_user = cls.factory.user.create('test@streamcat.io', 'Test', '123abc(*)A')
         test_user.save()
         # テストユーザ2を作成する
-        test_user2 = cls.factory.user.create('test2@kskp.io', 'Test2', '123abc(*)B')
+        test_user2 = cls.factory.user.create('test2@streamcat.io', 'Test2', '123abc(*)B')
         test_user2.save()
         # テストユーザのFactoryをOpenする
         cls.factory2 = Factory(test_user)
