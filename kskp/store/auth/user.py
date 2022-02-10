@@ -53,7 +53,7 @@ class User(BaseModel):
 
     # 環境変数から仮パスワードの有効日数を取得する
     # (設定値がない場合は14日間とする)
-    TMP_PASS_EXPIRE_SECONDS = int(os.getenv('KSKP_TMP_PASS_EXPIRE_DAYS', 14)) * 24 * 60 * 60
+    TMP_PASS_EXPIRE_SECONDS = int(os.getenv('STREAMCAT_TMP_PASS_EXPIRE_DAYS', 14)) * 24 * 60 * 60
 
     # 列名と列のデータ型等の定義
     id            = Column(INTEGER, primary_key=True, autoincrement=True)

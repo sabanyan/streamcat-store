@@ -830,7 +830,7 @@ class RunsCommand(SCommand):
     MIN_REQUIRED_DISK_SIZE = 1024 * 1024
 
     # 環境変数からPythonの再帰呼び出しの制限回数を取得する
-    RECURSION_LIMIT = int(os.getenv('KSKP_NYSOL_RECURSION_LIMIT', 2**20))
+    RECURSION_LIMIT = int(os.getenv('STREAMCAT_NYSOL_RECURSION_LIMIT', 2**20))
 
     def __init__(self):
         super().__init__()
