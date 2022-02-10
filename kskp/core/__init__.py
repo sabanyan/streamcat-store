@@ -70,17 +70,17 @@ def _make_test_schema(engine):
 
 # バージョンを取得する
 from pathlib import Path
-_kskp_ver_file = Path('/etc/kskp_ver')
-if _kskp_ver_file.exists() and _kskp_ver_file.stat().st_size < 20:
-    KSKP_VER = _kskp_ver_file.read_text(errors='ignore').strip()
+_streamcat_ver_file = Path('/etc/streamcat_ver')
+if _streamcat_ver_file.exists() and _streamcat_ver_file.stat().st_size < 20:
+    STREAMCAT_VER = _streamcat_ver_file.read_text(errors='ignore').strip()
 else:
-    KSKP_VER = None
+    STREAMCAT_VER = None
 
 _db_password = 'ZQZtVgL6G32Vy6p6WJtG3C3K84yuJ4zz'
 
 if _is_unittest():
     # テストスクリプト実行時のDB接続先
-    db_port = int(os.getenv('KSKP_DB_PORT', 5432))
+    db_port = int(os.getenv('STREAMCAT_DB_PORT', 5432))
     database_uri_candidates=[
         f'postgresql://kskp:{_db_password}@localhost:{db_port}/kskp?application_name=StreamCat-Test',
         f'postgresql://kskp:{_db_password}@db/kskp?application_name=StreamCat-Test',
