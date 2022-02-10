@@ -276,15 +276,15 @@ class DbLoaderCommand(SCommand):
             raise Exception('DB接続の取得元テーブル名が必要です')
         table_name = args['table_name']
 
-        activity_uuid_kskp = None
-        if 'activity_uuid_kskp' in args:
-            activity_uuid_kskp = args['activity_uuid_kskp']
+        activity_uuid_streamcat = None
+        if 'activity_uuid_streamcat' in args:
+            activity_uuid_streamcat = args['activity_uuid_streamcat']
 
         # DBへの接続URIを作成する
         db_uri = database.conn.get_database_uri()
 
         # SQL文を作成する
-        sql = DbLoaderCommand._make_sql(schema_name, table_name, activity_uuid_kskp)
+        sql = DbLoaderCommand._make_sql(schema_name, table_name, activity_uuid_streamcat)
 
         # runfunc()へ渡す関数の定義
         def results_getter(db_uri, dbms, sql):
@@ -329,7 +329,7 @@ class DbLoaderCommand(SCommand):
         return {'o': NysolModule(cmd)}
 
     @staticmethod
-    def _make_sql(schema_name, table_name, activity_uuid_kskp):
+    def _make_sql(schema_name, table_name, activity_uuid_streamcat):
         if schema_name == '':
             schema_and_table_name = table_name
         else:
@@ -337,10 +337,10 @@ class DbLoaderCommand(SCommand):
 
         sql = f'SELECT * FROM {schema_and_table_name}'
 
-        if activity_uuid_kskp is None:
+        if activity_uuid_streamcat is None:
             where = ''
         else:
-            where = f" WHERE activity_uuid_kskp='{activity_uuid_kskp}'"
+            where = f" WHERE activity_uuid_streamcat='{activity_uuid_streamcat}'"
 
         return sql + where
 
@@ -477,7 +477,7 @@ class DbSaverCommand(SaverCommand):
         database_conn['database_uri'] = database.conn.get_database_uri()
 
         # Nysol Pythonのrunfunc関数を作成する
-        cmd = nm.msetstr(v=args['activity_uuid'], a='activity_uuid_kskp', i=inputs['i'].content)
+        cmd = nm.msetstr(v=args['activity_uuid'], a='activity_uuid_streamcat', i=inputs['i'].content)
         cmd <<= nm.runfunc(bulk_inserter, database_conn=database_conn, schema_name=schema_name, table_name=table_name)
 
         # DataSourceを保存するフォルダを用意する
@@ -542,17 +542,17 @@ class DbSaverCommand(SaverCommand):
 
         column_defs = ''
         if dbms.upper() == 'POSTGRESQL':
-            column_defs = 'id_kskp SERIAL'
+            column_defs = 'id_streamcat SERIAL'
             for column in csv_columns:
                 column_defs += f',"{column}" TEXT'
         elif dbms.upper() == 'ORACLE':
-            column_defs = 'id_kskp NUMBER GENERATED ALWAYS AS IDENTITY'
+            column_defs = 'id_streamcat NUMBER GENERATED ALWAYS AS IDENTITY'
             for column in csv_columns:
                 column_defs += f',"{column}" NVARCHAR2(4000 BYTE)'
         else:
             raise Exception('DBMS種別が判定できませんでした')
 
-        # 列名の重複を避ける仕組みを作らなければならない
+        # TODO: 列名の重複を避ける仕組みを作らなければならない
         creata_table = f"""
         CREATE TABLE IF NOT EXISTS {schema_and_table_name} (
             {column_defs}
@@ -661,7 +661,7 @@ class DbSaverCommand(SaverCommand):
     @staticmethod
     def _create_data_source(parent, database, label, schema_name, table_name, activity_uuid):
         from kskp.depo.std.commands import CommandLink
-        args = {'schema_name':schema_name, 'table_name':table_name, 'activity_uuid_kskp':activity_uuid}
+        args = {'schema_name':schema_name, 'table_name':table_name, 'activity_uuid_streamcat':activity_uuid}
         loader_cmd = CommandLink('db_loader').resolve()
         return parent.create_datasource(label, database, loader_cmd, args)
 
