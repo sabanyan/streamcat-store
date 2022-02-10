@@ -462,7 +462,7 @@ class LibraryTest(TestCaseBase):
             # ルートデータストアを取得する
             root = self.factory.data.load_root()
             # ルートデータストアの直下にAWS S3フォルダを作成する
-            folder = Library.save_awss3(root.uuid, 'S3フォルダ1', 'kskp-test', self.USER1)
+            folder = Library.save_awss3(root.uuid, 'S3フォルダ1', 'streamcat-test', self.USER1)
             # 作成したAWS S3フォルダを取得する
             folder = Library.load_awss3(folder.uuid)
             # 取得したフォルダの値を検証する
@@ -490,11 +490,11 @@ class LibraryTest(TestCaseBase):
             # ルートデータストアを取得する
             root = self.factory.data.load_root()
             # ルートデータストアの直下にAWS S3フォルダを作成する
-            folder = Library.save_awss3(root.uuid, 'S3フォルダ2', 'kskp-test', self.USER1)
+            folder = Library.save_awss3(root.uuid, 'S3フォルダ2', 'streamcat-test', self.USER1)
             # 作成したフォルダのラベルを変更する
             updated_folder = Library.update_awss3_data(folder.uuid,
                                                        '新しいS3フォルダ',
-                                                       'kskp-test',
+                                                       'streamcat-test',
                                                        self.USER2)
             # ラベルとディレクトリパスのみが変更されることを検証する
             self.assertEqual(updated_folder.id, folder.id)
@@ -521,7 +521,7 @@ class LibraryTest(TestCaseBase):
             # ルートデータストアを取得する
             root = self.factory.data.load_root()
             # ルートデータストアの直下にAWS S3フォルダを作成する
-            folder = Library.save_awss3(root.uuid, 'S3フォルダ3', 'kskp-test', self.USER1)
+            folder = Library.save_awss3(root.uuid, 'S3フォルダ3', 'streamcat-test', self.USER1)
             # 作成したフォルダの値を検証する
             self.assertIsNotNone(folder.id)
             self.assertEqual(folder.parent_id, root.id)
