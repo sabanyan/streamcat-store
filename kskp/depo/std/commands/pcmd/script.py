@@ -1631,16 +1631,16 @@ class AlignColumns(Command):
         """
         CSV行の列数を数える
         """
-        from kskp.core import KSKPBaseModel
-        return len(KSKPBaseModel.split(header))
+        from kskp.core import SCatBaseModel
+        return len(SCatBaseModel.split(header))
 
     def _align_line(line, num_columns):
         """
         CSV行の列を指定列数に揃える
         """
-        from kskp.core import KSKPBaseModel
+        from kskp.core import SCatBaseModel
 
-        line_list = KSKPBaseModel.split(line)
+        line_list = SCatBaseModel.split(line)
         len_line = len(line_list)
 
         if len_line == num_columns:
@@ -1649,7 +1649,7 @@ class AlignColumns(Command):
             # CSV行の最後に空文字を追加する
             line_list[len_line:len_line] = [''] * (num_columns-len_line)
             # listをCSV行の文字列に変換する
-            return KSKPBaseModel.join(line_list)
+            return SCatBaseModel.join(line_list)
         else:
             return AlignColumns.join(line_list[0:num_columns])
 

@@ -127,13 +127,13 @@ try:
 except:
     pass
 
-from .kskp_base_model import KSKPBaseModel
+from .scat_base_model import SCatBaseModel
 from sqlalchemy.ext.declarative import declarative_base
 # ベースモデルにスキーマ名を設定する
-KSKPBaseModel.schema_name = SCHEMA_NAME
+SCatBaseModel.schema_name = SCHEMA_NAME
 
 # SQLAlchemyの全てのモデルクラスのベースモデルを作成する
-BaseModel = declarative_base(cls=KSKPBaseModel, constructor=KSKPBaseModel.__init__, name='KSKPBase')
+BaseModel = declarative_base(cls=SCatBaseModel, constructor=SCatBaseModel.__init__, name='KSKPBase')
 
 from .datum import Datum
 from .runnable import Command, Port, Parameter

@@ -1,5 +1,5 @@
 from typing import Callable
-from kskp.core import KSKPBaseModel
+from kskp.core import SCatBaseModel
 
 class DatabaseConn():
     """
@@ -13,7 +13,7 @@ class DatabaseConn():
             self._encrypted_password = conn_json.get('password')
         else:
             password = conn_json.get('password')
-            self._encrypted_password = KSKPBaseModel._get_encrypt_password(password)
+            self._encrypted_password = SCatBaseModel._get_encrypt_password(password)
 
         # readable_or_raise()が指定されない場合は権限判定をしない
         empty_func = lambda: None
@@ -48,7 +48,7 @@ class DatabaseConn():
     @property
     def password(self) -> str:
         self._readable_or_raise()
-        return KSKPBaseModel._get_decrypt_password(self._encrypted_password)
+        return SCatBaseModel._get_decrypt_password(self._encrypted_password)
 
     def valid_or_raise(self):
         if self.dbms is None or self.dbms =='':

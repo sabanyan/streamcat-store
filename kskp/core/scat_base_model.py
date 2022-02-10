@@ -4,7 +4,7 @@ from sqlalchemy import Column, text
 from sqlalchemy.dialects.postgresql import INTEGER, TIMESTAMP
 from sqlalchemy.ext.declarative import declared_attr
 
-class KSKPBaseModel(object):
+class SCatBaseModel(object):
     """
     SQLAlchemyの全てのモデルクラスのベースモデルの親クラスを定義する
     """
@@ -89,7 +89,7 @@ class KSKPBaseModel(object):
         # UTF-8で符号化してByte列で出力
         b_password = password.encode()
         # 暗号化
-        cipher_suite = Fernet(KSKPBaseModel.KEY_OF_TMP_PASS)
+        cipher_suite = Fernet(SCatBaseModel.KEY_OF_TMP_PASS)
         cipher_text = cipher_suite.encrypt(b_password)
         return cipher_text.decode()
 
@@ -100,7 +100,7 @@ class KSKPBaseModel(object):
         """
         from cryptography.fernet import Fernet, InvalidToken
         # 復号化
-        cipher_suite = Fernet(KSKPBaseModel.KEY_OF_TMP_PASS)
+        cipher_suite = Fernet(SCatBaseModel.KEY_OF_TMP_PASS)
         try:
             # 仮パスワードの有効期間が切れても復号化は可能である
             return cipher_suite.decrypt(password.encode()).decode()
@@ -161,8 +161,8 @@ class KSKPBaseModel(object):
 
     @property
     def created_at_str(self):
-        return KSKPBaseModel._datetime_to_local_time_str(self.created_at)
+        return SCatBaseModel._datetime_to_local_time_str(self.created_at)
 
     @property
     def modified_at_str(self):
-        return KSKPBaseModel._datetime_to_local_time_str(self.modified_at)
+        return SCatBaseModel._datetime_to_local_time_str(self.modified_at)

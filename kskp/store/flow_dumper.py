@@ -131,10 +131,10 @@ class FlowDumper:
             uuid_type_label.append((flow.uuid, flow.type, flow.label, str(flow.edit_lock)))
 
         # uuidとlabelの対応表をファイルに出力する
-        from kskp.core import KSKPBaseModel
+        from kskp.core import SCatBaseModel
         with self.labels_path.open('a') as f:
             for uuid, type, label, edit_lock in uuid_type_label:
-                line = KSKPBaseModel.join([uuid, type, label, edit_lock], doublequote=True)
+                line = SCatBaseModel.join([uuid, type, label, edit_lock], doublequote=True)
                 f.write(line)
 
         return gathered_uuids
@@ -327,14 +327,14 @@ class FlowDumper:
 
     @staticmethod
     def _read_labels(file:Path):
-        from kskp.core import KSKPBaseModel
+        from kskp.core import SCatBaseModel
         type_labels = {}
         try:
             with file.open('r') as f:
                 import os
                 line = f.readline().rstrip(os.linesep)
                 while line:
-                    columns = KSKPBaseModel.split(line)
+                    columns = SCatBaseModel.split(line)
                     # uuidを読み込む
                     uuid = columns[0]
                     # typeを読み込む

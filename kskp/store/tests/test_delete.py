@@ -1,6 +1,6 @@
 import io
 import pprint
-from kskp.core import KSKPBaseModel
+from kskp.core import SCatBaseModel
 from kskp.store import FlowData, DatabaseConn, RemoteFolderConn
 from .test_case_base import TestCaseBase
 
@@ -343,7 +343,7 @@ class DelTest(TestCaseBase):
              ['フランス','19140801','135'],
              ['イギリス','19140804','90'],
              ['ロシア','19140801','170']]
-        csv_str = '\n'.join([KSKPBaseModel.join(line) for line in l])
+        csv_str = '\n'.join([SCatBaseModel.join(line) for line in l])
         f = io.StringIO(csv_str)
         f = io.BytesIO(bytes(f.read(), encoding='utf-8'))
 
@@ -453,7 +453,7 @@ class DelTest(TestCaseBase):
              ['第6軍','ループレヒト王太子'],
              ['第7軍','ヒーリンゲン '],
              ['第8軍','プリットヴィッツ']]
-        csv_str = '\n'.join([KSKPBaseModel.join(line) for line in l])
+        csv_str = '\n'.join([SCatBaseModel.join(line) for line in l])
         f = io.StringIO(csv_str)
         f = io.BytesIO(bytes(f.read(), encoding='utf-8'))
 

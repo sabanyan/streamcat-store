@@ -190,22 +190,22 @@ class Schedule(Datum):
             raise
 
     def conv_to_utc_datetime(self, trigger:dict):
-        from kskp.core import KSKPBaseModel
+        from kskp.core import SCatBaseModel
 
         trigger_type = trigger.get('type')
         if trigger_type=='date':
-            utc_date = KSKPBaseModel.local_time_str_to_datetime(trigger['date'])
+            utc_date = SCatBaseModel.local_time_str_to_datetime(trigger['date'])
             trigger['date'] = utc_date.strftime('%Y-%m-%d %H:%M:%S')
 
         elif trigger_type=='interval':
-            utc_start_date = KSKPBaseModel.local_time_str_to_datetime(trigger['start_date'])
-            utc_end_date = KSKPBaseModel.local_time_str_to_datetime(trigger['end_date'])
+            utc_start_date = SCatBaseModel.local_time_str_to_datetime(trigger['start_date'])
+            utc_end_date = SCatBaseModel.local_time_str_to_datetime(trigger['end_date'])
             trigger['start_date'] = utc_start_date.strftime('%Y-%m-%d %H:%M:%S')
             trigger['end_date'] = utc_end_date.strftime('%Y-%m-%d %H:%M:%S')
 
         elif trigger_type=='cron':
-            utc_start_date = KSKPBaseModel.local_time_str_to_datetime(trigger['start_date'])
-            utc_end_date = KSKPBaseModel.local_time_str_to_datetime(trigger['end_date'])
+            utc_start_date = SCatBaseModel.local_time_str_to_datetime(trigger['start_date'])
+            utc_end_date = SCatBaseModel.local_time_str_to_datetime(trigger['end_date'])
             trigger['start_date'] = utc_start_date.strftime('%Y-%m-%d %H:%M:%S')
             trigger['end_date'] = utc_end_date.strftime('%Y-%m-%d %H:%M:%S')
 

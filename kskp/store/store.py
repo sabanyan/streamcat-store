@@ -1,5 +1,5 @@
 from typing import Iterator
-from kskp.core import Datum, KSKPBaseModel
+from kskp.core import Datum, SCatBaseModel
 
 class Store(Datum):
     """
@@ -220,7 +220,7 @@ class Stream(Datum):
 
     def __iter__(self) -> Iterator[list]:
         for line in open(self._content):
-            yield KSKPBaseModel.split(line)
+            yield SCatBaseModel.split(line)
 
     def dtor(self):
         """

@@ -1189,7 +1189,7 @@ class AssertCommand(SCommand):
             差分取得の処理結果をもとに、コマンドとしての返却データを作成
             runfuncを使用した場合、対象のコマンドでは標準出力にcsv形式のデータを渡す必要がある。（逆に、runfuncに対して、return を通してデータを返さない）
             """
-            from kskp.core import KSKPBaseModel
+            from kskp.core import SCatBaseModel
 
             try:
                 # NysolPythonのrunfunc関数の出力は標準出力を使用する、
@@ -1221,7 +1221,7 @@ class AssertCommand(SCommand):
                 point_id = args['asserted_point']
                 is_true = False
                 raise_exs = i_is_exs or m_is_exs
-                time_str = KSKPBaseModel._datetime_to_local_time_str(args['start_at'])
+                time_str = SCatBaseModel._datetime_to_local_time_str(args['start_at'])
                 exceed_limit_str = str(exceed_limit)
 
                 # is_trueの判定 と diffの出力
