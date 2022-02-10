@@ -1199,7 +1199,7 @@ class AssertCommand(SCommand):
                 # 出力データの列
                 output_columns = [
                     "フローUUID",  # テスト対象フローのuuid
-                    "フローのパス", # KSKP上での、テスト対象フローまでのパス
+                    "フローのパス", # StreamCat上での、テスト対象フローまでのパス
                     "出力ノードID", # assert commandのデータノードのID
                     "差分なし",     # 入力データの差分がない場合True
                     "例外送出",     # テスト対象のフローが例外を出力したか
@@ -1328,7 +1328,7 @@ class AssertCommand(SCommand):
 
 class DumpCommand(SCommand):
     """
-    KSKPシステムのDumpファイルを取得する
+    StreamCatシステムのDumpファイルを取得する
     """
     from pathlib import Path
     from tarfile import TarFile
@@ -1347,7 +1347,7 @@ class DumpCommand(SCommand):
         session = args['datum_factory']._session
 
         if not session.has_usr_admin():
-            raise Exception('ユーザー管理者以外は、KSKPのバックアップデータを取得できません')
+            raise Exception('ユーザー管理者以外は、StreamCatのバックアップデータを取得できません')
 
         try:
             # 全てのテーブルをLockする
@@ -1427,7 +1427,7 @@ class DumpCommand(SCommand):
 
 class RestoreCommand(SCommand):
     """
-    KSKPシステムのDumpファイルを復元する
+    StreamCatシステムのDumpファイルを復元する
     """
     from typing import List
     from pathlib import Path
@@ -1450,7 +1450,7 @@ class RestoreCommand(SCommand):
         factory = args['factory']
 
         if not factory._session.has_usr_admin():
-            raise Exception('ユーザー管理者以外は、KSKPを復元できません')
+            raise Exception('ユーザー管理者以外は、StreamCatを復元できません')
 
         # ファイルストリームを取得する
         stream = inputs['i']
@@ -1466,7 +1466,7 @@ class RestoreCommand(SCommand):
 
     def _restore_all(self, factory, stream):
         """
-        KSKPを復元する
+        StreamCatを復元する
         """
         import shutil
         from datetime import datetime
@@ -1504,7 +1504,7 @@ class RestoreCommand(SCommand):
             from kskp.store import FlowDumper
             extracted_members = FlowDumper._extract_archive(Datum.STORE_DIR, stream)
 
-            # KSKPのDumpファイルが妥当であることを確認する
+            # StreamCatのDumpファイルが妥当であることを確認する
             self._members_are_valid_or_raise(extracted_members)
 
             # PostgreSQLのpublicスキーマを復元する
@@ -1540,10 +1540,10 @@ class RestoreCommand(SCommand):
         member_paths = [member.name for member in members]
         # meta.txtが含まれていること
         if self.META_FILE_NAME not in member_paths:
-            raise Exception(f'KSKPのDumpファイルに{self.META_FILE_NAME}が存在しません')
+            raise Exception(f'StreamCatのDumpファイルに{self.META_FILE_NAME}が存在しません')
         # ライブラリルートが存在すること
         if Datum.DEFAULT_LIBRARY_PATH.name not in member_paths:
-            raise Exception(f'KSKPのDumpファイルに{self.DEFAULT_LIBRARY_PATH}が存在しません')
+            raise Exception(f'StreamCatのDumpファイルに{self.DEFAULT_LIBRARY_PATH}が存在しません')
 
     def _restore_meta(self, dump_file:Path):
         import subprocess

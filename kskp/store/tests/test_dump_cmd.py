@@ -33,7 +33,7 @@ class DumpTest(TestCaseBase):
 
     def test_basic(self):
         """
-        KSKPのバックアップとリストアが実行できること
+        StreamCatのバックアップとリストアが実行できること
         """
         # ルートを取得する
         root = self.factory2.data.load_root()

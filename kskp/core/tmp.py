@@ -20,7 +20,7 @@ class Tmp():
         import uuid
         # 一意なファイル名を作成する
         key = Tmp._generate_unique_key()
-        file_name  = '__KSKPTMP_' + key + '_' + str(uuid.uuid4())[0:8]
+        file_name  = '__SCATTMP_' + key + '_' + str(uuid.uuid4())[0:8]
         # TmpファイルPath
         new_tmp_file = Tmp._get_tmp_directory() / file_name
         # TmpファイルPathを覚えておく

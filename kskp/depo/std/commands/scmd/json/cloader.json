@@ -5,7 +5,7 @@
         "name": "file_path",
         "type": "string",
         "label": "入力ファイルパス",
-        "description": "KSKPサーバにおけるOSのファイルパス"
+        "description": "StreamCatサーバにおけるOSのファイルパス"
       }
     ],
     "ports": [

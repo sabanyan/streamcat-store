@@ -5,7 +5,7 @@ from .test_case_base import TestCaseBase
 
 class AssertCmdTest(TestCaseBase):
     """
-    ２つの入力に対して、出力が一致しているかどうかを確認する。入力にはcsv、KSKPのエラーに対応する
+    2つの入力に対して、出力が一致しているかどうかを確認する。入力にはcsv、StreamCatのエラーに対応する
     入力されたデータが行ごとに一致しているかを確認し、結果を出力する
 
     出力値の各列情報は、

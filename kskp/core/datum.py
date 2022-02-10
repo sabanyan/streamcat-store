@@ -12,7 +12,7 @@ from .constraints import Constraints
 
 class Datum(BaseModel):
     """
-    KSKPで扱う対象を扱ううち、「第一級」であるものの頂点のクラス。
+    StreamCatで扱う対象を扱ううち、「第一級」であるものの頂点のクラス。
     """
 
     class PathType(sqlalchemy.types.TypeDecorator):

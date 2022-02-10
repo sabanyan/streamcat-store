@@ -1,4 +1,4 @@
-# KSKPコマンド
+# StreamCatコマンド
 
 import nysol.mcmd as nm
 

@@ -627,7 +627,7 @@ class GroupBy2Command(PCommand):
     def nullify_nonnumber(self, flow, cols):
         """
         ●NYSOLの数値の表記の仕様
-        KSKP全体でみたときに不整合な状態にならないように
+        StreamCat全体でみたときに不整合な状態にならないように
         NYSOLが数値と判断するものだけを数値とみなすために、仕様の確認を行った。
 
         当初はマニュアルの例を参考にしたが、

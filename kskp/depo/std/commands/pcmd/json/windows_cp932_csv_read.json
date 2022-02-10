@@ -3,12 +3,12 @@
   "id": "windows_cp932_csv_read",
   "label": "Windowsデータの文字改行コードの変換",
   "classification": "import",
-  "description": "Windows形式(Shift-JIS, CRLF) データを、KSKPで処理できる文字改行コードに変換する",
+  "description": "Windows形式(Shift-JIS, CRLF) データを、StreamCatで処理できる文字改行コードに変換する",
   "groups": [
     {
       "name": "abstract",
       "label": "Windowsデータの文字改行コードの変換",
-      "description": "Windows形式(Shift-JIS, CRLF) データを、KSKPで処理できる文字改行コードに変換する",
+      "description": "Windows形式(Shift-JIS, CRLF) データを、StreamCatで処理できる文字改行コードに変換する",
       "params": []
     },
     {
