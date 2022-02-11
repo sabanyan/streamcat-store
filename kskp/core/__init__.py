@@ -82,8 +82,8 @@ if _is_unittest():
     # テストスクリプト実行時のDB接続先
     db_port = int(os.getenv('STREAMCAT_DB_PORT', 5432))
     database_uri_candidates=[
-        f'postgresql://kskp:{_db_password}@localhost:{db_port}/kskp?application_name=StreamCat-Test',
-        f'postgresql://kskp:{_db_password}@db/kskp?application_name=StreamCat-Test',
+        f'postgresql://streamcat:{_db_password}@localhost:{db_port}/streamcat?application_name=StreamCat-Test',
+        f'postgresql://streamcat:{_db_password}@db/streamcat?application_name=StreamCat-Test',
         f'postgresql://kskp:{"J2-pH|%B"}@kskp.cr4gfi5zl5xm.ap-northeast-1.rds.amazonaws.com/kskp?application_name=StreamCat-Test'
     ]
     # DBに接続する
@@ -96,7 +96,7 @@ if _is_unittest():
 else:
     # 通常実行時のDB接続先
     database_uri_candidates=[
-        f'postgresql://kskp:{_db_password}@db/kskp?application_name=StreamCat'
+        f'postgresql://streamcat:{_db_password}@db/streamcat?application_name=StreamCat'
     ]
     # DBに接続する
     engine = _get_db_engine(database_uri_candidates)

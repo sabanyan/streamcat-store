@@ -141,7 +141,7 @@ class Factory():
         """
         from sqlalchemy import text
 
-        database_name = 'kskp'
+        database_name = 'streamcat'
 
         sql = text(f"""
         SELECT

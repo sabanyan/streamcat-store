@@ -1413,8 +1413,8 @@ class DumpCommand(SCommand):
         from kskp.core import Tmp, _db_password
         from kskp.store import Mountable
         host = 'db'
-        user = 'kskp'
-        database = 'kskp'
+        user = 'streamcat'
+        database = 'streamcat'
         schema = 'public'
         dump_file = Tmp.create_file()
         # pg_dumpコマンドを実行する
@@ -1552,13 +1552,14 @@ class RestoreCommand(SCommand):
         if not dump_file.is_file():
             raise Exception(f'{self.META_FILE_NAME}がテキストファイルではありません')
         host = 'db'
-        user = 'kskp'
-        database = 'kskp'
+        user = 'streamcat'
+        database = 'streamcat'
         # コマンド文字列を作成する
         # --no-psqlrc : ~/.psqlrcを読み込まない (指定しない場合returncode=1でエラーになる)
         # --single-transaction : リストア処理を1トランザクションで実行する
+        # --set=ON_ERROR_STOP=on : リストア処理中にエラーが発生した場合はリストアを中断する
         # NOTE: Schema名はDumpファイル内で指定されている
-        pg_restore_command = f'psql --no-psqlrc --single-transaction -f {dump_file} -h {host} -U {user} -d {database}'
+        pg_restore_command = f'psql --no-psqlrc --single-transaction --set=ON_ERROR_STOP=on -f {dump_file} -h {host} -U {user} -d {database}'
         try:
             # psqlコマンドを実行する
             Mountable._exec_command(pg_restore_command, env={'PGPASSWORD':_db_password})
