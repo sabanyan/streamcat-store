@@ -51,7 +51,7 @@ class ScheduleManager():
         """
         runnable = schedule.runnable
         if runnable.type == Datum.FLOW_TYPE:
-            # TODO: kskp-data-storeとkskp-flow-engineの循環参照になってしまう
+            # TODO: streamcat-storeとstreamcat-engineの循環参照になってしまう
             # Flowはengineへ引っ越した方がいいのだろうか?
             # それともScheduleManagerがengineへ引っ越した方がいいのだろうか?
             from streamcat.engine import FlowCommand
