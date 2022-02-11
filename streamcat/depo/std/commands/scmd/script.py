@@ -1420,6 +1420,7 @@ class DumpCommand(SCommand):
         # pg_dumpコマンドを実行する
         # --clean: データベースオブジェクトを作成するコマンドの前に、データベースオブジェクトを整理(削除)するコマンドを書き出す
         # --if-exists: データベースオブジェクトを初期化するときに、条件コマンドを使う(つまり、IF EXISTS句を追加する)
+        # NOTE: PostgreSQLサーバとpsqlクライアントのバージョンが異なると、'aborting because of server version mismatch'のエラーが発生する
         pg_dump_command = f'pg_dump --clean --if-exists -f {dump_file} -h {host} -U {user} -n {schema} {database}'
         Mountable._exec_command(pg_dump_command, env={'PGPASSWORD':_db_password})
         # アーカイブに追加する
