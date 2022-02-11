@@ -59,7 +59,7 @@ class RemoteFolderConn():
         import sys
         if self.protocol == 'smb':
             if sys.platform == 'linux':
-                return f'sudo mount -t cifs -o "user={self.user_id},pass={self.password},domain={self.domain},uid=scat,gid=scat" ' +\
+                return f'sudo mount -t cifs -o "user={self.user_id},pass={self.password},domain={self.domain},uid=streamcat,gid=streamcat" ' +\
                        f'"//{self.hostname}/{self.directory}" "{mount_point_path.as_posix()}"'    
             elif sys.platform == 'darwin':
                 # macOS
