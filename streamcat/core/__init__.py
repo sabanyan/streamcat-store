@@ -96,7 +96,7 @@ if _is_unittest():
 else:
     # 通常実行時のDB接続先
     database_uri_candidates=[
-        f'postgresql://streamcat:{_db_password}@db/streamcat?application_name=StreamCat'
+        f'postgresql://streamcat:{_db_password}@db/streamcat?connect_timeout=10&application_name=StreamCat'
     ]
     # DBに接続する
     engine = _get_db_engine(database_uri_candidates)
