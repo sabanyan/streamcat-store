@@ -323,7 +323,7 @@ class DbLoaderCommand(SCommand):
         # flushをしないと、デバッグ用のprintなども入ってしまう
         sys.stdout.flush()
 
-        # Nysol Pythonのrunfunc関数を作成する
+        # nysol_pythonのrunfunc関数を作成する
         cmd = nm.runfunc(results_getter, db_uri=db_uri, dbms=database.dbms, sql=sql)
 
         return {'o': NysolModule(cmd)}
@@ -476,7 +476,7 @@ class DbSaverCommand(SaverCommand):
         database_conn = database.conn.to_json()
         database_conn['database_uri'] = database.conn.get_database_uri()
 
-        # Nysol Pythonのrunfunc関数を作成する
+        # nysol_pythonのrunfunc関数を作成する
         cmd = nm.msetstr(v=args['activity_uuid'], a='activity_uuid_streamcat', i=inputs['i'].content)
         cmd <<= nm.runfunc(bulk_inserter, database_conn=database_conn, schema_name=schema_name, table_name=table_name)
 
@@ -754,11 +754,11 @@ class RemoteFolderSaverCommand(SaverCommand):
         file_path = Datum.make_unique_path(file_path)
         path_str = file_path.as_posix()
 
-        # Nysol Python
+        # nysol_python
         cmd = inputs['i'].content
         cmd <<= nm.m2tee(o=path_str)
 
-        # NYSOL-Pythonの=oオプションはファイルは作成するが、ディレクトリは作成しない
+        # nysol_pythonの=oオプションはファイルは作成するが、ディレクトリは作成しない
         # そのため、NYSOL-Pythonの実行前にディレクトリを作成する必要がある
         # (なお、runfuncの実行時点で作成してもエラーになった)
         self._make_dir(file_path.parent)
@@ -838,7 +838,7 @@ class RunsCommand(SCommand):
         self.o_ports = [Port('*', 'out')]
 
     def run_nysol(self, nm_list):
-        # NYSOL Pythonを実行する
+        # nysol_pythonを実行する
         ret = nm.runs(nm_list, msg='on', throwexc=True)
         return ret
 
@@ -849,10 +849,10 @@ class RunsCommand(SCommand):
 
         def do_runs(nm_list, results, exs, out):
             """
-            NYSOL Pythonを実行する
+            nysol_pythonを実行する
             """
             try:
-                # NYSOL-Pythonは、処理フローのグラフを組み立てる時と、処理メソッドをスケジューリングする時に
+                # nysol_pythonは、処理フローのグラフを組み立てる時と、処理メソッドをスケジューリングする時に
                 # 再帰呼び出しの制限回数がPythonの初期制限値を超えるので、ここで制限値を上げる
                 # (サブプロセスの制限回数を上げても親プロセスの制限回数は変わらない)
                 sys.setrecursionlimit(self.RECURSION_LIMIT)
@@ -864,7 +864,7 @@ class RunsCommand(SCommand):
 
                 # 標準エラー出力のファイル記述子(No.2)を親プロセスへのPIPEに変更する
                 os.dup2(out.fileno(), sys.stderr.fileno())
-                # NYSOL Pythonを実行する
+                # nysol_pythonを実行する
                 # ret = nm.runs(nm_list, msg='on', throwexc=True)
                 ret = self.run_nysol(nm_list)
                 results.extend(ret)
@@ -873,6 +873,19 @@ class RunsCommand(SCommand):
                     import traceback
                     traceback.print_exc(file=fpe)
                 exs.append(e)
+
+        def remove_nysol_tmp_files(process_id:int):
+            """
+            nysol_pythonはが作成したTmpファイルを削除する
+            """
+            from streamcat.core import Tmp
+            # nysol_pythonが作成するTmpファイルの前方一致パターン
+            file_name_prefix  = f'__KGTMP_{process_id}_'
+            # Tmpディレクトリを取得する
+            tmp_directory = Tmp._get_tmp_directory()
+            # Tmpファイルを物理削除する
+            for tmp_file in tmp_directory.glob(f'{file_name_prefix}*'):
+                tmp_file.unlink(missing_ok=True)
 
         # 
         # CommandExceptionが1つでも入力された場合は処理を中断する
@@ -937,8 +950,11 @@ class RunsCommand(SCommand):
                         if line.startswith('#ERROR#') and 'script RUN KGERROR runmain on kgshell' not in line:
                             mcmd_errors.append(line)
 
-                    # 子プロセスがまだ終了していない場合はNoneが返されます
+                    # 子プロセスがまだ終了していない場合はNoneが返される
                     if p.exitcode is not None:
+                        # nysol_pythonは異常終了時にtmpファイルを削除しないので
+                        # 子プロセスの終了状態に関わらずここでTmpファイルを削除する
+                        remove_nysol_tmp_files(process_id=p.pid)
                         break
 
             except Exception:
@@ -953,7 +969,7 @@ class RunsCommand(SCommand):
             # 例外リスト
             exs_list = []
 
-            # NYSOL-Pythonから"#ERROR#"形式のエラーが出力された場合
+            # nysol_pythonから"#ERROR#"形式のエラーが出力された場合
             from .mcmd_error_info import MCMDErrorInfo, MCMDError
             for mcmd_error in mcmd_errors:
                 mcmd_error_info = MCMDErrorInfo.parse_stderr(mcmd_error)
@@ -963,7 +979,7 @@ class RunsCommand(SCommand):
             if len(exs_list) == 0:
                 exs_list.extend(exs)
 
-            # NYSOL-Pythonからエラーは無く、期待する結果数が返らなかった場合
+            # nysol_pythonからエラーは無く、期待する結果数が返らなかった場合
             if len(exs_list) == 0 and len(results) != len(inputs):
                 exs_list.append(Exception(f'RunsCommandの入力ポート数({len(inputs)})と出力ポート数({len(results)})が異なります'))
 
