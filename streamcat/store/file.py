@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from streamcat.core import Datum, Constraints
 
 class File(Datum):
@@ -28,7 +29,7 @@ class File(Datum):
 
     @Constraints.prohibit_save_on_root
     @Constraints.set_project_role_on_adding
-    def save(self, file_path=None, content_type=None):
+    def save(self, file_path:Path=None, content_type:str=None):
         """
         Fileを保存する
         """
@@ -60,7 +61,7 @@ class File(Datum):
             # 親フォルダのロックを解除する
             self._session.commit()
 
-    def update_label(self, label, modifier=None):
+    def update_label(self, label:str, modifier=None):
         """
         Fileのdata列を更新する
         """
@@ -87,7 +88,7 @@ class File(Datum):
 
         return self
 
-    def update_label_only(self, label, modifier=None):
+    def update_label_only(self, label:str, modifier=None):
         """
         Fileのlabel列を更新する
         (path及び対応ファイル名は変更しない)
@@ -103,7 +104,7 @@ class File(Datum):
         finally:
             self._session.commit()
 
-    def _update_label_imp(self, new_label, modifier):
+    def _update_label_imp(self, new_label:str, modifier):
         # label列を更新する
         self._label = new_label
         self._modifier_id = (modifier or self._session.user).id
@@ -189,7 +190,7 @@ class File(Datum):
 
         return content_type
 
-    def _make_file(self, path):
+    def _make_file(self, path:Path):
         """
         Frameに対応するファイルを作成する
         """
@@ -201,6 +202,13 @@ class File(Datum):
             return path
         except PermissionError as e:
             # ファイルに対する権限がない場合
+            raise e
+        except OSError as e:
+            import errno
+            # エラー発生時はファイルを削除する
+            path.unlink(missing_ok=True)
+            if e.errno == errno.ENOSPC:
+                raise OSError(e.errno, f'ディスクに空き容量が無いため、{self.label}を作成できませんでした')
             raise e
 
     def _remove_file(self):
@@ -224,7 +232,7 @@ class File(Datum):
             # ファイルに対する権限がない場合
             raise e
 
-    def _save_file(self, path):
+    def _save_file(self, path:Path):
         with open(path, mode='wb') as f:
             while True:
                 buff = self.stream.read(self.READ_BUFFER_SIZE)
@@ -232,7 +240,7 @@ class File(Datum):
                 if buff is None or len(buff)==0:
                     break
 
-    def _frame_path_exists(self, path, except_id):
+    def _frame_path_exists(self, path:Path, except_id:int):
         result = self._session.query(Datum._path).filter(Datum._path == path)\
                                                 .filter(Datum.type == Datum.FRAME_TYPE)\
                                                 .filter(Datum.id != except_id).count()
