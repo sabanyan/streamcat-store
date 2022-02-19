@@ -42,7 +42,7 @@ class Folder(Store):
             # ドキュメントに紐付くファイル(path列で指定されるファイル)がなければ作成する
             if file_path is None:
                 self._make_dir(self._path)
-        except Exception as e:
+        except (Exception, OSError) as e:
             self._session.rollback()
             raise e
         finally:
@@ -70,7 +70,7 @@ class Folder(Store):
             self._session.update(self)
             # ファイルを移動する
             Datum.move_file(old_path, new_path)
-        except Exception as e:
+        except (Exception, OSError) as e:
             self._session.rollback()
             raise e
         finally:
@@ -187,7 +187,7 @@ class Folder(Store):
             self._session.delete(self)
             # ディレクトリを削除する
             self._remove_dir(self._path)
-        except Exception as e:
+        except (Exception, OSError) as e:
             self._session.rollback()
             raise e
         finally:
@@ -221,7 +221,7 @@ class Folder(Store):
             # フォルダレコードを削除する
             self._session.delete(self)
             self._session.execute(sql)
-        except Exception as e:
+        except (Exception, OSError) as e:
             self._session.rollback()
             raise e
         finally:

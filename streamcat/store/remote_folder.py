@@ -46,7 +46,7 @@ class RemoteFolder(Mountable, Store):
             self = self.reload()
             # フォルダに紐付くディレクトリ(path列で指定されるディレクトリ)がなければ作成する
             self._make_dir(self_path)
-        except Exception as e:
+        except (Exception, OSError) as e:
             self.unmount(self_path)
             self._remove_dir(self_path)
             self._session.rollback()
@@ -97,7 +97,7 @@ class RemoteFolder(Mountable, Store):
             self.unmount(self._path)
             # ディレクトリを削除する
             self._remove_dir(self._path)
-        except Exception as e:
+        except (Exception, OSError) as e:
             self._session.rollback()
             raise e
         finally:

@@ -435,7 +435,7 @@ class Datum(BaseModel):
                 raise NotAuthorizedException((f'{user_name}は{from_folder.label}の更新権限がないため{self.label}を移動できません'))
             else:
                 raise e
-        except Exception as e:
+        except (Exception, OSError) as e:
             # ROLLBACK
             self._session.rollback()
             raise e

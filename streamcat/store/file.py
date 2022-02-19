@@ -54,7 +54,7 @@ class File(Datum):
             # ドキュメントに紐付くファイル(path列で指定されるファイル)がなければ作成する
             if file_path is None:
                 self._make_file(self._path)
-        except Exception as e:
+        except (Exception, OSError) as e:
             self._session.rollback()
             raise e
         finally:
@@ -80,7 +80,7 @@ class File(Datum):
             self._update_label_imp(new_label, modifier)
             # ファイルを移動する
             Datum.move_file(old_path, new_path)
-        except Exception as e:
+        except (Exception, OSError) as e:
             self._session.rollback()
             raise e
         finally:
@@ -98,7 +98,7 @@ class File(Datum):
 
         try:
             self._update_label_imp(new_label, modifier)
-        except Exception as e:
+        except (Exception, OSError) as e:
             self._session.rollback()
             raise e
         finally:
@@ -132,7 +132,7 @@ class File(Datum):
             self._session.delete(self)
             # ファイルを削除する
             self._remove_file()
-        except Exception as e:
+        except (Exception, OSError) as e:
             self._session.rollback()
             raise e
         finally:

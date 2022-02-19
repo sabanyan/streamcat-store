@@ -48,7 +48,7 @@ class Frame(File):
         try:
             # DBに保存する
             super().save(file_path=file_path)
-        except Exception as e:
+        except (Exception, OSError) as e:
             self._session.rollback()
             raise e
 
