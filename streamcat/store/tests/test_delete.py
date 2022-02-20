@@ -15,7 +15,7 @@ class DelTest(TestCaseBase):
       'port'     : 5432, 
       'database' : "kskp", 
       'userId'  : "kskp", 
-      'password' : r'J2-pH|%B'
+      'password' : 'my-pass-word'
     }
     database_conn = DatabaseConn(conn_json)
 

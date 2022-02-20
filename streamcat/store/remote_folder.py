@@ -19,7 +19,7 @@ class RemoteFolder(Mountable, Store):
         # data列の値を作成する
         if remoteFolderConn is None:
             raise Exception('remoteFolderConn引数がNoneです')
-        self._data = {'conn' : remoteFolderConn.to_json()}
+        self._data = {'conn' : remoteFolderConn.to_json(encrypt_password=True)}
 
     @Constraints.prohibit_save_on_root
     @Constraints.set_project_role_on_adding
@@ -65,7 +65,7 @@ class RemoteFolder(Mountable, Store):
         try:
             # レコードを更新する
             self._label = new_label
-            self._data['conn'] = remoteFolderConn.to_json()
+            self._data['conn'] = remoteFolderConn.to_json(encrypt_password=True)
             self._modifier_id = (modifier or self._session.user).id
             self._session.update(self)
 

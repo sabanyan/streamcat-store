@@ -1,11 +1,19 @@
 from typing import Callable
+from streamcat.core import SCatBaseModel
 
 class RemoteFolderConn():
     """
     リモートフォルダの接続情報を保持する
     """
-    def __init__(self, conn_json:dict, readable_or_raise:Callable[[],None] = None):
+    def __init__(self, conn_json:dict, password_is_enctypted=False, readable_or_raise:Callable[[],None] = None):
         self._conn_json = conn_json
+
+        # パスワードを暗号化する
+        if password_is_enctypted:
+            self._encrypted_password = conn_json.get('password')
+        else:
+            password = conn_json.get('password')
+            self._encrypted_password = SCatBaseModel._get_encrypt_password(password)
 
         # readable_or_raise()が指定されない場合は権限判定をしない
         empty_func = lambda: None
@@ -40,7 +48,7 @@ class RemoteFolderConn():
     @property
     def password(self) -> str:
         self._readable_or_raise()
-        return self._conn_json.get('password')
+        return SCatBaseModel._get_decrypt_password(self._encrypted_password)
 
     def valid_or_raise(self):
         if self.protocol is None or self.protocol =='':
@@ -69,12 +77,15 @@ class RemoteFolderConn():
         else:
             raise Exception(f'{self.protocol} is undefined protocol')
 
-    def to_json(self):
+    def to_json(self, encrypt_password=False):
+        # encrypt_password=Trueの場合は暗号化したpasswordを返す
+        password = self._encrypted_password if encrypt_password else self.password
+
         # self._conn_jsonに他のキーが入っている場合もあるので
         # 改めてJSONデータを作成する
         return {'protocol' : self.protocol,
                 'hostname' : self.hostname,
                 'domain'   : self.domain,
                 'directory': self.directory,
-                'userId'  : self.user_id,
-                'password' : self.password}
+                'userId'   : self.user_id,
+                'password' : password}
