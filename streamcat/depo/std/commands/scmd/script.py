@@ -1214,24 +1214,24 @@ class AssertCommand(SCommand):
 
                 # 出力データの列
                 output_columns = [
-                    "フローUUID",  # テスト対象フローのuuid
-                    "フローのパス", # StreamCat上での、テスト対象フローまでのパス
-                    "出力ノードID", # assert commandのデータノードのID
-                    "差分なし",     # 入力データの差分がない場合True
-                    "例外送出",     # テスト対象のフローが例外を出力したか
-                    "行番号",       # 各入力における、csv情報が違う行番号
-                    "入力iのデータ", # i_portのdiff_row_number 行目を抜き出す
-                    "入力mのデータ", # m_portのdiff_row_number 行目を抜き出す
-                    "差分取得限界数超過", # オプションで指定した差分取得限界数を超えたかどうか
-                    "実行日時"      # 実行日時
+                    'フローUUID',  # テスト対象フローのuuid
+                    'フローのパス', # StreamCat上での、テスト対象フローまでのパス
+                    '出力ノードID', # assert commandのデータノードのID
+                    '差分なし',     # 入力データの差分がない場合True
+                    '例外送出',     # テスト対象のフローが例外を出力したか
+                    '行番号',       # 各入力における、csv情報が違う行番号
+                    '入力iのデータ', # i_portのdiff_row_number 行目を抜き出す
+                    '入力mのデータ', # m_portのdiff_row_number 行目を抜き出す
+                    '差分取得限界数超過', # オプションで指定した差分取得限界数を超えたかどうか
+                    '実行日時'      # 実行日時
                 ]
 
                 # CSVヘッダ行を出力する
-                print(",".join(output_columns))
+                print(','.join(output_columns))
 
                 # 各カラムパラメータ定義
-                flow_label = args["flow_label"]
-                flow_uuid = args["flow_uuid"]
+                flow_label = args['flow_label']
+                flow_uuid = args['flow_uuid']
                 # フローの親フォルダのパス
                 flow_path = parent_path + '/' + flow_label
                 point_id = args['asserted_point']
@@ -1244,13 +1244,13 @@ class AssertCommand(SCommand):
                 if diff_list == [] or diff_list == None:
                     # 二つの入力データに差分がない場合
                     if verbose:
-                        is_true = "True"
-                        diff = ["","",""]
+                        is_true = 'True'
+                        diff = ['','','']
                     else:
                         # 差分情報を出力しない
                         return
                 else:
-                    is_true = "False"
+                    is_true = 'False'
                     diff = diff_list
 
                 output_datas = [
@@ -1266,10 +1266,10 @@ class AssertCommand(SCommand):
                     if isinstance(diff[0], list):
                         for output_diff in diff:
                             row_data = output_datas + output_diff
-                            data_str = ",".join(map(str, row_data)) + "," + exceed_limit_str + "," + time_str
+                            data_str = ','.join(map(str, row_data)) + ',' + exceed_limit_str + ',' + time_str
                             print(data_str)
                     else:
-                        print(",".join(map(str, output_datas)) + "," + ",".join(map(str, diff)) + "," + exceed_limit_str + "," + time_str)
+                        print(','.join(map(str, output_datas)) + ',' + ','.join(map(str, diff)) + ',' + exceed_limit_str + ',' + time_str)
                 else:
                     output_datas.append(diff)
                     output_datas.append(exceed_limit_str)
@@ -1308,11 +1308,11 @@ class AssertCommand(SCommand):
         # dlimit未入力の場合、制限をかけない
         dlimit = 0
         if 'dlimit' in args:
-            if isinstance(args["dlimit"], int):
-                dlimit = args["dlimit"]
-            elif isinstance(args["dlimit"], str) and args["dlimit"].isdecimal():
-                dlimit = int(args["dlimit"])
-            elif args["dlimit"] == '':
+            if isinstance(args['dlimit'], int):
+                dlimit = args['dlimit']
+            elif isinstance(args['dlimit'], str) and args['dlimit'].isdecimal():
+                dlimit = int(args['dlimit'])
+            elif args['dlimit'] == '':
                 # 制限をかけない
                 dlimit == sys.maxsize
             else:

@@ -392,26 +392,26 @@ class Folder(Store):
     def create_simple_flow(self, label, data_source):
         from streamcat.store import Flow, FlowData
         flow_json = {
-                        "label": label,
-                        "nodes": [
+                        'label': label,
+                        'nodes': [
                             {
-                                "id": "d",
-                                "type": "frame",
-                                "uuid": data_source.uuid,
-                                "error": {},
-                                "label": data_source.label,
-                                "invalid": {},
-                                "makeCache": False,
-                                "dataSource": "csv",
-                                "cacheCreatedAt": None
+                                'id': 'd',
+                                'type': 'frame',
+                                'uuid': data_source.uuid,
+                                'error': {},
+                                'label': data_source.label,
+                                'invalid': {},
+                                'makeCache': False,
+                                'dataSource': 'csv',
+                                'cacheCreatedAt': None
                             }
                         ],
-                        "ports": [[],[]],
-                        "params": [],
-                        "creator": self._session.user.name,
-                        "createdAt": data_source.created_at_str,
-                        "projectId": None,
-                        "description": ""
+                        'ports': [[],[]],
+                        'params': [],
+                        'creator': self._session.user.name,
+                        'createdAt': data_source.created_at_str,
+                        'projectId': None,
+                        'description': ''
                     }
         return Flow(self._session, self, label, FlowData(flow_json))
 
@@ -427,49 +427,49 @@ class Folder(Store):
 
         # PointとStepの繫がりを探索するFlowVisitorを使えばスマートに、Jsonデータを取得できるだろう
         flow_json = {
-            "label": label,
-            "description": "",
-            "projectId": None,
-            "params": params,
-            "ports": [
+            'label': label,
+            'description': '',
+            'projectId': None,
+            'params': params,
+            'ports': [
                 [],
                 [
                     {
-                        "label": "o",
-                        "nodeId": "d",
-                        "type": "frame"
+                        'label': 'o',
+                        'nodeId': 'd',
+                        'type': 'frame'
                     }
                 ]
             ],
-            "nodes": [
+            'nodes': [
                 {
-                    "id": "s",
-                    "label": store.label,
-                    "type": "store",
-                    "uuid": store.uuid,
+                    'id': 's',
+                    'label': store.label,
+                    'type': 'store',
+                    'uuid': store.uuid,
                 },
                 {
-                    "id": "c1",
-                    "label": "c1",
-                    "type": "command",
-                    "commandId": loader.name,
-                    "args": loader_args,
-                    "srcs": {
-                        loader.i_ports[0].label : "s"
+                    'id': 'c1',
+                    'label': 'c1',
+                    'type': 'command',
+                    'commandId': loader.name,
+                    'args': loader_args,
+                    'srcs': {
+                        loader.i_ports[0].label : 's'
                     },
-                    "dsts": {
-                        "o": "d"
+                    'dsts': {
+                        'o': 'd'
                     }
                 },
                 {
-                    "id": "d",
-                    "label": "d",
-                    "type": "frame",
-                    "dataSource": "csv"
+                    'id': 'd',
+                    'label': 'd',
+                    'type': 'frame',
+                    'dataSource': 'csv'
                 }
             ],
-            "creator": self._session.user.name,
-            "createdAt": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            'creator': self._session.user.name,
+            'createdAt': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         }
         return Flow(self._session, self, label, FlowData(flow_json))
 
@@ -485,56 +485,56 @@ class Folder(Store):
 
         # PointとStepの繫がりを探索するFlowVisitorを使えばスマートに、Jsonデータを取得できるだろう
         flow_json = {
-            "label": label,
-            "description": "",
-            "projectId": None,
-            "params": params,
-            "ports": [
+            'label': label,
+            'description': '',
+            'projectId': None,
+            'params': params,
+            'ports': [
                 [
                     {
-                        "label": "i",
-                        "nodeId": "d",
-                        "type": "frame"
+                        'label': 'i',
+                        'nodeId': 'd',
+                        'type': 'frame'
                     }
                 ],
                 []
             ],
-            "nodes": [
+            'nodes': [
                 {
-                    "id": "d",
-                    "label": "d",
-                    "type": "frame",
-                    "dataSource": "csv"
+                    'id': 'd',
+                    'label': 'd',
+                    'type': 'frame',
+                    'dataSource': 'csv'
                 },
                 {
-                    "id": "s",
-                    "label": store.label,
-                    "type": "store",
-                    "uuid": store.uuid,
+                    'id': 's',
+                    'label': store.label,
+                    'type': 'store',
+                    'uuid': store.uuid,
                 },
                 {
-                    "id": "c1",
-                    "label": "c1",
-                    "type": "command",
-                    "commandId": saver.name,
-                    "args": saver_args,
-                    "srcs": {
-                        saver.i_ports[0].label : "d",
-                        saver.i_ports[1].label : "s"
+                    'id': 'c1',
+                    'label': 'c1',
+                    'type': 'command',
+                    'commandId': saver.name,
+                    'args': saver_args,
+                    'srcs': {
+                        saver.i_ports[0].label : 'd',
+                        saver.i_ports[1].label : 's'
                     },
-                    "dsts": {
-                        "o": "d1"
+                    'dsts': {
+                        'o': 'd1'
                     }
                 },
                 {
-                    "id": "d1",
-                    "label": "d1",
-                    "type": "frame",
-                    "dataSource": "csv"
+                    'id': 'd1',
+                    'label': 'd1',
+                    'type': 'frame',
+                    'dataSource': 'csv'
                 }
             ],
-            "creator": self._session.user.name,
-            "createdAt": datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            'creator': self._session.user.name,
+            'createdAt': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         }
         return Flow(self._session, self, label, FlowData(flow_json))
 

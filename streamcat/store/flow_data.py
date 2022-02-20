@@ -6,8 +6,8 @@ class FlowData():
     """
     # Flow Jsonの定義
     FLOW_JSON_SCHEMA = {
-        "title" : "Flow JSON Schema",
-        "description" : "This is a schema that verifies Flow JSON.",
+        'title' : 'Flow JSON Schema',
+        'description' : 'This is a schema that verifies Flow JSON.',
         '$schema': 'http://json-schema.org/draft-07/schema#',
         '$ref': '#/definitions/Flow',
         'definitions': {
