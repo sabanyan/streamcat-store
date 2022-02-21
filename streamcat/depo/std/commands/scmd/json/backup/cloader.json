@@ -1,0 +1,25 @@
+{
+    "id": "cloader",
+    "params": [
+      {
+        "name": "file_path",
+        "type": "string",
+        "label": "入力ファイルパス",
+        "description": "StreamCatサーバにおけるOSのファイルパス"
+      }
+    ],
+    "ports": [
+      [],
+      [
+        {
+          "name": "o",
+          "type": "frame"
+        }
+      ]
+    ],
+    "version": "0.7.0",
+    "label": "ファイルローダ",
+    "classification": "data_source",
+    "description": "ファイルから入力データを待ち受ける",
+    "url": ""
+}
