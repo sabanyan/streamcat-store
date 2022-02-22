@@ -1,0 +1,131 @@
+{
+  "id": "mtraflg",
+  "params": [
+    {
+      "name": "a",
+      "type": "string",
+      "label": "追加するベクトルの項目名 (必須)"
+    },
+    {
+      "name": "f",
+      "type": "string",
+      "label": "対象とする項目名 (必須)",
+      "description": "・カンマ区切りで複数指定可\n・ワイルドカード(*,？ )使用可",
+      "resizable": true
+    },
+    {
+      "name": "delim",
+      "type": "string",
+      "label": "ベクトル要素の区切り文字 (省略可)",
+      "optional": true,
+      "default": " ",
+      "description": "省略時は半角スペース"
+    },
+    {
+      "name": "r",
+      "type": "boolean",
+      "label": "変換時とは逆に、ベクトル要素を項目名へ展開する",
+      "optional": true,
+      "description": "展開する要素の値は、対象とする項目名に、カンマ区切りで指定する"
+    },
+    {
+      "name": "assert_diffSize",
+      "type": "boolean",
+      "label": "入力、出力件数比較を行う",
+      "optional": true
+    },
+    {
+      "name": "assert_nullin",
+      "type": "boolean",
+      "label": "対象とする項目名で指定された項目のNULL値チェックを行う",
+      "optional": true
+    },
+    {
+      "name": "assert_nullout",
+      "type": "boolean",
+      "label": "出力項目のNULL値チェックを行う",
+      "optional": true
+    },
+    {
+      "name": "nfn",
+      "type": "boolean",
+      "label": "入力データの1行目を項目名行とみなさない。",
+      "optional": true
+    },
+    {
+      "name": "nfno",
+      "type": "boolean",
+      "label": "出力データに項目名行を出力しない。",
+      "optional": true
+    },
+    {
+      "name": "x",
+      "type": "boolean",
+      "label": "項目名ではなく、項目番号で指定する",
+      "optional": true,
+      "description": "・0始まりの項目番号で指定する\n・Lをつけると、右端起点の項目番号とみなす(例:3L)\n・複数入力可能なOptの場合は、列範囲としての指定も可能(例: 0-5)"
+    },
+    {
+      "name": "tmpPath",
+      "type": "string",
+      "label": "作業ファイル格納パス名",
+      "optional": true
+    }
+  ],
+  "ports": [
+    [
+      {
+        "name": "i",
+        "type": "frame"
+      }
+    ],
+    [
+      {
+        "name": "o",
+        "type": "frame"
+      }
+    ]
+  ],
+  "version": "0.7.0",
+  "label": "クロス表をトランザクション項目に変換(Mtraflg)",
+  "classification": "value_crossing",
+  "description": "複数項目の項目名を要素とするベクトル項目を作成する",
+  "url": "./static/pdf/mcmd/value_crossing/mtraflg.pdf",
+  "groups": [
+    {
+      "name": "abstract",
+      "label": "クロス表をトランザクション項目に変換(Mtraflg)",
+      "description": "複数項目の項目名を要素とするベクトル項目を作成する",
+      "params": []
+    },
+    {
+      "name": "cmd_main",
+      "label": "データ変換の設定 (必須)",
+      "params": [
+        "f",
+        "a",
+        "delim",
+        "r"
+      ]
+    },
+    {
+      "name": "cmd_sub",
+      "label": "その他 (省略可)",
+      "params": [
+        "nfn",
+        "nfno",
+        "x"
+      ]
+    },
+    {
+      "name": "system",
+      "label": "システム管理用設定（作業領域・ログ出力）",
+      "params": [
+        "assert_diffSize",
+        "assert_nullin",
+        "assert_nullout",
+        "tmpPath"
+      ]
+    }
+  ]
+}

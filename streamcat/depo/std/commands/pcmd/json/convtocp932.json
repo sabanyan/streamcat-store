@@ -1,0 +1,44 @@
+{
+  "version": "0.7.0",
+  "id": "convtocp932",
+  "label": "CP932へ変換",
+  "classification": "data_format",
+  "description": "",
+  "params": [
+    {
+      "name": "source_encoding",
+      "type": "hidden",
+      "default": "utf-8"
+    },
+    {
+      "name": "source_newline",
+      "type": "hidden",
+      "default": "\n"
+    },
+    {
+      "name": "target_encoding",
+      "type": "hidden",
+      "default": "cp932"
+    },
+    {
+      "name": "target_newline",
+      "type": "hidden",
+      "default": "\r\n"
+    }
+  ],
+  "ports": [
+    [
+      {
+        "name": "i",
+        "type": "frame"
+      }
+    ],
+    [
+      {
+        "name": "o",
+        "type": "frame"
+      }
+    ]
+  ],
+  "url": ""
+}

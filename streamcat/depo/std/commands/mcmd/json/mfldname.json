@@ -1,0 +1,139 @@
+{
+  "id": "mfldname",
+  "params": [
+    {
+      "name": "f",
+      "type": "string",
+      "label": "対象項目名と新項目名の指定",
+      "description": "・対象列名、新項目名の順で コロン区切りで指定\n・カンマ区切りで複数指定可",
+      "resizable": true
+    },
+    {
+      "name": "n",
+      "type": "string",
+      "label": "新しい項目名リスト",
+      "description": "列数と同じ数の項目名をカンマ区切りで指定する",
+      "resizable": true
+    },
+    {
+      "name": "nfni",
+      "type": "boolean",
+      "label": "項目名が無いデータに、項目名を付与する",
+      "optional": true,
+      "description": "指定すると、新しい項目名行リストが項目名となる"
+    },
+    {
+      "name": "assert_diffSize",
+      "type": "boolean",
+      "label": "入力、出力件数比較を行う",
+      "optional": true
+    },
+    {
+      "name": "nfn",
+      "type": "boolean",
+      "label": "入力データの 1 行目を項目名行とみなさない。",
+      "optional": true
+    },
+    {
+      "name": "nfno",
+      "type": "boolean",
+      "label": "出力データに項目名行を出力しない。",
+      "optional": true
+    },
+    {
+      "name": "x",
+      "type": "boolean",
+      "label": "項目名ではなく、項目番号で指定する",
+      "optional": true,
+      "description": "・0始まりの項目番号で指定する\n・Lをつけると、右端起点の項目番号とみなす(例:3L)\n・複数入力可能なOptの場合は、列範囲としての指定も可能(例: 0-5)"
+    },
+    {
+      "name": "q",
+      "type": "boolean",
+      "label": "項目名末尾のソート記号(%nなど)を削除して出力する",
+      "optional": true,
+      "description": "項目名末尾のソート記号(%nなど)を削除して出力する"
+    },
+    {
+      "name": "tmpPath",
+      "type": "string",
+      "label": "作業ファイル格納パス名",
+      "optional": true
+    }
+  ],
+  "ports": [
+    [
+      {
+        "name": "i",
+        "type": "frame"
+      }
+    ],
+    [
+      {
+        "name": "o",
+        "type": "frame"
+      }
+    ]
+  ],
+  "version": "0.7.0",
+  "label": "項目名の変更",
+  "classification": "col_edit",
+  "description": "項目名を変更する",
+  "url": "./static/pdf/mcmd/col_edit/mfldname.pdf",
+  "groups": [
+    {
+      "name": "abstract",
+      "label": "項目名の変更",
+      "description": "・項目名を変更する\n・項目名に付けられた、ソーティング記号の削除も可能",
+      "params": []
+    },
+    {
+      "name": "cmd_main",
+      "label": "項目名変更の設定 (必須)",
+      "description": "・項目名の個別変更と、項目名の一括変更が可能\n・一括変更では、項目名の無いデータに項目名を付与することも可能",
+      "params": []
+    },
+    {
+      "name": "cmd_main_1",
+      "label": "個別に変更",
+      "params": [
+        "f"
+      ],
+      "hide_background": true
+    },
+    {
+      "name": "cmd_main_2",
+      "label": "一括変更",
+      "params": [
+        "n",
+        "nfni"
+      ],
+      "hide_background": true
+    },
+    {
+      "name": "cmd_main_3",
+      "label": "ソート記号の削除",
+      "params": [
+        "q"
+      ],
+      "hide_background": true
+    },
+    {
+      "name": "cmd_sub",
+      "label": "その他 (省略可)",
+      "params": [
+        "nfn",
+        "nfno",
+        "x"
+      ]
+    },
+    {
+      "name": "system",
+      "label": "システム管理用設定（作業領域・ログ出力）",
+      "params": [
+        "assert_diffSize",
+        "tmpPath"
+      ]
+    }
+  ]
+}

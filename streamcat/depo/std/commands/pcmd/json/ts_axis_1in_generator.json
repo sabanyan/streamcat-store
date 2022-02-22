@@ -1,0 +1,148 @@
+{
+  "id": "ts_axis_1in_generator",
+  "groups": [
+    {
+      "name": "abstract",
+      "label": "センサ時系列生成（1入力）",
+      "description": "入力データの時系列範囲に対して、一定間隔の時系列データを生成する。",
+      "params": []
+    },
+    {
+      "name": "group2",
+      "label": "グループの設定 (省略可)",
+      "params": [
+        "k"
+      ]
+    },
+    {
+      "name": "group3",
+      "label": "時系列の設定 (必須)",
+      "params": [
+        "time",
+        "time_type",
+        "q"
+      ]
+    },
+    {
+      "name": "group1",
+      "label": "出力する時系列の間隔の設定 (必須)",
+      "params": [
+        "interval"
+      ]
+    },
+    {
+      "name": "group4",
+      "label": "入力データに対する停止判定の設定 (省略可)",
+      "params": [
+        "mpi",
+        "c",
+        "t_dynamic_interval_num",
+        "t_fixed_time"
+      ]
+    }
+  ],
+  "params": [
+    {
+      "name": "k",
+      "type": "string",
+      "label": "グループ化する項目名",
+      "description": "・カンマ区切りで複数指定可\n・ワイルドカード(*,？ )使用不可",
+      "optional": true,
+      "resizable": true
+    },
+    {
+      "name": "time",
+      "type": "string",
+      "label": "時間軸の項目名 (必須)",
+      "description": "",
+      "optional": false
+    },
+    {
+      "name": "time_type",
+      "type": "select",
+      "label": "時間軸のデータ型 (必須)",
+      "options": {
+        "labels": [
+          "暦型(YYYYMMDDhhmmss.小数6桁まで)、間隔単位：秒",
+          "暦型(YYYYMMDD)、間隔単位：日",
+          "数値型"
+        ],
+        "values": [
+          "datetime",
+          "date",
+          "number"
+        ]
+      },
+      "default": "datetime",
+      "optional": false
+    },
+    {
+      "name": "interval",
+      "type": "string",
+      "label": "間隔の設定 (必須)",
+      "description": "時間軸のデータ型の単位で指定",
+      "optional": false
+    },
+    {
+      "name": "q",
+      "type": "boolean",
+      "label": "自動並び替えの無効化",
+      "description": "入力データが時間軸でソート済の場合、指定すると処理速度が向上",
+      "optional": true
+    },
+    {
+      "name": "mpi",
+      "type": "boolean",
+      "label": "稼働・停止判定を行う",
+      "description": "",
+      "optional": true
+    },
+    {
+      "name": "c",
+      "type": "select",
+      "label": "計測の停止期間と見なす判定の方法 (必須)",
+      "options": {
+        "labels": [
+          "計測間隔(動的な推定値)で判定",
+          "計測間隔(固定時間)で判定"
+        ],
+        "values": [
+          "dynamic_ave",
+          "fix"
+        ]
+      },
+      "default": "dynamic_ave"
+    },
+    {
+      "name": "t_dynamic_interval_num",
+      "type": "string",
+      "label": "閾値：【計測間隔（動的な推定値）で判定】",
+      "description": "●動的に推定した計測間隔の 連続数 を指定"
+    },
+    {
+      "name": "t_fixed_time",
+      "type": "string",
+      "label": "閾値：【計測間隔（固定時間）で判定】",
+      "description": "●計測間隔の時間（秒）を指定"
+    }
+  ],
+  "ports": [
+    [
+      {
+        "name": "i",
+        "type": "frame"
+      }
+    ],
+    [
+      {
+        "name": "o",
+        "type": "frame"
+      }
+    ]
+  ],
+  "version": "0.7.0",
+  "label": "センサ時系列生成（1入力）",
+  "classification": "table_grouping",
+  "description": "入力データの時系列範囲に対して、一定間隔の時系列データを生成する。",
+  "url": ""
+}

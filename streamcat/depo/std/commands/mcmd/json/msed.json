@@ -1,0 +1,340 @@
+{
+  "id": "msed",
+  "params": [
+    {
+      "name": "c",
+      "type": "string",
+      "label": "マッチ条件(必須)",
+      "description": "正規表現で指定する",
+      "resizable": true,
+      "helper": {
+        "c": {
+          "label": "正規表現",
+          "tabs": [
+            {
+              "label": "正規表現",
+              "data": [
+                {
+                  "label": "一文字",
+                  "shortcuts": [
+                    {
+                      "value": ".",
+                      "label": "任意の1文字",
+                      "link": ".",
+                      "delimiter": ""
+                    },
+                    {
+                      "value": "[abc]",
+                      "label": "a, b, cのいずれか1文字",
+                      "link": "[abc]",
+                      "delimiter": ""
+                    },
+                    {
+                      "value": "[^abc]",
+                      "label": "a, b, c以外の任意の1文字",
+                      "link": "[^abc]",
+                      "delimiter": ""
+                    },
+                    {
+                      "value": "[a-z]",
+                      "label": "aからzの範囲の任意の1文字",
+                      "link": "[a-z]",
+                      "delimiter": ""
+                    },
+                    {
+                      "value": "[^a-z]",
+                      "label": "aからzの範囲以外の任意の1文字",
+                      "link": "[^a-z]",
+                      "delimiter": ""
+                    },
+                    {
+                      "value": "\\t",
+                      "label": "タブ文字",
+                      "link": "\\t",
+                      "delimiter": ""
+                    },
+                    {
+                      "value": "\\w",
+                      "label": "単語構成文字([0-9a-zA-Z]と等価)",
+                      "link": "\\w",
+                      "delimiter": ""
+                    },
+                    {
+                      "value": "\\W",
+                      "label": "単語構成文字以外",
+                      "link": "\\W",
+                      "delimiter": ""
+                    },
+                    {
+                      "value": "\\s",
+                      "label": "空白文字([ \\t]と等価)",
+                      "link": "\\s",
+                      "delimiter": ""
+                    },
+                    {
+                      "value": "\\S",
+                      "label": "空白文字以外",
+                      "link": "\\S",
+                      "delimiter": ""
+                    },
+                    {
+                      "value": "\\d",
+                      "label": "数字構成文字([0-9]と等価)",
+                      "link": "\\d",
+                      "delimiter": ""
+                    },
+                    {
+                      "value": "\\D",
+                      "label": "数字構成文字以外",
+                      "link": "\\D",
+                      "delimiter": ""
+                    }
+                  ]
+                },
+                {
+                  "label": "繰り返し",
+                  "shortcuts": [
+                    {
+                      "value": "a*",
+                      "label": "aの0個以上の繰り返し",
+                      "link": "a*",
+                      "delimiter": ""
+                    },
+                    {
+                      "value": "a+",
+                      "label": "aの1個以上の繰り返し",
+                      "link": "a+",
+                      "delimiter": ""
+                    },
+                    {
+                      "value": "a?",
+                      "label": "aの0個または1個の出現",
+                      "link": "a?",
+                      "delimiter": ""
+                    },
+                    {
+                      "value": "a{M, N}",
+                      "label": "aのM個以上N個以下の繰り返し",
+                      "link": "a{M, N}",
+                      "delimiter": ""
+                    },
+                    {
+                      "value": "a{M}",
+                      "label": "aのM個以上の繰り返し",
+                      "link": "a{M}",
+                      "delimiter": ""
+                    },
+                    {
+                      "value": "a|b",
+                      "label": "aまたはb",
+                      "link": "a|b",
+                      "delimiter": ""
+                    },
+                    {
+                      "value": "? ",
+                      "label": "最短マッチ(a*? のように、繰り返し記号の後につける)",
+                      "link": "? ",
+                      "delimiter": ""
+                    }
+                  ]
+                },
+                {
+                  "label": "位置",
+                  "shortcuts": [
+                    {
+                      "value": "^",
+                      "label": "行頭にマッチする",
+                      "link": "^",
+                      "delimiter": ""
+                    },
+                    {
+                      "value": "$",
+                      "label": "行末にマッチする",
+                      "link": "$",
+                      "delimiter": ""
+                    },
+                    {
+                      "value": "\\b",
+                      "label": "単語の先頭または末尾にマッチ",
+                      "link": "\\b",
+                      "delimiter": ""
+                    },
+                    {
+                      "value": "\\B",
+                      "label": "単語中にマッチ",
+                      "link": "\\B",
+                      "delimiter": ""
+                    }
+                  ]
+                },
+                {
+                  "label": "その他",
+                  "shortcuts": [
+                    {
+                      "value": "(abc)",
+                      "label": "正規表現のグループ化",
+                      "link": "(abc)",
+                      "delimiter": ""
+                    },
+                    {
+                      "value": 1,
+                      "label": "後方参照(\\1, ...\\9)",
+                      "link": 1,
+                      "delimiter": ""
+                    },
+                    {
+                      "value": "(?=abc)",
+                      "label": "abcにマッチする直前位置にマッチ",
+                      "link": "(?=abc)",
+                      "delimiter": ""
+                    },
+                    {
+                      "value": "(?!abc)",
+                      "label": "abcにマッチしない直前位置にマッチ",
+                      "link": "(?!abc)",
+                      "delimiter": ""
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "f",
+      "type": "string",
+      "label": "対象とする項目名 (必須)",
+      "description": "・カンマ区切りで複数指定可\n・ワイルドカード(*,？ )使用可",
+      "resizable": true
+    },
+    {
+      "name": "v",
+      "type": "string",
+      "label": "置換文字列(必須)",
+      "description": "・マッチ結果の置換: 文字列で指定する\n・マッチ結果を用いた置換: 　文字列と置換記号を組み合わせて指定する\n　(置換記号)$&: マッチした文字列, $‘: マッチ文字列の前方の文字列, $’: マッチ文字列の後方の文字列, $N: N番目の部分マッチ文字列"
+    },
+    {
+      "name": "A",
+      "type": "boolean",
+      "label": "置換した結果を、新しい項目に追加する",
+      "optional": true,
+      "description": "新しい列名は、対象とする項目名とセットで、:区切りで指定する"
+    },
+    {
+      "name": "g",
+      "type": "boolean",
+      "label": "文字列の最初ではなく、全てのマッチ部分を置換する",
+      "optional": true
+    },
+    {
+      "name": "assert_diffSize",
+      "type": "boolean",
+      "label": "入力、出力件数比較を行う",
+      "optional": true
+    },
+    {
+      "name": "assert_nullin",
+      "type": "boolean",
+      "label": "対象とする項目名で指定された項目のNULL値チェックを行う",
+      "optional": true
+    },
+    {
+      "name": "assert_nullout",
+      "type": "boolean",
+      "label": "出力項目のNULL値チェックを行う",
+      "optional": true
+    },
+    {
+      "name": "nfn",
+      "type": "boolean",
+      "label": "入力データの1行目を項目名行とみなさない。",
+      "optional": true
+    },
+    {
+      "name": "nfno",
+      "type": "boolean",
+      "label": "出力データに項目名行を出力しない。",
+      "optional": true
+    },
+    {
+      "name": "x",
+      "type": "boolean",
+      "label": "項目名ではなく、項目番号で指定する",
+      "optional": true,
+      "description": "・0始まりの項目番号で指定する\n・Lをつけると、右端起点の項目番号とみなす(例:3L)\n・複数入力可能なOptの場合は、列範囲としての指定も可能(例: 0-5)"
+    },
+    {
+      "name": "tmpPath",
+      "type": "string",
+      "label": "作業ファイル格納パス名",
+      "optional": true
+    }
+  ],
+  "ports": [
+    [
+      {
+        "name": "i",
+        "type": "frame"
+      }
+    ],
+    [
+      {
+        "name": "o",
+        "type": "frame"
+      }
+    ]
+  ],
+  "version": "0.7.0",
+  "label": "正規表現による文字列の置換",
+  "classification": "value_transform",
+  "description": "正規表現に一致する内容を指定した文字列で置換する",
+  "url": "./static/pdf/mcmd/value_transform/msed.pdf",
+  "groups": [
+    {
+      "name": "abstract",
+      "label": "正規表現による文字列の置換",
+      "description": "正規表現に一致する内容を指定した文字列で置換する",
+      "params": []
+    },
+    {
+      "name": "cmd_main",
+      "label": "置換対象の設定 (必須)",
+      "params": [
+        "f",
+        "A"
+      ]
+    },
+    {
+      "name": "cmd_main_1",
+      "label": "マッチと置換の設定",
+      "description": "マッチ結果の置換と、マッチ結果を用いたより高度な置換が可能",
+      "params": [
+        "c",
+        "v",
+        "g"
+      ],
+      "hide_background": true
+    },
+    {
+      "name": "cmd_sub",
+      "label": "その他 (省略可)",
+      "params": [
+        "nfno",
+        "x",
+        "nfn"
+      ]
+    },
+    {
+      "name": "system",
+      "label": "システム管理用設定（作業領域・ログ出力）",
+      "params": [
+        "assert_diffSize",
+        "assert_nullin",
+        "assert_nullout",
+        "tmpPath"
+      ]
+    }
+  ]
+}

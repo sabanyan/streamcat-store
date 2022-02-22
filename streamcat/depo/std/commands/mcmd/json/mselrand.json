@@ -1,0 +1,152 @@
+{
+  "id": "mselrand",
+  "params": [
+    {
+      "name": "c",
+      "type": "string",
+      "label": "抽出するレコード数",
+      "description": "・0以上の整数で指定する\n",
+      "default": "1"
+    },
+    {
+      "name": "p",
+      "type": "string",
+      "label": "抽出率(％)",
+      "description": "0から100の値で指定する"
+    },
+    {
+      "name": "k",
+      "type": "string",
+      "label": "グループ化する項目名",
+      "optional": true,
+      "description": "・カンマ区切りで複数指定可\n・省略時は全ての行を同じグループとみなして処理される",
+      "resizable": true
+    },
+    {
+      "name": "S",
+      "type": "string",
+      "label": "乱数のシード値 (省略可)",
+      "optional": true,
+      "description": "・同じ乱数系列を発生させたい場合に指定する\n・デフォルトは時刻値で、実行の都度変化する"
+    },
+    {
+      "name": "B",
+      "type": "boolean",
+      "label": "レコードではなく、グループを選択する",
+      "optional": true,
+      "description": "選択されたグループのレコードが、全て o に出力される"
+    },
+    {
+      "name": "assert_diffSize",
+      "type": "boolean",
+      "label": "入力、出力件数比較を行う",
+      "optional": true
+    },
+    {
+      "name": "assert_nullkey",
+      "type": "boolean",
+      "label": "グループ化する項目にNULL値が含まれているかどうかのチェックを行う",
+      "optional": true
+    },
+    {
+      "name": "nfn",
+      "type": "boolean",
+      "label": "入力データの1行目を項目名行とみなさない。",
+      "optional": true
+    },
+    {
+      "name": "nfno",
+      "type": "boolean",
+      "label": "出力データに項目名行を出力しない。",
+      "optional": true
+    },
+    {
+      "name": "x",
+      "type": "boolean",
+      "label": "項目名ではなく、項目番号で指定する",
+      "optional": true,
+      "description": "・0始まりの項目番号で指定する\n・Lをつけると、右端起点の項目番号とみなす(例:3L)\n・複数入力可能なOptの場合は、列範囲としての指定も可能(例: 0-5)"
+    },
+    {
+      "name": "q",
+      "type": "boolean",
+      "label": "自動並べ替えの無効化",
+      "optional": true,
+      "description": "入力データがグループ単位でソート済みの場合、指定すると処理速度が向上"
+    },
+    {
+      "name": "tmpPath",
+      "type": "string",
+      "label": "作業ファイル格納パス名",
+      "optional": true
+    }
+  ],
+  "ports": [
+    [
+      {
+        "name": "i",
+        "type": "frame"
+      }
+    ],
+    [
+      {
+        "name": "o",
+        "type": "frame"
+      },
+      {
+        "name": "u",
+        "type": "frame"
+      }
+    ]
+  ],
+  "version": "0.7.0",
+  "label": "ランダムに行を選択",
+  "classification": "row_edit",
+  "description": "指定した行数をランダム（非復元抽出）する",
+  "url": "./static/pdf/mcmd/row_edit/mselrand.pdf",
+  "groups": [
+    {
+      "name": "abstract",
+      "label": "ランダムに行を選択",
+      "description": "指定した行数をランダム（非復元抽出）する",
+      "params": []
+    },
+    {
+      "name": "grouping",
+      "label": "グループの設定 (省略可)",
+      "params": [
+        "k"
+      ]
+    },
+    {
+      "name": "cmd_main",
+      "label": "ランダム抽出の設定 (必須)",
+      "description": "・グループごとに、ランダムに抽出する\n・抽出されたレコードは o に、それ以外は u　に出力される\n・抽出量は、レコード数または比率で指定する",
+      "params": [
+        "c",
+        "p",
+        "B",
+        "S"
+      ]
+    },
+    {
+      "name": "cmd_sub",
+      "label": "その他 (省略可)",
+      "params": [
+        "q",
+        "nfno",
+        "nfn",
+        "x"
+      ]
+    },
+    {
+      "name": "system",
+      "label": "システム管理用設定（作業領域・ログ出力）",
+      "params": [
+        "assert_diffSize",
+        "assert_nullkey",
+        "tmpPath"
+      ]
+    }
+  ]
+}

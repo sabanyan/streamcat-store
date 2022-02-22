@@ -1,0 +1,147 @@
+{
+  "id": "mchgstr",
+  "params": [
+    {
+      "name": "c",
+      "type": "string",
+      "label": "置換の設定 (必須)",
+      "resizable": true,
+      "description": "・置換対象となる文字列と、置換文字列を : 区切りで指定する\n・カンマ区切りで複数指定可"
+    },
+    {
+      "name": "f",
+      "type": "string",
+      "label": "対象とする項目名 (必須)",
+      "description": "・カンマ区切りで複数指定可\n・ワイルドカード(*,？ )使用可",
+      "resizable": true
+    },
+    {
+      "name": "O",
+      "type": "string",
+      "label": "マッチしない場合の置換文字列 (省略可)",
+      "optional": true,
+      "description": "省略時は、マッチしない値はNULLで置換される"
+    },
+    {
+      "name": "A",
+      "type": "boolean",
+      "label": "置換ではなく、別項目として出力する",
+      "optional": true,
+      "description": "追加する項目名は、対象となる項目とセットで:区切りで入力する"
+    },
+    {
+      "name": "F",
+      "type": "boolean",
+      "label": "マッチしない場合は元の値のままで出力する",
+      "optional": true
+    },
+    {
+      "name": "sub",
+      "type": "boolean",
+      "label": "部分文字列マッチで置換する",
+      "optional": true,
+      "description": "値全体ではなく、一致した部分文字列が置換されます"
+    },
+    {
+      "name": "assert_diffSize",
+      "type": "boolean",
+      "label": "入力、出力件数比較を行う",
+      "optional": true
+    },
+    {
+      "name": "assert_nullin",
+      "type": "boolean",
+      "label": "対象とする項目名で指定された項目の NULL 値チェックを行う",
+      "optional": true
+    },
+    {
+      "name": "assert_nullout",
+      "type": "boolean",
+      "label": "出力項目の NULL 値チェックを行う",
+      "optional": true
+    },
+    {
+      "name": "nfn",
+      "type": "boolean",
+      "label": "入力データの 1 行目を項目名行とみなさない。",
+      "optional": true
+    },
+    {
+      "name": "nfno",
+      "type": "boolean",
+      "label": "出力データに項目名行を出力しない。",
+      "optional": true
+    },
+    {
+      "name": "x",
+      "type": "boolean",
+      "label": "項目名ではなく、項目番号で指定する",
+      "optional": true,
+      "description": "・0始まりの項目番号で指定する\n・Lをつけると、右端起点の項目番号とみなす(例:3L)\n・複数入力可能なOptの場合は、列範囲としての指定も可能(例: 0-5)"
+    },
+    {
+      "name": "tmpPath",
+      "type": "string",
+      "label": "作業ファイル格納パス名",
+      "optional": true
+    }
+  ],
+  "ports": [
+    [
+      {
+        "name": "i",
+        "type": "frame"
+      }
+    ],
+    [
+      {
+        "name": "o",
+        "type": "frame"
+      }
+    ]
+  ],
+  "version": "0.7.0",
+  "label": "文字列の置換",
+  "classification": "value_transform",
+  "description": "文字列を置換する",
+  "url": "./static/pdf/mcmd/value_transform/mchgstr.pdf",
+  "groups": [
+    {
+      "name": "abstract",
+      "label": "文字列の置換",
+      "description": "文字列を置換する",
+      "params": []
+    },
+    {
+      "name": "cmd_main",
+      "label": "置換の設定 (必須)",
+      "params": [
+        "f",
+        "A",
+        "c",
+        "O",
+        "F",
+        "sub"
+      ]
+    },
+    {
+      "name": "cmd_sub",
+      "label": "その他 (省略可)",
+      "params": [
+        "nfn",
+        "nfno",
+        "x"
+      ]
+    },
+    {
+      "name": "system",
+      "label": "システム管理用設定（作業領域・ログ出力）",
+      "params": [
+        "assert_diffSize",
+        "assert_nullin",
+        "assert_nullout",
+        "tmpPath"
+      ]
+    }
+  ]
+}

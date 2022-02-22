@@ -1,0 +1,180 @@
+{
+  "id": "m2cross",
+  "groups": [
+    {
+      "name": "abstract",
+      "label": "クロス集計 (行・列を他方へ展開)",
+      "description": "・項目名を値として行に展開する処理(列行展開)と、値を項目名として列に展開する処理(行列展開)の２つの変換が可能\n・列行展開",
+      "params": []
+    },
+    {
+      "name": "group1",
+      "label": "グループの設定 (省略可)",
+      "params": [
+        "k"
+      ]
+    },
+    {
+      "name": "cmd_main",
+      "label": "展開の設定 (必須)",
+      "description": "・列行展開または行列展開どちらかの設定が必須です\n・両方を同時に指定すると、エラーとなります",
+      "params": []
+    },
+    {
+      "name": "cmd_main_1",
+      "label": "列行展開の場合",
+      "params": [
+        "a"
+      ],
+      "hide_background": true
+    },
+    {
+      "name": "cmd_main_2",
+      "label": "行列展開の場合",
+      "params": [
+        "s"
+      ],
+      "hide_background": true
+    },
+    {
+      "name": "group2",
+      "label": "展開する値の設定 (必須)",
+      "params": [
+        "f",
+        "v"
+      ]
+    },
+    {
+      "name": "group10",
+      "label": "その他 (省略可)",
+      "params": [
+        "q",
+        "nfn",
+        "nfno",
+        "x"
+      ]
+    },
+    {
+      "name": "group20",
+      "label": "システム管理用設定（作業領域・ログ出力）",
+      "params": [
+        "assert_diffSize",
+        "assert_nullkey",
+        "assert_nullin",
+        "assert_nullout",
+        "tmpPath"
+      ]
+    }
+  ],
+  "params": [
+    {
+      "name": "k",
+      "type": "string",
+      "label": "グループ化する項目名 (省略可)",
+      "description": "・カンマ区切りで複数指定可\n・省略時は全ての行を同じグループとみなして処理される",
+      "optional": true,
+      "resizable": true
+    },
+    {
+      "name": "f",
+      "type": "string",
+      "label": "展開する値の項目名 (必須)",
+      "description": "●列行展開の場合\n　・コンマ区切りで複数指定可\n　・ワイルドカード(*,?)使用可\n●行列展開の場合\n  ・値の項目を、１つのみ指定する",
+      "resizable": true
+    },
+    {
+      "name": "a",
+      "type": "string",
+      "label": "追加する項目名",
+      "description": "・元の項目名が入る項目名と、値の入る項目名を、カンマ区切りで指定する(例：fld,val)"
+    },
+    {
+      "name": "s",
+      "type": "string",
+      "label": "値を列名へ展開する項目名",
+      "description": "・1項目のみ指定可能\n・展開結果の項目名の順序指定が可能(デフォルトは文字列昇順)\n 　方法: 項目名末尾に記号を付与\n     数値昇順：%n,  文字列降順： %r,  数値降順：%nr\n・【注意】グループ単位で値の重複がある列を指定した場合、任意の値が出力されます"
+    },
+    {
+      "name": "v",
+      "type": "string",
+      "label": "NULL値置換文字列 (省略可)",
+      "description": "展開により発生するNULLを、別の値で置換したい場合に指定する",
+      "optional": true
+    },
+    {
+      "name": "assert_diffSize",
+      "type": "boolean",
+      "label": "入力、出力件数比較を行う",
+      "optional": true
+    },
+    {
+      "name": "assert_nullkey",
+      "type": "boolean",
+      "label": "キー項目に NULL 値が含まれているかどうかのチェックを行う",
+      "optional": true
+    },
+    {
+      "name": "assert_nullin",
+      "type": "boolean",
+      "label": "展開する値の項目名で指定された項目の NULL 値チェックを行う",
+      "optional": true
+    },
+    {
+      "name": "assert_nullout",
+      "type": "boolean",
+      "label": "出力項目の NULL 値チェックを行う",
+      "optional": true
+    },
+    {
+      "name": "nfn",
+      "type": "boolean",
+      "label": "入力データの 1 行目を項目名行とみなさない。",
+      "optional": true
+    },
+    {
+      "name": "nfno",
+      "type": "boolean",
+      "label": "出力データに項目名行を出力しない。",
+      "optional": true
+    },
+    {
+      "name": "x",
+      "type": "boolean",
+      "label": "項目名ではなく、項目番号で指定する",
+      "optional": true,
+      "description": "・0始まりの項目番号で指定する\n・Lをつけると、右端起点の項目番号とみなす(例:3L)\n・複数入力可能なOptの場合は、列範囲としての指定も可能(例: 0-5)"
+    },
+    {
+      "name": "q",
+      "type": "boolean",
+      "label": "自動並べ替えの無効化",
+      "description": "入力データがグループ単位でソート済みの場合、指定すると処理速度が向上",
+      "optional": true
+    },
+    {
+      "name": "tmpPath",
+      "type": "string",
+      "label": "作業ファイル格納パス名",
+      "optional": true
+    }
+  ],
+  "ports": [
+    [
+      {
+        "name": "i",
+        "type": "frame"
+      }
+    ],
+    [
+      {
+        "name": "o",
+        "type": "frame"
+      }
+    ]
+  ],
+  "version": "0.7.0",
+  "label": "クロス集計 (行・列を他方へ展開)",
+  "classification": "value_crossing",
+  "description": "クロス集計を行う（行を列へ or 列を行へと、どちらかを展開）",
+  "url": "./static/pdf/mcmd/value_crossing/m2cross.pdf"
+}

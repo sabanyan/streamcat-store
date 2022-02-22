@@ -1,19 +1,33 @@
 from setuptools import setup
 
 setup(
-    name='kskp.store',
-    packages=['kskp.store'],
-    version='3.0',
+    name='streamcat.store',
+    packages=['streamcat.store'],
+    version='3.1',
     description='Data Store of many type',
     url='https://www.kskp.io',
     install_requires=[
-        'ordered_set',
-        'chardet',
+        # macOS環境にインストールすると、clangが "ld: library not found for -lssl"のエラーメッセージを出力して
+        # インストールできない、そのためpsycopg2の代わりにpsycopg2-binaryをインストールする
+        # 'psycopg2',
+        'psycopg2-binary',
+        'SQLAlchemy<1.5.0',
+        'APScheduler',
+        'jsonschema',
+        # 'alembic',
         'cryptography',
-        'psycopg2',
-        'sqlalchemy',
-        'alembic',
-        'awscli',
-        'cx_Oracle',
+        'python-magic',
+        'chardet',
+        # 'awscli',
+        # 'cx_Oracle',
+        'numpy',
+        'scipy',
+        'pandas',
+        'sklearn',
+        # matplotlibとbokehはholoviewsが使用する
+        'matplotlib',
+        'bokeh',
+        'holoviews',
+        'param'
     ],
 )

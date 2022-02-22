@@ -1,0 +1,185 @@
+{
+  "id": "mpadding",
+  "params": [
+    {
+      "name": "k",
+      "type": "string",
+      "label": "グループ化する項目名 (省略可)",
+      "optional": true,
+      "description": "・カンマ区切りで複数指定可\n・省略時は全ての行を同じグループとみなして処理される",
+      "resizable": true
+    },
+    {
+      "name": "f",
+      "type": "string",
+      "label": "対象とする項目名と値の型 (必須)",
+      "description": "・項目名の末尾に、値の型の記号を付けて指定する\n　(型の記号) %n: 数値型、　%d: 日付型、　%t: 時刻型\n・降順で補完する場合は、値の型の記号の末尾に、%rを付ける"
+    },
+    {
+      "name": "v",
+      "type": "string",
+      "label": "置換文字列の指定",
+      "optional": true
+    },
+    {
+      "name": "S",
+      "type": "string",
+      "label": "開始値",
+      "optional": true,
+      "description": "対象とする項目名に合わせて指定する",
+      "default": "0"
+    },
+    {
+      "name": "E",
+      "type": "string",
+      "label": "終了値",
+      "optional": true,
+      "description": "対象とする項目名に合わせて指定する",
+      "default": "2"
+    },
+    {
+      "name": "n",
+      "type": "boolean",
+      "label": "NULLで置換する",
+      "optional": true
+    },
+    {
+      "name": "assert_diffSize",
+      "type": "boolean",
+      "label": "入力、出力件数比較を行う",
+      "optional": true
+    },
+    {
+      "name": "assert_nullkey",
+      "type": "boolean",
+      "label": "キー項目にNULL値が含まれているかどうかのチェックを行う",
+      "optional": true
+    },
+    {
+      "name": "assert_nullin",
+      "type": "boolean",
+      "label": "対象とする項目名で指定された項目のNULL値チェックを行う",
+      "optional": true
+    },
+    {
+      "name": "assert_nullout",
+      "type": "boolean",
+      "label": "出力項目のNULL値チェックを行う",
+      "optional": true
+    },
+    {
+      "name": "nfn",
+      "type": "boolean",
+      "label": "入力データの1行目を項目名行とみなさない。",
+      "optional": true
+    },
+    {
+      "name": "nfno",
+      "type": "boolean",
+      "label": "出力データに項目名行を出力しない。",
+      "optional": true
+    },
+    {
+      "name": "x",
+      "type": "boolean",
+      "label": "項目名ではなく、項目番号で指定する",
+      "optional": true,
+      "description": "・0始まりの項目番号で指定する\n・Lをつけると、右端起点の項目番号とみなす(例:3L)\n・複数入力可能なOptの場合は、列範囲としての指定も可能(例: 0-5)"
+    },
+    {
+      "name": "q",
+      "type": "boolean",
+      "label": "自動並べ替えの無効化",
+      "optional": true,
+      "description": "入力データがグループ単位でソート済みの場合、指定すると処理速度が向上"
+    },
+    {
+      "name": "tmpPath",
+      "type": "string",
+      "label": "作業ファイル格納パス名",
+      "optional": true
+    }
+  ],
+  "ports": [
+    [
+      {
+        "name": "i",
+        "type": "frame"
+      }
+    ],
+    [
+      {
+        "name": "o",
+        "type": "frame"
+      }
+    ]
+  ],
+  "version": "0.7.0",
+  "label": "行の補完",
+  "classification": "row_edit",
+  "description": "項目の値が連続するようにレコードを追加する",
+  "url": "./static/pdf/mcmd/row_edit/mpadding.pdf",
+  "groups": [
+    {
+      "name": "abstract",
+      "label": "行の補完",
+      "description": "項目の値が連続するようにレコードを追加する",
+      "params": []
+    },
+    {
+      "name": "grouping",
+      "label": "グループの設定 (省略可)",
+      "params": [
+        "k"
+      ]
+    },
+    {
+      "name": "cmd_main",
+      "label": "行補完の設定 (必須)",
+      "description": "・レコードの複写により、行を補完する\n・補完で作られたレコードの値は、NULLまたは指定文字へ置換することができる",
+      "params": []
+    },
+    {
+      "name": "cmd_main_1",
+      "label": "レコード複写の設定 (必須)",
+      "description": "・レコードの複写により、行を補完する\n・補完で作られたレコードの値は、NULLまたは指定文字へ置換することができる",
+      "params": [
+        "f",
+        "S",
+        "E"
+      ],
+      "hide_background": true
+    },
+    {
+      "name": "cmd_main_2",
+      "label": "値の置換の設定 (省略可)",
+      "description": "・グループ化する項目名と対象とする項目名以外を対象として、値の置換をして補完する\n・指定がない場合は、直前の行の値で補完される",
+      "params": [
+        "v",
+        "n"
+      ],
+      "hide_background": true
+    },
+    {
+      "name": "cmd_sub",
+      "label": "その他 (省略可)",
+      "params": [
+        "q",
+        "nfn",
+        "nfno",
+        "x"
+      ]
+    },
+    {
+      "name": "system",
+      "label": "システム管理用設定（作業領域・ログ出力）",
+      "params": [
+        "assert_diffSize",
+        "assert_nullkey",
+        "assert_nullin",
+        "assert_nullout",
+        "tmpPath"
+      ]
+    }
+  ]
+}

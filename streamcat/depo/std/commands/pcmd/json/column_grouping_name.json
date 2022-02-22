@@ -1,0 +1,81 @@
+{
+  "version": "0.7.0",
+  "id": "column_grouping_name",
+  "label": "項目名のグループ化",
+  "classification": "col_edit",
+  "description": "項目名の間をグループとして、同じ文字列を項目名に付加する",
+  "ports": [
+    [
+      {
+        "name": "i",
+        "type": "frame"
+      }
+    ],
+    [
+      {
+        "name": "o",
+        "type": "frame"
+      }
+    ]
+  ],
+  "params": [
+    {
+      "name": "f",
+      "type": "string",
+      "label": "グループ先頭の項目名と項目グループ名 (必須)",
+      "description": "先頭の項目名と項目グループ名を、コロン区切りで指定する\nカンマ区切りで複数指定可",
+      "resizable": true
+    },
+    {
+      "name": "O",
+      "type": "string",
+      "label": "グループ末端の項目名 (省略可)",
+      "description": "終了の項目名リストを先頭の項目名指定と合わせて、カンマ区切りで指定する\n省略時は、次の項目グループの開始項目の１つ前を、末端の項目名とみなす"
+    },
+    {
+      "name": "d",
+      "type": "string",
+      "label": "項目名と項目グループ名の区切り文字",
+      "default": "_",
+      "description": "省略時は_(アンダーバー)"
+    },
+    {
+      "name": "r",
+      "type": "boolean",
+      "label": "項目グループ名を、先頭ではなく、末尾に結合する"
+    },
+    {
+      "name": "R",
+      "type": "boolean",
+      "label": "項目グループの開始項目にも、項目グループ名を付与する"
+    }
+  ],
+  "url": "",
+  "groups": [
+    {
+      "name": "abstract",
+      "label": "項目名のグループ化",
+      "description": "項目名の間をグループとして、同じ文字列を項目名に付加する",
+      "params": []
+    },
+    {
+      "name": "cmd_main",
+      "label": "項目グループの設定 (必須)",
+      "description": "項目グループの開始と終了の項目名を指定する\n項目グループ名は、開始の項目名とセットで指定する",
+      "params": [
+        "f",
+        "R",
+        "O"
+      ]
+    },
+    {
+      "name": "cmd_sub",
+      "label": "出力データの項目名の書式設定 (省略可)",
+      "description": "元の項目名と項目グループ名を結合して作られる、出力データの項目名の書式を設定する",
+      "params": [
+        "d",
+        "r"
+      ]
+    }
+  ]
+}

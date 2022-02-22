@@ -1,0 +1,198 @@
+{
+  "id": "mrjoin",
+  "groups": [
+    {
+      "name": "abstract",
+      "label": "参照データの範囲条件による結合",
+      "description": "入力i の項目 と 入力m の範囲条件項目 を比較して結合する",
+      "params": []
+    },
+    {
+      "name": "group1",
+      "label": "グループの設定 (省略可)",
+      "description": "・カンマ区切りで複数指定可\n・入力i と m の項目を、1対1に対応させて指定する\n",
+      "params": [
+        "k",
+        "K"
+      ]
+    },
+    {
+      "name": "group3",
+      "label": "範囲条件による結合の設定 (必須)",
+      "description": "入力i の比較項目と、入力m の範囲の項目名を指定する",
+      "params": [
+        "rf",
+        "R",
+        "lo"
+      ]
+    },
+    {
+      "name": "group4",
+      "label": "結合項目の設定 (省略可)",
+      "description": "・入力m から特定の項目を結合する場合に指定する\n・結合結果に項目名の重複が生じた場合はエラー発生",
+      "params": [
+        "f"
+      ]
+    },
+    {
+      "name": "group5",
+      "label": "結合方法の設定 (省略可)",
+      "params": [
+        "n"
+      ]
+    },
+    {
+      "name": "group10",
+      "label": "その他 (省略可)",
+      "params": [
+        "q",
+        "nfn",
+        "nfno",
+        "x"
+      ]
+    },
+    {
+      "name": "group20",
+      "label": "システム管理用設定（作業領域・ログ出力）",
+      "params": [
+        "assert_diffSize",
+        "assert_nullkey",
+        "assert_nullin",
+        "assert_nullout",
+        "tmpPath"
+      ]
+    }
+  ],
+  "params": [
+    {
+      "name": "rf",
+      "type": "string",
+      "label": "入力i の比較項目名 (必須)",
+      "description": "・項目を1つ指定する\n・型の指定\n     デフォルトは文字列型で、数値型の場合は項目名末尾に%nをつける\n・【注意】指定項目にNULLがあると、正しく処理されない場合があります"
+    },
+    {
+      "name": "k",
+      "type": "string",
+      "label": "入力 i のグループ項目名",
+      "optional": true,
+      "description": "カンマ区切りで複数指定可",
+      "resizable": true
+    },
+    {
+      "name": "K",
+      "type": "string",
+      "label": "入力 m のグループ項目名",
+      "optional": true,
+      "description": "入力i と同じ場合は省略可",
+      "resizable": true
+    },
+    {
+      "name": "R",
+      "type": "string",
+      "label": "入力m の範囲の項目名　(必須)",
+      "optional": true,
+      "description": "・入力m の比較項目名と同じ場合は省略可\n"
+    },
+    {
+      "name": "f",
+      "type": "string",
+      "label": "入力m から結合する項目名",
+      "optional": true,
+      "description": "・カンマ区切りで複数指定可\n・ワイルドカード(*,？ )使用可",
+      "resizable": true
+    },
+    {
+      "name": "n",
+      "type": "boolean",
+      "label": "入力i にある行を全て出力する",
+      "optional": true,
+      "description": "入力m の範囲にない行も出力されます"
+    },
+    {
+      "name": "lo",
+      "type": "boolean",
+      "label": "範囲境界値を、右側ではなく左側の範囲に含める",
+      "optional": true,
+      "description": "境界値の扱いが変化し、 a ≦ x < b から、 a < x ≦ b へと変わります"
+    },
+    {
+      "name": "assert_diffSize",
+      "type": "boolean",
+      "label": "入力、出力件数比較を行う",
+      "optional": true
+    },
+    {
+      "name": "assert_nullkey",
+      "type": "boolean",
+      "label": "キー項目にNULL値が含まれているかどうかのチェックを行う",
+      "optional": true
+    },
+    {
+      "name": "assert_nullin",
+      "type": "boolean",
+      "label": "入力ｍから結合する項目で指定された項目のNULL値チェックを行う",
+      "optional": true
+    },
+    {
+      "name": "assert_nullout",
+      "type": "boolean",
+      "label": "出力項目のNULL値チェックを行う",
+      "optional": true
+    },
+    {
+      "name": "nfn",
+      "type": "boolean",
+      "label": "入力データの1行目を項目名行とみなさない。",
+      "optional": true
+    },
+    {
+      "name": "nfno",
+      "type": "boolean",
+      "label": "出力データに項目名行を出力しない。",
+      "optional": true
+    },
+    {
+      "name": "x",
+      "type": "boolean",
+      "label": "項目名ではなく、項目番号で指定する",
+      "optional": true,
+      "description": "・0始まりの項目番号で指定する\n・Lをつけると、右端起点の項目番号とみなす(例:3L)\n・複数入力可能なOptの場合は、列範囲としての指定も可能(例: 0-5)"
+    },
+    {
+      "name": "q",
+      "type": "boolean",
+      "label": "自動並べ替えの無効化",
+      "optional": true,
+      "description": "入力i と入力m ともにキー項目でソート済みの場合、指定すると処理速度が向上"
+    },
+    {
+      "name": "tmpPath",
+      "type": "string",
+      "label": "作業ファイル格納パス名",
+      "optional": true
+    }
+  ],
+  "ports": [
+    [
+      {
+        "name": "i",
+        "type": "frame"
+      },
+      {
+        "name": "m",
+        "type": "frame"
+      }
+    ],
+    [
+      {
+        "name": "o",
+        "type": "frame"
+      }
+    ]
+  ],
+  "version": "0.7.0",
+  "label": "参照データの範囲条件による結合",
+  "classification": "table_join",
+  "description": "入力データの項目 と 参照データの範囲条件項目 を比較して結合する",
+  "url": "./static/pdf/mcmd/table_join/mrjoin.pdf"
+}
