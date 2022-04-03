@@ -224,6 +224,7 @@ class ProjectFolder(Folder):
 
     def _update_timestamp(self):
         try:
+            # FIXME: ユーザIDに変更がなければタイプスタンプは更新されないようだ
             self._modifier_id = self._session.user.id
             self._session.update(self)
         except Exception as e:
