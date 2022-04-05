@@ -574,9 +574,9 @@ class Folder(Store):
         from streamcat.store.scheduler import Schedule
         return Schedule(self._session, self, label, runnable_uuid, args, inputs, trigger)
 
-    def create_activity(self, label:str, flow):
+    def create_activity(self, label:str, flow, args:dict={}):
         from streamcat.store import Activity
-        return Activity(self._session, self, label, flow)
+        return Activity(self._session, self, label, flow, args)
 
     def create_trashcan(self):
         from streamcat.store import TrashCan

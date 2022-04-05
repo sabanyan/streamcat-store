@@ -10,7 +10,7 @@ class Activity(Datum):
         'polymorphic_identity' : 'activity'
     }
 
-    def __init__(self, session, parent, label, flow):
+    def __init__(self, session, parent, label:str, flow, args:dict={}):
         """
         コンストラクタ
         """
@@ -30,7 +30,7 @@ class Activity(Datum):
         # (同じインスタンスのpointの場合もあることに注意!!)
         # [ApparentOut(point, datum, exs)]
         self._outs = []
-        self._data = {'flowUuid': flow.uuid, 'startAt': str(self._start_at)}
+        self._data = {'flowUuid': flow.uuid, 'args':args, 'startAt': str(self._start_at)}
 
     def add(self, out:ApparentOut):
         self._outs.append(out)
@@ -200,6 +200,7 @@ class Activity(Datum):
         ret = super().to_json()
         # 
         ret['flowUuid'] = get_value('flowUuid', 'flow_uuid')
+        ret['args']     = self._data.get('args', {})
         ret['startAt']  = get_value('startAt', 'start_time')
         ret['endAt']    = get_value('endAt', 'end_time')
         ret['outs']     = self._data.get('outs', [])
