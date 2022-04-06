@@ -30,7 +30,9 @@ class Activity(Datum):
         # (同じインスタンスのpointの場合もあることに注意!!)
         # [ApparentOut(point, datum, exs)]
         self._outs = []
-        self._data = {'flowUuid': flow.uuid, 'args':args, 'startAt': str(self._start_at)}
+        self._data = {'flowUuid': flow.uuid,
+                      'args': args,
+                      'startAt': self._start_at.isoformat(sep='T')}
 
     def add(self, out:ApparentOut):
         self._outs.append(out)
@@ -120,7 +122,8 @@ class Activity(Datum):
                 self._update_label(out.datum, end_at)
 
         # 現在時刻を格納する
-        self._data['endAt'] = str(end_at)
+        # NOTE: JavaScriptのDateオブジェクトの日付時刻の解析に区切り文字'T'が必要
+        self._data['endAt'] = end_at.isoformat(sep='T')
         # 出力情報を格納する
         self._data['outs'] = outs
         self._data['caches'] = caches
