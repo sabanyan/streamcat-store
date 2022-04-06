@@ -166,7 +166,7 @@ class Schedule(Datum):
 
         # 
         self._path = None
-        
+
         # runnable: FlowまたはCommandを表す
         # TODO: Commandについては、UUIDでライブラリから取得できるまで対応しない
         self._data = {'runnable':runnable_uuid, 'args':args, 'inputs':inputs, 'trigger':trigger}
