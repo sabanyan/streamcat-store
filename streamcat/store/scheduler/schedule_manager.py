@@ -49,20 +49,27 @@ class ScheduleManager():
         """
         スケジューラにスケジュールを登録する
         """
-        runnable = schedule.runnable
-        if runnable.type == Datum.FLOW_TYPE:
-            # TODO: streamcat-storeとstreamcat-engineの循環参照になってしまう
-            # Flowはengineへ引っ越した方がいいのだろうか?
-            # それともScheduleManagerがengineへ引っ越した方がいいのだろうか?
-            from streamcat.engine import FlowCommand
-            command = FlowCommand(runnable)
-        else:
-            command = runnable
+        # スケジュール起動時に、その処理内でFactoryを作成する(トランザクションを開く)必要がある
+        def run(args:dict, inputs:dict):
+            from streamcat.store.factory import Factory
+            # Scheduleの作成者の権限でrunnableを実行する
+            with Factory(user=schedule.creator) as factory:
+                runnable = factory.data.find_by_uuid(schedule.runnable_uuid)
+                if runnable.type == Datum.FLOW_TYPE:
+                    # TODO: streamcat-storeとstreamcat-engineの循環参照になってしまう
+                    # Flowはengineへ引っ越した方がいいのだろうか?
+                    # それともScheduleManagerがengineへ引っ越した方がいいのだろうか?
+                    from streamcat.engine import FlowCommand
+                    command = FlowCommand(runnable)
+                else:
+                    command = runnable
+                # コマンドを実行する
+                return command.run(args, inputs)
 
         trigger_type = schedule.trigger.get('type')
         if trigger_type=='date':
             self.scheduler.add_job(
-                command.run,
+                run,
                 kwargs={'args':schedule.args,'inputs':schedule.inputs},
                 id=schedule.uuid,
                 # Tirggers: date, interval, cron
@@ -72,7 +79,7 @@ class ScheduleManager():
 
         elif trigger_type=='interval':
             self.scheduler.add_job(
-                command.run,
+                run,
                 kwargs={'args':schedule.args,'inputs':schedule.inputs},
                 id=schedule.uuid,
                 # Tirggers: date, interval, cron
@@ -90,7 +97,7 @@ class ScheduleManager():
 
         elif trigger_type=='cron':
             self.scheduler.add_job(
-                command.run,
+                run,
                 kwargs={'args':schedule.args,'inputs':schedule.inputs},
                 id=schedule.uuid,
                 # Tirggers: date, interval, cron

@@ -164,6 +164,18 @@ class Schedule(Datum):
     def __init__(self, session, parent:Datum, label:str, runnable_uuid:str, args={}, inputs={}, trigger={}):
         super().__init__(session, parent, Datum.SCHEDULE_TYPE, label)
 
+        # 存在しないrunnable_uuidが指定された場合は例外を送出する
+        from streamcat.store.factory import DatumFactory
+        if not DatumFactory(session).exists(runnable_uuid):
+            raise Exception(f'指定されたrunnable_uuid({runnable_uuid})は存在しません')
+
+        # ゴミ箱にほかしたrunnable_uuidが指定された場合は例外を送出する
+        if DatumFactory(session).trashed(runnable_uuid):
+            raise Exception(f'ゴミ箱にほかされたrunnable_uuid({runnable_uuid})は指定できません')
+
+        # 参照権限が無いrunnable_uuidが指定された場合は例外を送出する
+        DatumFactory(session).find_by_uuid(runnable_uuid)
+
         # 
         self._path = None
 
@@ -225,10 +237,8 @@ class Schedule(Datum):
             raise Exception(f'Unknown trigger type ! ({trigger_type})')
 
     @property
-    def runnable(self):
-        from streamcat.store.factory import DatumFactory
-        runnable_uuid = self._data.get('runnable')
-        return DatumFactory(self._session).find_by_uuid(runnable_uuid)
+    def runnable_uuid(self):
+        return self._data.get('runnable')
 
     @property
     def args(self):
@@ -268,19 +278,24 @@ class Schedule(Datum):
         finally:
             self._session.commit()
 
-    def update_data(self, label, runnable, args={}, inputs={}, trigger={}, modifier=None):
+    def update_data(self, label, runnable_uuid:str, args={}, inputs={}, trigger={}, modifier=None):
         """
         Scheduleのdata列を更新する
         """
+        from . import schedule_manager
+
         # ラベルに'\0'が含まれていれば取り除く
         new_label = Datum.escape_label(label)
 
         try:
             # レコードを更新する
             self._label = new_label
-            self._data = {'runnable':runnable.uuid, 'args':args, 'inputs':inputs, 'trigger':trigger}
+            self._data = {'runnable':runnable_uuid, 'args':args, 'inputs':inputs, 'trigger':trigger}
             self._modifier_id = (modifier or self._session.user).id
             self._session.update(self)
+            # スケジューラに登録されているスケジュールを更新する
+            schedule_manager.delete(self.uuid)
+            schedule_manager.add(self)
         except Exception as e:
             self._session.rollback()
             raise e
@@ -288,6 +303,28 @@ class Schedule(Datum):
             self._session.commit()
 
         return self
+
+    def throw_away(self):
+        """
+        Scheduleをゴミ箱にほかす
+        """
+        from . import schedule_manager
+        # ゴミ箱へほかす
+        schedule = super().throw_away()
+        # スケジューラから削除する
+        schedule_manager.delete(self.uuid)
+        return schedule
+
+    def put_back(self):
+        """
+        直前の親のStoreの直下に戻す
+        """
+        from . import schedule_manager
+        # ゴミ箱から戻す
+        schedule = super().put_back()
+        # スケジューラに登録しなおす
+        schedule_manager.add(self)
+        return schedule
 
     @Constraints.delete_role_when_isolated
     def delete(self):

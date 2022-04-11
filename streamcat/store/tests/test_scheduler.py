@@ -4,6 +4,7 @@ import time
 
 from streamcat.store import FlowData
 from .test_case_base import TestCaseBase
+from streamcat.store.scheduler import schedule_manager
 
 class SchdulerTest(TestCaseBase):
     """
@@ -75,7 +76,7 @@ class SchdulerTest(TestCaseBase):
 
     def test_date(self):
         """
-        スケジュールの登録と解除
+        スケジュールの登録と取得と解除
         """
         # ルートデータストアを取得する
         root = self.factory.data.load_root()
@@ -96,6 +97,25 @@ class SchdulerTest(TestCaseBase):
         schedule = project1.create_schedule('一度限り', flow.uuid, trigger=trigger1)
         schedule.save()
 
+        # 作成したスケジュールを取得する
+        schedule = self.factory.data.find_by_uuid(schedule.uuid)
+
+        # 取得したスケジュールの値を検証する
+        self.assertIsNotNone(schedule.id)
+        self.assertEqual(schedule.parent_id, project1.id)
+        self.assertIsNotNone(schedule.uuid)
+        self.assertIsNone(schedule.path)
+        self.assertEqual(schedule.type, 'schedule')
+        self.assertEqual(schedule.label, '一度限り')
+        self.assertEqual(schedule.creator, self.USER1)
+        self.assertEqual(schedule.modifier, self.USER1)
+        self.assertIsNotNone(schedule.created_at)
+        self.assertIsNotNone(schedule.modified_at)
+        self.assertEqual(schedule.runnable_uuid, flow.uuid)
+        self.assertEqual(schedule.args, {})
+        self.assertEqual(schedule.inputs, {})
+        self.assertEqual(schedule.trigger, trigger1)
+
         # プロジェクトを削除する
         schedule.delete()
         flow.delete()
@@ -103,10 +123,10 @@ class SchdulerTest(TestCaseBase):
 
     def test_interval(self):
         """
-        スケジュールの登録と解除
+        スケジュールの登録と取得と解除
         """
         # ルートデータストアを取得する
-        root = self.factory.data.load_root()
+        root = self.factory2.data.load_root()
 
         # ルートデータストアの下にプロジェクト1を作成する
         project1 = root.create_project_folder('プロジェクト1')
@@ -128,8 +148,27 @@ class SchdulerTest(TestCaseBase):
             'seconds': 1
         }
         args = {'params': {'message': '⭐️Exception❕⭐️'}}
-        schedule = project1.create_schedule('一度限り', flow.uuid, args, trigger=trigger1)
+        schedule = project1.create_schedule('一定間隔', flow.uuid, args, trigger=trigger1)
         schedule.save()
+
+        # 作成したスケジュールを取得する
+        schedule = self.factory.data.find_by_uuid(schedule.uuid)
+
+        # 取得したスケジュールの値を検証する
+        self.assertIsNotNone(schedule.id)
+        self.assertEqual(schedule.parent_id, project1.id)
+        self.assertIsNotNone(schedule.uuid)
+        self.assertIsNone(schedule.path)
+        self.assertEqual(schedule.type, 'schedule')
+        self.assertEqual(schedule.label, '一定間隔')
+        self.assertEqual(schedule.creator, self.USER2)
+        self.assertEqual(schedule.modifier, self.USER2)
+        self.assertIsNotNone(schedule.created_at)
+        self.assertIsNotNone(schedule.modified_at)
+        self.assertEqual(schedule.runnable_uuid, flow.uuid)
+        self.assertEqual(schedule.args, args)
+        self.assertEqual(schedule.inputs, {})
+        self.assertEqual(schedule.trigger, trigger1)
 
         # プロジェクトを削除する
         schedule.delete()
@@ -138,10 +177,10 @@ class SchdulerTest(TestCaseBase):
 
     def test_cron(self):
         """
-        スケジュールの登録と解除
+        スケジュールの登録と取得と解除
         """
         # ルートデータストアを取得する
-        root = self.factory.data.load_root()
+        root = self.factory3.data.load_root()
 
         # ルートデータストアの下にプロジェクト1を作成する
         project1 = root.create_project_folder('プロジェクト1')
@@ -166,19 +205,375 @@ class SchdulerTest(TestCaseBase):
             'second': 1
         }
         args = {'params': {'message': '⭐️Exception❕⭐️'}}
-        schedule = project1.create_schedule('一度限り', flow.uuid, args, trigger=trigger1)
+        schedule = project1.create_schedule('指定日時', flow.uuid, args, trigger=trigger1)
         schedule.save()
+
+        # 作成したスケジュールを取得する
+        schedule = self.factory.data.find_by_uuid(schedule.uuid)
+
+        # 取得したスケジュールの値を検証する
+        self.assertIsNotNone(schedule.id)
+        self.assertEqual(schedule.parent_id, project1.id)
+        self.assertIsNotNone(schedule.uuid)
+        self.assertIsNone(schedule.path)
+        self.assertEqual(schedule.type, 'schedule')
+        self.assertEqual(schedule.label, '指定日時')
+        self.assertEqual(schedule.creator, self.USER3)
+        self.assertEqual(schedule.modifier, self.USER3)
+        self.assertIsNotNone(schedule.created_at)
+        self.assertIsNotNone(schedule.modified_at)
+        self.assertEqual(schedule.runnable_uuid, flow.uuid)
+        self.assertEqual(schedule.args, args)
+        self.assertEqual(schedule.inputs, {})
+        self.assertEqual(schedule.trigger, trigger1)
 
         # プロジェクトを削除する
         schedule.delete()
         flow.delete()
         project1.delete()
 
+    def test_update_label(self):
+        """
+        スケジュールのラベルを変更する
+        """
+        # ルートデータストアを取得する
+        root = self.factory0.data.load_root()
+
+        # ルートデータストアの下にプロジェクト1を作成する
+        project1 = root.create_project_folder('プロジェクト1')
+        project1.save()
+
+        # 例外を送出するフローを作成する
+        flow = project1.create_flow('test', FlowData(self.flow_json))
+        flow.save()
+
+        # スケジュールを作成する
+        trigger1 = {
+            'type' : 'date',
+            'date' : '2021-06-29 12:00:00'
+        }
+        schedule = project1.create_schedule('一度限り', flow.uuid, trigger=trigger1)
+        schedule.save()
+
+        # 作成したスケジュールのラベルを変更する
+        schedule.update_label('一度限りですよ', self.USER1)
+
+        # 変更したスケジュールを取得する
+        updated = self.factory.data.find_by_id(schedule.id)
+
+        # ラベルのみが変更されることを検証する
+        self.assertEqual(updated.id, schedule.id)
+        self.assertEqual(updated.parent_id, schedule.parent_id)
+        self.assertEqual(updated.uuid, schedule.uuid)
+        self.assertIsNone(updated.path)
+        self.assertEqual(updated.runnable_uuid, schedule.runnable_uuid)
+        self.assertEqual(updated.args, schedule.args)
+        self.assertEqual(updated.inputs, schedule.inputs)
+        self.assertEqual(updated.trigger, schedule.trigger)
+        self.assertEqual(updated.type, 'schedule')
+        self.assertEqual(updated.label, '一度限りですよ')
+        self.assertEqual(updated.creator, self.USER0)
+        self.assertEqual(updated.modifier, self.USER1)
+        self.assertEqual(updated.created_at, schedule.created_at)
+        self.assertIsNotNone(updated.modified_at)
+
+        # プロジェクトを削除する
+        schedule.delete()
+        flow.delete()
+        project1.delete()
+
+    def test_update_schedule(self):
+        """
+        スケジュールを変更する
+        """
+        # ルートデータストアを取得する
+        root = self.factory0.data.load_root()
+
+        # ルートデータストアの下にプロジェクト1を作成する
+        project1 = root.create_project_folder('プロジェクト1')
+        project1.save()
+
+        # 例外を送出するフローを作成する
+        flow = project1.create_flow('test', FlowData(self.flow_json))
+        flow.save()
+
+        # スケジュールを作成する
+        trigger1 = {
+            'type' : 'date',
+            'date' : '2021-06-29 12:00:00'
+        }
+        schedule = project1.create_schedule('一度限り', flow.uuid, trigger=trigger1)
+        schedule.save()
+
+        # 別のフローを作成する
+        flow2 = project1.create_flow('AnotherFlow', FlowData(self.flow_json))
+        flow2.save()
+
+        # 作成したスケジュールを変更する
+        args2 = {'params': {'message': '変更後のメッセージ'}}
+        inputs2 = {'input1': '変更後の入力1'}
+        trigger2 = {
+            'type'       : 'cron',
+            'start_date' : '2021-06-29 12:00:00',
+            'end_date'   : '3021-06-29 12:00:00',
+            'day'        : 31,
+        }
+        schedule.update_data('変更後のスケジュール', flow2.uuid, args2, inputs2, trigger2, self.USER1)
+
+        # 変更したスケジュールを取得する
+        updated = self.factory.data.find_by_id(schedule.id)
+
+        # 変更されることを検証する
+        self.assertEqual(updated.id, schedule.id)
+        self.assertEqual(updated.parent_id, schedule.parent_id)
+        self.assertEqual(updated.uuid, schedule.uuid)
+        self.assertIsNone(updated.path)
+        self.assertEqual(updated.runnable_uuid, flow2.uuid)
+        self.assertEqual(updated.args, args2)
+        self.assertEqual(updated.inputs, inputs2)
+        self.assertEqual(updated.trigger, trigger2)
+        self.assertEqual(updated.type, 'schedule')
+        self.assertEqual(updated.label, '変更後のスケジュール')
+        self.assertEqual(updated.creator, self.USER0)
+        self.assertEqual(updated.modifier, self.USER1)
+        self.assertEqual(updated.created_at, schedule.created_at)
+        self.assertIsNotNone(updated.modified_at)
+
+        # 
+        # スケジューラに登録した設定も変更されること
+        # 
+
+        # プロジェクトを削除する
+        schedule.delete()
+        flow.delete()
+        flow2.delete()
+        project1.delete()
+
+    def test_move_schedule(self):
+        """
+        スケジュールを移動する
+        """
+        # ルートデータストアを取得する
+        root = self.factory0.data.load_root()
+
+        # ルートデータストアの下にプロジェクト1を作成する
+        project1 = root.create_project_folder('プロジェクト1')
+        project1.save()
+
+        # ルートデータストアの下にプロジェクト2を作成する
+        project2 = root.create_project_folder('プロジェクト2')
+        project2.save()
+
+        # 例外を送出するフローをプロジェクト1の下に作成する
+        flow = project1.create_flow('フロー1', FlowData(self.flow_json))
+        flow.save()
+
+        # スケジュールをプロジェクト1の下に作成する
+        trigger1 = {
+            'type' : 'date',
+            'date' : '2021-06-29 12:00:00'
+        }
+        schedule = project1.create_schedule('スケジュール1', flow.uuid, trigger=trigger1)
+        schedule.save()
+
+        # スケジュール1をプロジェクト2へ移動する
+        moved = schedule.move(project2.uuid, modifier=self.USER2)
+
+        # parent_id, modifierが変更されることを検証する
+        self.assertEqual(moved.id, schedule.id)
+        self.assertEqual(moved.parent_id, project2.id)
+        self.assertEqual(moved.uuid, schedule.uuid)
+        self.assertEqual(moved.type, schedule.type)
+        self.assertEqual(moved.label, 'スケジュール1')
+        self.assertEqual(moved.creator, self.USER0)
+        self.assertEqual(moved.modifier, self.USER2)
+        self.assertEqual(moved.created_at, schedule.created_at)
+        self.assertIsNotNone(moved.modified_at)
+
+        """
+        スケジュールの移動を元に戻す
+        """
+        backed = moved.put_back()[0]
+        # parent_id, modifierが変更されることを検証する
+        self.assertEqual(backed.id, moved.id)
+        self.assertEqual(backed.parent_id, project1.id)
+        self.assertEqual(backed.uuid, moved.uuid)
+        self.assertEqual(backed.type, moved.type)
+        self.assertEqual(backed.label, 'スケジュール1')
+        self.assertEqual(backed.creator, self.USER0)
+        self.assertEqual(backed.modifier, self.USER0)
+        self.assertEqual(backed.created_at, moved.created_at)
+        self.assertIsNotNone(backed.modified_at)
+
+        # プロジェクトを削除する
+        schedule.delete()
+        flow.delete()
+        project1.delete()
+        project2.delete()
+
+    def test_exec_by_creator(self):
+        """
+        スケジュールの作成者(Creator)の権限でフローが実行されること
+        """
+
+    def test_invalid_runnable_uuid(self):
+        """
+        存在しないフローのUUIDでスケジュールを作成できないこと
+        """
+        # ルートデータストアを取得する
+        root = self.factory.data.load_root()
+
+        # ルートデータストアの下にプロジェクト1を作成する
+        project1 = root.create_project_folder('プロジェクト1')
+        project1.save()
+
+        # 例外を送出するフローを作成する
+        flow = project1.create_flow('test', FlowData(self.flow_json))
+        flow.save()
+
+        # フローを削除する
+        flow.delete()
+
+        # スケジュールを作成する
+        trigger1 = {
+            'type' : 'date',
+            'date' : '2021-06-29 12:00:00'
+        }
+        # 存在しないフローのUUIDでスケジュールを作成しようとすると例外を送出する
+        with self.assertRaises(Exception):
+            project1.create_schedule('一度限り', flow.uuid, trigger=trigger1)
+
+    def test_unreadable_runnable_uuid(self):
+        """
+        参照権限が無いフローのUUIDでスケジュールを作成できないこと
+        """
+        # ルートデータストアを取得する
+        root = self.factory2.data.load_root()
+
+        # ルートデータストアの下にプロジェクト1を作成する
+        project1 = root.create_project_folder('プロジェクト1')
+        project1.save()
+
+        # ルートデータストアの下にプロジェクト2を作成する
+        project2 = root.create_project_folder('プロジェクト2')
+        project2.save()
+
+        # プロジェクト1の下にフローを作成する
+        flow = project1.create_flow('test', FlowData(self.flow_json))
+        flow.save()
+
+        # プロジェクト1からUser2の参照権限を外す
+        project1.leave_member(self.USER2)
+
+        # 参照権限が無いフローのUUIDでスケジュールを登録しようとすると例外を送出する
+        trigger1 = {
+            'type' : 'date',
+            'date' : '2021-06-29 12:00:00'
+        }
+        with self.assertRaises(Exception):
+            project2.create_schedule('スケジュール', flow.uuid, trigger=trigger1)
+
+    def test_trashed_runnable_uuid(self):
+        """
+        ゴミ箱に捨てたフローのUUIDでスケジュールを登録できないこと
+        """
+        # ルートデータストアを取得する
+        root = self.factory.data.load_root()
+
+        # ルートデータストアの下にプロジェクト1を作成する
+        project1 = root.create_project_folder('プロジェクト1')
+        project1.save()
+
+        # 例外を送出するフローを作成する
+        flow = project1.create_flow('test', FlowData(self.flow_json))
+        flow.save()
+
+        # フローをゴミ箱にほかす
+        flow.throw_away()
+
+        # スケジュールを作成する
+        trigger1 = {
+            'type' : 'date',
+            'date' : '2021-06-29 12:00:00'
+        }
+        # ゴミ箱に捨てたフローのUUIDでスケジュールを作成しようとすると例外を送出する
+        with self.assertRaises(Exception):
+            project1.create_schedule('一度限り', flow.uuid, trigger=trigger1)
+
     def test_trashed_schedule(self):
         """
         ゴミ箱に捨てたスケジュールはスケジューラから解除されること
         """
-        pass
+        # ルートデータストアを取得する
+        root = self.factory.data.load_root()
+
+        # ルートデータストアの下にプロジェクト1を作成する
+        project1 = root.create_project_folder('プロジェクト1')
+        project1.save()
+
+        # 例外を送出するフローを作成する
+        flow = project1.create_flow('test', FlowData(self.flow_json))
+        flow.save()
+
+        # スケジュールを作成する
+        trigger1 = {
+            'type' : 'date',
+            'date' : '2021-06-29 12:00:00'
+        }
+        schedule = project1.create_schedule('一度限り', flow.uuid, trigger=trigger1)
+        schedule.save()
+
+        # スケジュールをゴミ箱にほかす
+        schedule.throw_away()
+
+        # ゴミ箱に捨てたスケジュールはスケジューラから解除されること
+        self.assertFalse(schedule_manager.contains(schedule.uuid))
+
+        # スケジュールをゴミ箱から戻す
+        schedule.put_back()
+
+        # ゴミ箱にから戻したスケジュールはスケジューラに再登録されること
+        self.assertTrue(schedule_manager.contains(schedule.uuid))
+
+    def test_trash_scheduled_flow(self):
+        """
+        スケジュールされたフローはゴミ箱に捨てられないこと
+        """
+        # ルートデータストアを取得する
+        root = self.factory.data.load_root()
+
+        # ルートデータストアの下にプロジェクト1を作成する
+        project1 = root.create_project_folder('プロジェクト1')
+        project1.save()
+
+        # 例外を送出するフローを作成する
+        flow = project1.create_flow('test', FlowData(self.flow_json))
+        flow.save()
+
+        # スケジュールを作成する
+        trigger1 = {
+            'type' : 'date',
+            'date' : '2021-06-29 12:00:00'
+        }
+        schedule = project1.create_schedule('一度限り', flow.uuid, trigger=trigger1)
+        schedule.save()
+
+        # フローをゴミ箱にほかそうとすると送出がされること
+        with self.assertRaises(Exception):
+            flow.throw_away()
+
+        # フローを削除しようとすると例外が送出されること
+        with self.assertRaises(Exception):
+            flow.delete()
+
+        # スケジュールをゴミ箱へほかす
+        schedule.throw_away()
+
+        # スケジュールを削除した後はフローをゴミ箱にほかせること
+        flow.throw_away()
+
+        # スケジュールを削除した後はフローを削除できること
+        flow.delete()
 
     def test_trash_executed_schedule(self):
         """

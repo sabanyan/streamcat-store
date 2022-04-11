@@ -582,74 +582,13 @@ class Datum(BaseModel):
             result._modifier_id = (modifier or self._session.user).id
             self._session.update(result, ignore_authz=True)
 
-    def get_flow_uuids_using_me_old(self):
-        """      .......
-        指定されたDatumのuuidを参照するFlowを取得する
-        """
-        from sqlalchemy.sql.expression import select, func, and_
-
-        sql = f"""
-        select uuid from data
-        where type='flow'
-          and uuid<>'{self.uuid}'
-          and to_tsvector(data) @@ to_tsquery('{self.uuid}')
-        """
-
-        # DataのTableオブジェクト
-        D = Datum.__table__
-
-        select_stmt = select(Datum.uuid).\
-                      select_from(D).\
-                      where(and_(Datum.type==Datum.FLOW_TYPE,
-                                 Datum.uuid!=self.uuid, 
-                                 func.to_tsvector(Datum._data).match(self.uuid)))
-
-        # SQLを発行する
-        results = self._session.execute(select_stmt)
-        return [str(result[0]) for result in results]
-
     def get_flow_uuids_using_me(self):
         """
-        自身のエントリ以下にあるDatumが、自身のエントリ以下以外にあるFlowから参照される、
+        自身のエントリ以下にあるDatumが、自身のエントリ以下以外にあるFlowまたはScheduleから参照される、
         そのようなFlowを全て返す
         """
         from sqlalchemy.orm import aliased
         from sqlalchemy.sql.expression import select, func, exists, and_, cast, text
-
-        sql = """
-        WITH RECURSIVE
-            R AS (
-                SELECT id, uuid FROM data WHERE id = self.id
-                UNION ALL
-                SELECT data.id, data.uuid FROM data JOIN R ON data.parent_id = R.id
-            ),
-            T AS (
-                SELECT id, uuid FROM data WHERE type = 'trash'
-                UNION ALL
-                SELECT data.id, data.uuid FROM data JOIN T ON data.parent_id = T.id
-            )
-        SELECT U.uuid, U.label
-        FROM (SELECT D.uuid as uuid,
-                     D.label as label,
-                     COALESCE(ref_uuid0, ref_uuid1) AS ref_uuid
-              FROM (SELECT D.uuid  AS uuid,
-                           D.label AS label
-                           JSONB_PATH_QUERY(
-                                D.data,
-                                '$.flow.nodes?(@.type != "command" && @.type != "note").uuid?(@!=null)'
-                           ) AS ref_uuid0,
-                           JSONB_PATH_QUERY(
-                                D.data,
-                                '$.flow.nodes?(@.type == "flow").*.uuid?(@!=null)'
-                           ) AS ref_uuid1
-                    FROM
-                        data) D
-
-              WHERE D.type = 'flow'
-                AND NOT EXISTS (SELECT * FROM R WHERE R.id = D.id)) U
-        WHERE EXISTS (SELECT * FROM R
-                      WHERE U.ref_uuid #>> '{}' = CAST(R.uuid AS VARCHAR))
-        """
 
         # id : 検索対象Datumから葉ノードへの経路の全てのDatumのid
         D0 = aliased(Datum, name='D0')
@@ -693,15 +632,26 @@ class Datum(BaseModel):
         # ノードから参照するUUID
         # ..property : 指定されたプロパティ名を再帰的に検索し、このプロパティ名を持つすべての値の配列を返す
         #              (ただしPostgreSQLでは .**.property で指定するようだ)
-        jsonpath = '$.flow.nodes?(@.type != "command" && @.type != "note").**.uuid?(@!=null)'
+        jsonpath0 = '$.flow.nodes?(@.type != "command" && @.type != "note").**.uuid?(@!=null)'
 
         # NOTE: jsonb_path_query()をcoalesce()の引数に指定できない
-        U = select(D.c.uuid,
-                   D.c.label,
-                   func.jsonb_path_query(D.c.data, jsonpath).label('ref_uuid')).\
+        U0 = select(D.c.uuid,
+                    D.c.label,
+                    func.jsonb_path_query(D.c.data, jsonpath0).label('ref_uuid')).\
             select_from(D).\
-            where(and_(D.c.type==Datum.FLOW_TYPE, not_exists_inner, not_exists_trash)).\
-            alias('U')
+            where(and_(D.c.type==Datum.FLOW_TYPE, not_exists_inner, not_exists_trash))
+
+        # スケジュールから参照するUUID
+        jsonpath1 = '$.runnable?(@!=null)'
+
+        U1 = select(D.c.uuid,
+                    D.c.label,
+                    func.jsonb_path_query(D.c.data, jsonpath1).label('ref_uuid')).\
+            select_from(D).\
+            where(and_(D.c.type==Datum.SCHEDULE_TYPE, not_exists_inner, not_exists_trash))
+
+        # 自身を参照するフローとスケジュールを抽出する
+        U = U0.union_all(U1).alias('U')
 
         # 自分の子孫以外のFlowから参照する、自分と自分の子孫
         U_ref_uuid = str(U.c.ref_uuid.compile())

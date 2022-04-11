@@ -102,7 +102,7 @@ class Factory():
     """
     SQLAlchemyのSessionを保持する(とりあえずこの目的ね)
     """
-    def __init__(self, user=None):
+    def __init__(self, user:User=None):
         from sqlalchemy.orm import sessionmaker
         from streamcat.store.auth.authz_session import AuthzSession
         from . import engine
