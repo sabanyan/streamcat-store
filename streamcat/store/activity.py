@@ -1,4 +1,5 @@
 from streamcat.core import Datum, Constraints
+from streamcat.core.scat_base_model import SCatBaseModel
 from streamcat.store import ApparentOut
 
 class Activity(Datum):
@@ -32,7 +33,7 @@ class Activity(Datum):
         self._outs = []
         self._data = {'flowUuid': flow.uuid,
                       'args': args,
-                      'startAt': self._start_at.isoformat(sep='T')}
+                      'startAt': SCatBaseModel.isoformat(self._start_at)}
 
     def add(self, out:ApparentOut):
         self._outs.append(out)
@@ -123,7 +124,8 @@ class Activity(Datum):
 
         # 現在時刻を格納する
         # NOTE: Safariでは、JavaScriptのDateオブジェクトの日付時刻の解析に区切り文字'T'が必要
-        self._data['endAt'] = end_at.isoformat(sep='T')
+        self._data['endAt'] = SCatBaseModel.isoformat(end_at)
+
         # 出力情報を格納する
         self._data['outs'] = outs
         self._data['caches'] = caches

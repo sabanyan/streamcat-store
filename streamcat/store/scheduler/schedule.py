@@ -183,10 +183,10 @@ class Schedule(Datum):
         # TODO: Commandについては、UUIDでライブラリから取得できるまで対応しない
         self._data = {'runnable':runnable_uuid, 'args':args, 'inputs':inputs, 'trigger':trigger}
 
-
+        # 起動日時指定の書式を検証する
         self.valid_trigger_json_or_raise()
 
-        self.conv_to_utc_datetime(trigger)
+        # self.conv_to_utc_datetime(trigger)
 
         # FlowはFlowCommandに統合するべきかも
         # そうすれば、CommandもFlowもrun()を持ち、かつDBに格納可能なDatumとして統一的に扱える
@@ -290,7 +290,7 @@ class Schedule(Datum):
         try:
             # レコードを更新する
             self._label = new_label
-            self._data = {'runnable':runnable_uuid, 'args':args, 'inputs':inputs, 'trigger':trigger}
+            self._data.update({'runnable':runnable_uuid, 'args':args, 'inputs':inputs, 'trigger':trigger})
             self._modifier_id = (modifier or self._session.user).id
             self._session.update(self)
             # スケジューラに登録されているスケジュールを更新する
@@ -346,5 +346,11 @@ class Schedule(Datum):
 
     def to_json(self):
         ret = super().to_json()
-        # TODO: 後で必要な属性値を追加する
+        # 
+        ret['runnableUUID'] = self._data.get('runnable', {})
+        ret['args']    = self._data.get('args', {})
+        ret['inputs']  = self._data.get('inputs', {})
+        ret['trigger'] = self._data.get('trigger', {})
+        # allowlist
+        ret['allowlist']['download'] = False
         return ret

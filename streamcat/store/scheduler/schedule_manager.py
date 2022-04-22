@@ -1,3 +1,4 @@
+import warnings
 from streamcat.core import Datum
 from .schedule import Schedule
 
@@ -37,13 +38,17 @@ class ScheduleManager():
         """
         ライブラリにある全てのスケジュールをスケジューラに登録する
         """
-        # TODO: ゴミ箱にほかされたスケジュールは登録解除したい
-        schedules = datumFactory.find_all(type=Datum.SCHEDULE_TYPE)
+        # ゴミ箱の中を除く全てのスケジュールを取得する
+        schedules = datumFactory.find_all(type=Datum.SCHEDULE_TYPE, except_trash=True)
         for schedule in schedules:
             if not self.contains(schedule.uuid):
-                import pprint
-                pprint.pprint(schedule._data) 
-                self.add(schedule)
+                try:
+                    self.add(schedule)
+                    import pprint
+                    pprint.pprint(schedule._data) 
+                except Exception as e:
+                    # スケジュールの登録に失敗しても処理を続行する
+                    warnings.warn(f'Failed to load Schedule({schedule.label}). {e}')
 
     def add(self, schedule:Schedule):
         """

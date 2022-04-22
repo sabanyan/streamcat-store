@@ -111,6 +111,15 @@ class SCatBaseModel(object):
             return None
 
     @staticmethod
+    def isoformat(d:datetime.datetime) -> str:
+        """
+        ISO8601形式の日付書式を返す
+        """
+        # NOTE: Safariでは、JavaScriptのDateオブジェクトの日付時刻の解析に区切り文字'T'が必要
+        # NOTE: Day.jsのtoISOString()はUTCの場合は'Z'で終わる
+        return d.isoformat(sep='T').replace('+00:00', 'Z')
+
+    @staticmethod
     def _datetime_to_local_time_str(d:datetime.datetime) -> str:
         if d is None:
             return ''

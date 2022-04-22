@@ -580,3 +580,13 @@ class SchdulerTest(TestCaseBase):
         起動中のスケジュールをゴミ箱に捨てられないこと
         """
         pass
+
+    def test_load_schedule_on_restarting(self):
+        """
+        システム再起動時にスケジュールがスケジューラに再登録されること
+        """
+
+    def test_not_load_trashed_schedule_on_restarting(self):
+        """
+        ゴミ箱に捨てたスケジュールはシステム再起動時にスケジューラに再登録されないこと
+        """
