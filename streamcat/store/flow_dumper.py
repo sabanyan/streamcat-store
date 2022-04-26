@@ -42,7 +42,7 @@ class FlowDumper:
 
         return (archive_path, archive_name)
 
-    def _get_folder(self, parent_tmp_path, gathered_uuids:set, folder_uuid):
+    def _get_folder(self, parent_tmp_path:Path, gathered_uuids:set, folder_uuid):
         from .folder import Folder
         folder = self.factory.data.find_by_uuid(folder_uuid)
         if not isinstance(folder, Folder):
@@ -63,7 +63,7 @@ class FlowDumper:
 
         return gathered_uuids
 
-    def _get_flow(self, parent_tmp_path, gathered_uuids:set, flow_uuid):
+    def _get_flow(self, parent_tmp_path:Path, gathered_uuids:set, flow_uuid):
         import os, warnings
 
         (args_uuids, frame_uuids, store_uuids, flow_uuids) = self._get_flows_and_frames(flow_uuid, exclude_uuids=gathered_uuids)
@@ -139,7 +139,7 @@ class FlowDumper:
 
         return gathered_uuids
 
-    def _get_flows_and_frames(self, flow_uuid, exclude_uuids:set):
+    def _get_flows_and_frames(self, flow_uuid:str, exclude_uuids:set):
         flow = self.factory.data.find_by_uuid(flow_uuid, type=Datum.FLOW_TYPE)
 
         args_uuids = flow.flow_data.get_args_uuids()

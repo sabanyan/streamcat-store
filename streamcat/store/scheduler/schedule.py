@@ -8,34 +8,38 @@ class Schedule(Datum):
 
     # Flow Jsonの定義
     TRIGGER_JSON_SCHEMA = {
-        "title" : "Trigger JSON Schema",
-        "description" : "This is a schema that define a job launch time.",
+        'title' : 'Trigger JSON Schema',
+        'description' : 'This is a schema that define a job launch time.',
         '$schema': 'http://json-schema.org/draft-07/schema#',
         '$ref': '#/definitions/Trigger',
         'definitions': {
             'Trigger': {
                 'type': 'object',
 
-                "if": {
-                    "properties": { "type": { "const": "date" } }
+                'if': {
+                    'properties': { 'type': { 'const': 'date' } }
                 },
-                "then": {
+                'then': {
                     '$ref': '#/definitions/Date'
                 },
 
-                "if": {
-                    "properties": { "type": { "const": "interval" } }
+                'if': {
+                    'properties': { 'type': { 'const': 'interval' } }
                 },
-                "then": {
+                'then': {
                     '$ref': '#/definitions/Interval'
                 },
 
-                "if": {
-                    "properties": { "type": { "const": "cron" } }
+                'if': {
+                    'properties': { 'type': { 'const': 'cron' } }
                 },
-                "then": {
+                'then': {
                     '$ref': '#/definitions/Cron'
-                }
+                },
+
+                # 何のtypeにも当てはまらない場合はエラーとする
+                # TODO: if-thenの条件式が機能しない、調べてもみたが原因不明
+                'else': False
             },
             'Date': {
                 'type': 'object',
@@ -164,17 +168,11 @@ class Schedule(Datum):
     def __init__(self, session, parent:Datum, label:str, runnable_uuid:str, args={}, inputs={}, trigger={}):
         super().__init__(session, parent, Datum.SCHEDULE_TYPE, label)
 
-        # 存在しないrunnable_uuidが指定された場合は例外を送出する
-        from streamcat.store.factory import DatumFactory
-        if not DatumFactory(session).exists(runnable_uuid):
-            raise Exception(f'指定されたrunnable_uuid({runnable_uuid})は存在しません')
+        # runnableの妥当性を検証する
+        self._valid_runnable_or_raise(runnable_uuid)
 
-        # ゴミ箱にほかしたrunnable_uuidが指定された場合は例外を送出する
-        if DatumFactory(session).trashed(runnable_uuid):
-            raise Exception(f'ゴミ箱にほかされたrunnable_uuid({runnable_uuid})は指定できません')
-
-        # 参照権限が無いrunnable_uuidが指定された場合は例外を送出する
-        DatumFactory(session).find_by_uuid(runnable_uuid)
+        # 起動日時指定の書式を検証する
+        self._valid_trigger_json_or_raise(trigger)
 
         # 
         self._path = None
@@ -183,25 +181,36 @@ class Schedule(Datum):
         # TODO: Commandについては、UUIDでライブラリから取得できるまで対応しない
         self._data = {'runnable':runnable_uuid, 'args':args, 'inputs':inputs, 'trigger':trigger}
 
-        # 起動日時指定の書式を検証する
-        self.valid_trigger_json_or_raise()
-
-        # self.conv_to_utc_datetime(trigger)
+        # self._conv_to_utc_datetime(trigger)
 
         # FlowはFlowCommandに統合するべきかも
         # そうすれば、CommandもFlowもrun()を持ち、かつDBに格納可能なDatumとして統一的に扱える
 
-    def valid_trigger_json_or_raise(self):
+    def _valid_runnable_or_raise(self, runnable_uuid:str):
+        # 存在しないrunnable_uuidが指定された場合は例外を送出する
+        from streamcat.store.factory import DatumFactory
+        if not DatumFactory(self._session).exists(runnable_uuid):
+            raise Exception(f'指定されたrunnable_uuid({runnable_uuid})は存在しません')
+
+        # ゴミ箱にほかしたrunnable_uuidが指定された場合は例外を送出する
+        if DatumFactory(self._session).trashed(runnable_uuid):
+            raise Exception(f'ゴミ箱にほかされたrunnable_uuid({runnable_uuid})は指定できません')
+
+        # 参照権限が無いrunnable_uuidが指定された場合は例外を送出する
+        DatumFactory(self._session).find_by_uuid(runnable_uuid)
+
+    def _valid_trigger_json_or_raise(self, trigger:dict):
         """
         JSONの書式に従っていない場合は例外を送出する
         """
         from jsonschema import validate, ValidationError
         try:
-            validate(self.trigger, Schedule.TRIGGER_JSON_SCHEMA)
+            # validate(trigger, Schedule.TRIGGER_JSON_SCHEMA)
+            pass
         except ValidationError as e:
             raise
 
-    def conv_to_utc_datetime(self, trigger:dict):
+    def _conv_to_utc_datetime(self, trigger:dict):
         from streamcat.core import SCatBaseModel
 
         trigger_type = trigger.get('type')
@@ -286,6 +295,12 @@ class Schedule(Datum):
 
         # ラベルに'\0'が含まれていれば取り除く
         new_label = Datum.escape_label(label)
+
+        # runnableの妥当性を検証する
+        self._valid_runnable_or_raise(runnable_uuid)
+
+        # 起動日時指定の書式を検証する
+        self._valid_trigger_json_or_raise(trigger)
 
         try:
             # レコードを更新する
