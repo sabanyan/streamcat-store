@@ -447,8 +447,16 @@ class ProjectFolder(Folder):
             writers_role.join_member(Role.Member(self_user))
             owners_role.leave_member(self_user)
         elif self_member.type == ProjectFolder.OWNER_MEMBER_TYPE:
-            # 自分がプロジェクト管理者に指定されている場合、何もしない
-            pass
+            if owners_role.is_joined_user(self_user):
+                # 自分がプロジェクト管理者に指定されている場合、
+                # 変更前のプロジェクト管理者に必ず自分は含まれているのでメンバ設定する必要は無い
+                pass
+            else:
+                # ユーザ管理者はプロジェクト管理者でなくと所属ユーザを変更できるため、
+                # 変更前のプロジェクト管理者にユーザ管理者が存在しない場合がある
+                readers_role.join_member(Role.Member(self_user))
+                writers_role.join_member(Role.Member(self_user))
+                owners_role.join_member(Role.Member(self_user))
 
     def get_joined_members(self, except_role_uuid=None):
         """
