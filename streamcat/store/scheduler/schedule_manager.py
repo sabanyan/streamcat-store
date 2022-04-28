@@ -110,7 +110,7 @@ class ScheduleManager():
                 # start and end times
                 start_date=schedule.trigger['start_date'],
                 end_date=schedule.trigger['end_date'],
-                # Intervals
+                # datetime
                 year=schedule.trigger.get('year'),
                 month=schedule.trigger.get('month'),
                 week=schedule.trigger.get('week'),
@@ -119,6 +119,7 @@ class ScheduleManager():
                 hour=schedule.trigger.get('hour'),
                 minute=schedule.trigger.get('minute'),
                 second=schedule.trigger.get('second'),
+                timezone=schedule.trigger.get('timezone')
             )
 
         else:
