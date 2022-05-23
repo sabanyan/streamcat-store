@@ -197,18 +197,17 @@ class Flow(Datum):
         return self
 
     @lock_required
-    def move(self, parent_uuid, lock_uuid=None, modifier=None):
-        from streamcat.store.auth import NotAuthorizedException
+    def moving(self, parent_uuid, lock_uuid=None, modifier=None):
+        # 編集ロックが掛かっている場合は移動できない
+        if self.edit_lock:
+            from streamcat.store import EditLockedException
+            raise EditLockedException('編集ロックが掛かっているため移動できません')
+        # 
+        super().moving(parent_uuid, lock_uuid=lock_uuid, modifier=modifier)
 
-        try:
-            return super().move(parent_uuid, modifier)
-        except NotAuthorizedException as e:
-            if self.edit_lock:
-                # 編集ロックにより移動できなかった場合
-                from streamcat.store import EditLockedException
-                raise EditLockedException('編集ロックが掛かっているため移動できません')
-            else:
-                raise e
+    @Constraints.set_project_role_on_moving_flow
+    def moved(self, parent_uuid, prev_parent_id, modifier=None):
+        super().moved(parent_uuid, prev_parent_id, modifier=modifier)
 
     def throw_away(self, lock_uuid=None):
         """
@@ -224,7 +223,7 @@ class Flow(Datum):
             raise Exception(f"このフローは別のフロー({using_flow_uuids[0]['reference_label']})で使用しているため削除できません")
 
         try:
-            return self.move(trash_folder.uuid ,lock_uuid=lock_uuid)
+            return self.move(trash_folder.uuid, lock_uuid=lock_uuid)
         except Exception as e:
             if self.edit_lock:
                 # 編集ロックにより更新できなかった場合

@@ -103,7 +103,8 @@ class Folder(Store):
         if thrown_count == 0:
             raise Exception('削除できませんでした')
 
-        return trashed_folder
+        # 形代フォルダを作らなかった場合は自身を返す
+        return trashed_folder or self
 
     def _throw_away_inner(self, parent, datum):
         from streamcat.store.lock import lock_manager

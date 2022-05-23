@@ -366,13 +366,15 @@ class Constraints():
             from .datum import Datum
             from streamcat.store.factory import DatumFactory, RoleFactory, AuthFactory
 
-            if func.__name__ != 'move':
-                raise Exception('このDecoratorはmove()以外をデコレートできません')
+            if func.__name__ != 'moved':
+                raise Exception('このDecoratorはmoved()以外をデコレートできません')
 
             # self
             myflow = args[0]
             # parent_uuid
             to_folder_uuid = args[1]
+            # prev_parent_id
+            from_folder_id = args[2]
 
             # フロー以外の移動の場合、何もしない
             if myflow.type != Datum.FLOW_TYPE:
@@ -380,7 +382,7 @@ class Constraints():
 
             try:
                 # 自分のプロジェクトを取得する
-                my_project = myflow.find_my_project()
+                my_project = DatumFactory(myflow._session).find_my_project(from_folder_id)
             except NoResultFound:
                 # 自分のプロジェクトがない場合はプロジェクトロールを設定しない
                 my_project = None
@@ -466,7 +468,7 @@ class Constraints():
             myself = args[0]
 
             # 形代フォルダを作成しなかった場合、プロジェクトロールを設定しない
-            if trashed_folder is None:
+            if trashed_folder == myself:
                 return trashed_folder
 
             try:

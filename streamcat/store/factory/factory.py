@@ -293,6 +293,33 @@ class DatumFactory():
         # 速度向上のため、order_byを指定しない
         return query.all()
 
+    def find_my_project(self, id):
+        """
+        指定するidのDatumが属するプロジェクトを取得する
+        """
+        from sqlalchemy.orm import aliased
+        from sqlalchemy.sql.expression import select, exists, and_
+        from streamcat.store import ProjectFolder
+
+        # cte: Common Table Expression WITH句のこと
+        D0 = aliased(Datum, name='D0')
+        R = select(D0.id, D0.parent_id, D0.type).select_from(D0).\
+            where(D0.id==id).\
+            cte(name='R', recursive=True)
+
+        # WITH句にUNION ALLを用いて再帰クエリとする
+        D = aliased(Datum, name='D')
+        R = R.union_all(
+                select(D.id, D.parent_id, D.type).\
+                select_from(R.join(D, and_(D.id==R.c.parent_id,
+                                           R.c.type!=Datum.PROJECT_TYPE)))
+            )
+
+        # プロジェクトを取得する
+        exists_project = exists().where(and_(R.c.id==ProjectFolder.id, R.c.type==Datum.PROJECT_TYPE))
+        query = self._session.query(ProjectFolder).filter(exists_project)
+        return query.one()
+
     def find_all_subflows(self):
         """
         サブフローを取得する

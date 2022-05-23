@@ -319,27 +319,24 @@ class Schedule(Datum):
 
         return self
 
-    def throw_away(self):
+    def moved(self, parent_uuid, prev_parent_id, modifier=None):
         """
-        Scheduleをゴミ箱にほかす
+        ゴミ箱へほかされた場合は、スケジューラから削除する
+        ゴミ箱から戻された場合は、スケジューラに再登録する
         """
         from . import schedule_manager
-        # ゴミ箱へほかす
-        schedule = super().throw_away()
-        # スケジューラから削除する
-        schedule_manager.delete(self.uuid)
-        return schedule
+        from streamcat.store.factory import DatumFactory
+        factory = DatumFactory(self._session)
+        trash_folder = factory.load_trash_folder()
 
-    def put_back(self):
-        """
-        直前の親のStoreの直下に戻す
-        """
-        from . import schedule_manager
-        # ゴミ箱から戻す
-        schedule = super().put_back()
-        # スケジューラに登録しなおす
-        schedule_manager.add(self)
-        return schedule
+        if parent_uuid == trash_folder.uuid:
+            # ゴミ箱へほかされた場合は、スケジューラから削除する
+            schedule_manager.delete(self.uuid)
+        elif parent_uuid != trash_folder.uuid and prev_parent_id == trash_folder.id:
+            # ゴミ箱から戻された場合は、スケジューラに再登録する
+            schedule_manager.add(self)
+
+        return super().moved(parent_uuid, prev_parent_id, modifier=modifier)
 
     @Constraints.delete_role_when_isolated
     def delete(self):

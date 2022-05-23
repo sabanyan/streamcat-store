@@ -473,6 +473,11 @@ class SchdulerTest(TestCaseBase):
         with self.assertRaises(Exception):
             project2.create_schedule('スケジュール', flow.uuid, trigger=trigger1)
 
+    def test_not_move_runnable_to_unreadable_project(self):
+        """
+        フローを参照権限が無いプロジェクトへ移動できないこと
+        """
+
     def test_trashed_runnable_uuid(self):
         """
         ゴミ箱に捨てたフローのUUIDでスケジュールを登録できないこと
@@ -518,10 +523,13 @@ class SchdulerTest(TestCaseBase):
         # スケジュールを作成する
         trigger1 = {
             'type' : 'date',
-            'date' : '2021-06-29 12:00:00'
+            'date' : '2221-06-29 12:00:00'
         }
         schedule = project1.create_schedule('一度限り', flow.uuid, trigger=trigger1)
         schedule.save()
+
+        # スケジュールはスケジューラに登録されること
+        self.assertTrue(schedule_manager.contains(schedule.uuid))
 
         # スケジュールをゴミ箱にほかす
         schedule.throw_away()
@@ -534,6 +542,84 @@ class SchdulerTest(TestCaseBase):
 
         # ゴミ箱にから戻したスケジュールはスケジューラに再登録されること
         self.assertTrue(schedule_manager.contains(schedule.uuid))
+
+    def test_trash_schedule_in_folder(self):
+        """
+        スケジュールを含むフォルダをゴミ箱に捨てると、スケジューラから解放されること
+        """
+        # ルートフォルダを取得する
+        root = self.factory2.data.load_root()
+
+        # ルートフォルダの下にプロジェクト1を作成する
+        project1 = root.create_project_folder('プロジェクト1')
+        project1.save()
+        project1 = project1.reload()
+
+        # プロジェクト1の下にフォルダを作成する
+        folder = project1.create_folder('フォルダ')
+        folder.save()
+        folder = folder.reload()
+
+        # フォルダの下にフローを作成する
+        flow = folder.create_flow('フロー', FlowData({}))
+        flow.save()
+        flow = flow.reload()
+
+        # フォルダの下にスケジュールを作成する
+        trigger1 = {
+            'type' : 'date',
+            'date' : '2222-05-15 12:00:00'
+        }
+        schedule = folder.create_schedule('スケジュール', flow.uuid, trigger=trigger1)
+        schedule.save()
+        schedule = schedule.reload()
+
+        # スケジュールはスケジューラに登録されること
+        self.assertTrue(schedule_manager.contains(schedule.uuid))
+
+        # フォルダをゴミ箱へほかす
+        moved_folder = folder.throw_away()
+
+        # ゴミ箱を取得する
+        trashcan = self.factory2.data.load_trash_folder()
+
+        # 移動後のフォルダを検証する
+        # parent_id, path, modifierが変更されることを検証する
+        self.assertEqual(moved_folder.id, folder.id)
+        self.assertEqual(moved_folder.parent_id, trashcan.id)
+        self.assertEqual(moved_folder.uuid, folder.uuid)
+        self.assertEqual(moved_folder.type, 'folder')
+        self.assertEqual(moved_folder.label, 'フォルダ')
+        self.assertEqual(moved_folder.path, trashcan.path / folder.label)
+        self.assertEqual(moved_folder.creator, self.USER2)
+        self.assertEqual(moved_folder.modifier, self.USER2)
+        self.assertEqual(moved_folder.created_at, folder.created_at)
+        self.assertGreater(moved_folder.modified_at, moved_folder.created_at)
+
+        # 移動後のスケジュールを検証する
+        self.assertIsNotNone(moved_folder.id)
+        self.assertEqual(schedule.parent_id, moved_folder.id)
+        self.assertIsNotNone(schedule.uuid)
+        self.assertEqual(schedule.type, 'schedule')
+        self.assertEqual(schedule.label, 'スケジュール')
+        self.assertEqual(schedule.creator, schedule.modifier)
+        self.assertEqual(schedule.created_at, schedule.modified_at)
+
+        # ゴミ箱に捨てたスケジュールはスケジューラから解除されること
+        self.assertFalse(schedule_manager.contains(schedule.uuid))
+
+        # フォルダをゴミ箱から戻す
+        moved_folder.put_back()
+
+        # ゴミ箱にから戻したスケジュールはスケジューラに再登録されること
+        self.assertTrue(schedule_manager.contains(schedule.uuid))
+
+        # プロジェクトを削除する
+        project1.throw_away()
+
+        # ゴミ箱を空にする
+        self.factory2.data.find_trashcan().trash_all()
+
 
     def test_trash_scheduled_flow(self):
         """
