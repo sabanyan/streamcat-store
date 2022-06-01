@@ -322,8 +322,6 @@ class Datum(BaseModel):
         except Exception as e:
             self._session.rollback()
             raise e
-        finally:
-            self._session.commit()
         return self
 
     def moving(self, parent_uuid, lock_uuid=None, modifier=None):
@@ -464,8 +462,6 @@ class Datum(BaseModel):
             # ROLLBACK
             self._session.rollback()
             raise e
-        finally:
-            self._session.commit()
 
     def throw_away(self):
         """
@@ -689,6 +685,7 @@ class Datum(BaseModel):
                       distinct()
 
         # SQLを発行する
+        # FIXME: session.execute()の実行でCOMMITが発行されるようだ
         results = self._session.execute(select_stmt)
         return [{'reference_uuid' :result[0],
                  'reference_label':result[1],

@@ -1386,10 +1386,11 @@ class DumpCommand(SCommand):
 
     @staticmethod
     def _lock_all_tables(session):
+        from sqlalchemy import text
         # 全てのテーブルをロックする
         # ・競合するロックが解除されるまで待機する
         # ・EXCLUSIVE MODE : このロックモードを保持するトランザクションと並行して実行できる処理は、テーブルの読み取りだけ
-        session.execute('LOCK TABLE data,auths,roles,users_roles,users,stores IN EXCLUSIVE MODE;')
+        session.execute(text('LOCK TABLE data,auths,roles,users_roles,users,stores IN EXCLUSIVE MODE;'))
 
     def _open_archive(self):
         import tarfile

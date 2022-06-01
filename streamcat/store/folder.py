@@ -45,8 +45,6 @@ class Folder(Store):
         except (Exception, OSError) as e:
             self._session.rollback()
             raise e
-        finally:
-            self._session.commit()
 
     def update_label(self, label, modifier=None):
         """
@@ -73,8 +71,6 @@ class Folder(Store):
         except (Exception, OSError) as e:
             self._session.rollback()
             raise e
-        finally:
-            self._session.commit()
 
         return self
 
@@ -191,8 +187,6 @@ class Folder(Store):
         except (Exception, OSError) as e:
             self._session.rollback()
             raise e
-        finally:
-            self._session.commit()
 
     def remove_reference_only(self):
         """
@@ -225,8 +219,6 @@ class Folder(Store):
         except (Exception, OSError) as e:
             self._session.rollback()
             raise e
-        finally:
-            self._session.commit()
 
     def get_folder_path(self):
         """

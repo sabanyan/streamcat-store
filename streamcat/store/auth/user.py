@@ -280,8 +280,6 @@ class User(BaseModel):
         except Exception as e:
             self._session.rollback()
             raise e
-        finally:
-            self._session.commit()
 
         # everyoneロールに所属させる
         self._join_everyone_role()
@@ -307,8 +305,6 @@ class User(BaseModel):
         except Exception as e:
             self._session.rollback()
             raise e
-        finally:
-            self._session.commit()
 
         return self
 
@@ -325,9 +321,7 @@ class User(BaseModel):
         except Exception as e:
             self._session.rollback()
             raise e
-        finally:
-            self._session.commit()
-        
+
         return self
 
     def reset_password(self, modifier=None):
@@ -336,7 +330,7 @@ class User(BaseModel):
         """
         if not self._session.has_usr_admin():
             raise NotAuthorizedException('ユーザ管理者以外のユーザはパスワードをリセットできません')
-        
+
         # パスワードを自動生成する
         new_password = self._generate_password()
 
@@ -352,9 +346,7 @@ class User(BaseModel):
         except Exception as e:
             self._session.rollback()
             raise e
-        finally:
-            self._session.commit()
-        
+
         return self
 
     def update_name(self, new_name, modifier=None):
@@ -368,9 +360,7 @@ class User(BaseModel):
         except Exception as e:
             self._session.rollback()
             raise e
-        finally:
-            self._session.commit()
-        
+
         return self
 
     def update_self_role_id(self, new_role_id, modifier=None):
@@ -382,9 +372,7 @@ class User(BaseModel):
         except Exception as e:
             self._session.rollback()
             raise e
-        finally:
-            self._session.commit()
-        
+
         return self
 
     def delete(self):
@@ -404,8 +392,6 @@ class User(BaseModel):
         except Exception as e:
             self._session.rollback()
             raise e
-        finally:
-            self._session.commit()
 
     def throw_away(self, modifier=None):
         """
@@ -438,8 +424,6 @@ class User(BaseModel):
         except Exception as e:
             self._session.rollback()
             raise e
-        finally:
-            self._session.commit()
 
     def put_back(self, modifier=None):
         """
@@ -456,8 +440,6 @@ class User(BaseModel):
         except Exception as e:
             self._session.rollback()
             raise e
-        finally:
-            self._session.commit()
 
         # everyoneロールに復帰させる
         self._join_everyone_role()

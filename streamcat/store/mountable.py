@@ -120,8 +120,6 @@ class Mountable():
         except Exception as e:
             self._session.rollback()
             raise e
-        finally:
-            self._session.commit()
 
     @staticmethod
     def _exec_command(command_line:str, env:dict=None):
@@ -164,9 +162,6 @@ class Mountable():
         except Exception as e:
             session.rollback()
             raise e
-        finally:
-            # session.commit()
-            pass
 
         factory = DatumFactory(session)
 

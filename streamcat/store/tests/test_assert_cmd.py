@@ -734,22 +734,6 @@ class AssertCmdTest(TestCaseBase):
         ]
     }
 
-
-
-
-    @classmethod
-    def setUpClass(cls):
-        # 親クラスのsetUpClass()を実行する
-        TestCaseBase.setUpClass()
-        cls.root = cls.factory.data.load_root()
-        cls.TESTDATA_DIR = cls.root.path
-        maxDiff = None
-
-    @classmethod
-    def tearDownClass(cls):
-        # 親クラスのtearDownClass()を実行する
-        TestCaseBase.tearDownClass()
-
     # Helpler
     def get_frame_by_uuid(self, uuid, header=True):
         """
@@ -773,14 +757,17 @@ class AssertCmdTest(TestCaseBase):
     # @unittest.skip
     def test_simple_assert_command(self):
         """
-        内容が3行目以降違う２つの入力に対して、assert_commandを一つ配置したフローを実行、
+        内容が3行目以降違う2つの入力に対して、assert_commandを一つ配置したフローを実行、
         出力で、入力データの3行目以降不一致判定が出ることを期待する。
         エラー判定はfalse        
         """
+        # ルートフォルダを取得する
+        root = self.factory.data.load_root()
+
         flow_json = copy.deepcopy(self.simple_assert_json)
         flow_json['nodes'].append(self.create_data_dst_node('d1'))
 
-        flow = self.root.create_flow(flow_json['label'], FlowData(flow_json))
+        flow = root.create_flow(flow_json['label'], FlowData(flow_json))
         flow_link = FlowCommand(flow)
         lasts = execute(flow_link, {}, {})
         lasts = convert_from_activity(lasts)
@@ -820,14 +807,17 @@ class AssertCmdTest(TestCaseBase):
     # @unittest.skip
     def test_same_execute(self):
         """
-        内容が同じ２つの入力に対して、assert_commandを一つ配置したフローを実行、
+        内容が同じ2つの入力に対して、assert_commandを一つ配置したフローを実行、
         出力で、入力データが一致という判定が出ることを期待する。
         エラー判定はfalse     
         """
+        # ルートフォルダを取得する
+        root = self.factory.data.load_root()
+
         flow_json = copy.deepcopy(self.flow_json_same)
         flow_json['nodes'].append(self.create_data_dst_node('d1'))
 
-        flow = self.root.create_flow(flow_json['label'], FlowData(flow_json))
+        flow = root.create_flow(flow_json['label'], FlowData(flow_json))
         flow_link = FlowCommand(flow)
         lasts = execute(flow_link, {}, {})
         lasts = convert_from_activity(lasts)
@@ -864,15 +854,18 @@ class AssertCmdTest(TestCaseBase):
     # @unittest.skip
     def test_case_sequential_assert(self):
         """
-        assert_commandが２連続で実行されるフローを実行、出力結果をテストする
-        assert_commandを２連続配置したフローを実行、
+        assert_commandが2連続で実行されるフローを実行、出力結果をテストする
+        assert_commandを2連続配置したフローを実行、
         出力で入力データ全行が不一致判定が出ることを期待する。
         エラー判定はfalse     
         """
+        # ルートフォルダを取得する
+        root = self.factory.data.load_root()
+
         flow_json = copy.deepcopy(self.sequential_assert_json)
         flow_json['nodes'].append(self.create_data_dst_node('d2'))
 
-        flow = self.root.create_flow(flow_json['label'], FlowData(flow_json))
+        flow = root.create_flow(flow_json['label'], FlowData(flow_json))
         flow_link = FlowCommand(flow)
         lasts = execute(flow_link, {}, {})
         lasts = convert_from_activity(lasts)
@@ -923,15 +916,18 @@ class AssertCmdTest(TestCaseBase):
     # @unittest.skip
     def test_case_two_assert(self):
         """
-        内容が3行目以降違う２つの入力に対して、assert_commandを一つ配置したフローの島を2つ用意し、同時実行、
+        内容が3行目以降違う2つの入力に対して、assert_commandを一つ配置したフローの島を2つ用意し、同時実行、
         出力で、入力データが3行目以降不一致という判定が出ることを期待する。
         エラー判定はfalse
         """
+        # ルートフォルダを取得する
+        root = self.factory.data.load_root()
+
         flow_json = copy.deepcopy(self.double_assert_json)
         flow_json['nodes'].append(self.create_data_dst_node('d1'))
         flow_json['nodes'].append(self.create_data_dst_node('d2'))
 
-        flow = self.root.create_flow(flow_json['label'], FlowData(flow_json))
+        flow = root.create_flow(flow_json['label'], FlowData(flow_json))
         flow_link = FlowCommand(flow)
         lasts = execute(flow_link, {}, {})
         lasts = convert_from_activity(lasts)
@@ -997,14 +993,17 @@ class AssertCmdTest(TestCaseBase):
     # @unittest.skip
     def test_one_side_error_assert(self):
         """
-        ２つの入力のうち、片方がassert_command以前のノードでエラーが発生するフローを実行、
+        2つの入力のうち、片方がassert_command以前のノードでエラーが発生するフローを実行、
         出力で、入力データが全行不一致という判定が出ることを期待する。
         エラー判定はtrue
         """
+        # ルートフォルダを取得する
+        root = self.factory.data.load_root()
+
         flow_json = copy.deepcopy(self.one_side_error_json)
         flow_json['nodes'].append(self.create_data_dst_node('d2'))
 
-        flow = self.root.create_flow(flow_json['label'], FlowData(flow_json))
+        flow = root.create_flow(flow_json['label'], FlowData(flow_json))
         flow_link = FlowCommand(flow)
         lasts = execute(flow_link, {}, {})
         lasts = convert_from_activity(lasts)
@@ -1049,14 +1048,17 @@ class AssertCmdTest(TestCaseBase):
     # @unittest.skip
     def test_same_both_error_assert(self):
         """
-        内容がどちらも同じエラーを出す２つの入力に対して、assert_commandを一つ配置し実行、
+        内容がどちらも同じエラーを出す2つの入力に対して、assert_commandを一つ配置し実行、
         出力で、入力データが一致という判定が出ることを期待する。
         エラー判定はtrue
         """
+        # ルートフォルダを取得する
+        root = self.factory.data.load_root()
+
         flow_json = copy.deepcopy(self.both_same_error_json)
         flow_json['nodes'].append(self.create_data_dst_node('d2'))
 
-        flow = self.root.create_flow(flow_json['label'], FlowData(flow_json))
+        flow = root.create_flow(flow_json['label'], FlowData(flow_json))
         flow_link = FlowCommand(flow)
         lasts = execute(flow_link, {}, {})
         lasts = convert_from_activity(lasts)
@@ -1094,14 +1096,17 @@ class AssertCmdTest(TestCaseBase):
     # @unittest.skip
     def test_both_error_assert(self):
         """
-        内容が違うエラーを出す２つの入力に対して、assert_commandを一つ配置し実行、
+        内容が違うエラーを出す2つの入力に対して、assert_commandを一つ配置し実行、
         出力で、入力データが不一致という判定が出ることを期待する。
         エラー判定はtrue
         """
+        # ルートフォルダを取得する
+        root = self.factory.data.load_root()
+
         flow_json = copy.deepcopy(self.both_error_json)
         flow_json['nodes'].append(self.create_data_dst_node('d2'))
 
-        flow = self.root.create_flow(flow_json['label'], FlowData(flow_json))
+        flow = root.create_flow(flow_json['label'], FlowData(flow_json))
         flow_link = FlowCommand(flow)
         lasts = execute(flow_link, {}, {})
         lasts = convert_from_activity(lasts)
@@ -1144,10 +1149,13 @@ class AssertCmdTest(TestCaseBase):
         出力でその旨を通知することと、テスト失敗の判定が出ることを期待する。
         エラー判定はfalse     
         """
+        # ルートフォルダを取得する
+        root = self.factory.data.load_root()
+
         flow_json = copy.deepcopy(self.dlimit_overred_json)
         flow_json['nodes'].append(self.create_data_dst_node('d2'))
 
-        flow = self.root.create_flow(flow_json['label'], FlowData(flow_json))
+        flow = root.create_flow(flow_json['label'], FlowData(flow_json))
         flow_link = FlowCommand(flow)
         lasts = execute(flow_link, {}, {})
         lasts = convert_from_activity(lasts)
@@ -1192,7 +1200,6 @@ class AssertCmdTest(TestCaseBase):
 
         # 後片付け
         lasts['d2'].delete()
-
 
 
     def check_equal(self, result, correct):

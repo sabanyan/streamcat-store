@@ -13,7 +13,8 @@ class UnAuthzFactory():
         from . import engine
 
         # セッションをつくる
-        session_maker = sessionmaker(engine, future=True)
+        # ・future=True : SQLAlchemy2.0スタイルのトランザクションおよびエンジンの動作を使用する
+        session_maker = sessionmaker(engine, expire_on_commit=False, autoflush=False, future=True)
 
         # セッションを保持する
         self._session = Session(session_maker, user=None)
@@ -95,6 +96,7 @@ class UnAuthzFactory():
         self.close()
 
     def close(self):
+        self._session.end()
         self._session.close()
 
 
@@ -111,6 +113,7 @@ class Factory():
         # ・session.commit()によるExpireでquery_expression()で設定されているreadableがNoneになる
         # ・これを回避するためexpire_on_commit=Falseとする、autoflush=Falseも必要!
         # ・session.rollback()によるExprireを回避する方法はない
+        # ・future=True : SQLAlchemy2.0スタイルのトランザクションおよびエンジンの動作を使用する
         session_maker = sessionmaker(bind=engine, expire_on_commit=False, autoflush=False, future=True)
 
         # セッションを保持する
@@ -132,7 +135,11 @@ class Factory():
     def __exit__(self, ex_type, ex_value, trace):
         self.close()
 
+    def end(self):
+        self._session.end()
+
     def close(self):
+        self._session.end()
         self._session.close()
 
     def get_active_connections(self):
@@ -508,27 +515,14 @@ class DatumFactory():
         result = self._session.query(Datum).filter(Datum.type==Datum.TRASH_TYPE).count()
         return result > 0
 
-    def trashed(self, uuid):
+    def trashed(self, uuid) -> bool:
         """
         ゴミ箱の中にある場合はTrueを返す
         """
-        from sqlalchemy import select, func, and_
-
-        sql = select(func.count()).\
-              select_from(Datum).\
-              where(and_(
-                    Datum.uuid==uuid,
-                    self._make_exists_trashed(uuid)
-              ))
-        try:
-            results = self._session.execute(sql).scalar()
-        except Exception as e:
-            self._session.rollback()
-            raise e
-        finally:
-            pass
-
-        return results > 0
+        result = self._session.query(Datum).\
+                 filter(Datum.uuid==uuid).\
+                 filter(self._make_exists_trashed(uuid)).count()
+        return result > 0
 
     def _make_exists_on_root(self, parent_id:str):
         from sqlalchemy import select, exists
@@ -656,8 +650,6 @@ class AuthFactory():
         except Exception as e:
             self._session.rollback()
             raise e
-        finally:
-            self._session.commit()
 
 
 class RoleFactory():
@@ -773,8 +765,6 @@ class UserRoleFactory():
         except Exception as e:
             self._session.rollback()
             raise e
-        finally:
-            self._session.commit()
 
     def delete_all_by_role_id(self, role_id, except_user_id=None):
         """
@@ -791,8 +781,6 @@ class UserRoleFactory():
         except Exception as e:
             self._session.rollback()
             raise e
-        finally:
-            self._session.commit() 
 
 
 class UserFactory():

@@ -284,8 +284,6 @@ class Schedule(Datum):
             if schedule_manager.contains(self.uuid):
                 schedule_manager.delete(self.uuid)
             raise e
-        finally:
-            self._session.commit()
 
     def update_data(self, label, runnable_uuid:str, args={}, inputs={}, trigger={}, modifier=None):
         """
@@ -314,8 +312,6 @@ class Schedule(Datum):
         except Exception as e:
             self._session.rollback()
             raise e
-        finally:
-            self._session.commit()
 
         return self
 
@@ -353,8 +349,6 @@ class Schedule(Datum):
         except Exception as e:
             self._session.rollback()
             raise e
-        finally:
-            self._session.commit()
 
     def to_json(self):
         ret = super().to_json()

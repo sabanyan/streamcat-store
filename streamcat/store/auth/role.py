@@ -121,8 +121,6 @@ class Role(BaseModel):
         except Exception as e:
             self._session.rollback()
             raise e
-        finally:
-            self._session.commit()
 
         # 本人ロール以外のロールを新規作成したユーザにはロールの所有権を付与する
         if not for_self_role and self._session.user is not None:
@@ -138,8 +136,6 @@ class Role(BaseModel):
         except Exception as e:
             self._session.rollback()
             raise e
-        finally:
-            self._session.commit()
 
         return self
 
@@ -174,8 +170,6 @@ class Role(BaseModel):
         except Exception as e:
             self._session.rollback()
             raise e
-        finally:
-            self._session.commit()
 
     def is_self_role(self) -> bool:
         """

@@ -88,8 +88,6 @@ class Frame(File):
         except Exception as e:
             self._session.rollback()
             raise e
-        finally:
-            self._session.commit()
 
         return self
 

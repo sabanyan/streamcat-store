@@ -41,8 +41,6 @@ class Database(Store):
         except Exception as e:
             self._session.rollback()
             raise e
-        finally:
-            self._session.commit()
 
     def update_data(self, label, database_conn, modifier=None):
         """
@@ -60,8 +58,6 @@ class Database(Store):
         except Exception as e:
             self._session.rollback()
             raise e
-        finally:
-            self._session.commit()
 
         return self
 
@@ -81,8 +77,6 @@ class Database(Store):
         except Exception as e:
             self._session.rollback()
             raise e
-        finally:
-            self._session.commit()
 
     def remove_reference_only(self):
         """

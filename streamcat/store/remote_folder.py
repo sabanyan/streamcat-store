@@ -51,8 +51,6 @@ class RemoteFolder(Mountable, Store):
             self._remove_dir(self_path)
             self._session.rollback()
             raise e
-        finally:
-            self._session.commit()
 
     def update_data(self, label, remoteFolderConn, modifier=None):
         """
@@ -75,8 +73,6 @@ class RemoteFolder(Mountable, Store):
         except Exception as e:
             self._session.rollback()
             raise e
-        finally:
-            self._session.commit()
 
         return self
 
@@ -100,9 +96,6 @@ class RemoteFolder(Mountable, Store):
         except (Exception, OSError) as e:
             self._session.rollback()
             raise e
-        finally:
-            self._session.commit()
-
 
     @property
     def conn(self):

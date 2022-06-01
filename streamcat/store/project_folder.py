@@ -230,8 +230,6 @@ class ProjectFolder(Folder):
         except Exception as e:
             self._session.rollback()
             raise e
-        finally:
-            self._session.commit()
 
     def throw_away(self):
         """

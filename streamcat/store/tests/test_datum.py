@@ -126,7 +126,7 @@ class DatumTest(TestCaseBase):
         project2.throw_away()
 
         # ゴミ箱を空にする
-        # self.factory.data.find_trashcan().trash_all()
+        self.factory.data.find_trashcan().trash_all()
 
     def test_move_flow_in_folder(self):
         """

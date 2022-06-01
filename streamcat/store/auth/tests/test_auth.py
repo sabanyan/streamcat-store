@@ -11,6 +11,7 @@ from ...tests.test_case_base import TestCaseBase
 class AuthTest(TestCaseBase):
 
     def setUp(self):
+        super().setUp()
         # フローJSON
         # mnewnumber -> d(cache=on) -> mcut -> d1(out=on)
         self.flow_json = {
@@ -602,8 +603,8 @@ class AuthTest(TestCaseBase):
 
     def test_session_rollback(self):
         """
-        SQLAlchemyのSession.rollback()によりExpireが発生し、
-        全てのDatum._permissionsがNoneになってしまう
+        SQLAlchemyのSession.rollback()によりExpireが発生しないことを
+        Rollback後のDatum._permissionsがNoneにならないことで確認する
         """
         # ルートフォルダを取得する
         root = self.factory.data.load_root()
@@ -618,17 +619,14 @@ class AuthTest(TestCaseBase):
         self.assertTrue(folder.writable)
         self.assertTrue(folder.executable)
 
-        # Session.rollback()
-        folder._session.rollback()
+        # Rollback
+        self.factory._session.rollback()
+        self.factory.end()
 
-        # Datum._permissionsがNoneに変化してしまう
-        self.assertIsNone(folder.readable)
-        self.assertIsNone(folder.writable)
-        self.assertIsNone(folder.executable)
-
-        # フォルダを再読み込みした後、削除する
-        folder = folder.reload()
-        folder.delete()
+        # Datum._permissionsがNoneに変化しないこと
+        self.assertTrue(folder.readable)
+        self.assertTrue(folder.writable)
+        self.assertTrue(folder.executable)
 
     # 
     # Users
@@ -678,6 +676,7 @@ class AuthTest(TestCaseBase):
         # 新規ユーザを追加する
         new_user = self.factory.user.create('test-man3@streamcat.io', 'I AM TEST', '123abc(*)C')
         new_user.save()
+        self.factory.end()
 
         # 他ユーザで再取得する
         new_user = self.factory2.user.find_by_uuid(new_user.uuid)
@@ -707,6 +706,7 @@ class AuthTest(TestCaseBase):
         # 新規ユーザを追加する
         new_user = self.factory.user.create('test-man4@streamcat.io', 'I AM TEST', '123abc(*)D')
         new_user.save()
+        self.factory.end()
 
         # 他ユーザで再取得する
         new_user = self.factory2.user.find_by_uuid(new_user.uuid)
@@ -728,6 +728,9 @@ class AuthTest(TestCaseBase):
         new_user1 = self.factory.user.create('wow@streamcat.io', 'I AM TEST', '123abc(*)C')
         new_user1.save()
 
+        # 変更を確定する
+        self.factory.end()
+
         # 他のユーザと同じメールアドレスでユーザを作成できないこと
         with self.assertRaises(Exception):
             new_user2 = self.factory.user.create('wow@streamcat.io', 'I AM TEST 2', None)
@@ -736,6 +739,9 @@ class AuthTest(TestCaseBase):
         # 他のユーザと同じメールアドレスに変更できないこと
         with self.assertRaises(Exception):
             new_user2.update_email('wow@streamcat.io')
+
+        # 変更を確定する
+        self.factory.end()
 
         # ユーザを削除する
         new_user1.delete()
@@ -890,7 +896,7 @@ class AuthTest(TestCaseBase):
         # 削除後のロールは取得できない
         with self.assertRaises(NoResultFound):
             self.factory2.role.find_by_uuid(new_role.uuid)
-  
+
     def test_join_leave_role(self):
         """
         Roleへの参加と脱退を検証する
@@ -923,6 +929,7 @@ class AuthTest(TestCaseBase):
         # ロールを作成する
         new_role = self.factory.role.create('ロール')
         new_role.save()
+        self.factory.end()
 
         # 管理者でもRoleの所有者でもないユーザは、
         # ユーザの追加操作はできない
@@ -940,6 +947,9 @@ class AuthTest(TestCaseBase):
 
         # ロールにユーザを追加する
         new_role.join_member(Role.Member(self.USER2))
+
+        # 作成と追加を確定する
+        self.factory.end()
 
         # 管理者でもRoleの所有者でもないユーザは、
         # ユーザの削除操作はできない
@@ -996,11 +1006,14 @@ class AuthTest(TestCaseBase):
         """
         ユーザがユーザ管理者ロールの唯一の所有者の場合、そのユーザを削除できないこと
         """
+        # ユーザ管理者を取得する
+        user1 = self.factory.user.find_by_id(self.USER1.id)
+
         # ユーザ管理者ロールの所有者を削除できないこと
         with self.assertRaises(NoRoleOwnerException):
-            self.USER1.throw_away()
+            user1.throw_away()
         with self.assertRaises(NoRoleOwnerException):
-            self.USER1.delete()
+            user1.delete()
 
     def test_join_sys_admin_role_without_owner(self):
         """
@@ -1133,12 +1146,14 @@ class AuthTest(TestCaseBase):
         # 新規ロールを追加する
         new_role = self.factory2.role.create('権限ロール')
         new_role.save()
+        self.factory2.end()
 
         # ルートフォルダを取得する
         root = self.factory.data.load_root()
         # ルートフォルダの下にフォルダを作成する
         folder = root.create_folder('フォルダT')
         folder.save()
+        self.factory.end()
 
         # フォルダを取得する
         folder = self.factory.data.find_by_id(folder.id)
@@ -1169,7 +1184,7 @@ class AuthTest(TestCaseBase):
         # フレームの参照権限を全て削除する
         self.factory.auth.delete_all_by_datum_id(frame.id)
 
-        # フローは再取得できないこと
+        # フレームは再取得できないこと
         with self.assertRaises(NotAuthorizedException):
             frame.reload()
 
@@ -1355,6 +1370,10 @@ class AuthTest(TestCaseBase):
         roleA.join_member(Role.Member(self.USER2))
         roleB.join_member(Role.Member(self.USER2))
 
+        #　変更を確定する
+        self.factory.end()
+        self.factory2.end()
+
         # フローを再取得する
         flow = flow.reload()
 
@@ -1377,6 +1396,10 @@ class AuthTest(TestCaseBase):
 
         # ロールBを削除する
         roleB.delete()
+
+        #　変更を確定する
+        self.factory.end()
+        self.factory2.end()
 
         # フローを削除する
         flow.delete()
@@ -1456,7 +1479,8 @@ class AuthTest(TestCaseBase):
         self.factory.auth.delete_all_by_datum_id(flow.id)
 
         # USER1の本人グループに参照権限を付与する
-        self.USER1.load_self_role().init_authz(flow.id, True, False)
+        user1 = self.factory.user.find_by_id(self.USER1.id)
+        user1.load_self_role().init_authz(flow.id, True, False)
 
         # フローを再取得する
         flow = flow.reload()
@@ -1481,7 +1505,11 @@ class AuthTest(TestCaseBase):
         self.factory.auth.delete_all_by_datum_id(flow.id)
 
         # USER1の本人グループに参照権限を付与する
-        self.USER1.load_self_role().init_authz(flow.id, True, False)
+        user1 = self.factory.user.find_by_id(self.USER1.id)
+        user1.load_self_role().init_authz(flow.id, True, False)
+
+        # 変更を確定する
+        self.factory.end()
 
         # 他ユーザはフローを取得できないこと
         with self.assertRaises(NotAuthorizedException):
@@ -1501,7 +1529,8 @@ class AuthTest(TestCaseBase):
         self.factory.auth.delete_all_by_datum_id(flow.id)
 
         # USER1の本人グループに更新権限を付与する
-        self.USER1.load_self_role().init_authz(flow.id, False, True)
+        user1 = self.factory.user.find_by_id(self.USER1.id)
+        user1.load_self_role().init_authz(flow.id, False, True)
 
         # フローは更新可能
         flow.update_data('変更したフロー名', FlowData())
@@ -1527,8 +1556,9 @@ class AuthTest(TestCaseBase):
         self.factory.auth.delete_all_by_datum_id(flow.id)
 
         # USER1の本人グループに更新権限を付与する
-        self.USER1.load_self_role().init_authz(folder.id, False, True)
-        self.USER1.load_self_role().init_authz(flow.id, False, True)
+        user1 = self.factory.user.find_by_id(self.USER1.id)
+        user1.load_self_role().init_authz(folder.id, False, True)
+        user1.load_self_role().init_authz(flow.id, False, True)
 
         # フローは更新可能
         flow.update_data('変更したフロー名2', FlowData())
@@ -1550,11 +1580,16 @@ class AuthTest(TestCaseBase):
         self.factory.auth.delete_all_by_datum_id(flow.id)
 
         # USER1の本人グループに更新権限を付与する
-        self.USER1.load_self_role().init_authz(flow.id, None, True)
+        user1 = self.factory.user.find_by_id(self.USER1.id)
+        user1.load_self_role().init_authz(flow.id, None, True)
 
         # USER2の本人グループに参照権限を付与する
-        user2_auth = self.factory.auth.create(self.USER2.load_self_role().id, flow.id, Auth.READ_OP, True)
+        user2 = self.factory.user.find_by_id(self.USER2.id)
+        user2_auth = self.factory.auth.create(user2.load_self_role().id, flow.id, Auth.READ_OP, True)
         user2_auth.save()
+
+        # 変更を確定する
+        self.factory.end()
 
         # USER2によりフローを取得する
         flow = self.factory2.data.find_by_id(flow.id)
@@ -1562,6 +1597,9 @@ class AuthTest(TestCaseBase):
         # フローは更新不可能
         with self.assertRaises(NotAuthorizedException):
             flow.update_data('変更したフロー名2', FlowData())
+
+        # 変更を確定する
+        self.factory2.end()
 
         # フローは更新されていないこと
         self.assertEqual(flow.label, '所有者のみ更新できるフロー2')
@@ -1626,6 +1664,7 @@ class AuthTest(TestCaseBase):
             flow.move(to_folder.uuid)
 
         # フローが移動していないこと
+        self.assertIsNone(flow.prev_parent_id)
         self.assertEqual(flow.parent_id, from_folder.id)
 
     def test_move_to_writeless_folder(self):
@@ -1779,11 +1818,20 @@ class AuthTest(TestCaseBase):
         # USER2にフォルダAの所有権を付与する
         user2 = self.factory.user.find_by_uuid(self.USER2.uuid)
         user2.load_self_role().init_authz(folder_a.id, read=True, write=True, exec=True, own=True)
-        self.USER1.load_self_role().clear_authz(folder_a.id)
+
+        # USER1からフォルダAの全ての権限を削除する
+        user1 = self.factory.user.find_by_uuid(self.USER1.uuid)
+        user1.load_self_role().clear_authz(folder_a.id)
+
+        # 変更を確定する
+        self.factory.end()
 
         # USER3にフォルダAの更新権限を付与する
         user3 = self.factory2.user.find_by_uuid(self.USER3.uuid)
         user3.load_self_role().init_authz(folder_a.id, read=True, write=True)
+
+        # 変更を確定する
+        self.factory2.end()
 
         # フォルダAの下にフレームAを作成する (所有者はUSER3)
         folder_a = self.factory3.data.find_by_uuid(folder_a.uuid)
@@ -1800,7 +1848,8 @@ class AuthTest(TestCaseBase):
         frame_b.save()
 
         # フレームAの所有者は権限を変更できること
-        self_role = self.USER3.load_self_role()
+        user3 = self.factory3.user.find_by_uuid(self.USER3.uuid)
+        self_role = user3.load_self_role()
         self_role.init_authz(frame_a.id, read=None, write=False, own=True)
 
         # フレームBの所有者は権限を変更できること
@@ -1930,7 +1979,7 @@ class AuthTest(TestCaseBase):
         frame = folder4.create_frame('フレームファイル♪', io.BytesIO(b'abc'))
         frame.save()
 
-        # ルートフォルダの下にフローを作成する
+        # フォルダ4の下にフローを作成する
         flow = folder4.create_simple_flow('フロー', frame)
         flow.save()
 
@@ -1938,7 +1987,8 @@ class AuthTest(TestCaseBase):
         self.factory.auth.delete_all_by_datum_id(folder1.id)
 
         # フォルダ1に参照権限のみを付与する
-        user1_role = self.USER1.load_self_role()
+        user1 = self.factory.user.find_by_uuid(self.USER1.uuid)
+        user1_role = user1.load_self_role()
         user1_role.init_authz(folder1.id, True, None)
 
         # 
@@ -2164,6 +2214,9 @@ class AuthTest(TestCaseBase):
         member2 = ProjectFolder.Member(self.USER3, ProjectFolder.READER_MEMBER_TYPE)
         project.init_members([member1, member2], last_modified_at=project.modified_at)
 
+        # 変更を確定する
+        self.factory.end()
+
         # 編集者は、プロジェクトのラベルを変更できること
         project = self.factory2.data.find_by_uuid(project.uuid)
         with self.assertRaises(NotAuthorizedException):
@@ -2264,11 +2317,17 @@ class AuthTest(TestCaseBase):
         # プロジェクト管理者(USER2)がプロジェクトをほかす
         project.throw_away()
 
+        # 変更を確定する
+        self.factory2.end()
+
         # プロジェクトがゴミ箱に存在すること
         self.assertTrue(self.factory.data.trashed(project.uuid))
 
         # プロジェクト管理者(USER2)がプロジェクトを削除する
         project.delete()
+
+        # 変更を確定する
+        self.factory2.end()
 
         # プロジェクトは削除されていること
         self.assertFalse(self.factory.data.exists(project.uuid))
@@ -2286,6 +2345,9 @@ class AuthTest(TestCaseBase):
         project.save()
         project = project.reload()
 
+        # 変更を確定する
+        self.factory2.end()
+
         # プロジェクトメンバ以外のユーザ(USER3)は参照できないこと
         with self.assertRaises(NotAuthorizedException):
             project = self.factory3.data.find_by_uuid(project.uuid)
@@ -2294,6 +2356,9 @@ class AuthTest(TestCaseBase):
         project = self.factory2.data.find_by_id(project.id)
         user3_member = ProjectFolder.Member(self.USER3, ProjectFolder.WRITER_MEMBER_TYPE)
         project.join_member(user3_member)
+
+        # 変更を確定する
+        self.factory2.end()
 
         # 編集者メンバ(USER3)がプロジェクトの削除を試みる
         project = self.factory3.data.find_by_uuid(project.uuid)
@@ -2541,6 +2606,9 @@ class AuthTest(TestCaseBase):
         frame.save()
         frame = frame.reload()
 
+        # 変更を確定する
+        self.factory3.end()
+
         # システム管理者は、フォルダの参照ができないこと
         with self.assertRaises(NotAuthorizedException):
             self.factory0.data.find_by_uuid(folder.uuid)
@@ -2606,6 +2674,9 @@ class AuthTest(TestCaseBase):
         frame.save()
         frame = frame.reload()
 
+        # 変更を確定する
+        self.factory3.end()
+
         # ユーザ管理者は、フォルダの参照・更新ができること
         folder = self.factory.data.find_by_uuid(folder.uuid)
         folder.update_label('德川家康')
@@ -2628,6 +2699,9 @@ class AuthTest(TestCaseBase):
         # ユーザ管理者は、フレームの参照・更新ができること
         frame = self.factory.data.find_by_uuid(frame.uuid)
         frame.update_label('織田信長')
+
+        # 変更を確定する
+        self.factory.end()
         
         # ユーザ管理者は、フレームの参照・更新のプロパティがTrueであること
         self.assertTrue(frame.readable)
@@ -2662,12 +2736,18 @@ class AuthTest(TestCaseBase):
         member1 = ProjectFolder.Member(self.USER2, ProjectFolder.OWNER_MEMBER_TYPE)
         project.init_members([member1], last_modified_at=project.modified_at)
 
+        # 変更を確定する
+        self.factory2.end()
+
         # USER1は、プロジェクトを取得する
         project2 = self.factory.data.find_by_uuid(project.uuid)
 
         # USER1は、メンバを設定する
         member1 = ProjectFolder.Member(self.USER2, ProjectFolder.OWNER_MEMBER_TYPE)
         project2.init_members([member1], last_modified_at=project2.modified_at)
+
+        # 変更を確定する
+        self.factory.end()
 
         # プロジェクトは削除する
         project.delete()
@@ -2685,12 +2765,18 @@ class AuthTest(TestCaseBase):
         # USER2は、プロジェクトを取得する
         project = project.reload()
 
+        # 変更を確定する
+        self.factory2.end()
+
         # USER1は、プロジェクトを取得する
         project2 = self.factory.data.find_by_uuid(project.uuid)
 
         # USER1は、メンバを設定する
         member1 = ProjectFolder.Member(self.USER2, ProjectFolder.OWNER_MEMBER_TYPE)
         project2.init_members([member1], last_modified_at=project2.modified_at)
+
+        # 変更を確定する
+        self.factory.end()
 
         # USER2は、メンバを設定する
         with self.assertRaises(OptimisticLockException):
@@ -2713,12 +2799,18 @@ class AuthTest(TestCaseBase):
         # USER2は、プロジェクトを取得する
         project = project.reload()
 
+        # 変更を確定する
+        self.factory2.end()
+
         # USER1は、プロジェクトを取得する
         project2 = self.factory.data.find_by_uuid(project.uuid)
 
         # USER1は、メンバを追加する
         member1 = ProjectFolder.Member(self.USER2, ProjectFolder.OWNER_MEMBER_TYPE)
         project2.join_member(member1)
+
+        # 変更を確定する
+        self.factory.end()
 
         # USER2は、メンバを設定する
         with self.assertRaises(OptimisticLockException):
@@ -2745,11 +2837,17 @@ class AuthTest(TestCaseBase):
         member1 = ProjectFolder.Member(self.USER3, ProjectFolder.OWNER_MEMBER_TYPE)
         project.join_member(member1)
 
+        # 変更を確定する
+        self.factory2.end()
+
         # USER1は、プロジェクトを取得する
         project2 = self.factory.data.find_by_uuid(project.uuid)
 
         # USER1は、メンバを外す
         project2.leave_member(self.USER3)
+
+        # 変更を確定する
+        self.factory.end()
 
         # USER2は、メンバを設定する
         with self.assertRaises(OptimisticLockException):
@@ -2796,6 +2894,9 @@ class AuthTest(TestCaseBase):
 
         # フローをプロジェクト2に移動する
         flow.move(project2.uuid)
+
+        # 作成と変更を確定する
+        self.factory2.end()
 
         # キャッシュの権限設定を検証する
         auths = self.factory.auth.find_all_by_datum_id(cache_frame.id)
@@ -2901,6 +3002,9 @@ class AuthTest(TestCaseBase):
 
         # フローをキャッシュフォルダに移動する
         flow.move(Datum.CACHE_FOLDER_UUID)
+
+        # 作成と変更を確定する
+        self.factory2.end()
 
         # キャッシュの権限設定を検証する
         auths = self.factory.auth.find_all_by_datum_id(cache_frame.id)
@@ -3015,6 +3119,9 @@ class AuthTest(TestCaseBase):
 
         # フローをフォルダごとプロジェクト2に移動する
         folder.move(project2.uuid)
+
+        # 作成と変更を確定する
+        self.factory2.end()
 
         # キャッシュの権限設定を検証する
         auths = self.factory.auth.find_all_by_datum_id(cache_frame.id)
@@ -3184,6 +3291,9 @@ class AuthTest(TestCaseBase):
         self.assertFalse(flow.edit_lock)
         self.assertTrue(flow.readable)
         self.assertTrue(flow.writable)
+
+        # 作成と変更を確定する
+        self.factory2.end()
 
         # 閲覧者は編集ロックの値を変更できないこと
         flow = self.factory3.data.find_by_uuid(flow.uuid)
@@ -3498,6 +3608,9 @@ class AuthTest(TestCaseBase):
         frame.save()
         frame = frame.reload()
 
+        # 変更を確定する
+        self.factory3.end()
+
         # フレームにユーザ管理者ロールの参照・更新・実行権限が付与されていないこと
         self.assertFalse(self.factory3.auth.exists(usr_admin_role.id, frame.id))
 
@@ -3611,9 +3724,10 @@ class AuthTest(TestCaseBase):
 
         # 閲覧者はゴミを物理削除できないこと
         with self.assertRaises(NotAuthorizedException):
-            folder.delete()
-        with self.assertRaises(NotAuthorizedException):
             flow.delete()
+        # 空でないフォルダは削除できない
+        with self.assertRaises(Exception):
+            folder.delete()
 
         # プロジェクト管理者はゴミ箱を空にする
         trashcan = self.factory2.data.find_trashcan()
@@ -3685,7 +3799,7 @@ class AuthTest(TestCaseBase):
         # ゴミ箱は空になっていること
         children = trashcan.find_children()
         self.assertEqual(len(children), 0)
-        
+
     def test_cannot_write_trashed_folder_by_reader(self):
         """
         ゴミ箱に作成した形代フォルダは、
@@ -3735,6 +3849,9 @@ class AuthTest(TestCaseBase):
         # 閲覧者は、形代フォルダをほかす前の場所に戻せないこと
         with self.assertRaises(NotAuthorizedException):
             trashed_folder.put_back()
+
+        # 変更のRollbackを確定する
+        self.factory3.end()
 
         # プロジェクトをゴミ箱にほかす
         project.throw_away()
@@ -3829,6 +3946,9 @@ class AuthTest(TestCaseBase):
         # プロジェクト管理者は、フローのActivityを参照できること
         activity = self.factory2.data.find_by_uuid(activity.uuid)
 
+        # 作成を確定する
+        self.factory2.end()
+
         # プロジェクトメンバ以外のユーザは、フローのActivityを参照できないこと
         with self.assertRaises(NotAuthorizedException):
             self.factory3.data.find_by_uuid(activity.uuid)
@@ -3869,6 +3989,9 @@ class AuthTest(TestCaseBase):
         # プロジェクト管理者は、フローの実行結果を更新できること
         out_frame.update_label('実行結果☢')
         self.assertEqual(out_frame.label, '実行結果☢')
+
+        # 作成と変更を確定する
+        self.factory2.end()
         
         # プロジェクトメンバ以外のユーザは、フローの実行結果を参照できないこと
         with self.assertRaises(NotAuthorizedException):
@@ -3923,6 +4046,9 @@ class AuthTest(TestCaseBase):
         # USER3を閲覧者に加える
         project.join_member(ProjectFolder.Member(self.USER3, ProjectFolder.READER_MEMBER_TYPE))
 
+        # 作成を確定する
+        self.factory2.end()
+
         # 閲覧者は、フローの実行結果を参照できること
         out_frame = self.factory3.data.find_by_uuid(out_frame.uuid)
         self.assertEqual(out_frame.label, '神戸⚓️')
@@ -3933,6 +4059,9 @@ class AuthTest(TestCaseBase):
         # プロジェクト管理者は、フローのキャッシュを更新できること
         cache_frame.update_label('琵琶湖🛥')
         self.assertEqual(cache_frame.label, '琵琶湖🛥')
+
+        # 作成を確定する
+        self.factory2.end()
 
         # 閲覧者は、フローのキャッシュを参照できること
         cache_frame = self.factory3.data.find_by_uuid(cache_frame.uuid)
@@ -3972,6 +4101,9 @@ class AuthTest(TestCaseBase):
 
         # USER3を閲覧者に加える
         project.join_member(ProjectFolder.Member(self.USER3, ProjectFolder.READER_MEMBER_TYPE))
+
+        # 作成を確定する
+        self.factory2.end()
 
         # USER3は、フローにキャッシュのuuidを書き込めないので、フローを実行できない
         from streamcat.engine import execute, FlowCommand
@@ -4014,6 +4146,9 @@ class AuthTest(TestCaseBase):
         flow.save()
         flow = flow.reload()
 
+        # 作成を確定する
+        self.factory2.end()
+
         # 編集者は、フローをプレビュー実行して、キャッシュファイルを作成する
         from streamcat.engine import execute, FlowCommand
         vis_args = { "d1" : 
@@ -4039,6 +4174,9 @@ class AuthTest(TestCaseBase):
         # 複製したキャッシュのUUIDを取得する
         duplicated_cache_frame_uuid = next(iter(duplicated_flow.flow_data.get_cache_frame_uuids()))
         duplicated_cache_frame = self.factory3.data.find_by_uuid(duplicated_cache_frame_uuid)
+
+        # 作成を確定する
+        self.factory3.end()
 
         # キャッシュが複製されていることを検証する
         # (フローJSONに記録されたキャッシュのUUIDが異なることを検証する)
@@ -4120,7 +4258,7 @@ class AuthTest(TestCaseBase):
 
         # プロジェクトを削除する
         project.delete()
-     
+
     def test_get_masked_flow(self):
         """
         参照権限のないサブフローノードやデータソースノードは、
@@ -4155,6 +4293,9 @@ class AuthTest(TestCaseBase):
         member1 = ProjectFolder.Member(self.USER3, ProjectFolder.OWNER_MEMBER_TYPE)
         project2.join_member(member1)
 
+        # 作成を確定する
+        self.factory2.end()
+
         # USER3は、メインフローを取得できるが、共有フローの参照権限がないので
         # その共有フローノードのラベルとuuidはマスキングされていること
         flow2 = self.factory3.data.find_by_uuid(flow2.uuid)
@@ -4177,6 +4318,9 @@ class AuthTest(TestCaseBase):
 
         # USER3は、マスキングされたフローJsonでも更新できること
         flow2.update_data('更新したフロー', FlowData(masked_flow_data))
+
+        # 変更を確定する
+        self.factory3.end()
 
         # USER2は、更新後のフローであってもマスキングされていないフローJsonを取得できること
         flow2 = self.factory2.data.find_by_uuid(flow2.uuid)
@@ -4547,6 +4691,9 @@ class AuthTest(TestCaseBase):
         project_a.save()
         project_a = project_a.reload()
 
+        # 変更を確定する
+        self.factory2.end()
+
         # ルートフォルダの下にフォルダを作成する
         root = self.factory.data.load_root()
         folder = root.create_folder('欲に目が眩んで主君の顔も忘れたか')
@@ -4562,6 +4709,9 @@ class AuthTest(TestCaseBase):
         folder.move(project_a.uuid)
         self.assertEqual(folder.parent_id, project_a.id)
 
+        # 変更を確定する
+        self.factory.end()
+
         # プロジェクトAのプロジェクト管理者はフォルダを参照できること
         folder = self.factory2.data.find_by_uuid(folder.uuid)
 
@@ -4570,8 +4720,12 @@ class AuthTest(TestCaseBase):
         with self.assertRaises(NotAuthorizedException):
             self.factory2.data.find_by_uuid(frame.uuid)
 
-        # プロジェクトを削除する
+        # フレームを削除する
         frame.delete()
+        # 削除を確定する
+        self.factory.end()
+
+        # プロジェクトを削除する
         folder.delete()
         project_a.delete()
 
@@ -4602,10 +4756,17 @@ class AuthTest(TestCaseBase):
         frame = project_a.create_frame('飲む福祉ストロングゼロ!', io.BytesIO(b'STRONGZERO'))
         frame.save()
 
+        # 変更を確定する
+        self.factory0.end()
+        self.factory2.end()
+
         # USER3は、フレームをプロジェクトAからプロジェクトBへ移動できること
         frame = self.factory3.data.find_by_uuid(frame.uuid)
         frame.move(project_b.uuid)
         self.assertEqual(frame.parent_id, project_b.id)
+
+        # 移動を確定する
+        self.factory3.end()
 
         # プロジェクトAのメンバはフレームの参照できないこと
         with self.assertRaises(NotAuthorizedException):
