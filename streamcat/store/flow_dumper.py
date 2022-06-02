@@ -53,7 +53,8 @@ class FlowDumper:
             return gathered_uuids
 
         tmp_path = parent_tmp_path / folder.path.name
-        tmp_path.mkdir()
+        # exist_ok=True: 複数のフォルダが一つのディレクトリパスを共有する場合に備える
+        tmp_path.mkdir(exist_ok=True)
 
         for child in children:
             if isinstance(child, Folder):
