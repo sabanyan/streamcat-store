@@ -68,6 +68,9 @@ class SaverCommand(SCommand):
         self.name = 'saver'
 
     def run(self, args, inputs):
+        if 'i' not in inputs:
+            raise Exception(f'{self.name}の入力ポート(i)にデータが入力されませんでした')
+
         # Frameを作成する
         folder = self.get_result_folder(args)
         flow_label = args['flow_label']
@@ -91,8 +94,6 @@ class SaverCommand(SCommand):
         # frame.update_label_only(point_label)
 
         # NYSOLコマンドを作成する
-        # if not isinstance(inputs['i'], NysolModule):
-        #     raise Exception(f"Illegal type : {type(inputs['i'])}")
         cmd = inputs['i'].content
         cmd = self.append_writecsv_cmd(cmd, frame.path)
         # 出力フレームをRunsCommandに渡す
@@ -127,7 +128,7 @@ class SaverCommand(SCommand):
         出力ファイルのラベルを取得する
         """
         if point is None:
-            return ''
+            return 'NO_SRC_POINT'
         else:
             return point.label or point.id
 
@@ -416,6 +417,9 @@ class DbSaverCommand(SaverCommand):
 
     def run(self, args, inputs):
         DbSaverCommand._write_log('START')
+
+        if 'i' not in inputs:
+            raise Exception(f'{self.name}の入力ポート(i)にデータが入力されませんでした')
 
         from streamcat.core import Datum
         if inputs['store'].type != Datum.DATABASE_TYPE:
@@ -730,6 +734,9 @@ class RemoteFolderSaverCommand(SaverCommand):
         self.name = 'remotefolder_saver'
 
     def run(self, args, inputs):
+        if 'i' not in inputs:
+            raise Exception(f'{self.name}の入力ポート(i)にデータが入力されませんでした')
+
         from streamcat.core import Datum
         if inputs['store'].type != Datum.RFOLDER_TYPE:
             t = type(inputs['store'])
