@@ -22,12 +22,6 @@ class LibraryTest(TestCaseBase):
         'password' : "kskanalytics"
     }
 
-    def setUp(self):
-        pass
-
-    def tearDown(self):
-        pass
-
     @classmethod
     def setUpClass(cls):
         # 親クラスのsetUpClass()を実行する
@@ -267,13 +261,20 @@ class LibraryTest(TestCaseBase):
         # フォルダ1の直下にフォルダ2を作成する
         folder2 = self.save_folder(folder1, 'iMac')
 
+        # 作成を確定する
+        self.factory.end()
+
         # 移動先に、移動元のフォルダの子フォルダを指定したら例外を送出すること
         with self.assertRaises(OSError):
             folder1.move(folder2.uuid)
 
+        # Rollbackを確定する
+        self.factory.end()
+
         # 移動が失敗した場合はDBは更新されていないこと
         self.assertEqual(folder1.created_at, folder1.modified_at)
         self.assertEqual(folder2.created_at, folder2.modified_at)
+        self.assertIsNone(folder1.prev_parent_id)
 
         # 例外送出によりSQLAlchemyのSessionがRollbackされるため
         # Datumの参照権限がNoneになる、そのため再読み込みする

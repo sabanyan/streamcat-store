@@ -137,8 +137,6 @@ class Activity(Datum):
         except Exception as e:
             self._session.rollback()
             raise e
-        finally:
-            self._session.commit()
 
     def _update_label(self, datum:Datum, end_at):
         """
@@ -188,8 +186,6 @@ class Activity(Datum):
         except Exception as e:
             self._session.rollback()
             raise e
-        finally:
-            self._session.commit()
 
     def to_json(self):
 

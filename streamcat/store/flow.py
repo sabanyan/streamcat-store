@@ -92,8 +92,6 @@ class Flow(Datum):
                 raise EditLockedException('編集ロックが掛かっているため新規追加できません')
             else:
                 raise e
-        finally:
-            self._session.commit()
 
     @lock_required
     def update_label(self, label, lock_uuid=None, modifier=None):
@@ -118,8 +116,6 @@ class Flow(Datum):
                 raise EditLockedException('編集ロックが掛かっているため更新できません')
             else:
                 raise e
-        finally:
-            self._session.commit()
 
         return self
 
@@ -190,8 +186,6 @@ class Flow(Datum):
                 raise EditLockedException('編集ロックが掛かっているため更新できません')
             else:
                 raise e
-        finally:
-            self._session.commit()
 
         # ここでflowを返すとtest_model.pyでテストが通らない
         return self
@@ -255,8 +249,6 @@ class Flow(Datum):
                 raise EditLockedException('編集ロックが掛かっているため削除できません')
             else:
                 raise e
-        finally:
-            self._session.commit()
             
     def remove_reference_only(self):
         """
@@ -274,7 +266,7 @@ class Flow(Datum):
         new_flow_data = self.flow_data.copy()
         new_flow_data.label = new_label
         new_flow_data.creator = self._session.user.name
-        # FIXIT : Dataテーブルのcreated_at列と時刻を合わせたい
+        # FIXME : Dataテーブルのcreated_at列と時刻を合わせたい
         from datetime import datetime, timedelta, timezone
         JST = timezone(timedelta(hours=+9), 'JST')
         new_flow_data.createdAt = datetime.now(JST).strftime('%Y-%m-%d %H:%M:%S')

@@ -27,11 +27,9 @@ class Store(BaseModel):
 
     def save(self):
         self._session.add(self)
-        self._session.commit()
 
     def delete(self):
         self._session.delete(self)
-        self._session.commit()
 
     def __str__(self):
         return self.id

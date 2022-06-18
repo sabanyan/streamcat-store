@@ -151,6 +151,9 @@ class SchdulerTest(TestCaseBase):
         schedule = project1.create_schedule('一定間隔', flow.uuid, args, trigger=trigger1)
         schedule.save()
 
+        # 作成を確定する
+        self.factory2.end()
+
         # 作成したスケジュールを取得する
         schedule = self.factory.data.find_by_uuid(schedule.uuid)
 
@@ -172,6 +175,10 @@ class SchdulerTest(TestCaseBase):
 
         # プロジェクトを削除する
         schedule.delete()
+        # 削除を確定する
+        self.factory.end()
+
+        # フローとプロジェクトを削除する
         flow.delete()
         project1.delete()
 
@@ -208,6 +215,9 @@ class SchdulerTest(TestCaseBase):
         schedule = project1.create_schedule('指定日時', flow.uuid, args, trigger=trigger1)
         schedule.save()
 
+        # 作成を確定する
+        self.factory3.end()
+
         # 作成したスケジュールを取得する
         schedule = self.factory.data.find_by_uuid(schedule.uuid)
 
@@ -229,6 +239,10 @@ class SchdulerTest(TestCaseBase):
 
         # プロジェクトを削除する
         schedule.delete()
+        # 削除を確定する
+        self.factory.end()
+
+        # フローとプロジェクトを削除する
         flow.delete()
         project1.delete()
 
@@ -257,6 +271,9 @@ class SchdulerTest(TestCaseBase):
 
         # 作成したスケジュールのラベルを変更する
         schedule.update_label('一度限りですよ', self.USER1)
+
+        # 変更を確定する
+        self.factory0.end()
 
         # 変更したスケジュールを取得する
         updated = self.factory.data.find_by_id(schedule.id)
@@ -319,6 +336,9 @@ class SchdulerTest(TestCaseBase):
             'day'        : 31,
         }
         schedule.update_data('変更後のスケジュール', flow2.uuid, args2, inputs2, trigger2, self.USER1)
+
+        # 変更を確定する
+        self.factory0.end()
 
         # 変更したスケジュールを取得する
         updated = self.factory.data.find_by_id(schedule.id)

@@ -39,8 +39,6 @@ class UserRole(BaseModel):
         except Exception as e:
             self._session.rollback()
             raise e
-        finally:
-            self._session.commit()
 
     def update_owner(self, owner, modifier=None):
         """
@@ -57,8 +55,6 @@ class UserRole(BaseModel):
         except Exception as e:
             self._session.rollback()
             raise e
-        finally:
-            self._session.commit()
 
         return self
 
@@ -71,8 +67,6 @@ class UserRole(BaseModel):
         except Exception as e:
             self._session.rollback()
             raise e
-        finally:
-            self._session.commit()
 
     def __repr__(self):
         return f'UserRole(user:{self.user_id}, role:{self.role_id}, owner:{self.owner})'
