@@ -1743,6 +1743,6 @@ class ToNamedPipeCommand(Command):
         from streamcat.core import Tmp
         import uuid
         # 一意なファイル名を作成する
-        file_name  = '__SCATTMP_' + 'PIPE_' + str(uuid.uuid4())[0:8]
+        file_name  = '__SCATTMP_PIPE_' + str(uuid.uuid4())[0:8]
         # TmpファイルPath
         return Tmp._get_tmp_directory() / file_name
