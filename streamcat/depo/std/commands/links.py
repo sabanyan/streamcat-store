@@ -7,6 +7,7 @@ from .mcmd.script import *
 from .kcmd.script import *
 from .pcmd.script import *
 from .scmd.script import *
+from .scmd.beam_script import *
 from .vcmd.script import *
 
 class CommandLink:
@@ -162,7 +163,11 @@ class CommandLink:
         'remotefolder_saver'  : RemoteFolderSaverCommand(),
         'activity' : ActivityCommand(),
         'assert' : AssertCommand(),
-        'runs' : RunsCommand()
+        'runs' : RunsCommand(),
+        # Apache Beamコマンド
+        'beam_loader' : BeamLoaderCommand(),
+        'beam_tolist' : BeamToListCommand(),
+        'beam_run'    : BeamRunCommand()
     }
 
     def __init__(self, command_id:str):

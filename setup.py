@@ -18,6 +18,7 @@ setup(
         'cryptography',
         'python-magic',
         'chardet',
+        'apache-beam',
         # 'awscli',
         # 'cx_Oracle',
         'numpy',
