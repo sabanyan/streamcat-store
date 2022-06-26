@@ -34,9 +34,35 @@ class BeamNoop(Command):
         )
 
         # BeamModuleを返す
-        beam_module = BeamModule(ptransform)
-        return {'o': beam_module}
+        return {'o': BeamModule(ptransform)}
 
+class BeamTee(Command):
+    """
+    入力を二分岐して出力する
+    """
+    def __init__(self):
+        super().__init__()
+        self.i_ports = [Port('i', 'beam')]
+        self.o_ports = [Port('o', 'beam'), Port('u', 'beam')]
+
+    def run(self, args, inputs):
+
+        def noop(row:List[str]) -> Iterable[List[str]]:
+            yield row
+
+        # 入力PortからPTransformを取得する
+        ptransform:PTransform = inputs['i'].content
+
+        # PTransformを繋げる
+        ptransform_o = ptransform | (
+            'Tee(o)' >> beam.ParDo(noop)
+        )
+        ptransform_u = ptransform | (
+            'Tee{u)' >> beam.ParDo(noop)
+        )
+
+        # BeamModuleを返す
+        return {'o': BeamModule(ptransform_o), 'u': BeamModule(ptransform_u)}
 
 class BeamLoaderCommand(LoaderCommand):
     """

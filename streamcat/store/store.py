@@ -246,7 +246,7 @@ class ApparentOut(Store):
     def __init__(self, out_point, datum, exs=None):
         super().__init__(None, None, 'out', None)
         self.out_point = out_point
-        self.datum = datum
+        self.datum:Datum = datum
         self.exs = exs
 
     @property

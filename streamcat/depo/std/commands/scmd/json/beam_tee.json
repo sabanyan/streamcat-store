@@ -1,0 +1,27 @@
+{
+    "version": "0.7.0",
+    "id": "beam_tee",
+    "label": "入力を二分岐して出力する",
+    "classification": "row_edit",
+    "description": "",
+    "ports": [
+      [
+        {
+          "name": "i",
+          "type": "beam"
+        }
+      ],
+      [
+        {
+          "name": "o",
+          "type": "beam"
+        },
+        {
+          "name": "u",
+          "type": "beam"
+        }
+      ]
+    ],
+    "params": [],
+    "url": ""
+}

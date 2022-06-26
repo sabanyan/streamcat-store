@@ -166,6 +166,7 @@ class CommandLink:
         'runs' : RunsCommand(),
         # Apache Beamコマンド
         'beam_noop'    : BeamNoop(),
+        'beam_tee'     : BeamTee(),
         'beam_loader'  : BeamLoaderCommand(),
         'beam_tolist'  : BeamToListCommand(),
         'beam_run'     : BeamRunCommand()
