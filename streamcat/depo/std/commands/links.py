@@ -165,9 +165,10 @@ class CommandLink:
         'assert' : AssertCommand(),
         'runs' : RunsCommand(),
         # Apache Beamコマンド
-        'beam_loader' : BeamLoaderCommand(),
-        'beam_tolist' : BeamToListCommand(),
-        'beam_run'    : BeamRunCommand()
+        'beam_noop'    : BeamNoop(),
+        'beam_loader'  : BeamLoaderCommand(),
+        'beam_tolist'  : BeamToListCommand(),
+        'beam_run'     : BeamRunCommand()
     }
 
     def __init__(self, command_id:str):

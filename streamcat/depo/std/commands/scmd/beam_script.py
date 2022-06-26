@@ -7,9 +7,36 @@ from apache_beam.io.filesystems import FileSystems
 from apache_beam.transforms import PTransform
 from apache_beam.transforms.core import _ReiterableChain
 
-from streamcat.core import Port
+from streamcat.core import Command, Port
 from streamcat.store import BeamModule
 from .script import SCommand, LoaderCommand
+
+class BeamNoop(Command):
+    """
+    何もしない
+    """
+    def __init__(self):
+        super().__init__()
+        self.i_ports = [Port('i', 'beam')]
+        self.o_ports = [Port('o', 'beam')]
+
+    def run(self, args, inputs):
+
+        def noop(row:List[str]) -> Iterable[List[str]]:
+            yield row
+
+        # 入力PortからPTransformを取得する
+        ptransform:PTransform = inputs['i'].content
+
+        # PTransformを繋げる
+        ptransform |= (
+            'No Operation' >> beam.ParDo(noop)
+        )
+
+        # BeamModuleを返す
+        beam_module = BeamModule(ptransform)
+        return {'o': beam_module}
+
 
 class BeamLoaderCommand(LoaderCommand):
     """
@@ -224,9 +251,9 @@ class BeamRunCommand(SCommand):
         # 入力ポートと出力ポートは同じキーで対応付ける
         i = 0
         rets = {}
-        for i_port_name, nysol_module in inputs.items():
+        for i_port_name, beam_module in inputs.items():
             # プレビューの場合はframe=Noneである
-            frame = nysol_module.context.get('frame')
+            frame = beam_module.context.get('frame')
             if len(exs_list) == 0:
                 matrix = Matrix(out_list)
                 rets[i_port_name] = ApparentOut(None, frame or matrix)

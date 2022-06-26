@@ -1,0 +1,23 @@
+{
+    "version": "0.7.0",
+    "id": "beam_noop",
+    "label": "何もしない",
+    "classification": "row_edit",
+    "description": "何もしない",
+    "ports": [
+      [
+        {
+          "name": "i",
+          "type": "beam"
+        }
+      ],
+      [
+        {
+          "name": "o",
+          "type": "beam"
+        }
+      ]
+    ],
+    "params": [],
+    "url": ""
+}
