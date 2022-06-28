@@ -9,6 +9,7 @@ from apache_beam.transforms.core import _ReiterableChain
 
 from streamcat.core import Command, Port
 from streamcat.store import BeamModule
+from streamcat.store import NysolModule
 from .script import SCommand, LoaderCommand
 
 class BeamNoop(Command):
@@ -35,6 +36,7 @@ class BeamNoop(Command):
 
         # BeamModuleを返す
         return {'o': BeamModule(ptransform)}
+
 
 class BeamTee(Command):
     """
@@ -63,6 +65,7 @@ class BeamTee(Command):
 
         # BeamModuleを返す
         return {'o': BeamModule(ptransform_o), 'u': BeamModule(ptransform_u)}
+
 
 class BeamLoaderCommand(LoaderCommand):
     """
@@ -137,7 +140,9 @@ class BeamToListCommand(SCommand):
             # 纏めた結果を返す
             return rets
 
-        def write(lists:Tuple[List]) -> None:
+        def write(tuple:Tuple[List]) -> None:
+            # Tuple型をList型に変換する
+            lists = [*tuple]
             # 入力データをシリアライズする
             pickled_lists = pickle.dumps(lists)
             # ファイル記述子からPIPEのStreamを作成する
@@ -228,6 +233,9 @@ class BeamRunCommand(SCommand):
         from streamcat.store import Matrix, ApparentOut, CommandException
 
         def do_run(module:BeamModule):
+            if 'fifo' not in module.context:
+                raise Exception(f'名前付きPIPEのファイル記述子がありません({module})')
+
             ptransform:PTransform = module.content
             (in_fd, out_fd) = module.context['fifo']
 
@@ -271,20 +279,56 @@ class BeamRunCommand(SCommand):
 
         # Apache Beamを実行する
         exs_list = []
-        out_list = do_run(inputs['0'])
+        results = {}
+        for i_port_name, input in inputs.items():
+            try:
+                results[i_port_name] = do_run(input)
+            except Exception as e:
+                exs_list.append(e)
 
-        # resultsの要素はnm_listへのappend順に対応している?ため
-        # 入力ポートと出力ポートは同じキーで対応付ける
-        i = 0
         rets = {}
         for i_port_name, beam_module in inputs.items():
             # プレビューの場合はframe=Noneである
             frame = beam_module.context.get('frame')
             if len(exs_list) == 0:
-                matrix = Matrix(out_list)
+                matrix = Matrix(results[i_port_name])
                 rets[i_port_name] = ApparentOut(None, frame or matrix)
             else:
                 rets[i_port_name] = ApparentOut(None, frame, exs=exs_list)
-            i += 1
+
+        return rets
+
+
+class OutToNysol(SCommand):
+    """
+    ApparentOutからNysolModuleへ変換する
+    """
+    def __init__(self):
+        super().__init__()
+        self.i_ports = [Port('*', 'out')]
+        self.o_ports = [Port('*', 'mcmd')]
+
+    def run(self, args, inputs):
+        import nysol.mcmd as nm
+        from streamcat.store import ApparentOut, CommandException
+
+        rets = {}
+
+        for i_port_name, input in inputs.items():
+            if not isinstance(input, ApparentOut):
+                raise CommandException(f'OutToNysolCommandにApparentOut以外のデータ型({input})が入力されました')
+                
+            out:ApparentOut = input
+
+            if out.has_exs:
+                rets[i_port_name] = out.exs[0]
+            elif out.has_list: 
+                cmd = nm.m2tee(i=out.datum.content)
+                rets[i_port_name] = NysolModule(cmd)
+            elif out.has_frame:
+                cmd = nm.m2tee(i=out.datum.path.as_posix())
+                rets[i_port_name] = NysolModule(cmd)
+            else:
+                raise CommandException(f'OutToNysolに入力されたApparentOutにデータが格納されていません')
 
         return rets

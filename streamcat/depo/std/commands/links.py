@@ -169,7 +169,8 @@ class CommandLink:
         'beam_tee'     : BeamTee(),
         'beam_loader'  : BeamLoaderCommand(),
         'beam_tolist'  : BeamToListCommand(),
-        'beam_run'     : BeamRunCommand()
+        'beam_run'     : BeamRunCommand(),
+        'outtonysol'   : OutToNysol()
     }
 
     def __init__(self, command_id:str):

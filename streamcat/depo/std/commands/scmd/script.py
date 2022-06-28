@@ -1044,7 +1044,7 @@ class ActivityCommand(SCommand):
                 out = input
                 out.out_point = out_point
             else:
-                raise Exception(f'ActivityCommandにApparentLastまたはCommandException以外のデータ型({input})が入力されました')
+                raise Exception(f'ActivityCommandにApparentOutまたはCommandException以外のデータ型({input})が入力されました')
 
             # Activityにoutを追加する
             activity.add(out)
