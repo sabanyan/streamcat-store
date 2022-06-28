@@ -1454,7 +1454,6 @@ class RestoreCommand(SCommand):
     """
     StreamCatシステムのDumpファイルを復元する
     """
-    from typing import List
     from pathlib import Path
     from tarfile import TarInfo
 
@@ -1561,7 +1560,7 @@ class RestoreCommand(SCommand):
             import warnings
             warnings.warn(f'退避したライブラリのディレクトリ({library_backup_path})を削除できませんでした ({e})')
 
-    def _members_are_valid_or_raise(self, members:List[TarInfo]):
+    def _members_are_valid_or_raise(self, members:list[TarInfo]):
         member_paths = [member.name for member in members]
         # meta.txtが含まれていること
         if self.META_FILE_NAME not in member_paths:

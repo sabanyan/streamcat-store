@@ -32,16 +32,14 @@ class Flow(Datum):
 
     @property
     def flow_data(self):
-        from typing import List
-
-        def select_unreadables(uuids:List[str]) -> List[str]:
+        def select_unreadables(uuids:list[str]) -> list[str]:
             """
             指定したuuidのうち参照権限の無いuuidを返す
             """
             results = self._session.query(Datum).filter(Datum.uuid.in_(uuids)).all(ignore_authz=True)
             return [result.uuid for result in results if not result.readable]
 
-        def select_unexecutables(uuids:List[str]) -> List[str]:
+        def select_unexecutables(uuids:list[str]) -> list[str]:
             """
             指定したuuidのうち実行権限の無いuuidを返す
             """

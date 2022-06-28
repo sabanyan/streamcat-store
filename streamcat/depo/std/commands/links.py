@@ -1,5 +1,4 @@
 import json
-from typing import List
 from pathlib import Path
 from streamcat.core import Command
 
@@ -229,7 +228,7 @@ class CommandsPathLink(PathLink):
     def __init__(self, source:PathFileSource):
         super().__init__(source)
 
-    def run(self, args=None, inputs=None) -> List[dict]:
+    def run(self, args=None, inputs=None) -> list[dict]:
         """
         コマンド定義のJSONを読んで一覧を返す
         """

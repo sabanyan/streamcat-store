@@ -1,5 +1,4 @@
 import datetime
-from typing import List
 from sqlalchemy import Column, text
 from sqlalchemy.dialects.postgresql import INTEGER, TIMESTAMP
 from sqlalchemy.ext.declarative import declared_attr
@@ -61,7 +60,7 @@ class SCatBaseModel(object):
         return next(reader)
 
     @staticmethod
-    def join(line_list:List[str], doublequote=False):
+    def join(line_list:list[str], doublequote=False):
         """
         文字列リストを","で結合する
         """

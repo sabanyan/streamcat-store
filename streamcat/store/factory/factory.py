@@ -1,4 +1,4 @@
-from typing import List, Union
+from typing import Union
 from sqlalchemy.orm.exc import NoResultFound
 from streamcat.core import Datum
 from streamcat.store import Folder, TrashCan
@@ -614,7 +614,7 @@ class AuthFactory():
             raise Exception('No authz is found by designated id')
         return authz
 
-    def find_all_by_datum_id(self, datum_id) -> List[Auth]:
+    def find_all_by_datum_id(self, datum_id) -> list[Auth]:
         from streamcat.store.auth import Auth
         query = self._session.query(Auth).filter(Auth.datum_id==datum_id)
         return query.order_by(Auth.role_id, Auth.operation).all()
