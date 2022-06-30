@@ -38,6 +38,37 @@ class BeamNoop(Command):
         return {'o': BeamModule(ptransform)}
 
 
+class BeamNumber(Command):
+    """
+    連番を付与する
+    """
+    def __init__(self):
+        super().__init__()
+        self.i_ports = [Port('i', 'beam')]
+        self.o_ports = [Port('o', 'beam')]
+
+    def run(self, args, inputs):
+
+        count = 0
+        def noop(row:List[str]) -> Iterable[List[str]]:
+            # nonlocal : 関数の外で定義した変数を参照する
+            nonlocal count
+            count += 1
+            row.insert(0, str(count))
+            yield row
+
+        # 入力PortからPTransformを取得する
+        ptransform:PTransform = inputs['i'].content
+
+        # PTransformを繋げる
+        ptransform |= (
+            'Number' >> beam.ParDo(noop)
+        )
+
+        # BeamModuleを返す
+        return {'o': BeamModule(ptransform)}
+
+
 class BeamTee(Command):
     """
     入力を二分岐して出力する
