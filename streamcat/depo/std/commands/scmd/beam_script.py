@@ -50,11 +50,11 @@ class BeamNumber(Command):
     def run(self, args, inputs):
 
         count = 0
-        def noop(row:List[str]) -> Iterable[List[str]]:
+        def filter(row:List[str]) -> Iterable[List[str]]:
             # nonlocal : 関数の外で定義した変数を参照する
             nonlocal count
-            count += 1
             row.insert(0, str(count))
+            count += 1
             yield row
 
         # 入力PortからPTransformを取得する
@@ -62,7 +62,48 @@ class BeamNumber(Command):
 
         # PTransformを繋げる
         ptransform |= (
-            'Number' >> beam.ParDo(noop)
+            'Number' >> beam.ParDo(filter)
+        )
+
+        # BeamModuleを返す
+        return {'o': BeamModule(ptransform)}
+
+
+class BeamRowRange(Command):
+    """
+    指定範囲の行を抽出する
+    """
+    def __init__(self):
+        super().__init__()
+        self.i_ports = [Port('i', 'beam')]
+        self.o_ports = [Port('o', 'beam')]
+
+    def run(self, args, inputs):
+
+        count = 0
+        def filter(row:List[str]) -> Iterable[List[str]]:
+            # nonlocal : 関数の外で定義した変数を参照する
+            nonlocal count
+
+            if count < offset:
+                # 取得開始行まで読み飛ばす
+                pass
+            elif count < offset + limit:
+                # 指定範囲の行を標準出力へ出力する
+                yield row
+
+            count += 1
+
+        # 指定範囲の取得
+        offset = int(args.get('offset')) if args.get('offset') else 0
+        limit = int(args.get('limit')) if args.get('limit') else 0
+
+        # 入力PortからPTransformを取得する
+        ptransform:PTransform = inputs['i'].content
+
+        # PTransformを繋げる
+        ptransform |= (
+            'RowRange' >> beam.ParDo(filter)
         )
 
         # BeamModuleを返す

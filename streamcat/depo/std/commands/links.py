@@ -167,6 +167,7 @@ class CommandLink:
         # Apache Beamコマンド
         'beam_noop'    : BeamNoop(),
         'beam_number'  : BeamNumber(),
+        'beam_rowrange': BeamRowRange(),
         'beam_tee'     : BeamTee(),
         'beam_loader'  : BeamLoaderCommand(),
         'beam_tolist'  : BeamToListCommand(),
