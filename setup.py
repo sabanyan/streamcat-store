@@ -18,7 +18,7 @@ setup(
         'cryptography',
         'python-magic',
         'chardet',
-        'apache-beam',
+        'apache-beam[gcp]>=2.37.0',
         # 'awscli',
         # 'cx_Oracle',
         'numpy',

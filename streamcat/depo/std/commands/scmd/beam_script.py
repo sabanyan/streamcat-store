@@ -263,6 +263,39 @@ class BeamRunCommand(SCommand):
     def run(self, args, inputs):
         from streamcat.store import Matrix, ApparentOut, CommandException
 
+        def make_options_gcp():
+            from apache_beam.options.pipeline_options import PipelineOptions
+            from apache_beam.options.pipeline_options import StandardOptions
+            from apache_beam.options.pipeline_options import SetupOptions
+            from apache_beam.options.pipeline_options import GoogleCloudOptions
+
+            # 引数に{}を指定しないとPipelineOptions()で落ちる
+            options = PipelineOptions({})
+            # GoogleCloud Option
+            gcloud_options = options.view_as(GoogleCloudOptions)
+            gcloud_options.project = 'Apache-beam'
+            gcloud_options.job_name = 'my-job'
+            gcloud_options.temp_location = "gs://example_bucket_name/tmp" # 処理する際にGCSに一時ファイルを作成するのでその保管先のGCS URI
+            gcloud_options.region = "asia-northeast1"
+            # Setup Option
+            options.view_as(SetupOptions).save_main_session = True
+            # Standard Option
+            # Cloud Dataflow実行
+            options.view_as(StandardOptions).runner = "DataflowRunner"
+
+            return options
+
+        def make_options():
+            from apache_beam.options.pipeline_options import PipelineOptions
+            from apache_beam.options.pipeline_options import StandardOptions
+
+            # 引数に{}を指定しないとPipelineOptions()で落ちる
+            options = PipelineOptions({})
+            # ランナーの指定
+            options.view_as(StandardOptions).runner = 'DirectRunner'  
+
+            return options
+
         def do_run(module:BeamModule):
             if 'fifo' not in module.context:
                 raise Exception(f'名前付きPIPEのファイル記述子がありません({module})')
@@ -271,7 +304,7 @@ class BeamRunCommand(SCommand):
             (in_fd, out_fd) = module.context['fifo']
 
             # Pipelineを実行する
-            pipeline = beam.Pipeline()
+            pipeline = beam.Pipeline(options=make_options())
             pipeline | ptransform
             result = pipeline.run()
 
