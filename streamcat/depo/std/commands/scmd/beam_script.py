@@ -1,5 +1,6 @@
 import os
 import pickle
+import pickletools
 from typing import Iterable, List, Tuple
 
 import apache_beam as beam
@@ -162,6 +163,12 @@ class BeamLoaderCommand(LoaderCommand):
 
         # ファイルパスと文字コードを取得する
         path, encoding = self._get_frame(args)
+
+        if encoding is None or encoding == 'UNKNOWN':
+            # 入力データの文字コードが未判定の場合
+            # 判定してもわからなかった場合はUTF-8で試してみる
+            encoding = 'utf-8'
+
         # CSVファイルを読み込むPTransformを作成する
         ptransform = (
             f'Create file path' >> beam.Create([path.as_posix()])
@@ -215,10 +222,13 @@ class BeamToListCommand(SCommand):
         def write(tuple:Tuple[List]) -> None:
             # Tuple型をList型に変換する
             lists = [*tuple]
-            # 入力データをシリアライズする
-            pickled_lists = pickle.dumps(lists)
+
             # ファイル記述子からPIPEのStreamを作成する
             in_pipe = open(in_fd, mode='wb', buffering=0, closefd=False)
+
+            # 入力データをシリアライズする
+            # (optimize()でサイズを減らす)
+            pickled_lists = pickletools.optimize(pickle.dumps(lists, protocol=pickle.HIGHEST_PROTOCOL))
             # PIPEのStreamにデータを書き込む
             in_pipe.write(pickled_lists)
 
@@ -230,6 +240,7 @@ class BeamToListCommand(SCommand):
         os.mkfifo(pipe_path)
 
         # 名前付きPIPEを開き、ファイル記述子を取得する
+        # NOTE: Non-BlockingモードではPIPEのバッファがFullになっても待機せず、その後の書き込みデータを捨てる
         in_fd = os.open(pipe_path, flags=os.O_NONBLOCK|os.O_RDWR)
         out_fd= os.open(pipe_path, flags=os.O_NONBLOCK|os.O_RDONLY)
 
@@ -267,7 +278,7 @@ class BeamToListCommand(SCommand):
         # 入力PortからPTransformを取得する
         ptransform:PTransform = inputs['i'].content
 
-        # 名前なしPIPEを作成すし、ファイル記述子を取得する
+        # 名前なしPIPEを作成し、ファイル記述子を取得する
         recv_conn, send_conn = Pipe(duplex=False)
         in_fd = send_conn.fileno()
         out_fd = recv_conn.fileno()
@@ -333,8 +344,7 @@ class BeamRunCommand(SCommand):
             # 引数に{}を指定しないとPipelineOptions()で落ちる
             options = PipelineOptions({})
             # ランナーの指定
-            options.view_as(StandardOptions).runner = 'DirectRunner'  
-
+            options.view_as(StandardOptions).runner = 'DirectRunner'
             return options
 
         def do_run(module:BeamModule):
@@ -347,21 +357,23 @@ class BeamRunCommand(SCommand):
             # Pipelineを実行する
             pipeline = beam.Pipeline(options=make_options())
             pipeline | ptransform
+            # NOTE: 以下のrun()は同期実行されるようだ
             result = pipeline.run()
 
             # 実行が終了するまで待つ
+            # NOTE: run()が同期実行なので待つ必要もない
             result.wait_until_finish()
-            
+
             # PIPEから全てのデータを読み込む
             with open(out_fd, mode='rb', buffering=0, closefd=False) as f:
-                byte_array = f.read()
+                lists = pickle.load(f)
 
             # PIPEを閉じる
             os.close(out_fd)
             os.close(in_fd)
 
             # Deserializeする
-            return pickle.loads(byte_array)
+            return lists
 
         # 
         # CommandExceptionが1つでも入力された場合は処理を中断する
