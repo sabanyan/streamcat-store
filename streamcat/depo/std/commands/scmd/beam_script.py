@@ -241,6 +241,7 @@ class BeamToListCommand(SCommand):
 
         # 名前付きPIPEを開き、ファイル記述子を取得する
         # NOTE: Non-BlockingモードではPIPEのバッファがFullになっても待機せず、その後の書き込みデータを捨てる
+        # その場合、pickle.dumps()でシリアライズしたバイト列が途中で捨てられ"pickle data was truncated"エラーになる
         in_fd = os.open(pipe_path, flags=os.O_NONBLOCK|os.O_RDWR)
         out_fd= os.open(pipe_path, flags=os.O_NONBLOCK|os.O_RDONLY)
 
@@ -345,6 +346,12 @@ class BeamRunCommand(SCommand):
             options = PipelineOptions({})
             # ランナーの指定
             options.view_as(StandardOptions).runner = 'DirectRunner'
+            options.view_as(StandardOptions).streaming = True
+            # pipeline.run()を非同期呼び出しする指定
+            # NOTE: Javaでは指定できるようだが、Apache Beamのソースコードを調べた結果
+            # Pythonでは指定できないようだ
+            # 
+            # options.view_as(StandardOptions).setBlockOnRun = False
             return options
 
         def do_run(module:BeamModule):
