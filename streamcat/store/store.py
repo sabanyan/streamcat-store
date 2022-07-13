@@ -142,19 +142,28 @@ class BeamModule(Datum):
     """
     Apache Beam PTransformをラップするクラス
     """
-    def __init__(self, beam_cmd=None):
-        super().__init__(None, None, 'beam', self._get_name(beam_cmd))
-        self._content = beam_cmd
+    def __init__(self, ptransform=None):
+        super().__init__(None, None, 'beam', self._get_name(ptransform))
+        self._content = ptransform
+        self._encoding = None
 
-    def _get_name(self, beam_cmd):
-        if beam_cmd is None:
+    def _get_name(self, ptransform):
+        if ptransform is None:
             return None
         else:
-            return beam_cmd.__class__.__name__
+            return ptransform.__class__.__name__
 
     @property
     def content(self):
         return self._content
+
+    @property
+    def encoding(self):
+        return self._encoding
+
+    @encoding.setter
+    def encoding(self, encoding):
+        self._encoding = encoding
 
 class Matrix(Datum):
     """
@@ -234,7 +243,7 @@ class ApparentOut(Store):
     フローの出力ポートと出力結果を保持する
     (フローエディタから見た見かけのout)
     """
-    def __init__(self, out_point, datum, exs=None):
+    def __init__(self, out_point, datum:Datum, exs=None):
         super().__init__(None, None, 'out', None)
         self.out_point = out_point
         self.datum = datum
