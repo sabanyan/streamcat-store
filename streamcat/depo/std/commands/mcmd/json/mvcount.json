@@ -56,13 +56,13 @@
     [
       {
         "name": "i",
-        "type": "frame"
+        "type": "mcmd"
       }
     ],
     [
       {
         "name": "o",
-        "type": "frame"
+        "type": "mcmd"
       }
     ]
   ],

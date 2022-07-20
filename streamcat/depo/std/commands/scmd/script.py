@@ -63,7 +63,7 @@ class SaverCommand(SCommand):
     """
     def __init__(self):
         super().__init__()
-        self.i_ports = [Port('i', 'frame'), Port('folder', 'store')]
+        self.i_ports = [Port('i', 'mcmd'), Port('folder', 'store')]
         self.o_ports = [Port('o', 'mcmd')]
         self.name = 'saver'
 
@@ -178,7 +178,7 @@ class CacheSaverCommand(SaverCommand):
     """
     def __init__(self):
         super().__init__()
-        self.o_ports = [Port('o', 'mcmd'), Port('u', 'frame')]
+        self.o_ports = [Port('o', 'mcmd'), Port('u', 'out')]
 
     def run(self, args, inputs):
         import warnings
@@ -729,7 +729,7 @@ class RemoteFolderSaverCommand(SaverCommand):
     """
     def __init__(self):
         super().__init__()
-        self.i_ports = [Port('i', 'frame'), Port('store', 'store')]
+        self.i_ports = [Port('i', 'mcmd'), Port('store', 'store')]
         self.o_ports = [Port('o', 'mcmd')]
         self.name = 'remotefolder_saver'
 
@@ -1078,7 +1078,7 @@ class RaiseCommand(SCommand):
     """
     def __init__(self):
         super().__init__()
-        self.i_ports = [Port('i', 'frame')]
+        self.i_ports = [Port('i', 'mcmd')]
         self.o_ports = [Port('o', 'mcmd')]
 
     def run(self, args, inputs):
@@ -1094,7 +1094,7 @@ class AssertCommand(SCommand):
     """
     def __init__(self):
         super().__init__()
-        self.i_ports = [Port('i', 'frame'), Port('m', 'frame')]
+        self.i_ports = [Port('i', 'mcmd'), Port('m', 'mcmd')]
         self.o_ports = [Port('o', 'mcmd')]
 
     def run(self, args, inputs):

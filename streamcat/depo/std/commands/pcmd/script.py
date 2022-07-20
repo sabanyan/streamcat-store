@@ -25,7 +25,7 @@ class PCommand(Command):
     """
     def __init__(self):
         super().__init__()
-        self.i_ports = [Port('i', 'frame')]
+        self.i_ports = [Port('i', 'mcmd')]
         self.o_ports = [Port('o', 'mcmd')]
 
     def replace_args(self, args):
@@ -175,8 +175,8 @@ class ColumnNameCommand(PCommand):
     
     def __init__(self):
         super().__init__()
-        self.i_ports = [Port('i', 'frame')]
-        self.o_ports = [Port('o', 'frame')]
+        self.i_ports = [Port('i', 'mcmd')]
+        self.o_ports = [Port('o', 'mcmd')]
 
     def const(self, s):
         if s == 'commandname':
@@ -565,7 +565,7 @@ class Utf8ToCp932Command(PCommand):
 class RunfuncCommand(Command):
     def __init__(self):
         super().__init__()
-        self.i_ports = [Port('i', 'frame')]
+        self.i_ports = [Port('i', 'mcmd')]
         self.o_ports = [Port('o', 'mcmd')]
 
     def run(self, args, inputs):
@@ -578,8 +578,8 @@ class RunfuncCommand(Command):
 class MultiMcalCommand(PCommand):
     def __init__(self):
         super().__init__()
-        self.i_ports = [Port('i', 'frame')]
-        self.o_ports = [Port('o', 'frame')]
+        self.i_ports = [Port('i', 'mcmd')]
+        self.o_ports = [Port('o', 'mcmd')]
 
     def run(self, args, inputs):
 
@@ -614,8 +614,8 @@ class MultiMcalCommand(PCommand):
 class MultiMcalWCCommand(PCommand):
     def __init__(self):
         super().__init__()
-        self.i_ports = [Port('i', 'frame')]
-        self.o_ports = [Port('o', 'frame')]
+        self.i_ports = [Port('i', 'mcmd')]
+        self.o_ports = [Port('o', 'mcmd')]
 
     def parse(self, exp):
         if '-' in exp:
@@ -687,8 +687,8 @@ class MultiMcalWCCommand(PCommand):
 class MvAvgCommand(PCommand):
     def __init__(self):
         super().__init__()
-        self.i_ports = [Port('i', 'frame')]
-        self.o_ports = [Port('o', 'frame')]
+        self.i_ports = [Port('i', 'mcmd')]
+        self.o_ports = [Port('o', 'mcmd')]
 
     def parse(self, exp):
         if '-' in exp:
@@ -769,8 +769,8 @@ class MvAvgCommand(PCommand):
 class MvStatsCommand(PCommand):
     def __init__(self):
         super().__init__()
-        self.i_ports = [Port('i', 'frame')]
-        self.o_ports = [Port('o', 'frame')]
+        self.i_ports = [Port('i', 'mcmd')]
+        self.o_ports = [Port('o', 'mcmd')]
 
     def parse(self, exp):
         if '-' in exp:
@@ -921,8 +921,8 @@ class MvSimCommand(PCommand):
     
     def __init__(self):
         super().__init__()
-        self.i_ports = [Port('i', 'frame')]
-        self.o_ports = [Port('o', 'frame')]
+        self.i_ports = [Port('i', 'mcmd')]
+        self.o_ports = [Port('o', 'mcmd')]
         
 
     def parse(self, exp):
@@ -1296,7 +1296,7 @@ class MvSimCommand(PCommand):
 class PlainText2Csv(Command):
     def __init__(self):
         super().__init__()
-        self.i_ports = [Port('i', 'frame')]
+        self.i_ports = [Port('i', 'mcmd')]
         self.o_ports = [Port('o', 'mcmd')]  
 
     def run(self, args, inputs):
@@ -1326,7 +1326,7 @@ class PlainText2Csv(Command):
 class SelRowCommand(RunfuncCommand):
     def __init__(self):
         super().__init__()
-        self.i_ports = [Port('i', 'frame')]
+        self.i_ports = [Port('i', 'mcmd')]
         self.o_ports = [Port('o', 'mcmd'), Port('u', 'mcmd')]
 
     def run(self, args, inputs):
@@ -1364,8 +1364,8 @@ class RowRangeCommand(Command):
     """
     def __init__(self):
         super().__init__()
-        self.i_ports = [Port('i', 'frame')]
-        self.o_ports = [Port('o', 'frame')]
+        self.i_ports = [Port('i', 'mcmd')]
+        self.o_ports = [Port('o', 'mcmd')]
 
     def run(self, args, inputs):
         def filter(fr, size):
@@ -1409,8 +1409,8 @@ class RowRandomCommand(Command):
     """
     def __init__(self):
         super().__init__()
-        self.i_ports = [Port('i', 'frame')]
-        self.o_ports = [Port('o', 'frame')]
+        self.i_ports = [Port('i', 'mcmd')]
+        self.o_ports = [Port('o', 'mcmd')]
 
     def run(self, args, inputs):
         def filter(size):
@@ -1461,8 +1461,8 @@ class ConvToUtf8(Command):
     """
     def __init__(self):
         super().__init__()
-        self.i_ports = [Port('i', 'frame')]
-        self.o_ports = [Port('o', 'frame')]
+        self.i_ports = [Port('i', 'mcmd')]
+        self.o_ports = [Port('o', 'mcmd')]
 
     def run(self, args, inputs):
 
@@ -1592,8 +1592,8 @@ class AlignColumns(Command):
     """
     def __init__(self):
         super().__init__()
-        self.i_ports = [Port('i', 'frame')]
-        self.o_ports = [Port('o', 'frame')]
+        self.i_ports = [Port('i', 'mcmd')]
+        self.o_ports = [Port('o', 'mcmd')]
 
     def run(self, args, inputs):
         cmd = inputs['i'].content

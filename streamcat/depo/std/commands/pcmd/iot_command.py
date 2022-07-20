@@ -85,8 +85,8 @@ def generate_error_message(commandname, errcode, errfield, fieldinput, template_
 class MeasurementPeriodIdentifyCommand(PCommand):
     def __init__(self):
         super().__init__()
-        self.i_ports = [Port('i', 'frame')]
-        self.o_ports = [Port('o', 'frame')]
+        self.i_ports = [Port('i', 'mcmd')]
+        self.o_ports = [Port('o', 'mcmd')]
 
     def dynamic_methods(self, method, add_flds):
         """
@@ -449,8 +449,8 @@ class MeasurementPeriodIdentifyCommand(PCommand):
 class MissingValueInterpolateCommand(PCommand):
     def __init__(self):
         super().__init__()
-        self.i_ports = [Port('i', 'frame')]
-        self.o_ports = [Port('o', 'frame')]
+        self.i_ports = [Port('i', 'mcmd')]
+        self.o_ports = [Port('o', 'mcmd')]
 
     def interpolate_formula_topbot(self, keys, field, nextfield, methods, iplist, ipflds, args, aflds):
         """
@@ -1684,8 +1684,8 @@ class MissingValueInterpolateCommand(PCommand):
 class TimeSeriesDataJoinCommand(PCommand):
     def __init__(self):
         super().__init__()
-        self.i_ports = [Port('i', 'frame'), Port('m', 'frame')]
-        self.o_ports = [Port('o', 'frame')]
+        self.i_ports = [Port('i', 'mcmd'), Port('m', 'mcmd')]
+        self.o_ports = [Port('o', 'mcmd')]
     
     def run(self, args, inputs):
         """
@@ -2072,7 +2072,7 @@ class TimeAxisDataGenerateIn0Command(PCommand):
     def __init__(self):
         super().__init__()
         self.i_ports = []
-        self.o_ports = [Port('o', 'frame')]
+        self.o_ports = [Port('o', 'mcmd')]
     
     def const(self, s):
         res = None
@@ -2410,8 +2410,8 @@ class TimeAxisDataGenerateIn0Command(PCommand):
 class TimeAxisDataGenerateIn1Command(PCommand):
     def __init__(self):
         super().__init__()
-        self.i_ports = [Port('i', 'frame')]
-        self.o_ports = [Port('o', 'frame')]
+        self.i_ports = [Port('i', 'mcmd')]
+        self.o_ports = [Port('o', 'mcmd')]
     
     def time_axis_generator_in1(self, args):
         """
