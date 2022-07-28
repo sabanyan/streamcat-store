@@ -128,6 +128,7 @@ class SCatBaseModel(object):
         d_at_local = d_at_utc.astimezone()
         return d_at_local.strftime('%Y-%m-%d %H:%M:%S')
 
+    @staticmethod
     def local_time_str_to_datetime(d_str:str) -> datetime.datetime:
         import os
         from dateutil import tz
