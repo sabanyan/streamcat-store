@@ -80,23 +80,6 @@ class PCommand(Command):
         pass
 
 
-class SmlModelingCommand(PCommand):
-    def __init__(self):
-        super().__init__()
-
-    def run(self, args, inputs):
-        f = None
-        f <<= inputs['i'].content
-
-        args_string = (PCMD_DIR / 'src/sml_modeling.sh').as_posix()
-        args_string += ' kcmd_path=' + (PCMD_DIR.parent / 'kcmd/src').as_posix()
-        args_string += ' temp_path=' + (PCMD_DIR / 'tmp').as_posix()
-        args_string += ' model_data_path=' + (PCMD_DIR / 'model').as_posix()
-        args_string += self.replace_args(args)
-
-        return {'o': self.module(f, args_string)}
-
-
 class ColumnListCommand(PCommand):
     def __init__(self):
         super().__init__()
@@ -134,20 +117,6 @@ class ColumnBlankNameCommand(PCommand):
         f <<= inputs['i'].content
 
         args_string = (PCMD_DIR / 'src/column_blank_name.sh').as_posix()
-        args_string += self.replace_args(args)
-
-        return {'o': self.module(f, args_string)}
-
-
-class ColumnsToRowsCommand(PCommand):
-    def __init__(self):
-        super().__init__()
-
-    def run(self, args, inputs):
-        f = None
-        f <<= inputs['i'].content
-
-        args_string = (PCMD_DIR / 'src/columns_to_rows.sh').as_posix()
         args_string += self.replace_args(args)
 
         return {'o': self.module(f, args_string)}
@@ -302,34 +271,6 @@ class ColumnNameCommand(PCommand):
         return {'o': nysol_module_o}
 
 
-class GroupbyCommand(PCommand):
-    def __init__(self):
-        super().__init__()
-
-    def run(self, args, inputs):
-        f = None
-        f <<= inputs['i'].content
-
-        args_string = (PCMD_DIR / 'src/groupby.sh').as_posix()
-        args_string += self.replace_args(args)
-
-        return {'o': self.module(f, args_string)}
-
-
-class GroupbyColumnsCommand(PCommand):
-    def __init__(self):
-        super().__init__()
-
-    def run(self, args, inputs):
-        f = None
-        f <<= inputs['i'].content
-
-        args_string = (PCMD_DIR / 'src/groupby_columns.sh').as_posix()
-        args_string += self.replace_args(args)
-
-        return {'o': self.module(f, args_string)}
-
-
 class CheckDuplicateRowsCommand(PCommand):
     def const(self, s):
         if s == 'commandname':
@@ -442,34 +383,6 @@ class CheckDuplicateRowsCommand(PCommand):
         # args_string += self.replace_args(args)
 
         # return {'o': self.module(f, args_string)}
-
-
-class MergeFSCommand(PCommand):
-    def __init__(self):
-        super().__init__()
-
-    def run(self, args, inputs):
-        f = None
-        f <<= inputs['i'].content
-
-        args_string = (PCMD_DIR / 'src/merge_FS.sh').as_posix()
-        args_string += self.replace_args(args)
-
-        return {'o': self.module(f, args_string)}
-
-
-class MergeIbutsuCommand(PCommand):
-    def __init__(self):
-        super().__init__()
-
-    def run(self, args, inputs):
-        f = None
-        f <<= inputs['i'].content
-
-        args_string = (PCMD_DIR / 'src/merge_ibutsu.sh').as_posix()
-        args_string += self.replace_args(args)
-
-        return {'o': self.module(f, args_string)}
 
 
 class WinCp932ReadCommand(PCommand):
