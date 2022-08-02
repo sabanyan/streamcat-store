@@ -10,8 +10,8 @@ setup(
         # NOTE: macOS環境にpsycopg2のインストールを試みると、clangが "ld: library not found for -lssl"の
         # エラーメッセージを出力してインストールできない、代わりにpsycopg2-binaryをインストールする
         # NOTE: psycopg2-binaryはARM64環境に対応していない
-        # 'psycopg2-binary',
-        'psycopg2',
+        # 'psycopg2',
+        'psycopg2-binary @ https://test.pypi.org/simple/',
         'SQLAlchemy<1.5.0',
         'APScheduler',
         'jsonschema',
