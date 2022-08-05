@@ -69,6 +69,8 @@ class Flow(Datum):
         # 
         # TODO: フローJSONの書式修正による後方互換!
         # 
+        self.flow_data.remove_uuid_from_root()
+        self.flow_data.remove_projectname_from_root()
         self.flow_data.remove_uuid_from_param()
 
         # 不正なフローJSONがDBに格納されないよう、ここで書式の検証をする

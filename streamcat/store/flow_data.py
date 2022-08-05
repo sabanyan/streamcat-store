@@ -483,7 +483,7 @@ class FlowData():
                     '^[0-9a-zA-Z_]+$': {
                         'type': 'array',
                         'items': {
-                            'type': 'string'
+                            'type': ['null', 'string']
                         }
                     }
                 }
@@ -768,6 +768,20 @@ class FlowData():
                 'params': self.params,
                 'ports': [self.i_ports, self.o_ports]
             }
+
+    def remove_uuid_from_root(self):
+        """
+        後方互換のため、uuidを削除する
+        """
+        if 'uuid' in self._flow_json:
+            del self._flow_json['uuid']
+    
+    def remove_projectname_from_root(self):
+        """
+        後方互換のため、projectNameを削除する
+        """
+        if 'projectName' in self._flow_json:
+            del self._flow_json['projectName']
 
     def remove_uuid_from_param(self):
         """
