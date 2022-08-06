@@ -7,7 +7,7 @@ class ScheduleManager():
     スケジュールを管理する
     """
     def __init__(self):
-        import pytz
+        from datetime import timezone
         from apscheduler.jobstores.memory import MemoryJobStore
         from apscheduler.executors.pool import ThreadPoolExecutor
         from apscheduler.schedulers.background import BackgroundScheduler
@@ -29,7 +29,7 @@ class ScheduleManager():
         }
 
         # スケジューラを作成する
-        self.scheduler = BackgroundScheduler(jobstores=jobstores, executors=executors, job_defaults=job_defaults, timezone=pytz.utc)
+        self.scheduler = BackgroundScheduler(jobstores=jobstores, executors=executors, job_defaults=job_defaults, timezone=timezone.utc)
 
         # スケジューラを起動する
         self.scheduler.start()
