@@ -1,78 +1,32 @@
 {
+  "version": "0.7.0",
   "id": "mchkcsv",
-  "params": [
-    {
-      "name": "a",
-      "type": "string",
-      "label": "新しい項目名に置き換える",
-      "optional": true,
-      "description": "入力データの項目名数と同じ数を、カンマ区切りで指定する"
-    },
-    {
-      "name": "diag",
-      "type": "boolean",
-      "label": "検査レポートを出力する",
-      "optional": true,
-      "default": true
-    },
-    {
-      "name": "r",
-      "type": "boolean",
-      "label": "制御文字を無視する",
-      "optional": true
-    },
-    {
-      "name": "assert_nullout",
-      "type": "boolean",
-      "label": "出力項目の NULL 値チェックを行う",
-      "optional": true
-    },
-    {
-      "name": "nfn",
-      "type": "boolean",
-      "label": "入力データの 1 行目を項目名行とみなさない。",
-      "optional": true
-    },
-    {
-      "name": "nfno",
-      "type": "boolean",
-      "label": "出力データに項目名行を出力しない。",
-      "optional": true
-    },
-    {
-      "name": "x",
-      "type": "boolean",
-      "label": "項目名ではなく、項目番号で指定する",
-      "optional": true,
-      "description": "・0始まりの項目番号で指定する\n・Lをつけると、右端起点の項目番号とみなす(例:3L)\n・複数入力可能なOptの場合は、列範囲としての指定も可能(例: 0-5)"
-    },
-    {
-      "name": "tmpPath",
-      "type": "string",
-      "label": "作業ファイル格納パス名",
-      "optional": true
-    }
-  ],
+  "label": "CSV検査",
+  "classification": "validation",
+  "description": "入力データが規定のCSV形式であるかを検査する",
+  "url": "./static/pdf/mcmd/validation/mchkcsv.pdf",
   "ports": [
     [
       {
         "name": "i",
-        "label": "入力ファイル",
-        "type": "frame"
+        "type": "mcmd"
       }
     ],
     [
       {
         "name": "o",
-        "type": "frame"
+        "type": "mcmd"
       }
     ]
   ],
-  "version": "0.7.0",
-  "label": "CSV検査",
-  "classification": "validation",
-  "description": "入力データが規定のCSV形式であるかを検査する",
-  "url": "./static/pdf/mcmd/validation/mchkcsv.pdf",
+  "params": [
+    {
+      "name": "nfn",
+      "type": "boolean",
+      "label": "入力データの 1 行目を項目名行とみなさない。",
+      "optional": true
+    }
+  ],
   "groups": [
     {
       "name": "abstract",
@@ -81,29 +35,10 @@
       "params": []
     },
     {
-      "name": "cmd_main",
-      "label": "検査の設定 (必須)",
-      "params": [
-        "diag",
-        "r"
-      ]
-    },
-    {
       "name": "cmd_sub",
       "label": "その他 (省略可)",
       "params": [
-        "a",
-        "nfn",
-        "nfno",
-        "x"
-      ]
-    },
-    {
-      "name": "system",
-      "label": "システム管理用設定（作業領域・ログ出力）",
-      "params": [
-        "assert_nullout",
-        "tmpPath"
+        "nfn"
       ]
     }
   ]

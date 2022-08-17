@@ -73,7 +73,7 @@
     [
       {
         "name": "o",
-        "type": "frame"
+        "type": "mcmd"
       }
     ]
   ],

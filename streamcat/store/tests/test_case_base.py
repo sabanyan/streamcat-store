@@ -1,6 +1,5 @@
 import unittest
 import pprint
-
 from streamcat.store.factory import Factory, UnAuthzFactory
 
 class TestCaseBase(unittest.TestCase):
@@ -10,50 +9,67 @@ class TestCaseBase(unittest.TestCase):
         with UnAuthzFactory() as factory:
             sys_admin_user = factory.find_user_by_email('Admin@streamcat.io')
             usr_admin_user = factory.find_user_by_email('admin@streamcat.io')
-        # 管理者ユーザのFactoryをOpenする
-        cls.factory0 = Factory(sys_admin_user)
-        cls.factory = Factory(usr_admin_user)
-        # テストユーザ1を作成する
-        test_user = cls.factory.user.create('test@streamcat.io', 'Test', '123abc(*)A')
-        test_user.save()
-        # テストユーザ2を作成する
-        test_user2 = cls.factory.user.create('test2@streamcat.io', 'Test2', '123abc(*)B')
-        test_user2.save()
-        # テストユーザのFactoryをOpenする
-        cls.factory2 = Factory(test_user)
-        cls.factory3 = Factory(test_user2)
-        # FactoryでUserオブジェクトを再取得する
-        sys_admin_user = cls.factory0.user.find_by_id(sys_admin_user.id)
-        usr_admin_user = cls.factory.user.find_by_id(usr_admin_user.id)
-        test_user = cls.factory2.user.find_by_id(test_user.id)
-        test_user2 = cls.factory3.user.find_by_id(test_user2.id)
-        # 仮登録状態から登録状態にする
-        sys_admin_user.update_password('adminpass1')
-        usr_admin_user.update_password('adminpass1')
-        test_user.update_password('testpass00')
-        test_user2.update_password('testpass20')
-        # クラス変数に設定する
+
+        with Factory(usr_admin_user) as factory:
+            # テストユーザ1を作成する
+            test_user = factory.user.create('test@streamcat.io', 'Test', '123abc(*)A')
+            test_user.save()
+            # テストユーザ2を作成する
+            test_user2 = factory.user.create('test2@streamcat.io', 'Test2', '123abc(*)B')
+            test_user2.save()
+
+        # システム管理者を登録状態にする
+        with Factory(sys_admin_user) as factory:
+            # FactoryでUserオブジェクトを再取得する
+            sys_admin_user = factory.user.find_by_id(sys_admin_user.id)
+            # 仮登録状態から登録状態にする
+            sys_admin_user.update_password('adminpass1')
+            sys_admin_user = factory.user.find_by_id(sys_admin_user.id)
+
+        # ユーザ管理者を登録状態にする
+        with Factory(usr_admin_user) as factory:
+            usr_admin_user = factory.user.find_by_id(usr_admin_user.id)
+            usr_admin_user.update_password('adminpass1')
+            usr_admin_user = factory.user.find_by_id(usr_admin_user.id)
+
+        # テストユーザ1を登録状態にする
+        with Factory(test_user) as factory:
+            test_user = factory.user.find_by_id(test_user.id)
+            test_user.update_password('testpass00')
+            test_user = factory.user.find_by_id(test_user.id)
+
+        # テストユーザ2を登録状態にする
+        with Factory(test_user2) as factory:
+            test_user2 = factory.user.find_by_id(test_user2.id)
+            test_user2.update_password('testpass20')
+            test_user2 = factory.user.find_by_id(test_user2.id)
+
+        # クラス変数を設定する
         cls.USER0 = sys_admin_user
         cls.USER1 = usr_admin_user
         cls.USER2 = test_user
         cls.USER3 = test_user2
 
-        # ルートフォルダを作成する
-        cls.root = cls.factory.data.load_root()
         # ライブラリデータデストを作成する
-        cls.data_dst = cls._create_data_dst(cls.root)
+        with Factory(usr_admin_user) as factory:
+            cls.root = factory.data.load_root()
+            cls.data_dst = cls._create_data_dst(cls.root)
 
     @classmethod
     def tearDownClass(cls):
+        # USERオブジェクトに対する操作によってトランザクションが設定されるため
+        # ここでそれらのトランザクションを終了する
+        cls.USER0._session.close()
+        cls.USER1._session.close()
+        cls.USER2._session.close()
+        cls.USER3._session.close()
+
         # ライブラリフォルダを削除する
-        library_path = cls.factory.data.load_root().path
-        import shutil
-        shutil.rmtree(library_path.as_posix())
-        # FactoryをCloseする
-        cls.factory0.close()
-        cls.factory.close()
-        cls.factory2.close()
-        cls.factory3.close()
+        with Factory(cls.USER1) as factory:
+            import shutil
+            library_path = factory.data.load_root().path
+            shutil.rmtree(library_path.as_posix())
+
         # スキーマを破棄する
         from sqlalchemy import DDL
         from streamcat.core import engine, SCHEMA_NAME
@@ -131,6 +147,22 @@ class TestCaseBase(unittest.TestCase):
         project.init_members([member0, member1, member2, member3], last_modified_at=project.modified_at)
 
         return data_dst_flow.reload()
+
+    def setUp(self) -> None:
+        super().setUp()        
+        # テスト実行ごとにトランザクションを設定する
+        self.factory0 = Factory(self.USER0)
+        self.factory = Factory(self.USER1)
+        self.factory2 = Factory(self.USER2)
+        self.factory3 = Factory(self.USER3)
+
+    def tearDown(self) -> None:
+        super().tearDown()
+        # FactoryをCloseする
+        self.factory0.end()
+        self.factory.end()
+        self.factory2.end()
+        self.factory3.end()
 
     def create_data_dst_node(self, src_node_id:str) -> dict:
         """

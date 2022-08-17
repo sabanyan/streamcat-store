@@ -9,13 +9,17 @@
     [
       {
         "name": "i",
-        "type": "frame"
+        "type": "out"
+      },
+      {
+        "name": "m",
+        "type": "out"
       }
     ],
     [
       {
         "name": "o",
-        "type": "frame"
+        "type": "out"
       }
     ]
   ],

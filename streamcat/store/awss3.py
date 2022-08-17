@@ -53,8 +53,6 @@ class AwsS3(Mountable, Folder):
             self._remove_dir(self_path)
             self._session.rollback()
             raise e
-        finally:
-            self._session.commit()
 
     def update_data(self, label, bucket_name, modifier=None):
         """
@@ -87,8 +85,6 @@ class AwsS3(Mountable, Folder):
         except Exception as e:
             self._session.rollback()
             raise e
-        finally:
-            self._session.commit()
 
         return self
 
@@ -116,8 +112,6 @@ class AwsS3(Mountable, Folder):
         except Exception as e:
             self._session.rollback()
             raise e
-        finally:
-            self._session.commit()
 
     @property
     def bucket_name(self):
@@ -154,8 +148,6 @@ class AwsS3(Mountable, Folder):
     #     except Exception as e:
     #         session.rollback()
     #         raise e
-    #     finally:
-    #         session.commit()
 
 
     # import boto3

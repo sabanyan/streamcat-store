@@ -268,8 +268,8 @@ class GroupBy2Command(PCommand):
     
     def __init__(self):
         super().__init__()
-        self.i_ports = [Port('i', 'frame')]
-        self.o_ports = [Port('o', 'frame')]
+        self.i_ports = [Port('i', 'mcmd')]
+        self.o_ports = [Port('o', 'mcmd')]
  
     def wrap_flow(self, flow_obj):
         '''

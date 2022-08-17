@@ -1,5 +1,4 @@
 import json
-from typing import List
 from pathlib import Path
 from streamcat.core import Command
 
@@ -110,20 +109,14 @@ class CommandLink:
         "mxml2csv": Mxml2csvCommand(),
         # 独自コマンド
         'check_duplicate_rows': CheckDuplicateRowsCommand(),
-        'merge_FS': MergeFSCommand(),
-        'merge_ibutsu': MergeIbutsuCommand(),
         'column_grouping_name': ColumnGroupingNameCommand(),
         'column_unique_name': ColumnUniqueNameCommand(),
         'column_name': ColumnNameCommand(),
         'column_blank_name': ColumnBlankNameCommand(),
         'column_list': ColumnListCommand(),
         'windows_cp932_csv_read': WinCp932ReadCommand(),
-        'columns_to_rows': ColumnsToRowsCommand(),
-        'groupby_columns': GroupbyColumnsCommand(),
-        'groupby': GroupbyCommand(),
         'groupby2': GroupBy2Command(),
         'utf8_to_cp932': Utf8ToCp932Command(),
-        'sml_modeling': SmlModelingCommand(),
         'multi_mcal_manyformula': MultiMcalCommand(),
         'multi_mcal_oneformula': MultiMcalWCCommand(),
         'multi_mvavg': MvAvgCommand(),
@@ -229,7 +222,7 @@ class CommandsPathLink(PathLink):
     def __init__(self, source:PathFileSource):
         super().__init__(source)
 
-    def run(self, args=None, inputs=None) -> List[dict]:
+    def run(self, args=None, inputs=None) -> list[dict]:
         """
         コマンド定義のJSONを読んで一覧を返す
         """

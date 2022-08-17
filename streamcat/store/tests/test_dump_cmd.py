@@ -34,6 +34,8 @@ class DumpTest(TestCaseBase):
     def test_basic(self):
         """
         StreamCatのバックアップとリストアが実行できること
+        FIXME: テストコードの実行環境でGET /dumpを呼び出すと、LOCK TABLEの発行時に
+        "LOCK TABLE can only be used in transaction blocks"の例外が送出される。原因不明
         """
         # ルートを取得する
         root = self.factory2.data.load_root()

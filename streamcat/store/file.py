@@ -57,9 +57,6 @@ class File(Datum):
         except (Exception, OSError) as e:
             self._session.rollback()
             raise e
-        finally:
-            # 親フォルダのロックを解除する
-            self._session.commit()
 
     def update_label(self, label:str, modifier=None):
         """
@@ -83,8 +80,6 @@ class File(Datum):
         except (Exception, OSError) as e:
             self._session.rollback()
             raise e
-        finally:
-            self._session.commit()
 
         return self
 
@@ -101,8 +96,6 @@ class File(Datum):
         except (Exception, OSError) as e:
             self._session.rollback()
             raise e
-        finally:
-            self._session.commit()
 
     def _update_label_imp(self, new_label:str, modifier):
         # label列を更新する
@@ -135,8 +128,6 @@ class File(Datum):
         except (Exception, OSError) as e:
             self._session.rollback()
             raise e
-        finally:
-            self._session.commit()
 
     @property
     def content_type(self):

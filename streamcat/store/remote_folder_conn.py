@@ -1,4 +1,4 @@
-from typing import Callable
+from collections import Callable
 from streamcat.core import SCatBaseModel
 
 class RemoteFolderConn():

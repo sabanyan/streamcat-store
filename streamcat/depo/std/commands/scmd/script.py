@@ -24,7 +24,7 @@ class LoaderCommand(SCommand):
         # ファイルパスと文字コードを取得する
         path, encoding = self._get_frame(args)
 
-        cmd = nm.m2tee(i=path)
+        cmd = nm.m2tee(i=path.as_posix())
         # mreadで存在しないファイルパスを指定するとDockerごと落ちる -> 0.3.10で修正済
         # mreadは巨大ファイルの読み込みが遅い(全行入力してる?)
         # cmd = nm.mread({'i':path, 'n':65535})
@@ -42,12 +42,12 @@ class LoaderCommand(SCommand):
             raise Exception('入力ファイルを指定してください')
         # frame = folder.find_child_by_uuid(frame_uuid)
         frame = datum_factory.find_by_uuid(frame_uuid, type=Datum.FRAME_TYPE)
-        path = frame.path.as_posix()
+        path = frame.path
 
         if frame.encoding is None:
             from streamcat.store import Frame
             # frameの文字コードが未判定の場合はここで判定する
-            with open(path, 'rb') as f:
+            with path.open(mode='rb') as f:
                 encoding = Frame._detect_encoding(f)
         else:
             # frameの文字コードを取得する
@@ -63,11 +63,14 @@ class SaverCommand(SCommand):
     """
     def __init__(self):
         super().__init__()
-        self.i_ports = [Port('i', 'frame'), Port('folder', 'store')]
+        self.i_ports = [Port('i', 'mcmd'), Port('folder', 'store')]
         self.o_ports = [Port('o', 'mcmd')]
         self.name = 'saver'
 
     def run(self, args, inputs):
+        if 'i' not in inputs:
+            raise Exception(f'{self.name}の入力ポート(i)にデータが入力されませんでした')
+
         # Frameを作成する
         folder = self.get_result_folder(args)
         flow_label = args['flow_label']
@@ -91,8 +94,6 @@ class SaverCommand(SCommand):
         # frame.update_label_only(point_label)
 
         # NYSOLコマンドを作成する
-        # if not isinstance(inputs['i'], NysolModule):
-        #     raise Exception(f"Illegal type : {type(inputs['i'])}")
         cmd = inputs['i'].content
         cmd = self.append_writecsv_cmd(cmd, frame.path)
         # 出力フレームをRunsCommandに渡す
@@ -127,7 +128,7 @@ class SaverCommand(SCommand):
         出力ファイルのラベルを取得する
         """
         if point is None:
-            return ''
+            return 'NO_SRC_POINT'
         else:
             return point.label or point.id
 
@@ -177,7 +178,7 @@ class CacheSaverCommand(SaverCommand):
     """
     def __init__(self):
         super().__init__()
-        self.o_ports = [Port('o', 'mcmd'), Port('u', 'frame')]
+        self.o_ports = [Port('o', 'mcmd'), Port('u', 'out')]
 
     def run(self, args, inputs):
         import warnings
@@ -416,6 +417,9 @@ class DbSaverCommand(SaverCommand):
 
     def run(self, args, inputs):
         DbSaverCommand._write_log('START')
+
+        if 'i' not in inputs:
+            raise Exception(f'{self.name}の入力ポート(i)にデータが入力されませんでした')
 
         from streamcat.core import Datum
         if inputs['store'].type != Datum.DATABASE_TYPE:
@@ -725,11 +729,14 @@ class RemoteFolderSaverCommand(SaverCommand):
     """
     def __init__(self):
         super().__init__()
-        self.i_ports = [Port('i', 'frame'), Port('store', 'store')]
+        self.i_ports = [Port('i', 'mcmd'), Port('store', 'store')]
         self.o_ports = [Port('o', 'mcmd')]
         self.name = 'remotefolder_saver'
 
     def run(self, args, inputs):
+        if 'i' not in inputs:
+            raise Exception(f'{self.name}の入力ポート(i)にデータが入力されませんでした')
+
         from streamcat.core import Datum
         if inputs['store'].type != Datum.RFOLDER_TYPE:
             t = type(inputs['store'])
@@ -1037,7 +1044,7 @@ class ActivityCommand(SCommand):
                 out = input
                 out.out_point = out_point
             else:
-                raise Exception(f'ActivityCommandにApparentLastまたはCommandException以外のデータ型({input})が入力されました')
+                raise Exception(f'ActivityCommandにApparentOutまたはCommandException以外のデータ型({input})が入力されました')
 
             # Activityにoutを追加する
             activity.add(out)
@@ -1071,7 +1078,7 @@ class RaiseCommand(SCommand):
     """
     def __init__(self):
         super().__init__()
-        self.i_ports = [Port('i', 'frame')]
+        self.i_ports = [Port('i', 'mcmd')]
         self.o_ports = [Port('o', 'mcmd')]
 
     def run(self, args, inputs):
@@ -1087,7 +1094,7 @@ class AssertCommand(SCommand):
     """
     def __init__(self):
         super().__init__()
-        self.i_ports = [Port('i', 'frame'), Port('m', 'frame')]
+        self.i_ports = [Port('i', 'mcmd'), Port('m', 'mcmd')]
         self.o_ports = [Port('o', 'mcmd')]
 
     def run(self, args, inputs):
@@ -1386,10 +1393,11 @@ class DumpCommand(SCommand):
 
     @staticmethod
     def _lock_all_tables(session):
+        from sqlalchemy import text
         # 全てのテーブルをロックする
         # ・競合するロックが解除されるまで待機する
         # ・EXCLUSIVE MODE : このロックモードを保持するトランザクションと並行して実行できる処理は、テーブルの読み取りだけ
-        session.execute('LOCK TABLE data,auths,roles,users_roles,users,stores IN EXCLUSIVE MODE;')
+        session.execute(text('LOCK TABLE data,auths,roles,users_roles,users,stores IN EXCLUSIVE MODE;'))
 
     def _open_archive(self):
         import tarfile
@@ -1446,7 +1454,6 @@ class RestoreCommand(SCommand):
     """
     StreamCatシステムのDumpファイルを復元する
     """
-    from typing import List
     from pathlib import Path
     from tarfile import TarInfo
 
@@ -1553,7 +1560,7 @@ class RestoreCommand(SCommand):
             import warnings
             warnings.warn(f'退避したライブラリのディレクトリ({library_backup_path})を削除できませんでした ({e})')
 
-    def _members_are_valid_or_raise(self, members:List[TarInfo]):
+    def _members_are_valid_or_raise(self, members:list[TarInfo]):
         member_paths = [member.name for member in members]
         # meta.txtが含まれていること
         if self.META_FILE_NAME not in member_paths:

@@ -25,7 +25,7 @@ class PCommand(Command):
     """
     def __init__(self):
         super().__init__()
-        self.i_ports = [Port('i', 'frame')]
+        self.i_ports = [Port('i', 'mcmd')]
         self.o_ports = [Port('o', 'mcmd')]
 
     def replace_args(self, args):
@@ -80,23 +80,6 @@ class PCommand(Command):
         pass
 
 
-class SmlModelingCommand(PCommand):
-    def __init__(self):
-        super().__init__()
-
-    def run(self, args, inputs):
-        f = None
-        f <<= inputs['i'].content
-
-        args_string = (PCMD_DIR / 'src/sml_modeling.sh').as_posix()
-        args_string += ' kcmd_path=' + (PCMD_DIR.parent / 'kcmd/src').as_posix()
-        args_string += ' temp_path=' + (PCMD_DIR / 'tmp').as_posix()
-        args_string += ' model_data_path=' + (PCMD_DIR / 'model').as_posix()
-        args_string += self.replace_args(args)
-
-        return {'o': self.module(f, args_string)}
-
-
 class ColumnListCommand(PCommand):
     def __init__(self):
         super().__init__()
@@ -139,20 +122,6 @@ class ColumnBlankNameCommand(PCommand):
         return {'o': self.module(f, args_string)}
 
 
-class ColumnsToRowsCommand(PCommand):
-    def __init__(self):
-        super().__init__()
-
-    def run(self, args, inputs):
-        f = None
-        f <<= inputs['i'].content
-
-        args_string = (PCMD_DIR / 'src/columns_to_rows.sh').as_posix()
-        args_string += self.replace_args(args)
-
-        return {'o': self.module(f, args_string)}
-
-
 class ColumnUniqueNameCommand(PCommand):
     def __init__(self):
         super().__init__()
@@ -175,8 +144,8 @@ class ColumnNameCommand(PCommand):
     
     def __init__(self):
         super().__init__()
-        self.i_ports = [Port('i', 'frame')]
-        self.o_ports = [Port('o', 'frame')]
+        self.i_ports = [Port('i', 'mcmd')]
+        self.o_ports = [Port('o', 'mcmd')]
 
     def const(self, s):
         if s == 'commandname':
@@ -302,34 +271,6 @@ class ColumnNameCommand(PCommand):
         return {'o': nysol_module_o}
 
 
-class GroupbyCommand(PCommand):
-    def __init__(self):
-        super().__init__()
-
-    def run(self, args, inputs):
-        f = None
-        f <<= inputs['i'].content
-
-        args_string = (PCMD_DIR / 'src/groupby.sh').as_posix()
-        args_string += self.replace_args(args)
-
-        return {'o': self.module(f, args_string)}
-
-
-class GroupbyColumnsCommand(PCommand):
-    def __init__(self):
-        super().__init__()
-
-    def run(self, args, inputs):
-        f = None
-        f <<= inputs['i'].content
-
-        args_string = (PCMD_DIR / 'src/groupby_columns.sh').as_posix()
-        args_string += self.replace_args(args)
-
-        return {'o': self.module(f, args_string)}
-
-
 class CheckDuplicateRowsCommand(PCommand):
     def const(self, s):
         if s == 'commandname':
@@ -444,34 +385,6 @@ class CheckDuplicateRowsCommand(PCommand):
         # return {'o': self.module(f, args_string)}
 
 
-class MergeFSCommand(PCommand):
-    def __init__(self):
-        super().__init__()
-
-    def run(self, args, inputs):
-        f = None
-        f <<= inputs['i'].content
-
-        args_string = (PCMD_DIR / 'src/merge_FS.sh').as_posix()
-        args_string += self.replace_args(args)
-
-        return {'o': self.module(f, args_string)}
-
-
-class MergeIbutsuCommand(PCommand):
-    def __init__(self):
-        super().__init__()
-
-    def run(self, args, inputs):
-        f = None
-        f <<= inputs['i'].content
-
-        args_string = (PCMD_DIR / 'src/merge_ibutsu.sh').as_posix()
-        args_string += self.replace_args(args)
-
-        return {'o': self.module(f, args_string)}
-
-
 class WinCp932ReadCommand(PCommand):
     def __init__(self):
         super().__init__()
@@ -565,7 +478,7 @@ class Utf8ToCp932Command(PCommand):
 class RunfuncCommand(Command):
     def __init__(self):
         super().__init__()
-        self.i_ports = [Port('i', 'frame')]
+        self.i_ports = [Port('i', 'mcmd')]
         self.o_ports = [Port('o', 'mcmd')]
 
     def run(self, args, inputs):
@@ -578,8 +491,8 @@ class RunfuncCommand(Command):
 class MultiMcalCommand(PCommand):
     def __init__(self):
         super().__init__()
-        self.i_ports = [Port('i', 'frame')]
-        self.o_ports = [Port('o', 'frame')]
+        self.i_ports = [Port('i', 'mcmd')]
+        self.o_ports = [Port('o', 'mcmd')]
 
     def run(self, args, inputs):
 
@@ -614,8 +527,8 @@ class MultiMcalCommand(PCommand):
 class MultiMcalWCCommand(PCommand):
     def __init__(self):
         super().__init__()
-        self.i_ports = [Port('i', 'frame')]
-        self.o_ports = [Port('o', 'frame')]
+        self.i_ports = [Port('i', 'mcmd')]
+        self.o_ports = [Port('o', 'mcmd')]
 
     def parse(self, exp):
         if '-' in exp:
@@ -687,8 +600,8 @@ class MultiMcalWCCommand(PCommand):
 class MvAvgCommand(PCommand):
     def __init__(self):
         super().__init__()
-        self.i_ports = [Port('i', 'frame')]
-        self.o_ports = [Port('o', 'frame')]
+        self.i_ports = [Port('i', 'mcmd')]
+        self.o_ports = [Port('o', 'mcmd')]
 
     def parse(self, exp):
         if '-' in exp:
@@ -769,8 +682,8 @@ class MvAvgCommand(PCommand):
 class MvStatsCommand(PCommand):
     def __init__(self):
         super().__init__()
-        self.i_ports = [Port('i', 'frame')]
-        self.o_ports = [Port('o', 'frame')]
+        self.i_ports = [Port('i', 'mcmd')]
+        self.o_ports = [Port('o', 'mcmd')]
 
     def parse(self, exp):
         if '-' in exp:
@@ -921,8 +834,8 @@ class MvSimCommand(PCommand):
     
     def __init__(self):
         super().__init__()
-        self.i_ports = [Port('i', 'frame')]
-        self.o_ports = [Port('o', 'frame')]
+        self.i_ports = [Port('i', 'mcmd')]
+        self.o_ports = [Port('o', 'mcmd')]
         
 
     def parse(self, exp):
@@ -1296,7 +1209,7 @@ class MvSimCommand(PCommand):
 class PlainText2Csv(Command):
     def __init__(self):
         super().__init__()
-        self.i_ports = [Port('i', 'frame')]
+        self.i_ports = [Port('i', 'mcmd')]
         self.o_ports = [Port('o', 'mcmd')]  
 
     def run(self, args, inputs):
@@ -1326,7 +1239,7 @@ class PlainText2Csv(Command):
 class SelRowCommand(RunfuncCommand):
     def __init__(self):
         super().__init__()
-        self.i_ports = [Port('i', 'frame')]
+        self.i_ports = [Port('i', 'mcmd')]
         self.o_ports = [Port('o', 'mcmd'), Port('u', 'mcmd')]
 
     def run(self, args, inputs):
@@ -1364,8 +1277,8 @@ class RowRangeCommand(Command):
     """
     def __init__(self):
         super().__init__()
-        self.i_ports = [Port('i', 'frame')]
-        self.o_ports = [Port('o', 'frame')]
+        self.i_ports = [Port('i', 'mcmd')]
+        self.o_ports = [Port('o', 'mcmd')]
 
     def run(self, args, inputs):
         def filter(fr, size):
@@ -1409,8 +1322,8 @@ class RowRandomCommand(Command):
     """
     def __init__(self):
         super().__init__()
-        self.i_ports = [Port('i', 'frame')]
-        self.o_ports = [Port('o', 'frame')]
+        self.i_ports = [Port('i', 'mcmd')]
+        self.o_ports = [Port('o', 'mcmd')]
 
     def run(self, args, inputs):
         def filter(size):
@@ -1461,8 +1374,8 @@ class ConvToUtf8(Command):
     """
     def __init__(self):
         super().__init__()
-        self.i_ports = [Port('i', 'frame')]
-        self.o_ports = [Port('o', 'frame')]
+        self.i_ports = [Port('i', 'mcmd')]
+        self.o_ports = [Port('o', 'mcmd')]
 
     def run(self, args, inputs):
 
@@ -1592,8 +1505,8 @@ class AlignColumns(Command):
     """
     def __init__(self):
         super().__init__()
-        self.i_ports = [Port('i', 'frame')]
-        self.o_ports = [Port('o', 'frame')]
+        self.i_ports = [Port('i', 'mcmd')]
+        self.o_ports = [Port('o', 'mcmd')]
 
     def run(self, args, inputs):
         cmd = inputs['i'].content
@@ -1743,6 +1656,6 @@ class ToNamedPipeCommand(Command):
         from streamcat.core import Tmp
         import uuid
         # 一意なファイル名を作成する
-        file_name  = '__SCATTMP_' + 'PIPE_' + str(uuid.uuid4())[0:8]
+        file_name  = '__SCATTMP_PIPE_' + str(uuid.uuid4())[0:8]
         # TmpファイルPath
         return Tmp._get_tmp_directory() / file_name

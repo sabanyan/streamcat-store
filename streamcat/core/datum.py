@@ -293,28 +293,8 @@ class Datum(BaseModel):
         """
         自分のプロジェクトを取得する
         """
-        from sqlalchemy.orm import aliased
-        from sqlalchemy.sql.expression import select, exists, and_
-        from streamcat.store import ProjectFolder
-
-        # cte: Common Table Expression WITH句のこと
-        D0 = aliased(Datum, name='D0')
-        R = select(D0.id, D0.parent_id, D0.type).select_from(D0).\
-            where(D0.id==self.id).\
-            cte(name='R', recursive=True)
-
-        # WITH句にUNION ALLを用いて再帰クエリとする
-        D = aliased(Datum, name='D')
-        R = R.union_all(
-                select(D.id, D.parent_id, D.type).\
-                select_from(R.join(D, and_(D.id==R.c.parent_id,
-                                           R.c.type!=Datum.PROJECT_TYPE)))
-            )
-
-        # プロジェクトを取得する
-        exists_project = exists().where(and_(R.c.id==ProjectFolder.id, R.c.type==Datum.PROJECT_TYPE))
-        query = self._session.query(ProjectFolder).filter(exists_project)
-        return query.one()
+        from streamcat.store.factory import DatumFactory
+        return DatumFactory(self._session).find_my_project(self.id)
 
     def reload(self):
         """
@@ -342,27 +322,34 @@ class Datum(BaseModel):
         except Exception as e:
             self._session.rollback()
             raise e
-        finally:
-            self._session.commit()
         return self
+
+    def moving(self, parent_uuid, lock_uuid=None, modifier=None):
+        """
+        Datumの移動前に行う処理
+        (移動前の処理を完了した後に、移動が中止される場合があることに注意)
+        """
+        pass
+
+    def moved(self, parent_uuid, prev_parent_id, modifier=None):
+        """
+        Datumの移動後に行う処理
+        """
+        pass
 
     @Constraints.prohibit_move_to_root
     @Constraints.prohibit_move_system_folder
     @Constraints.set_project_role_on_moving
-    @Constraints.set_project_role_on_moving_flow
-    def move(self, parent_uuid, modifier=None):
+    def move(self, parent_uuid:str, lock_uuid:str=None, modifier=None):
         """
         指定されたStoreの直下に移動する
         """
-        from streamcat.store import Mountable, Folder
+        from streamcat.store import Folder
         from streamcat.store.factory import DatumFactory
         from streamcat.store.auth import NotAuthorizedException
 
         # UUID値の形式チェックをする
         Datum.valid_uuid_or_raise(parent_uuid)
-
-        # 移動元フォルダのIDを控えておく
-        from_folder_id = self.parent_id
 
         to_folder = DatumFactory(self._session).find_by_uuid(parent_uuid)
         if not isinstance(to_folder, Folder):
@@ -377,12 +364,48 @@ class Datum(BaseModel):
         if self.type == Datum.FOLDER_TYPE:
             pass
 
-        # # 移動元フォルダのidを覚えておく
-        # if self.data is None:
-        #     new_data = {}
-        # else:
-        #     new_data = self.data.copy()
-        # new_data['prev_parent_id'] = self.parent_id
+        # 移動元フォルダのIDを控えておく
+        prev_parent_id = self.parent_id
+
+        # フォルダ以下の全てのDatumについて、移動の可否を判定し、移動後の処理を取得する
+        moved_funcs = self._prepare_move(self, parent_uuid, lock_uuid, modifier)
+
+        # Datumを移動する
+        self._move_imp(to_folder, prev_parent_id, modifier)
+
+        # 予約された移動後の処理を実行する
+        for moved_func in moved_funcs:
+            moved_func(parent_uuid, prev_parent_id, modifier=modifier)
+
+        return self
+
+    def _prepare_move(self, datum, parent_uuid, lock_uuid, modifier) -> list:
+        from streamcat.store import Folder
+
+        # 移動可否を判定する
+        # 移動対象フォルダの中のDatumの場合は、移動先のparent_uuidは変化せず、移動可否の判定だけを行う
+        datum.moving(parent_uuid, lock_uuid=lock_uuid, modifier=modifier)
+
+        # 移動後に実行する関数
+        moved_funcs = []
+
+        if isinstance(datum, Folder):
+            # フォルダ直下の全てのDatumを取得する
+            children = datum.find_children()
+            # 全てのDatumについて、移動の可否を判定し、移動後の処理を取得する
+            for child in children:
+                moved_funcs.extend(
+                    self._prepare_move(child, datum.uuid, lock_uuid, modifier)
+                )
+
+        # 移動後の処理を予約する
+        moved_funcs.append(datum.moved)
+        return moved_funcs
+
+    def _move_imp(self, to_folder, prev_parent_id, modifier=None):
+        from streamcat.store import Mountable, Folder
+        from streamcat.store.factory import DatumFactory
+        from streamcat.store.auth import NotAuthorizedException
 
         # 移動後にラベル名が衝突したらラベル名を変更する
         new_label = to_folder.make_unique_label(self.label, except_uuid=self.uuid)
@@ -428,7 +451,7 @@ class Datum(BaseModel):
             self._session.rollback()
 
             user_name = self._session.user
-            from_folder = DatumFactory(self._session).find_by_id(from_folder_id)
+            from_folder = DatumFactory(self._session).find_by_id(prev_parent_id)
             if not self._session.writable(self):
                 raise NotAuthorizedException((f'{user_name}は更新権限がないため{self.label}を移動できません'))
             elif not self._session.writable(from_folder):
@@ -439,10 +462,6 @@ class Datum(BaseModel):
             # ROLLBACK
             self._session.rollback()
             raise e
-        finally:
-            self._session.commit()
-
-        return self
 
     def throw_away(self):
         """
@@ -576,80 +595,20 @@ class Datum(BaseModel):
         for result in results:
             rel_new_path = Datum._to_rel_path(new_path).as_posix() + '/'
             rel_result_path = Datum._to_rel_path(result._path).as_posix()
+            # re.sub(正規表現, 置換する文字列, 置換対象の文字列)
             replaced_path = re.sub(old_path_pattern, rel_new_path, rel_result_path)
 
             result._path = Path(replaced_path)
             result._modifier_id = (modifier or self._session.user).id
             self._session.update(result, ignore_authz=True)
 
-    def get_flow_uuids_using_me_old(self):
-        """      .......
-        指定されたDatumのuuidを参照するFlowを取得する
-        """
-        from sqlalchemy.sql.expression import select, func, and_
-
-        sql = f"""
-        select uuid from data
-        where type='flow'
-          and uuid<>'{self.uuid}'
-          and to_tsvector(data) @@ to_tsquery('{self.uuid}')
-        """
-
-        # DataのTableオブジェクト
-        D = Datum.__table__
-
-        select_stmt = select(Datum.uuid).\
-                      select_from(D).\
-                      where(and_(Datum.type==Datum.FLOW_TYPE,
-                                 Datum.uuid!=self.uuid, 
-                                 func.to_tsvector(Datum._data).match(self.uuid)))
-
-        # SQLを発行する
-        results = self._session.execute(select_stmt)
-        return [str(result[0]) for result in results]
-
     def get_flow_uuids_using_me(self):
         """
-        自身のエントリ以下にあるDatumが、自身のエントリ以下以外にあるFlowから参照される、
+        自身のエントリ以下にあるDatumが、自身のエントリ以下以外にあるFlowまたはScheduleから参照される、
         そのようなFlowを全て返す
         """
         from sqlalchemy.orm import aliased
         from sqlalchemy.sql.expression import select, func, exists, and_, cast, text
-
-        sql = """
-        WITH RECURSIVE
-            R AS (
-                SELECT id, uuid FROM data WHERE id = self.id
-                UNION ALL
-                SELECT data.id, data.uuid FROM data JOIN R ON data.parent_id = R.id
-            ),
-            T AS (
-                SELECT id, uuid FROM data WHERE type = 'trash'
-                UNION ALL
-                SELECT data.id, data.uuid FROM data JOIN T ON data.parent_id = T.id
-            )
-        SELECT U.uuid, U.label
-        FROM (SELECT D.uuid as uuid,
-                     D.label as label,
-                     COALESCE(ref_uuid0, ref_uuid1) AS ref_uuid
-              FROM (SELECT D.uuid  AS uuid,
-                           D.label AS label
-                           JSONB_PATH_QUERY(
-                                D.data,
-                                '$.flow.nodes?(@.type != "command" && @.type != "note").uuid?(@!=null)'
-                           ) AS ref_uuid0,
-                           JSONB_PATH_QUERY(
-                                D.data,
-                                '$.flow.nodes?(@.type == "flow").*.uuid?(@!=null)'
-                           ) AS ref_uuid1
-                    FROM
-                        data) D
-
-              WHERE D.type = 'flow'
-                AND NOT EXISTS (SELECT * FROM R WHERE R.id = D.id)) U
-        WHERE EXISTS (SELECT * FROM R
-                      WHERE U.ref_uuid #>> '{}' = CAST(R.uuid AS VARCHAR))
-        """
 
         # id : 検索対象Datumから葉ノードへの経路の全てのDatumのid
         D0 = aliased(Datum, name='D0')
@@ -693,15 +652,26 @@ class Datum(BaseModel):
         # ノードから参照するUUID
         # ..property : 指定されたプロパティ名を再帰的に検索し、このプロパティ名を持つすべての値の配列を返す
         #              (ただしPostgreSQLでは .**.property で指定するようだ)
-        jsonpath = '$.flow.nodes?(@.type != "command" && @.type != "note").**.uuid?(@!=null)'
+        jsonpath0 = '$.flow.nodes?(@.type != "command" && @.type != "note").**.uuid?(@!=null)'
 
         # NOTE: jsonb_path_query()をcoalesce()の引数に指定できない
-        U = select(D.c.uuid,
-                   D.c.label,
-                   func.jsonb_path_query(D.c.data, jsonpath).label('ref_uuid')).\
+        U0 = select(D.c.uuid,
+                    D.c.label,
+                    func.jsonb_path_query(D.c.data, jsonpath0).label('ref_uuid')).\
             select_from(D).\
-            where(and_(D.c.type==Datum.FLOW_TYPE, not_exists_inner, not_exists_trash)).\
-            alias('U')
+            where(and_(D.c.type==Datum.FLOW_TYPE, not_exists_inner, not_exists_trash))
+
+        # スケジュールから参照するUUID
+        jsonpath1 = '$.runnable?(@!=null)'
+
+        U1 = select(D.c.uuid,
+                    D.c.label,
+                    func.jsonb_path_query(D.c.data, jsonpath1).label('ref_uuid')).\
+            select_from(D).\
+            where(and_(D.c.type==Datum.SCHEDULE_TYPE, not_exists_inner, not_exists_trash))
+
+        # 自身を参照するフローとスケジュールを抽出する
+        U = U0.union_all(U1).alias('U')
 
         # 自分の子孫以外のFlowから参照する、自分と自分の子孫
         U_ref_uuid = str(U.c.ref_uuid.compile())
@@ -715,6 +685,7 @@ class Datum(BaseModel):
                       distinct()
 
         # SQLを発行する
+        # FIXME: session.execute()の実行でCOMMITが発行されるようだ
         results = self._session.execute(select_stmt)
         return [{'reference_uuid' :result[0],
                  'reference_label':result[1],

@@ -1,4 +1,5 @@
 from streamcat.core import Datum, Constraints
+from streamcat.core.scat_base_model import SCatBaseModel
 from streamcat.store import ApparentOut
 
 class Activity(Datum):
@@ -10,7 +11,7 @@ class Activity(Datum):
         'polymorphic_identity' : 'activity'
     }
 
-    def __init__(self, session, parent, label, flow):
+    def __init__(self, session, parent, label:str, flow, args:dict={}):
         """
         コンストラクタ
         """
@@ -30,7 +31,9 @@ class Activity(Datum):
         # (同じインスタンスのpointの場合もあることに注意!!)
         # [ApparentOut(point, datum, exs)]
         self._outs = []
-        self._data = {'flowUuid': flow.uuid, 'startAt': str(self._start_at)}
+        self._data = {'flowUuid': flow.uuid,
+                      'args': args,
+                      'startAt': SCatBaseModel.isoformat(self._start_at)}
 
     def add(self, out:ApparentOut):
         self._outs.append(out)
@@ -120,7 +123,9 @@ class Activity(Datum):
                 self._update_label(out.datum, end_at)
 
         # 現在時刻を格納する
-        self._data['endAt'] = str(end_at)
+        # NOTE: Safariでは、JavaScriptのDateオブジェクトの日付時刻の解析に区切り文字'T'が必要
+        self._data['endAt'] = SCatBaseModel.isoformat(end_at)
+
         # 出力情報を格納する
         self._data['outs'] = outs
         self._data['caches'] = caches
@@ -132,8 +137,6 @@ class Activity(Datum):
         except Exception as e:
             self._session.rollback()
             raise e
-        finally:
-            self._session.commit()
 
     def _update_label(self, datum:Datum, end_at):
         """
@@ -183,8 +186,6 @@ class Activity(Datum):
         except Exception as e:
             self._session.rollback()
             raise e
-        finally:
-            self._session.commit()
 
     def to_json(self):
 
@@ -200,6 +201,7 @@ class Activity(Datum):
         ret = super().to_json()
         # 
         ret['flowUuid'] = get_value('flowUuid', 'flow_uuid')
+        ret['args']     = self._data.get('args', {})
         ret['startAt']  = get_value('startAt', 'start_time')
         ret['endAt']    = get_value('endAt', 'end_time')
         ret['outs']     = self._data.get('outs', [])

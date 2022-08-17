@@ -1,4 +1,4 @@
-from typing import List, Union
+from typing import Union
 from sqlalchemy.orm.exc import NoResultFound
 from streamcat.core import Datum
 from streamcat.store import Folder, TrashCan
@@ -13,7 +13,8 @@ class UnAuthzFactory():
         from . import engine
 
         # セッションをつくる
-        session_maker = sessionmaker(engine, future=True)
+        # ・future=True : SQLAlchemy2.0スタイルのトランザクションおよびエンジンの動作を使用する
+        session_maker = sessionmaker(engine, expire_on_commit=False, autoflush=False, future=True)
 
         # セッションを保持する
         self._session = Session(session_maker, user=None)
@@ -95,6 +96,7 @@ class UnAuthzFactory():
         self.close()
 
     def close(self):
+        self._session.end()
         self._session.close()
 
 
@@ -102,7 +104,7 @@ class Factory():
     """
     SQLAlchemyのSessionを保持する(とりあえずこの目的ね)
     """
-    def __init__(self, user=None):
+    def __init__(self, user:User=None):
         from sqlalchemy.orm import sessionmaker
         from streamcat.store.auth.authz_session import AuthzSession
         from . import engine
@@ -111,6 +113,7 @@ class Factory():
         # ・session.commit()によるExpireでquery_expression()で設定されているreadableがNoneになる
         # ・これを回避するためexpire_on_commit=Falseとする、autoflush=Falseも必要!
         # ・session.rollback()によるExprireを回避する方法はない
+        # ・future=True : SQLAlchemy2.0スタイルのトランザクションおよびエンジンの動作を使用する
         session_maker = sessionmaker(bind=engine, expire_on_commit=False, autoflush=False, future=True)
 
         # セッションを保持する
@@ -132,7 +135,11 @@ class Factory():
     def __exit__(self, ex_type, ex_value, trace):
         self.close()
 
+    def end(self):
+        self._session.end()
+
     def close(self):
+        self._session.end()
         self._session.close()
 
     def get_active_connections(self):
@@ -292,6 +299,33 @@ class DatumFactory():
             query = query.filter(Datum._label!=except_label)
         # 速度向上のため、order_byを指定しない
         return query.all()
+
+    def find_my_project(self, id):
+        """
+        指定するidのDatumが属するプロジェクトを取得する
+        """
+        from sqlalchemy.orm import aliased
+        from sqlalchemy.sql.expression import select, exists, and_
+        from streamcat.store import ProjectFolder
+
+        # cte: Common Table Expression WITH句のこと
+        D0 = aliased(Datum, name='D0')
+        R = select(D0.id, D0.parent_id, D0.type).select_from(D0).\
+            where(D0.id==id).\
+            cte(name='R', recursive=True)
+
+        # WITH句にUNION ALLを用いて再帰クエリとする
+        D = aliased(Datum, name='D')
+        R = R.union_all(
+                select(D.id, D.parent_id, D.type).\
+                select_from(R.join(D, and_(D.id==R.c.parent_id,
+                                           R.c.type!=Datum.PROJECT_TYPE)))
+            )
+
+        # プロジェクトを取得する
+        exists_project = exists().where(and_(R.c.id==ProjectFolder.id, R.c.type==Datum.PROJECT_TYPE))
+        query = self._session.query(ProjectFolder).filter(exists_project)
+        return query.one()
 
     def find_all_subflows(self):
         """
@@ -481,27 +515,14 @@ class DatumFactory():
         result = self._session.query(Datum).filter(Datum.type==Datum.TRASH_TYPE).count()
         return result > 0
 
-    def trashed(self, uuid):
+    def trashed(self, uuid) -> bool:
         """
         ゴミ箱の中にある場合はTrueを返す
         """
-        from sqlalchemy import select, func, and_
-
-        sql = select(func.count()).\
-              select_from(Datum).\
-              where(and_(
-                    Datum.uuid==uuid,
-                    self._make_exists_trashed(uuid)
-              ))
-        try:
-            results = self._session.execute(sql).scalar()
-        except Exception as e:
-            self._session.rollback()
-            raise e
-        finally:
-            pass
-
-        return results > 0
+        result = self._session.query(Datum).\
+                 filter(Datum.uuid==uuid).\
+                 filter(self._make_exists_trashed(uuid)).count()
+        return result > 0
 
     def _make_exists_on_root(self, parent_id:str):
         from sqlalchemy import select, exists
@@ -593,7 +614,7 @@ class AuthFactory():
             raise Exception('No authz is found by designated id')
         return authz
 
-    def find_all_by_datum_id(self, datum_id) -> List[Auth]:
+    def find_all_by_datum_id(self, datum_id) -> list[Auth]:
         from streamcat.store.auth import Auth
         query = self._session.query(Auth).filter(Auth.datum_id==datum_id)
         return query.order_by(Auth.role_id, Auth.operation).all()
@@ -629,8 +650,6 @@ class AuthFactory():
         except Exception as e:
             self._session.rollback()
             raise e
-        finally:
-            self._session.commit()
 
 
 class RoleFactory():
@@ -746,8 +765,6 @@ class UserRoleFactory():
         except Exception as e:
             self._session.rollback()
             raise e
-        finally:
-            self._session.commit()
 
     def delete_all_by_role_id(self, role_id, except_user_id=None):
         """
@@ -764,8 +781,6 @@ class UserRoleFactory():
         except Exception as e:
             self._session.rollback()
             raise e
-        finally:
-            self._session.commit() 
 
 
 class UserFactory():

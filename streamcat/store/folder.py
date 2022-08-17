@@ -45,8 +45,6 @@ class Folder(Store):
         except (Exception, OSError) as e:
             self._session.rollback()
             raise e
-        finally:
-            self._session.commit()
 
     def update_label(self, label, modifier=None):
         """
@@ -73,8 +71,6 @@ class Folder(Store):
         except (Exception, OSError) as e:
             self._session.rollback()
             raise e
-        finally:
-            self._session.commit()
 
         return self
 
@@ -103,7 +99,8 @@ class Folder(Store):
         if thrown_count == 0:
             raise Exception('削除できませんでした')
 
-        return trashed_folder
+        # 形代フォルダを作らなかった場合は自身を返す
+        return trashed_folder or self
 
     def _throw_away_inner(self, parent, datum):
         from streamcat.store.lock import lock_manager
@@ -190,8 +187,6 @@ class Folder(Store):
         except (Exception, OSError) as e:
             self._session.rollback()
             raise e
-        finally:
-            self._session.commit()
 
     def remove_reference_only(self):
         """
@@ -224,8 +219,6 @@ class Folder(Store):
         except (Exception, OSError) as e:
             self._session.rollback()
             raise e
-        finally:
-            self._session.commit()
 
     def get_folder_path(self):
         """
@@ -437,7 +430,7 @@ class Folder(Store):
                     {
                         'label': 'o',
                         'nodeId': 'd',
-                        'type': 'frame'
+                        'types': loader.o_ports[0].types._types
                     }
                 ]
             ],
@@ -494,7 +487,7 @@ class Folder(Store):
                     {
                         'label': 'i',
                         'nodeId': 'd',
-                        'type': 'frame'
+                        'types': saver.i_ports[0].types._types
                     }
                 ],
                 []
@@ -574,9 +567,9 @@ class Folder(Store):
         from streamcat.store.scheduler import Schedule
         return Schedule(self._session, self, label, runnable_uuid, args, inputs, trigger)
 
-    def create_activity(self, label:str, flow):
+    def create_activity(self, label:str, flow, args:dict={}):
         from streamcat.store import Activity
-        return Activity(self._session, self, label, flow)
+        return Activity(self._session, self, label, flow, args)
 
     def create_trashcan(self):
         from streamcat.store import TrashCan

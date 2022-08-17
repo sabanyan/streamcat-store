@@ -43,7 +43,7 @@ class ProjectFolder(Folder):
         # データタイプを設定する
         self.type = Datum.PROJECT_TYPE
 
-    def move(self, parent_uuid, modifier=None):
+    def moving(self, parent_uuid, lock_uuid=None, modifier=None):
         """
         ゴミ箱へほかされるか、ゴミ箱から元の場所に戻す場合を除いて
         プロジェクトは移動できない
@@ -54,10 +54,10 @@ class ProjectFolder(Folder):
 
         if parent_uuid == trash_folder.uuid:
             # ゴミ箱にほかされる場合
-            return super().move(parent_uuid, modifier=modifier)
+            pass
         elif self.prev_parent_id is not None and parent_uuid == factory.find_by_id(self.prev_parent_id).uuid:
             # 元の場所に戻す場合
-            return super().move(parent_uuid, modifier=modifier)
+            pass
         else:
             raise Exception('プロジェクトは移動できません')
 
@@ -224,13 +224,12 @@ class ProjectFolder(Folder):
 
     def _update_timestamp(self):
         try:
+            # FIXME: ユーザIDに変更がなければタイプスタンプは更新されないようだ
             self._modifier_id = self._session.user.id
             self._session.update(self)
         except Exception as e:
             self._session.rollback()
             raise e
-        finally:
-            self._session.commit()
 
     def throw_away(self):
         """
@@ -446,8 +445,16 @@ class ProjectFolder(Folder):
             writers_role.join_member(Role.Member(self_user))
             owners_role.leave_member(self_user)
         elif self_member.type == ProjectFolder.OWNER_MEMBER_TYPE:
-            # 自分がプロジェクト管理者に指定されている場合、何もしない
-            pass
+            if owners_role.is_joined_user(self_user):
+                # 自分がプロジェクト管理者に指定されている場合、
+                # 変更前のプロジェクト管理者に必ず自分は含まれているのでメンバ設定する必要は無い
+                pass
+            else:
+                # ユーザ管理者はプロジェクト管理者でなくと所属ユーザを変更できるため、
+                # 変更前のプロジェクト管理者にユーザ管理者が存在しない場合がある
+                readers_role.join_member(Role.Member(self_user))
+                writers_role.join_member(Role.Member(self_user))
+                owners_role.join_member(Role.Member(self_user))
 
     def get_joined_members(self, except_role_uuid=None):
         """

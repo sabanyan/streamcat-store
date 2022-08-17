@@ -8,34 +8,38 @@ class Schedule(Datum):
 
     # Flow Jsonの定義
     TRIGGER_JSON_SCHEMA = {
-        "title" : "Trigger JSON Schema",
-        "description" : "This is a schema that define a job launch time.",
+        'title' : 'Trigger JSON Schema',
+        'description' : 'This is a schema that define a job launch time.',
         '$schema': 'http://json-schema.org/draft-07/schema#',
         '$ref': '#/definitions/Trigger',
         'definitions': {
             'Trigger': {
                 'type': 'object',
 
-                "if": {
-                    "properties": { "type": { "const": "date" } }
+                'if': {
+                    'properties': { 'type': { 'const': 'date' } }
                 },
-                "then": {
+                'then': {
                     '$ref': '#/definitions/Date'
                 },
 
-                "if": {
-                    "properties": { "type": { "const": "interval" } }
+                'if': {
+                    'properties': { 'type': { 'const': 'interval' } }
                 },
-                "then": {
+                'then': {
                     '$ref': '#/definitions/Interval'
                 },
 
-                "if": {
-                    "properties": { "type": { "const": "cron" } }
+                'if': {
+                    'properties': { 'type': { 'const': 'cron' } }
                 },
-                "then": {
+                'then': {
                     '$ref': '#/definitions/Cron'
-                }
+                },
+
+                # 何のtypeにも当てはまらない場合はエラーとする
+                # TODO: if-thenの条件式が機能しない、調べてもみたが原因不明
+                'else': False
             },
             'Date': {
                 'type': 'object',
@@ -164,32 +168,49 @@ class Schedule(Datum):
     def __init__(self, session, parent:Datum, label:str, runnable_uuid:str, args={}, inputs={}, trigger={}):
         super().__init__(session, parent, Datum.SCHEDULE_TYPE, label)
 
+        # runnableの妥当性を検証する
+        self._valid_runnable_or_raise(runnable_uuid)
+
+        # 起動日時指定の書式を検証する
+        self._valid_trigger_json_or_raise(trigger)
+
         # 
         self._path = None
-        
+
         # runnable: FlowまたはCommandを表す
         # TODO: Commandについては、UUIDでライブラリから取得できるまで対応しない
         self._data = {'runnable':runnable_uuid, 'args':args, 'inputs':inputs, 'trigger':trigger}
 
-
-        self.valid_trigger_json_or_raise()
-
-        self.conv_to_utc_datetime(trigger)
+        # self._conv_to_utc_datetime(trigger)
 
         # FlowはFlowCommandに統合するべきかも
         # そうすれば、CommandもFlowもrun()を持ち、かつDBに格納可能なDatumとして統一的に扱える
 
-    def valid_trigger_json_or_raise(self):
+    def _valid_runnable_or_raise(self, runnable_uuid:str):
+        # 存在しないrunnable_uuidが指定された場合は例外を送出する
+        from streamcat.store.factory import DatumFactory
+        if not DatumFactory(self._session).exists(runnable_uuid):
+            raise Exception(f'指定されたrunnable_uuid({runnable_uuid})は存在しません')
+
+        # ゴミ箱にほかしたrunnable_uuidが指定された場合は例外を送出する
+        if DatumFactory(self._session).trashed(runnable_uuid):
+            raise Exception(f'ゴミ箱にほかされたrunnable_uuid({runnable_uuid})は指定できません')
+
+        # 参照権限が無いrunnable_uuidが指定された場合は例外を送出する
+        DatumFactory(self._session).find_by_uuid(runnable_uuid)
+
+    def _valid_trigger_json_or_raise(self, trigger:dict):
         """
         JSONの書式に従っていない場合は例外を送出する
         """
         from jsonschema import validate, ValidationError
         try:
-            validate(self.trigger, Schedule.TRIGGER_JSON_SCHEMA)
+            # validate(trigger, Schedule.TRIGGER_JSON_SCHEMA)
+            pass
         except ValidationError as e:
             raise
 
-    def conv_to_utc_datetime(self, trigger:dict):
+    def _conv_to_utc_datetime(self, trigger:dict):
         from streamcat.core import SCatBaseModel
 
         trigger_type = trigger.get('type')
@@ -225,10 +246,8 @@ class Schedule(Datum):
             raise Exception(f'Unknown trigger type ! ({trigger_type})')
 
     @property
-    def runnable(self):
-        from streamcat.store.factory import DatumFactory
-        runnable_uuid = self._data.get('runnable')
-        return DatumFactory(self._session).find_by_uuid(runnable_uuid)
+    def runnable_uuid(self):
+        return self._data.get('runnable')
 
     @property
     def args(self):
@@ -265,29 +284,55 @@ class Schedule(Datum):
             if schedule_manager.contains(self.uuid):
                 schedule_manager.delete(self.uuid)
             raise e
-        finally:
-            self._session.commit()
 
-    def update_data(self, label, runnable, args={}, inputs={}, trigger={}, modifier=None):
+    def update_data(self, label, runnable_uuid:str, args={}, inputs={}, trigger={}, modifier=None):
         """
         Scheduleのdata列を更新する
         """
+        from . import schedule_manager
+
         # ラベルに'\0'が含まれていれば取り除く
         new_label = Datum.escape_label(label)
+
+        # runnableの妥当性を検証する
+        self._valid_runnable_or_raise(runnable_uuid)
+
+        # 起動日時指定の書式を検証する
+        self._valid_trigger_json_or_raise(trigger)
 
         try:
             # レコードを更新する
             self._label = new_label
-            self._data = {'runnable':runnable.uuid, 'args':args, 'inputs':inputs, 'trigger':trigger}
+            self._data.update({'runnable':runnable_uuid, 'args':args, 'inputs':inputs, 'trigger':trigger})
             self._modifier_id = (modifier or self._session.user).id
             self._session.update(self)
+            # スケジューラに登録されているスケジュールを更新する
+            schedule_manager.delete(self.uuid)
+            schedule_manager.add(self)
         except Exception as e:
             self._session.rollback()
             raise e
-        finally:
-            self._session.commit()
 
         return self
+
+    def moved(self, parent_uuid, prev_parent_id, modifier=None):
+        """
+        ゴミ箱へほかされた場合は、スケジューラから削除する
+        ゴミ箱から戻された場合は、スケジューラに再登録する
+        """
+        from . import schedule_manager
+        from streamcat.store.factory import DatumFactory
+        factory = DatumFactory(self._session)
+        trash_folder = factory.load_trash_folder()
+
+        if parent_uuid == trash_folder.uuid:
+            # ゴミ箱へほかされた場合は、スケジューラから削除する
+            schedule_manager.delete(self.uuid)
+        elif parent_uuid != trash_folder.uuid and prev_parent_id == trash_folder.id:
+            # ゴミ箱から戻された場合は、スケジューラに再登録する
+            schedule_manager.add(self)
+
+        return super().moved(parent_uuid, prev_parent_id, modifier=modifier)
 
     @Constraints.delete_role_when_isolated
     def delete(self):
@@ -304,10 +349,14 @@ class Schedule(Datum):
         except Exception as e:
             self._session.rollback()
             raise e
-        finally:
-            self._session.commit()
 
     def to_json(self):
         ret = super().to_json()
-        # TODO: 後で必要な属性値を追加する
+        # 
+        ret['runnableUUID'] = self._data.get('runnable', {})
+        ret['args']    = self._data.get('args', {})
+        ret['inputs']  = self._data.get('inputs', {})
+        ret['trigger'] = self._data.get('trigger', {})
+        # allowlist
+        ret['allowlist']['download'] = False
         return ret

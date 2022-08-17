@@ -1,3 +1,4 @@
+import warnings
 from streamcat.core import Datum
 from .schedule import Schedule
 
@@ -6,7 +7,7 @@ class ScheduleManager():
     スケジュールを管理する
     """
     def __init__(self):
-        import pytz
+        from datetime import timezone
         from apscheduler.jobstores.memory import MemoryJobStore
         from apscheduler.executors.pool import ThreadPoolExecutor
         from apscheduler.schedulers.background import BackgroundScheduler
@@ -28,7 +29,7 @@ class ScheduleManager():
         }
 
         # スケジューラを作成する
-        self.scheduler = BackgroundScheduler(jobstores=jobstores, executors=executors, job_defaults=job_defaults, timezone=pytz.utc)
+        self.scheduler = BackgroundScheduler(jobstores=jobstores, executors=executors, job_defaults=job_defaults, timezone=timezone.utc)
 
         # スケジューラを起動する
         self.scheduler.start()
@@ -37,32 +38,43 @@ class ScheduleManager():
         """
         ライブラリにある全てのスケジュールをスケジューラに登録する
         """
-        # TODO: ゴミ箱にほかされたスケジュールは登録解除したい
-        schedules = datumFactory.find_all(type=Datum.SCHEDULE_TYPE)
+        # ゴミ箱の中を除く全てのスケジュールを取得する
+        schedules = datumFactory.find_all(type=Datum.SCHEDULE_TYPE, except_trash=True)
         for schedule in schedules:
             if not self.contains(schedule.uuid):
-                import pprint
-                pprint.pprint(schedule._data) 
-                self.add(schedule)
+                try:
+                    self.add(schedule)
+                    import pprint
+                    pprint.pprint(schedule._data) 
+                except Exception as e:
+                    # スケジュールの登録に失敗しても処理を続行する
+                    warnings.warn(f'Failed to load Schedule({schedule.label}). {e}')
 
     def add(self, schedule:Schedule):
         """
         スケジューラにスケジュールを登録する
         """
-        runnable = schedule.runnable
-        if runnable.type == Datum.FLOW_TYPE:
-            # TODO: streamcat-storeとstreamcat-engineの循環参照になってしまう
-            # Flowはengineへ引っ越した方がいいのだろうか?
-            # それともScheduleManagerがengineへ引っ越した方がいいのだろうか?
-            from streamcat.engine import FlowCommand
-            command = FlowCommand(runnable)
-        else:
-            command = runnable
+        # スケジュール起動時に、その処理内でFactoryを作成する(トランザクションを開く)必要がある
+        def run(args:dict, inputs:dict):
+            from streamcat.store.factory import Factory
+            # Scheduleの作成者の権限でrunnableを実行する
+            with Factory(user=schedule.creator) as factory:
+                runnable = factory.data.find_by_uuid(schedule.runnable_uuid)
+                if runnable.type == Datum.FLOW_TYPE:
+                    # TODO: streamcat-storeとstreamcat-engineの循環参照になってしまう
+                    # Flowはengineへ引っ越した方がいいのだろうか?
+                    # それともScheduleManagerがengineへ引っ越した方がいいのだろうか?
+                    from streamcat.engine import FlowCommand
+                    command = FlowCommand(runnable)
+                else:
+                    command = runnable
+                # コマンドを実行する
+                return command.run(args, inputs)
 
         trigger_type = schedule.trigger.get('type')
         if trigger_type=='date':
             self.scheduler.add_job(
-                command.run,
+                run,
                 kwargs={'args':schedule.args,'inputs':schedule.inputs},
                 id=schedule.uuid,
                 # Tirggers: date, interval, cron
@@ -72,7 +84,7 @@ class ScheduleManager():
 
         elif trigger_type=='interval':
             self.scheduler.add_job(
-                command.run,
+                run,
                 kwargs={'args':schedule.args,'inputs':schedule.inputs},
                 id=schedule.uuid,
                 # Tirggers: date, interval, cron
@@ -90,7 +102,7 @@ class ScheduleManager():
 
         elif trigger_type=='cron':
             self.scheduler.add_job(
-                command.run,
+                run,
                 kwargs={'args':schedule.args,'inputs':schedule.inputs},
                 id=schedule.uuid,
                 # Tirggers: date, interval, cron
@@ -98,7 +110,7 @@ class ScheduleManager():
                 # start and end times
                 start_date=schedule.trigger['start_date'],
                 end_date=schedule.trigger['end_date'],
-                # Intervals
+                # datetime
                 year=schedule.trigger.get('year'),
                 month=schedule.trigger.get('month'),
                 week=schedule.trigger.get('week'),
@@ -107,6 +119,7 @@ class ScheduleManager():
                 hour=schedule.trigger.get('hour'),
                 minute=schedule.trigger.get('minute'),
                 second=schedule.trigger.get('second'),
+                timezone=schedule.trigger.get('timezone')
             )
 
         else:

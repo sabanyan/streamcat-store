@@ -8,7 +8,7 @@ readonly  VERSION="0.1"
 # 背景： StreamCat UI側の挙動に合わせるため
 
 #外部モジュール参照
-# MCMD使用
+# nkf使用
 
 #未実装箇所
 

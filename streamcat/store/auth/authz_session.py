@@ -11,13 +11,17 @@ class Session():
     def __init__(self, session_factory, user):
         self._session = session_factory()
         self._user = user
+        self._rollback = False
 
     @property
     def user(self):
         return self._user
-
-    def commit(self):
-        self._session.commit()
+    
+    def end(self):
+        if self._rollback:
+            self._session.rollback()
+        else:
+            self._session.commit()
 
     def expire(self, obj):
         from streamcat.core import Datum
@@ -38,7 +42,8 @@ class Session():
             self._session.flush([obj])
 
     def rollback(self):
-        self._session.rollback()
+        # RollbackはSessionをclose()する時に行う
+        self._rollback = True
 
     def close(self):
         self._session.close()
@@ -68,6 +73,8 @@ class Session():
 
     def add(self, obj, ignore_authz=False):
         self._session.add(obj)
+        # 新規追加したobjをDBに反映する
+        self.flush(obj)
 
     def update(self, obj):
         raise NotAuthorizedException('認証なき更新はできません')
@@ -493,49 +500,52 @@ class AuthzSession(Session):
         from .role import Role
         from .user import User
 
-        if isinstance(obj, Datum):
-            # Datumの変更権限を判定する
-            if not ignore_authz and not self.writable(obj):
-                raise NotAuthorizedException((f'{self.user.name}は更新権限がないため{obj.label}を更新できません'))
-            if obj._data is not None:
-                # JSON列への変更はflag_modified()を使ってSQLAlchemyに知らせないとDBに反映されない
-                from sqlalchemy.orm.attributes import flag_modified
-                flag_modified(obj, "_data")
+        try:
+            if isinstance(obj, Datum):
+                # Datumの変更権限を判定する
+                if not ignore_authz and not self.writable(obj):
+                    raise NotAuthorizedException((f'{self.user.name}は更新権限がないため{obj.label}を更新できません'))
+                if obj._data is not None:
+                    # JSON列への変更はflag_modified()を使ってSQLAlchemyに知らせないとDBに反映されない
+                    from sqlalchemy.orm.attributes import flag_modified
+                    flag_modified(obj, "_data")
 
-        elif isinstance(obj, User):
-            # ユーザ管理者か本人のみ、ユーザを変更できる
-            if not self.is_self_user(obj.id) and not self.has_usr_admin():
-                raise NotAuthorizedException(f'{self.user.name}は更新権限がないためユーザ({obj})を変更できませんでした')
+            elif isinstance(obj, User):
+                # ユーザ管理者か本人のみ、ユーザを変更できる
+                if not self.is_self_user(obj.id) and not self.has_usr_admin():
+                    raise NotAuthorizedException(f'{self.user.name}は更新権限がないためユーザ({obj})を変更できませんでした')
 
-        elif isinstance(obj, UserRole):
+            elif isinstance(obj, UserRole):
 
-            # ユーザ管理者かロールの所有者のみ、ロールの所有権を変更できる
-            if not self.is_role_owner(obj.role_id) and not self.has_usr_admin():
-                from streamcat.store.factory import UserFactory, RoleFactory
-                role = RoleFactory(self).find_by_id(obj.role_id)
-                user = UserFactory(self).find_by_id(obj.user_id)
-                raise NotAuthorizedException(f'{self.user}はロール({role})についてユーザ({user})の所有権を変更できませんでした')
+                # ユーザ管理者かロールの所有者のみ、ロールの所有権を変更できる
+                if not self.is_role_owner(obj.role_id) and not self.has_usr_admin():
+                    from streamcat.store.factory import UserFactory, RoleFactory
+                    role = RoleFactory(self).find_by_id(obj.role_id)
+                    user = UserFactory(self).find_by_id(obj.user_id)
+                    raise NotAuthorizedException(f'{self.user}はロール({role})についてユーザ({user})の所有権を変更できませんでした')
 
-        elif isinstance(obj, Role):
-            # ユーザ管理者かロールの所有者のみ、ロールを変更できる
-            if not self.is_role_owner(obj.id) and not self.has_usr_admin():
-                raise NotAuthorizedException('ロールを変更できませんでした')
+            elif isinstance(obj, Role):
+                # ユーザ管理者かロールの所有者のみ、ロールを変更できる
+                if not self.is_role_owner(obj.id) and not self.has_usr_admin():
+                    raise NotAuthorizedException('ロールを変更できませんでした')
 
-        elif isinstance(obj, Auth):
-            # ユーザ管理者かデータの所有者のみ、その権限を変更できる
-            if not self.ownership(obj.datum_id) and not self.has_usr_admin():
-                raise NotAuthorizedException('権限を変更できませんでした')
+            elif isinstance(obj, Auth):
+                # ユーザ管理者かデータの所有者のみ、その権限を変更できる
+                if not self.ownership(obj.datum_id) and not self.has_usr_admin():
+                    raise NotAuthorizedException('権限を変更できませんでした')
 
-        elif not self.has_sys_admin():
-            # 上記以外の書き込みはシステム管理者権限が必要
-            raise NotAuthorizedException('no anthz!')
+            elif not self.has_sys_admin():
+                # 上記以外の書き込みはシステム管理者権限が必要
+                raise NotAuthorizedException('no anthz!')
 
-        # objをSessionに格納する
-        self._session.add(obj)
-        # SessionにあるobjをDBに格納する
-        self.flush(obj)
-        # Sessionにあるobjを期限切れ状態にすることで、objの参照時にDBからリロードされるようにする
-        self.expire(obj)
+            # objをSessionに格納する
+            self._session.add(obj)
+            # SessionにあるobjをDBに格納する
+            self.flush(obj)
+
+        finally:
+            # Sessionにあるobjを期限切れ状態にすることで、objの参照時にDBからリロードされるようにする
+            self.expire(obj)
 
     def delete(self, obj):
         from streamcat.core import Datum
@@ -578,6 +588,8 @@ class AuthzSession(Session):
 
         # 削除する
         self._session.delete(obj)
+        # 削除したobjをDBに反映する
+        self.flush(obj)
 
     def readable(self, datum) -> bool:
         """

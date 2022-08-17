@@ -32,16 +32,14 @@ class Flow(Datum):
 
     @property
     def flow_data(self):
-        from typing import List
-
-        def select_unreadables(uuids:List[str]) -> List[str]:
+        def select_unreadables(uuids:list[str]) -> list[str]:
             """
             指定したuuidのうち参照権限の無いuuidを返す
             """
             results = self._session.query(Datum).filter(Datum.uuid.in_(uuids)).all(ignore_authz=True)
             return [result.uuid for result in results if not result.readable]
 
-        def select_unexecutables(uuids:List[str]) -> List[str]:
+        def select_unexecutables(uuids:list[str]) -> list[str]:
             """
             指定したuuidのうち実行権限の無いuuidを返す
             """
@@ -71,6 +69,8 @@ class Flow(Datum):
         # 
         # TODO: フローJSONの書式修正による後方互換!
         # 
+        self.flow_data.remove_uuid_from_root()
+        self.flow_data.remove_projectname_from_root()
         self.flow_data.remove_uuid_from_param()
 
         # 不正なフローJSONがDBに格納されないよう、ここで書式の検証をする
@@ -92,8 +92,6 @@ class Flow(Datum):
                 raise EditLockedException('編集ロックが掛かっているため新規追加できません')
             else:
                 raise e
-        finally:
-            self._session.commit()
 
     @lock_required
     def update_label(self, label, lock_uuid=None, modifier=None):
@@ -118,8 +116,6 @@ class Flow(Datum):
                 raise EditLockedException('編集ロックが掛かっているため更新できません')
             else:
                 raise e
-        finally:
-            self._session.commit()
 
         return self
 
@@ -190,25 +186,22 @@ class Flow(Datum):
                 raise EditLockedException('編集ロックが掛かっているため更新できません')
             else:
                 raise e
-        finally:
-            self._session.commit()
 
         # ここでflowを返すとtest_model.pyでテストが通らない
         return self
 
     @lock_required
-    def move(self, parent_uuid, lock_uuid=None, modifier=None):
-        from streamcat.store.auth import NotAuthorizedException
+    def moving(self, parent_uuid, lock_uuid=None, modifier=None):
+        # 編集ロックが掛かっている場合は移動できない
+        if self.edit_lock:
+            from streamcat.store import EditLockedException
+            raise EditLockedException('編集ロックが掛かっているため移動できません')
+        # 
+        super().moving(parent_uuid, lock_uuid=lock_uuid, modifier=modifier)
 
-        try:
-            return super().move(parent_uuid, modifier)
-        except NotAuthorizedException as e:
-            if self.edit_lock:
-                # 編集ロックにより移動できなかった場合
-                from streamcat.store import EditLockedException
-                raise EditLockedException('編集ロックが掛かっているため移動できません')
-            else:
-                raise e
+    @Constraints.set_project_role_on_moving_flow
+    def moved(self, parent_uuid, prev_parent_id, modifier=None):
+        super().moved(parent_uuid, prev_parent_id, modifier=modifier)
 
     def throw_away(self, lock_uuid=None):
         """
@@ -224,7 +217,7 @@ class Flow(Datum):
             raise Exception(f"このフローは別のフロー({using_flow_uuids[0]['reference_label']})で使用しているため削除できません")
 
         try:
-            return self.move(trash_folder.uuid ,lock_uuid=lock_uuid)
+            return self.move(trash_folder.uuid, lock_uuid=lock_uuid)
         except Exception as e:
             if self.edit_lock:
                 # 編集ロックにより更新できなかった場合
@@ -256,8 +249,6 @@ class Flow(Datum):
                 raise EditLockedException('編集ロックが掛かっているため削除できません')
             else:
                 raise e
-        finally:
-            self._session.commit()
             
     def remove_reference_only(self):
         """
@@ -275,7 +266,7 @@ class Flow(Datum):
         new_flow_data = self.flow_data.copy()
         new_flow_data.label = new_label
         new_flow_data.creator = self._session.user.name
-        # FIXIT : Dataテーブルのcreated_at列と時刻を合わせたい
+        # FIXME : Dataテーブルのcreated_at列と時刻を合わせたい
         from datetime import datetime, timedelta, timezone
         JST = timezone(timedelta(hours=+9), 'JST')
         new_flow_data.createdAt = datetime.now(JST).strftime('%Y-%m-%d %H:%M:%S')

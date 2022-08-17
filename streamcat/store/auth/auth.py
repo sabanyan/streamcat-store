@@ -47,8 +47,6 @@ class Auth(BaseModel):
         except Exception as e:
             self._session.rollback()
             raise e
-        finally:
-            self._session.commit()
 
     def update(self, permission):
         # 同じ値への更新であれば何もしない
@@ -63,8 +61,6 @@ class Auth(BaseModel):
         except Exception as e:
             self._session.rollback()
             raise e
-        finally:
-            self._session.commit()
 
         return self
 
@@ -77,8 +73,6 @@ class Auth(BaseModel):
         except Exception as e:
             self._session.rollback()
             raise e
-        finally:
-            self._session.commit()
 
     def __repr__(self):
         return f'Auth(role:{self.role_id}, datum:{self.datum_id}, {self.operation}, {self.permission})'

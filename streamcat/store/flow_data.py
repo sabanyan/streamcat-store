@@ -1,4 +1,4 @@
-from typing import List, Callable
+from collections import Callable
 
 class FlowData():
     """
@@ -483,7 +483,7 @@ class FlowData():
                     '^[0-9a-zA-Z_]+$': {
                         'type': 'array',
                         'items': {
-                            'type': 'string'
+                            'type': ['null', 'string']
                         }
                     }
                 }
@@ -510,8 +510,8 @@ class FlowData():
 
     def __init__(self,
                  flow_json:dict = {},
-                 select_unreadables:Callable[[List[str]],List[str]] = None,
-                 select_unexecutables:Callable[[List[str]],List[str]] = None,
+                 select_unreadables:Callable[[list[str]],list[str]] = None,
+                 select_unexecutables:Callable[[list[str]],list[str]] = None,
                  readable_or_raise:Callable[[],None] = None, 
                  executable_or_raise:Callable[[],None] = None):
         self._flow_json = flow_json
@@ -553,7 +553,7 @@ class FlowData():
         self._flow_json['createdAt'] = created_at
 
     @property
-    def params(self) -> List[dict]:
+    def params(self) -> list[dict]:
         return self._flow_json.get('params')
 
     # @property
@@ -561,14 +561,14 @@ class FlowData():
     #     return self._flow_json.get('ports')
 
     @property
-    def i_ports(self) -> List[dict]:
+    def i_ports(self) -> list[dict]:
         ports = self._flow_json.get('ports')
         if ports is None:
             return []
         return ports[0]
 
     @property
-    def o_ports(self) -> List[dict]:
+    def o_ports(self) -> list[dict]:
         ports = self._flow_json.get('ports')
         if ports is None:
             return []
@@ -715,7 +715,7 @@ class FlowData():
         import copy
         return FlowData(copy.deepcopy(self._flow_json))
 
-    def get_nodes(self, use_exec_auth=False) -> List[dict]:
+    def get_nodes(self, use_exec_auth=False) -> list[dict]:
         flow_json = self._authorize(self._flow_json, use_exec_auth)
         return flow_json.get('nodes')
 
@@ -768,6 +768,20 @@ class FlowData():
                 'params': self.params,
                 'ports': [self.i_ports, self.o_ports]
             }
+
+    def remove_uuid_from_root(self):
+        """
+        後方互換のため、uuidを削除する
+        """
+        if 'uuid' in self._flow_json:
+            del self._flow_json['uuid']
+    
+    def remove_projectname_from_root(self):
+        """
+        後方互換のため、projectNameを削除する
+        """
+        if 'projectName' in self._flow_json:
+            del self._flow_json['projectName']
 
     def remove_uuid_from_param(self):
         """

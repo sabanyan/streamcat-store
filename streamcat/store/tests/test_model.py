@@ -22,12 +22,6 @@ class LibraryTest(TestCaseBase):
         'password' : "kskanalytics"
     }
 
-    def setUp(self):
-        pass
-
-    def tearDown(self):
-        pass
-
     @classmethod
     def setUpClass(cls):
         # 親クラスのsetUpClass()を実行する
@@ -173,7 +167,7 @@ class LibraryTest(TestCaseBase):
         # ルートデータストアの直下にフォルダを作成する
         folder_dst = self.save_folder(root, 'フォルダDST')
         # フォルダSRC_AAをフォルダDSTへ移動する
-        updated_folder = folder_src.move(folder_dst.uuid, self.USER2)
+        updated_folder = folder_src.move(folder_dst.uuid, modifier=self.USER2)
         # parent_id, path, modifierが変更されることを検証する
         self.assertEqual(updated_folder.id, folder_src.id)
         self.assertEqual(updated_folder.parent_id, folder_dst.id)
@@ -233,21 +227,21 @@ class LibraryTest(TestCaseBase):
 
         # 存在しないフォルダへ移動しようとすると例外を送出する
         with self.assertRaises(Exception):
-            folder_src.move('00000000-0000-0000-0000-000000000000', self.USER2)
+            folder_src.move('00000000-0000-0000-0000-000000000000', modifier=self.USER2)
         # 移動が失敗した場合はDBは更新されていないこと
         self.assertEqual(folder_src.created_at, folder_src.modified_at)
         self.assertEqual(frame_src.created_at, frame_src.modified_at)
 
         # 移動先にフレームを指定したら例外を送出する
         with self.assertRaises(Exception):
-            folder_src.move(frame_src.uuid, self.USER2)
+            folder_src.move(frame_src.uuid, modifier=self.USER2)
         # 移動が失敗した場合はDBは更新されていないこと
         self.assertEqual(folder_src.created_at, folder_src.modified_at)
         self.assertEqual(frame_src.created_at, frame_src.modified_at)
 
         # 移動先に自分自身を指定したら例外を送出する
         with self.assertRaises(Exception):
-            folder_src.move(folder_src.uuid, self.USER2)
+            folder_src.move(folder_src.uuid, modifier=self.USER2)
         # 移動が失敗した場合はDBは更新されていないこと
         self.assertEqual(folder_src.created_at, folder_src.modified_at)
         self.assertEqual(frame_src.created_at, frame_src.modified_at)
@@ -267,13 +261,20 @@ class LibraryTest(TestCaseBase):
         # フォルダ1の直下にフォルダ2を作成する
         folder2 = self.save_folder(folder1, 'iMac')
 
+        # 作成を確定する
+        self.factory.end()
+
         # 移動先に、移動元のフォルダの子フォルダを指定したら例外を送出すること
         with self.assertRaises(OSError):
             folder1.move(folder2.uuid)
 
+        # Rollbackを確定する
+        self.factory.end()
+
         # 移動が失敗した場合はDBは更新されていないこと
         self.assertEqual(folder1.created_at, folder1.modified_at)
         self.assertEqual(folder2.created_at, folder2.modified_at)
+        self.assertIsNone(folder1.prev_parent_id)
 
         # 例外送出によりSQLAlchemyのSessionがRollbackされるため
         # Datumの参照権限がNoneになる、そのため再読み込みする
@@ -380,7 +381,7 @@ class LibraryTest(TestCaseBase):
             # (Mountするとmove()では対応ディレクトリは移動されない)
             folder.path
             # 作成したフォルダのラベルを変更する
-            folder.move(to_folder.uuid, self.USER2)
+            folder.move(to_folder.uuid, modifier=self.USER2)
             # ラベルとディレクトリパスのみが変更されることを検証する
             self.assertEqual(folder.id, folder.id)
             self.assertEqual(folder.parent_id, folder.parent_id)
@@ -432,19 +433,19 @@ class LibraryTest(TestCaseBase):
 
             # 存在しないフォルダへ移動しようとすると例外を送出する
             with self.assertRaises(Exception):
-                folder.move('00000000-0000-0000-0000-000000000000', self.USER2)
+                folder.move('00000000-0000-0000-0000-000000000000', modifier=self.USER2)
             # 移動が失敗した場合はDBは更新されていないこと
             self.assertEqual(folder.created_at, folder.modified_at)
 
             # 移動先にフレームを指定したら例外を送出する
             with self.assertRaises(Exception):
-                folder.move(frame_src.uuid, self.USER2)
+                folder.move(frame_src.uuid, modifier=self.USER2)
             # 移動が失敗した場合はDBは更新されていないこと
             self.assertEqual(folder.created_at, folder.modified_at)
 
             # 移動先に自分自身を指定したら例外を送出する
             with self.assertRaises(Exception):
-                folder.move(folder.uuid, self.USER2)
+                folder.move(folder.uuid, modifier=self.USER2)
             # 移動が失敗した場合はDBは更新されていないこと
             self.assertEqual(folder.created_at, folder.modified_at)
 
@@ -611,7 +612,7 @@ class LibraryTest(TestCaseBase):
         # ルートデータストアの直下にフォルダを作成する
         folder_dst = self.save_folder(root, 'フォルダDST_A')
         # フレームSRCをフォルダDSTへ移動する
-        updated_frame = frame_src.move(folder_dst.uuid, self.USER2)
+        updated_frame = frame_src.move(folder_dst.uuid, modifier=self.USER2)
         # parent_id, path, modifierが変更されることを検証する
         self.assertEqual(updated_frame.id, frame_src.id)
         self.assertEqual(updated_frame.parent_id, folder_dst.id)
@@ -664,7 +665,7 @@ class LibraryTest(TestCaseBase):
         # フォルダDST_A2の直下に同じ名称でフレームを作成する
         frame_src2 = self.save_frame(folder_dst, 'フレームSRC2', folder_dst.path / 'aiueo2.csv')
         # フレームSRC2をフォルダDSTへ移動する
-        updated_frame = frame_src.move(folder_dst.uuid, self.USER2)
+        updated_frame = frame_src.move(folder_dst.uuid, modifier=self.USER2)
         # parent_id, path, modifierが変更されることを検証する
         self.assertEqual(updated_frame.id, frame_src.id)
         self.assertEqual(updated_frame.parent_id, folder_dst.id)
@@ -714,21 +715,21 @@ class LibraryTest(TestCaseBase):
 
         # 存在しないフォルダへ移動しようとすると例外を送出する
         with self.assertRaises(Exception):
-            frame_src1.move('00000000-0000-0000-0000-000000000000', self.USER2)
+            frame_src1.move('00000000-0000-0000-0000-000000000000', modifier=self.USER2)
         # 移動が失敗した場合はDBは更新されていないこと
         self.assertEqual(frame_src1.created_at, frame_src1.modified_at)
         self.assertEqual(frame_src2.created_at, frame_src2.modified_at)
 
         # 移動先にフレームを指定したら例外を送出する
         with self.assertRaises(Exception):
-            frame_src1.move(frame_src2.uuid, self.USER2)
+            frame_src1.move(frame_src2.uuid, modifier=self.USER2)
         # 移動が失敗した場合はDBは更新されていないこと
         self.assertEqual(frame_src1.created_at, frame_src1.modified_at)
         self.assertEqual(frame_src2.created_at, frame_src2.modified_at)
 
         # 移動先に自分自身を指定したら例外を送出する
         with self.assertRaises(Exception):
-            frame_src1.move(frame_src1.uuid, self.USER2)
+            frame_src1.move(frame_src1.uuid, modifier=self.USER2)
         # 移動が失敗した場合はDBは更新されていないこと
         self.assertEqual(frame_src1.created_at, frame_src1.modified_at)
         self.assertEqual(frame_src2.created_at, frame_src2.modified_at)

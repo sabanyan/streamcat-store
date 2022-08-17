@@ -5,19 +5,12 @@ from .test_case_base import TestCaseBase
 
 class VCmdTestCase(TestCaseBase):
     """
-    visualize用コマンドの実行テスト
+    Vコマンドの実行テスト
     """
 
-    # テストデータのUUID
-    frame_uuid = None
+    def setUp(self):
+        super().setUp()
 
-    @classmethod
-    def setUpClass(cls):
-        # 親クラスのsetUpClass()を実行する
-        TestCaseBase.setUpClass()
-
-        # ルートフォルダを取得する
-        root = cls.factory.data.load_root()
         # テスト用データを作成する
         test_data  = b'customer,date,amount,add1,add2,add3' + b'\n'
         test_data += b'A,20180101,5200,0,0,0' + b'\n'
@@ -25,17 +18,12 @@ class VCmdTestCase(TestCaseBase):
         test_data += b'B,20180112,3500,1,2,3' + b'\n'
         test_data += b'A,20180105,2000,4,5,6' + b'\n'
         test_data += b'B,20180107,4000,0,0,0' + b'\n'
-        with io.BytesIO(test_data) as b:
-            frame = root.create_frame("customer data", b)
-            VCmdTestCase.frame_uuid = frame.uuid
-            frame.save()
-    
-    @classmethod
-    def tearDownClass(cls):
-        # 親クラスのtearDownClass()を実行する
-        TestCaseBase.tearDownClass()
 
-    def setUp(self):
+        root = self.factory.data.load_root()
+        frame = root.create_frame("customer data", io.BytesIO(test_data))
+        frame.save()
+        self.factory.end()
+
         # テスト用フローの定義
         self.flow_csvtohtmltable = {
             "label": "vis",
@@ -48,7 +36,7 @@ class VCmdTestCase(TestCaseBase):
                 {
                     "id": "d2",
                     "type": "frame", 
-                    "uuid": VCmdTestCase.frame_uuid, 
+                    "uuid": frame.uuid, 
                     "error": {}, 
                     "label": "testData.csv", 
                     "invalid": {}, 
@@ -89,6 +77,27 @@ class VCmdTestCase(TestCaseBase):
                 }
             ]
         }
+
+    def exec_flow(self, vis_args):
+        from streamcat.store import FlowData
+        root = self.factory.data.load_root()
+        flow_data = FlowData(self.flow_csvtohtmltable)
+        flow = root.create_flow('CSV to graph', flow_data)
+        flow_link = FlowCommand(flow)
+        outs = execute(flow_link, {'vis':vis_args}, {})
+        result = self.convert_from_activity_vis(outs)['d1']
+        return result
+
+    def convert_from_activity_vis(self, outs):
+        """
+        execute()の戻り値であるActivityから
+        pointのidとvisのDictに置き換える
+        """
+        from streamcat.store import Activity
+        # Activityを取得して返り値とする
+        for point_id, datum in outs.items():
+            if isinstance(datum, Activity):
+                return {point.id : vis.result for point, vis in datum.outs}
 
     def test_csvtohtmltable(self):
         vis_args = 	{
@@ -184,24 +193,3 @@ class VCmdTestCase(TestCaseBase):
         result = self.exec_flow(vis_args)
         self.assertIsInstance(result['div'], str)
         self.assertIsInstance(result['script'], str)
-
-    def convert_from_activity_vis(self, outs):
-        """
-        execute()の戻り値であるActivityから
-        pointのidとvisのDictに置き換える
-        """
-        from streamcat.store import Activity
-        # Activityを取得して返り値とする
-        for point_id, datum in outs.items():
-            if isinstance(datum, Activity):
-                return {point.id : vis.result for point, vis in datum.outs}
-
-    def exec_flow(self, vis_args):
-        from streamcat.store import FlowData
-        root = self.factory.data.load_root()
-        flow_data = FlowData(self.flow_csvtohtmltable)
-        flow = root.create_flow('CSV to graph', flow_data)
-        flow_link = FlowCommand(flow)
-        outs = execute(flow_link, {'vis':vis_args}, {})
-        result = self.convert_from_activity_vis(outs)['d1']
-        return result
