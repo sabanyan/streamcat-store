@@ -1054,11 +1054,8 @@ class ActivityCommand(SCommand):
 
         # プレビュー実行時にはActivityを保存しない
         if not is_vis:
-            # プレビュー実行以外の場合
-            # Activityを全て集め終えたら実行結果情報を保存する
+            # プレビュー実行以外の場合は実行結果情報を保存する
             # (今は出力ファイル名にその情報を刻んでいる)
-            activity.save()
-            activity = activity.reload()
             activity.update_data(outs)
 
         # ApparentOutsを返す
