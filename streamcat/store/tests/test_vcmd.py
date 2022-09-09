@@ -85,19 +85,19 @@ class VCmdTestCase(TestCaseBase):
         flow = root.create_flow('CSV to graph', flow_data)
         flow_link = FlowCommand(flow)
         outs = execute(flow_link, {'vis':vis_args}, {})
-        result = self.convert_from_activity_vis(outs)['d1']
+        result = self.convert_from_job_vis(outs)['d1']
         return result
 
-    def convert_from_activity_vis(self, outs):
+
+    def convert_from_job_vis(self, job):
         """
-        execute()の戻り値であるActivityから
+        execute()の戻り値から
         pointのidとvisのDictに置き換える
         """
-        from streamcat.store import Activity
-        # Activityを取得して返り値とする
-        for point_id, datum in outs.items():
-            if isinstance(datum, Activity):
-                return {point.id : vis.result for point, vis in datum.outs}
+        from streamcat.store import ApparentOuts
+        for point_id, datum in job.join().items():
+            if isinstance(datum, ApparentOuts):
+                return {out.out_point.id : out.datum.result for out in datum.outs}
 
     def test_csvtohtmltable(self):
         vis_args = 	{

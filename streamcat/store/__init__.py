@@ -12,11 +12,12 @@ from .exceptions import (
     FieldForbiddenCharacterException
 )
 from .store_model import Store as StoreModel
-from .store import Store, NysolModule, BeamModule, ModuleStore, Matrix, Stream, ApparentOut
+from .store import Store, NysolModule, BeamModule, ModuleStore, Matrix, Stream
 from .mountable import Mountable
 from .file import File
 from .frame import Frame
 from .document import Document
+from .apparent_out import ApparentOut, ApparentOuts
 from .activity import Activity
 from .vis import Vis, BokehPlotVis
 from .flow_data import FlowData

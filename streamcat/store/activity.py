@@ -1,6 +1,6 @@
 from streamcat.core import Datum, Constraints
 from streamcat.core.scat_base_model import SCatBaseModel
-from streamcat.store import ApparentOut
+from streamcat.store import ApparentOuts
 
 class Activity(Datum):
     """
@@ -28,112 +28,46 @@ class Activity(Datum):
         self._start_at = datetime.utcnow().replace(tzinfo=timezone.utc)
 
         # data列の値を作成する
-        # (同じインスタンスのpointの場合もあることに注意!!)
-        # [ApparentOut(point, datum, exs)]
-        self._outs = []
         self._data = {'flowUuid': flow.uuid,
                       'args': args,
-                      'startAt': SCatBaseModel.isoformat(self._start_at)}
-
-    def add(self, out:ApparentOut):
-        self._outs.append(out)
-
-    @property
-    def is_success(self):
-        for out in self._outs:
-            if out.has_exs:
-                return False
-        return True
-
-    def raise_one(self):
-        """
-        例外があれば、そのうち一つを送出する
-        """
-        for out in self._outs:
-            if out.has_exs:
-                raise out.exs[0]
-        return
-
-    def delete_all_frames(self):
-        """
-        全てのFrame(Cache含む)を削除する
-        """
-        for out in self._outs:
-            if out.has_frame:
-                out.datum.delete()
-                out.datum = None
-
-    @property
-    def exs(self):
-        return [(out.out_point, out.exs) for out in self._outs if not out.has_cache and out.has_exs]
-
-    @property
-    def outs(self):
-        # Cacheは返さない
-        # 同じPointにCacheとFrame(CacheとVis)が紐づくとややこしい
-        return [(out.out_point, out.datum) for out in self._outs if not out.has_cache]
-
-    @property
-    def frames(self):
-        """
-        作成したフレームのリストを返す
-        """
-        return [(out.out_point, out.datum) for out in self._outs if not out.has_cache and out.has_frame]
-
-    @property
-    def caches(self):
-        """
-        作成したキャッシュのリストを返す
-        """
-        return [(out.out_point, out.datum) for out in self._outs if out.has_cache]
-
-    def count_outs(self):
-        return len(self._outs)
+                      'startAt': SCatBaseModel.isoformat(self._start_at),
+                      'endAt' : '',
+                      'outs'  : [],
+                      'caches': [],
+                      'exs'   : []}
 
     @Constraints.prohibit_save_on_root
     @Constraints.set_project_role_on_adding_activity
     def save(self):
+        try:
+            # Dataテーブルにレコードを新規追加する
+            self._session.add(self)
+        except Exception as e:
+            self._session.rollback()
+            raise e
+
+    @Constraints.set_project_role_on_updating_activity
+    def update_data(self, outs:ApparentOuts, modifier=None):
         from datetime import datetime, timezone
-        from streamcat.store import Frame
 
         # 現在時刻を取得する
         end_at = datetime.utcnow().replace(tzinfo=timezone.utc)
 
-        outs = []
-        caches = []
-        exs = []
-        for out in self._outs:
-            out_item = {'id': out.out_point.id, 'label': out.out_point.label}
-
-            if not out.has_cache and out.has_exs:
-                # 出力Pointで例外が発生した場合
-                out_item['message'] = str(out.exs[0])
-                exs.append(out_item)
-            else:
-                out_item['datum'] = out.datum.uuid
-                # 出力Pointで結果を出力した場合
-                outs.append(out_item)
-                # 出力PointでCacheを出力した場合
-                if out.has_cache:
-                    caches.append(out_item)
-                # Frameの場合、対応ファイルの文字コードと改行コードを推測してその結果を登録する
-                if isinstance(out.datum, Frame):
-                    out.datum.update_encoding_newline()
-                # 結果Datumのラベル名を変更する
-                self._update_label(out.datum, end_at)
-
-        # 現在時刻を格納する
-        # NOTE: Safariでは、JavaScriptのDateオブジェクトの日付時刻の解析に区切り文字'T'が必要
-        self._data['endAt'] = SCatBaseModel.isoformat(end_at)
-
-        # 出力情報を格納する
-        self._data['outs'] = outs
-        self._data['caches'] = caches
-        self._data['exs'] = exs
+        for point, datum in outs.data:
+            # 結果Datumのラベル名を変更する
+            self._update_label(datum, end_at)
+            # 結果DatumがFrameの場合、対応ファイルの文字コードと改行コードを推測してその結果を登録する
+            datum.type == Datum.FRAME_TYPE and datum.update_encoding_newline()
 
         try:
-            # Dataテーブルにレコードを新規追加する
-            self._session.add(self)
+            # 現在時刻を格納する
+            # NOTE: Safariでは、JavaScriptのDateオブジェクトの日付時刻の解析に区切り文字'T'が必要
+            self._data['endAt'] = SCatBaseModel.isoformat(end_at)
+            # 出力情報を格納する
+            self._data.update(outs.to_json())
+            # Dataテーブルのレコードを更新する
+            self._modifier_id = (modifier or self._session.user).id
+            self._session.update(self)
         except Exception as e:
             self._session.rollback()
             raise e

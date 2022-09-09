@@ -2,6 +2,7 @@ import copy
 from streamcat.engine import execute, FlowCommand
 from streamcat.store import FlowData
 from .test_case_base import TestCaseBase
+from streamcat.engine.tests.test_main import convert_from_job
 
 class AssertCmdTest(TestCaseBase):
     """
@@ -770,7 +771,7 @@ class AssertCmdTest(TestCaseBase):
         flow = root.create_flow(flow_json['label'], FlowData(flow_json))
         flow_link = FlowCommand(flow)
         lasts = execute(flow_link, {}, {})
-        lasts = convert_from_activity(lasts)
+        lasts = convert_from_job(lasts)
 
         # 正解データ内のuuid, タイムスタンプはダミー、テスト実行時には、毎回変動するので、出力がされているかどうかのみ確認する
         corrects = {'d1': [
@@ -820,7 +821,7 @@ class AssertCmdTest(TestCaseBase):
         flow = root.create_flow(flow_json['label'], FlowData(flow_json))
         flow_link = FlowCommand(flow)
         lasts = execute(flow_link, {}, {})
-        lasts = convert_from_activity(lasts)
+        lasts = convert_from_job(lasts)
         # 正解データ内のuuid, タイムスタンプはダミー、テスト実行時には、毎回変動するので、出力がされているかどうかのみ確認する
         corrects = {'d1': [
             ['00000000-0000-0000-0000-000000000000','/ライブラリ/テストフロ','d1','True','False','','','','False','0000-00-00 00:00:00.000000+00:00']
@@ -868,7 +869,7 @@ class AssertCmdTest(TestCaseBase):
         flow = root.create_flow(flow_json['label'], FlowData(flow_json))
         flow_link = FlowCommand(flow)
         lasts = execute(flow_link, {}, {})
-        lasts = convert_from_activity(lasts)
+        lasts = convert_from_job(lasts)
 
         # # 正解データ内のuuid, タイムスタンプはダミー、テスト実行時には、毎回変動するので、出力がされているかどうかのみ確認する
         corrects = {'d2': [
@@ -930,7 +931,7 @@ class AssertCmdTest(TestCaseBase):
         flow = root.create_flow(flow_json['label'], FlowData(flow_json))
         flow_link = FlowCommand(flow)
         lasts = execute(flow_link, {}, {})
-        lasts = convert_from_activity(lasts)
+        lasts = convert_from_job(lasts)
 
         # 正解データ内のuuid, タイムスタンプはダミー、テスト実行時には、毎回変動するので、出力がされているかどうかのみ確認する
         corrects = {
@@ -1006,7 +1007,7 @@ class AssertCmdTest(TestCaseBase):
         flow = root.create_flow(flow_json['label'], FlowData(flow_json))
         flow_link = FlowCommand(flow)
         lasts = execute(flow_link, {}, {})
-        lasts = convert_from_activity(lasts)
+        lasts = convert_from_job(lasts)
 
         # 正解データ内のuuid, タイムスタンプはダミー、テスト実行時には、毎回変動するので、出力がされているかどうかのみ確認する
         corrects = {'d2': [
@@ -1061,7 +1062,7 @@ class AssertCmdTest(TestCaseBase):
         flow = root.create_flow(flow_json['label'], FlowData(flow_json))
         flow_link = FlowCommand(flow)
         lasts = execute(flow_link, {}, {})
-        lasts = convert_from_activity(lasts)
+        lasts = convert_from_job(lasts)
 
         # 正解データ内のuuid, タイムスタンプはダミー、テスト実行時には、毎回変動するので、出力がされているかどうかのみ確認する
         corrects = {
@@ -1109,7 +1110,7 @@ class AssertCmdTest(TestCaseBase):
         flow = root.create_flow(flow_json['label'], FlowData(flow_json))
         flow_link = FlowCommand(flow)
         lasts = execute(flow_link, {}, {})
-        lasts = convert_from_activity(lasts)
+        lasts = convert_from_job(lasts)
 
         # 正解データ内のuuid, タイムスタンプはダミー、テスト実行時には、毎回変動するので、出力がされているかどうかのみ確認する
         corrects = {'d2': [
@@ -1158,7 +1159,7 @@ class AssertCmdTest(TestCaseBase):
         flow = root.create_flow(flow_json['label'], FlowData(flow_json))
         flow_link = FlowCommand(flow)
         lasts = execute(flow_link, {}, {})
-        lasts = convert_from_activity(lasts)
+        lasts = convert_from_job(lasts)
 
         # # 正解データ内のuuid, タイムスタンプはダミー、テスト実行時には、毎回変動するので、出力がされているかどうかのみ確認する
         corrects = {'d2': [
@@ -1225,17 +1226,3 @@ class AssertCmdTest(TestCaseBase):
                 row[7] = row[7][:-42]
 
         return result, correct
-
-
-def convert_from_activity(lasts):
-    """
-    execute()の戻り値から
-    pointのidとframeのDictに置き換える
-    """
-    from streamcat.store import Activity
-    # Activityを取得して返り値とする
-    for point_id, datum in lasts.items():
-        if isinstance(datum, Activity):
-            return {point.id : frame for point, frame in datum.outs}
-
-            

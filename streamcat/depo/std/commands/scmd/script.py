@@ -1023,15 +1023,18 @@ class ActivityCommand(SCommand):
     def __init__(self):
         super().__init__()
         self.i_ports = [Port('*', 'out')]
-        self.o_ports = [Port('o', 'activity')]
+        self.o_ports = [Port('o', 'outs')]
 
     def run(self, args, inputs):
-        from streamcat.store import ApparentOut
-        from streamcat.store import CommandException
+        from streamcat.store import ApparentOut, CommandException
 
         activity = args['activity']
+        outs = args['outs']
         points = args['points']
         is_vis = args['is_vis']
+
+        if len(inputs) != len(points):
+            raise CommandException(f'ActivityCommandの入力ポート数({len(inputs)})と出力Point数({len(points)})が異なります')
 
         for port_id, input in inputs.items():
             # 出力ポイント
@@ -1046,30 +1049,31 @@ class ActivityCommand(SCommand):
             else:
                 raise Exception(f'ActivityCommandにApparentOutまたはCommandException以外のデータ型({input})が入力されました')
 
-            # Activityにoutを追加する
-            activity.add(out)
+            # ApparentOutsにApparentOutを追加する
+            outs.add(out)
 
-        if activity.count_outs() == len(points):
+        # プレビュー実行時にはActivityを保存しない
+        if not is_vis:
             # プレビュー実行以外の場合
             # Activityを全て集め終えたら実行結果情報を保存する
             # (今は出力ファイル名にその情報を刻んでいる)
-            not is_vis and activity.save()
-            # Activityを出力Pointに渡し、処理を終了する
-            return {'o': activity}
-        else:
-            # Noneを渡して、再びrun()を実行してもらう
-            return {'o': None}
+            activity.save()
+            activity = activity.reload()
+            activity.update_data(outs)
+
+        # ApparentOutsを返す
+        return {'o': outs}
 
     def dtor(self, args):
-        activity = args['activity']
+        outs = args['outs']
 
         # フローの実行に成功した場合は、何もしない
-        if activity.is_success:
+        if outs.is_success:
             return
 
         # フローの実行に失敗した場合は、ここでSaverが出力したファイルを削除する
         # (本当はSaver自身が削除すべきだが、Saverは作成したファイルを自身で覚えていない)
-        activity.delete_all_frames()
+        outs.delete_all_frames()
 
 
 class RaiseCommand(SCommand):

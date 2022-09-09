@@ -237,32 +237,3 @@ class Stream(Datum):
         """
         # 名前付きパイプを削除する
         self._content.unlink()
-
-class ApparentOut(Store):
-    """
-    フローの出力ポートと出力結果を保持する
-    (フローエディタから見た見かけのout)
-    """
-    def __init__(self, out_point, datum:Datum, exs=None):
-        super().__init__(None, None, 'out', None)
-        self.out_point = out_point
-        self.datum = datum
-        self.exs = exs
-
-    @property
-    def has_exs(self):
-        return self.exs is not None and len(self.exs) > 0
-
-    @property
-    def has_list(self):
-        return self.datum is not None and isinstance(self.datum, Matrix)
-
-    @property
-    def has_frame(self):
-        from streamcat.store import Frame
-        return self.datum is not None and isinstance(self.datum, Frame)
-
-    @property
-    def has_cache(self):
-        from streamcat.store import Frame
-        return self.datum is not None and isinstance(self.datum, Frame) and self.datum.is_cache

@@ -220,18 +220,63 @@ class Constraints():
                 return result
 
             # Activityにプロジェクトロールを設定する
+            # (フロー実行完了時にActivityを更新するため write=Trueに設定する)
             readers_role = my_project._load_readers_role()
-            readers_role.init_authz(activity.id, read=True, write=None)
+            readers_role.init_authz(activity.id, read=True, write=True, own=True)
 
             # ユーザ管理者は全てのActivityの参照、及び権限の変更ができること
+            # (フロー実行完了時にActivityを更新するため write=Trueに設定する)
             from streamcat.store.factory import RoleFactory
             usr_admin_role = RoleFactory(activity._session).load_usr_admin_role()
-            usr_admin_role.init_authz(activity.id, read=True, write=None, own=True)
+            usr_admin_role.init_authz(activity.id, read=True, write=True, own=True)
 
             # 本人ロールからActiviyの権限を削除する
             creator = activity._session.user
             creator_role = creator.load_self_role()
             creator_role.clear_authz(activity.id)
+
+            return result
+
+        return wrapper
+
+    @staticmethod
+    def set_project_role_on_updating_activity(func):
+        """
+        Activityを更新する時にプロジェクトロールを設定する
+        """
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            from sqlalchemy.orm.exc import NoResultFound
+
+            if func.__name__ != 'update_data':
+                raise Exception('このDecoratorはActivity.update_data()以外をデコレートできません')
+
+            result = func(*args, **kwargs)
+
+            # self
+            activity = args[0]
+
+            from streamcat.store import Activity
+            if not isinstance(activity, Activity):
+                raise Exception('このDecoratorはActivity.update_data()以外をデコレートできません')
+
+            try:
+                # 自分のプロジェクトを取得する
+                my_project = activity._flow.find_my_project()
+            except NoResultFound:
+                # 自分のプロジェクトがない場合はプロジェクトロールを設定しない
+                return result
+
+            # ユーザ管理者は全てのActivityの参照、及び権限の変更ができること
+            # (write=Trueを解除する)
+            from streamcat.store.factory import RoleFactory
+            usr_admin_role = RoleFactory(activity._session).load_usr_admin_role()
+            usr_admin_role.init_authz(activity.id, read=True, write=None, own=None)
+
+            # Activityにプロジェクトロールを設定する
+            # (write=Trueとown=Trueを解除する)
+            readers_role = my_project._load_readers_role()
+            readers_role.init_authz(activity.id, read=True, write=None, own=None)
 
             return result
 
