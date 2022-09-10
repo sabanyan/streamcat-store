@@ -336,7 +336,7 @@ class CsvToHistogramCommand(HoloviewsBaseCommand):
         # TODO: bins引数の指定が無視される
         # https://github.com/holoviz/holoviews/issues/4651
         try:
-            overlay = ds.hist(x_dim, groupby=data_columns, bins=bins, adjoin=False, alpha=0.5, muted_alpha=0.1)
+            overlay = ds.hist(x_dim, groupby=data_columns, num_bins=bins, adjoin=False, alpha=0.5, muted_alpha=0.1)
         except Exception:
             raise Exception('この軸の設定からはグラフを表示できません')
 
