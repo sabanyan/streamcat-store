@@ -96,7 +96,8 @@ class Datum(BaseModel):
     id           = Column(INTEGER, primary_key=True, autoincrement=True)
     parent_id    = Column(INTEGER)
     prev_parent_id = Column(INTEGER)
-    uuid         = Column(UUID, nullable=False, unique=True)
+    # NOTE: as_uuid=Trueの場合はPythonのuuidオブジェクトに変換されるが、StreamCatではUUIDを文字列で保持しているのでFalseにする必要がある
+    uuid         = Column(UUID(as_uuid=False), nullable=False, unique=True)
     # PostgreSQLのENUM型の要素を変更してもSQLAlchemyから自動的に変更がかからないので手動で変更する必要がある
     type         = Column(ENUM( PROJECT_TYPE,
                                 FOLDER_TYPE,

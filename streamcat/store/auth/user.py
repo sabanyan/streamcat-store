@@ -57,7 +57,8 @@ class User(BaseModel):
 
     # 列名と列のデータ型等の定義
     id            = Column(INTEGER, primary_key=True, autoincrement=True)
-    uuid          = Column(UUID, nullable=False, unique=True)
+    # NOTE: as_uuid=Trueの場合はPythonのuuidオブジェクトに変換されるが、StreamCatではUUIDを文字列で保持しているのでFalseにする必要がある
+    uuid          = Column(UUID(as_uuid=False), nullable=False, unique=True)
     email         = Column(MyString, nullable=False, unique=True)
     name          = Column(MyString, nullable=False)
     password      = Column(String, nullable=False)
