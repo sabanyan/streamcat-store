@@ -35,7 +35,7 @@ class User(BaseModel):
                                 '\\': '\\\\'
                            })
 
-            def icontains(self, other):
+            def icontains(self, other, **kw):
                 """
                 検索語を含むか否か判定する(大文字小文字の違いを無視する)
                 """
