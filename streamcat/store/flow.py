@@ -1,8 +1,8 @@
-from streamcat.core import Datum, Constraints
+from streamcat.core import SavableDatum, Constraints
 from .lock import lock_required
 from .flow_data import FlowData
 
-class Flow(Datum):
+class Flow(SavableDatum):
 
     __mapper_args__ = {
         'polymorphic_identity' : 'flow'
@@ -13,7 +13,7 @@ class Flow(Datum):
         コンストラクタ
         flow_data : FlowDataオブジェクトを指定する
         """
-        super().__init__(session, parent, Datum.FLOW_TYPE, label)
+        super().__init__(session, parent, SavableDatum.FLOW_TYPE, label)
 
         # フローデータはファイルに保存せず、データベースに保存する
         self._path = None
@@ -25,7 +25,7 @@ class Flow(Datum):
         self._data = {'label':label, 'flow':flow_data.to_json()}
 
         # DBに保存する前のFlowへの参照と更新と実行権限は制限しない
-        self._permissions = Datum.PERMISSION_READ | Datum.PERMISSION_WRITE | Datum.PERMISSION_EXEC
+        self._permissions = SavableDatum.PERMISSION_READ | SavableDatum.PERMISSION_WRITE | SavableDatum.PERMISSION_EXEC
 
         # フローデータの妥当性を検証する
         # self.valid_uuids_in_flowdata_or_raise()
@@ -36,14 +36,14 @@ class Flow(Datum):
             """
             指定したuuidのうち参照権限の無いuuidを返す
             """
-            results = self._session.query(Datum).filter(Datum.uuid.in_(uuids)).all(ignore_authz=True)
+            results = self._session.query(SavableDatum).filter(SavableDatum.uuid.in_(uuids)).all(ignore_authz=True)
             return [result.uuid for result in results if not result.readable]
 
         def select_unexecutables(uuids:list[str]) -> list[str]:
             """
             指定したuuidのうち実行権限の無いuuidを返す
             """
-            results = self._session.query(Datum).filter(Datum.uuid.in_(uuids)).all(ignore_authz=True)
+            results = self._session.query(SavableDatum).filter(SavableDatum.uuid.in_(uuids)).all(ignore_authz=True)
             return [result.uuid for result in results if not result.executable]
 
         return FlowData(self._data['flow'], select_unreadables, select_unexecutables, self._readable_or_raise, self._executable_or_raise)
@@ -99,7 +99,7 @@ class Flow(Datum):
         Flowのラベルを更新する
         """
         # ラベルに'\0'が含まれていれば取り除く
-        new_label = Datum.escape_label(label)
+        new_label = SavableDatum.escape_label(label)
 
         try:
             # ラベルを更新する
@@ -139,7 +139,7 @@ class Flow(Datum):
 
 
         # ラベルに'\0'が含まれていれば取り除く
-        new_label = Datum.escape_label(label)
+        new_label = SavableDatum.escape_label(label)
         # 更新データを作成する
         # data = {'label' : new_label, 'flow' : flow_json}
         # data = self.data.copy()

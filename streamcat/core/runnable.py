@@ -2,14 +2,14 @@
 コマンドと、それに関係するクラスを定義したモジュール
 """
 from enum import Enum, auto
-from . import Datum
+from . import SavableDatum
 
-class Command(Datum):
+class Command(SavableDatum):
     """
     実行(run)可能な最小単位
     """
     def __init__(self, label=None):
-        super().__init__(None, None, Datum.COMMAND_TYPE, label or self.__class__.__name__)
+        super().__init__(None, None, SavableDatum.COMMAND_TYPE, label or self.__class__.__name__)
         self.i_ports = []
         self.o_ports = []
         self.params = []

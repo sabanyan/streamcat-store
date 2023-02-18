@@ -51,14 +51,14 @@ class Constraints():
             # self
             myself = args[0]
 
-            from .datum import Datum
+            from .savable_datum import SavableDatum
             from streamcat.store import TrashCan
 
             if myself.is_root:
                 raise Exception('ルートフォルダは移動できません')
-            elif myself.uuid == Datum.CACHE_FOLDER_UUID:
+            elif myself.uuid == SavableDatum.CACHE_FOLDER_UUID:
                 raise Exception('キャッシュフォルダは移動できません')
-            elif myself.uuid == Datum.ACTIVITY_FOLDER_UUID:
+            elif myself.uuid == SavableDatum.ACTIVITY_FOLDER_UUID:
                 raise Exception('アクティビティフォルダは移動できません')
             elif isinstance(myself, TrashCan):
                 raise Exception('ゴミ箱は移動できません')
@@ -290,7 +290,7 @@ class Constraints():
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
             from sqlalchemy.orm.exc import NoResultFound
-            from .datum import Datum
+            from .savable_datum import SavableDatum
             from streamcat.store import Folder, Flow
             from streamcat.store.auth import Role
             from streamcat.store.factory import DatumFactory, RoleFactory, AuthFactory
@@ -304,7 +304,7 @@ class Constraints():
             to_folder_uuid = args[1]
 
             # プロジェクト自身の移動の場合、権限設定の変更は必要ない
-            if myself.type == Datum.PROJECT_TYPE:
+            if myself.type == SavableDatum.PROJECT_TYPE:
                 return func(*args, **kwargs)
 
             try:
@@ -408,7 +408,7 @@ class Constraints():
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
             from sqlalchemy.orm.exc import NoResultFound
-            from .datum import Datum
+            from .savable_datum import SavableDatum
             from streamcat.store.factory import DatumFactory, RoleFactory, AuthFactory
 
             if func.__name__ != 'moved':
@@ -422,7 +422,7 @@ class Constraints():
             from_folder_id = args[2]
 
             # フロー以外の移動の場合、何もしない
-            if myflow.type != Datum.FLOW_TYPE:
+            if myflow.type != SavableDatum.FLOW_TYPE:
                 return func(*args, **kwargs)
 
             try:

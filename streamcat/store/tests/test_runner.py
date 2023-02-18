@@ -4,7 +4,7 @@ import unittest
 # from streamcat.store import StoreModel as Store
 # from streamcat.store import FlowData
 # from streamcat.store import ProjectFolder
-from streamcat.core import Datum
+from streamcat.core import SavableDatum
 # from .test_lock import LockManagerTest
  
 class TestRunner(unittest.TestCase):

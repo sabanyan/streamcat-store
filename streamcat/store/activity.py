@@ -1,8 +1,7 @@
-from streamcat.core import Datum, Constraints
-from streamcat.core.scat_base_model import SCatBaseModel
+from streamcat.core import SavableDatum, Constraints, SCatBaseModel
 from streamcat.store import ApparentOuts
 
-class Activity(Datum):
+class Activity(SavableDatum):
     """
     実行結果情報を表す
     """
@@ -15,7 +14,7 @@ class Activity(Datum):
         """
         コンストラクタ
         """
-        super().__init__(session, parent, Datum.ACTIVITY_TYPE, label)
+        super().__init__(session, parent, SavableDatum.ACTIVITY_TYPE, label)
 
         # Activityはファイルに保存せず、データベースに保存する
         self._path = None
@@ -57,7 +56,7 @@ class Activity(Datum):
             # 結果Datumのラベル名を変更する
             self._update_label(datum, end_at)
             # 結果DatumがFrameの場合、対応ファイルの文字コードと改行コードを推測してその結果を登録する
-            datum.type == Datum.FRAME_TYPE and datum.update_encoding_newline()
+            datum.type == SavableDatum.FRAME_TYPE and datum.update_encoding_newline()
 
         try:
             # 現在時刻を格納する
@@ -72,7 +71,7 @@ class Activity(Datum):
             self._session.rollback()
             raise e
 
-    def _update_label(self, datum:Datum, end_at):
+    def _update_label(self, datum:SavableDatum, end_at):
         """
         結果Datumのラベル名を変更する
         """

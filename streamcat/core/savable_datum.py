@@ -1,6 +1,3 @@
-"""
-いわゆるルートクラスであるDatumを定義している
-"""
 import sqlalchemy.types
 from pathlib import Path
 from sqlalchemy import Column, String
@@ -10,9 +7,9 @@ from sqlalchemy.dialects.postgresql import INTEGER, JSONB, ENUM, UUID
 from . import BaseModel
 from .constraints import Constraints
 
-class Datum(BaseModel):
+class SavableDatum(BaseModel):
     """
-    StreamCatで扱う対象を扱ううち、「第一級」であるものの頂点のクラス。
+    データベースに保存可能なDatum
     """
 
     class PathType(sqlalchemy.types.TypeDecorator):
@@ -27,13 +24,13 @@ class Datum(BaseModel):
             if value is None:
                 return ''
             # return value.as_posix()
-            return Datum._to_rel_path(value).as_posix()
+            return SavableDatum._to_rel_path(value).as_posix()
 
         def process_result_value(self, value, dialect):
             if value=='' or value is None:
                 return None
             # return Path(value)
-            return Datum._to_abs_path(Path(value))
+            return SavableDatum._to_abs_path(Path(value))
 
         # _pathに対してLike式を用いる時に必要
         def coerce_compared_value(self, op, value):
@@ -161,18 +158,18 @@ class Datum(BaseModel):
         self.type = datum_type
 
         # label
-        self._label = Datum.escape_label(label)
+        self._label = SavableDatum.escape_label(label)
 
         # pathは親フォルダのpathを引き継ぐ
         if parent is None:
             # 親フォルダがない場合はデフォルトパスとする
-            self._path = Datum._to_abs_path(self.DEFAULT_LIBRARY_PATH)
+            self._path = SavableDatum._to_abs_path(self.DEFAULT_LIBRARY_PATH)
         else:
-            dir_name = Datum.escape_filename(label)
+            dir_name = SavableDatum.escape_filename(label)
             self._path = parent._path / dir_name
 
         # DBに保存する前のDatumへの参照と更新権限は制限しない
-        self._permissions = Datum.PERMISSION_READ | Datum.PERMISSION_WRITE
+        self._permissions = SavableDatum.PERMISSION_READ | SavableDatum.PERMISSION_WRITE
 
         # DBに保存する前は空文字を設定する
         self._folder_path = ''
@@ -198,7 +195,7 @@ class Datum(BaseModel):
             return None
 
         # 絶対パスを返す
-        return Datum._to_abs_path(self._path)
+        return SavableDatum._to_abs_path(self._path)
 
     @property
     def path_exists(self):
@@ -211,12 +208,12 @@ class Datum(BaseModel):
     @property
     def readable(self):
         p = self._permissions
-        return p if p is None else (p & Datum.PERMISSION_READ) > 0
+        return p if p is None else (p & SavableDatum.PERMISSION_READ) > 0
 
     @property
     def writable(self):
         p = self._permissions
-        return p if p is None else (p & Datum.PERMISSION_WRITE) > 0
+        return p if p is None else (p & SavableDatum.PERMISSION_WRITE) > 0
 
     @property
     def writable_without_edit_lock(self):
@@ -224,12 +221,12 @@ class Datum(BaseModel):
         このDatumの編集ロックを考慮しないself.writable
         """
         p = self._permissions
-        return p if p is None else (p & Datum.PERMISSION_WRITER) > 0
+        return p if p is None else (p & SavableDatum.PERMISSION_WRITER) > 0
 
     @property
     def executable(self):
         p = self._permissions
-        return p if p is None else (p & Datum.PERMISSION_EXEC) > 0
+        return p if p is None else (p & SavableDatum.PERMISSION_EXEC) > 0
 
     @property
     def ownership(self):
@@ -287,8 +284,8 @@ class Datum(BaseModel):
         """
         自分の親を取得する
         """
-        return self._session.query(Datum)\
-                            .filter(Datum.id==self.parent_id).one()
+        return self._session.query(SavableDatum)\
+                            .filter(SavableDatum.id==self.parent_id).one()
 
     def find_my_project(self):
         """
@@ -313,7 +310,7 @@ class Datum(BaseModel):
         Datumのラベルを更新する
         """
         # ラベルに'\0'が含まれていれば取り除く
-        new_label = Datum.escape_label(label)
+        new_label = SavableDatum.escape_label(label)
 
         try:
             # ラベルを更新する
@@ -350,7 +347,7 @@ class Datum(BaseModel):
         from streamcat.store.auth import NotAuthorizedException
 
         # UUID値の形式チェックをする
-        Datum.valid_uuid_or_raise(parent_uuid)
+        SavableDatum.valid_uuid_or_raise(parent_uuid)
 
         to_folder = DatumFactory(self._session).find_by_uuid(parent_uuid)
         if not isinstance(to_folder, Folder):
@@ -362,7 +359,7 @@ class Datum(BaseModel):
             raise Exception('移動先と移動元の指定が同じです')
 
         # 移動先が移動元フォルダの配下になる場合は例外を送出する
-        if self.type == Datum.FOLDER_TYPE:
+        if self.type == SavableDatum.FOLDER_TYPE:
             pass
 
         # 移動元フォルダのIDを控えておく
@@ -422,7 +419,7 @@ class Datum(BaseModel):
                 else:
                     # 移動先フォルダの参照権限は必要ということにした
                     new_path = to_folder.path / self._path.name
-                    new_path = Datum.make_unique_path(new_path, except_path=old_path)
+                    new_path = SavableDatum.make_unique_path(new_path, except_path=old_path)
                     # ファイル名の移動によって他のDatumのpathが変更が必要であれば変更する
                     self._update_same_path(old_path, new_path, modifier)
                     if isinstance(self, Folder):
@@ -445,7 +442,7 @@ class Datum(BaseModel):
 
             # ファイルを移動する
             if self._path is not None:
-                Datum.move_file(old_path, new_path)
+                SavableDatum.move_file(old_path, new_path)
 
         except NotAuthorizedException as e:
             # ROLLBACK
@@ -575,27 +572,27 @@ class Datum(BaseModel):
 
     def _update_same_path(self, old_path, new_path, modifier):
         # 同じファイルに対応するフォルダのpath列を、ファイル名の移動に合わせて変更する
-        results = self._session.query(Datum).filter(Datum._path == old_path).all(ignore_authz=True)
+        results = self._session.query(SavableDatum).filter(SavableDatum._path == old_path).all(ignore_authz=True)
         for result in results:
-            result._path = Datum._to_rel_path(new_path)
+            result._path = SavableDatum._to_rel_path(new_path)
             result._modifier_id = (modifier or self._session.user).id
             self._session.update(result, ignore_authz=True)
 
     def _update_include_path(self, old_path, new_path, modifier=None):
         import re
         # 同じディレクトリを含むpath列を、ディレクトリの移動に合わせて変更する
-        rel_old_path = Datum._to_rel_path(old_path).as_posix()
+        rel_old_path = SavableDatum._to_rel_path(old_path).as_posix()
         # ファイルパスに正規表現文字が含まれていればエスケープする
         old_path_pattern = '^' + re.escape(rel_old_path) + '/'
         # autoescape=True : LIKEのワイルドカード%と_をエスケープする
-        results = self._session.query(Datum)\
-                      .filter(Datum._path!=None)\
-                      .filter(Datum._path.startswith(rel_old_path, autoescape=True))\
+        results = self._session.query(SavableDatum)\
+                      .filter(SavableDatum._path!=None)\
+                      .filter(SavableDatum._path.startswith(rel_old_path, autoescape=True))\
                       .all(ignore_authz=True)
 
         for result in results:
-            rel_new_path = Datum._to_rel_path(new_path).as_posix() + '/'
-            rel_result_path = Datum._to_rel_path(result._path).as_posix()
+            rel_new_path = SavableDatum._to_rel_path(new_path).as_posix() + '/'
+            rel_result_path = SavableDatum._to_rel_path(result._path).as_posix()
             # re.sub(正規表現, 置換する文字列, 置換対象の文字列)
             replaced_path = re.sub(old_path_pattern, rel_new_path, rel_result_path)
 
@@ -612,7 +609,7 @@ class Datum(BaseModel):
         from sqlalchemy.sql.expression import select, func, exists, and_, cast, text
 
         # id : 検索対象Datumから葉ノードへの経路の全てのDatumのid
-        D0 = aliased(Datum, name='D0')
+        D0 = aliased(SavableDatum, name='D0')
         R = select(D0.id, D0.uuid).\
             select_from(D0).\
             where(D0.id==self.id).\
@@ -620,7 +617,7 @@ class Datum(BaseModel):
             # cte: Common Table Expression WITH句のこと
 
         # WITH句にUNION ALLを用いて再帰クエリとする
-        D1 = aliased(Datum, name='D1')
+        D1 = aliased(SavableDatum, name='D1')
         R = R.union_all(
                 select(D1.id, D1.uuid).\
                 select_from(R.join(D1, D1.parent_id==R.c.id))
@@ -629,7 +626,7 @@ class Datum(BaseModel):
         # ゴミ箱の中のDatumを全て取得する再帰クエリ
         T = select(D0.id, D0.uuid).\
             select_from(D0).\
-            where(D0.type==Datum.TRASH_TYPE).\
+            where(D0.type==SavableDatum.TRASH_TYPE).\
             cte(name='T', recursive=True)
         T = T.union_all(
                 select(D1.id, D1.uuid).\
@@ -637,7 +634,7 @@ class Datum(BaseModel):
             )
 
         # DataのTableオブジェクト
-        D = Datum.__table__
+        D = SavableDatum.__table__
 
         # 自分と自分の子孫は抽出対象外である
         not_exists_inner = ~exists().where(R.c.id==D.c.id)
@@ -660,7 +657,7 @@ class Datum(BaseModel):
                     D.c.label,
                     func.jsonb_path_query(D.c.data, jsonpath0).label('ref_uuid')).\
             select_from(D).\
-            where(and_(D.c.type==Datum.FLOW_TYPE, not_exists_inner, not_exists_trash))
+            where(and_(D.c.type==SavableDatum.FLOW_TYPE, not_exists_inner, not_exists_trash))
 
         # スケジュールから参照するUUID
         jsonpath1 = '$.runnable?(@!=null)'
@@ -669,7 +666,7 @@ class Datum(BaseModel):
                     D.c.label,
                     func.jsonb_path_query(D.c.data, jsonpath1).label('ref_uuid')).\
             select_from(D).\
-            where(and_(D.c.type==Datum.SCHEDULE_TYPE, not_exists_inner, not_exists_trash))
+            where(and_(D.c.type==SavableDatum.SCHEDULE_TYPE, not_exists_inner, not_exists_trash))
 
         # 自身を参照するフローとスケジュールを抽出する
         U = U0.union_all(U1).alias('U')
@@ -744,7 +741,7 @@ class Datum(BaseModel):
         while path.exists() and path != except_path:
             filename = path.name
             dir_path = path.parent
-            new_filename = Datum._increment_file_name(filename)
+            new_filename = SavableDatum._increment_file_name(filename)
             path = dir_path / new_filename
         return path
 
@@ -770,14 +767,14 @@ class Datum(BaseModel):
         if path.is_absolute():
             return path
         else:
-            return Datum.STORE_DIR / path
+            return SavableDatum.STORE_DIR / path
 
     @staticmethod
     def _to_rel_path(path:Path):
         # if path.startswith('/'):
         if path.is_absolute():
             # ディレクトリトラバーサルには対応していない
-            return path.relative_to(Datum.STORE_DIR)
+            return path.relative_to(SavableDatum.STORE_DIR)
         else:
             return path
 
@@ -798,5 +795,5 @@ class Datum(BaseModel):
         """
         if uuid is None or uuid == '':
             raise Exception(f'The UUID value is empty')
-        if not Datum.is_valid_uuid(uuid):
+        if not SavableDatum.is_valid_uuid(uuid):
             raise Exception(f'The UUID({uuid}) value is not valid format.')

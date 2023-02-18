@@ -507,7 +507,7 @@ class User(BaseModel):
         所属する全てのプロジェクトを返す
         """
         from sqlalchemy import exists, select, and_, any_
-        from streamcat.core import Datum
+        from streamcat.core import SavableDatum
         from streamcat.store import ProjectFolder
         from .user_role import UserRole
         from .auth import Auth
@@ -525,7 +525,7 @@ class User(BaseModel):
                                     )
 
         query = self._session.query(ProjectFolder).\
-                              filter(ProjectFolder.type==Datum.PROJECT_TYPE).\
+                              filter(ProjectFolder.type==SavableDatum.PROJECT_TYPE).\
                               filter(exists_stmt)
         return query.order_by(ProjectFolder._label).all()
 

@@ -2,7 +2,7 @@
 import os
 import sys
 import nysol.mcmd as nm
-from streamcat.core import Datum, Command, Port
+from streamcat.core import SavableDatum, Command, Port
 from streamcat.store import NysolModule, Store
 
 class SCommand(Command):
@@ -41,7 +41,7 @@ class LoaderCommand(SCommand):
         if frame_uuid is None or frame_uuid=='':
             raise Exception('入力ファイルを指定してください')
         # frame = folder.find_child_by_uuid(frame_uuid)
-        frame = datum_factory.find_by_uuid(frame_uuid, type=Datum.FRAME_TYPE)
+        frame = datum_factory.find_by_uuid(frame_uuid, type=SavableDatum.FRAME_TYPE)
         path = frame.path
 
         if frame.encoding is None:
@@ -140,7 +140,7 @@ class SaverCommand(SCommand):
 
     def make_folder(self, parent, folder1_label, folder2_label, folder2_file_name):
         # フロー名フォルダがなければ作成する
-        results1 = parent.find_children_by_label(folder1_label, type=Datum.FOLDER_TYPE)
+        results1 = parent.find_children_by_label(folder1_label, type=SavableDatum.FOLDER_TYPE)
         if results1 is None or len(results1)==0:
             folder1 = parent.create_folder(folder1_label)
             folder1.save()
@@ -149,7 +149,7 @@ class SaverCommand(SCommand):
             folder1 = results1[0]
 
         # 開始時間フォルダがなければ作成する
-        results2 = folder1.find_children_by_label(folder2_label, type=Datum.FOLDER_TYPE)
+        results2 = folder1.find_children_by_label(folder2_label, type=SavableDatum.FOLDER_TYPE)
         if results2 is None or len(results2)==0:
             folder2 = folder1.create_folder(folder2_label)
             folder2.save(file_path = folder2.path.parent / folder2_file_name)
@@ -257,8 +257,8 @@ class DbLoaderCommand(SCommand):
     def run(self, args, inputs):
         DbLoaderCommand._write_log('START')
 
-        from streamcat.core import Datum
-        if inputs['i'].type != Datum.DATABASE_TYPE:
+        from streamcat.core import SavableDatum
+        if inputs['i'].type != SavableDatum.DATABASE_TYPE:
             t = type(inputs['i'])
             raise Exception(f'DbLoaderの入力にDatabase Store以外のデータ型({t})が入力されました')
         else:
@@ -421,8 +421,8 @@ class DbSaverCommand(SaverCommand):
         if 'i' not in inputs:
             raise Exception(f'{self.name}の入力ポート(i)にデータが入力されませんでした')
 
-        from streamcat.core import Datum
-        if inputs['store'].type != Datum.DATABASE_TYPE:
+        from streamcat.core import SavableDatum
+        if inputs['store'].type != SavableDatum.DATABASE_TYPE:
             t = type(inputs['store'])
             raise Exception(f'DbSaverの入力にDatabase Store以外のデータ型({t})が入力されました')
         else:
@@ -699,8 +699,8 @@ class RemoteFolderLoaderCommand(SCommand):
         self.name = 'remotefolder_loader'
 
     def run(self, args, inputs):
-        from streamcat.core import Datum
-        if inputs['i'].type != Datum.RFOLDER_TYPE:
+        from streamcat.core import SavableDatum
+        if inputs['i'].type != SavableDatum.RFOLDER_TYPE:
             t = type(inputs['i'])
             raise Exception(f'Remotefolder_loaderの入力にRemote Folder Store以外のデータ型({t})が入力されました')
         else:
@@ -737,8 +737,8 @@ class RemoteFolderSaverCommand(SaverCommand):
         if 'i' not in inputs:
             raise Exception(f'{self.name}の入力ポート(i)にデータが入力されませんでした')
 
-        from streamcat.core import Datum
-        if inputs['store'].type != Datum.RFOLDER_TYPE:
+        from streamcat.core import SavableDatum
+        if inputs['store'].type != SavableDatum.RFOLDER_TYPE:
             t = type(inputs['store'])
             raise Exception(f'RemoteFolderSaverの入力にRemoteFolderStore以外のデータ型({t})が入力されました')
         else:
@@ -758,7 +758,7 @@ class RemoteFolderSaverCommand(SaverCommand):
         # 出力ファイルパスを作成する
         label = self.get_label(args.get('src_point'))
         file_path = rfolder.path / dir_path.strip('/') / label
-        file_path = Datum.make_unique_path(file_path)
+        file_path = SavableDatum.make_unique_path(file_path)
         path_str = file_path.as_posix()
 
         # nysol_python
@@ -1381,7 +1381,7 @@ class DumpCommand(SCommand):
                 # ライブラリのディレクトリをDumpする
                 #  --syncオプションでインストールした環境では、
                 #  files/cmn/はマウントポイントになりDump対象にならない、そのためfiles/cmn/を指定する
-                library_root_path = Datum.STORE_DIR / Datum.DEFAULT_LIBRARY_PATH
+                library_root_path = SavableDatum.STORE_DIR / SavableDatum.DEFAULT_LIBRARY_PATH
                 self._add_files(archive, library_root_path)
                 # PostgreSQLをDumpする
                 self._add_meta(archive)
@@ -1428,7 +1428,7 @@ class DumpCommand(SCommand):
             self._add_file(archive, file_path)
 
     def _add_file(self, archive:TarFile, file_path:Path):
-        relative_path = Datum._to_rel_path(file_path)
+        relative_path = SavableDatum._to_rel_path(file_path)
         archive.add(file_path, arcname=relative_path, recursive=False)
                 
     def _add_meta(self, archive:TarFile):
@@ -1463,7 +1463,7 @@ class RestoreCommand(SCommand):
         self.i_ports = [Port('i', 'stream')]
         self.o_ports = [Port('o', 'bool')]
         self.META_FILE_NAME = 'meta.txt'
-        self.META_FILE_PATH = Datum.STORE_DIR / self.META_FILE_NAME
+        self.META_FILE_PATH = SavableDatum.STORE_DIR / self.META_FILE_NAME
         # 
         import threading
         self._thread_lock = threading.Lock()
@@ -1513,21 +1513,21 @@ class RestoreCommand(SCommand):
 
         try:
             # ライブラリのルートディレクトリ名を用意する
-            library_root_path = Datum.STORE_DIR / Datum.DEFAULT_LIBRARY_PATH
+            library_root_path = SavableDatum.STORE_DIR / SavableDatum.DEFAULT_LIBRARY_PATH
             # ライブラリの退避後のディレクトリ名を作成する
-            library_backup_dir_name = Datum.DEFAULT_LIBRARY_PATH.name + '_backup' + datetime.now().strftime('%Y%m%d')
-            library_backup_path = Datum.STORE_DIR / library_backup_dir_name
+            library_backup_dir_name = SavableDatum.DEFAULT_LIBRARY_PATH.name + '_backup' + datetime.now().strftime('%Y%m%d')
+            library_backup_path = SavableDatum.STORE_DIR / library_backup_dir_name
 
             # ライブラリの既存ルートディレクトリが在れば退避する
             if library_root_path.exists():
                 # ディレクトリ名が重複する場合はリネームする
-                library_backup_path = Datum.make_unique_path(library_backup_path)
+                library_backup_path = SavableDatum.make_unique_path(library_backup_path)
                 # ライブラリのルートディレクトリ名を変更して退避する
-                Datum.move_file(library_root_path, library_backup_path)
+                SavableDatum.move_file(library_root_path, library_backup_path)
 
             # ライブラリのディレクトリを復元する
             from streamcat.store import FlowDumper
-            extracted_members = FlowDumper._extract_archive(Datum.STORE_DIR, stream)
+            extracted_members = FlowDumper._extract_archive(SavableDatum.STORE_DIR, stream)
 
             # StreamCatのDumpファイルが妥当であることを確認する
             self._members_are_valid_or_raise(extracted_members)
@@ -1544,7 +1544,7 @@ class RestoreCommand(SCommand):
                 shutil.rmtree(library_root_path)
             if not library_root_path.exists() and library_backup_path.exists():
                 # 退避したライブラリのルートディレクトリが存在すれば、それを復帰する
-                Datum.move_file(library_backup_path, library_root_path)
+                SavableDatum.move_file(library_backup_path, library_root_path)
             raise Exception(f'復元できませんでした! ({e})')
 
         try:
@@ -1567,7 +1567,7 @@ class RestoreCommand(SCommand):
         if self.META_FILE_NAME not in member_paths:
             raise Exception(f'StreamCatのDumpファイルに{self.META_FILE_NAME}が存在しません')
         # ライブラリルートが存在すること
-        if Datum.DEFAULT_LIBRARY_PATH.name not in member_paths:
+        if SavableDatum.DEFAULT_LIBRARY_PATH.name not in member_paths:
             raise Exception(f'StreamCatのDumpファイルに{self.DEFAULT_LIBRARY_PATH}が存在しません')
 
     def _restore_meta(self, dump_file:Path):

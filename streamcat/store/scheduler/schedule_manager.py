@@ -1,5 +1,5 @@
 import warnings
-from streamcat.core import Datum
+from streamcat.core import SavableDatum
 from .schedule import Schedule
 
 class ScheduleManager():
@@ -39,7 +39,7 @@ class ScheduleManager():
         ライブラリにある全てのスケジュールをスケジューラに登録する
         """
         # ゴミ箱の中を除く全てのスケジュールを取得する
-        schedules = datumFactory.find_all(type=Datum.SCHEDULE_TYPE, except_trash=True)
+        schedules = datumFactory.find_all(type=SavableDatum.SCHEDULE_TYPE, except_trash=True)
         for schedule in schedules:
             if not self.contains(schedule.uuid):
                 try:
@@ -60,7 +60,7 @@ class ScheduleManager():
             # Scheduleの作成者の権限でrunnableを実行する
             with Factory(user=schedule.creator) as factory:
                 runnable = factory.data.find_by_uuid(schedule.runnable_uuid)
-                if runnable.type == Datum.FLOW_TYPE:
+                if runnable.type == SavableDatum.FLOW_TYPE:
                     # TODO: streamcat-storeとstreamcat-engineの循環参照になってしまう
                     # Flowはengineへ引っ越した方がいいのだろうか?
                     # それともScheduleManagerがengineへ引っ越した方がいいのだろうか?

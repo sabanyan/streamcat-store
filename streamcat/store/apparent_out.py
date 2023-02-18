@@ -1,4 +1,4 @@
-from streamcat.core import Datum
+from streamcat.core import SavableDatum
 from .store import Matrix, Store
 
 class ApparentOut(Store):
@@ -6,7 +6,7 @@ class ApparentOut(Store):
     フローの出力ポートと出力結果を保持する
     (フローエディタから見た見かけのout)
     """
-    def __init__(self, out_point, datum:Datum, exs=None):
+    def __init__(self, out_point, datum:SavableDatum, exs=None):
         super().__init__(None, None, 'out', None)
         self.out_point = out_point
         self.datum = datum

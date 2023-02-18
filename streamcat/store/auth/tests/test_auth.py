@@ -3,7 +3,7 @@ import copy
 import unittest
 import pprint
 from sqlalchemy.orm.exc import NoResultFound
-from streamcat.core import Datum
+from streamcat.core import SavableDatum
 from streamcat.store import ProjectFolder, FlowData, OptimisticLockException, EditLockedException, CommandException
 from streamcat.store.auth import Auth, Role, InvalidPassword, NotAuthorizedException, NoRoleOwnerException
 from ...tests.test_case_base import TestCaseBase
@@ -1215,7 +1215,7 @@ class AuthTest(TestCaseBase):
         #         
         persistent_obj = self.factory._session._session.identity_map.values()
         for obj in persistent_obj:
-            if isinstance(obj, Datum):
+            if isinstance(obj, SavableDatum):
                 self.factory._session._session.expire(obj, ['_permissions'])
 
 
@@ -1279,7 +1279,7 @@ class AuthTest(TestCaseBase):
         #         
         persistent_obj = self.factory._session._session.identity_map.values()
         for obj in persistent_obj:
-            if isinstance(obj, Datum):
+            if isinstance(obj, SavableDatum):
                 self.factory._session._session.expire(obj, ['_permissions'])
 
 
@@ -2044,7 +2044,7 @@ class AuthTest(TestCaseBase):
         self.assertEqual(len(folder1.find_children()), 0)
 
         # ただし、参照不可であってもcount()によって件数の取得は可能としている
-        result = self.factory._session.query(Datum).filter(Datum.parent_id==folder1.id).count()
+        result = self.factory._session.query(SavableDatum).filter(SavableDatum.parent_id==folder1.id).count()
         self.assertEqual(result, 1)
 
         # フローとフォルダ1を削除する
@@ -2989,7 +2989,7 @@ class AuthTest(TestCaseBase):
         cache_frame = self.factory2.data.find_by_uuid(cache_frame_uuid)
 
         # フローをキャッシュフォルダに移動する
-        flow.move(Datum.CACHE_FOLDER_UUID)
+        flow.move(SavableDatum.CACHE_FOLDER_UUID)
 
         # 作成と変更を確定する
         self.factory2.end()

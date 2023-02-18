@@ -1,4 +1,4 @@
-from streamcat.core import Datum, Constraints
+from streamcat.core import SavableDatum, Constraints
 from .store import Store
 from .mountable import Mountable
 from .remote_folder_conn import RemoteFolderConn
@@ -14,7 +14,7 @@ class RemoteFolder(Mountable, Store):
         """
         コンストラクタ
         """
-        super().__init__(session, parent, Datum.RFOLDER_TYPE, label)
+        super().__init__(session, parent, SavableDatum.RFOLDER_TYPE, label)
 
         # data列の値を作成する
         if remoteFolderConn is None:
@@ -33,7 +33,7 @@ class RemoteFolder(Mountable, Store):
             raise Exception('You can not add root remote folder. A root already exists.')
 
         # 既存のファイルと重複しないファイル名を取得する
-        self._path = Datum.make_unique_path(self._path)
+        self._path = SavableDatum.make_unique_path(self._path)
 
         # 新規追加前にファイルパスを退避する
         self_path = self._path
@@ -58,7 +58,7 @@ class RemoteFolder(Mountable, Store):
         (path及び対応ファイル名は変更しない)
         """
         # ラベルに'\0'が含まれていれば取り除く
-        new_label = Datum.escape_label(label)
+        new_label = SavableDatum.escape_label(label)
 
         try:
             # レコードを更新する

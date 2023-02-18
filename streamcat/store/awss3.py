@@ -1,4 +1,4 @@
-from streamcat.core import Datum, Constraints
+from streamcat.core import SavableDatum, Constraints
 from .folder import Folder
 from .mountable import Mountable
 
@@ -16,7 +16,7 @@ class AwsS3(Mountable, Folder):
         super().__init__(session, parent, label)
 
         # データタイプを設定する
-        self.type = Datum.AWSS3_TYPE
+        self.type = SavableDatum.AWSS3_TYPE
 
         # data列の値を作成する
         self._data = {'bucket' : bucket_name}
@@ -36,7 +36,7 @@ class AwsS3(Mountable, Folder):
             raise Exception('You can not add root bucket. A root already exists.')
 
         # 既存のファイルと重複しないファイル名を取得する
-        self._path = Datum.make_unique_path(self._path)
+        self._path = SavableDatum.make_unique_path(self._path)
 
         # 新規追加前にファイルパスを退避する
         self_path = self._path
@@ -59,12 +59,12 @@ class AwsS3(Mountable, Folder):
         バケットのdata列を更新する
         """
         # ラベルに'\0'が含まれていれば取り除く
-        new_label = Datum.escape_label(label)
+        new_label = SavableDatum.escape_label(label)
 
         # ラベル名からファイルパスを作成する
         old_path = self._path
-        new_path = old_path.parent / Datum.escape_filename(new_label)
-        new_path = Datum.make_unique_path(new_path, except_path=old_path)
+        new_path = old_path.parent / SavableDatum.escape_filename(new_label)
+        new_path = SavableDatum.make_unique_path(new_path, except_path=old_path)
 
         try:
             # ディレクトリ名の移動によって他のDatumのpathが変更が必要であれば変更する
@@ -81,7 +81,7 @@ class AwsS3(Mountable, Folder):
             self._session.update(self)
 
             # ファイルを移動する
-            Datum.move_file(old_path, new_path)
+            SavableDatum.move_file(old_path, new_path)
         except Exception as e:
             self._session.rollback()
             raise e

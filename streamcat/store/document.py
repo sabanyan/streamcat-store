@@ -1,4 +1,4 @@
-from streamcat.core import Datum
+from streamcat.core import SavableDatum
 from streamcat.store import File
 
 class Document(File):
@@ -12,5 +12,5 @@ class Document(File):
         コンストラクタ
         stream : データのファイルストリームを指定する
         """
-        super().__init__(session, parent, Datum.DOCUMENT_TYPE, label, stream)
+        super().__init__(session, parent, SavableDatum.DOCUMENT_TYPE, label, stream)
 

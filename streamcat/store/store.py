@@ -1,7 +1,7 @@
 from collections import Iterator
-from streamcat.core import Datum, SCatBaseModel
+from streamcat.core import SavableDatum, SCatBaseModel
 
-class Store(Datum):
+class Store(SavableDatum):
     """
     Storeを表す
     (StoreとはLoaderの入力元となり得る、またはSaverの出力先となり得るもの)
@@ -57,11 +57,11 @@ class Store(Datum):
     def _dir_path_exists(self, dir_path, except_id):
         import os
 
-        rel_path = Datum._to_rel_path(dir_path)
+        rel_path = SavableDatum._to_rel_path(dir_path)
 
-        results = self._session.query(Datum._path)\
-                 .filter(Datum._path.like(rel_path.as_posix() + '%'))\
-                 .filter(Datum.id != except_id).all()
+        results = self._session.query(SavableDatum._path)\
+                 .filter(SavableDatum._path.like(rel_path.as_posix() + '%'))\
+                 .filter(SavableDatum.id != except_id).all()
 
         for result in results:
             if result._path == dir_path:
@@ -105,7 +105,7 @@ class ModuleStore(Store):
     def module_list(self):
         return self.data
 
-class NysolModule(Datum):
+class NysolModule(SavableDatum):
     """
     nysol_pythonコマンドをラップするクラス
     """
@@ -138,7 +138,7 @@ class NysolModule(Datum):
     def __ilshift__(self, other):
         raise Exception(f'NysolModule({str(self._content)})に"<<="演算子は使えません')
 
-class BeamModule(Datum):
+class BeamModule(SavableDatum):
     """
     Apache Beam PTransformをラップするクラス
     """
@@ -165,7 +165,7 @@ class BeamModule(Datum):
     def encoding(self, encoding):
         self._encoding = encoding
 
-class Matrix(Datum):
+class Matrix(SavableDatum):
     """
     行列型のデータを表す
     """
@@ -200,7 +200,7 @@ class Matrix(Datum):
     def __len__(self):
         return len(self._content)
 
-class Stream(Datum):
+class Stream(SavableDatum):
     """
     ストリーム構造のデータを表す
     """

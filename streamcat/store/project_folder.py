@@ -1,4 +1,4 @@
-from streamcat.core import Datum
+from streamcat.core import SavableDatum
 from .folder import Folder
 
 class ProjectFolder(Folder):
@@ -41,7 +41,7 @@ class ProjectFolder(Folder):
         super().__init__(session, parent, label)
 
         # データタイプを設定する
-        self.type = Datum.PROJECT_TYPE
+        self.type = SavableDatum.PROJECT_TYPE
 
     def moving(self, parent_uuid, lock_uuid=None, modifier=None):
         """
@@ -493,9 +493,9 @@ class ProjectFolder(Folder):
         AU = AU.group_by(A.c.datum_id, A.c.operation, User.id).alias('AU')
 
         # プロジェクトへの参加タイプと権限設定ののビットフラグの対応
-        READER_PERMISSIONS = Datum.PERMISSION_READ | Datum.PERMISSION_EXEC
-        WRITE_PERMISSIONS  = READER_PERMISSIONS | Datum.PERMISSION_WRITE
-        OWNER_PERMISSIONS  = WRITE_PERMISSIONS  | Datum.PERMISSION_OWN
+        READER_PERMISSIONS = SavableDatum.PERMISSION_READ | SavableDatum.PERMISSION_EXEC
+        WRITE_PERMISSIONS  = READER_PERMISSIONS | SavableDatum.PERMISSION_WRITE
+        OWNER_PERMISSIONS  = WRITE_PERMISSIONS  | SavableDatum.PERMISSION_OWN
 
         # プロジェクトへの参加タイプのソート順を定義する
         MEMBER_TYPE_CONV = {0: ProjectFolder.OWNER_MEMBER_TYPE,
@@ -511,10 +511,10 @@ class ProjectFolder(Folder):
                          OWNER_PERMISSIONS  : 0},
                         value=func.sum(
                                 case((AU.c.permission,
-                                    case((AU.c.operation=='read',  Datum.PERMISSION_READ),
-                                         (AU.c.operation=='write', Datum.PERMISSION_WRITE),
-                                         (AU.c.operation=='exec',  Datum.PERMISSION_EXEC),
-                                         (AU.c.operation=='own',   Datum.PERMISSION_OWN)
+                                    case((AU.c.operation=='read',  SavableDatum.PERMISSION_READ),
+                                         (AU.c.operation=='write', SavableDatum.PERMISSION_WRITE),
+                                         (AU.c.operation=='exec',  SavableDatum.PERMISSION_EXEC),
+                                         (AU.c.operation=='own',   SavableDatum.PERMISSION_OWN)
                                     )
                                 ))
                               ),

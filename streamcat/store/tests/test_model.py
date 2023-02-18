@@ -4,7 +4,7 @@ import uuid
 import pprint
 from datetime import datetime
 
-from streamcat.core import Datum
+from streamcat.core import SavableDatum
 from streamcat.store import RemoteFolderConn
 from .test_case_base import TestCaseBase
 
@@ -114,7 +114,7 @@ class LibraryTest(TestCaseBase):
         # ルートデータストアを取得する
         root = self.factory.data.load_root()
         # ルートデータストアをフォルダとして取得する
-        folder = self.factory.data.find_by_uuid(root.uuid, type=Datum.FOLDER_TYPE)
+        folder = self.factory.data.find_by_uuid(root.uuid, type=SavableDatum.FOLDER_TYPE)
         # 取得したフォルダの値を検証する
         self.assertIsNotNone(folder.id)
         self.assertIsNone(folder.parent_id)

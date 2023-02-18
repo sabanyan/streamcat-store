@@ -109,32 +109,32 @@ class AuthzDatumQuery(Query):
     #     return result
 
     def one(self):
-        from streamcat.core import Datum
+        from streamcat.core import SavableDatum
         result = self._query.one()
         if Query._is_base_model(result):
             result._session = self._session
             # 参照権限のないDatumの場合は例外を送出する
-            isinstance(result, Datum) and result._readable_or_raise()
+            isinstance(result, SavableDatum) and result._readable_or_raise()
         return result
 
     def one_or_none(self):
-        from streamcat.core import Datum
+        from streamcat.core import SavableDatum
         result = self._query.one_or_none()
         if Query._is_base_model(result):
             result._session = self._session
             # 参照権限のないDatumの場合はNoneを返す
-            if isinstance(result, Datum) and not result.readable:
+            if isinstance(result, SavableDatum) and not result.readable:
                 return None
         return result
 
     def all(self, ignore_authz=False):
-        from streamcat.core import Datum
+        from streamcat.core import SavableDatum
         results = self._query.all()
         if results is not None and len(results) > 0 and Query._is_base_model(results[0]):
             rets = []
             for result in results:
                 # 参照権限のないDatumは返さない
-                if not ignore_authz and isinstance(result, Datum) and not result.readable:
+                if not ignore_authz and isinstance(result, SavableDatum) and not result.readable:
                     continue
                 result._session = self._session
                 rets.append(result)

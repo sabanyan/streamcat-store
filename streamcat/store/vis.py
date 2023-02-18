@@ -1,6 +1,6 @@
-from streamcat.core import Datum
+from streamcat.core import SavableDatum
 
-class Vis(Datum):
+class Vis(SavableDatum):
 
     TYPE = 'vis'
 
