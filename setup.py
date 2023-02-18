@@ -12,7 +12,7 @@ setup(
         # NOTE: psycopg2-binaryはARM64環境に対応していない
         # 'psycopg2-binary',
         'psycopg2',
-        'SQLAlchemy<1.5.0',
+        'SQLAlchemy<2.1.0',
         'APScheduler',
         'jsonschema',
         # 'alembic',
