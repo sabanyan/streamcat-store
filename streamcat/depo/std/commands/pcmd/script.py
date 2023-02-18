@@ -1564,7 +1564,7 @@ class AlignColumns(Command):
             # listをCSV行の文字列に変換する
             return SCatBaseModel.join(line_list)
         else:
-            return AlignColumns.join(line_list[0:num_columns])
+            return SCatBaseModel.join(line_list[0:num_columns])
 
 class ToListCommand(Command):
     """

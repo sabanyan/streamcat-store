@@ -1,7 +1,6 @@
-from streamcat.core import SavableDatum, Command, Constraints
-from .store import Store
+from streamcat.core import Datum, SavableDatum, SavableStore, Command, Constraints
 
-class Folder(Store):
+class Folder(SavableStore):
 
     __mapper_args__ = {
         'polymorphic_identity' : 'folder'
@@ -51,7 +50,7 @@ class Folder(Store):
         Folderのlabel列を更新する
         """
         # ラベルに'\0'が含まれていれば取り除く
-        new_label = SavableDatum.escape_label(label)
+        new_label = Datum.escape_label(label)
 
         # ラベル名からファイルパスを作成する    
         old_path = self._path
@@ -320,7 +319,7 @@ class Folder(Store):
         self._readable_or_raise()
 
         # UUID値の形式チェックをする
-        SavableDatum.valid_uuid_or_raise(uuid)
+        Datum.valid_uuid_or_raise(uuid)
 
         data = self._session.query(SavableDatum).filter(SavableDatum.parent_id==self.id).\
                             filter(SavableDatum.uuid==uuid).one()

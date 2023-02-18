@@ -1,6 +1,6 @@
-from streamcat.core import SavableDatum
+from streamcat.core import Datum
 
-class Vis(SavableDatum):
+class Vis(Datum):
 
     TYPE = 'vis'
 
@@ -8,7 +8,7 @@ class Vis(SavableDatum):
         """
         data : Visデータを指定する
         """
-        super().__init__(session, parent, Vis.TYPE, label)
+        super().__init__(Vis.TYPE, label)
 
         # Visデータは巨大になり得るので永続化する場合はFrameのようにファイルに保存することになるだろう
         column_names = column_names if column_names is not None else []

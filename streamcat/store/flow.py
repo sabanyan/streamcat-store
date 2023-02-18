@@ -1,4 +1,4 @@
-from streamcat.core import SavableDatum, Constraints
+from streamcat.core import Datum, SavableDatum, Constraints
 from .lock import lock_required
 from .flow_data import FlowData
 
@@ -99,7 +99,7 @@ class Flow(SavableDatum):
         Flowのラベルを更新する
         """
         # ラベルに'\0'が含まれていれば取り除く
-        new_label = SavableDatum.escape_label(label)
+        new_label = Datum.escape_label(label)
 
         try:
             # ラベルを更新する
@@ -139,7 +139,7 @@ class Flow(SavableDatum):
 
 
         # ラベルに'\0'が含まれていれば取り除く
-        new_label = SavableDatum.escape_label(label)
+        new_label = Datum.escape_label(label)
         # 更新データを作成する
         # data = {'label' : new_label, 'flow' : flow_json}
         # data = self.data.copy()

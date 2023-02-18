@@ -1,8 +1,7 @@
-from streamcat.core import SavableDatum, Constraints
-from .store import Store
+from streamcat.core import Datum, SavableDatum, SavableStore, Constraints
 from .database_conn import DatabaseConn
 
-class Database(Store):
+class Database(SavableStore):
     """
     Databaseへの接続を表すStore
     """
@@ -47,7 +46,7 @@ class Database(Store):
         Databaseのdata列を更新する
         """
         # ラベルに'\0'が含まれていれば取り除く
-        new_label = SavableDatum.escape_label(label)
+        new_label = Datum.escape_label(label)
 
         try:
             # レコードを更新する

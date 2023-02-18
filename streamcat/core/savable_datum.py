@@ -4,10 +4,10 @@ from sqlalchemy import Column, String
 from sqlalchemy.sql import operators
 from sqlalchemy.orm import query_expression
 from sqlalchemy.dialects.postgresql import INTEGER, JSONB, ENUM, UUID
-from . import BaseModel
+from . import Datum, BaseModel
 from .constraints import Constraints
 
-class SavableDatum(BaseModel):
+class SavableDatum(Datum, BaseModel):
     """
     データベースに保存可能なDatum
     """
@@ -139,26 +139,18 @@ class SavableDatum(BaseModel):
         'polymorphic_on' : type
     }
 
-    def __init__(self, session, parent, datum_type, label):
+    def __init__(self, session, parent, datum_type:str, label:str):
         """
         コンストラクタ
         """
-        super().__init__(session)
+        # Datum, BaseModelの順に親クラスのコンストラクタを実行する
+        Datum.__init__(self, datum_type, label)
+        BaseModel.__init__(self, session)
 
         # parent_id
         # (rootのみparent_idはNoneである)
         if parent is not None:
             self.parent_id = parent.id
-
-        # UUIDを採番する
-        import uuid
-        self.uuid = str(uuid.uuid4())
-
-        # type
-        self.type = datum_type
-
-        # label
-        self._label = SavableDatum.escape_label(label)
 
         # pathは親フォルダのpathを引き継ぐ
         if parent is None:
@@ -173,18 +165,6 @@ class SavableDatum(BaseModel):
 
         # DBに保存する前は空文字を設定する
         self._folder_path = ''
-
-        # Engineから参照する
-        self.context = {}
-
-    @property
-    def label(self):
-        if self._label is None or self._label == '':
-            if self._data is None:
-                return ''
-            return self._data.get('label') or ''
-        else:
-            return self._label
 
     @property
     def path(self):
@@ -310,7 +290,7 @@ class SavableDatum(BaseModel):
         Datumのラベルを更新する
         """
         # ラベルに'\0'が含まれていれば取り除く
-        new_label = SavableDatum.escape_label(label)
+        new_label = Datum.escape_label(label)
 
         try:
             # ラベルを更新する
@@ -347,7 +327,7 @@ class SavableDatum(BaseModel):
         from streamcat.store.auth import NotAuthorizedException
 
         # UUID値の形式チェックをする
-        SavableDatum.valid_uuid_or_raise(parent_uuid)
+        Datum.valid_uuid_or_raise(parent_uuid)
 
         to_folder = DatumFactory(self._session).find_by_uuid(parent_uuid)
         if not isinstance(to_folder, Folder):
@@ -529,15 +509,6 @@ class SavableDatum(BaseModel):
 
     def __repr__(self):
         return f'Datum({self.id}, {self._label}, {self.type})'
-
-    def __eq__(self, other):
-        return self.uuid == other.uuid
-
-    def __ne__(self, other):
-        return self.uuid != other.uuid
-
-    def __hash__(self) -> int:
-        return hash(self.uuid)
 
     def to_json(self):
         return {'uuid'      : self.uuid,
@@ -725,14 +696,6 @@ class SavableDatum(BaseModel):
         return filename.translate(trans_table)
 
     @staticmethod
-    def escape_label(label):
-        if label is None:
-            return label
-        # '\0'は少なくともPostgreSQLのVARCHARに格納できない
-        trans_table = str.maketrans({'\0' : ''})
-        return label.translate(trans_table)
-
-    @staticmethod
     def make_unique_path(path:Path, except_path=None) -> Path:
         """
         同じ名称のファイルが既に存在する場合、末尾に数字を付加したファイル名で作成する
@@ -777,23 +740,3 @@ class SavableDatum(BaseModel):
             return path.relative_to(SavableDatum.STORE_DIR)
         else:
             return path
-
-    @staticmethod
-    def is_valid_uuid(uuid) -> bool:
-        """
-        uuidの形式チェック
-        """
-        if uuid is None:
-            return False
-        import re
-        return re.match('^[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}$', uuid)
-
-    @staticmethod
-    def valid_uuid_or_raise(uuid):
-        """
-        uuidの形式チェックの結果、正しくないuuidの場合は例外を送出する
-        """
-        if uuid is None or uuid == '':
-            raise Exception(f'The UUID value is empty')
-        if not SavableDatum.is_valid_uuid(uuid):
-            raise Exception(f'The UUID({uuid}) value is not valid format.')

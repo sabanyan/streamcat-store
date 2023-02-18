@@ -2,8 +2,8 @@
 import os
 import sys
 import nysol.mcmd as nm
-from streamcat.core import SavableDatum, Command, Port
-from streamcat.store import NysolModule, Store
+from streamcat.core import SavableDatum, Store, Command, Port
+from streamcat.store import NysolModule
 
 class SCommand(Command):
     pass

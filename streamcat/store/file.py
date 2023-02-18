@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from streamcat.core import SavableDatum, Constraints
+from streamcat.core import Datum, SavableDatum, Constraints
 
 class File(SavableDatum):
     """
@@ -9,6 +9,11 @@ class File(SavableDatum):
 
     # 64MB
     READ_BUFFER_SIZE = 64 * 1024 * 1024
+
+    # SQLAlchemyにおいてdataテーブルからのマッピング対象クラスでないことを定義する
+    __mapper_args__ = {
+        'polymorphic_identity' : 'i_am_not_mapping_class_1'
+    }
 
     def __init__(self, session, parent, datum_type, label, stream):
         """
@@ -63,7 +68,7 @@ class File(SavableDatum):
         Fileのdata列を更新する
         """
         # ラベルに'\0'が含まれていれば取り除く
-        new_label = SavableDatum.escape_label(label)
+        new_label = Datum.escape_label(label)
 
         # ラベル名からファイルパスを作成する
         old_path = self._path
@@ -89,7 +94,7 @@ class File(SavableDatum):
         (path及び対応ファイル名は変更しない)
         """
         # ラベルに'\0'が含まれていれば取り除く
-        new_label = SavableDatum.escape_label(label)
+        new_label = Datum.escape_label(label)
 
         try:
             self._update_label_imp(new_label, modifier)

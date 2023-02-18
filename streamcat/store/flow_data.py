@@ -582,7 +582,7 @@ class FlowData():
         """
         引数で指定されたUUIDを全て取得する
         """
-        from streamcat.core import SavableDatum
+        from streamcat.core import Datum
         rets = set()
 
         if not self.has_nodes:
@@ -592,7 +592,7 @@ class FlowData():
             # サブフローやコマンドの引数に設定されているUUIDを取得する
             if node['type'] in ('flow', 'command') and 'args' in node:
                 # TODO: フレーム以外のUUIDも含まれてしまう
-                uuids = [v for k, v in node['args'].items() if isinstance(v, str) and SavableDatum.is_valid_uuid(v)]
+                uuids = [v for k, v in node['args'].items() if isinstance(v, str) and Datum.is_valid_uuid(v)]
                 rets.update(uuids)
             if node['type'] == 'flow' and 'flow' in node:
                 # インラインSub Flowの中で参照するUUIDを取得する

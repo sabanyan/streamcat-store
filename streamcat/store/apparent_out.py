@@ -7,7 +7,7 @@ class ApparentOut(Store):
     (フローエディタから見た見かけのout)
     """
     def __init__(self, out_point, datum:SavableDatum, exs=None):
-        super().__init__(None, None, 'out', None)
+        super().__init__('out', None)
         self.out_point = out_point
         self.datum = datum
         self.exs = exs

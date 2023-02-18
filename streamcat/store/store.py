@@ -1,87 +1,5 @@
 from collections import Iterator
-from streamcat.core import SavableDatum, SCatBaseModel
-
-class Store(SavableDatum):
-    """
-    Storeを表す
-    (StoreとはLoaderの入力元となり得る、またはSaverの出力先となり得るもの)
-    """
-    def __init__(self, session, parent, type, label):
-        super().__init__(session, parent, type, label)
-
-    def _make_dir(self, path):
-        """
-        Folderに対応するディレクトリを作成する
-        """
-        import os
-        try:
-            # フォルダに紐付くディレクトリ(path列で指定されるディレクトリ)がなければ作成する
-            if not path.is_dir():
-                os.makedirs(path, exist_ok=True)
-            return path
-        except PermissionError as e:
-            # ファイルに対する権限がない場合
-            raise e
-
-    def _remove_dir(self, path):
-        """
-        Folderに対応するディレクトリを削除する
-        """
-        from streamcat.store import Mountable
-
-        # 全てのフォルダから紐づかないディレクトリは物理削除する
-        dir_path = path
-        try:
-            while dir_path != '' and dir_path != '/':
-                # 自分以外で同じディレクトリパス(相対パス)を使用しているフォルダの有無を確認する
-                if self._dir_path_exists(dir_path, except_id=self.id):
-                    break
-                elif Mountable.is_mount(dir_path):
-                    # マウント中のフォルダは削除しない
-                    break
-                else:
-                    if dir_path.is_dir():
-                        dir_path.rmdir()
-                    dir_path = dir_path.parent
-        except PermissionError as e:
-            # ディレクトリに対する権限がない場合
-            raise e
-        except OSError as e:
-            import errno
-            if e.errno == errno.ENOTEMPTY:
-                # [Errno 39] Directory not empty
-                file_path = next(dir_path.glob('*'))
-                raise OSError(e.errno, f'Directory({dir_path}) is not removed. File({file_path}) exists in Directory')
-            raise e
-
-    def _dir_path_exists(self, dir_path, except_id):
-        import os
-
-        rel_path = SavableDatum._to_rel_path(dir_path)
-
-        results = self._session.query(SavableDatum._path)\
-                 .filter(SavableDatum._path.like(rel_path.as_posix() + '%'))\
-                 .filter(SavableDatum.id != except_id).all()
-
-        for result in results:
-            if result._path == dir_path:
-                return True
-            if os.path.commonpath([result._path, dir_path]) == dir_path:
-                return True
-        return False
-
-    # def save(self, datum):
-    #     """
-    #     override用
-    #     """
-    #     pass
-
-    # def load(self, uuid):
-    #     """
-    #     override用
-    #     """
-    #     pass
-
+from streamcat.core import Datum, Store, SCatBaseModel
 
 class ModuleStore(Store):
     """
@@ -92,7 +10,7 @@ class ModuleStore(Store):
     フローを実行するrunsに入れる（入れないと実行できない）
     """
     def __init__(self):
-        super().__init__(None, None, 'modulestore', None)
+        super().__init__('modulestore', None)
         self.data = []
 
     def append(self, module):
@@ -105,12 +23,12 @@ class ModuleStore(Store):
     def module_list(self):
         return self.data
 
-class NysolModule(SavableDatum):
+class NysolModule(Datum):
     """
     nysol_pythonコマンドをラップするクラス
     """
     def __init__(self, nysol_cmd=None):
-        super().__init__(None, None, 'mcmd', self._get_name(nysol_cmd))
+        super().__init__('mcmd', self._get_name(nysol_cmd))
         self._content = nysol_cmd
         self._encoding = None
 
@@ -138,12 +56,12 @@ class NysolModule(SavableDatum):
     def __ilshift__(self, other):
         raise Exception(f'NysolModule({str(self._content)})に"<<="演算子は使えません')
 
-class BeamModule(SavableDatum):
+class BeamModule(Datum):
     """
     Apache Beam PTransformをラップするクラス
     """
     def __init__(self, ptransform=None):
-        super().__init__(None, None, 'beam', self._get_name(ptransform))
+        super().__init__('beam', self._get_name(ptransform))
         self._content = ptransform
         self._encoding = None
 
@@ -165,12 +83,12 @@ class BeamModule(SavableDatum):
     def encoding(self, encoding):
         self._encoding = encoding
 
-class Matrix(SavableDatum):
+class Matrix(Datum):
     """
     行列型のデータを表す
     """
     def __init__(self, content:list=None):
-        super().__init__(None, None, 'matrix', None)
+        super().__init__('matrix', None)
         self._content = content
         self._encoding = None
 
@@ -200,12 +118,12 @@ class Matrix(SavableDatum):
     def __len__(self):
         return len(self._content)
 
-class Stream(SavableDatum):
+class Stream(Datum):
     """
     ストリーム構造のデータを表す
     """
     def __init__(self, connection=None):
-        super().__init__(None, None, 'stream', None)
+        super().__init__('stream', None)
         self._content = connection
         self._encoding = None
 

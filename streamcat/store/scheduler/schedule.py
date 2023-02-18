@@ -1,4 +1,4 @@
-from streamcat.core import SavableDatum, Constraints
+from streamcat.core import Datum, SavableDatum, Constraints
 
 class Schedule(SavableDatum):
 
@@ -292,7 +292,7 @@ class Schedule(SavableDatum):
         from . import schedule_manager
 
         # ラベルに'\0'が含まれていれば取り除く
-        new_label = SavableDatum.escape_label(label)
+        new_label = Datum.escape_label(label)
 
         # runnableの妥当性を検証する
         self._valid_runnable_or_raise(runnable_uuid)

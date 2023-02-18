@@ -1,6 +1,6 @@
 from typing import Union
 from sqlalchemy.orm.exc import NoResultFound
-from streamcat.core import SavableDatum
+from streamcat.core import Datum, SavableDatum
 from streamcat.store import Folder, TrashCan
 from streamcat.store.auth import User, Role, UserRole
 
@@ -230,7 +230,7 @@ class DatumFactory():
         指定されたuuidを持つDatumを取得する
         """
         # UUID値の形式チェックをする
-        SavableDatum.valid_uuid_or_raise(uuid)
+        Datum.valid_uuid_or_raise(uuid)
 
         query = self._session.query(SavableDatum, folder_path=folder_path).filter(SavableDatum.uuid==uuid)
 
@@ -456,7 +456,7 @@ class DatumFactory():
 
     def _make_system_folder(self, uuid, label):
         # UUID値の形式チェックをする
-        SavableDatum.valid_uuid_or_raise(uuid)
+        Datum.valid_uuid_or_raise(uuid)
         # フォルダを作成する
         root = self.load_root()
         folder = root.create_folder(label)
@@ -487,7 +487,7 @@ class DatumFactory():
         指定されたuuidを持つDatumが存在する場合はTrueを返す
         """
         # UUID値の形式チェックをする
-        if not SavableDatum.is_valid_uuid(uuid):
+        if not Datum.is_valid_uuid(uuid):
             return False
 
         query = self._session.query(SavableDatum).filter(SavableDatum.uuid==uuid)
@@ -813,7 +813,7 @@ class UserFactory():
 
     def find_by_uuid(self, uuid, except_states=None) -> User:
         # UUID値の形式チェックをする
-        SavableDatum.valid_uuid_or_raise(uuid)
+        Datum.valid_uuid_or_raise(uuid)
         # 結果が1件以外の場合はNoResultFoundが送出される
         try:
             query = self._session.query(User).filter(User.uuid==uuid)

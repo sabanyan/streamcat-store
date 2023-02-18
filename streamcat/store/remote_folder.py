@@ -1,10 +1,9 @@
-from streamcat.core import SavableDatum, Constraints
-from .store import Store
+from streamcat.core import Datum, SavableDatum, SavableStore, Constraints
 from .mountable import Mountable
 from .remote_folder_conn import RemoteFolderConn
 
 # Mountable.pathをDatum.pathより優先させるため、先にMountableを継承すること
-class RemoteFolder(Mountable, Store):
+class RemoteFolder(Mountable, SavableStore):
 
     __mapper_args__ = {
         'polymorphic_identity' : 'rfolder'
@@ -58,7 +57,7 @@ class RemoteFolder(Mountable, Store):
         (path及び対応ファイル名は変更しない)
         """
         # ラベルに'\0'が含まれていれば取り除く
-        new_label = SavableDatum.escape_label(label)
+        new_label = Datum.escape_label(label)
 
         try:
             # レコードを更新する

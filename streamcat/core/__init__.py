@@ -135,7 +135,10 @@ SCatBaseModel.schema_name = SCHEMA_NAME
 # SQLAlchemyの全てのモデルクラスのベースモデルを作成する
 BaseModel = declarative_base(cls=SCatBaseModel, constructor=SCatBaseModel.__init__, name='StreamCatBase')
 
+from .datum import Datum
+from .store import Store
 from .savable_datum import SavableDatum
+from .savable_store import SavableStore
 from .runnable import Command, Port, Parameter
 from .tmp import Tmp
 from .constraints import Constraints
