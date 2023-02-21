@@ -1,6 +1,6 @@
 import subprocess
 from time import sleep
-from streamcat.core import Datum
+from streamcat.core import SavableDatum
 
 class Mountable():
     """
@@ -18,7 +18,7 @@ class Mountable():
         if self.id is None:
             # 絶対パスを返す
             # DBに未保存の場合は、マウントしない
-            return Datum._to_abs_path(self._path)
+            return SavableDatum._to_abs_path(self._path)
 
         if not Mountable.is_mount(self._path):
             try:
@@ -31,13 +31,13 @@ class Mountable():
                 warnings.warn(f'Mount処理に失敗しました {e}')
 
         # 絶対パスを返す
-        return Datum._to_abs_path(self._path)
+        return SavableDatum._to_abs_path(self._path)
 
     def mount(self, mount_point_path=None):
         # 引数(mount_point_path)にpathプロパティを指定する時にMount処理が発生するのを防ぐため
         # 引数(mount_point_path)が設定されない場合は、自身の_pathを使用する
         if mount_point_path is None:
-            mount_point_path = Datum._to_abs_path(self._path)
+            mount_point_path = SavableDatum._to_abs_path(self._path)
 
         if not mount_point_path.exists():
             raise Exception('mount point(%s) does not exist' % mount_point_path)
@@ -65,7 +65,7 @@ class Mountable():
         # 引数(mount_point_path)にpathプロパティを指定する時にMount処理が発生するのを防ぐため
         # 引数(mount_point_path)が設定されない場合は、自身の_pathを使用する
         if mount_point_path is None:
-            mount_point_path = Datum._to_abs_path(self._path)
+            mount_point_path = SavableDatum._to_abs_path(self._path)
 
         # マウントポイントがない場合は処理を終了する
         if not mount_point_path.exists():
@@ -166,14 +166,14 @@ class Mountable():
         factory = DatumFactory(session)
 
         for result in results:
-            mount_point_path = Datum._to_abs_path(Path(result[1]))
+            mount_point_path = SavableDatum._to_abs_path(Path(result[1]))
             if not Mountable.is_mount(mount_point_path):
                 uuid = str(result[0])
                 type = str(result[2])
-                if type == Datum.AWSS3_TYPE:
+                if type == SavableDatum.AWSS3_TYPE:
                     awss3 = factory.find_by_uuid(uuid)
                     awss3.mount(mount_point_path)
-                elif type == Datum.RFOLDER_TYPE:
+                elif type == SavableDatum.RFOLDER_TYPE:
                     folder = factory.find_by_uuid(uuid)
                     folder.mount(mount_point_path)
                 else:

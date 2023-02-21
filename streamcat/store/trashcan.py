@@ -1,4 +1,4 @@
-from streamcat.core import Datum
+from streamcat.core import SavableDatum
 from .folder import Folder
 
 class TrashCan(Folder):
@@ -14,13 +14,13 @@ class TrashCan(Folder):
         super().__init__(session, parent, 'ゴミ箱')
 
         # データタイプを設定する
-        self.type = Datum.TRASH_TYPE
+        self.type = SavableDatum.TRASH_TYPE
 
     def _exists(self):
         """
         ゴミ箱が存在する場合はTrueを返す
         """
-        result = self._session.query(Datum).filter(Datum.type==Datum.TRASH_TYPE).count()
+        result = self._session.query(SavableDatum).filter(SavableDatum.type==SavableDatum.TRASH_TYPE).count()
         return result > 0
 
     def save(self):

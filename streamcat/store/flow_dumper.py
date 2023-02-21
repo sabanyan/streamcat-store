@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from streamcat.core import Datum
+from streamcat.core import SavableDatum
 
 class FlowDumper:
     def __init__(self, factory):
@@ -23,8 +23,8 @@ class FlowDumper:
 
         self.gathering_path.mkdir()
 
-        if self.factory.data.exists(uuid, type=Datum.FLOW_TYPE):
-            archive_name = self.factory.data.find_by_uuid(uuid, type=Datum.FLOW_TYPE).label
+        if self.factory.data.exists(uuid, type=SavableDatum.FLOW_TYPE):
+            archive_name = self.factory.data.find_by_uuid(uuid, type=SavableDatum.FLOW_TYPE).label
             self._get_flow(self.gathering_path, gathered_uuids, uuid)
         elif self.factory.data.exists(uuid):
             archive_name = self.factory.data.find_by_uuid(uuid).label
@@ -59,7 +59,7 @@ class FlowDumper:
         for child in children:
             if isinstance(child, Folder):
                 gathered_uuids.union(self._get_folder(tmp_path, gathered_uuids, child.uuid))
-            elif child.type == Datum.FLOW_TYPE:
+            elif child.type == SavableDatum.FLOW_TYPE:
                 gathered_uuids.union(self._get_flow(tmp_path, gathered_uuids, child.uuid))
 
         return gathered_uuids
@@ -77,20 +77,20 @@ class FlowDumper:
             if self.factory.data.exists(args_uuid):
                 datum = self.factory.data.find_by_uuid(args_uuid)
                 # type別に振り分けて、次の処理に丸投げする
-                if datum.type == Datum.FRAME_TYPE:
+                if datum.type == SavableDatum.FRAME_TYPE:
                     frame_uuids.append(datum.uuid)
-                elif datum.type == Datum.DATABASE_TYPE:
+                elif datum.type == SavableDatum.DATABASE_TYPE:
                     store_uuids.append(datum.uuid)
-                elif datum.type == Datum.RFOLDER_TYPE:
+                elif datum.type == SavableDatum.RFOLDER_TYPE:
                     store_uuids.append(datum.uuid)
-                elif datum.type == Datum.FLOW_TYPE:
+                elif datum.type == SavableDatum.FLOW_TYPE:
                     flow_uuids.append(datum.uuid)
             else:
                 # Datumが存在しない場合はスキップする
                 warnings.warn(f'Not Exists Datum : {args_uuid}')
 
         for frame_uuid in frame_uuids:
-            frame = self.factory.data.find_by_uuid(frame_uuid, type=Datum.FRAME_TYPE)
+            frame = self.factory.data.find_by_uuid(frame_uuid, type=SavableDatum.FRAME_TYPE)
             if frame is None or not frame.file_exists:
                 # フレームファイルが存在しない場合はスキップする
                 warnings.warn(f'Not Exists file path : {frame._path}')
@@ -101,15 +101,15 @@ class FlowDumper:
             uuid_type_label.append((frame.uuid, frame.type, frame.label, 'False'))
 
         for store_uuid in store_uuids:
-            if self.factory.data.exists(store_uuid, type=Datum.DATABASE_TYPE) or \
-               self.factory.data.exists(store_uuid, type=Datum.RFOLDER_TYPE):
+            if self.factory.data.exists(store_uuid, type=SavableDatum.DATABASE_TYPE) or \
+               self.factory.data.exists(store_uuid, type=SavableDatum.RFOLDER_TYPE):
                 # データベースまたはリモートフォルダストアの場合
                 store = self.factory.data.find_by_uuid(store_uuid)
                 store_path = parent_tmp_path / (store.uuid + '.json')
                 with store_path.open('w') as f:
                     f.write(json.dumps(store.conn.to_json(), indent=2, ensure_ascii=False))
                 uuid_type_label.append((store.uuid, store.type, store.label, 'False'))
-            elif self.factory.data.exists(store_uuid, type=Datum.FOLDER_TYPE):
+            elif self.factory.data.exists(store_uuid, type=SavableDatum.FOLDER_TYPE):
                 # フォルダの場合
                 store = self.factory.data.find_by_uuid(store_uuid)
                 store_path = parent_tmp_path / (store.uuid + '.json')
@@ -125,7 +125,7 @@ class FlowDumper:
 
         for flow_uuid in flow_uuids:
             # フローの場合
-            flow = self.factory.data.find_by_uuid(flow_uuid, type=Datum.FLOW_TYPE)
+            flow = self.factory.data.find_by_uuid(flow_uuid, type=SavableDatum.FLOW_TYPE)
             flow_path = parent_tmp_path / (flow.uuid + '.json')
             with flow_path.open('w') as f:
                 f.write(json.dumps(flow.flow_data.to_json(), indent=2, ensure_ascii=False))
@@ -141,7 +141,7 @@ class FlowDumper:
         return gathered_uuids
 
     def _get_flows_and_frames(self, flow_uuid:str, exclude_uuids:set):
-        flow = self.factory.data.find_by_uuid(flow_uuid, type=Datum.FLOW_TYPE)
+        flow = self.factory.data.find_by_uuid(flow_uuid, type=SavableDatum.FLOW_TYPE)
 
         args_uuids = flow.flow_data.get_args_uuids()
         src_frame_uuids = flow.flow_data.get_src_frame_uuids()
@@ -265,13 +265,13 @@ class FlowDumper:
                     folder = default_top_folder
 
                 (datum_type, label, edit_lock) = type_labels[file.stem]
-                if datum_type == Datum.FRAME_TYPE:
+                if datum_type == SavableDatum.FRAME_TYPE:
                     file.parent
                     with file.open('rb') as f:
                         frame = folder.create_frame(label, f)
                         uuid_conv_table[file.stem] = frame.uuid
                         frame.save()
-                elif datum_type == Datum.DATABASE_TYPE:
+                elif datum_type == SavableDatum.DATABASE_TYPE:
                     from .database_conn import DatabaseConn
                     with file.open('r') as f:
                         db = json.loads(f.read())
@@ -279,7 +279,7 @@ class FlowDumper:
                     database = folder.create_database(label, db_conn)
                     uuid_conv_table[file.stem] = database.uuid
                     database.save()
-                elif datum_type == Datum.RFOLDER_TYPE:
+                elif datum_type == SavableDatum.RFOLDER_TYPE:
                     from .remote_folder_conn import RemoteFolderConn
                     with file.open('r') as f:
                         r = json.loads(f.read())
@@ -287,14 +287,14 @@ class FlowDumper:
                     rfolder = folder.create_remote_folder(label, rfolder_conn)
                     uuid_conv_table[file.stem] = rfolder.uuid
                     rfolder.save()
-                elif datum_type == Datum.FOLDER_TYPE:
+                elif datum_type == SavableDatum.FOLDER_TYPE:
                     folder = folder.create_folder(label)
                     uuid_conv_table[file.stem] = folder.uuid
                     folder.save()
                 elif datum_type == self.ROOT_TYPE:
                     # インポート先のルートフォルダのUUIDに変換する
                     uuid_conv_table[file.stem] = self.factory.data.load_root().uuid
-                elif datum_type == Datum.FLOW_TYPE:
+                elif datum_type == SavableDatum.FLOW_TYPE:
                     from .flow_data import FlowData
                     with file.open('r') as f:
                         flow_json = json.loads(f.read())
@@ -312,7 +312,7 @@ class FlowDumper:
 
         # Flowの参照uuidを変更する
         for new_flow_uuid, flow_edit_lock in flow_uuids.values():
-            flow = self.factory.data.find_by_uuid(new_flow_uuid, type=Datum.FLOW_TYPE)
+            flow = self.factory.data.find_by_uuid(new_flow_uuid, type=SavableDatum.FLOW_TYPE)
             flow.replace_uuids(uuid_conv_table)
             flow.update_data(flow.label, flow.flow_data)
             # 編集ロックを設定する
@@ -364,7 +364,7 @@ class FlowDumper:
             return [member for member in tar.getmembers()]
 
     @staticmethod
-    def _create_folder(parent:Datum, label:str) -> Datum:
+    def _create_folder(parent:SavableDatum, label:str) -> SavableDatum:
         """
         展開したファイルを格納するフォルダを作成する
         """

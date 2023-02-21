@@ -1,8 +1,7 @@
-from streamcat.core import Datum, Constraints
-from .store import Store
+from streamcat.core import Datum, SavableDatum, SavableStore, Constraints
 from .database_conn import DatabaseConn
 
-class Database(Store):
+class Database(SavableStore):
     """
     Databaseへの接続を表すStore
     """
@@ -15,7 +14,7 @@ class Database(Store):
         """
         コンストラクタ
         """
-        super().__init__(session, parent, Datum.DATABASE_TYPE, label)
+        super().__init__(session, parent, SavableDatum.DATABASE_TYPE, label)
  
         # 接続情報はデータベースに保存する
         self._path = None

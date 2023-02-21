@@ -1,10 +1,9 @@
-from streamcat.core import Datum, Constraints
-from .store import Store
+from streamcat.core import Datum, SavableDatum, SavableStore, Constraints
 from .mountable import Mountable
 from .remote_folder_conn import RemoteFolderConn
 
 # Mountable.pathをDatum.pathより優先させるため、先にMountableを継承すること
-class RemoteFolder(Mountable, Store):
+class RemoteFolder(Mountable, SavableStore):
 
     __mapper_args__ = {
         'polymorphic_identity' : 'rfolder'
@@ -14,7 +13,7 @@ class RemoteFolder(Mountable, Store):
         """
         コンストラクタ
         """
-        super().__init__(session, parent, Datum.RFOLDER_TYPE, label)
+        super().__init__(session, parent, SavableDatum.RFOLDER_TYPE, label)
 
         # data列の値を作成する
         if remoteFolderConn is None:
@@ -33,7 +32,7 @@ class RemoteFolder(Mountable, Store):
             raise Exception('You can not add root remote folder. A root already exists.')
 
         # 既存のファイルと重複しないファイル名を取得する
-        self._path = Datum.make_unique_path(self._path)
+        self._path = SavableDatum.make_unique_path(self._path)
 
         # 新規追加前にファイルパスを退避する
         self_path = self._path

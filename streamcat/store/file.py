@@ -1,14 +1,19 @@
 import os
 from pathlib import Path
-from streamcat.core import Datum, Constraints
+from streamcat.core import Datum, SavableDatum, Constraints
 
-class File(Datum):
+class File(SavableDatum):
     """
     データをファイルに保存する抽象クラス
     """
 
     # 64MB
     READ_BUFFER_SIZE = 64 * 1024 * 1024
+
+    # SQLAlchemyにおいてdataテーブルからのマッピング対象クラスでないことを定義する
+    __mapper_args__ = {
+        'polymorphic_identity' : 'i_am_not_mapping_class_1'
+    }
 
     def __init__(self, session, parent, datum_type, label, stream):
         """
@@ -40,7 +45,7 @@ class File(Datum):
 
         if file_path is None:
             # 既存のファイルと重複しないファイル名を取得する
-            self._path = Datum.make_unique_path(self._path)
+            self._path = SavableDatum.make_unique_path(self._path)
         elif file_path.exists():
             self._path = file_path
             if content_type is not None:
@@ -67,8 +72,8 @@ class File(Datum):
 
         # ラベル名からファイルパスを作成する
         old_path = self._path
-        new_path = old_path.parent / Datum.escape_filename(new_label)
-        new_path = Datum.make_unique_path(new_path, except_path=old_path)
+        new_path = old_path.parent / SavableDatum.escape_filename(new_label)
+        new_path = SavableDatum.make_unique_path(new_path, except_path=old_path)
 
         try:
             # 同じファイルに対応するドキュメントのpath列を、ファイル名の移動に合わせて変更する
@@ -76,7 +81,7 @@ class File(Datum):
             # label列を更新する
             self._update_label_imp(new_label, modifier)
             # ファイルを移動する
-            Datum.move_file(old_path, new_path)
+            SavableDatum.move_file(old_path, new_path)
         except (Exception, OSError) as e:
             self._session.rollback()
             raise e
@@ -232,9 +237,9 @@ class File(Datum):
                     break
 
     def _frame_path_exists(self, path:Path, except_id:int):
-        result = self._session.query(Datum._path).filter(Datum._path == path)\
-                                                .filter(Datum.type == Datum.FRAME_TYPE)\
-                                                .filter(Datum.id != except_id).count()
+        result = self._session.query(SavableDatum._path).filter(SavableDatum._path == path)\
+                                                .filter(SavableDatum.type == SavableDatum.FRAME_TYPE)\
+                                                .filter(SavableDatum.id != except_id).count()
         return result > 0
 
     def to_json(self):

@@ -2,7 +2,7 @@ import os
 import datetime
 
 # from .abc_command import AbcCommand
-from streamcat.core import Datum
+from streamcat.core import SavableDatum
 from streamcat.store import Folder, Frame, Flow, Database
 
 class ChildrenGetter:
@@ -14,7 +14,7 @@ class ChildrenGetter:
         # ChildrenGetter._synchronize(folder, folder.path.as_posix(), user)
         # フォルダ直下のデータを全てリストアップして返す
         # children = Datum.find_by_parent_uuid(folder.uuid)
-        return Datum.find_by_parent_uuid(folder.uuid)
+        return SavableDatum.find_by_parent_uuid(folder.uuid)
 
     @staticmethod
     def _synchronize(folder, dir_path, user):
@@ -24,7 +24,7 @@ class ChildrenGetter:
         os.sync()
 
         # ドキュメント/フォルダ --> ファイル
-        folder_children = Datum.find_by_parent_uuid(folder.uuid)
+        folder_children = SavableDatum.find_by_parent_uuid(folder.uuid)
         for folder_child in folder_children:
             if not folder_child.path_exists:
                 # フォルダ直下のデータについて、pathに値が設定されており、かつ対応するファイルが存在しない場合は、DBエントリから削除する

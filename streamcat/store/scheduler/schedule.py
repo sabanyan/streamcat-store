@@ -1,6 +1,6 @@
-from streamcat.core import Datum, Constraints
+from streamcat.core import Datum, SavableDatum, Constraints
 
-class Schedule(Datum):
+class Schedule(SavableDatum):
 
     __mapper_args__ = {
         'polymorphic_identity' : 'schedule'
@@ -165,8 +165,8 @@ class Schedule(Datum):
         }
     }
 
-    def __init__(self, session, parent:Datum, label:str, runnable_uuid:str, args={}, inputs={}, trigger={}):
-        super().__init__(session, parent, Datum.SCHEDULE_TYPE, label)
+    def __init__(self, session, parent:SavableDatum, label:str, runnable_uuid:str, args={}, inputs={}, trigger={}):
+        super().__init__(session, parent, SavableDatum.SCHEDULE_TYPE, label)
 
         # runnableの妥当性を検証する
         self._valid_runnable_or_raise(runnable_uuid)

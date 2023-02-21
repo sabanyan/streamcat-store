@@ -1,6 +1,6 @@
 from typing import Union
 from sqlalchemy.orm.exc import NoResultFound
-from streamcat.core import Datum
+from streamcat.core import Datum, SavableDatum
 from streamcat.store import Folder, TrashCan
 from streamcat.store.auth import User, Role, UserRole
 
@@ -208,14 +208,14 @@ class DatumFactory():
         from streamcat.store import Folder
         return Folder(self._session, None, label)
 
-    def find_by_id(self, id, type=None) -> Datum:
+    def find_by_id(self, id, type=None) -> SavableDatum:
         """
         指定されたidを持つDatumを取得する
         """
-        query = self._session.query(Datum).filter(Datum.id==id)
+        query = self._session.query(SavableDatum).filter(SavableDatum.id==id)
 
         if type is not None:
-            query = query.filter(Datum.type==type)
+            query = query.filter(SavableDatum.type==type)
 
         # 結果が1件以外の場合はNoResultFoundが送出される
         try:
@@ -225,17 +225,17 @@ class DatumFactory():
 
         return datum
 
-    def find_by_uuid(self, uuid, type=None, folder_path=False) -> Datum:
+    def find_by_uuid(self, uuid, type=None, folder_path=False) -> SavableDatum:
         """
         指定されたuuidを持つDatumを取得する
         """
         # UUID値の形式チェックをする
         Datum.valid_uuid_or_raise(uuid)
 
-        query = self._session.query(Datum, folder_path=folder_path).filter(Datum.uuid==uuid)
+        query = self._session.query(SavableDatum, folder_path=folder_path).filter(SavableDatum.uuid==uuid)
 
         if type is not None:
-            query = query.filter(Datum.type==type)
+            query = query.filter(SavableDatum.type==type)
 
         # 結果が1件以外の場合はNoResultFoundが送出される
         try:
@@ -245,30 +245,30 @@ class DatumFactory():
 
         return datum
 
-    def find_all(self, type=None, except_trash=False, except_label=None) -> Datum:
+    def find_all(self, type=None, except_trash=False, except_label=None) -> SavableDatum:
         """
         全てのDatumを取得する
         """
         from sqlalchemy import desc
-        query = self._session.query(Datum)
+        query = self._session.query(SavableDatum)
         if type is not None:
-            query = query.filter(Datum.type==type)
+            query = query.filter(SavableDatum.type==type)
         if except_trash:
             # ゴミ箱にほかされたDatumは除外する
             # NOTE: この条件を付与するとかなり遅くなる
-            query = query.filter(~self._make_exists_trashed(Datum.uuid))
+            query = query.filter(~self._make_exists_trashed(SavableDatum.uuid))
         if except_label is not None:
-            query = query.filter(Datum._label!=except_label)
-        return query.order_by(Datum.type, desc(Datum.created_at)).all()
+            query = query.filter(SavableDatum._label!=except_label)
+        return query.order_by(SavableDatum.type, desc(SavableDatum.created_at)).all()
 
     def count_root(self) -> int:
-        return self._session.query(Datum).filter(Datum.parent_id == None).count()
+        return self._session.query(SavableDatum).filter(SavableDatum.parent_id == None).count()
 
     def find_root(self) -> Union[Folder, None]:
         """
         親を持たないfolderレコードを全て取得する
         """
-        roots = self._session.query(Datum).filter(Datum.parent_id == None).all()
+        roots = self._session.query(SavableDatum).filter(SavableDatum.parent_id == None).all()
 
         if len(roots) == 0 :
             # ルートフォルダがない場合はNoneを返す
@@ -282,7 +282,7 @@ class DatumFactory():
         """
         ゴミ箱を取得する
         """
-        trashcan = self._session.query(Datum).filter(Datum.type==Datum.TRASH_TYPE).one_or_none()
+        trashcan = self._session.query(SavableDatum).filter(SavableDatum.type==SavableDatum.TRASH_TYPE).one_or_none()
         if trashcan is None:
             raise Exception('no trush can is found by designated id.')
         return trashcan
@@ -291,12 +291,12 @@ class DatumFactory():
         """
         プロジェクトを全て取得する
         """
-        query = self._session.query(Datum).\
-                filter(Datum.type==Datum.PROJECT_TYPE)
+        query = self._session.query(SavableDatum).\
+                filter(SavableDatum.type==SavableDatum.PROJECT_TYPE)
         if on_root:
-            query = query.filter(self._make_exists_on_root(Datum.parent_id))
+            query = query.filter(self._make_exists_on_root(SavableDatum.parent_id))
         if except_label is not None:
-            query = query.filter(Datum._label!=except_label)
+            query = query.filter(SavableDatum._label!=except_label)
         # 速度向上のため、order_byを指定しない
         return query.all()
 
@@ -309,21 +309,21 @@ class DatumFactory():
         from streamcat.store import ProjectFolder
 
         # cte: Common Table Expression WITH句のこと
-        D0 = aliased(Datum, name='D0')
+        D0 = aliased(SavableDatum, name='D0')
         R = select(D0.id, D0.parent_id, D0.type).select_from(D0).\
             where(D0.id==id).\
             cte(name='R', recursive=True)
 
         # WITH句にUNION ALLを用いて再帰クエリとする
-        D = aliased(Datum, name='D')
+        D = aliased(SavableDatum, name='D')
         R = R.union_all(
                 select(D.id, D.parent_id, D.type).\
                 select_from(R.join(D, and_(D.id==R.c.parent_id,
-                                           R.c.type!=Datum.PROJECT_TYPE)))
+                                           R.c.type!=SavableDatum.PROJECT_TYPE)))
             )
 
         # プロジェクトを取得する
-        exists_project = exists().where(and_(R.c.id==ProjectFolder.id, R.c.type==Datum.PROJECT_TYPE))
+        exists_project = exists().where(and_(R.c.id==ProjectFolder.id, R.c.type==SavableDatum.PROJECT_TYPE))
         query = self._session.query(ProjectFolder).filter(exists_project)
         return query.one()
 
@@ -335,24 +335,24 @@ class DatumFactory():
         from streamcat.store.auth import Auth
 
         # 検索対象のDatumの編集ロックを権限の判定条件に含める条件
-        exists_edit_lock = exists().where(and_(Auth.datum_id==Datum.id,
+        exists_edit_lock = exists().where(and_(Auth.datum_id==SavableDatum.id,
                                                Auth.role_id==Role.id,
                                                Role.uuid==literal(Role.EDIT_LOCK_ROLE_UUID)))
         # 編集ロック=ONのフローをサブフローとして抽出する
-        return self._session.query(Datum).filter(Datum.type==Datum.FLOW_TYPE)\
+        return self._session.query(SavableDatum).filter(SavableDatum.type==SavableDatum.FLOW_TYPE)\
                                          .filter(exists_edit_lock)\
-                                         .order_by(Datum._label, Datum.id)\
+                                         .order_by(SavableDatum._label, SavableDatum.id)\
                                          .all()
 
     def find_all_stores(self):
         """
         データストアを全て取得する
         """
-        return self._session.query(Datum).filter(
-                                                Datum.type.in_([Datum.DATABASE_TYPE,
-                                                                Datum.RFOLDER_TYPE])
+        return self._session.query(SavableDatum).filter(
+                                                SavableDatum.type.in_([SavableDatum.DATABASE_TYPE,
+                                                                SavableDatum.RFOLDER_TYPE])
                                           )\
-                                         .order_by(Datum._label, Datum.id)\
+                                         .order_by(SavableDatum._label, SavableDatum.id)\
                                          .all()
 
     def load_root(self):
@@ -384,8 +384,8 @@ class DatumFactory():
         キャッシュフォルダを取得する、存在しない場合は作成する
         """
         # 特定用途のフォルダのUUIDは決め打ちである
-        uuid = Datum.CACHE_FOLDER_UUID
-        label = Datum.CACHE_FOLDER_LABEL
+        uuid = SavableDatum.CACHE_FOLDER_UUID
+        label = SavableDatum.CACHE_FOLDER_LABEL
 
         if self.exists(uuid):
             return self.find_by_uuid(uuid)
@@ -404,8 +404,8 @@ class DatumFactory():
         アクティビティフォルダを取得する、存在しない場合は作成する
         """
         # 特定用途のフォルダのUUIDは決め打ちである
-        uuid = Datum.ACTIVITY_FOLDER_UUID
-        label = Datum.ACTIVITY_FOLDER_LABEL
+        uuid = SavableDatum.ACTIVITY_FOLDER_UUID
+        label = SavableDatum.ACTIVITY_FOLDER_LABEL
 
         if self.exists(uuid):
             return self.find_by_uuid(uuid)
@@ -425,8 +425,8 @@ class DatumFactory():
         TODO: フローフォルダは使わなくなりました(廃止予定)
         """
         # 特定用途のフォルダのUUIDは決め打ちである
-        uuid = Datum.FLOW_FOLDER_UUID
-        label = Datum.FLOW_FOLDER_LABEL
+        uuid = SavableDatum.FLOW_FOLDER_UUID
+        label = SavableDatum.FLOW_FOLDER_LABEL
 
         if self.exists(uuid):
             return self.find_by_uuid(uuid)
@@ -490,10 +490,10 @@ class DatumFactory():
         if not Datum.is_valid_uuid(uuid):
             return False
 
-        query = self._session.query(Datum).filter(Datum.uuid==uuid)
+        query = self._session.query(SavableDatum).filter(SavableDatum.uuid==uuid)
 
         if type is not None:
-            query = query.filter(Datum.type==type)
+            query = query.filter(SavableDatum.type==type)
 
         return query.count() > 0
 
@@ -501,10 +501,10 @@ class DatumFactory():
         """
         指定されたidを持つDatumが存在する場合はTrueを返す
         """
-        query = self._session.query(Datum).filter(Datum.id==id)
+        query = self._session.query(SavableDatum).filter(SavableDatum.id==id)
 
         if type is not None:
-            query = query.filter(Datum.type==type)
+            query = query.filter(SavableDatum.type==type)
 
         return query.count() > 0
 
@@ -512,15 +512,15 @@ class DatumFactory():
         """
         ゴミ箱が存在する場合はTrueを返す
         """
-        result = self._session.query(Datum).filter(Datum.type==Datum.TRASH_TYPE).count()
+        result = self._session.query(SavableDatum).filter(SavableDatum.type==SavableDatum.TRASH_TYPE).count()
         return result > 0
 
     def trashed(self, uuid) -> bool:
         """
         ゴミ箱の中にある場合はTrueを返す
         """
-        result = self._session.query(Datum).\
-                 filter(Datum.uuid==uuid).\
+        result = self._session.query(SavableDatum).\
+                 filter(SavableDatum.uuid==uuid).\
                  filter(self._make_exists_trashed(uuid)).count()
         return result > 0
 
@@ -529,7 +529,7 @@ class DatumFactory():
         from sqlalchemy.orm import aliased
 
         # ルートフォルダ直下のDatumを全て取得するクエリ
-        D0 = aliased(Datum, name='D0')
+        D0 = aliased(SavableDatum, name='D0')
         T = select(D0.id).\
             select_from(D0).\
             where(D0.parent_id == None)
@@ -542,11 +542,11 @@ class DatumFactory():
         from sqlalchemy.orm import aliased
 
         # ゴミ箱の中のDatumを全て取得する再帰クエリ
-        D0 = aliased(Datum, name='D0')
-        D1 = aliased(Datum, name='D1')
+        D0 = aliased(SavableDatum, name='D0')
+        D1 = aliased(SavableDatum, name='D1')
         T = select(D0.id, D0.uuid).\
             select_from(D0).\
-            where(D0.type==Datum.TRASH_TYPE).\
+            where(D0.type==SavableDatum.TRASH_TYPE).\
             cte(name='T', recursive=True)
         T = T.union_all(
                 select(D1.id, D1.uuid).\
@@ -561,8 +561,8 @@ class DatumFactory():
         全てのマウント可能データストアのマウントを解除する
         """
         # 全てのマウント可能データストアを取得する
-        mountables = self._session.query(Datum).filter(
-                                                    Datum.type.in_([Datum.RFOLDER_TYPE])
+        mountables = self._session.query(SavableDatum).filter(
+                                                    SavableDatum.type.in_([SavableDatum.RFOLDER_TYPE])
                                                 ).all()
         # マウント解除する
         for mountable in mountables:

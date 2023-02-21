@@ -3,7 +3,7 @@ from setuptools import setup
 setup(
     name='streamcat.store',
     packages=['streamcat.store'],
-    version='3.2',
+    version='3.3',
     description='Data Store of many type',
     url='https://www.kskp.io',
     install_requires=[
@@ -12,7 +12,7 @@ setup(
         # NOTE: psycopg2-binaryはARM64環境に対応していない
         # 'psycopg2-binary',
         'psycopg2',
-        'SQLAlchemy<1.5.0',
+        'SQLAlchemy<2.1.0',
         'APScheduler',
         'jsonschema',
         # 'alembic',

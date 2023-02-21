@@ -1,7 +1,6 @@
-from streamcat.core import Datum, Command, Constraints
-from .store import Store
+from streamcat.core import Datum, SavableDatum, SavableStore, Command, Constraints
 
-class Folder(Store):
+class Folder(SavableStore):
 
     __mapper_args__ = {
         'polymorphic_identity' : 'folder'
@@ -11,10 +10,10 @@ class Folder(Store):
         """
         コンストラクタ
         """
-        super().__init__(session, parent, Datum.FOLDER_TYPE, label)
+        super().__init__(session, parent, SavableDatum.FOLDER_TYPE, label)
 
         # DBに保存する前のFolderへの参照と更新と実行権限は制限しない
-        self._permissions = Datum.PERMISSION_READ | Datum.PERMISSION_WRITE | Datum.PERMISSION_EXEC
+        self._permissions = SavableDatum.PERMISSION_READ | SavableDatum.PERMISSION_WRITE | SavableDatum.PERMISSION_EXEC
 
     @Constraints.prohibit_save_on_root
     @Constraints.set_project_role_on_adding
@@ -29,7 +28,7 @@ class Folder(Store):
 
         if file_path is None:
             # 既存のファイルと重複しないファイル名を取得する
-            self._path = Datum.make_unique_path(self._path)
+            self._path = SavableDatum.make_unique_path(self._path)
         else:
             self._path = file_path
 
@@ -55,8 +54,8 @@ class Folder(Store):
 
         # ラベル名からファイルパスを作成する    
         old_path = self._path
-        new_path = old_path.parent / Datum.escape_filename(new_label)
-        new_path = Datum.make_unique_path(new_path, except_path=old_path)
+        new_path = old_path.parent / SavableDatum.escape_filename(new_label)
+        new_path = SavableDatum.make_unique_path(new_path, except_path=old_path)
 
         try:
             # ディレクトリ名の移動によって他のDatumのpathが変更が必要であれば変更する
@@ -67,7 +66,7 @@ class Folder(Store):
             self._modifier_id = (modifier or self._session.user).id
             self._session.update(self)
             # ファイルを移動する
-            Datum.move_file(old_path, new_path)
+            SavableDatum.move_file(old_path, new_path)
         except (Exception, OSError) as e:
             self._session.rollback()
             raise e
@@ -148,7 +147,7 @@ class Folder(Store):
             # 形代フォルダを作る場合は返り値として返す、作らない場合はNoneを返す
             return thrown_count, obstacle_count, None if trashed_folder_is_deleted else trashed_folder
 
-        elif datum.type == Datum.FRAME_TYPE or datum.type == Datum.FLOW_TYPE:
+        elif datum.type == SavableDatum.FRAME_TYPE or datum.type == SavableDatum.FLOW_TYPE:
             import warnings
             # 削除しようとするフレーム/サブフローの更新権限がない場合は削除できない
             if not self._session.writable(datum):
@@ -281,9 +280,9 @@ class Folder(Store):
         # 参照権限が無ければ直下の子Datumは取得できない
         self._readable_or_raise()
 
-        data = self._session.query(Datum, prev_folder_path=prev_folder_path).\
-                             filter(Datum.parent_id==self.id).\
-                             order_by(Datum.type, desc(Datum.created_at)).all()
+        data = self._session.query(SavableDatum, prev_folder_path=prev_folder_path).\
+                             filter(SavableDatum.parent_id==self.id).\
+                             order_by(SavableDatum.type, desc(SavableDatum.created_at)).all()
         return data
 
     def find_children_by_label(self, label, type=None):
@@ -296,18 +295,18 @@ class Folder(Store):
         # 参照権限が無ければ直下の子Datumは取得できない
         self._readable_or_raise()
 
-        f2 = aliased(Datum)
+        f2 = aliased(SavableDatum)
         sub_query = self._session.query(f2)
-        query = self._session.query(Datum)\
-                        .filter(sub_query.filter(f2.id==Datum.parent_id)
+        query = self._session.query(SavableDatum)\
+                        .filter(sub_query.filter(f2.id==SavableDatum.parent_id)
                                          .filter(f2.uuid==self.uuid).exists())\
-                        .filter(Datum._label==label)
+                        .filter(SavableDatum._label==label)
 
         if type is not None:
-            query = query.filter(Datum.type==type)
+            query = query.filter(SavableDatum.type==type)
 
         # フロー名フォルダが重複している場合は最も新しいフォルダに結果を格納する
-        query = query.order_by(Datum.type, desc(Datum.created_at))
+        query = query.order_by(SavableDatum.type, desc(SavableDatum.created_at))
 
         return query.all()
 
@@ -322,15 +321,15 @@ class Folder(Store):
         # UUID値の形式チェックをする
         Datum.valid_uuid_or_raise(uuid)
 
-        data = self._session.query(Datum).filter(Datum.parent_id==self.id).\
-                            filter(Datum.uuid==uuid).one()
+        data = self._session.query(SavableDatum).filter(SavableDatum.parent_id==self.id).\
+                            filter(SavableDatum.uuid==uuid).one()
 
         return data
 
     def count_children(self):
         # 参照権限が無ければ直下の子Datumは取得できない
         self._readable_or_raise()
-        return self._session.query(Datum).filter(Datum.parent_id==self.id).count()
+        return self._session.query(SavableDatum).filter(SavableDatum.parent_id==self.id).count()
 
     def make_unique_label(self, label, except_uuid=None):
         """
@@ -408,7 +407,7 @@ class Folder(Store):
                     }
         return Flow(self._session, self, label, FlowData(flow_json))
 
-    def create_datasource(self, label:str, store:Datum, loader:Command, loader_args:dict={}, params:list=[]):
+    def create_datasource(self, label:str, store:SavableDatum, loader:Command, loader_args:dict={}, params:list=[]):
         """
         コンストラクタ
         """
@@ -466,7 +465,7 @@ class Folder(Store):
         }
         return Flow(self._session, self, label, FlowData(flow_json))
 
-    def create_datadest(self, label:str, store:Datum, saver:Command, saver_args:dict={}, params:list=[]):
+    def create_datadest(self, label:str, store:SavableDatum, saver:Command, saver_args:dict={}, params:list=[]):
         """
         コンストラクタ
         """
@@ -576,13 +575,13 @@ class Folder(Store):
         return TrashCan(self._session, self)
 
     def is_system_folder(self):
-        from streamcat.core import Datum
-        return self.uuid in (Datum.FLOW_FOLDER_UUID, Datum.RESULT_FOLDER_UUID, Datum.CACHE_FOLDER_UUID, Datum.ACTIVITY_FOLDER_UUID)
+        from streamcat.core import SavableDatum
+        return self.uuid in (SavableDatum.FLOW_FOLDER_UUID, SavableDatum.RESULT_FOLDER_UUID, SavableDatum.CACHE_FOLDER_UUID, SavableDatum.ACTIVITY_FOLDER_UUID)
 
     def is_cache_folder(self):
-        from streamcat.core import Datum
-        return self.uuid == Datum.CACHE_FOLDER_UUID
+        from streamcat.core import SavableDatum
+        return self.uuid == SavableDatum.CACHE_FOLDER_UUID
 
     def is_activity_folder(self):
-        from streamcat.core import Datum
-        return self.uuid == Datum.ACTIVITY_FOLDER_UUID
+        from streamcat.core import SavableDatum
+        return self.uuid == SavableDatum.ACTIVITY_FOLDER_UUID

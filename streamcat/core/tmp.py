@@ -11,7 +11,7 @@ class Tmp():
 
     def __init__(self):
         """
-        Tmpクラスはインスタンス化しないこと！
+        Tmpクラスはインスタンス化しないこと!
         """
         raise Exception('Tmpクラスはインスタンスを生成しません')
 

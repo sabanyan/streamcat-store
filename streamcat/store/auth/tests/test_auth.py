@@ -3,7 +3,7 @@ import copy
 import unittest
 import pprint
 from sqlalchemy.orm.exc import NoResultFound
-from streamcat.core import Datum
+from streamcat.core import SavableDatum
 from streamcat.store import ProjectFolder, FlowData, OptimisticLockException, EditLockedException, CommandException
 from streamcat.store.auth import Auth, Role, InvalidPassword, NotAuthorizedException, NoRoleOwnerException
 from ...tests.test_case_base import TestCaseBase
@@ -260,27 +260,15 @@ class AuthTest(TestCaseBase):
 
         return flow3_json
 
-    def get_frame_from_lasts(outs):
+    def get_frame_from_job(job):
         """
-        lastsから出力結果Frameを1つ返す
+        Jobから出力結果Frameを1つ返す
         """
-        from streamcat.store import Activity
-        activities = [ datum for point_id, datum in outs.items() if isinstance(datum, Activity)]
+        from streamcat.store import ApparentOuts
+        outs = [ datum for point_id, datum in job.join().items() if isinstance(datum, ApparentOuts)]
         # Engineの実行により例外が発生した場合は送出する
-        activities[0].raise_one()
-        return activities[0].outs[0][1]
-
-    def _get_activity(outs:dict):
-        """
-        execute()の戻り値から
-        pointのidとframeのDictに置き換える
-        """
-        from streamcat.store import Activity
-        # Activityを取得して返り値とする
-        for point_id, datum in outs.items():
-            if isinstance(datum, Activity):
-                return datum
-        return 
+        outs[0].raise_one()
+        return outs[0].outs[0].datum
 
     # 
     # SQLAlchemy Session
@@ -1227,7 +1215,7 @@ class AuthTest(TestCaseBase):
         #         
         persistent_obj = self.factory._session._session.identity_map.values()
         for obj in persistent_obj:
-            if isinstance(obj, Datum):
+            if isinstance(obj, SavableDatum):
                 self.factory._session._session.expire(obj, ['_permissions'])
 
 
@@ -1291,7 +1279,7 @@ class AuthTest(TestCaseBase):
         #         
         persistent_obj = self.factory._session._session.identity_map.values()
         for obj in persistent_obj:
-            if isinstance(obj, Datum):
+            if isinstance(obj, SavableDatum):
                 self.factory._session._session.expire(obj, ['_permissions'])
 
 
@@ -2056,7 +2044,7 @@ class AuthTest(TestCaseBase):
         self.assertEqual(len(folder1.find_children()), 0)
 
         # ただし、参照不可であってもcount()によって件数の取得は可能としている
-        result = self.factory._session.query(Datum).filter(Datum.parent_id==folder1.id).count()
+        result = self.factory._session.query(SavableDatum).filter(SavableDatum.parent_id==folder1.id).count()
         self.assertEqual(result, 1)
 
         # フローとフォルダ1を削除する
@@ -2886,7 +2874,7 @@ class AuthTest(TestCaseBase):
         link = FlowCommand(flow)
         lasts = execute(command=link, args={}, inputs={})
         # フローの実行結果を取得する
-        out_frame = AuthTest.get_frame_from_lasts(lasts)
+        out_frame = AuthTest.get_frame_from_job(lasts)
 
         # プロジェクト管理者は、フローのキャッシュを参照できること
         cache_frame_uuid = next(iter(flow.flow_data.get_cache_frame_uuids()))
@@ -2994,14 +2982,14 @@ class AuthTest(TestCaseBase):
         link = FlowCommand(flow)
         lasts = execute(command=link, args={}, inputs={})
         # フローの実行結果を取得する
-        out_frame = AuthTest.get_frame_from_lasts(lasts)
+        out_frame = AuthTest.get_frame_from_job(lasts)
 
         # プロジェクト管理者は、フローのキャッシュを参照できること
         cache_frame_uuid = next(iter(flow.flow_data.get_cache_frame_uuids()))
         cache_frame = self.factory2.data.find_by_uuid(cache_frame_uuid)
 
         # フローをキャッシュフォルダに移動する
-        flow.move(Datum.CACHE_FOLDER_UUID)
+        flow.move(SavableDatum.CACHE_FOLDER_UUID)
 
         # 作成と変更を確定する
         self.factory2.end()
@@ -3111,7 +3099,7 @@ class AuthTest(TestCaseBase):
         link = FlowCommand(flow)
         lasts = execute(command=link, args={}, inputs={})
         # フローの実行結果を取得する
-        out_frame = AuthTest.get_frame_from_lasts(lasts)
+        out_frame = AuthTest.get_frame_from_job(lasts)
 
         # プロジェクト管理者は、フローのキャッシュを参照できること
         cache_frame_uuid = next(iter(flow.flow_data.get_cache_frame_uuids()))
@@ -3939,12 +3927,12 @@ class AuthTest(TestCaseBase):
         # フローを実行する
         from streamcat.engine import execute, FlowCommand
         link = FlowCommand(flow)
-        outs = execute(command=link, args={}, inputs={})
-        # Activityを取得する
-        activity = AuthTest._get_activity(outs)
+        job = execute(command=link, args={}, inputs={})
+        # フロー実行の終了を待ってから次のSQLを発行する必要がある
+        job.join()
 
         # プロジェクト管理者は、フローのActivityを参照できること
-        activity = self.factory2.data.find_by_uuid(activity.uuid)
+        activity = self.factory2.data.find_by_uuid(job.activity_uuid)
 
         # 作成を確定する
         self.factory2.end()
@@ -3982,7 +3970,7 @@ class AuthTest(TestCaseBase):
         link = FlowCommand(flow)
         lasts = execute(command=link, args={}, inputs={})
         # フローの実行結果を取得する
-        out_frame = AuthTest.get_frame_from_lasts(lasts)
+        out_frame = AuthTest.get_frame_from_job(lasts)
 
         # プロジェクト管理者は、フローの実行結果を参照できること
         out_frame = self.factory2.data.find_by_uuid(out_frame.uuid)
@@ -4035,7 +4023,7 @@ class AuthTest(TestCaseBase):
         link = FlowCommand(flow)
         lasts = execute(command=link, args={}, inputs={})
         # フローの実行結果を取得する
-        out_frame = AuthTest.get_frame_from_lasts(lasts)
+        out_frame = AuthTest.get_frame_from_job(lasts)
 
         # プロジェクト管理者は、フローの実行結果を参照できること
         out_frame = self.factory2.data.find_by_uuid(out_frame.uuid)
@@ -4111,7 +4099,7 @@ class AuthTest(TestCaseBase):
         link = FlowCommand(flow)
         with self.assertRaises(CommandException) as e:
             lasts = execute(command=link, args={}, inputs={})
-            AuthTest.get_frame_from_lasts(lasts)
+            AuthTest.get_frame_from_job(lasts)
         # CommandExceptionはNotAuthorizedExceptionを再送出していること
         self.assertIsInstance(e.exception.innerException, NotAuthorizedException)
             
@@ -4161,7 +4149,9 @@ class AuthTest(TestCaseBase):
                     }
         flow = self.factory3.data.find_by_uuid(flow.uuid)
         link = FlowCommand(flow)
-        lasts = execute(command=link, args={'vis':vis_args}, inputs={})
+        job = execute(command=link, args={'vis':vis_args}, inputs={})
+        # フロー実行の終了を待ってから次のSQLを発行する必要がある
+        job.join()
 
         # キャッシュのUUIDを取得する
         cache_frame_uuid = next(iter(flow.flow_data.get_cache_frame_uuids()))
@@ -4246,7 +4236,9 @@ class AuthTest(TestCaseBase):
 
         # 編集者は、複製したフローをプレビュー実行できること
         link = FlowCommand(duplicated_flow)
-        lasts = execute(command=link, args={'vis':vis_args}, inputs={})
+        job = execute(command=link, args={'vis':vis_args}, inputs={})
+        # フロー実行の終了を待ってから次のSQLを発行する必要がある
+        job.join()
 
         # プロジェクトに属さないユーザは、複製したフローを取得できないこと
         with self.assertRaises(NotAuthorizedException):
@@ -4357,12 +4349,16 @@ class AuthTest(TestCaseBase):
         flow2 = self.factory3.data.find_by_uuid(flow2.uuid)
         link = FlowCommand(flow2)
         with self.assertRaises(Exception):
-            execute(command=link, args={'vis':vis_args}, inputs={})
+            job = execute(command=link, args={'vis':vis_args}, inputs={})
+            # フロー実行の終了を待ってから次のSQLを発行する必要がある
+            job.join()
 
         # USER2は、メインフローを実行できること
         flow2 = self.factory2.data.find_by_uuid(flow2.uuid)
         link = FlowCommand(flow2)
-        last = execute(command=link, args={'vis':vis_args}, inputs={})
+        job = execute(command=link, args={'vis':vis_args}, inputs={})
+        # フロー実行の終了を待ってから次のSQLを発行する必要がある
+        job.join()
 
         # フローを削除する
         flow2.delete()
@@ -4473,7 +4469,9 @@ class AuthTest(TestCaseBase):
                         }
                     }
         link = FlowCommand(flow1)
-        lasts = execute(command=link, args={'vis':vis_args}, inputs={})
+        job = execute(command=link, args={'vis':vis_args}, inputs={})
+        # フロー実行の終了を待ってから次のSQLを発行する必要がある
+        job.join()
 
         # キャッシュが作成されること
         cache_frame_uuids = flow1.flow_data.get_cache_frame_uuids()
@@ -4638,7 +4636,9 @@ class AuthTest(TestCaseBase):
                         }
                     }
         link = FlowCommand(flow1)
-        lasts = execute(command=link, args={'vis':vis_args}, inputs={})
+        job = execute(command=link, args={'vis':vis_args}, inputs={})
+        # フロー実行の終了を待ってから次のSQLを発行する必要がある
+        job.join()
 
         # キャッシュが作成されること
         cache_frame_uuids = flow1.flow_data.get_cache_frame_uuids()

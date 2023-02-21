@@ -24,8 +24,8 @@ class Session():
             self._session.commit()
 
     def expire(self, obj):
-        from streamcat.core import Datum
-        if isinstance(obj, Datum):
+        from streamcat.core import SavableDatum
+        if isinstance(obj, SavableDatum):
             tmp = obj._permissions
             self._session.expire(obj)
             obj._permissions = tmp
@@ -33,8 +33,8 @@ class Session():
             self._session.expire(obj)
 
     def flush(self, obj):
-        from streamcat.core import Datum
-        if isinstance(obj, Datum):
+        from streamcat.core import SavableDatum
+        if isinstance(obj, SavableDatum):
             tmp = obj._permissions
             self._session.flush([obj])
             obj._permissions = tmp
@@ -112,7 +112,7 @@ class AuthzSession(Session):
         import inspect
         from sqlalchemy.orm import with_expression
         from sqlalchemy.sql.expression import null
-        from streamcat.core import Datum
+        from streamcat.core import SavableDatum
         from .authz_query import Query, AuthzDatumQuery
 
         def is_type(obj_type, table_name):
@@ -129,20 +129,20 @@ class AuthzSession(Session):
             select_permissions = self._make_select_permissions()
 
             # ownのpermissionsの値を取得する
-            select_ownership = self._make_select_ownership(Datum.id)
+            select_ownership = self._make_select_ownership(SavableDatum.id)
             
             # Datumの親フォルダのuuidを取得する
             select_parent_uuid = self._make_select_parent_uuid()
 
             # Datumのフォルダパスを取得する
             if kwargs.get('folder_path'):
-                select_folder_path = self._make_select_folder_path(Datum.parent_id)
+                select_folder_path = self._make_select_folder_path(SavableDatum.parent_id)
             else:
                 select_folder_path = null()
 
             # Datumの移動前のフォルダパスを取得する
             if kwargs.get('prev_folder_path'):
-                select_prev_folder_path = self._make_select_folder_path(Datum.prev_parent_id)
+                select_prev_folder_path = self._make_select_folder_path(SavableDatum.prev_parent_id)
             else:
                 select_prev_folder_path = null()
 
@@ -150,12 +150,12 @@ class AuthzSession(Session):
             # exists_readable = self._make_exists_readable()
 
             # Datumを抽出するQuery
-            query = self._session.query(Datum).\
-                                  options(with_expression(Datum._permissions, select_permissions.label('permissions'))).\
-                                  options(with_expression(Datum._ownership, select_ownership.label('ownership'))).\
-                                  options(with_expression(Datum._parent_uuid, select_parent_uuid.label('parent_uuid'))).\
-                                  options(with_expression(Datum._folder_path, select_folder_path.label('folder_path'))).\
-                                  options(with_expression(Datum._prev_folder_path, select_prev_folder_path.label('prev_folder_path')))
+            query = self._session.query(SavableDatum).\
+                                  options(with_expression(SavableDatum._permissions, select_permissions.label('permissions'))).\
+                                  options(with_expression(SavableDatum._ownership, select_ownership.label('ownership'))).\
+                                  options(with_expression(SavableDatum._parent_uuid, select_parent_uuid.label('parent_uuid'))).\
+                                  options(with_expression(SavableDatum._folder_path, select_folder_path.label('folder_path'))).\
+                                  options(with_expression(SavableDatum._prev_folder_path, select_prev_folder_path.label('prev_folder_path')))
 
             return AuthzDatumQuery(query, self)
 
@@ -178,7 +178,7 @@ class AuthzSession(Session):
 
     def _make_exists_readable(self):
         from sqlalchemy.sql.expression import exists, literal, text
-        from streamcat.core import Datum
+        from streamcat.core import SavableDatum
 
         # label()は括弧で囲むが何故かAlias名(RA1)が付かない
         select_stmt = self._make_select_permissions_inner().label('RA1')
@@ -189,12 +189,12 @@ class AuthzSession(Session):
 
         # label()でAlias名が付かないのでSQL文の末尾に付ける
         return exists().select_from(text(select_stmt_str + ' RA1')).\
-                        where(text('RA1.permissions') >= literal(Datum.PERMISSION_READ))
+                        where(text('RA1.permissions') >= literal(SavableDatum.PERMISSION_READ))
 
     def _make_select_permissions_inner(self, datum_id=None):
         from sqlalchemy.orm import aliased
         from sqlalchemy.sql.expression import select, func, case, literal, true, false, and_, any_, text
-        from streamcat.core import Datum
+        from streamcat.core import SavableDatum
         from .auth import Auth
         from .user import User
         from .role import Role
@@ -204,12 +204,12 @@ class AuthzSession(Session):
         if datum_id is None:
             # 相関条件を記述するとSQLAlchemyがFROM句にdataテーブルを追加するので、
             # それを回避するためtextで記述する
-            datum_id = text(str(Datum.id.compile()))
+            datum_id = text(str(SavableDatum.id.compile()))
 
         # leaf_id : 検索対象Datumのid
         # id      : 検索対象DatumからRootDatumへの経路の全てのDatumのid
         # depth   : RootDatumからの深さ(検索対象Datum=1)
-        D0 = aliased(Datum, name='D0')
+        D0 = aliased(SavableDatum, name='D0')
         R = select(D0.id.label('leaf_id'), D0.id, D0.parent_id, literal(1).label('depth')).\
             select_from(D0).\
             where(D0.id==datum_id).\
@@ -217,7 +217,7 @@ class AuthzSession(Session):
             # cte: Common Table Expression WITH句のこと
 
         # WITH句にUNION ALLを用いて再帰クエリとする
-        D = aliased(Datum, name='D')
+        D = aliased(SavableDatum, name='D')
         R = R.union_all(
                 select(R.c.leaf_id, D.id, D.parent_id, (R.c.depth+literal(1)).label('depth')).\
                 select_from(R.join(D, D.id==R.c.parent_id))
@@ -279,12 +279,12 @@ class AuthzSession(Session):
                     # 編集ロック値を考慮しない権限の判定結果
                     auth_bool_and(A.c.permission_without_edit_lock),
                     case(
-                        {'read' : Datum.PERMISSION_READ ,
+                        {'read' : SavableDatum.PERMISSION_READ ,
                          # 更新権限は、編集ロック値を考慮しない権限と、考慮する権限の二つの判定結果を返す
                          'write': case((auth_bool_and(A.c.permission), 
-                                        Datum.PERMISSION_WRITE | Datum.PERMISSION_WRITER),
-                                        else_=Datum.PERMISSION_WRITER),
-                         'exec' : Datum.PERMISSION_EXEC},
+                                        SavableDatum.PERMISSION_WRITE | SavableDatum.PERMISSION_WRITER),
+                                        else_=SavableDatum.PERMISSION_WRITER),
+                         'exec' : SavableDatum.PERMISSION_EXEC},
                         value=A.c.operation,
                         else_=0
                     )
@@ -334,13 +334,13 @@ class AuthzSession(Session):
         """
         from sqlalchemy import select, text
         from sqlalchemy.orm import aliased
-        from streamcat.core import Datum
+        from streamcat.core import SavableDatum
 
         # 相関条件を記述するとSQLAlchemyがFROM句にdataテーブルを追加するので、
         # それを回避するためtextで記述する
-        datum_parent_id_column = text(str(Datum.parent_id.compile()))
+        datum_parent_id_column = text(str(SavableDatum.parent_id.compile()))
 
-        D = aliased(Datum, name='D')
+        D = aliased(SavableDatum, name='D')
 
         select_stmt = select(D.uuid).\
                       select_from(D).\
@@ -354,7 +354,7 @@ class AuthzSession(Session):
         from sqlalchemy import select, func, text
         from sqlalchemy.orm import aliased
         from sqlalchemy.sql.expression import literal_column, case
-        from streamcat.core import Datum
+        from streamcat.core import SavableDatum
 
         # 相関条件を記述するとSQLAlchemyがFROM句にdataテーブルを追加するので、
         # それを回避するためtextで記述する
@@ -362,7 +362,7 @@ class AuthzSession(Session):
 
         # label : 検索対象Datumのlabel
         # id    : 検索対象DatumからRootDatumへの経路の全てのDatumのid
-        D0 = aliased(Datum, name='D0')
+        D0 = aliased(SavableDatum, name='D0')
         R = select(D0._label.label('label'), D0.id, D0.parent_id).\
             select_from(D0).\
             where(D0.id==datum_parent_id_column).\
@@ -370,7 +370,7 @@ class AuthzSession(Session):
             # cte: Common Table Expression WITH句のこと
 
         # WITH句にUNION ALLを用いて再帰クエリとする
-        D = aliased(Datum, name='D')
+        D = aliased(SavableDatum, name='D')
         R = R.union_all(
                 select(D._label, D.id, D.parent_id).\
                 select_from(R.join(D, D.id==R.c.parent_id))
@@ -401,21 +401,21 @@ class AuthzSession(Session):
         return select(literal_column(func_exp_str))
 
     def get(self, datum_type, ident):
-        from streamcat.core import Datum
+        from streamcat.core import SavableDatum
         result = self._session.get(datum_type, ident)
         if Query._is_base_model(result):
             result._session = self
             # 参照権限のないDatumの場合はNoneを返す
-            if isinstance(result, Datum) and not result.readable:
+            if isinstance(result, SavableDatum) and not result.readable:
                 return None
         return result
 
     def add(self, obj, ignore_authz=False):
-        from streamcat.core import Datum
+        from streamcat.core import SavableDatum
         from streamcat.store import Folder, Flow
         from streamcat.store.auth import User, Role, UserRole, Auth
 
-        if isinstance(obj, Datum):
+        if isinstance(obj, SavableDatum):
             # Datumの新規追加時はその親フォルダの変更権限を判定する
             # (ROOTフォルダの新規追加の場合は変更を許可する)
             if obj.parent_id is not None and not self.writable(obj):
@@ -481,7 +481,7 @@ class AuthzSession(Session):
         elif isinstance(obj, Auth):
             # ユーザ管理者かデータの所有者のみ、その権限を追加できる
             if not self.ownership(obj.datum_id) and not self.has_usr_admin():
-                datum = self._session.get(Datum, obj.datum_id)
+                datum = self._session.get(SavableDatum, obj.datum_id)
                 raise NotAuthorizedException(f'{self.user}は{datum.label}に{obj.operation}権限を追加できませんでした')
             self._session.add(obj)
             self.flush(obj)
@@ -494,14 +494,14 @@ class AuthzSession(Session):
             self.flush(obj)
 
     def update(self, obj, ignore_authz=False):
-        from streamcat.core import Datum
+        from streamcat.core import SavableDatum
         from .auth import Auth
         from .user_role import UserRole
         from .role import Role
         from .user import User
 
         try:
-            if isinstance(obj, Datum):
+            if isinstance(obj, SavableDatum):
                 # Datumの変更権限を判定する
                 if not ignore_authz and not self.writable(obj):
                     raise NotAuthorizedException((f'{self.user.name}は更新権限がないため{obj.label}を更新できません'))
@@ -548,13 +548,13 @@ class AuthzSession(Session):
             self.expire(obj)
 
     def delete(self, obj):
-        from streamcat.core import Datum
+        from streamcat.core import SavableDatum
         from .auth import Auth
         from .user_role import UserRole
         from .role import Role
         from .user import User
 
-        if isinstance(obj, Datum):
+        if isinstance(obj, SavableDatum):
             if self.writable(obj):
                 # 削除データの権限を全て削除する
                 from streamcat.store.factory import AuthFactory
@@ -595,7 +595,7 @@ class AuthzSession(Session):
         """
         UserによるDatumの参照権限の有無を判定する
         """
-        from streamcat.core import Datum
+        from streamcat.core import SavableDatum
 
         if datum.id is None:
             # save()してないDatumの参照権限はFalseとする
@@ -606,13 +606,13 @@ class AuthzSession(Session):
         select_permissions = self._make_select_permissions_inner(datum_id).alias('permissions')
         query = self._session.query(select_permissions)
         
-        return (query.scalar() & Datum.PERMISSION_READ) > 0
+        return (query.scalar() & SavableDatum.PERMISSION_READ) > 0
 
     def writable(self, datum, ignore_self_edit_lock=False) -> bool:
         """
         UserによるDatumの更新権限の有無を判定する
         """
-        from streamcat.core import Datum
+        from streamcat.core import SavableDatum
 
         if datum.id is None:
             # Datumの新規追加の場合(datum.id=None)は親フォルダのoperation権限だけを判定する
@@ -625,16 +625,16 @@ class AuthzSession(Session):
 
         if ignore_self_edit_lock:
             # 更新権限の判定に編集ロックの値を含めいない場合
-           return (query.scalar() & Datum.PERMISSION_WRITER) > 0
+           return (query.scalar() & SavableDatum.PERMISSION_WRITER) > 0
         else:
             # 更新権限の判定に編集ロックの値も含める場合
-            return (query.scalar() & Datum.PERMISSION_WRITE) > 0
+            return (query.scalar() & SavableDatum.PERMISSION_WRITE) > 0
 
     def executable(self, datum) -> bool:
         """
         UserによるDatumの実行権限の有無を判定する
         """
-        from streamcat.core import Datum
+        from streamcat.core import SavableDatum
 
         if datum.id is None:
             # save()してないFlowの場合(datum.id=None)は親フォルダのoperation権限だけを判定する
@@ -645,7 +645,7 @@ class AuthzSession(Session):
         select_permissions = self._make_select_permissions_inner(datum_id).alias('permissions')
         query = self._session.query(select_permissions)
         
-        return (query.scalar() & Datum.PERMISSION_EXEC) > 0
+        return (query.scalar() & SavableDatum.PERMISSION_EXEC) > 0
 
     def ownership(self, datum_id) -> bool:
         """
@@ -718,8 +718,8 @@ class AuthzSession(Session):
         """
         操作ユーザがDatumの作成者であればTrueを返す
         """
-        from streamcat.core import Datum
-        query = self._session.query(Datum).\
-                filter(Datum.id==datum_id).filter(Datum._creator_id==self.user.id)
+        from streamcat.core import SavableDatum
+        query = self._session.query(SavableDatum).\
+                filter(SavableDatum.id==datum_id).filter(SavableDatum._creator_id==self.user.id)
 
         return query.count() > 0

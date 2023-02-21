@@ -1,4 +1,4 @@
-from streamcat.core import Datum
+from streamcat.core import SavableDatum
 from streamcat.store import File
 
 class Frame(File):
@@ -17,7 +17,7 @@ class Frame(File):
         コンストラクタ
         stream : Frameデータのファイルストリームを指定する
         """
-        super().__init__(session, parent, Datum.FRAME_TYPE, label, stream)
+        super().__init__(session, parent, SavableDatum.FRAME_TYPE, label, stream)
 
         # python-magicはCSVファイルを'text/plain'と判定するため、'text/csv'に変更する
         if 'content_type' in self._data and self._data['content_type'] == 'text/plain':

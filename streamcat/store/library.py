@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from streamcat.core  import Datum
+from streamcat.core  import SavableDatum
 from streamcat.store import Folder
 from streamcat.store import AwsS3
 from streamcat.store import Frame

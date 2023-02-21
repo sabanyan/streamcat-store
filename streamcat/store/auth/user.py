@@ -35,7 +35,7 @@ class User(BaseModel):
                                 '\\': '\\\\'
                            })
 
-            def icontains(self, other):
+            def icontains(self, other, **kw):
                 """
                 検索語を含むか否か判定する(大文字小文字の違いを無視する)
                 """
@@ -57,7 +57,8 @@ class User(BaseModel):
 
     # 列名と列のデータ型等の定義
     id            = Column(INTEGER, primary_key=True, autoincrement=True)
-    uuid          = Column(UUID, nullable=False, unique=True)
+    # NOTE: as_uuid=Trueの場合はPythonのuuidオブジェクトに変換されるが、StreamCatではUUIDを文字列で保持しているのでFalseにする必要がある
+    uuid          = Column(UUID(as_uuid=False), nullable=False, unique=True)
     email         = Column(MyString, nullable=False, unique=True)
     name          = Column(MyString, nullable=False)
     password      = Column(String, nullable=False)
@@ -506,7 +507,7 @@ class User(BaseModel):
         所属する全てのプロジェクトを返す
         """
         from sqlalchemy import exists, select, and_, any_
-        from streamcat.core import Datum
+        from streamcat.core import SavableDatum
         from streamcat.store import ProjectFolder
         from .user_role import UserRole
         from .auth import Auth
@@ -524,7 +525,7 @@ class User(BaseModel):
                                     )
 
         query = self._session.query(ProjectFolder).\
-                              filter(ProjectFolder.type==Datum.PROJECT_TYPE).\
+                              filter(ProjectFolder.type==SavableDatum.PROJECT_TYPE).\
                               filter(exists_stmt)
         return query.order_by(ProjectFolder._label).all()
 
