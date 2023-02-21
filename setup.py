@@ -3,7 +3,7 @@ from setuptools import setup
 setup(
     name='streamcat.store',
     packages=['streamcat.store'],
-    version='3.2',
+    version='3.3',
     description='Data Store of many type',
     url='https://www.kskp.io',
     install_requires=[
