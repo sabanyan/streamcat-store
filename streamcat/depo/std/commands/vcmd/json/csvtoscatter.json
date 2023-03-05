@@ -8,17 +8,17 @@
   "ports": [
     [
       {
-        "name": "i",
+        "label": "i",
         "type": "out"
       },
       {
-        "name": "m",
+        "label": "m",
         "type": "out"
       }
     ],
     [
       {
-        "name": "o",
+        "label": "o",
         "type": "out"
       }
     ]

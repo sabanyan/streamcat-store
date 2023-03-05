@@ -162,17 +162,17 @@
   "ports": [
     [
       {
-        "name": "i",
+        "label": "i",
         "type": "mcmd"
       },
       {
-        "name": "m",
+        "label": "m",
         "type": "mcmd"
       }
     ],
     [
       {
-        "name": "o",
+        "label": "o",
         "type": "mcmd"
       }
     ]
