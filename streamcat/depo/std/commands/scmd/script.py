@@ -809,7 +809,6 @@ class RemoteFolderSaverCommand(SaverCommand):
         return parent.create_datasource(label, rfolder, loader_cmd, args)
 
 
-
 class ContinuousLoaderCommand(SCommand):
     """
     指定したファイルから入力データを待ち受ける
@@ -1083,11 +1082,15 @@ class RaiseCommand(SCommand):
         self.o_ports = [Port('o', 'mcmd')]
 
     def run(self, args, inputs):
-        # 例外を送出する
-        if 'message' in args:
-            raise Exception(args['message'])
+        # 例外メッセージ
+        message = args.get('message') or f'The Raise Command raises exception! ⚡️'
+        
+        if 'immediately' in args and args['immediately']:
+            # AttributeErrorはStepから送出され即座にフローエンジンが停止する
+            raise AttributeError(message)
         else:
-            raise Exception(f'The Raise Command raises exception! ⚡️')
+            # 例外を送出する
+            raise Exception(message)
 
 class AssertCommand(SCommand):
     """
@@ -1597,4 +1600,3 @@ class RestoreCommand(SCommand):
                 raise Exception(f'An error occurred in a script and the variable ON_ERROR_STOP was set ({e})')
             else:
                 raise e
-
