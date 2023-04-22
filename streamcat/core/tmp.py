@@ -7,7 +7,7 @@ class Tmp():
     """
     # key   : unique_key
     # value : [file1, file2, ,,]
-    _tmp = {}
+    _tmp:dict[str,list[Path]] = {}
 
     def __init__(self):
         """
@@ -40,8 +40,7 @@ class Tmp():
         tmp_files = Tmp._tmp.pop(key)
         # Tmpファイルを物理削除する
         for tmp_file in tmp_files:
-            if tmp_file.exists():
-                tmp_file.unlink()
+            tmp_file.unlink(missing_ok=True)
 
     @staticmethod
     def _get_tmp_directory():

@@ -1092,6 +1092,24 @@ class RaiseCommand(SCommand):
             # 例外を送出する
             raise Exception(message)
 
+class TmpFileCommand(SCommand):
+    """
+    Tmpファイルを作成するコマンド
+    """
+    def __init__(self):
+        super().__init__()
+        self.i_ports = [Port('i', 'mcmd')]
+        self.o_ports = [Port('o', 'mcmd')]
+
+    def run(self, args, inputs):
+        from streamcat.core import Tmp
+
+        cmd = inputs['i'].content
+        # Tmpファイルを作成する
+        tmp_file = Tmp.create_file()
+        tmp_file.write_text('I am tmp file data for test.')
+        return {'o': NysolModule(cmd)}
+
 class AssertCommand(SCommand):
     """
     フローテストコマンド

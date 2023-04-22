@@ -26,6 +26,7 @@ class CommandLink:
         # テスト用コマンド
         'square': Square(),
         'raise' : RaiseCommand(),
+        'tmp'   : TmpFileCommand(),
         # mコマンド
         'mcut': McutCommand(),
         'mselstr': MselstrCommand(),
