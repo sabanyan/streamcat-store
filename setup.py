@@ -11,25 +11,25 @@ setup(
         # エラーメッセージを出力してインストールできない、代わりにpsycopg2-binaryをインストールする
         # NOTE: psycopg2-binaryはARM64環境に対応していない
         # 'psycopg2-binary',
-        'psycopg2',
-        'SQLAlchemy<2.1.0',
-        'APScheduler',
-        'jsonschema',
+        'psycopg2==2.9.6',
+        'SQLAlchemy==2.0.11',
+        'APScheduler==3.10.1',
+        'jsonschema==4.17.3',
         # 'alembic',
-        'cryptography',
-        'python-magic',
-        'chardet',
+        'cryptography==40.0.2',
+        'python-magic==0.4.27',
+        'chardet==5.1.0',
         # 'awscli',
         # 'cx_Oracle',
-        'numpy',
-        'scipy',
-        'pandas',
+        'numpy==1.24.3',
+        'scipy==1.10.1',
+        'pandas==2.0.1',
         # K-Commandでのみ使用する
         'scikit-learn',
         # matplotlibとbokehはholoviewsが使用する
-        'matplotlib',
-        'bokeh',
-        'holoviews',
-        'param'
+        'matplotlib==3.7.1',
+        'bokeh==2.4.3',
+        'holoviews==1.15.4',
+        'param==1.13.0'
     ],
 )
