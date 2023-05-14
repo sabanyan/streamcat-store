@@ -17,13 +17,13 @@
   "ports": [
     [
       {
-        "name": "*",
+        "label": "*",
         "type": "mcmd"
       }
     ],
     [
       {
-        "name": "o",
+        "label": "o",
         "type": "mcmd"
       }
     ]

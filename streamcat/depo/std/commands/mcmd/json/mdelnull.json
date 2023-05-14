@@ -91,17 +91,17 @@
   "ports": [
     [
       {
-        "name": "i",
+        "label": "i",
         "type": "mcmd"
       }
     ],
     [
       {
-        "name": "o",
+        "label": "o",
         "type": "mcmd"
       },
       {
-        "name": "u",
+        "label": "u",
         "type": "mcmd"
       }
     ]

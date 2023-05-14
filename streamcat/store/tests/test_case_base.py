@@ -118,11 +118,11 @@ class TestCaseBase(unittest.TestCase):
                     "id": "c1", 
                     "args": {}, 
                     "dsts": {
-                    "o": "d1"
+                        "o": "d1"
                     }, 
                     "srcs": {
-                    "i": "d", 
-                    "folder": "s"
+                        "i": "d", 
+                        "folder": "s"
                     }, 
                     "type": "command", 
                     "label": "c1", 

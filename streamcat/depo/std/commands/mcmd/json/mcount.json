@@ -104,13 +104,13 @@
   "ports": [
     [
       {
-        "name": "i",
+        "label": "i",
         "type": "mcmd"
       }
     ],
     [
       {
-        "name": "o",
+        "label": "o",
         "type": "mcmd"
       }
     ]
