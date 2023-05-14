@@ -12,7 +12,7 @@ setup(
         # NOTE: psycopg2-binaryはARM64環境に対応していない
         # 'psycopg2-binary',
         'psycopg2==2.9.6',
-        'SQLAlchemy==2.0.11',
+        'SQLAlchemy==2.0.13',
         'APScheduler==3.10.1',
         'jsonschema==4.17.3',
         # 'alembic',
@@ -28,8 +28,8 @@ setup(
         'scikit-learn',
         # matplotlibとbokehはholoviewsが使用する
         'matplotlib==3.7.1',
-        'bokeh==2.4.3',
-        'holoviews==1.15.4',
+        'bokeh==3.1.1',
+        'holoviews==1.16.0',
         'param==1.13.0'
     ],
 )
