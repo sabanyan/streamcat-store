@@ -114,12 +114,31 @@ class HoloviewsBaseCommand(VCommand):
         """
         数値型に型を変換する
         """
+        class CastIter:
+            """
+            string型からfloat型へ変換するイテレータ
+            """
+            def __init__(self, vals):
+                self.vals = vals
+                self.index = 0
+            def __iter__(self):
+                return self
+            def __next__(self):
+                if self.index >= len(self.vals):
+                    raise StopIteration()
+                ret = self.vals[self.index]
+                self.index += 1
+                try:
+                    return float(ret)
+                except ValueError:
+                    # 数値に変換できない値はNaN値に変換する
+                    return np.nan
         try:
-            # 数値に変換できない値はNaN値に変換される
-            num_vals = np.genfromtxt(vals, dtype=float, autostrip=True)
-            # np.genfromtxt()によって空文字の要素は削除されるので、その場合は変換しない
-            if num_vals.size < vals.size:
-                return vals
+            # np.genfromtxt()はmissing_valuesを指定しても空文字がNaN値に変換されないため使用しない
+            # num_vals = np.genfromtxt(vals, dtype=float, missing_values=np.nan, autostrip=True)
+
+            # イテレータからNumPy配列を生成する
+            num_vals = np.fromiter(CastIter(vals), dtype=float)
             # NaN値の割合を算出する
             nan_ratio = np.count_nonzero(np.isnan(num_vals)) / num_vals.size
             # NaN値の割合が一定数を超えた場合は変換しない
@@ -291,7 +310,7 @@ class CsvToLineGraphCommand(HoloviewsBaseCommand):
         overlay = overlay.opts(legend_position='top')
 
         # グラフ共通のオプションを設定する
-        overlay =  HoloviewsBaseCommand.set_common_opts(overlay)
+        overlay = HoloviewsBaseCommand.set_common_opts(overlay)
 
         # グラフをプロットする
         return self.make_plot(overlay)
