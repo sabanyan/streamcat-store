@@ -251,7 +251,7 @@ class ProjectFolder(Folder):
             raise NotAuthorizedException('プロジェクト管理者以外のメンバはプロジェクトを元に戻せません')
 
         # 戻す処理はFolderクラスと同じ
-        super().put_back()
+        return super().put_back()
 
     def delete(self):
         """
