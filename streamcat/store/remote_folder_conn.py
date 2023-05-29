@@ -12,7 +12,7 @@ class RemoteFolderConn():
         if password_is_enctypted:
             self._encrypted_password = conn_json.get('password')
         else:
-            password = conn_json.get('password')
+            password = conn_json.get('password', '')
             self._encrypted_password = SCatBaseModel._get_encrypt_password(password)
 
         # readable_or_raise()が指定されない場合は権限判定をしない

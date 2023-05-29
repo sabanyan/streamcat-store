@@ -40,7 +40,10 @@ class Tmp():
         tmp_files = Tmp._tmp.pop(key)
         # Tmpファイルを物理削除する
         for tmp_file in tmp_files:
-            tmp_file.unlink(missing_ok=True)
+            if tmp_file.is_dir():
+                tmp_file.rmdir()
+            else:
+                tmp_file.unlink(missing_ok=True)
 
     @staticmethod
     def _get_tmp_directory():
