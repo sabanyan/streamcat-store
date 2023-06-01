@@ -134,6 +134,18 @@ class File(SavableDatum):
             self._session.rollback()
             raise e
 
+    def duplicate(self, new_label):
+        """
+        自身の複製を作成して保存する
+        """
+        import io
+        # 複製元と同じフォルダに複製を作成する
+        parent = self.find_parent()
+        new_file = parent.create_frame(new_label, io.BytesIO(b''))
+        # ファイルは複製元と共有する(浅いコピー)
+        new_file.save(file_path=self.path, content_type=self.content_type)
+        return new_file
+
     @property
     def content_type(self):
         return self._data.get('content_type', '')

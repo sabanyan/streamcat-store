@@ -34,7 +34,7 @@ class Frame(File):
         # data.type列='cache'を用意するべきだろうか？
         self.is_cache = False
 
-    def save(self, file_path=None):
+    def save(self, file_path=None, content_type=None):
         """
         Frameを保存する
         """        

@@ -445,15 +445,14 @@ class SavableDatum(Datum, BaseModel):
         """
         ゴミ箱にほかす
         """
-        from streamcat.store.factory import DatumFactory
-        factory = DatumFactory(self._session)
-        trash_folder = factory.load_trash_folder()
-
         # 削除しようとするDatumが、フローで使用されている場合は例外を送出する
         using_flow_uuids = self.get_flow_uuids_using_me()
         if len(using_flow_uuids) > 0:
             raise Exception(f"このファイルはフロー({using_flow_uuids[0]['reference_label']})で使用しているため削除できません")
 
+        from streamcat.store.factory import DatumFactory
+        factory = DatumFactory(self._session)
+        trash_folder = factory.load_trash_folder()
         return self.move(trash_folder.uuid)
 
     def put_back(self):

@@ -78,15 +78,15 @@ class Folder(SavableStore):
         """
         Folderを中身のファイルも一緒にゴミ箱にほかす
         """
-        from streamcat.store.factory import DatumFactory
-        factory = DatumFactory(self._session)
-        trash_folder = factory.load_trash_folder()
-
         if self.parent_id is None:
             raise Exception('ルートフォルダは削除できません')
 
         # if self.get_flow_uuids_using_me():
         #     raise Exception('別のフローで使用しているため削除できませんでした')
+
+        from streamcat.store.factory import DatumFactory
+        factory = DatumFactory(self._session)
+        trash_folder = factory.load_trash_folder()
 
         thrown_count, obstacle_count, trashed_folder = self._throw_away_inner(trash_folder, self)
 

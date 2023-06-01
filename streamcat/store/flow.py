@@ -207,14 +207,14 @@ class Flow(SavableDatum):
         """
         Flowをゴミ箱にほかす
         """
-        from streamcat.store.factory import DatumFactory
-        factory = DatumFactory(self._session)
-        trash_folder = factory.load_trash_folder()
-
         # 削除しようとするflowが、フローで使用されている場合は例外を送出する
         using_flow_uuids = self.get_flow_uuids_using_me()
         if len(using_flow_uuids) > 0:
             raise Exception(f"このフローは別のフロー({using_flow_uuids[0]['reference_label']})で使用しているため削除できません")
+
+        from streamcat.store.factory import DatumFactory
+        factory = DatumFactory(self._session)
+        trash_folder = factory.load_trash_folder()
 
         try:
             return self.move(trash_folder.uuid, lock_uuid=lock_uuid)
@@ -279,7 +279,6 @@ class Flow(SavableDatum):
 
         # フロー間でキャッシュを共有すると、キャッシュ削除操作により不整合が発生する
         # そのためフローを複製する時はキャッシュも複製する
-        import io
         from streamcat.store.factory import DatumFactory
         for cache_uuid in new_flow.flow_data.get_cache_frame_uuids():
             factory = DatumFactory(self._session)
@@ -287,10 +286,7 @@ class Flow(SavableDatum):
                 continue
             cache = factory.find_by_uuid(cache_uuid)
             # キャッシュを複製する(ファイルは複製されない)
-            parent = cache.find_parent()
-            new_cache = parent.create_frame(cache.label + ' のコピー', io.BytesIO(b''))
-            # ファイルは複製元と共有する(浅いコピー)
-            new_cache.save(file_path=cache.path)
+            new_cache = cache.duplicate(cache.label + ' のコピー')
             # フローのキャッシュUUIDに新しいキャッシュを設定する
             new_flow._replace_cache(cache_uuid, new_cache)
 
