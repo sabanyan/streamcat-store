@@ -111,19 +111,12 @@ class File(SavableDatum):
     @Constraints.delete_role_when_isolated
     def delete(self):
         """
-        Frameを削除する
+        Fileを削除する
         """
-        # 削除しようとするframeが、DBに格納されているフローで使用されている場合は例外を送出する
-        # 2019/07/29現在、以下の理由により一旦コメントアウト
-        # 1. キャッシュ削除にもこのdeleteメソッドを使っており、キャッシュはどこかのフローで使用されているものなので、
-        # 　　いつまで経っても削除できない
-        # 2. frame削除APIでもframeを使っているかいないかをチェックしているので、こっちでしなくてもとりあえず大丈夫
-
-        # using_flow_uuids = self.get_flow_uuids_using_me()
-        # if len(using_flow_uuids) > 0:
-        #     from streamcat.store import Flow
-        #     using_flow_label= Flow.find_by_uuid(using_flow_uuids[0]).label
-        #     raise Exception('このCSVファイルはフロー(%s)で使用しているため削除できません' % using_flow_label)
+        # 削除しようとするFileが、フローで使用されている場合は例外を送出する
+        using_flow_uuids = self.get_flow_uuids_using_me()
+        if len(using_flow_uuids) > 0:
+            raise Exception(f"このファイルはフロー({using_flow_uuids[0]['reference_label']})で使用しているため削除できません")
 
         try:
             # フレームレコードを削除する
