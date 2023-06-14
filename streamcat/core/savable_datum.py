@@ -260,7 +260,7 @@ class SavableDatum(Datum, BaseModel):
     def data_is_empty(self):
         return self._data is None or self._data == {}
 
-    def find_parent(self):
+    def find_parent(self) -> Datum:
         """
         自分の親を取得する
         """

@@ -96,9 +96,22 @@ class RemoteFolder(Mountable, SavableStore):
             self._session.rollback()
             raise e
 
+    def duplicate(self, new_label):
+        """
+        自身の複製を作成して保存する
+        """
+        # 複製元と同じフォルダに複製を作成する
+        parent = self.find_parent()
+        new_folder = parent.create_remote_folder(new_label, self.conn.copy())
+        # ライブラリに保存する
+        new_folder.save()
+        return new_folder
+
     @property
     def conn(self):
-        return RemoteFolderConn(self._data['conn'], self._readable_or_raise)
+        return RemoteFolderConn(self._data['conn'], 
+                                password_is_enctypted=True,
+                                readable_or_raise=self._readable_or_raise)
 
     def valid_or_raise(self):
         """

@@ -5,8 +5,9 @@ class RemoteFolderConn():
     """
     リモートフォルダの接続情報を保持する
     """
-    def __init__(self, conn_json:dict, password_is_enctypted=False, readable_or_raise:Callable[[],None] = None):
+    def __init__(self, conn_json:dict, password_is_enctypted:bool=False, readable_or_raise:Callable[[],None] = None):
         self._conn_json = conn_json
+        self._password_is_enctypted = password_is_enctypted
 
         # パスワードを暗号化する
         if password_is_enctypted:
@@ -18,6 +19,9 @@ class RemoteFolderConn():
         # readable_or_raise()が指定されない場合は権限判定をしない
         empty_func = lambda: None
         self._readable_or_raise = readable_or_raise or empty_func
+
+    def __eq__(self, other):
+        return self._conn_json == other._conn_json
 
     @property
     def protocol(self) -> str:
@@ -76,6 +80,15 @@ class RemoteFolderConn():
                 raise Exception(f'このOS({sys.platform})で実行するmountコマンドの引数指定が定義されていません')
         else:
             raise Exception(f'{self.protocol} is undefined protocol')
+
+    def copy(self):
+        """
+        自身の複製を作成して返す
+        """
+        import copy
+        return RemoteFolderConn(copy.deepcopy(self._conn_json),
+                                self._password_is_enctypted,
+                                self._readable_or_raise)
 
     def to_json(self, encrypt_password=False):
         # encrypt_password=Trueの場合は暗号化したpasswordを返す

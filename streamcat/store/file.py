@@ -18,7 +18,7 @@ class File(SavableDatum):
     def __init__(self, session, parent, datum_type, label, stream):
         """
         コンストラクタ
-        stream : Frameデータのファイルストリームを指定する
+        stream : Fileデータのファイルストリームを指定する
         """
         # TODO: とりあえずUNKNOWN_TYPE
         super().__init__(session, parent, datum_type, label)
@@ -41,7 +41,7 @@ class File(SavableDatum):
         # 既にルートフォルダが存在する場合は、parent_id=NULLを許可しない
         from streamcat.store.factory import DatumFactory
         if self.parent_id is None and DatumFactory(self._session).count_root() > 0:
-            raise Exception('You can not add another root frame. A root already exists.')
+            raise Exception('You can not add another root file. A root already exists.')
 
         if file_path is None:
             # 既存のファイルと重複しないファイル名を取得する
@@ -51,7 +51,7 @@ class File(SavableDatum):
             if content_type is not None:
                 self._data.update({'content_type':content_type})
         else:
-            raise Exception(f'指定したファイル({file_path})が存在しないためFrameを保存できません')
+            raise Exception(f'指定したファイル({file_path})が存在しないためFileを保存できません')
 
         try:
             # Dataテーブルにレコードを新規追加する
@@ -127,18 +127,6 @@ class File(SavableDatum):
             self._session.rollback()
             raise e
 
-    def duplicate(self, new_label):
-        """
-        自身の複製を作成して保存する
-        """
-        import io
-        # 複製元と同じフォルダに複製を作成する
-        parent = self.find_parent()
-        new_file = parent.create_frame(new_label, io.BytesIO(b''))
-        # ファイルは複製元と共有する(浅いコピー)
-        new_file.save(file_path=self.path, content_type=self.content_type)
-        return new_file
-
     @property
     def content_type(self):
         return self._data.get('content_type', '')
@@ -193,7 +181,7 @@ class File(SavableDatum):
 
     def _make_file(self, path:Path):
         """
-        Frameに対応するファイルを作成する
+        Fileに対応するファイルを作成する
         """
         try:
             # 親ディレクトリがなければ作成する
@@ -214,7 +202,7 @@ class File(SavableDatum):
 
     def _remove_file(self):
         """
-        Frameに対応するファイルを削除する
+        Fileに対応するファイルを削除する
         """
         try:
             # ファイルが存在しなければ削除処理はしない
@@ -222,8 +210,8 @@ class File(SavableDatum):
                 import warnings
                 warnings.warn(f'Not Exists file path : {self._path}')
                 return
-            # 自分以外で同じファイルを使用しているFrameがあれば削除しない
-            if self._frame_path_exists(self._path, except_id=self.id):
+            # 自分以外で同じファイルを使用しているFileがあれば削除しない
+            if self._file_path_exists(self._path, except_id=self.id):
                 return
             if not self._path.is_file():
                 raise Exception(f'Can not delete {self._path}, because it is not reguler file.')
@@ -241,9 +229,12 @@ class File(SavableDatum):
                 if buff is None or len(buff)==0:
                     break
 
-    def _frame_path_exists(self, path:Path, except_id:int):
+    def _file_path_exists(self, path:Path, except_id:int):
         result = self._session.query(SavableDatum._path).filter(SavableDatum._path == path)\
-                                                .filter(SavableDatum.type == SavableDatum.FRAME_TYPE)\
+                                                .filter(SavableDatum.type.in_([
+                                                    SavableDatum.FRAME_TYPE,
+                                                    SavableDatum.DOCUMENT_TYPE
+                                                ]))\
                                                 .filter(SavableDatum.id != except_id).count()
         return result > 0
 

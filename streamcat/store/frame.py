@@ -91,6 +91,18 @@ class Frame(File):
 
         return self
 
+    def duplicate(self, new_label):
+        """
+        自身の複製を作成して保存する
+        """
+        import io
+        # 複製元と同じフォルダに複製を作成する
+        parent = self.find_parent()
+        new_frame = parent.create_frame(new_label, io.BytesIO(b''))
+        # ファイルは複製元と共有する(浅いコピー)
+        new_frame.save(file_path=self.path, content_type=self.content_type)
+        return new_frame
+
     @property
     def encoding(self):
         return self._data.get('encoding') or 'UNKNOWN'
