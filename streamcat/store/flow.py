@@ -256,7 +256,7 @@ class Flow(SavableDatum):
         """
         pass
 
-    def duplicate(self, new_label):
+    def duplicate(self, new_label, new_parent:Datum=None):
         """
         自身の複製を作成して保存する
         NOTE: 自分の複製をメモリに作成することをcopy、
@@ -271,7 +271,7 @@ class Flow(SavableDatum):
         JST = timezone(timedelta(hours=+9), 'JST')
         new_flow_data.createdAt = datetime.now(JST).strftime('%Y-%m-%d %H:%M:%S')
         # 複製を作成する
-        parent = self.find_parent()
+        parent = new_parent or self.find_parent()
         new_flow = parent.create_flow(new_label, new_flow_data)
         # new_flow._replace_cache()のデコレータが機能するにはnew_flowのidを採番する必要がある
         new_flow.save()

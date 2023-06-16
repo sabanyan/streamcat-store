@@ -73,7 +73,7 @@ class SavableStore(Store, SavableDatum):
         for result in results:
             if result._path == dir_path:
                 return True
-            if os.path.commonpath([result._path, dir_path]) == dir_path:
+            if os.path.commonpath([result._path, dir_path]) == dir_path.as_posix():
                 return True
         return False
 

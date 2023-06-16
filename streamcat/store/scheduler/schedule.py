@@ -350,12 +350,12 @@ class Schedule(SavableDatum):
             self._session.rollback()
             raise e
 
-    def duplicate(self, new_label):
+    def duplicate(self, new_label, new_parent:Datum=None):
         """
         自身の複製を作成して保存する
         """
         # 複製元と同じフォルダに複製を作成する
-        parent = self.find_parent()
+        parent = new_parent or self.find_parent()
         new_schedule = parent.create_schedule(new_label,
                                               self.runnable_uuid,
                                               self.args,
