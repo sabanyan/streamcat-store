@@ -153,55 +153,19 @@ class DuplicateTest(TestCaseBase):
             "params": []
         }
 
-    def assert_auths_equal(self, duplicated_datum_id, datum_id):
+    def assert_auths_equal(self, duplicated_datum_id, datum_id, auths_len=3):
         """
         権限設定の一致を検証する
         """
         auths = self.factory.auth.find_all_by_datum_id(datum_id)
         duplicated_auths = self.factory.auth.find_all_by_datum_id(duplicated_datum_id)
-        # 権限設定の数は正しいこと
-        self.assertEqual(len(auths), 3)
-        self.assertEqual(len(duplicated_auths), 3)
-        # everyone read
-        self.assertEqual(duplicated_auths[0].role_id, auths[0].role_id)
-        self.assertEqual(duplicated_auths[0].operation, auths[0].operation)
-        self.assertEqual(duplicated_auths[0].permission, auths[0].permission)
-        # everyone write
-        self.assertEqual(duplicated_auths[1].role_id, auths[1].role_id)
-        self.assertEqual(duplicated_auths[1].operation, auths[1].operation)
-        self.assertEqual(duplicated_auths[1].permission, auths[1].permission)
-        # everyone own
-        self.assertEqual(duplicated_auths[2].role_id, auths[2].role_id)
-        self.assertEqual(duplicated_auths[2].operation, auths[2].operation)
-        self.assertEqual(duplicated_auths[2].permission, auths[2].permission)
-
-    def assert_auths_equal2(self, duplicated_datum_id, datum_id):
-        """
-        権限設定の一致を検証する
-        (実行権限も持つ場合)
-        """
-        auths = self.factory.auth.find_all_by_datum_id(datum_id)
-        duplicated_auths = self.factory.auth.find_all_by_datum_id(duplicated_datum_id)
-        # 権限設定の数は正しいこと
-        self.assertEqual(len(auths), 4)
-        self.assertEqual(len(duplicated_auths), 4)
-        # everyone read
-        self.assertEqual(duplicated_auths[0].role_id, auths[0].role_id)
-        self.assertEqual(duplicated_auths[0].operation, auths[0].operation)
-        self.assertEqual(duplicated_auths[0].permission, auths[0].permission)
-        # everyone write
-        self.assertEqual(duplicated_auths[1].role_id, auths[1].role_id)
-        self.assertEqual(duplicated_auths[1].operation, auths[1].operation)
-        self.assertEqual(duplicated_auths[1].permission, auths[1].permission)
-        # everyone exec
-        self.assertEqual(duplicated_auths[2].role_id, auths[2].role_id)
-        self.assertEqual(duplicated_auths[2].operation, auths[2].operation)
-        self.assertEqual(duplicated_auths[2].permission, auths[2].permission)
-        # everyone own
-        self.assertEqual(duplicated_auths[3].role_id, auths[3].role_id)
-        self.assertEqual(duplicated_auths[3].operation, auths[3].operation)
-        self.assertEqual(duplicated_auths[3].permission, auths[3].permission)
-
+        # 権限設定の数は等しいこと
+        self.assertEqual(len(auths), len(duplicated_auths))
+        # everyone read,write,exec,own ...
+        for i in range(0, auths_len):
+            self.assertEqual(duplicated_auths[i].role_id, auths[i].role_id)
+            self.assertEqual(duplicated_auths[i].operation, auths[i].operation)
+            self.assertEqual(duplicated_auths[i].permission, auths[i].permission)
 
     def test_duplicate_flow(self):
         """
@@ -254,7 +218,7 @@ class DuplicateTest(TestCaseBase):
         self.assertEqual(duplicated_flow.flow_data.get_nodes(), flow.flow_data.get_nodes())
 
         # 権限設定が複製元と一致すること
-        self.assert_auths_equal2(duplicated_flow.id, flow.id)
+        self.assert_auths_equal(duplicated_flow.id, flow.id, auths_len=4)
 
         # フローを削除する
         flow.delete()
@@ -617,7 +581,7 @@ class DuplicateTest(TestCaseBase):
         self.assertEqual(duplicated_folder.created_at, duplicated_folder.modified_at)
 
         # 権限設定が複製元と一致すること
-        self.assert_auths_equal2(duplicated_folder.id, folder.id)
+        self.assert_auths_equal(duplicated_folder.id, folder.id, auths_len=4)
 
         # 子Datumも複製されていること
         children = duplicated_folder.find_children()
@@ -663,3 +627,94 @@ class DuplicateTest(TestCaseBase):
         duplicated_folder.throw_away()
         self.factory.data.find_trashcan().trash_all()
 
+    def test_duplicate_project(self):
+        """
+        プロジェクトが複製できること
+        """
+        # ルートフォルダを取得する
+        root = self.factory3.data.load_root()
+
+        # ルートフォルダの下にプロジェクトを作成する
+        project = root.create_project_folder('枚方')
+        project.save()
+        project.reload()
+
+        # プロジェクトの下にフォルダを作成する
+        folder = project.create_folder('香里園')
+        folder.save()
+
+        # プロジェクトの下にデータベースを作成する
+        conn_json = {
+            'dbms'     : "postgresql",
+            'hostname' : "db", 
+            'port'     : 5432, 
+            'database' : "streamcat", 
+            'userId'  : "streamcat", 
+            'password' : 'my pass word'
+        }
+        db = folder.create_database('寝屋川市', DatabaseConn(conn_json))
+        db.save()
+
+        # プロジェクトを複製する
+        duplicated_project = project.duplicate('樟葉')
+        duplicated_project.reload()
+
+        # 作成を確定する
+        self.factory3.end()
+
+        # 複製したプロジェクトを検証する
+        self.assertIsNotNone(duplicated_project.id)
+        self.assertNotEqual(duplicated_project.id, project.id)
+        self.assertEqual(duplicated_project.parent_id, root.id)
+        self.assertIsNotNone(duplicated_project.uuid)
+        self.assertNotEqual(duplicated_project.uuid, project.uuid)
+        self.assertEqual(duplicated_project.path, root.path / '樟葉')
+        self.assertEqual(duplicated_project.type, 'project')
+        self.assertEqual(duplicated_project.label, '樟葉')
+        self.assertEqual(duplicated_project.creator, self.USER3)
+        self.assertEqual(duplicated_project.modifier, self.USER3)
+        self.assertIsNotNone(duplicated_project.created_at)
+        self.assertIsNotNone(duplicated_project.modified_at)
+        self.assertEqual(duplicated_project.created_at, duplicated_project.modified_at)
+        # 権限設定が複製元と一致すること
+        self.assert_auths_equal(duplicated_project.id, project.id, auths_len=4)
+
+        # 子Datumも複製されていること
+        children = duplicated_project.find_children()
+        self.assertEqual(len(children), 1)
+        # folder
+        duplicated_sub_folder = children[0]
+        self.assertEqual(children[0].parent_id, duplicated_project.id)
+        self.assertNotEqual(children[0].uuid, folder.uuid)
+        self.assertEqual(children[0].path, root.path / '樟葉/香里園')
+        self.assertEqual(children[0].type, 'folder')
+        self.assertEqual(children[0].label, '香里園')
+        self.assertEqual(children[0].creator, self.USER3)
+        self.assertEqual(children[0].modifier, self.USER3)
+        # 権限設定が複製元と一致すること
+        self.assert_auths_equal(children[0].id, folder.id, auths_len=4)
+
+        # 孫Datumも複製されていること
+        children = duplicated_sub_folder.find_children()
+        self.assertEqual(len(children), 1)
+        # database
+        self.assertEqual(children[0].parent_id, duplicated_sub_folder.id)
+        self.assertNotEqual(children[0].uuid, db.uuid)
+        self.assertIsNone(children[0].path)
+        self.assertEqual(children[0].type, 'database')
+        self.assertEqual(children[0].label, '寝屋川市')
+        self.assertEqual(children[0].creator, self.USER3)
+        self.assertEqual(children[0].modifier, self.USER3)
+        # 権限設定が複製元と一致すること
+        self.assert_auths_equal(children[0].id, db.id)
+
+        # プロジェクトを削除する
+        # (先に複製元プロジェクトを削除しても例外が送出されないこと)
+        project = self.factory.data.find_by_uuid(project.uuid)
+        project.throw_away()
+        self.factory.data.find_trashcan().trash_all()
+
+        # 複製したプロジェクトを削除する
+        duplicated_project = self.factory.data.find_by_uuid(duplicated_project.uuid)
+        duplicated_project.throw_away()
+        self.factory.data.find_trashcan().trash_all()

@@ -194,8 +194,13 @@ class Folder(SavableStore):
         # 複製元と同じフォルダに複製を作成する
         parent = new_parent or self.find_parent()
         new_folder = parent.create_folder(new_label)
-        # ファイルは複製元と共有する(浅いコピー)
+        # ディレクトリファイルは共有しない
         new_folder.save()
+        # 子Datumを複製する
+        self._duplicate_children(new_folder)
+        return new_folder
+    
+    def _duplicate_children(self, new_folder):
         # 子Datumを複製する
         children = self.find_children()
         for child in children:
@@ -208,7 +213,6 @@ class Folder(SavableStore):
                               SavableDatum.DOCUMENT_TYPE]:
                 # 子Datumは同じラベルで複製する
                 child.duplicate(child.label, new_parent=new_folder)
-        return new_folder
 
     def remove_reference_only(self):
         """

@@ -264,6 +264,19 @@ class ProjectFolder(Folder):
         # 削除処理はFolderクラスと同じ
         super().delete()
 
+    def duplicate(self, new_label, new_parent:Folder=None):
+        """
+        自身の複製を作成して保存する
+        """
+        # 複製元と同じフォルダに複製を作成する
+        parent = new_parent or self.find_parent()
+        new_project = parent.create_project_folder(new_label)
+        # ディレクトリファイルは共有しない
+        new_project.save()
+        # 子Datumを複製する
+        self._duplicate_children(new_project)
+        return new_project
+
     def is_joined_user(self, user):
         from sqlalchemy import select, any_
         from streamcat.store.auth import User, Auth, UserRole
