@@ -298,7 +298,7 @@ class Folder(SavableStore):
     # Create Methods
     # 
 
-    def find_children(self, prev_folder_path=False):
+    def find_children(self, offset:int=None, limit:int=None, prev_folder_path=False):
         """
         自分の直下の子Datumを全て取得する
         """
@@ -309,7 +309,9 @@ class Folder(SavableStore):
 
         data = self._session.query(SavableDatum, prev_folder_path=prev_folder_path).\
                              filter(SavableDatum.parent_id==self.id).\
-                             order_by(SavableDatum.type, desc(SavableDatum.created_at)).all()
+                             order_by(SavableDatum.type, desc(SavableDatum.created_at)).\
+                             offset(offset).limit(limit).\
+                             all()
         return data
 
     def find_children_by_label(self, label, type=None):
