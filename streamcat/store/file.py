@@ -197,7 +197,7 @@ class File(SavableDatum):
             # エラー発生時はファイルを削除する
             path.unlink(missing_ok=True)
             if e.errno == errno.ENOSPC:
-                raise OSError(e.errno, f'ディスクに空き容量が無いため、{self.label}を作成できませんでした')
+                raise OSError(e.errno, f'ストレージに空き容量が無いため、{self.label}を作成できませんでした')
             raise e
 
     def _remove_file(self):

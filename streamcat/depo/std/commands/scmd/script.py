@@ -873,8 +873,8 @@ class ContinuousLoaderCommand(SCommand):
 
 class RunsCommand(SCommand):
 
-    # 最低必要ディスクサイズ(1Mbyte)
-    MIN_REQUIRED_DISK_SIZE = 1024 * 1024
+    # 最低必要ストレージサイズ(1Mbyte)
+    MIN_REQUIRED_STORAGE_SIZE = 1024 * 1024
 
     # 環境変数からPythonの再帰呼び出しの制限回数を取得する
     RECURSION_LIMIT = int(os.getenv('STREAMCAT_NYSOL_RECURSION_LIMIT', 2**20))
@@ -953,11 +953,11 @@ class RunsCommand(SCommand):
             # ActivityCommandにSaverが生成したFrameと例外を渡す
             return rets
 
-        # ディスクの空き容量を確認する
+        # ストレージの空き容量を確認する
         # (Managerがtmpファイルを作成するが容量不足の時にその旨の例外を返さないので事前に確認する)
         disk_info = psutil.disk_usage('/')
-        if disk_info.free < RunsCommand.MIN_REQUIRED_DISK_SIZE:
-            raise Exception('ディスクの空き容量がありません')
+        if disk_info.free < RunsCommand.MIN_REQUIRED_STORAGE_SIZE:
+            raise Exception('ストレージの空き容量がありません')
 
         # NYSOLコマンドのリストを作成する
         nm_list = [nysol_module.content for nysol_module in inputs.values()]
