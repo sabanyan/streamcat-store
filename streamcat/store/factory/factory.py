@@ -175,6 +175,10 @@ class Factory():
             pass
 
     @property
+    def myself(self) -> User:
+        return self._session.user
+
+    @property
     def data(self):
         return self._data
 
