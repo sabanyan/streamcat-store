@@ -3,7 +3,7 @@ from setuptools import setup
 setup(
     name='streamcat.store',
     packages=['streamcat.store'],
-    version='3.3.1',
+    version='3.3.2',
     description='Data Store of many type',
     url='https://www.kskp.io',
     install_requires=[
@@ -12,8 +12,8 @@ setup(
         # NOTE: psycopg2-binaryはARM64環境に対応していない
         # 'psycopg2-binary',
         'psycopg2==2.9.7',
-        'SQLAlchemy==2.0.19',
-        'APScheduler==3.10.1',
+        'SQLAlchemy==2.0.20',
+        'APScheduler==3.10.3',
         'jsonschema==4.19.0',
         # 'alembic',
         'cryptography==41.0.3',
@@ -28,8 +28,8 @@ setup(
         'scikit-learn',
         # matplotlibとbokehはholoviewsが使用する
         'matplotlib==3.7.2',
-        'bokeh==3.2.1',
-        'holoviews==1.17.0',
+        'bokeh==3.2.2',
+        'holoviews==1.17.1',
         'param==1.13.0'
     ],
 )
