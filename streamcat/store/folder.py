@@ -78,15 +78,15 @@ class Folder(SavableStore):
         """
         Folderを中身のファイルも一緒にゴミ箱にほかす
         """
-        from streamcat.store.factory import DatumFactory
-        factory = DatumFactory(self._session)
-        trash_folder = factory.load_trash_folder()
-
         if self.parent_id is None:
             raise Exception('ルートフォルダは削除できません')
 
         # if self.get_flow_uuids_using_me():
         #     raise Exception('別のフローで使用しているため削除できませんでした')
+
+        from streamcat.store.factory import DatumFactory
+        factory = DatumFactory(self._session)
+        trash_folder = factory.load_trash_folder()
 
         thrown_count, obstacle_count, trashed_folder = self._throw_away_inner(trash_folder, self)
 
@@ -187,6 +187,33 @@ class Folder(SavableStore):
             self._session.rollback()
             raise e
 
+    def duplicate(self, new_label, new_parent:Datum=None):
+        """
+        自身の複製を作成して保存する
+        """
+        # 複製元と同じフォルダに複製を作成する
+        parent = new_parent or self.find_parent()
+        new_folder = parent.create_folder(new_label)
+        # ディレクトリファイルは共有しない
+        new_folder.save()
+        # 子Datumを複製する
+        self._duplicate_children(new_folder)
+        return new_folder
+    
+    def _duplicate_children(self, new_folder):
+        # 子Datumを複製する
+        children = self.find_children()
+        for child in children:
+            if child.type in [SavableDatum.FOLDER_TYPE,
+                              SavableDatum.RFOLDER_TYPE,
+                              SavableDatum.DATABASE_TYPE,
+                              SavableDatum.FLOW_TYPE,
+                              SavableDatum.SCHEDULE_TYPE,
+                              SavableDatum.FRAME_TYPE,
+                              SavableDatum.DOCUMENT_TYPE]:
+                # 子Datumは同じラベルで複製する
+                child.duplicate(child.label, new_parent=new_folder)
+
     def remove_reference_only(self):
         """
         _remove_reference_only_recursivelyのエイリアスです
@@ -271,7 +298,7 @@ class Folder(SavableStore):
     # Create Methods
     # 
 
-    def find_children(self, prev_folder_path=False):
+    def find_children(self, offset:int=None, limit:int=None, prev_folder_path=False):
         """
         自分の直下の子Datumを全て取得する
         """
@@ -282,7 +309,9 @@ class Folder(SavableStore):
 
         data = self._session.query(SavableDatum, prev_folder_path=prev_folder_path).\
                              filter(SavableDatum.parent_id==self.id).\
-                             order_by(SavableDatum.type, desc(SavableDatum.created_at)).all()
+                             order_by(SavableDatum.type, desc(SavableDatum.created_at)).\
+                             offset(offset).limit(limit).\
+                             all()
         return data
 
     def find_children_by_label(self, label, type=None):

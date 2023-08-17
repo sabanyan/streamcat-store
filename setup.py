@@ -3,7 +3,7 @@ from setuptools import setup
 setup(
     name='streamcat.store',
     packages=['streamcat.store'],
-    version='3.3.1',
+    version='3.3.2',
     description='Data Store of many type',
     url='https://www.kskp.io',
     install_requires=[
@@ -11,25 +11,25 @@ setup(
         # エラーメッセージを出力してインストールできない、代わりにpsycopg2-binaryをインストールする
         # NOTE: psycopg2-binaryはARM64環境に対応していない
         # 'psycopg2-binary',
-        'psycopg2==2.9.6',
-        'SQLAlchemy==2.0.13',
-        'APScheduler==3.10.1',
-        'jsonschema==4.17.3',
+        'psycopg2==2.9.7',
+        'SQLAlchemy==2.0.20',
+        'APScheduler==3.10.3',
+        'jsonschema==4.19.0',
         # 'alembic',
-        'cryptography==40.0.2',
+        'cryptography==41.0.3',
         'python-magic==0.4.27',
-        'chardet==5.1.0',
+        'chardet==5.2.0',
         # 'awscli',
         # 'cx_Oracle',
-        'numpy==1.24.3',
-        'scipy==1.10.1',
-        'pandas==2.0.1',
+        'numpy==1.25.2',
+        'scipy==1.11.1',
+        'pandas==2.0.3',
         # K-Commandでのみ使用する
         'scikit-learn',
         # matplotlibとbokehはholoviewsが使用する
-        'matplotlib==3.7.1',
-        'bokeh',
-        'holoviews==1.16.0',
+        'matplotlib==3.7.2',
+        'bokeh==3.2.2',
+        'holoviews==1.17.1',
         'param==1.13.0'
     ],
 )

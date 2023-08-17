@@ -33,6 +33,22 @@ class Mountable():
         # 絶対パスを返す
         return SavableDatum._to_abs_path(self._path)
 
+    def is_mountable(self):
+        from streamcat.core import Tmp
+        # Mount処理確認用のマウントポイントを作成する
+        mount_point_path = Tmp.create_file()
+        mount_point_path.mkdir(exist_ok=True)
+        # Mount処理を行って例外送出の有無でマウントが可能か判定する
+        try:
+            self.mount(mount_point_path)
+            return True
+        except Exception as e:
+            return False
+        finally:
+            # 確認後はマウントポイントを削除する
+            self.unmount(mount_point_path)
+            mount_point_path.exists() and mount_point_path.rmdir()
+
     def mount(self, mount_point_path=None):
         # 引数(mount_point_path)にpathプロパティを指定する時にMount処理が発生するのを防ぐため
         # 引数(mount_point_path)が設定されない場合は、自身の_pathを使用する
@@ -126,10 +142,12 @@ class Mountable():
         import shlex
         # mountコマンドの有無を確認する
         sub = subprocess.run(shlex.split(command_line), env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        # サブプロセスのリターンコードがNGの場合は例外を送出する
-        sub.check_returncode()
-        # 出力結果を返す
-        return sub
+        if sub.returncode==0:
+            # 出力結果を返す
+            return sub
+        else:
+            # サブプロセスのリターンコードがNGの場合は例外を送出する
+            raise Exception(str(sub.stderr))
 
     @staticmethod
     def _has_children(dir_path):

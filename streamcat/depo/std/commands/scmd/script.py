@@ -244,6 +244,45 @@ class CacheSaverCommand(SaverCommand):
         return cache
 
 
+class DbIsConnectableCommand(SCommand):
+    """
+    指定したDBへの接続を確認する
+    """
+    def __init__(self):
+        super().__init__()
+        self.i_ports = [Port('i', 'store')]
+        self.o_ports = [Port('o', 'bool')]
+
+    def run(self, args, inputs):
+        from streamcat.core import SavableDatum
+        if inputs['i'].type != SavableDatum.DATABASE_TYPE:
+            t = type(inputs['i'])
+            raise Exception(f'DbLoaderの入力にDatabase Store以外のデータ型({t})が入力されました')
+        else:
+            database = inputs['i']
+
+        # DB接続情報に漏れがないか確認し、漏れがあれば例外を送出する
+        try:
+            database.valid_or_raise()
+        except Exception as e:
+            return {'o': False}
+
+        # DBへの接続URIを作成する
+        db_uri = database.conn.get_database_uri()
+
+        try:
+            # DBへ接続する
+            engine = DbLoaderCommand._connect_to_db(db_uri)
+            # SQL文を発行する
+            # (SQL文を発行しないと接続情報の確認ができない)
+            sql = 'SELECT 1'
+            DbLoaderCommand._get_results(engine, database.conn.dbms, sql)
+            return {'o': True}
+        except Exception as e:
+            return {'o': False}
+        finally:
+            engine and engine.dispose()
+
 class DbLoaderCommand(SCommand):
     """
     指定したDBからデータを取得するLoaderコマンド
@@ -320,6 +359,8 @@ class DbLoaderCommand(SCommand):
                     traceback.print_exc(file=fpe)
                     print(f'#ERROR# {str(e)}; DbLoaderCommand; ; ; ', file=fpe)
                 raise e
+            finally:
+                engine and engine.dispose()
 
         # flushをしないと、デバッグ用のprintなども入ってしまう
         sys.stdout.flush()
@@ -386,7 +427,7 @@ class DbLoaderCommand(SCommand):
             with engine.begin() as conn:
                 results = conn.execute(text(sql))
         except exc.SQLAlchemyError as e:
-            raise Exception('SQLの実行に失敗しました %s' % sql)
+            raise Exception(f'SQLの実行に失敗しました{(e)} {sql}')
 
         # 時間計測終了
         t2 = time.time()
@@ -832,8 +873,8 @@ class ContinuousLoaderCommand(SCommand):
 
 class RunsCommand(SCommand):
 
-    # 最低必要ディスクサイズ(1Mbyte)
-    MIN_REQUIRED_DISK_SIZE = 1024 * 1024
+    # 最低必要ストレージサイズ(1Mbyte)
+    MIN_REQUIRED_STORAGE_SIZE = 1024 * 1024
 
     # 環境変数からPythonの再帰呼び出しの制限回数を取得する
     RECURSION_LIMIT = int(os.getenv('STREAMCAT_NYSOL_RECURSION_LIMIT', 2**20))
@@ -912,11 +953,11 @@ class RunsCommand(SCommand):
             # ActivityCommandにSaverが生成したFrameと例外を渡す
             return rets
 
-        # ディスクの空き容量を確認する
+        # ストレージの空き容量を確認する
         # (Managerがtmpファイルを作成するが容量不足の時にその旨の例外を返さないので事前に確認する)
         disk_info = psutil.disk_usage('/')
-        if disk_info.free < RunsCommand.MIN_REQUIRED_DISK_SIZE:
-            raise Exception('ディスクの空き容量がありません')
+        if disk_info.free < RunsCommand.MIN_REQUIRED_STORAGE_SIZE:
+            raise Exception('ストレージの空き容量がありません')
 
         # NYSOLコマンドのリストを作成する
         nm_list = [nysol_module.content for nysol_module in inputs.values()]

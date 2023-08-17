@@ -34,7 +34,7 @@ class Frame(File):
         # data.type列='cache'を用意するべきだろうか？
         self.is_cache = False
 
-    def save(self, file_path=None):
+    def save(self, file_path=None, content_type=None):
         """
         Frameを保存する
         """        
@@ -90,6 +90,18 @@ class Frame(File):
             raise e
 
         return self
+
+    def duplicate(self, new_label, new_parent=None):
+        """
+        自身の複製を作成して保存する
+        """
+        import io
+        # 複製元と同じフォルダに複製を作成する
+        parent = new_parent or self.find_parent()
+        new_frame = parent.create_frame(new_label, io.BytesIO(b''))
+        # ファイルは複製元と共有する(浅いコピー)
+        new_frame.save(file_path=self.path, content_type=self.content_type)
+        return new_frame
 
     @property
     def encoding(self):

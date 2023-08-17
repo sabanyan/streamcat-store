@@ -83,6 +83,17 @@ class Database(SavableStore):
         """
         pass
 
+    def duplicate(self, new_label, new_parent:Datum=None):
+        """
+        自身の複製を作成して保存する
+        """
+        # 複製元と同じフォルダに複製を作成する
+        parent = new_parent or self.find_parent()
+        new_database = parent.create_database(new_label, self.conn.copy())
+        # ライブラリに保存する
+        new_database.save()
+        return new_database
+
     @property
     def dbms(self):
         return self.conn.dbms

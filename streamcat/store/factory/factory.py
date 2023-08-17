@@ -300,7 +300,7 @@ class DatumFactory():
         # 速度向上のため、order_byを指定しない
         return query.all()
 
-    def find_my_project(self, id):
+    def find_my_project(self, id) -> SavableDatum:
         """
         指定するidのDatumが属するプロジェクトを取得する
         """

@@ -1887,11 +1887,13 @@ class AuthTest(TestCaseBase):
         folder4.save()
 
         # フォルダ4の下にフレームを作成する
-        frame = folder4.create_frame('フレームファイル♪', io.BytesIO(b'abc'))
-        frame.save()
+        frame0 = folder4.create_frame('フレームファイル♪', io.BytesIO(b'abc'))
+        frame0.save()
+        frame1 = folder4.create_frame('フレームファイル♫', io.BytesIO(b'def'))
+        frame1.save()
 
         # ルートフォルダの下にフローを作成する
-        flow = folder4.create_simple_flow('フロー', frame)
+        flow = folder4.create_simple_flow('フロー', frame0)
         flow.save()
 
         # フォルダ1の参照権限を全て削除する
@@ -1901,24 +1903,29 @@ class AuthTest(TestCaseBase):
         # フレームは取得できないこと
         # 
         with self.assertRaises(NotAuthorizedException):
-            frame.reload()
+            frame0.reload()
 
         # フレームのreadable,writable,executableは再取得により更新される
-        self.assertFalse(frame.readable)
-        self.assertFalse(frame.writable)
-        self.assertFalse(frame.executable)
+        self.assertFalse(frame0.readable)
+        self.assertFalse(frame0.writable)
+        self.assertFalse(frame0.executable)
 
         # フレームのpathは取得できないこと
         with self.assertRaises(NotAuthorizedException):
-            frame.path
+            frame0.path
 
         # フレームの更新はできないこと
         with self.assertRaises(NotAuthorizedException):
-            frame.update_label('flame_file')
+            frame0.update_label('flame_file')
 
         # フレームは削除できないこと
-        with self.assertRaises(NotAuthorizedException):
-            frame.delete()
+        with self.assertRaises(Exception):
+            frame0.delete()
+
+        # フローは削除できないこと
+        with self.assertRaises(Exception):
+            # フローで参照しているため削除しようとすると例外を送出する
+            frame1.delete()
 
         # 
         # フローは取得できないこと
@@ -1964,11 +1971,13 @@ class AuthTest(TestCaseBase):
         folder4.save()
 
         # フォルダ4の下にフレームを作成する
-        frame = folder4.create_frame('フレームファイル♪', io.BytesIO(b'abc'))
-        frame.save()
+        frame0 = folder4.create_frame('フレームファイル♪', io.BytesIO(b'abc'))
+        frame0.save()
+        frame1 = folder4.create_frame('フレームファイル♫', io.BytesIO(b'def'))
+        frame1.save()
 
         # フォルダ4の下にフローを作成する
-        flow = folder4.create_simple_flow('フロー', frame)
+        flow = folder4.create_simple_flow('フロー', frame0)
         flow.save()
 
         # フォルダ1の権限を全て削除する
@@ -1982,20 +1991,26 @@ class AuthTest(TestCaseBase):
         # 
         # フレームを再取得する
         # 
-        frame = frame.reload()
+        frame0 = frame0.reload()
+        frame1 = frame1.reload()
 
         # フレームのreadable,writable,executableを検証する
-        self.assertTrue(frame.readable)
-        self.assertFalse(frame.writable)
-        self.assertFalse(frame.executable)
+        self.assertTrue(frame0.readable)
+        self.assertFalse(frame0.writable)
+        self.assertFalse(frame0.executable)
 
         # フレームの更新はできないこと
         with self.assertRaises(NotAuthorizedException):
-            frame.update_label('flame_file')
+            frame0.update_label('flame_file')
+
+        # フレームは削除できないこと
+        with self.assertRaises(Exception):
+            # フローで参照しているため削除しようとすると例外を送出する
+            frame0.delete()
 
         # フレームは削除できないこと
         with self.assertRaises(NotAuthorizedException):
-            frame.delete()
+            frame1.delete()
 
         # 
         # フローを再取得する
@@ -3062,7 +3077,8 @@ class AuthTest(TestCaseBase):
         # ゴミ箱を空にする
         self.factory2.data.find_trashcan().trash_all()
 
-        # 最後にキャッシュを削除する
+        # 最後にフローとキャッシュを削除する
+        flow.delete()
         cache_frame.delete()
 
     def test_move_flow_with_cache3(self):

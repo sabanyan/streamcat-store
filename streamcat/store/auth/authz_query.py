@@ -84,6 +84,12 @@ class Query():
     def order_by(self, *criterion):
         return self._create_query(self._query.order_by(*criterion), self._session)
 
+    def offset(self, offset:int):
+        return self._create_query(self._query.offset(offset), self._session)
+
+    def limit(self, limit:int):
+        return self._create_query(self._query.limit(limit), self._session)
+
     def update(self, values, update_args=None):
         # synchronize_session='fetch'でSQLを2回発行するらしい
         result = self._query.update(values, update_args=update_args)
