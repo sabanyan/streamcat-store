@@ -324,7 +324,7 @@ class CsvToLineGraphCommand(HoloviewsBaseCommand):
         # 時間軸の書式を設定する
         if x_axis_format_select == 'nysol':
             cast_to_datetime = lambda x: HoloviewsBaseCommand.cast_to_datetime_by_format(x, '%Y%m%d%H%M%S.%f')
-        elif x_axis_format_select == 'custom': 
+        elif x_axis_format_select == 'custom':
             cast_to_datetime = lambda x: HoloviewsBaseCommand.cast_to_datetime_by_format(x, x_axis_format_custom)
         else:
             cast_to_datetime = HoloviewsBaseCommand.cast_to_datetime
