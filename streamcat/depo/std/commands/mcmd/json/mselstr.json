@@ -152,13 +152,6 @@
       "params": []
     },
     {
-      "name": "grouping",
-      "label": "グループの設定 (省略可)",
-      "params": [
-        "k"
-      ]
-    },
-    {
       "name": "cmd_main",
       "label": "文字列による行選択の設定　(必須)",
       "description": "選択する値のリストにマッチした行を o に、それ以外を u に出力する",
@@ -179,6 +172,13 @@
         "tail"
       ],
       "hide_background": true
+    },
+    {
+      "name": "grouping",
+      "label": "グループの設定 (省略可)",
+      "params": [
+        "k"
+      ]
     },
     {
       "name": "cmd_sub",
