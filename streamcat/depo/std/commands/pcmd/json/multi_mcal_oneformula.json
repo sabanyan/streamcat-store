@@ -105,25 +105,25 @@
                     },
                     {
                       "value": "",
-                      "label": "文字列型 :  文字列",
+                      "label": "文字列型 :  \"文字列\"",
                       "link": "",
                       "delimiter": ""
                     },
                     {
                       "value": "",
-                      "label": "日付型 : 年月日の8桁固定長文字列(yyyymmdd)",
+                      "label": "日付型 : 先頭に\"0d\"を付けた年月日固定長(0dyyyymmdd)",
                       "link": "",
                       "delimiter": ""
                     },
                     {
                       "value": "",
-                      "label": "時刻型 : 年月日時分秒(+小数6桁以内)の文字列",
+                      "label": "時刻型 : 先頭に\"0t\"を付けた時分秒固定長(+小数6桁以内)の文字列(0t121115)",
                       "link": "",
                       "delimiter": ""
                     },
                     {
                       "value": "",
-                      "label": "論理型 : 1(true)　または　0(false)",
+                      "label": "論理型 : 0b1(true)　または　0b0(false)",
                       "link": "",
                       "delimiter": ""
                     }
