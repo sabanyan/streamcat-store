@@ -421,20 +421,22 @@ class FlowData():
                 }
             },
             'Srcs': {
-                'type': 'object',
-                'required': [],
-                'additionalProperties': {
-                    '$ref': '#/definitions/id'
-                },
-                'propertyNames': {
-                    '$ref': '#/definitions/portId'
-                }
+                '$ref': '#/definitions/Dsts'
             },
             'Dsts': {
                 'type': 'object',
                 'required': [],
                 'additionalProperties': {
-                    '$ref': '#/definitions/id'
+                    'anyOf': [
+                        {
+                            # ポートの入出力先が未設定の場合に備えて空文字を許可する
+                            'type': 'string',
+                            'maxLength': 0
+                        },
+                        {
+                            '$ref': '#/definitions/id'
+                        }
+                    ]
                 },
                 'propertyNames': {
                     '$ref': '#/definitions/portId'
@@ -501,7 +503,8 @@ class FlowData():
             },
             'portId': {
                 'id': 'portId',
-                'type': 'string'
+                'type': 'string',
+                'minLength': 1
                 # ポートidはラベルとしても用いられている
                 # 'pattern': '^[0-9a-zA-Z_*]+$'
             }
