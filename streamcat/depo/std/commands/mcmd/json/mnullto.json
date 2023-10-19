@@ -108,14 +108,6 @@
       "params": []
     },
     {
-      "name": "grouping",
-      "label": "グループの設定　(省略可)",
-      "params": [
-        "k",
-        "s"
-      ]
-    },
-    {
       "name": "cmd_main",
       "label": "NULL置換の設定 (必須)",
       "params": [
@@ -124,6 +116,14 @@
         "v",
         "p",
         "O"
+      ]
+    },
+    {
+      "name": "grouping",
+      "label": "グループの設定　(省略可)",
+      "params": [
+        "k",
+        "s"
       ]
     },
     {

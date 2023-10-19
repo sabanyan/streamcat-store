@@ -119,13 +119,6 @@
       "params": []
     },
     {
-      "name": "grouping",
-      "label": "グループの設定 (省略可)",
-      "params": [
-        "k"
-      ]
-    },
-    {
       "name": "cmd_main",
       "label": "NULL行削除の設定 (必須)",
       "description": "削除条件を設定し、マッチした行を u に、それ以外を o に出力する",
@@ -134,6 +127,13 @@
         "F",
         "R",
         "r"
+      ]
+    },
+    {
+      "name": "grouping",
+      "label": "グループの設定 (省略可)",
+      "params": [
+        "k"
       ]
     },
     {

@@ -179,14 +179,6 @@
       "params": []
     },
     {
-      "name": "grouping",
-      "label": "グループの設定 (必須)",
-      "params": [
-        "k",
-        "s"
-      ]
-    },
-    {
       "name": "cmd_main",
       "label": "類似度計算の設定 (必須)",
       "params": [
@@ -196,6 +188,14 @@
         "t",
         "n",
         "skip"
+      ]
+    },
+    {
+      "name": "grouping",
+      "label": "グループの設定 (必須)",
+      "params": [
+        "k",
+        "s"
       ]
     },
     {

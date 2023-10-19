@@ -8,20 +8,20 @@
       "params": []
     },
     {
-      "name": "grouping",
-      "label": "グループの設定 (必須)",
-      "params": [
-        "k",
-        "s"
-      ]
-    },
-    {
       "name": "group3",
       "label": "移動窓と類似度計算の設定 (必須）",
       "description": "・類似度計算の設定を、対象項目1,2と類似度名で行う\n・移動窓は、期間数で幅を設定する",
       "params": [
         "fctlist",
         "a"
+      ]
+    },
+    {
+      "name": "grouping",
+      "label": "グループの設定 (必須)",
+      "params": [
+        "k",
+        "s"
       ]
     },
     {

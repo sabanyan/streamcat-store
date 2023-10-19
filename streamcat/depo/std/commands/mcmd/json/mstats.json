@@ -168,13 +168,6 @@
       "params": []
     },
     {
-      "name": "grouping",
-      "label": "グループの設定 (省略可)",
-      "params": [
-        "k"
-      ]
-    },
-    {
       "name": "cmd_main",
       "label": "統計量の計算の設定　(必須)",
       "description": "項目ごとに統計量を計算し、同じ項目名で出力する",
@@ -182,6 +175,13 @@
         "f",
         "c",
         "n"
+      ]
+    },
+    {
+      "name": "grouping",
+      "label": "グループの設定 (省略可)",
+      "params": [
+        "k"
       ]
     },
     {

@@ -8,18 +8,18 @@
       "params": []
     },
     {
+      "name": "group4",
+      "label": "キーブレイクフラグの設定 (必須)",
+      "params": [
+        "a"
+      ]
+    },
+    {
       "name": "grouping",
       "label": "グループの設定 (必須)",
       "params": [
         "k",
         "s"
-      ]
-    },
-    {
-      "name": "group4",
-      "label": "キーブレイクフラグの設定 (必須)",
-      "params": [
-        "a"
       ]
     },
     {

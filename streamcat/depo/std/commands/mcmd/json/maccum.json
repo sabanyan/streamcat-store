@@ -8,18 +8,18 @@
       "params": []
     },
     {
+      "name": "group5",
+      "label": "累積計算の設定 (必須)",
+      "params": [
+        "f"
+      ]
+    },
+    {
       "name": "grouping",
       "label": "グループの設定",
       "params": [
         "k",
         "s"
-      ]
-    },
-    {
-      "name": "group5",
-      "label": "累積計算の設定 (必須)",
-      "params": [
-        "f"
       ]
     },
     {

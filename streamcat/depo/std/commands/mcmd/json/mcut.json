@@ -6,7 +6,8 @@
       "type": "string",
       "label": "対象とする項目名 (必須)",
       "description": "・カンマ区切りで複数指定可\n・ワイルドカード(*,？ )使用可",
-      "resizable": true
+      "resizable": true,
+      "default": "*"
     },
     {
       "name": "r",

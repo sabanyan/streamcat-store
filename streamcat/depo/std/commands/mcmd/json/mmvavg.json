@@ -193,14 +193,6 @@
       "params": []
     },
     {
-      "name": "grouping",
-      "label": "グループの設定 (必須)",
-      "params": [
-        "k",
-        "s"
-      ]
-    },
-    {
       "name": "cmd_main",
       "label": "移動平均の計算の設定",
       "description": "・対象 とする項目名、移動窓および計算方法の設定を行う\n・移動窓は、期間数で幅を設定する",
@@ -226,6 +218,14 @@
         "n"
       ],
       "hide_background": true
+    },
+    {
+      "name": "grouping",
+      "label": "グループの設定 (必須)",
+      "params": [
+        "k",
+        "s"
+      ]
     },
     {
       "name": "cmd_sub",
