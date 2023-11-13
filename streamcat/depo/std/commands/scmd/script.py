@@ -1427,13 +1427,14 @@ class DumpCommand(SCommand):
 
     def run(self, args, inputs):
         from pathlib import Path
+        from streamcat.store.auth import NotAuthorizedException
         # Sessionを取得する
         if 'datum_factory' not in args:
             raise Exception('引数(datum_factory)にDatumFactoryを指定してください')
         session = args['datum_factory']._session
 
-        if not session.has_usr_admin():
-            raise Exception('ユーザー管理者以外は、StreamCatのバックアップデータを取得できません')
+        if not session.has_sys_admin():
+            raise NotAuthorizedException('システム管理者以外は、StreamCatのバックアップデータを取得できません')
 
         try:
             # 全てのテーブルをLockする
@@ -1531,13 +1532,14 @@ class RestoreCommand(SCommand):
         self._thread_lock = threading.Lock()
 
     def run(self, args, inputs):
+        from streamcat.store.auth import NotAuthorizedException
         # Factoryを取得する
         if 'factory' not in args:
             raise Exception('引数(factory)にFactoryを指定してください')
         factory = args['factory']
 
-        if not factory._session.has_usr_admin():
-            raise Exception('ユーザー管理者以外は、StreamCatを復元できません')
+        if not factory._session.has_sys_admin():
+            raise NotAuthorizedException('システム管理者以外は、StreamCatを復元できません')
 
         # ファイルストリームを取得する
         stream = inputs['i']

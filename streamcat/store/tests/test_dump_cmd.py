@@ -65,13 +65,13 @@ class DumpTest(TestCaseBase):
         flow.save()
 
         # Dumpコマンドを実行する
-        outs = DumpCommand().run({'datum_factory': self.factory.data}, {})
+        outs = DumpCommand().run({'datum_factory': self.factory0.data}, {})
 
         print(outs)
 
     def test_auth(self):
         """
-        ユーザ管理者以外はバックアップとリストアが実行できないこと
+        システム管理者以外はバックアップとリストアが実行できないこと
         """
 
     def test_invalid_file(self):

@@ -533,8 +533,12 @@ class User(BaseModel):
         """
         処理の許可リストを返す
         """
+        has_sys_admin = self._session.has_sys_admin()
         has_usr_admin = self._session.has_usr_admin()
         return {
+            'setSystem'      : has_sys_admin,
+            'downloadDump'   : has_sys_admin,
+            'restoreDump'    : has_sys_admin,
             'findUsers'      : has_usr_admin,
             'createUser'     : has_usr_admin,
             'updateUser'     : has_usr_admin,
