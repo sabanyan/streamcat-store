@@ -118,7 +118,7 @@ class SavableDatum(Datum, BaseModel):
                                 TRASH_TYPE,
                                 UNKNOWN_TYPE,
                                 name='data_type'), nullable=False)
-    _label       = Column('label', String)
+    _label       = Column('label', String, nullable=False)
     _path        = Column('path', PathType, nullable=False)
     _data        = Column('data', JSONB)
     _desc        = Column('desc', String)
