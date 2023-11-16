@@ -21,7 +21,7 @@ setup(
         'chardet==5.2.0',
         # 'awscli',
         # 'cx_Oracle',
-        'numpy==1.26.1',
+        'numpy==1.26.2',
         'scipy==1.11.3',
         'pandas==2.1.3',
         # K-Commandでのみ使用する
