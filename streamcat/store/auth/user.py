@@ -1,9 +1,8 @@
 import os
 import uuid
-import sqlalchemy.types
 from sqlalchemy import Column, String, UniqueConstraint
-from sqlalchemy.sql import operators
 from sqlalchemy.dialects.postgresql import INTEGER, UUID, ENUM
+from streamcat.core import QueryableString
 from .exceptions import NotAuthorizedException
 from . import BaseModel
 
@@ -17,31 +16,6 @@ class User(BaseModel):
         # (OpenID Connectではissucerとsubjectでユーザを一意に識別する)
         UniqueConstraint('issuer', 'subject', name='users_iss_sub_key'),
     ) + BaseModel.__table_args__
-
-    class MyString(sqlalchemy.types.TypeDecorator):
-        """
-        SQLAlchemyにおいてString列のlike/ilike演算で検索語をエスケープする
-        """
-        impl = sqlalchemy.types.String
-        # キャッシュを許可する
-        cache_ok = True
-
-        class comparator_factory(String.Comparator):
-
-            # LIKE検索語のエスケープ変換テーブル
-            ESCAPE_TABLE = str.maketrans({
-                                '%' : '\%',
-                                '_' : '\_',
-                                '\\': '\\\\'
-                           })
-
-            def icontains(self, other, **kw):
-                """
-                検索語を含むか否か判定する(大文字小文字の違いを無視する)
-                """
-                # 検索語をエスケープする
-                escaped_search_str = other.translate(self.ESCAPE_TABLE)
-                return self.operate(operators.ilike_op, '%' + escaped_search_str + '%', escape='\\')
 
     INIT_STATE     = 'init'     # 初期状態
     TMP_STATE      = 'tmp'      # 仮登録状態
@@ -59,8 +33,8 @@ class User(BaseModel):
     id            = Column(INTEGER, primary_key=True, autoincrement=True)
     # NOTE: as_uuid=Trueの場合はPythonのuuidオブジェクトに変換されるが、StreamCatではUUIDを文字列で保持しているのでFalseにする必要がある
     uuid          = Column(UUID(as_uuid=False), nullable=False, unique=True)
-    email         = Column(MyString, nullable=False, unique=True)
-    name          = Column(MyString, nullable=False)
+    email         = Column(QueryableString, nullable=False, unique=True)
+    name          = Column(QueryableString, nullable=False)
     password      = Column(String, nullable=False)
     # ユーザ状態
     state         = Column(ENUM(INIT_STATE, TMP_STATE, ACTIVE_STATE, INACTIVE_STATE, name='user_state'), nullable=False)

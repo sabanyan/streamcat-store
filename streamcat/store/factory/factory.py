@@ -174,6 +174,19 @@ class Factory():
         finally:
             pass
 
+    @staticmethod
+    def split_keyword(keyword):
+        """
+        空白区切りの検索語をリストに分割する
+        """
+        import csv
+        striped_keyword = keyword.strip()
+        # 検索語が空白のみの場合はその空白を検索語とする
+        if striped_keyword == '':
+            return [keyword]
+        ret = csv.reader([striped_keyword], delimiter=" ", doublequote=True, quotechar='"', skipinitialspace=True)
+        return next(ret)
+
     @property
     def data(self):
         return self._data
@@ -244,6 +257,33 @@ class DatumFactory():
             raise Exception(f'指定したDatum({uuid})は存在しませんでした')
 
         return datum
+
+    def find_by_keyword(self, keyword, type=None, except_trash=False, offset:int=None, limit:int=None):
+        """
+        キーワードを含むラベルのDatumを取得する
+        """
+        from sqlalchemy import desc
+        from sqlalchemy.sql.expression import and_, or_
+        query = self._session.query(SavableDatum)
+
+        if type is not None:
+            query = query.filter(SavableDatum.type==type)
+        if except_trash:
+            # ゴミ箱にほかされたDatumは除外する
+            # NOTE: この条件を付与するとかなり遅くなる
+            query = query.filter(~self._make_exists_trashed(SavableDatum.uuid))
+
+        like_predicates = []
+        for search_keyword in Factory.split_keyword(keyword):
+            # 検索語の大文字小文字の区別はしない
+            like_predicates.append(or_(SavableDatum._label.icontains(search_keyword),
+                                       SavableDatum._desc.icontains(search_keyword)))
+
+        query = query.filter(and_(*like_predicates))
+
+        return query.order_by(SavableDatum.type, desc(SavableDatum.created_at)).\
+                     offset(offset).limit(limit).\
+                     all()
 
     def find_all(self, type=None, except_trash=False, except_label=None) -> SavableDatum:
         """
@@ -438,7 +478,6 @@ class DatumFactory():
         """
         ゴミ箱フォルダを取得する、存在しない場合は作成する
         """
-        from streamcat.store import TrashCan
         if self.trashcan_exists():
             return self.find_trashcan()
         else:
@@ -849,23 +888,11 @@ class UserFactory():
         """
         キーワードを含むユーザ名またはE-MailのUserを取得する
         """
-        def split_keyword(keyword):
-            """
-            空白区切りの検索語をリストに分割する
-            """
-            import csv
-            striped_keyword = keyword.strip()
-            # 検索語が空白のみの場合はその空白を検索語とする
-            if striped_keyword == '':
-                return [keyword]
-            ret = csv.reader([striped_keyword], delimiter=" ", doublequote=True, quotechar='"', skipinitialspace=True)
-            return next(ret)
-
         from sqlalchemy.sql.expression import and_, or_
         query = self._session.query(User)
 
         like_predicates = []
-        for search_keyword in split_keyword(keyword):
+        for search_keyword in Factory.split_keyword(keyword):
             # 検索語の大文字小文字の区別はしない
             like_predicates.append(or_(User.name.icontains(search_keyword),
                                        User.email.icontains(search_keyword)))

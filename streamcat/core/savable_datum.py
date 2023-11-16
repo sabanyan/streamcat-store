@@ -5,6 +5,7 @@ from sqlalchemy.sql import operators
 from sqlalchemy.orm import query_expression
 from sqlalchemy.dialects.postgresql import INTEGER, JSONB, ENUM, UUID
 from . import Datum, BaseModel
+from .types import QueryableString
 from .constraints import Constraints
 
 class SavableDatum(Datum, BaseModel):
@@ -118,10 +119,10 @@ class SavableDatum(Datum, BaseModel):
                                 TRASH_TYPE,
                                 UNKNOWN_TYPE,
                                 name='data_type'), nullable=False)
-    _label       = Column('label', String, nullable=False)
+    _label       = Column('label', QueryableString, nullable=False)
     _path        = Column('path', PathType, nullable=False)
     _data        = Column('data', JSONB)
-    _desc        = Column('desc', String)
+    _desc        = Column('desc', QueryableString)
 
     # 各種権限(queryで追加した列の結果を格納する)
     _permissions = query_expression()

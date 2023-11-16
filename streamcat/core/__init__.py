@@ -140,5 +140,6 @@ from .store import Store
 from .savable_datum import SavableDatum
 from .savable_store import SavableStore
 from .runnable import Command, Port, Parameter
+from .types import QueryableString
 from .tmp import Tmp
 from .constraints import Constraints
