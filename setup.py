@@ -28,7 +28,7 @@ setup(
         'scikit-learn',
         # matplotlibとbokehはholoviewsが使用する
         'matplotlib==3.8.1',
-        'bokeh==3.3.1',
+        'bokeh==3.3.0',
         'holoviews==1.18.1',
         'param==2.0.1'
     ],
