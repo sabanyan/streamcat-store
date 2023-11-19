@@ -14,7 +14,7 @@ setup(
         'psycopg2==2.9.9',
         'SQLAlchemy==2.0.23',
         'APScheduler==3.10.4',
-        'jsonschema==4.19.2',
+        'jsonschema==4.20.0',
         # 'alembic',
         'cryptography==41.0.5',
         'python-magic==0.4.27',
@@ -22,12 +22,12 @@ setup(
         # 'awscli',
         # 'cx_Oracle',
         'numpy==1.26.2',
-        'scipy==1.11.3',
+        'scipy==1.11.4',
         'pandas==2.1.3',
         # K-Commandでのみ使用する
         'scikit-learn',
         # matplotlibとbokehはholoviewsが使用する
-        'matplotlib==3.8.1',
+        'matplotlib==3.8.2',
         'bokeh==3.3.0',
         'holoviews==1.18.1',
         'param==2.0.1'
