@@ -96,8 +96,14 @@ class FlowDumper:
                 warnings.warn(f'Not Exists file path : {frame._path}')
                 continue
             tmp_frame_link = parent_tmp_path / (frame.uuid + '.csv')
+            tmp_frame_json = parent_tmp_path / (frame.uuid + '.json')
             if not tmp_frame_link.exists():
                 os.symlink(frame.path, tmp_frame_link)
+            # 文字コードと改行コードの設定値をJSONファイルに保存する
+            if not tmp_frame_json.exists():
+                frame_json = {'encoding':frame.encoding_str, 'newline':frame.newline_str}
+                with tmp_frame_json.open('w') as f:
+                    f.write(json.dumps(frame_json, indent=2, ensure_ascii=True))
             uuid_type_label.append((frame.uuid, frame.type, frame.label, 'False'))
 
         for store_uuid in store_uuids:
@@ -266,11 +272,20 @@ class FlowDumper:
 
                 (datum_type, label, edit_lock) = type_labels[file.stem]
                 if datum_type == SavableDatum.FRAME_TYPE:
-                    file.parent
+                    # FrameのJSONファイルの場合は読み飛ばす
+                    if file.suffix == '.json':
+                        continue
+                    # FrameのJSONファイルがあれば読み込む
+                    frame_json = file.parent / (file.stem + '.json')
+                    data = {}
+                    if frame_json.exists():
+                        with frame_json.open('r') as f:
+                            data = json.loads(f.read())
+                    # Frameをライブラリに登録する
                     with file.open('rb') as f:
                         frame = folder.create_frame(label, f)
                         uuid_conv_table[file.stem] = frame.uuid
-                        frame.save()
+                        frame.save(encoding_str=data.get('encoding'), newline_str=data.get('newline'))
                 elif datum_type == SavableDatum.DATABASE_TYPE:
                     from .database_conn import DatabaseConn
                     with file.open('r') as f:
