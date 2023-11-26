@@ -8,18 +8,18 @@
       "params": []
     },
     {
-      "name": "grouping",
-      "label": "グループの設定 (省略可)",
-      "params": [
-        "k"
-      ]
-    },
-    {
       "name": "group5",
       "label": "基準化の設定 (必須)",
       "params": [
         "f",
         "c"
+      ]
+    },
+    {
+      "name": "grouping",
+      "label": "グループの設定 (省略可)",
+      "params": [
+        "k"
       ]
     },
     {

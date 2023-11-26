@@ -8,13 +8,6 @@
       "params": []
     },
     {
-      "name": "grouping",
-      "label": "グループの設定 (省略可)",
-      "params": [
-        "k"
-      ]
-    },
-    {
       "name": "cmd_main",
       "label": "数値範囲による行選択の設定（必須）",
       "description": "数値範囲の条件にマッチした行を o に、それ以外を u に出力する",
@@ -24,6 +17,13 @@
         "F",
         "R",
         "r"
+      ]
+    },
+    {
+      "name": "grouping",
+      "label": "グループの設定 (省略可)",
+      "params": [
+        "k"
       ]
     },
     {

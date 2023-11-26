@@ -160,19 +160,19 @@
       "params": []
     },
     {
-      "name": "grouping",
-      "label": "グループの設定 (省略可)",
-      "params": [
-        "k"
-      ]
-    },
-    {
       "name": "cmd_main",
       "label": "計算の設定 (必須)",
       "params": [
         "f",
         "hs",
         "n"
+      ]
+    },
+    {
+      "name": "grouping",
+      "label": "グループの設定 (省略可)",
+      "params": [
+        "k"
       ]
     },
     {

@@ -118,14 +118,6 @@
       "params": []
     },
     {
-      "name": "grouping",
-      "label": "グループの設定 (必須)",
-      "params": [
-        "k",
-        "s"
-      ]
-    },
-    {
       "name": "cmd_main",
       "label": "組合せの設定 (必須)",
       "params": [
@@ -134,6 +126,14 @@
         "a",
         "p",
         "dup"
+      ]
+    },
+    {
+      "name": "grouping",
+      "label": "グループの設定 (必須)",
+      "params": [
+        "k",
+        "s"
       ]
     },
     {

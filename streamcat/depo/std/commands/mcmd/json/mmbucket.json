@@ -147,13 +147,6 @@
       "params": []
     },
     {
-      "name": "grouping",
-      "label": "グループの設定 (省略可)",
-      "params": [
-        "k"
-      ]
-    },
-    {
       "name": "cmd_main",
       "label": "バケット分割の設定　(必須)",
       "params": [
@@ -162,6 +155,13 @@
         "F",
         "r",
         "ms"
+      ]
+    },
+    {
+      "name": "grouping",
+      "label": "グループの設定 (省略可)",
+      "params": [
+        "k"
       ]
     },
     {

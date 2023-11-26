@@ -437,42 +437,60 @@ class DuplicateTest(TestCaseBase):
         frame.reload()
 
         # フレームを複製する
-        duplicated_frame = frame.duplicate('上新庄')
-        duplicated_frame.reload()
+        duplicated_frame1 = frame.duplicate('上新庄')
+        duplicated_frame1.reload()
 
         # 作成を確定する
         self.factory3.end()
 
         # 複製したフレームを検証する
-        self.assertIsNotNone(duplicated_frame.id)
-        self.assertNotEqual(duplicated_frame.id, frame.id)
-        self.assertEqual(duplicated_frame.parent_id, project.id)
-        self.assertIsNotNone(duplicated_frame.uuid)
-        self.assertNotEqual(duplicated_frame.uuid, frame.uuid)
-        self.assertEqual(duplicated_frame.path, frame.path)
-        self.assertEqual(duplicated_frame.type, 'frame')
-        self.assertEqual(duplicated_frame.label, '上新庄')
-        self.assertEqual(duplicated_frame.creator, self.USER3)
-        self.assertEqual(duplicated_frame.modifier, self.USER3)
-        self.assertIsNotNone(duplicated_frame.created_at)
-        self.assertIsNotNone(duplicated_frame.modified_at)
-        self.assertEqual(duplicated_frame.created_at, duplicated_frame.modified_at)
+        self.assertIsNotNone(duplicated_frame1.id)
+        self.assertNotEqual(duplicated_frame1.id, frame.id)
+        self.assertEqual(duplicated_frame1.parent_id, project.id)
+        self.assertIsNotNone(duplicated_frame1.uuid)
+        self.assertNotEqual(duplicated_frame1.uuid, frame.uuid)
+        self.assertEqual(duplicated_frame1.path, frame.path)
+        self.assertEqual(duplicated_frame1.type, 'frame')
+        self.assertEqual(duplicated_frame1.label, '上新庄')
+        self.assertEqual(duplicated_frame1.creator, self.USER3)
+        self.assertEqual(duplicated_frame1.modifier, self.USER3)
+        self.assertIsNotNone(duplicated_frame1.created_at)
+        self.assertIsNotNone(duplicated_frame1.modified_at)
+        self.assertEqual(duplicated_frame1.created_at, duplicated_frame1.modified_at)
 
         # フレームの情報が複製元と一致すること
-        self.assertEqual(duplicated_frame.content_type, frame.content_type)
-        self.assertEqual(duplicated_frame.file_size, frame.file_size)
-        self.assertEqual(duplicated_frame.modified_at_str, frame.modified_at_str)
-        self.assertEqual(duplicated_frame.encoding, frame.encoding)
-        self.assertEqual(duplicated_frame.newline, frame.newline)
+        self.assertEqual(duplicated_frame1.content_type, frame.content_type)
+        self.assertEqual(duplicated_frame1.file_size, frame.file_size)
+        self.assertEqual(duplicated_frame1.modified_at_str, frame.modified_at_str)
+        self.assertEqual(duplicated_frame1.encoding, frame.encoding)
+        self.assertEqual(duplicated_frame1.newline, frame.newline)
 
         # 権限設定が複製元と一致すること
-        self.assert_auths_equal(duplicated_frame.id, frame.id)
+        self.assert_auths_equal(duplicated_frame1.id, frame.id)
+
+        # 
+        # 改行コードと文字コードの変更後に複製しても複製元と一致すること
+        # 
+        frame.update_encoding_newline('CP932', 'CR', self.USER3)
+        
+        # フレームを複製する
+        duplicated_frame2 = frame.duplicate('下新庄')
+        duplicated_frame2.reload()
+
+        # フレームの情報が複製元と一致すること
+        self.assertEqual(duplicated_frame2.content_type, frame.content_type)
+        self.assertEqual(duplicated_frame2.file_size, frame.file_size)
+        self.assertEqual(duplicated_frame2.modified_at_str, frame.modified_at_str)
+        self.assertEqual(duplicated_frame2.encoding, frame.encoding)
+        self.assertEqual(duplicated_frame2.newline, frame.newline)
 
         # フレームを削除する
         frame.delete()
         # 複製元の削除によって実ファイルが削除されないこと
-        self.assertTrue(duplicated_frame.file_exists)
-        duplicated_frame.delete()
+        self.assertTrue(duplicated_frame1.file_exists)
+        self.assertTrue(duplicated_frame2.file_exists)
+        duplicated_frame1.delete()
+        duplicated_frame2.delete()
 
         # プロジェクトを削除する
         project.delete()

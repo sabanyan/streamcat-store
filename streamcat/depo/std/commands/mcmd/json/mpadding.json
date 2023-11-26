@@ -127,13 +127,6 @@
       "params": []
     },
     {
-      "name": "grouping",
-      "label": "グループの設定 (省略可)",
-      "params": [
-        "k"
-      ]
-    },
-    {
       "name": "cmd_main",
       "label": "行補完の設定 (必須)",
       "description": "・レコードの複写により、行を補完する\n・補完で作られたレコードの値は、NULLまたは指定文字へ置換することができる",
@@ -159,6 +152,13 @@
         "n"
       ],
       "hide_background": true
+    },
+    {
+      "name": "grouping",
+      "label": "グループの設定 (省略可)",
+      "params": [
+        "k"
+      ]
     },
     {
       "name": "cmd_sub",

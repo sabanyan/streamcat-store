@@ -8,13 +8,6 @@
       "params": []
     },
     {
-      "name": "grouping",
-      "label": "グループの設定",
-      "params": [
-        "k"
-      ]
-    },
-    {
       "name": "group2",
       "label": "バケット分割の設定　(必須)",
       "params": [
@@ -23,6 +16,13 @@
         "F",
         "rng",
         "r"
+      ]
+    },
+    {
+      "name": "grouping",
+      "label": "グループの設定",
+      "params": [
+        "k"
       ]
     },
     {

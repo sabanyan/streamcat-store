@@ -34,16 +34,16 @@ class Frame(File):
         # data.type列='cache'を用意するべきだろうか？
         self.is_cache = False
 
-    def save(self, file_path=None, content_type=None):
+    def save(self, file_path=None, content_type=None, encoding_str=None, newline_str=None):
         """
         Frameを保存する
-        """        
-        if file_path is not None and file_path.exists():
-            # ファイルの文字コードを判定して記録する
-            with open(file_path, 'rb') as f:
-                encoding = Frame._detect_encoding(f)
-                newline = Frame._detect_newline_code(f)
-            self._data.update({'encoding':encoding, 'newline':newline})
+        """
+        # 文字コードと改行コードを決定する
+        encoding, newline = Frame._decide_encoding_newline(file_path, encoding_str, newline_str)
+        # 必要があれば文字コードまたは改行コードを変更する
+        if encoding is not None or newline is not None:
+            self._data.update({'encoding': encoding or self.encoding,
+                               'newline': newline or self.newline})
 
         try:
             # DBに保存する
@@ -53,33 +53,8 @@ class Frame(File):
             raise e
 
     def update_encoding_newline(self, encoding_str=None, newline_str=None, modifier=None):
-        encoding = None
-        if encoding_str is None:
-            # 自身の持つファイルの文字コードを判定する
-            if self.path.exists():
-                with open(self.path, 'rb') as f:
-                    encoding = Frame._detect_encoding(f)
-        else:
-            for key, value in Frame.ENCODING_CONV_TABLE.items():
-                if value == encoding_str:
-                    encoding = key
-                    break
-            if encoding is None:
-                encoding = encoding_str
-
-        newline = None
-        if newline_str is None:
-            # 自身の持つファイルの改行コードを判定する
-            if self.path.exists():
-                with open(self.path, 'rb') as f:
-                    newline = Frame._detect_newline_code(f)
-        else:
-            for key, value in Frame.NEWLINE_CONV_TABLE.items():
-                if value == newline_str:
-                    newline = key
-                    break
-            if newline is None:
-                raise Exception(f'文字改行コードの指定文字列({newline_str})が誤っています')
+        # 文字コードと改行コードを決定する
+        encoding, newline = Frame._decide_encoding_newline(self.path, encoding_str, newline_str)
 
         try:
             self._data.update({'encoding':encoding, 'newline':newline})
@@ -100,7 +75,10 @@ class Frame(File):
         parent = new_parent or self.find_parent()
         new_frame = parent.create_frame(new_label, io.BytesIO(b''))
         # ファイルは複製元と共有する(浅いコピー)
-        new_frame.save(file_path=self.path, content_type=self.content_type)
+        new_frame.save(file_path=self.path,
+                       content_type=self.content_type,
+                       encoding_str=self.encoding_str,
+                       newline_str=self.newline_str)
         return new_frame
 
     @property
@@ -120,6 +98,41 @@ class Frame(File):
     def newline_str(self):
         ret = self.NEWLINE_CONV_TABLE.get(self.newline)
         return ret or self.newline   
+
+    @staticmethod
+    def _decide_encoding_newline(file_path, encoding_str:str=None, newline_str:str=None):
+        """
+        文字コードと改行コードを決定する
+        """
+        encoding:str = None
+        if encoding_str is None:
+            # 自身の持つファイルの文字コードを判定する
+            if file_path is not None and file_path.exists():
+                with open(file_path, 'rb') as f:
+                    encoding = Frame._detect_encoding(f)
+        else:
+            for key, value in Frame.ENCODING_CONV_TABLE.items():
+                if value == encoding_str:
+                    encoding = key
+                    break
+            if encoding is None:
+                encoding = encoding_str
+
+        newline:str = None
+        if newline_str is None:
+            # 自身の持つファイルの改行コードを判定する
+            if file_path is not None and file_path.exists():
+                with open(file_path, 'rb') as f:
+                    newline = Frame._detect_newline_code(f)
+        else:
+            for key, value in Frame.NEWLINE_CONV_TABLE.items():
+                if value == newline_str:
+                    newline = key
+                    break
+            if newline is None:
+                raise Exception(f'文字改行コードの指定文字列({newline_str})が誤っています')
+
+        return encoding, newline
 
     @staticmethod
     def _detect_encoding(stream):

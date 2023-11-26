@@ -8,17 +8,17 @@
       "params": []
     },
     {
-      "name": "grouping",
-      "label": "グループの設定 (省略可)",
-      "params": [
-        "k"
-      ]
-    },
-    {
       "name": "group1",
       "label": "行数カウントの設定 (必須)",
       "params": [
         "a"
+      ]
+    },
+    {
+      "name": "grouping",
+      "label": "グループの設定 (省略可)",
+      "params": [
+        "k"
       ]
     },
     {
