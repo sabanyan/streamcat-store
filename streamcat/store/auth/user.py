@@ -536,6 +536,7 @@ class User(BaseModel):
 
         ret = {
             'uuid'     : self.uuid,
+            'type'     : 'user',
             'email'    : self.email,
             'name'     : self.name,
             'state'    : display_state(),
