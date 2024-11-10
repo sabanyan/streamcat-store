@@ -15,6 +15,9 @@ setup(
         'SQLAlchemy==2.0.13',
         'APScheduler==3.10.1',
         'jsonschema==4.17.3',
+        # FastAPIへの移行により送出されるようになった例外(Can't pickle local object)を
+        # 回避するためにmultiprocessを使用する
+        'multiprocess=0.70.17',
         # 'alembic',
         'cryptography==40.0.2',
         'python-magic==0.4.27',

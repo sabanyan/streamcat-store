@@ -891,7 +891,12 @@ class RunsCommand(SCommand):
 
     def run(self, args, inputs):
         import psutil
-        from multiprocessing import Process, Manager, Pipe
+        # NOTE:
+        # FlaskからFastAPIに移行すると例外(Can't pickle local object 'RunsCommand.run.<locals>.do_runs')が
+        # 送出されるようになった。multiprocessingをmultiprocessに置き換えることでこの事象を回避できた
+        # AttributeError: Can't pickle local object in Multiprocessing
+        # https://stackoverflow.com/questions/72766345/attributeerror-cant-pickle-local-object-in-multiprocessing
+        from multiprocess import Process, Manager, Pipe
         from streamcat.store import Matrix, ApparentOut, CommandException
 
         def do_runs(nm_list, results, exs, out):
