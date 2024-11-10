@@ -14,6 +14,8 @@ def _get_db_engine(database_uri_candidates):
     def _check_connection(database_uri):
         from sqlalchemy import create_engine, select
         from sqlalchemy.exc import OperationalError
+        # DB接続のClose処理を確認するためのデバッグ用Pool
+        # from sqlalchemy.pool import AssertionPool, NullPool
         try:
             # DBに接続する
             # echo=TrueでSQLログがコンソールに出力される
