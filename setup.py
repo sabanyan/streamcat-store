@@ -30,6 +30,7 @@ setup(
         'matplotlib==3.8.2',
         'bokeh==3.3.0',
         'holoviews==1.18.1',
-        'param==2.0.1'
+        'param==2.0.1',
+        'panel==1.3.4'
     ],
 )
