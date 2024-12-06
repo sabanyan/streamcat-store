@@ -11,12 +11,12 @@ setup(
         # エラーメッセージを出力してインストールできない、代わりにpsycopg2-binaryをインストールする
         # NOTE: psycopg2-binaryはARM64環境に対応していない
         # 'psycopg2-binary',
-        'psycopg2==2.9.9',
-        'SQLAlchemy==2.0.23',
-        'APScheduler==3.10.4',
-        'jsonschema==4.20.0',
+        'psycopg2==2.9.10',
+        'SQLAlchemy==2.0.36',
+        'APScheduler==3.11.0',
+        'jsonschema==4.23.0',
         # 'alembic',
-        'cryptography==41.0.5',
+        'cryptography==44.0.0',
         'python-magic==0.4.27',
         'chardet==5.2.0',
         # 'awscli',
