@@ -21,9 +21,9 @@ setup(
         'chardet==5.2.0',
         # 'awscli',
         # 'cx_Oracle',
-        'numpy==1.26.2',
-        'scipy==1.11.4',
-        'pandas==2.1.3',
+        'numpy==2.0.2',
+        'scipy==1.13.1',
+        'pandas==2.2.3',
         # K-Commandでのみ使用する
         'scikit-learn',
         # matplotlibとbokehはholoviewsが使用する
