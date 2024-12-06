@@ -27,10 +27,10 @@ setup(
         # K-Commandでのみ使用する
         'scikit-learn',
         # matplotlibとbokehはholoviewsが使用する
-        'matplotlib==3.8.2',
-        'bokeh==3.3.0',
-        'holoviews==1.18.1',
-        'param==2.0.1',
-        'panel==1.3.4'
+        'holoviews==1.20.0',
+        'matplotlib==3.9.3',
+        'bokeh==3.4.3',
+        'param==2.1.1',
+        'panel==1.4.5'
     ],
 )
