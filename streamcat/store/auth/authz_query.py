@@ -90,12 +90,8 @@ class Query():
     def limit(self, limit:int):
         return self._create_query(self._query.limit(limit), self._session)
 
-    def update(self, values, update_args=None):
-        # synchronize_session='fetch'でSQLを2回発行するらしい
-        result = self._query.update(values, update_args=update_args)
-        return result
-
     def delete(self, synchronize_session='evaluate'):
+        # synchronize_session='fetch'でSQLを2回発行するらしい
         result = self._query.delete(synchronize_session)
         return result
 
@@ -149,41 +145,3 @@ class AuthzDatumQuery(Query):
 
     def filter(self, *criterion):
         return AuthzDatumQuery(self._query.filter(*criterion), self._session)
-
-    def update(self, values, update_args=None):
-        """
-        実は今は使っていないようだ
-        一括更新に使うかもしれない
-        """
-
-        # 権限がない場合はUPDATEのWHEREはFalseとなる
-        exists_stmt = self._get_authz_exists_stmt()
-        
-        # synchronize_session='fetch'でSQLを2回発行するらしい
-        result = self._query.filter(exists_stmt).\
-                             update(values, synchronize_session='fetch', update_args=update_args)
-
-        # 権限がない(更新件数=0件)場合は例外を送出する
-        if result == 0:
-            raise  NotAuthorizedException((f'{self._user.name}は更新権限がありません'))
-
-        return result
-
-    def _get_authz_exists_stmt(self):
-        """
-        Dataテーブルと相関し、Datumにwrite権限があることを抽出条件とするExists句を返す
-        """
-        from sqlalchemy import func, text, column, select, exists, table
-        from .auth import Auth
-
-        # 権限がない場合はUPDATEのWHEREはFalseとなる
-        ta = table('auths').\
-             join(table('roles'), text('auths.role_id=roles.id')).\
-             join(table('users_roles'), text(f'roles.id=users_roles.role_id and users_roles.user_id={self._user.id}'))
-        
-        tb = select(text('bool_and(auths.permission) AS write')).select_from(ta).\
-             where(text(f"auths.datum_id=data.id AND auths.operation='{Auth.WRITE_OP}' ")).alias('V')
-
-        stmt = exists(select(1).select_from(tb).where(text('write=True')))
-        
-        return stmt
