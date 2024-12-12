@@ -671,10 +671,10 @@ class AuthzSession(Session):
         else:
             datum_id = datum.id
 
-        select_permissions = self._make_select_permissions_inner(datum_id).alias('permissions')
-        query = self._session.query(select_permissions)
+        select_permissions = self._make_select_permissions_inner(datum_id)
+        permissons = self._session.scalars(select_permissions).one()
         
-        return (query.scalar() & SavableDatum.PERMISSION_READ) > 0
+        return (permissons & SavableDatum.PERMISSION_READ) > 0
 
     def writable(self, datum, ignore_self_edit_lock=False) -> bool:
         """
@@ -688,15 +688,15 @@ class AuthzSession(Session):
         else:
             datum_id = datum.id
 
-        select_permissions = self._make_select_permissions_inner(datum_id).alias('permissions')
-        query = self._session.query(select_permissions)
+        select_permissions = self._make_select_permissions_inner(datum_id)
+        permissons = self._session.scalars(select_permissions).one()
 
         if ignore_self_edit_lock:
             # 更新権限の判定に編集ロックの値を含めいない場合
-           return (query.scalar() & SavableDatum.PERMISSION_WRITER) > 0
+           return (permissons & SavableDatum.PERMISSION_WRITER) > 0
         else:
             # 更新権限の判定に編集ロックの値も含める場合
-            return (query.scalar() & SavableDatum.PERMISSION_WRITE) > 0
+            return (permissons & SavableDatum.PERMISSION_WRITE) > 0
 
     def executable(self, datum) -> bool:
         """
@@ -710,10 +710,9 @@ class AuthzSession(Session):
         else:
             datum_id = datum.id
 
-        select_permissions = self._make_select_permissions_inner(datum_id).alias('permissions')
-        query = self._session.query(select_permissions)
-        
-        return (query.scalar() & SavableDatum.PERMISSION_EXEC) > 0
+        select_permissions = self._make_select_permissions_inner(datum_id)
+        permissons = self._session.scalars(select_permissions).one()
+        return (permissons & SavableDatum.PERMISSION_EXEC) > 0
 
     def ownership(self, datum_id) -> bool:
         """
@@ -729,52 +728,54 @@ class AuthzSession(Session):
         # 
         # return self._operatable(result, Auth.OWN_OP)
 
-        select_stmt = self._make_select_ownership(datum_id).alias('owner')
-        query = self._session.query(select_stmt)
-        result = query.one_or_none()
-        return result.owner == True
+        select_stmt = self._make_select_ownership(datum_id)
+        return self._session.scalars(select_stmt).one_or_none() == True
 
     def has_sys_admin(self) -> bool:
+        from sqlalchemy import select, func
         from sqlalchemy.sql.expression import literal
         from .user_role import UserRole
         from .role import Role
-        query = self._session.query(Role).\
-                            outerjoin(UserRole, UserRole.role_id==Role.id).\
-                            filter(Role.uuid == literal(Role.SYS_ADMIN_ROLE_UUID)).\
-                            filter(UserRole.user_id==self.user.id)
-        return query.count() > 0
+
+        stmt =  select(func.count(Role.id)).\
+                outerjoin(UserRole, UserRole.role_id==Role.id).\
+                filter(Role.uuid == literal(Role.SYS_ADMIN_ROLE_UUID)).\
+                filter(UserRole.user_id==self.user.id)
+        return self._session.scalars(stmt).one() > 0
 
     def has_usr_admin(self) -> bool:
+        from sqlalchemy import select, func
         from sqlalchemy.sql.expression import literal
         from .user_role import UserRole
         from .role import Role
-        query = self._session.query(Role).\
-                            outerjoin(UserRole, UserRole.role_id==Role.id).\
-                            filter(Role.uuid == literal(Role.USR_ADMIN_ROLE_UUID)).\
-                            filter(UserRole.user_id==self.user.id)
-        return query.count() > 0       
+
+        stmt =  select(func.count(Role.id)).\
+                outerjoin(UserRole, UserRole.role_id==Role.id).\
+                filter(Role.uuid == literal(Role.USR_ADMIN_ROLE_UUID)).\
+                filter(UserRole.user_id==self.user.id)
+        return self._session.scalars(stmt).one() > 0
 
     def is_role_creator(self, role_id) -> bool:
         """
         操作ユーザがRoleの作成者であればTrueを返す
         """
+        from sqlalchemy import select, func
         from .role import Role
-        query = self._session.query(Role).\
+        stmt =  select(func.count(Role.id)).\
                 filter(Role.id==role_id).filter(Role._creator_id==self.user.id)
-
-        return query.count() > 0
+        return self._session.scalars(stmt).one() > 0
 
     def is_role_owner(self, role_id) -> bool:
         """
         操作ユーザがRoleの所有者であればTrueを返す
         """
+        from sqlalchemy import select, func
         from .role import UserRole
-        query = self._session.query(UserRole).\
+        stmt =  select(func.count(UserRole.user_id)).\
                 filter(UserRole.role_id==role_id).\
                 filter(UserRole.user_id==self.user.id).\
                 filter(UserRole.owner==True)
-
-        return query.count() > 0
+        return self._session.scalars(stmt).one() > 0
 
     def is_self_user(self, user_id) -> bool:
         """
@@ -786,8 +787,8 @@ class AuthzSession(Session):
         """
         操作ユーザがDatumの作成者であればTrueを返す
         """
+        from sqlalchemy import select, func
         from streamcat.core import SavableDatum
-        query = self._session.query(SavableDatum).\
+        stmt =  select(func.count(SavableDatum.id)).\
                 filter(SavableDatum.id==datum_id).filter(SavableDatum._creator_id==self.user.id)
-
-        return query.count() > 0
+        return self._session.scalars(stmt).one() > 0
