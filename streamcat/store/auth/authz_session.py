@@ -188,8 +188,12 @@ class AuthzSession(Session):
             model_typeオブジェクトを抽出するSelectの場合はTrueを返す
             NOTE: SavableDatumを継承するModelクラスはDataテーブルから抽出する
             """
+            import inspect
             desc = select_stmt.column_descriptions
-            return len(desc)==1 and issubclass(desc[0].get('type'), model_type)
+            if len(desc) != 1:
+                return False
+            select_model_type = desc[0].get('type')
+            return inspect.isclass(select_model_type) and issubclass(select_model_type, model_type)
 
         if is_select_stmt(stmt) and is_model(stmt, SavableDatum):
             # 下記を両方満たす場合にのみpermission=Trueとする
