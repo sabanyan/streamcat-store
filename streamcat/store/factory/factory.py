@@ -272,14 +272,16 @@ class DatumFactory():
         """
         親を持たないfolderレコードを全て取得する
         """
-        roots = self._session.query(SavableDatum).filter(SavableDatum.parent_id == None).all()
+        from sqlalchemy import select
+        stmt = select(SavableDatum).filter(SavableDatum.parent_id == None)
+        roots = self._session.scalars(stmt).all()
 
         if len(roots) == 0 :
             # ルートフォルダがない場合はNoneを返す
             return None
         elif len(roots) > 1:
             raise Exception('More than 2 roots exist!!')
-        
+
         return roots[0]
 
     def find_trashcan(self) -> TrashCan:
@@ -831,10 +833,11 @@ class UserFactory():
         指定されたuuidを持つUserを取得する
         """
         # 結果が1件以外の場合はNoResultFoundが送出される
+        from sqlalchemy import select
         try:
-            query = self._session.query(User).filter(User.email==email)
-            query = UserFactory._add_except_states_criteria(query, except_states)
-            return query.one()
+            stmt = select(User).filter(User.email==email)
+            stmt = UserFactory._add_except_states_criteria(stmt, except_states)
+            return self._session.scalars(stmt).one()
         except NoResultFound:
             raise Exception(f'指定したUser({email})は存在しませんでした')
 
