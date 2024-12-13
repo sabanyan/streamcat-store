@@ -49,18 +49,44 @@ class Session():
     def close(self):
         self._session.close()
 
-    def execute(self, sql):
+    def execute(self, stmt, synchronize_session='evaluate'):
+        """
+        SQLを実行する
+        """
         # テスト実行で二つのSessionを用いた時、片方のSessionで
         # search_pathが設定されないので、execute()の度に設定することにする
         from sqlalchemy import text
         from streamcat.core import _is_unittest, SCHEMA_NAME
+
+        # selectか否かを判定する
+        stmt_is_select = Session._is_select_stmt(stmt)
+
+        # テスト実行で二つのSessionを用いた時、片方のSessionで
+        # search_pathが設定されないので、execute()の度に設定することにする
         if _is_unittest():
             # カレントスキーマを設定する
             # (コミットされると、セッションが終了するまでその設定が持続する)
             sql1 = text(f'SET search_path = {SCHEMA_NAME}; commit;')
             self._session.execute(sql1)
 
-        return self._session.execute(sql)
+        # updateまたはdeleteを実行する場合
+        if not stmt_is_select:
+            # synchronize_session='fetch'でSQLを2回発行するらしい
+            stmt = stmt.execution_options(synchronize_session=synchronize_session)
+
+        # SQLを実行する
+        result = self._session.execute(stmt)
+
+        # select文の場合はResultオブジェクトに入れて返す
+        return Result(result, self) if stmt_is_select else result
+
+    @staticmethod
+    def _is_select_stmt(stmt):
+        """
+        stmtがselectの場合はTrueを返す
+        """
+        from sqlalchemy.sql.expression import Select
+        return isinstance(stmt, Select)
 
     def query(self, datum_type, *args):
         query = self._session.query(datum_type, *args)
@@ -173,29 +199,20 @@ class AuthzSession(Session):
         pathとdataプロパティは参照された時に権限を判定し、NGなら例外を送出する
         """
         from sqlalchemy.orm import with_expression
-        from sqlalchemy.sql.expression import Select, null
+        from sqlalchemy.sql.expression import null
         from streamcat.core import SavableDatum
         from .authz_result import AuthzDatumResult
 
-        def is_select_stmt(stmt):
-            """
-            stmtがselectの場合はTrueを返す
-            """
-            return isinstance(stmt, Select)
+        if not Session._is_select_stmt(stmt):
+            raise TypeError('scalars()にSelect以外のstmtを指定できません')
 
-        def is_model(select_stmt:Select, model_type):
-            """
-            model_typeオブジェクトを抽出するSelectの場合はTrueを返す
-            NOTE: SavableDatumを継承するModelクラスはDataテーブルから抽出する
-            """
-            import inspect
-            desc = select_stmt.column_descriptions
-            if len(desc) != 1:
-                return False
-            select_model_type = desc[0].get('type')
-            return inspect.isclass(select_model_type) and issubclass(select_model_type, model_type)
+        # selectの列情報を取得する
+        column_descs = stmt.column_descriptions
 
-        if is_select_stmt(stmt) and is_model(stmt, SavableDatum):
+        if len(column_descs) > 1:
+            raise ValueError('scalars()には複数の列を抽出するSelectを指定できません')
+
+        if AuthzSession._contains_model_column(column_descs, SavableDatum):
             # 下記を両方満たす場合にのみpermission=Trueとする
             # ・ユーザが属する全てのロールについて、DatumのpermissionがTrue
             # ・Datumが属する全ての親フォルダについて、DatumのpermissionがTrue
@@ -234,6 +251,31 @@ class AuthzSession(Session):
             return AuthzDatumResult(self._session.scalars(select_stmt), self)
         else:
             return Result(self._session.scalars(stmt), self)
+
+    def execute(self, stmt, synchronize_session='evaluate'):
+        """
+        SQLを実行する
+        """
+        from streamcat.core import SavableDatum
+
+        if Session._is_select_stmt(stmt):
+            colunm_descs = stmt.column_descriptions
+            if AuthzSession._contains_model_column(colunm_descs, SavableDatum):
+                raise ValueError('SelectにDatumを含む列がある場合、scalars()を使用してください')
+        # SQLを実行する
+        return super().execute(stmt, synchronize_session)
+
+    @staticmethod
+    def _contains_model_column(descs:list[dict], model_type):
+        """
+        model_typeオブジェクトを抽出するSelectの場合はTrueを返す
+        NOTE: SavableDatumを継承するModelクラスはDataテーブルから抽出する
+        """
+        import inspect
+        select_types = [d.get('type') for d in descs]
+        # Select句にmodel_typeを継承するクラス型が指定されているか判定する
+        model_type_contains = any(inspect.isclass(t) and issubclass(t, model_type) for t in select_types)
+        return model_type_contains
 
     def _make_select_permissions(self):
         from sqlalchemy.sql.expression import select, literal_column

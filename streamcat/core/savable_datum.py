@@ -654,10 +654,10 @@ class SavableDatum(Datum, BaseModel):
 
         # SQLを発行する
         # FIXME: session.execute()の実行でCOMMITが発行されるようだ
-        results = self._session.execute(select_stmt)
-        return [{'reference_uuid' :result[0],
-                 'reference_label':result[1],
-                 'referenced_uuid':result[2]} for result in results]
+        rows = self._session.execute(select_stmt).all()
+        return [{'reference_uuid' :row[0],
+                 'reference_label':row[1],
+                 'referenced_uuid':row[2]} for row in rows]
 
     @staticmethod
     def move_file(old_path, new_path):

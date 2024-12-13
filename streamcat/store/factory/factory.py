@@ -168,7 +168,7 @@ class Factory():
         """)
 
         try:
-            return self._session.execute(sql)
+            return self._session.execute(sql).all()
         except Exception as e:
             self._session.rollback()
             raise e
@@ -639,21 +639,21 @@ class AuthFactory():
         """
         Authzテーブルから指定したDatumの権限情報を全て削除する
         """
-        from sqlalchemy import exists, and_
+        from sqlalchemy import delete, exists, and_
         from streamcat.store.auth import Auth, Role
 
-        query = self._session.query(Auth).filter(Auth.datum_id==datum_id)
+        stmt = delete(Auth).filter(Auth.datum_id==datum_id)
         if except_role_uuids is None or len(except_role_uuids) == 0:
             synchronize_session = 'evaluate'
         else:
             not_exists_except_role = ~exists().where(and_(Role.id==Auth.role_id, Role.uuid.in_(except_role_uuids)))
-            query = query.filter(not_exists_except_role)
+            stmt = stmt.filter(not_exists_except_role)
             synchronize_session = 'fetch'
 
         try:
             # 抽出条件にサブクエリなどを使ってDELETEする場合は
             # synchronize_sessionにFalseか'fetch'の指定が必要
-            query.delete(synchronize_session=synchronize_session)
+            self._session.execute(stmt, synchronize_session=synchronize_session)
         except Exception as e:
             self._session.rollback()
             raise e
@@ -767,8 +767,10 @@ class UserRoleFactory():
         """
         UsersRolesテーブルから指定したユーザの所属情報を全て削除する
         """
+        from sqlalchemy import delete
+        stmt = delete(UserRole).where(UserRole.user_id==user_id)
         try:
-            self._session.query(UserRole).filter(UserRole.user_id==user_id).delete()
+            self._session.execute(stmt)
         except Exception as e:
             self._session.rollback()
             raise e
@@ -777,14 +779,13 @@ class UserRoleFactory():
         """
         UsersRolesテーブルから指定したロールの所属情報を全て削除する
         """
-        query = self._session.query(UserRole).filter(UserRole.role_id==role_id)
-
+        from sqlalchemy import delete
+        stmt = delete(UserRole).where(UserRole.role_id==role_id)
         # 削除から除外するユーザが指定されている場合
         if except_user_id is not None:
-            query = query.filter(UserRole.user_id!=except_user_id)
-
+            stmt = stmt.filter(UserRole.user_id!=except_user_id)
         try:
-            query.delete()
+            self._session.execute(stmt)
         except Exception as e:
             self._session.rollback()
             raise e

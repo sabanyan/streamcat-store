@@ -131,8 +131,8 @@ class Mountable():
                       AND to_tsvector(D.data) @@ to_tsquery(cast(R.uuid AS VARCHAR)))
         """)
         try:
-            results = self._session.execute(sql)
-            return [result[0] for result in results]
+            rows = self._session.execute(sql).all()
+            return [row[0] for row in rows]
         except Exception as e:
             self._session.rollback()
             raise e
@@ -176,18 +176,18 @@ class Mountable():
         ORDER BY id
         """)
         try:
-            results = session.execute(sql)
+            rows = session.execute(sql).all()
         except Exception as e:
             session.rollback()
             raise e
 
         factory = DatumFactory(session)
 
-        for result in results:
-            mount_point_path = SavableDatum._to_abs_path(Path(result[1]))
+        for row in rows:
+            mount_point_path = SavableDatum._to_abs_path(Path(row[1]))
             if not Mountable.is_mount(mount_point_path):
-                uuid = str(result[0])
-                type = str(result[2])
+                uuid = str(row[0])
+                type = str(row[2])
                 if type == SavableDatum.AWSS3_TYPE:
                     awss3 = factory.find_by_uuid(uuid)
                     awss3.mount(mount_point_path)
