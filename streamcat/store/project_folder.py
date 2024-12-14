@@ -112,7 +112,7 @@ class ProjectFolder(Folder):
         """
         Readersロールを取得する
         """
-        from sqlalchemy import exists, and_
+        from sqlalchemy import select, exists, and_
         from streamcat.store.auth import User, Role, Auth
 
         not_exists_self_role = ~exists().where(User.self_role_id==Role.id)
@@ -121,22 +121,23 @@ class ProjectFolder(Folder):
         exists_exec      =  exists().where(and_(Auth.datum_id==self.id, Auth.role_id==Role.id, Auth.operation==Auth.EXEC_OP))
         not_exists_own   = ~exists().where(and_(Auth.datum_id==self.id, Auth.role_id==Role.id, Auth.operation==Auth.OWN_OP))
 
-        query = self._session.query(Role).\
-                     filter(Role.uuid.notin_([Role.SYS_ADMIN_ROLE_UUID, Role.USR_ADMIN_ROLE_UUID, Role.EVERYONE_ROLE_UUID])).\
-                     filter(not_exists_self_role).\
-                     filter(exists_read).\
-                     filter(not_exists_write).\
-                     filter(exists_exec).\
-                     filter(not_exists_own)
-        
+        stmt =  select(Role).\
+                where(Role.uuid.notin_([Role.SYS_ADMIN_ROLE_UUID, Role.USR_ADMIN_ROLE_UUID, Role.EVERYONE_ROLE_UUID])).\
+                where(not_exists_self_role).\
+                where(exists_read).\
+                where(not_exists_write).\
+                where(exists_exec).\
+                where(not_exists_own).\
+                order_by(Role.id)
+
         # 複数のロールが紐づいている場合は、role_idが小さい方がプロジェクトロールのはず
-        return query.order_by(Role.id).first()   
+        return self._session.scalars(stmt).first()
 
     def _find_writers_role(self):
         """
         Writersロールを取得する
         """
-        from sqlalchemy import exists, and_
+        from sqlalchemy import select, exists, and_
         from streamcat.store.auth import User, Role, Auth
 
         not_exists_self_role = ~exists().where(User.self_role_id==Role.id)
@@ -145,22 +146,23 @@ class ProjectFolder(Folder):
         not_exists_exec  = ~exists().where(and_(Auth.datum_id==self.id, Auth.role_id==Role.id, Auth.operation==Auth.EXEC_OP))
         not_exists_own   = ~exists().where(and_(Auth.datum_id==self.id, Auth.role_id==Role.id, Auth.operation==Auth.OWN_OP))
 
-        query = self._session.query(Role).\
-                     filter(Role.uuid.notin_([Role.SYS_ADMIN_ROLE_UUID, Role.USR_ADMIN_ROLE_UUID, Role.EVERYONE_ROLE_UUID])).\
-                     filter(not_exists_self_role).\
-                     filter(not_exists_read).\
-                     filter(exists_write).\
-                     filter(not_exists_exec).\
-                     filter(not_exists_own)
-        
+        stmt =  select(Role).\
+                where(Role.uuid.notin_([Role.SYS_ADMIN_ROLE_UUID, Role.USR_ADMIN_ROLE_UUID, Role.EVERYONE_ROLE_UUID])).\
+                where(not_exists_self_role).\
+                where(not_exists_read).\
+                where(exists_write).\
+                where(not_exists_exec).\
+                where(not_exists_own).\
+                order_by(Role.id)
+
         # 複数のロールが紐づいている場合は、role_idが小さい方がプロジェクトロールのはず
-        return query.order_by(Role.id).first()   
+        return self._session.scalars(stmt).first()
 
     def _find_owners_role(self):
         """
         Ownersロールを取得する
         """
-        from sqlalchemy import exists, and_
+        from sqlalchemy import select, exists, and_
         from streamcat.store.auth import User, Role, Auth
 
         not_exists_self_role = ~exists().where(User.self_role_id==Role.id)
@@ -169,16 +171,17 @@ class ProjectFolder(Folder):
         not_exists_exec  = ~exists().where(and_(Auth.datum_id==self.id, Auth.role_id==Role.id, Auth.operation==Auth.EXEC_OP))
         exists_own       =  exists().where(and_(Auth.datum_id==self.id, Auth.role_id==Role.id, Auth.operation==Auth.OWN_OP))
 
-        query = self._session.query(Role).\
-                     filter(Role.uuid.notin_([Role.SYS_ADMIN_ROLE_UUID, Role.USR_ADMIN_ROLE_UUID, Role.EVERYONE_ROLE_UUID])).\
-                     filter(not_exists_self_role).\
-                     filter(not_exists_read).\
-                     filter(not_exists_write).\
-                     filter(not_exists_exec).\
-                     filter(exists_own)
-        
+        stmt =  select(Role).\
+                where(Role.uuid.notin_([Role.SYS_ADMIN_ROLE_UUID, Role.USR_ADMIN_ROLE_UUID, Role.EVERYONE_ROLE_UUID])).\
+                where(not_exists_self_role).\
+                where(not_exists_read).\
+                where(not_exists_write).\
+                where(not_exists_exec).\
+                where(exists_own).\
+                order_by(Role.id)
+
         # 複数のロールが紐づいている場合は、role_idが小さい方がプロジェクトロールのはず
-        return query.order_by(Role.id).first()       
+        return self._session.scalars(stmt).first()
 
     def _load_readers_role(self):
         """
@@ -278,7 +281,7 @@ class ProjectFolder(Folder):
         return new_project
 
     def is_joined_user(self, user):
-        from sqlalchemy import select, any_
+        from sqlalchemy import select, func, any_
         from streamcat.store.auth import User, Auth, UserRole
 
         # 操作ユーザの所属するロールを抽出するクエリ
@@ -286,11 +289,10 @@ class ProjectFolder(Folder):
         U  = select(User.self_role_id).select_from(User).where(User.id==user.id)
 
         # ロールの抽出にはインデックスを参照させるためUNIONを用いる
-        query = self._session.query(Auth).\
-                     filter(Auth.datum_id==self.id).\
-                     filter(Auth.role_id==any_(UR.union_all(U)).scalar_subquery())
-
-        return query.count() > 0
+        stmt =  select(func.count(Auth.id)).\
+                where(Auth.datum_id==self.id).\
+                where(Auth.role_id==any_(UR.union_all(U)).scalar_subquery())
+        return self._session.scalars(stmt).one() > 0
 
     def is_last_owner(self, user):
         """
@@ -371,6 +373,7 @@ class ProjectFolder(Folder):
         """
         プロジェクトの所属ユーザを初期化する
         """
+        from sqlalchemy import select
         from streamcat.store.auth import Role, NotAuthorizedException
         from .exceptions import OptimisticLockException
 
@@ -404,8 +407,9 @@ class ProjectFolder(Folder):
         # (メンバの更新はRoleの更新だが、3つのRoleの最終更新時刻をProjectを取得するたびに
         #  返すのはSQLのコストが高いと考え、Projectの最終更新時刻を利用することにした)
         # 
-        result = self._session.query(ProjectFolder.modified_at).filter(ProjectFolder.id==self.id).one_or_none()
-        if result is None or last_modified_at != result[0]:
+        stmt = select(ProjectFolder.modified_at).where(ProjectFolder.id==self.id)
+        modified_at = self._session.scalars(stmt).one_or_none()
+        if modified_at != last_modified_at:
             raise OptimisticLockException(f'プロジェクト({self.label})は他ユーザーが編集しているため更新できませんでした')
         # 最終更新時刻を更新する
         self._update_timestamp()
@@ -516,7 +520,7 @@ class ProjectFolder(Folder):
                             2: ProjectFolder.READER_MEMBER_TYPE,
                             9: ProjectFolder.UNKNOWN_TYPE}
 
-        query = self._session.query(
+        stmt =  select(
                     User,
                     case(
                         {READER_PERMISSIONS : 2,
@@ -541,7 +545,7 @@ class ProjectFolder(Folder):
 
         # Queryオブジェクトに代わりここでUserオブジェクトにsessionを設定する
         members = []
-        for row in query.all():
+        for row in self._session.execute(stmt).all():
             user = row[0]
             type = MEMBER_TYPE_CONV.get(row[1])
             user._session = self._session

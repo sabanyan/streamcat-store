@@ -63,17 +63,19 @@ class SavableStore(Store, SavableDatum):
 
     def _dir_path_exists(self, dir_path, except_id):
         import os
+        from sqlalchemy import select
 
         rel_path = SavableDatum._to_rel_path(dir_path)
 
-        results = self._session.query(SavableDatum._path)\
-                 .filter(SavableDatum._path.like(rel_path.as_posix() + '%'))\
-                 .filter(SavableDatum.id != except_id).all()
+        stmt =  select(SavableDatum._path).\
+                where(SavableDatum._path.like(rel_path.as_posix() + '%')).\
+                where(SavableDatum.id != except_id)
+        rows = self._session.scalars(stmt).all()
 
-        for result in results:
-            if result._path == dir_path:
+        for path in rows:
+            if path == dir_path:
                 return True
-            if os.path.commonpath([result._path, dir_path]) == dir_path.as_posix():
+            if os.path.commonpath([path, dir_path]) == dir_path.as_posix():
                 return True
         return False
 

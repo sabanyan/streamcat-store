@@ -134,7 +134,7 @@ class SavableDatum(Datum, BaseModel):
     # 移動前のフォルダパス
     _prev_folder_path = query_expression()
 
-    # これを設定することで、session.query(Datum).all()でもサブクラスの型で結果を得ることができる
+    # これを設定することで、session.scalars().all()でもサブクラスの型で結果を得ることができる
     __mapper_args__ = {
         'polymorphic_on' : type
     }
@@ -264,8 +264,9 @@ class SavableDatum(Datum, BaseModel):
         """
         自分の親を取得する
         """
-        return self._session.query(SavableDatum)\
-                            .filter(SavableDatum.id==self.parent_id).one()
+        from sqlalchemy import select
+        stmt = select(SavableDatum).where(SavableDatum.id==self.parent_id)
+        return self._session.scalars(stmt).one()
 
     def find_my_project(self):
         """
@@ -540,13 +541,21 @@ class SavableDatum(Datum, BaseModel):
         if not self.readable:
             raise NotAuthorizedException(f'{self._session.user.name}は{self.label}の参照権限がありません({self.readable})')
 
-    def _update_same_path(self, old_path, new_path, modifier):
-        # 同じファイルに対応するフォルダのpath列を、ファイル名の移動に合わせて変更する
-        results = self._session.query(SavableDatum).filter(SavableDatum._path == old_path).all(ignore_authz=True)
-        for result in results:
-            result._path = SavableDatum._to_rel_path(new_path)
-            result._modifier_id = (modifier or self._session.user).id
-            self._session.update(result, ignore_authz=True)
+    def _update_same_path(self, old_path:Path, new_path:Path, modifier):
+        """
+        同じファイルに対応するフォルダのpath列を、ファイル名の移動に合わせて変更する
+        """
+        from sqlalchemy import update
+        update_stmt=update(SavableDatum).\
+                    where(SavableDatum._path == old_path).\
+                    values(
+                        # 相対パスへの変換はPathTypeに任せる
+                        # NOTE: ここで格納した値はSessionにもそのまま反映されるため
+                        _path=new_path,
+                        _modifier_id=(modifier or self._session.user).id
+                    )
+        # Datumの権限を無視して更新する
+        self._session.execute(update_stmt)
 
     def _update_include_path(self, old_path, new_path, modifier=None):
         import re

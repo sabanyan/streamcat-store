@@ -32,19 +32,22 @@ class Flow(SavableDatum):
 
     @property
     def flow_data(self):
+        from sqlalchemy import select
         def select_unreadables(uuids:list[str]) -> list[str]:
             """
             指定したuuidのうち参照権限の無いuuidを返す
             """
-            results = self._session.query(SavableDatum).filter(SavableDatum.uuid.in_(uuids)).all(ignore_authz=True)
-            return [result.uuid for result in results if not result.readable]
+            stmt = select(SavableDatum).filter(SavableDatum.uuid.in_(uuids))
+            rows = self._session.scalars(stmt).all(ignore_authz=True)
+            return [row.uuid for row in rows if not row.readable]
 
         def select_unexecutables(uuids:list[str]) -> list[str]:
             """
             指定したuuidのうち実行権限の無いuuidを返す
             """
-            results = self._session.query(SavableDatum).filter(SavableDatum.uuid.in_(uuids)).all(ignore_authz=True)
-            return [result.uuid for result in results if not result.executable]
+            stmt = select(SavableDatum).filter(SavableDatum.uuid.in_(uuids))
+            rows = self._session.scalars(stmt).all(ignore_authz=True)
+            return [row.uuid for row in rows if not row.executable]
 
         return FlowData(self._data['flow'], select_unreadables, select_unexecutables, self._readable_or_raise, self._executable_or_raise)
 

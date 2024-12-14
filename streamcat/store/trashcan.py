@@ -20,8 +20,9 @@ class TrashCan(Folder):
         """
         ゴミ箱が存在する場合はTrueを返す
         """
-        result = self._session.query(SavableDatum).filter(SavableDatum.type==SavableDatum.TRASH_TYPE).count()
-        return result > 0
+        from sqlalchemy import select, func
+        stmt = select(func.count(SavableDatum.id)).where(SavableDatum.type==SavableDatum.TRASH_TYPE)
+        return self._session.scalars(stmt).one() > 0
 
     def save(self):
         """

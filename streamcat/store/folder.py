@@ -302,47 +302,44 @@ class Folder(SavableStore):
         """
         自分の直下の子Datumを全て取得する
         """
-        from sqlalchemy import desc
+        from sqlalchemy import select, desc
 
         # 参照権限が無ければ直下の子Datumは取得できない
         self._readable_or_raise()
 
-        data = self._session.query(SavableDatum, prev_folder_path=prev_folder_path).\
-                             filter(SavableDatum.parent_id==self.id).\
-                             order_by(SavableDatum.type, desc(SavableDatum.created_at)).\
-                             offset(offset).limit(limit).\
-                             all()
-        return data
+        stmt =  select(SavableDatum).\
+                where(SavableDatum.parent_id==self.id).\
+                order_by(SavableDatum.type, desc(SavableDatum.created_at)).\
+                offset(offset).limit(limit)
+        return self._session.scalars(stmt, prev_folder_path=prev_folder_path).all()
 
     def find_children_by_label(self, label, type=None):
         """
         指定したuuidの親と指定したラベル名のレコードを全て取得する
         """
-        from sqlalchemy import desc
+        from sqlalchemy import select, exists, desc
         from sqlalchemy.orm import aliased
 
         # 参照権限が無ければ直下の子Datumは取得できない
         self._readable_or_raise()
 
         f2 = aliased(SavableDatum)
-        sub_query = self._session.query(f2)
-        query = self._session.query(SavableDatum)\
-                        .filter(sub_query.filter(f2.id==SavableDatum.parent_id)
-                                         .filter(f2.uuid==self.uuid).exists())\
-                        .filter(SavableDatum._label==label)
+        parent_exists = exists().where(f2.id==SavableDatum.parent_id).where(f2.uuid==self.uuid)
+        stmt = select(SavableDatum).where(parent_exists).where(SavableDatum._label==label)
 
         if type is not None:
-            query = query.filter(SavableDatum.type==type)
+            stmt = stmt.filter(SavableDatum.type==type)
 
         # フロー名フォルダが重複している場合は最も新しいフォルダに結果を格納する
-        query = query.order_by(SavableDatum.type, desc(SavableDatum.created_at))
+        stmt = stmt.order_by(SavableDatum.type, desc(SavableDatum.created_at))
 
-        return query.all()
+        return self._session.scalars(stmt).all()
 
     def find_child_by_uuid(self, uuid):
         """
         自分の直下の子から指定されたUUIDのDatumを取得する
         """
+        from sqlalchemy import select
 
         # 参照権限が無ければ直下の子Datumは取得できない
         self._readable_or_raise()
@@ -350,15 +347,17 @@ class Folder(SavableStore):
         # UUID値の形式チェックをする
         Datum.valid_uuid_or_raise(uuid)
 
-        data = self._session.query(SavableDatum).filter(SavableDatum.parent_id==self.id).\
-                            filter(SavableDatum.uuid==uuid).one()
-
-        return data
+        stmt =  select(SavableDatum).\
+                where(SavableDatum.parent_id==self.id).\
+                where(SavableDatum.uuid==uuid)
+        return self._session.scalars(stmt).one()
 
     def count_children(self):
+        from sqlalchemy import select, func
         # 参照権限が無ければ直下の子Datumは取得できない
         self._readable_or_raise()
-        return self._session.query(SavableDatum).filter(SavableDatum.parent_id==self.id).count()
+        stmt = select(func.count(SavableDatum.id)).where(SavableDatum.parent_id==self.id)
+        return self._session.scalars(stmt).one()
 
     def make_unique_label(self, label, except_uuid=None):
         """

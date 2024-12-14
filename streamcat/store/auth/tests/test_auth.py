@@ -2059,7 +2059,9 @@ class AuthTest(TestCaseBase):
         self.assertEqual(len(folder1.find_children()), 0)
 
         # ただし、参照不可であってもcount()によって件数の取得は可能としている
-        result = self.factory._session.query(SavableDatum).filter(SavableDatum.parent_id==folder1.id).count()
+        from sqlalchemy import select, func
+        stmt = select(func.count(SavableDatum.id)).where(SavableDatum.parent_id==folder1.id)
+        result = self.factory._session.scalars(stmt).one()
         self.assertEqual(result, 1)
 
         # フローとフォルダ1を削除する
