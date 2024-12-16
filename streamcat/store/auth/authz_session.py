@@ -17,7 +17,16 @@ class Session():
     @property
     def user(self):
         return self._user
-    
+
+    def print(self, stmt):
+        """
+        SQL文を出力する
+        """
+        from sqlalchemy.dialects import postgresql
+        # paramstyle='named' : %, _, / などの特殊文字を重複して出力しない
+        sql = str(stmt.compile(dialect=postgresql.dialect(paramstyle='named'), compile_kwargs={'literal_binds':True}))
+        print(sql)
+
     def end(self):
         if self._rollback:
             self._session.rollback()
@@ -66,7 +75,7 @@ class Session():
         if _is_unittest():
             # カレントスキーマを設定する
             # (コミットされると、セッションが終了するまでその設定が持続する)
-            sql1 = text(f'SET search_path = {SCHEMA_NAME}; commit;')
+            sql1 = text(f'SET search_path = {SCHEMA_NAME};')
             self._session.execute(sql1)
 
         # updateまたはdeleteを実行する場合

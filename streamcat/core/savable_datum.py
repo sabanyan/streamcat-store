@@ -34,7 +34,12 @@ class SavableDatum(Datum, BaseModel):
 
         # _pathに対してLike式を用いる時に必要
         def coerce_compared_value(self, op, value):
-            if op in (operators.like_op, operators.notlike_op, operators.startswith_op):
+            if op in (operators.like_op, operators.notlike_op, operators.istartswith_op):
+                return String()
+            elif op == operators.comma_op:
+                # TODO: updateのistartswithやregexp_replaceへの
+                # 関数引数にPathオブジェクトを渡すときのopはcomma_opになる
+                # SQLAlchemyの仕様に基づいた挙動か否かは不明
                 return String()
             else:
                 return self
@@ -119,6 +124,7 @@ class SavableDatum(Datum, BaseModel):
                                 UNKNOWN_TYPE,
                                 name='data_type'), nullable=False)
     _label       = Column('label', String)
+    # テーブルにはSTORE_DIRを起点とする相対パスを格納する
     _path        = Column('path', PathType, nullable=False)
     _data        = Column('data', JSONB)
     _desc        = Column('desc', String)
@@ -340,7 +346,8 @@ class SavableDatum(Datum, BaseModel):
             raise Exception('移動先と移動元の指定が同じです')
 
         # 移動先が移動元フォルダの配下になる場合は例外を送出する
-        if self.type == SavableDatum.FOLDER_TYPE:
+        if self.type in (SavableDatum.PROJECT_TYPE, SavableDatum.FOLDER_TYPE):
+            # TODO: move_file()で例外が送出され、ROLLBACKされるため、事前のチェック処理の実装を保留する
             pass
 
         # 移動元フォルダのIDを控えておく
@@ -402,9 +409,12 @@ class SavableDatum(Datum, BaseModel):
                     new_path = to_folder.path / self._path.name
                     new_path = SavableDatum.make_unique_path(new_path, except_path=old_path)
                     # ファイル名の移動によって他のDatumのpathが変更が必要であれば変更する
-                    self._update_same_path(old_path, new_path, modifier)
                     if isinstance(self, Folder):
+                        # フォルダを移動する場合は、そのフォルダ以下の全てのDatumのpath列を変更する
                         self._update_include_path(old_path, new_path, modifier)
+                    else:
+                        # 同じファイルを共有するFrameまたはDocumentが存在する場合は、そのpath列も変更する
+                        self._update_same_path(old_path, new_path, modifier)
             else:
                 # PylanceのWarning対策
                 old_path = None
@@ -557,27 +567,48 @@ class SavableDatum(Datum, BaseModel):
         # Datumの権限を無視して更新する
         self._session.execute(update_stmt)
 
-    def _update_include_path(self, old_path, new_path, modifier=None):
+    def _update_include_path(self, old_path:Path, new_path:Path, modifier=None):
+        """
+        同じディレクトリを含むpath列を、ディレクトリの移動に合わせて変更する
+        """
         import re
-        # 同じディレクトリを含むpath列を、ディレクトリの移動に合わせて変更する
+        from sqlalchemy import update
+
+        # 相対パスの文字列に変換する
         rel_old_path = SavableDatum._to_rel_path(old_path).as_posix()
-        # ファイルパスに正規表現文字が含まれていればエスケープする
-        old_path_pattern = '^' + re.escape(rel_old_path) + '/'
-        # autoescape=True : LIKEのワイルドカード%と_をエスケープする
-        results = self._session.query(SavableDatum)\
-                      .filter(SavableDatum._path!=None)\
-                      .filter(SavableDatum._path.startswith(rel_old_path, autoescape=True))\
-                      .all(ignore_authz=True)
+        rel_new_path = SavableDatum._to_rel_path(new_path).as_posix()
 
-        for result in results:
-            rel_new_path = SavableDatum._to_rel_path(new_path).as_posix() + '/'
-            rel_result_path = SavableDatum._to_rel_path(result._path).as_posix()
-            # re.sub(正規表現, 置換する文字列, 置換対象の文字列)
-            replaced_path = re.sub(old_path_pattern, rel_new_path, rel_result_path)
+        # istartswithに設定するパターン文字列を作成する
+        # (ファイルパスにLIKEのワイルドカードが含まれていればエスケープする)
+        old_path_pattern1 = self._escape_like(rel_old_path) + '/'
 
-            result._path = Path(replaced_path)
-            result._modifier_id = (modifier or self._session.user).id
-            self._session.update(result, ignore_authz=True)
+        # regexp_replaceに設定するパターン文字列を作成する
+        # (ファイルパスに正規表現文字が含まれていればエスケープする)
+        old_path_pattern2 = '^' + re.escape(rel_old_path) + '/'
+
+        # regexp_replaceに設定する置き換え文字列
+        # (移動先のディレクトリのパス)
+        rel_new_dir_path = rel_new_path + '/'
+
+        # startswith()はupdateのwhere句で使うと何故か例外が送出されるのでistartswith()を使う
+        update_stmt=update(SavableDatum).\
+                    where(SavableDatum._path!=None).\
+                    where(SavableDatum._path.istartswith(old_path_pattern1)).\
+                    values(
+                        _path = SavableDatum._path.regexp_replace(old_path_pattern2, rel_new_dir_path),
+                        _modifier_id=(modifier or self._session.user).id
+                    )
+        # Datumの権限を無視して更新する
+        self._session.execute(update_stmt, synchronize_session='fetch')
+
+    def _ref_path(self):
+        """
+        間に合わせの_path参照
+        """
+        # TODO: Session.delete()内のflush()が呼ばれた後に
+        # _remove_file()内でDatum._pathを参照された時にObjectDeletedErrorが送出される
+        # これを回避するためSession.delete()の前に_pathを参照する
+        self._path
 
     def get_flow_uuids_using_me(self):
         """

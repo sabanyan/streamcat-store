@@ -119,6 +119,8 @@ class File(SavableDatum):
             raise Exception(f"このファイルはフロー({using_flow_uuids[0]['reference_label']})で使用しているため削除できません")
 
         try:
+            # TODO: ObjectDeletedError回避するためSession.delete()の前に_pathを参照する
+            self._ref_path()
             # フレームレコードを削除する
             self._session.delete(self)
             # ファイルを削除する

@@ -179,6 +179,8 @@ class Folder(SavableStore):
         if self.count_children() > 0:
             raise Exception(f'空でないフォルダは削除できません')
         try:
+            # TODO: ObjectDeletedError回避するためSession.delete()の前に_pathを参照する
+            self._ref_path()
             # フォルダレコードを削除する
             self._session.delete(self)
             # ディレクトリを削除する

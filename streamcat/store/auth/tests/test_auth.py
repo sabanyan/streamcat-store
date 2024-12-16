@@ -3662,6 +3662,9 @@ class AuthTest(TestCaseBase):
         # フォルダをほかす
         folder.throw_away()
 
+        # 変更を確定する
+        self.factory2.end()
+
         # プロジェクトメンバ以外のユーザがゴミを参照できないこと
         with self.assertRaises(NotAuthorizedException):
             self.factory3.data.find_by_uuid(folder.uuid)
@@ -3709,10 +3712,13 @@ class AuthTest(TestCaseBase):
         # フォルダの下にフローを作成する
         flow = folder.create_flow('みっつ、醜い浮世の鬼を', FlowData({'label': '退治てくれよう桃太郎！'}))
         flow.save()
-        flow = flow.reload() 
+        flow = flow.reload()
 
         # フォルダをほかす
         folder.throw_away()
+
+        # 変更を確定する
+        self.factory2.end()
 
         # 閲覧者はゴミを参照できること
         folder = self.factory3.data.find_by_uuid(folder.uuid)
@@ -3731,6 +3737,15 @@ class AuthTest(TestCaseBase):
         # 閲覧者はゴミを物理削除できないこと
         with self.assertRaises(NotAuthorizedException):
             flow.delete()
+
+        # 
+        # DBのデッドロックを回避するため、ここで変更を確定する
+        # 
+        # NOTE: Session.execute()でSET search_pathの設定時にCOMMITも発行していたが
+        # ロールバックを行うテストコードで不具合が発生したため、COMMIT処理を削除した
+        # その影響により、ここで変更を確定する必要が生じた
+        self.factory3.end()
+
         # 空でないフォルダは削除できない
         with self.assertRaises(Exception):
             folder.delete()
@@ -3781,6 +3796,9 @@ class AuthTest(TestCaseBase):
         # フォルダをほかす
         # (データソースはフローから参照されているので、ゴミ箱にフォルダの形代が作成される)
         trashed_folder = folder.throw_away()
+
+        # 変更を確定する
+        self.factory2.end()
 
         # プロジェクトメンバ以外のユーザは、形代フォルダを参照できないこと
         with self.assertRaises(NotAuthorizedException):
@@ -3845,6 +3863,9 @@ class AuthTest(TestCaseBase):
         # USER3を閲覧者としてプロジェクトメンバに加える
         project.join_member(ProjectFolder.Member(self.USER3, ProjectFolder.READER_MEMBER_TYPE))
 
+        # 変更を確定する
+        self.factory2.end()
+
         # 閲覧者は、形代フォルダを参照できること
         trashed_folder = self.factory3.data.find_by_uuid(trashed_folder.uuid)
 
@@ -3899,6 +3920,9 @@ class AuthTest(TestCaseBase):
 
         # フォルダをほかす
         folder.throw_away()
+
+        # 変更を確定する
+        self.factory2.end()
 
         # 編集者はゴミを参照できること
         folder = self.factory3.data.find_by_uuid(folder.uuid)
@@ -4075,6 +4099,9 @@ class AuthTest(TestCaseBase):
 
         # フローを削除する
         flow.delete()
+
+        # フローの削除を確定する
+        self.factory2.end()
 
         # 閲覧者は、キャッシュと実行結果を削除できないこと
         with self.assertRaises(NotAuthorizedException):
@@ -4265,6 +4292,9 @@ class AuthTest(TestCaseBase):
         # フローを削除する
         flow.delete()
         duplicated_flow.delete()
+
+        # 削除を確定する
+        self.factory3.end()
 
         # プロジェクトを削除する
         project.delete()

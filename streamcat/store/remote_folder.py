@@ -86,6 +86,8 @@ class RemoteFolder(Mountable, SavableStore):
             raise Exception(f"このStoreはローダ・セーバ({using_flow_uuids[0]['reference_label']})で使用しているため削除できません")
 
         try:
+            # TODO: ObjectDeletedError回避するためSession.delete()の前に_pathを参照する
+            self._ref_path()
             # フォルダレコードを削除する
             self._session.delete(self)
             # 共有フォルダをマウント解除する
