@@ -80,14 +80,6 @@ class SCatBaseModel(object):
         return ret.getvalue()
 
     @staticmethod
-    def _escape_like(pattern:str):
-        """
-        SQLのLIKE句で使用する特殊文字をエスケープする
-        """
-        # Python文字列では'\'がエスケープ文字として扱われるため、'\\'にエスケープする
-        return pattern.replace('%', '\%').replace('\\', '\\').replace('_', '\_')
-
-    @staticmethod
     def _get_encrypt_password(password):
         """
         パスワードを暗号化する

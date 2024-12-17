@@ -34,10 +34,10 @@ class SavableDatum(Datum, BaseModel):
 
         # _pathに対してLike式を用いる時に必要
         def coerce_compared_value(self, op, value):
-            if op in (operators.like_op, operators.notlike_op, operators.istartswith_op):
+            if op in (operators.like_op, operators.notlike_op, operators.startswith_op):
                 return String()
             elif op == operators.comma_op:
-                # TODO: updateのistartswithやregexp_replaceへの
+                # TODO: updateのstartswithやregexp_replaceへの
                 # 関数引数にPathオブジェクトを渡すときのopはcomma_opになる
                 # SQLAlchemyの仕様に基づいた挙動か否かは不明
                 return String()
@@ -578,9 +578,8 @@ class SavableDatum(Datum, BaseModel):
         rel_old_path = SavableDatum._to_rel_path(old_path).as_posix()
         rel_new_path = SavableDatum._to_rel_path(new_path).as_posix()
 
-        # istartswithに設定するパターン文字列を作成する
-        # (ファイルパスにLIKEのワイルドカードが含まれていればエスケープする)
-        old_path_pattern1 = self._escape_like(rel_old_path) + '/'
+        # startswithに設定するパターン文字列を作成する
+        old_path_pattern1 = rel_old_path + '/'
 
         # regexp_replaceに設定するパターン文字列を作成する
         # (ファイルパスに正規表現文字が含まれていればエスケープする)
@@ -590,10 +589,12 @@ class SavableDatum(Datum, BaseModel):
         # (移動先のディレクトリのパス)
         rel_new_dir_path = rel_new_path + '/'
 
-        # startswith()はupdateのwhere句で使うと何故か例外が送出されるのでistartswith()を使う
+        # startswith()
+        # autoescape=True: ワイルドカードが含まれていればエスケープする
+        # escape='\\'    : エスケープ文字を'\'に指定する
         update_stmt=update(SavableDatum).\
                     where(SavableDatum._path!=None).\
-                    where(SavableDatum._path.istartswith(old_path_pattern1)).\
+                    where(SavableDatum._path.startswith(old_path_pattern1, autoescape=True, escape='\\')).\
                     values(
                         _path = SavableDatum._path.regexp_replace(old_path_pattern2, rel_new_dir_path),
                         _modifier_id=(modifier or self._session.user).id
