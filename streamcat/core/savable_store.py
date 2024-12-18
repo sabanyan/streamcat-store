@@ -70,9 +70,9 @@ class SavableStore(Store, SavableDatum):
         stmt =  select(SavableDatum._path).\
                 where(SavableDatum._path.like(rel_path.as_posix() + '%')).\
                 where(SavableDatum.id != except_id)
-        rows = self._session.scalars(stmt).all()
+        paths = self._session.scalars(stmt).all()
 
-        for path in rows:
+        for path in paths:
             if path == dir_path:
                 return True
             if os.path.commonpath([path, dir_path]) == dir_path.as_posix():

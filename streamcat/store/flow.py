@@ -38,16 +38,16 @@ class Flow(SavableDatum):
             指定したuuidのうち参照権限の無いuuidを返す
             """
             stmt = select(SavableDatum).filter(SavableDatum.uuid.in_(uuids))
-            rows = self._session.scalars(stmt).all(ignore_authz=True)
-            return [row.uuid for row in rows if not row.readable]
+            data = self._session.scalars(stmt).all(ignore_authz=True)
+            return [datum.uuid for datum in data if not datum.readable]
 
         def select_unexecutables(uuids:list[str]) -> list[str]:
             """
             指定したuuidのうち実行権限の無いuuidを返す
             """
             stmt = select(SavableDatum).filter(SavableDatum.uuid.in_(uuids))
-            rows = self._session.scalars(stmt).all(ignore_authz=True)
-            return [row.uuid for row in rows if not row.executable]
+            data = self._session.scalars(stmt).all(ignore_authz=True)
+            return [datum.uuid for datum in data if not datum.executable]
 
         return FlowData(self._data['flow'], select_unreadables, select_unexecutables, self._readable_or_raise, self._executable_or_raise)
 
