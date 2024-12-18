@@ -684,7 +684,8 @@ class SavableDatum(Datum, BaseModel):
         jsonpath0 = '$.flow.nodes?(@.type != "command" && @.type != "note").**.uuid?(@!=null)'
 
         # NOTE: jsonb_path_query()をcoalesce()の引数に指定できない
-        U0 = select(D.c.uuid,
+        U0 = select(D.c.id,
+                    D.c.uuid,
                     D.c.label,
                     func.jsonb_path_query(D.c.data, jsonpath0).label('ref_uuid')).\
             select_from(D).\
@@ -693,7 +694,8 @@ class SavableDatum(Datum, BaseModel):
         # スケジュールから参照するUUID
         jsonpath1 = '$.runnable?(@!=null)'
 
-        U1 = select(D.c.uuid,
+        U1 = select(D.c.id,
+                    D.c.uuid,
                     D.c.label,
                     func.jsonb_path_query(D.c.data, jsonpath1).label('ref_uuid')).\
             select_from(D).\
@@ -708,17 +710,20 @@ class SavableDatum(Datum, BaseModel):
         exists_inner = exists().where(predicate)
 
         # メインSQL
-        select_stmt = select(U.c.uuid,U.c.label,U.c.ref_uuid).\
+        # NOTE: Flowの出力先がDBやリモートフォルダの場合は、その結果はFlowになる
+        # 一方エラーメッセージには、結果のFlowよりもその結果を出力したFlowの方を優先的に表示したいので
+        # order_by()でidを指定している
+        select_stmt = select(U.c.id,U.c.uuid,U.c.label,U.c.ref_uuid).\
                       select_from(U).\
                       where(exists_inner).\
-                      distinct()
+                      distinct().\
+                      order_by(U.c.id)
 
         # SQLを発行する
-        # FIXME: session.execute()の実行でCOMMITが発行されるようだ
         rows = self._session.execute(select_stmt).all()
-        return [{'reference_uuid' :row[0],
-                 'reference_label':row[1],
-                 'referenced_uuid':row[2]} for row in rows]
+        return [{'reference_uuid' :row[1],
+                 'reference_label':row[2],
+                 'referenced_uuid':row[3]} for row in rows]
 
     @staticmethod
     def move_file(old_path, new_path):
