@@ -1,4 +1,3 @@
-from .authz_query import Query
 from .authz_result import Result
 from .exceptions import NotAuthorizedException
 
@@ -102,7 +101,7 @@ class Session():
 
     def get(self, datum_type, ident):
         result = self._session.get(datum_type, ident)
-        if Query._is_base_model(result):
+        if Result._is_base_model(result):
             result._session = self
         return result
 
@@ -463,7 +462,7 @@ class AuthzSession(Session):
     def get(self, datum_type, ident):
         from streamcat.core import SavableDatum
         result = self._session.get(datum_type, ident)
-        if Query._is_base_model(result):
+        if Result._is_base_model(result):
             result._session = self
             # 参照権限のないDatumの場合はNoneを返す
             if isinstance(result, SavableDatum) and not result.readable:

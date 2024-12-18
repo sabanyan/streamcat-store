@@ -35,8 +35,8 @@ class Result():
     def all(self):
         rows = self._result.all()
         if rows is not None and len(rows) > 0 and Result._is_base_model(rows[0]):
-            for result in rows:
-                result._session = self._session
+            for row in rows:
+                row._session = self._session
         return rows
 
 class AuthzDatumResult(Result):
@@ -74,11 +74,11 @@ class AuthzDatumResult(Result):
         rows = self._result.all()
         if rows is not None and len(rows) > 0 and Result._is_base_model(rows[0]):
             rets = []
-            for result in rows:
+            for row in rows:
                 # 参照権限のないDatumは返さない
-                if not ignore_authz and isinstance(result, SavableDatum) and not result.readable:
+                if not ignore_authz and isinstance(row, SavableDatum) and not row.readable:
                     continue
-                result._session = self._session
-                rets.append(result)
+                row._session = self._session
+                rets.append(row)
             return rets
         return rows

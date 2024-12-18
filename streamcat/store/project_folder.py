@@ -542,7 +542,7 @@ class ProjectFolder(Folder):
                 group_by(User.id).\
                 order_by('int_type', User.name)
 
-        # Queryオブジェクトに代わりここでUserオブジェクトにsessionを設定する
+        # Resultクラスは、select(User, ...)の結果にsessionを設定しないのでここで設定する
         members = []
         for row in self._session.execute(stmt).all():
             user = row[0]

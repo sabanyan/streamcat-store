@@ -251,7 +251,7 @@ class Role(BaseModel):
         members = []
         for result in results:
             user = result[0]
-            # Queryクラスは、query(User, ...)の結果にsessionを設定しないのでここで設定する
+            # Resultクラスは、select(User, ...)の結果にsessionを設定しないのでここで設定する
             user._session = self._session
             members.append(Role.Member(user, owner=result[1]))
 
