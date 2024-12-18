@@ -13,7 +13,8 @@ class RemoteFolder(Mountable, SavableStore):
         """
         コンストラクタ
         """
-        super().__init__(session, parent, SavableDatum.RFOLDER_TYPE, label)
+        Mountable.__init__(self)
+        SavableStore.__init__(self, session, parent, SavableDatum.RFOLDER_TYPE, label)
 
         # data列の値を作成する
         if remoteFolderConn is None:

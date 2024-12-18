@@ -1,3 +1,4 @@
+import datetime
 import sqlalchemy.types
 from pathlib import Path
 from sqlalchemy import Column, String
@@ -309,16 +310,20 @@ class SavableDatum(Datum, BaseModel):
             raise e
         return self
 
-    def moving(self, parent_uuid, lock_uuid=None, modifier=None):
+    def moving(self, parent_uuid:str, prev_parent_id:int, lock_uuid:str=None, modifier=None):
         """
         Datumの移動前に行う処理
         (移動前の処理を完了した後に、移動が中止される場合があることに注意)
+        parent_uuid : 移動先の親フォルダのUUID
+        prev_parent_id : 移動前の親フォルダのID
         """
         pass
 
-    def moved(self, parent_uuid, prev_parent_id, modifier=None):
+    def moved(self, parent_uuid:str, prev_parent_id:int, modifier=None):
         """
         Datumの移動後に行う処理
+        parent_uuid : 移動先の親フォルダのUUID
+        prev_parent_id : 移動前の親フォルダのID
         """
         pass
 
@@ -354,23 +359,33 @@ class SavableDatum(Datum, BaseModel):
         prev_parent_id = self.parent_id
 
         # フォルダ以下の全てのDatumについて、移動の可否を判定し、移動後の処理を取得する
-        moved_funcs = self._prepare_move(self, parent_uuid, lock_uuid, modifier)
+        moved_funcs = self._prepare_move(self, parent_uuid, prev_parent_id, lock_uuid, modifier)
 
-        # Datumを移動する
-        self._move_imp(to_folder, prev_parent_id, modifier)
+        try:
+            # Datumを移動する
+            old_path = self._path
+            new_path = self._move_imp(to_folder, prev_parent_id, modifier)
 
-        # 予約された移動後の処理を実行する
-        for moved_func in moved_funcs:
-            moved_func(parent_uuid, prev_parent_id, modifier=modifier)
+            # 予約された移動後の処理を実行する
+            for moved_func in moved_funcs:
+                moved_func(parent_uuid, prev_parent_id, modifier=modifier)
+
+            # ファイルを移動する
+            if old_path is not None:
+                SavableDatum.move_file(old_path, new_path)
+        except (Exception, OSError) as e:
+            # ROLLBACK
+            self._session.rollback()
+            raise e
 
         return self
 
-    def _prepare_move(self, datum, parent_uuid, lock_uuid, modifier) -> list:
+    def _prepare_move(self, datum, parent_uuid, prev_parent_id, lock_uuid, modifier) -> list:
         from streamcat.store import Folder
 
         # 移動可否を判定する
-        # 移動対象フォルダの中のDatumの場合は、移動先のparent_uuidは変化せず、移動可否の判定だけを行う
-        datum.moving(parent_uuid, lock_uuid=lock_uuid, modifier=modifier)
+        # 移動対象フォルダの中のDatumの場合は、フォルダのparent_uuidとprev_parent_idが渡される
+        datum.moving(parent_uuid, prev_parent_id, lock_uuid=lock_uuid, modifier=modifier)
 
         # 移動後に実行する関数
         moved_funcs = []
@@ -381,7 +396,7 @@ class SavableDatum(Datum, BaseModel):
             # 全てのDatumについて、移動の可否を判定し、移動後の処理を取得する
             for child in children:
                 moved_funcs.extend(
-                    self._prepare_move(child, datum.uuid, lock_uuid, modifier)
+                    self._prepare_move(child, parent_uuid, prev_parent_id, lock_uuid, modifier)
                 )
 
         # 移動後の処理を予約する
@@ -431,9 +446,8 @@ class SavableDatum(Datum, BaseModel):
             self._modifier_id = (modifier or self._session.user).id
             self._session.update(self)
 
-            # ファイルを移動する
-            if self._path is not None:
-                SavableDatum.move_file(old_path, new_path)
+            # 移動先のファイルパスを返す
+            return new_path
 
         except NotAuthorizedException as e:
             # ROLLBACK
@@ -562,7 +576,10 @@ class SavableDatum(Datum, BaseModel):
                         # 相対パスへの変換はPathTypeに任せる
                         # NOTE: ここで格納した値はSessionにもそのまま反映されるため
                         _path=new_path,
-                        _modifier_id=(modifier or self._session.user).id
+                        _modifier_id=(modifier or self._session.user).id,
+                        # TODO: modified_atにはonupdateが設定されているのに自動で値が更新されない
+                        # SQLAlchemyの不具合?
+                        modified_at=datetime.datetime.now()
                     )
         # Datumの権限を無視して更新する
         self._session.execute(update_stmt)
@@ -597,7 +614,10 @@ class SavableDatum(Datum, BaseModel):
                     where(SavableDatum._path.startswith(old_path_pattern1, autoescape=True, escape='\\')).\
                     values(
                         _path = SavableDatum._path.regexp_replace(old_path_pattern2, rel_new_dir_path),
-                        _modifier_id=(modifier or self._session.user).id
+                        _modifier_id=(modifier or self._session.user).id,
+                        # TODO: modified_atにはonupdateが設定されているのに自動で値が更新されない
+                        # SQLAlchemyの不具合?
+                        modified_at=datetime.datetime.now()
                     )
         # Datumの権限を無視して更新する
         self._session.execute(update_stmt, synchronize_session='fetch')

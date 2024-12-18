@@ -7,6 +7,10 @@ class Mountable():
     マウント可能データストア
     """
 
+    def __init__(self):
+        # moving()とmoved()の呼び出しの間でマウントポイントパスを受け渡しする
+        self._mount_point_path = None
+
     @property
     def path(self):
         # 参照権限が無ければ例外を送出する
@@ -220,3 +224,40 @@ class Mountable():
         ino = abs_path.stat().st_ino
         parent_ino = parent.stat().st_ino
         return ino == parent_ino
+
+    def moving(self, parent_uuid, prev_parent_id, lock_uuid=None, modifier=None):
+        """
+        ゴミ箱へほかされるか、ゴミ箱から元の場所に戻す場合を除いて場合を除いて
+        マウント中の場合は移動できない
+        TODO: Linuxのmountコマンドの--moveオプションを使えばマウント中の
+              ディレクトリポイントを移動できるらしいが、間に合わせの実装として移動を禁止する
+        """
+        from streamcat.store.factory import DatumFactory
+        factory = DatumFactory(self._session)
+        trash_folder = factory.load_trash_folder()
+
+        if parent_uuid==trash_folder.uuid or prev_parent_id==trash_folder.id:
+            # ゴミ箱へほかされる、またはゴミ箱から戻される場合、
+            # moved()で参照するために更新前のマウントパスを保持しておく
+            self._mount_point_path = self._path
+        elif Mountable.is_mount(self._path):
+            # マウント中のリモートフォルダは移動できない
+            raise Exception('マウント中のリモートフォルダは移動できません')
+        # 
+        super().moving(parent_uuid, prev_parent_id, lock_uuid=lock_uuid, modifier=modifier)
+
+    def moved(self, parent_uuid, prev_parent_id, modifier=None):
+        """
+        ゴミ箱へほかされた場合は、マウントを解除する
+        """
+        from streamcat.store.factory import DatumFactory
+        factory = DatumFactory(self._session)
+        trash_folder = factory.load_trash_folder()
+
+        if parent_uuid==trash_folder.uuid or prev_parent_id==trash_folder.id:
+            # ゴミ箱へほかされた、またはゴミ箱から戻された場合、マウントを解除する
+            # NOTE: DB更新後に実行されるので更新前のpathである_mount_point_pathを参照する
+            self.unmount(self._mount_point_path)
+            self._mount_point_path = None
+
+        return super().moved(parent_uuid, prev_parent_id, modifier=modifier)

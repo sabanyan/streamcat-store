@@ -194,13 +194,13 @@ class Flow(SavableDatum):
         return self
 
     @lock_required
-    def moving(self, parent_uuid, lock_uuid=None, modifier=None):
+    def moving(self, parent_uuid, prev_parent_id, lock_uuid=None, modifier=None):
         # 編集ロックが掛かっている場合は移動できない
         if self.edit_lock:
             from streamcat.store import EditLockedException
             raise EditLockedException('編集ロックが掛かっているため移動できません')
         # 
-        super().moving(parent_uuid, lock_uuid=lock_uuid, modifier=modifier)
+        super().moving(parent_uuid, prev_parent_id, lock_uuid=lock_uuid, modifier=modifier)
 
     @Constraints.set_project_role_on_moving_flow
     def moved(self, parent_uuid, prev_parent_id, modifier=None):

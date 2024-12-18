@@ -366,7 +366,7 @@ class LibraryTest(TestCaseBase):
     # @unittest.skip
     def test_move_rfolder(self):
         """
-        リモートフォルダを移動する
+        マウント解除状態のリモートフォルダを移動する
         """
         try:
             # ルートデータストアを取得する
@@ -376,44 +376,44 @@ class LibraryTest(TestCaseBase):
             to_folder = self.save_folder(root, 'フォルダaabb')
             # フォルダの直下にリモートフォルダを作成する
             conn = RemoteFolderConn(self.conn_json)
-            folder = self.save_rfolder(from_folder, 'リモートフォルダ3', conn)
-            # Mountする
-            # (Mountするとmove()では対応ディレクトリは移動されない)
-            folder.path
-            # 作成したフォルダのラベルを変更する
-            folder.move(to_folder.uuid, modifier=self.USER2)
+            rfolder = self.save_rfolder(from_folder, 'リモートフォルダ3', conn)
+            # 作成したリモートフォルダを移動する
+            # NOTE: マウント解除状態のリモートフォルダは移動できる
+            rfolder.move(to_folder.uuid, modifier=self.USER2)
             # ラベルとディレクトリパスのみが変更されることを検証する
-            self.assertEqual(folder.id, folder.id)
-            self.assertEqual(folder.parent_id, folder.parent_id)
-            self.assertEqual(folder.uuid, folder.uuid)
-            # Mount済みのリモートフォルダは移動してもパスは変わらない
-            self.assertEqual(folder.path, from_folder.path / 'リモートフォルダ3')
-            self.assertEqual(folder.type, folder.type)
-            self.assertEqual(folder.label, 'リモートフォルダ3')
-            self.assertEqual(folder.creator, self.USER1)
-            self.assertEqual(folder.modifier, self.USER2)
-            self.assertEqual(folder.created_at, folder.created_at)
-            self.assertIsNotNone(folder.modified_at)
+            self.assertEqual(rfolder.id, rfolder.id)
+            self.assertEqual(rfolder.parent_id, rfolder.parent_id)
+            self.assertEqual(rfolder.uuid, rfolder.uuid)
+            # NOTE: pathプロパティを参照しただけでマウントされることに注意
+            self.assertEqual(rfolder._path, to_folder.path / 'リモートフォルダ3')
+            self.assertEqual(rfolder.type, rfolder.type)
+            self.assertEqual(rfolder.label, 'リモートフォルダ3')
+            self.assertEqual(rfolder.creator, self.USER1)
+            self.assertEqual(rfolder.modifier, self.USER2)
+            self.assertEqual(rfolder.created_at, rfolder.created_at)
+            self.assertIsNotNone(rfolder.modified_at)
             """
             リモートフォルダの移動を元に戻す
             """
-            folder.put_back()
+            rfolder.put_back()
             # ラベルとディレクトリパスのみが変更されることを検証する
-            self.assertEqual(folder.id, folder.id)
-            self.assertEqual(folder.parent_id, from_folder.id)
-            self.assertEqual(folder.uuid, folder.uuid)
-            # Moutableなフォルダは移動してもパスは変わらない
-            self.assertEqual(folder.path, from_folder.path / 'リモートフォルダ3')
-            self.assertEqual(folder.type, folder.type)
-            self.assertEqual(folder.label, 'リモートフォルダ3')
-            self.assertEqual(folder.creator, self.USER1)
-            self.assertEqual(folder.modifier, self.USER1)
-            self.assertEqual(folder.created_at, folder.created_at)
-            self.assertIsNotNone(folder.modified_at)
+            self.assertEqual(rfolder.id, rfolder.id)
+            self.assertEqual(rfolder.parent_id, from_folder.id)
+            self.assertEqual(rfolder.uuid, rfolder.uuid)
+            # NOTE: pathプロパティを参照しただけでマウントされることに注意
+            self.assertEqual(rfolder._path, from_folder.path / 'リモートフォルダ3')
+            self.assertEqual(rfolder.type, rfolder.type)
+            self.assertEqual(rfolder.label, 'リモートフォルダ3')
+            self.assertEqual(rfolder.creator, self.USER1)
+            self.assertEqual(rfolder.modifier, self.USER1)
+            self.assertEqual(rfolder.created_at, rfolder.created_at)
+            self.assertIsNotNone(rfolder.modified_at)
 
         finally:
             # 作成したフォルダを削除する
-            folder.delete()
+            rfolder.delete()
+            from_folder.delete()
+            to_folder.delete()
 
     def test_move_rfolder2(self):
         """

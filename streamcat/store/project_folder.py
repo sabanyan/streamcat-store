@@ -43,7 +43,7 @@ class ProjectFolder(Folder):
         # データタイプを設定する
         self.type = SavableDatum.PROJECT_TYPE
 
-    def moving(self, parent_uuid, lock_uuid=None, modifier=None):
+    def moving(self, parent_uuid, prev_parent_id, lock_uuid=None, modifier=None):
         """
         ゴミ箱へほかされるか、ゴミ箱から元の場所に戻す場合を除いて
         プロジェクトは移動できない
@@ -52,14 +52,13 @@ class ProjectFolder(Folder):
         factory = DatumFactory(self._session)
         trash_folder = factory.load_trash_folder()
 
-        if parent_uuid == trash_folder.uuid:
-            # ゴミ箱にほかされる場合
-            pass
-        elif self.prev_parent_id is not None and parent_uuid == factory.find_by_id(self.prev_parent_id).uuid:
-            # 元の場所に戻す場合
+        if parent_uuid==trash_folder.uuid or prev_parent_id==trash_folder.id:
+            # ゴミ箱へほかされる、またはゴミ箱から戻される場合
             pass
         else:
             raise Exception('プロジェクトは移動できません')
+        # 
+        super().moving(parent_uuid, prev_parent_id, lock_uuid=lock_uuid, modifier=modifier)
 
     def save(self, file_path=None):
         """
