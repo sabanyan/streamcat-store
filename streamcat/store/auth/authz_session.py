@@ -97,10 +97,6 @@ class Session():
         from sqlalchemy.sql.expression import Select
         return isinstance(stmt, Select)
 
-    def query(self, datum_type, *args):
-        query = self._session.query(datum_type, *args)
-        return Query(query, self)
-
     def scalars(self, stmt):
         return Result(self._session.scalars(stmt), self)
 
@@ -142,65 +138,6 @@ class AuthzSession(Session):
         if user is None:
             raise Exception('AuthzSessionに設定したuserがNoneです')
         self._user = user
-
-    def query(self, datum_type, *args, **kwargs):
-        """
-        参照用途でquery()を使用する場合は、AuthsテーブルとJOINする
-        pathとdataプロパティは参照された時に権限を判定し、NGなら例外を送出する
-        """
-        import inspect
-        from sqlalchemy.orm import with_expression
-        from sqlalchemy.sql.expression import null
-        from streamcat.core import SavableDatum
-        from .authz_query import Query, AuthzDatumQuery
-
-        def is_type(obj_type, table_name):
-            # datum_typeがDatumクラスかDatumを継承するクラスか否かを判定する
-            # TODO: もう少し確実な判定方法に変更したい
-            return inspect.isclass(obj_type) and hasattr(obj_type, '__tablename__') and obj_type.__tablename__ == table_name
-
-        if is_type(datum_type, 'data'):
-            # 下記を両方満たす場合にのみpermission=Trueとする
-            # ・ユーザが属する全てのロールについて、DatumのpermissionがTrue
-            # ・Datumが属する全ての親フォルダについて、DatumのpermissionがTrue
-
-            # read,write,execのpermissionの値を取得する
-            select_permissions = self._make_select_permissions()
-
-            # ownのpermissionsの値を取得する
-            select_ownership = self._make_select_ownership(SavableDatum.id)
-            
-            # Datumの親フォルダのuuidを取得する
-            select_parent_uuid = self._make_select_parent_uuid()
-
-            # Datumのフォルダパスを取得する
-            if kwargs.get('folder_path'):
-                select_folder_path = self._make_select_folder_path(SavableDatum.parent_id)
-            else:
-                select_folder_path = null()
-
-            # Datumの移動前のフォルダパスを取得する
-            if kwargs.get('prev_folder_path'):
-                select_prev_folder_path = self._make_select_folder_path(SavableDatum.prev_parent_id)
-            else:
-                select_prev_folder_path = null()
-
-            # read=TrueのDatumのみ抽出する
-            # exists_readable = self._make_exists_readable()
-
-            # Datumを抽出するQuery
-            query = self._session.query(SavableDatum).\
-                                  options(with_expression(SavableDatum._permissions, select_permissions.label('permissions'))).\
-                                  options(with_expression(SavableDatum._ownership, select_ownership.label('ownership'))).\
-                                  options(with_expression(SavableDatum._parent_uuid, select_parent_uuid.label('parent_uuid'))).\
-                                  options(with_expression(SavableDatum._folder_path, select_folder_path.label('folder_path'))).\
-                                  options(with_expression(SavableDatum._prev_folder_path, select_prev_folder_path.label('prev_folder_path')))
-
-            return AuthzDatumQuery(query, self)
-
-        else:
-            query = self._session.query(datum_type, *args)
-            return Query(query, self)
 
     def scalars(self, stmt, **kwargs):
         """

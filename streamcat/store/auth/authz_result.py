@@ -14,22 +14,6 @@ class Result():
         from streamcat.core import SCatBaseModel
         return obj is not None and isinstance(obj, SCatBaseModel)
 
-    # @staticmethod
-    # def _is_base_model(obj):
-    #     from sqlalchemy.orm.base import object_mapper
-    #     from sqlalchemy.orm.exc import UnmappedInstanceError
-    #     try:
-    #         object_mapper(obj)
-    #     except UnmappedInstanceError:
-    #         return False
-    #     return True
-
-    # def get(self, ident):
-    #     result = self._query.get(ident)
-    #     if Query._is_base_model(result):
-    #         result._session = self._session
-    #     return result
-
     def one(self):
         row = self._result.one()
         if Result._is_base_model(row):
@@ -56,15 +40,6 @@ class Result():
         return rows
 
 class AuthzDatumResult(Result):
-    # def get(self, ident):
-    #     from streamcat.core import Datum
-    #     result = self._result.get(ident)
-    #     if Query._is_base_model(result):
-    #         result._session = self._session
-    #         # 参照権限のないDatumの場合はNoneを返す
-    #         if isinstance(result, Datum) and not result.readable:
-    #             return None
-    #     return result
 
     def one(self):
         from streamcat.core import SavableDatum
@@ -83,6 +58,15 @@ class AuthzDatumResult(Result):
             # 参照権限のないDatumの場合はNoneを返す
             if isinstance(row, SavableDatum) and not row.readable:
                 return None
+        return row
+
+    def first(self):
+        from streamcat.core import SavableDatum
+        row = self._result.first()
+        if Result._is_base_model(row):
+            row._session = self._session
+            # 参照権限のないDatumの場合は例外を送出する
+            isinstance(row, SavableDatum) and row._readable_or_raise()
         return row
 
     def all(self, ignore_authz=False):
