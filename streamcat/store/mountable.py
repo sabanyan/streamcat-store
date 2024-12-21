@@ -136,7 +136,7 @@ class Mountable():
         """)
         try:
             rows = self._session.execute(sql).all()
-            return [row[0] for row in rows]
+            return [row.uuid for row in rows]
         except Exception as e:
             self._session.rollback()
             raise e
@@ -199,8 +199,8 @@ class Mountable():
         for row in rows:
             mount_point_path = Path(row[1])
             if not Mountable.is_mount(mount_point_path):
-                uuid = str(row[0])
-                type = str(row[2])
+                uuid = str(row.uuid)
+                type = str(row.type)
                 if type == SavableDatum.AWSS3_TYPE:
                     awss3 = factory.find_by_uuid(uuid)
                     awss3.mount(mount_point_path)

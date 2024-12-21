@@ -721,9 +721,9 @@ class SavableDatum(Datum, BaseModel):
 
         # SQLを発行する
         rows = self._session.execute(select_stmt).all()
-        return [{'reference_uuid' :row[1],
-                 'reference_label':row[2],
-                 'referenced_uuid':row[3]} for row in rows]
+        return [{'reference_uuid' :row.uuid,
+                 'reference_label':row.label,
+                 'referenced_uuid':row.ref_uuid} for row in rows]
 
     @staticmethod
     def move_file(old_path, new_path):
