@@ -182,7 +182,7 @@ class SavableDatum(Datum, BaseModel):
             return None
 
         # 絶対パスを返す
-        return SavableDatum._to_abs_path(self._path)
+        return self._path
 
     @property
     def path_exists(self):
