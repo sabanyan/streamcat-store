@@ -63,7 +63,7 @@ class Session():
         """
         # テスト実行で二つのSessionを用いた時、片方のSessionで
         # search_pathが設定されないので、execute()の度に設定することにする
-        from sqlalchemy import text
+        from sqlalchemy import TextClause, text
         from streamcat.core import _is_unittest, SCHEMA_NAME
 
         # selectか否かを判定する
@@ -71,7 +71,7 @@ class Session():
 
         # テスト実行で二つのSessionを用いた時、片方のSessionで
         # search_pathが設定されないので、execute()の度に設定することにする
-        if _is_unittest():
+        if _is_unittest() and isinstance(stmt, TextClause):
             # カレントスキーマを設定する
             # (コミットされると、セッションが終了するまでその設定が持続する)
             sql1 = text(f'SET search_path = {SCHEMA_NAME};')
