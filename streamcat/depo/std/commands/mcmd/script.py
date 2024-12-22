@@ -1,6 +1,6 @@
 # Mコマンド
 
-from collections import Callable
+from typing import Callable
 import nysol.mcmd as nm
 from streamcat.core import Command, Port
 from streamcat.store import NysolModule

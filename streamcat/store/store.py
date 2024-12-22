@@ -1,4 +1,4 @@
-from collections import Iterator
+from typing import Iterator
 from streamcat.core import Datum, Store, SCatBaseModel
 
 class ModuleStore(Store):
