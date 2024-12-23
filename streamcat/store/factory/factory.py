@@ -594,11 +594,10 @@ class StoreFactory():
 
     def find_by_id(self, id):
         from streamcat.store import StoreModel as Store
-        stmt = select(Store).filter(Store.id==id)
-        stores = self._session.scalars(stmt).one_or_none()
-        if stores is None:
+        store = self._session.get(Store, id)
+        if store is None:
             raise Exception('No store is found by designated store id')
-        return stores
+        return store
 
 
 class AuthFactory():
@@ -668,8 +667,10 @@ class RoleFactory():
         return Role(self._session, name, delete_on_isolated)
 
     def find_by_id(self, role_id) -> Role:
-        stmt = select(Role).filter(Role.id==role_id)
-        return self._session.scalars(stmt).one()
+        role = self._session.get(Role, role_id)
+        if role is None:
+            raise Exception('No role is found by designated role id')
+        return role
 
     def find_by_uuid(self, uuid) -> Role:
         stmt = select(Role).filter(Role.uuid==uuid)
@@ -746,8 +747,10 @@ class UserRoleFactory():
         self._session = session
 
     def find_by_id(self, user_id, role_id) -> UserRole:
-        stmt = select(UserRole).filter(UserRole.user_id==user_id).filter(UserRole.role_id==role_id)
-        return self._session.scalars(stmt).one()
+        user_role = self._session.get(UserRole, (user_id, role_id))
+        if user_role is None:
+            raise Exception('No user_role is found by designated user id and role id')
+        return user_role
 
     def find_all_by_user_id(self, user_id, except_role_uuids=None):
         stmt = select(UserRole).filter(UserRole.user_id==user_id)
