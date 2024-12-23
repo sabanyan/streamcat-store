@@ -152,8 +152,8 @@ class Role(BaseModel):
         # (所有権は未実装なので、このチェックも未実装である
         #  現在はDatum.creatorが所有者となっている)
         # 
-        # count = self._session.query(Auth).filter(Auth.role_id == self.id)\
-        #                                  .filter(Auth.own == 1).count()
+        # count = self._session.query(Auth).where(Auth.role_id == self.id)\
+        #                                  .where(Auth.own == 1).count()
 
         if self.is_system_role:
             raise Exception(f'ロール({self.name})はシステムロールなので削除できません')

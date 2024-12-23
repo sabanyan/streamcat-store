@@ -330,7 +330,7 @@ class Folder(SavableStore):
         stmt = select(SavableDatum).where(parent_exists).where(SavableDatum._label==label)
 
         if type is not None:
-            stmt = stmt.filter(SavableDatum.type==type)
+            stmt = stmt.where(SavableDatum.type==type)
 
         # フロー名フォルダが重複している場合は最も新しいフォルダに結果を格納する
         stmt = stmt.order_by(SavableDatum.type, desc(SavableDatum.created_at))

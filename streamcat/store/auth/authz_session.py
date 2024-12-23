@@ -713,7 +713,7 @@ class AuthzSession(Session):
         # from .auth import Auth
         # # ここでfind_by_id・find_by_uuidを使うとdatum.readableがFalseに何故かなってしまう
         # # query(Datum).get()を使うとdatum.readableがNoneに何故かなってしまう
-        # result = self._session.query(Datum.id, Datum.parent_id).filter(Datum.id==datum_id).one_or_none()
+        # result = self._session.query(Datum.id, Datum.parent_id).where(Datum.id==datum_id).one_or_none()
         # if result is None:
         #     raise Exception('datum is None')
         # 
@@ -753,7 +753,7 @@ class AuthzSession(Session):
         from sqlalchemy import select, func
         from .role import Role
         stmt =  select(func.count(Role.id)).\
-                filter(Role.id==role_id).filter(Role._creator_id==self.user.id)
+                filter(Role.id==role_id).where(Role._creator_id==self.user.id)
         return self._session.scalars(stmt).one() > 0
 
     def is_role_owner(self, role_id) -> bool:
@@ -781,5 +781,5 @@ class AuthzSession(Session):
         from sqlalchemy import select, func
         from streamcat.core import SavableDatum
         stmt =  select(func.count(SavableDatum.id)).\
-                filter(SavableDatum.id==datum_id).filter(SavableDatum._creator_id==self.user.id)
+                filter(SavableDatum.id==datum_id).where(SavableDatum._creator_id==self.user.id)
         return self._session.scalars(stmt).one() > 0

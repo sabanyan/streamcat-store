@@ -37,7 +37,7 @@ class Flow(SavableDatum):
             """
             指定したuuidのうち参照権限の無いuuidを返す
             """
-            stmt = select(SavableDatum).filter(SavableDatum.uuid.in_(uuids))
+            stmt = select(SavableDatum).where(SavableDatum.uuid.in_(uuids))
             data = self._session.scalars(stmt).all(ignore_authz=True)
             return [datum.uuid for datum in data if not datum.readable]
 
@@ -45,7 +45,7 @@ class Flow(SavableDatum):
             """
             指定したuuidのうち実行権限の無いuuidを返す
             """
-            stmt = select(SavableDatum).filter(SavableDatum.uuid.in_(uuids))
+            stmt = select(SavableDatum).where(SavableDatum.uuid.in_(uuids))
             data = self._session.scalars(stmt).all(ignore_authz=True)
             return [datum.uuid for datum in data if not datum.executable]
 

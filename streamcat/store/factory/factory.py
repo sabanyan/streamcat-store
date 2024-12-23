@@ -217,10 +217,10 @@ class DatumFactory():
         """
         指定されたidを持つDatumを取得する
         """
-        stmt = select(SavableDatum).filter(SavableDatum.id==id)
+        stmt = select(SavableDatum).where(SavableDatum.id==id)
 
         if type is not None:
-            stmt = stmt.filter(SavableDatum.type==type)
+            stmt = stmt.where(SavableDatum.type==type)
 
         # 結果が1件以外の場合はNoResultFoundが送出される
         try:
@@ -237,10 +237,10 @@ class DatumFactory():
         # UUID値の形式チェックをする
         Datum.valid_uuid_or_raise(uuid)
 
-        stmt = select(SavableDatum).filter(SavableDatum.uuid==uuid)
+        stmt = select(SavableDatum).where(SavableDatum.uuid==uuid)
 
         if type is not None:
-            stmt = stmt.filter(SavableDatum.type==type)
+            stmt = stmt.where(SavableDatum.type==type)
 
         # 結果が1件以外の場合はNoResultFoundが送出される
         try:
@@ -257,25 +257,25 @@ class DatumFactory():
         from sqlalchemy import desc
         stmt = select(SavableDatum)
         if type is not None:
-            stmt = stmt.filter(SavableDatum.type==type)
+            stmt = stmt.where(SavableDatum.type==type)
         if except_trash:
             # ゴミ箱にほかされたDatumは除外する
             # NOTE: この条件を付与するとかなり遅くなる
-            stmt = stmt.filter(~self._make_exists_trashed(SavableDatum.uuid))
+            stmt = stmt.where(~self._make_exists_trashed(SavableDatum.uuid))
         if except_label is not None:
-            stmt = stmt.filter(SavableDatum._label!=except_label)
+            stmt = stmt.where(SavableDatum._label!=except_label)
         stmt = stmt.order_by(SavableDatum.type, desc(SavableDatum.created_at))
         return self._session.scalars(stmt).all()
 
     def count_root(self) -> int:
-        stmt = select(func.count(SavableDatum.id)).filter(SavableDatum.parent_id == None)
+        stmt = select(func.count(SavableDatum.id)).where(SavableDatum.parent_id == None)
         return self._session.scalars(stmt).one()
 
     def find_root(self) -> Union[Folder, None]:
         """
         親を持たないfolderレコードを全て取得する
         """
-        stmt = select(SavableDatum).filter(SavableDatum.parent_id == None)
+        stmt = select(SavableDatum).where(SavableDatum.parent_id == None)
         roots = self._session.scalars(stmt).all()
 
         if len(roots) == 0 :
@@ -290,7 +290,7 @@ class DatumFactory():
         """
         ゴミ箱を取得する
         """
-        stmt = select(SavableDatum).filter(SavableDatum.type==SavableDatum.TRASH_TYPE)
+        stmt = select(SavableDatum).where(SavableDatum.type==SavableDatum.TRASH_TYPE)
         trashcan = self._session.scalars(stmt).one_or_none()
         if trashcan is None:
             raise Exception('no trush can is found by designated id.')
@@ -300,11 +300,11 @@ class DatumFactory():
         """
         プロジェクトを全て取得する
         """
-        stmt = select(SavableDatum).filter(SavableDatum.type==SavableDatum.PROJECT_TYPE)
+        stmt = select(SavableDatum).where(SavableDatum.type==SavableDatum.PROJECT_TYPE)
         if on_root:
-            stmt = stmt.filter(self._make_exists_on_root(SavableDatum.parent_id))
+            stmt = stmt.where(self._make_exists_on_root(SavableDatum.parent_id))
         if except_label is not None:
-            stmt = stmt.filter(SavableDatum._label!=except_label)
+            stmt = stmt.where(SavableDatum._label!=except_label)
         # 速度向上のため、order_byを指定しない
         return self._session.scalars(stmt).all()
 
@@ -497,9 +497,9 @@ class DatumFactory():
         if not Datum.is_valid_uuid(uuid):
             return False
 
-        stmt = select(func.count(SavableDatum.id)).filter(SavableDatum.uuid==uuid)
+        stmt = select(func.count(SavableDatum.id)).where(SavableDatum.uuid==uuid)
         if type is not None:
-            stmt = stmt.filter(SavableDatum.type==type)
+            stmt = stmt.where(SavableDatum.type==type)
 
         return self._session.scalars(stmt).one() > 0
 
@@ -507,9 +507,9 @@ class DatumFactory():
         """
         指定されたidを持つDatumが存在する場合はTrueを返す
         """
-        stmt = select(func.count(SavableDatum.id)).filter(SavableDatum.id==id)
+        stmt = select(func.count(SavableDatum.id)).where(SavableDatum.id==id)
         if type is not None:
-            stmt = stmt.filter(SavableDatum.type==type)
+            stmt = stmt.where(SavableDatum.type==type)
 
         return self._session.scalars(stmt).one() > 0
 
@@ -517,7 +517,7 @@ class DatumFactory():
         """
         ゴミ箱が存在する場合はTrueを返す
         """
-        stmt = select(func.count(SavableDatum.id)).filter(SavableDatum.type==SavableDatum.TRASH_TYPE)
+        stmt = select(func.count(SavableDatum.id)).where(SavableDatum.type==SavableDatum.TRASH_TYPE)
         return self._session.scalars(stmt).one() > 0
 
     def trashed(self, uuid) -> bool:
@@ -566,7 +566,7 @@ class DatumFactory():
         全てのマウント可能データストアのマウントを解除する
         """
         # 全てのマウント可能データストアを取得する
-        stmt = select(SavableDatum).filter(SavableDatum.type.in_([SavableDatum.RFOLDER_TYPE]))
+        stmt = select(SavableDatum).where(SavableDatum.type.in_([SavableDatum.RFOLDER_TYPE]))
         mountables = self._session.scalars(stmt).all()
         # マウント解除する
         for mountable in mountables:
@@ -620,7 +620,7 @@ class AuthFactory():
 
     def find_all_by_datum_id(self, datum_id) -> list[Auth]:
         from streamcat.store.auth import Auth
-        stmt = select(Auth).filter(Auth.datum_id==datum_id).order_by(Auth.role_id, Auth.operation)
+        stmt = select(Auth).where(Auth.datum_id==datum_id).order_by(Auth.role_id, Auth.operation)
         return self._session.scalars(stmt).all()
 
     def exists(self, role_id, datum_id, operation=None) -> bool:
@@ -630,7 +630,7 @@ class AuthFactory():
                 filter(Auth.role_id==role_id).\
                 filter(Auth.datum_id==datum_id)
         if operation is not None:
-            stmt = stmt.filter(Auth.operation==operation)
+            stmt = stmt.where(Auth.operation==operation)
 
         return self._session.scalars(stmt).one() > 0
 
@@ -641,12 +641,12 @@ class AuthFactory():
         from sqlalchemy import delete, exists, and_
         from streamcat.store.auth import Auth, Role
 
-        stmt = delete(Auth).filter(Auth.datum_id==datum_id)
+        stmt = delete(Auth).where(Auth.datum_id==datum_id)
         if except_role_uuids is None or len(except_role_uuids) == 0:
             synchronize_session = 'evaluate'
         else:
             not_exists_except_role = ~exists().where(and_(Role.id==Auth.role_id, Role.uuid.in_(except_role_uuids)))
-            stmt = stmt.filter(not_exists_except_role)
+            stmt = stmt.where(not_exists_except_role)
             synchronize_session = 'fetch'
 
         try:
@@ -673,7 +673,7 @@ class RoleFactory():
         return role
 
     def find_by_uuid(self, uuid) -> Role:
-        stmt = select(Role).filter(Role.uuid==uuid)
+        stmt = select(Role).where(Role.uuid==uuid)
         return self._session.scalars(stmt).one()
 
     def find_all(self):
@@ -692,7 +692,7 @@ class RoleFactory():
         stmt =  select(Role).\
                 filter(~exists().where(Auth.role_id==Role.id))
         if delete_on_isolated:
-            stmt = stmt.filter(Role._delete_on_isolated==True)
+            stmt = stmt.where(Role._delete_on_isolated==True)
 
         return self._session.scalars(stmt).all()
 
@@ -738,7 +738,7 @@ class RoleFactory():
         return edit_lock_role
 
     def exists(self, uuid) -> bool:
-        stmt = select(func.count(Role.id)).filter(Role.uuid==uuid)
+        stmt = select(func.count(Role.id)).where(Role.uuid==uuid)
         return self._session.scalars(stmt).one() > 0
 
 
@@ -753,17 +753,17 @@ class UserRoleFactory():
         return user_role
 
     def find_all_by_user_id(self, user_id, except_role_uuids=None):
-        stmt = select(UserRole).filter(UserRole.user_id==user_id)
+        stmt = select(UserRole).where(UserRole.user_id==user_id)
         if except_role_uuids is not None and len(except_role_uuids) > 0:
             from sqlalchemy import exists, and_
             not_exists_role = ~exists().where(and_(Role.id==UserRole.role_id, Role.uuid.in_(except_role_uuids)))
-            stmt = stmt.filter(not_exists_role)
+            stmt = stmt.where(not_exists_role)
         return self._session.scalars(stmt).all()
 
     def exists(self, user_id, role_id=None) -> bool:
-        stmt = select(func.count(UserRole.user_id)).filter(UserRole.user_id==user_id)
+        stmt = select(func.count(UserRole.user_id)).where(UserRole.user_id==user_id)
         if role_id is not None:
-            stmt = stmt.filter(UserRole.role_id==role_id)
+            stmt = stmt.where(UserRole.role_id==role_id)
         return self._session.scalars(stmt).one() > 0
 
     def delete_all_by_user_id(self, user_id):
@@ -786,7 +786,7 @@ class UserRoleFactory():
         stmt = delete(UserRole).where(UserRole.role_id==role_id)
         # 削除から除外するユーザが指定されている場合
         if except_user_id is not None:
-            stmt = stmt.filter(UserRole.user_id!=except_user_id)
+            stmt = stmt.where(UserRole.user_id!=except_user_id)
         try:
             self._session.execute(stmt)
         except Exception as e:
@@ -827,7 +827,7 @@ class UserFactory():
         Datum.valid_uuid_or_raise(uuid)
         # 結果が1件以外の場合はNoResultFoundが送出される
         try:
-            stmt = select(User).filter(User.uuid==uuid)
+            stmt = select(User).where(User.uuid==uuid)
             stmt = UserFactory._add_except_states_criteria(stmt, except_states)
             return self._session.scalars(stmt).one()
         except NoResultFound:
@@ -839,7 +839,7 @@ class UserFactory():
         """
         # 結果が1件以外の場合はNoResultFoundが送出される
         try:
-            stmt = select(User).filter(User.email==email)
+            stmt = select(User).where(User.email==email)
             stmt = UserFactory._add_except_states_criteria(stmt, except_states)
             return self._session.scalars(stmt).one()
         except NoResultFound:
@@ -850,7 +850,7 @@ class UserFactory():
         指定されたissuerとsubjectのUserを取得する
         """
         try:
-            stmt = select(User).filter(User.issuer==issuer, User.subject==subject)
+            stmt = select(User).where(User.issuer==issuer, User.subject==subject)
             stmt = UserFactory._add_except_states_criteria(stmt, except_states)
             return self._session.scalars(stmt).one()
         except NoResultFound:
@@ -881,24 +881,24 @@ class UserFactory():
             like_predicates.append(or_(User.name.icontains(search_keyword),
                                        User.email.icontains(search_keyword)))
 
-        stmt = stmt.filter(and_(*like_predicates))
+        stmt = stmt.where(and_(*like_predicates))
         stmt = UserFactory._add_except_states_criteria(stmt, except_states)
         stmt = stmt.order_by(User.email)
 
         return self._session.scalars(stmt).all()
 
     def exists(self, uuid, except_states=None) -> bool:
-        stmt = select(func.count(User.id)).filter(User.uuid==uuid)
+        stmt = select(func.count(User.id)).where(User.uuid==uuid)
         stmt = UserFactory._add_except_states_criteria(stmt, except_states)
         return self._session.scalars(stmt).one() > 0
 
     def exists_by_email(self, email, except_states=None) -> bool:
-        stmt = select(func.count(User.id)).filter(User.email==email)
+        stmt = select(func.count(User.id)).where(User.email==email)
         stmt = UserFactory._add_except_states_criteria(stmt, except_states)
         return self._session.scalars(stmt).one() > 0
 
     def exists_by_openid(self, issuer, subject, except_states=None) -> bool:
-        stmt = select(func.count(User.id)).filter(User.issuer==issuer, User.subject==subject)
+        stmt = select(func.count(User.id)).where(User.issuer==issuer, User.subject==subject)
         stmt = UserFactory._add_except_states_criteria(stmt, except_states)
         return self._session.scalars(stmt).one() > 0
 
@@ -933,6 +933,6 @@ class UserFactory():
         if except_states is None:
             return stmt
         elif isinstance(except_states, list):
-            return stmt.filter(User.state.notin_(except_states))
+            return stmt.where(User.state.notin_(except_states))
         else:
             raise Exception(f'except_statesにはNoneかlist型を指定してください')
