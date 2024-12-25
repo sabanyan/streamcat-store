@@ -213,8 +213,8 @@ class User(BaseModel):
                 ).\
                 select_from(Role).\
                 outerjoin(UserRole, UserRole.role_id==Role.id).\
-                filter(Role.uuid.in_([Role.SYS_ADMIN_ROLE_UUID,Role.USR_ADMIN_ROLE_UUID])).\
-                filter(UserRole.user_id==self.id)
+                where(Role.uuid.in_([Role.SYS_ADMIN_ROLE_UUID,Role.USR_ADMIN_ROLE_UUID])).\
+                where(UserRole.user_id==self.id)
 
         row = self._session.execute(stmt).one()
         sys_admin = row[0]

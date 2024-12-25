@@ -226,7 +226,7 @@ class Role(BaseModel):
         exists_user_role = exists().where(and_(UserRole.role_id==self.id, UserRole.user_id==User.id))
 
         stmt =  select(User).\
-                filter(or_(exists_user_role, User.self_role_id==self.id))
+                where(or_(exists_user_role, User.self_role_id==self.id))
         stmt =  UserFactory(self._session)._add_except_states_criteria(stmt, except_states)
         stmt =  stmt.order_by(User.id)
 
@@ -242,7 +242,7 @@ class Role(BaseModel):
 
         stmt =  select(User, UserRole.owner).\
                 outerjoin(UserRole, UserRole.user_id==User.id).\
-                filter(UserRole.role_id==self.id)
+                where(UserRole.role_id==self.id)
         stmt =  UserFactory(self._session)._add_except_states_criteria(stmt, except_states)
         stmt =  stmt.order_by(User.id)
 

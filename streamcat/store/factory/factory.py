@@ -348,8 +348,8 @@ class DatumFactory():
                                                Role.uuid==literal(Role.EDIT_LOCK_ROLE_UUID)))
         # 編集ロック=ONのフローをサブフローとして抽出する
         stmt =  select(SavableDatum).\
-                filter(SavableDatum.type==SavableDatum.FLOW_TYPE).\
-                filter(exists_edit_lock).\
+                where(SavableDatum.type==SavableDatum.FLOW_TYPE).\
+                where(exists_edit_lock).\
                 order_by(SavableDatum._label, SavableDatum.id)
         return self._session.scalars(stmt).all()
 
@@ -358,7 +358,7 @@ class DatumFactory():
         データストアを全て取得する
         """
         stmt =  select(SavableDatum).\
-                filter(SavableDatum.type.in_([SavableDatum.DATABASE_TYPE,SavableDatum.RFOLDER_TYPE])).\
+                where(SavableDatum.type.in_([SavableDatum.DATABASE_TYPE,SavableDatum.RFOLDER_TYPE])).\
                 order_by(SavableDatum._label, SavableDatum.id)
         return self._session.scalars(stmt).all()
 
@@ -525,8 +525,8 @@ class DatumFactory():
         ゴミ箱の中にある場合はTrueを返す
         """
         stmt =  select(func.count(SavableDatum.id)).\
-                filter(SavableDatum.uuid==uuid).\
-                filter(self._make_exists_trashed(uuid))
+                where(SavableDatum.uuid==uuid).\
+                where(self._make_exists_trashed(uuid))
         return self._session.scalars(stmt).one() > 0
 
     def _make_exists_on_root(self, parent_id:str):
@@ -627,8 +627,8 @@ class AuthFactory():
         from streamcat.store.auth import Auth
 
         stmt =  select(func.count(Auth.datum_id)).\
-                filter(Auth.role_id==role_id).\
-                filter(Auth.datum_id==datum_id)
+                where(Auth.role_id==role_id).\
+                where(Auth.datum_id==datum_id)
         if operation is not None:
             stmt = stmt.where(Auth.operation==operation)
 
@@ -690,7 +690,7 @@ class RoleFactory():
         from streamcat.store.auth import Auth
 
         stmt =  select(Role).\
-                filter(~exists().where(Auth.role_id==Role.id))
+                where(~exists().where(Auth.role_id==Role.id))
         if delete_on_isolated:
             stmt = stmt.where(Role._delete_on_isolated==True)
 

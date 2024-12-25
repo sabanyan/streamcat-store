@@ -730,8 +730,8 @@ class AuthzSession(Session):
 
         stmt =  select(func.count(Role.id)).\
                 outerjoin(UserRole, UserRole.role_id==Role.id).\
-                filter(Role.uuid == literal(Role.SYS_ADMIN_ROLE_UUID)).\
-                filter(UserRole.user_id==self.user.id)
+                where(Role.uuid == literal(Role.SYS_ADMIN_ROLE_UUID)).\
+                where(UserRole.user_id==self.user.id)
         return self._session.scalars(stmt).one() > 0
 
     def has_usr_admin(self) -> bool:
@@ -742,8 +742,8 @@ class AuthzSession(Session):
 
         stmt =  select(func.count(Role.id)).\
                 outerjoin(UserRole, UserRole.role_id==Role.id).\
-                filter(Role.uuid == literal(Role.USR_ADMIN_ROLE_UUID)).\
-                filter(UserRole.user_id==self.user.id)
+                where(Role.uuid == literal(Role.USR_ADMIN_ROLE_UUID)).\
+                where(UserRole.user_id==self.user.id)
         return self._session.scalars(stmt).one() > 0
 
     def is_role_creator(self, role_id) -> bool:
@@ -753,7 +753,7 @@ class AuthzSession(Session):
         from sqlalchemy import select, func
         from .role import Role
         stmt =  select(func.count(Role.id)).\
-                filter(Role.id==role_id).where(Role._creator_id==self.user.id)
+                where(Role.id==role_id).where(Role._creator_id==self.user.id)
         return self._session.scalars(stmt).one() > 0
 
     def is_role_owner(self, role_id) -> bool:
@@ -763,9 +763,9 @@ class AuthzSession(Session):
         from sqlalchemy import select, func
         from .role import UserRole
         stmt =  select(func.count(UserRole.user_id)).\
-                filter(UserRole.role_id==role_id).\
-                filter(UserRole.user_id==self.user.id).\
-                filter(UserRole.owner==True)
+                where(UserRole.role_id==role_id).\
+                where(UserRole.user_id==self.user.id).\
+                where(UserRole.owner==True)
         return self._session.scalars(stmt).one() > 0
 
     def is_self_user(self, user_id) -> bool:
@@ -781,5 +781,5 @@ class AuthzSession(Session):
         from sqlalchemy import select, func
         from streamcat.core import SavableDatum
         stmt =  select(func.count(SavableDatum.id)).\
-                filter(SavableDatum.id==datum_id).where(SavableDatum._creator_id==self.user.id)
+                where(SavableDatum.id==datum_id).where(SavableDatum._creator_id==self.user.id)
         return self._session.scalars(stmt).one() > 0
