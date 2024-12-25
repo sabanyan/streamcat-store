@@ -353,13 +353,16 @@ class DatumFactory():
                 order_by(SavableDatum._label, SavableDatum.id)
         return self._session.scalars(stmt).all()
 
-    def find_all_stores(self):
+    def find_all_stores(self, except_trash=False):
         """
         データストアを全て取得する
         """
         stmt =  select(SavableDatum).\
                 where(SavableDatum.type.in_([SavableDatum.DATABASE_TYPE,SavableDatum.RFOLDER_TYPE])).\
                 order_by(SavableDatum._label, SavableDatum.id)
+        if except_trash:
+            # ゴミ箱にほかされたデータストアは除外する
+            stmt = stmt.where(~self._make_exists_trashed(SavableDatum.uuid))
         return self._session.scalars(stmt).all()
 
     def load_root(self):
