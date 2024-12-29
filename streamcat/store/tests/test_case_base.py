@@ -2,7 +2,7 @@ import unittest
 import pprint
 from streamcat.store.factory import Factory, UnAuthzFactory
 
-class TestCaseBase(unittest.TestCase):
+class TestCaseBase(unittest.IsolatedAsyncioTestCase):
     @classmethod
     def setUpClass(cls):
         # ユーザ管理者を取得する
