@@ -20,13 +20,13 @@ class UnAuthzFactory():
         # セッションを保持する
         self._session = Session(session_maker, user=None)
 
-    def find_user_by_email(self, email):
+    async def find_user_by_email(self, email):
         return UserFactory(self._session).find_by_email(email)
 
-    def find_user_by_uuid(self, user_uuid):
+    async def find_user_by_uuid(self, user_uuid):
         return UserFactory(self._session).find_by_uuid(user_uuid)
 
-    def load_sys_admin_user(self, activate_if_inactive=False):
+    async def load_sys_admin_user(self, activate_if_inactive=False):
         """
         システム管理者を取得する、存在しない場合は作成する
         """
@@ -60,7 +60,7 @@ class UnAuthzFactory():
         sys_admin_user.save()
         return sys_admin_user
 
-    def load_usr_admin_user(self, activate_if_inactive=False):
+    async def load_usr_admin_user(self, activate_if_inactive=False):
         """
         ユーザ管理者を取得する、存在しない場合は作成する
         """
@@ -90,13 +90,13 @@ class UnAuthzFactory():
         usr_admin_user.save()
         return usr_admin_user
 
-    def __enter__(self):
+    async def __aenter__(self):
         return self
 
-    def __exit__(self, ex_type, ex_value, trace):
-        self.close()
+    async def __aexit__(self, ex_type, ex_value, trace):
+        await self.close()
 
-    def close(self):
+    async def close(self):
         self._session.end()
         self._session.close()
 

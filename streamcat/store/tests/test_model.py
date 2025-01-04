@@ -22,16 +22,6 @@ class LibraryTest(TestCaseBase):
         'password' : "kskanalytics"
     }
 
-    @classmethod
-    def setUpClass(cls):
-        # 親クラスのsetUpClass()を実行する
-        TestCaseBase.setUpClass()
-
-    @classmethod
-    def tearDownClass(cls):
-        # 親クラスのtearDownClass()を実行する
-        TestCaseBase.tearDownClass()
-
     def save(self, file_path):
         file_path = file_path
         with open(file_path, "w") as f:
@@ -76,7 +66,7 @@ class LibraryTest(TestCaseBase):
         return self.factory.data.find_by_uuid(new_flow.uuid)
 
 
-    def test_save_and_load(self):
+    async def test_save_and_load(self):
         # ルートデータストアを取得する
         root = self.factory.data.load_root()
         # フレームデータを格納するファイルを作成する
@@ -89,7 +79,7 @@ class LibraryTest(TestCaseBase):
         # 作成したフレームを削除する
         saved_frame.delete()
 
-    def test_get_root(self):
+    async def test_get_root(self):
         """
         ルートフォルダを取得する
         """
@@ -107,7 +97,7 @@ class LibraryTest(TestCaseBase):
         self.assertIsNotNone(root.created_at)
         self.assertIsNotNone(root.modified_at)
 
-    def test_get_folder(self):
+    async def test_get_folder(self):
         """
         フォルダを取得する
         """
@@ -127,7 +117,7 @@ class LibraryTest(TestCaseBase):
         self.assertIsNotNone(folder.created_at)
         self.assertIsNotNone(folder.modified_at)
 
-    def test_update_folder(self):
+    async def test_update_folder(self):
         """
         フォルダのラベルを変更する
         """
@@ -151,7 +141,7 @@ class LibraryTest(TestCaseBase):
         # 作成したフォルダを削除する
         folder.delete()
 
-    def test_move_folder(self):
+    async def test_move_folder(self):
         """
         フォルダを移動する
         """
@@ -213,7 +203,7 @@ class LibraryTest(TestCaseBase):
         folder_dst.delete()
         folder.delete()
 
-    def test_move_folder2(self):
+    async def test_move_folder2(self):
         """
         フォルダを移動できない場合を検証する
         """
@@ -250,7 +240,7 @@ class LibraryTest(TestCaseBase):
         frame_src.delete()
         folder_src.delete()
 
-    def test_cannot_move_folder_into_inner(self):
+    async def test_cannot_move_folder_into_inner(self):
         """
         フォルダを自身の中に移動できないこと
         """
@@ -285,7 +275,7 @@ class LibraryTest(TestCaseBase):
         folder2.delete()
         folder1.delete()
 
-    def test_save_folder(self):
+    async def test_save_folder(self):
         """
         フォルダを作成する
         """
@@ -309,7 +299,7 @@ class LibraryTest(TestCaseBase):
         # 作成したフォルダを削除する
         folder.delete()
 
-    def test_get_rfolder(self):
+    async def test_get_rfolder(self):
         """
         リモートフォルダを取得する
         """
@@ -335,7 +325,7 @@ class LibraryTest(TestCaseBase):
             folder.delete()
 
     # @unittest.skip
-    def test_update_rfolder(self):
+    async def test_update_rfolder(self):
         """
         リモートフォルダのラベルを変更する
         """
@@ -364,7 +354,7 @@ class LibraryTest(TestCaseBase):
             folder.delete()
 
     # @unittest.skip
-    def test_move_rfolder(self):
+    async def test_move_rfolder(self):
         """
         マウント解除状態のリモートフォルダを移動する
         """
@@ -415,7 +405,7 @@ class LibraryTest(TestCaseBase):
             from_folder.delete()
             to_folder.delete()
 
-    def test_move_rfolder2(self):
+    async def test_move_rfolder2(self):
         """
         リモートフォルダを移動できない場合を検証する
         """
@@ -454,7 +444,7 @@ class LibraryTest(TestCaseBase):
             folder.delete()
 
     @unittest.skip('AWS S3のパスワードないのでエラーになる')
-    def test_get_awss3(self):
+    async def test_get_awss3(self):
         """
         AWS S3フォルダを取得する
         """
@@ -482,7 +472,7 @@ class LibraryTest(TestCaseBase):
             Library.delete_awss3(folder.uuid)
 
     @unittest.skip('AWS S3のパスワードないのでエラーになる')
-    def test_update_awss3(self):
+    async def test_update_awss3(self):
         """
         AWS S3フォルダのラベルを変更する
         """
@@ -513,7 +503,7 @@ class LibraryTest(TestCaseBase):
             Library.delete_awss3(folder.uuid)
 
     @unittest.skip('AWS S3のパスワードないのでエラーになる')
-    def test_save_awss3(self):
+    async def test_save_awss3(self):
         """
         AWS S3フォルダを作成する
         """
@@ -541,7 +531,7 @@ class LibraryTest(TestCaseBase):
             Library.delete_awss3(folder.uuid)
 
 
-    def test_get_frame(self):
+    async def test_get_frame(self):
         """
         フレームを取得する
         """
@@ -570,7 +560,7 @@ class LibraryTest(TestCaseBase):
         # 作成したフレームを削除する
         frame.delete()
 
-    def test_update_frame(self):
+    async def test_update_frame(self):
         """
         フレームのラベルを変更する
         """
@@ -597,7 +587,7 @@ class LibraryTest(TestCaseBase):
         # 作成したフレームを削除する
         updated_frame.delete()
 
-    def test_move_frame(self):
+    async def test_move_frame(self):
         """
         フレームを移動する
         """
@@ -645,7 +635,7 @@ class LibraryTest(TestCaseBase):
         folder_dst.delete()
         folder.delete()
 
-    def test_move_frame2(self):
+    async def test_move_frame2(self):
         """
         フレームを移動する
         (異動先に同じファイル・ラベル名がある場合)
@@ -699,7 +689,7 @@ class LibraryTest(TestCaseBase):
         folder_dst.delete()
         folder.delete()
 
-    def test_move_frame3(self):
+    async def test_move_frame3(self):
         """
         フレームを移動できない場合を検証する
         """
@@ -739,7 +729,7 @@ class LibraryTest(TestCaseBase):
         frame_src2.delete()
         folder_src.delete()
 
-    def test_save_frame(self):
+    async def test_save_frame(self):
         """
         フレームを追加する
         """
@@ -766,7 +756,7 @@ class LibraryTest(TestCaseBase):
         # 作成したフレームを削除する
         frame.delete()
 
-    def test_save2_frame(self):
+    async def test_save2_frame(self):
         """
         フレームを作成する
         """
@@ -798,7 +788,7 @@ class LibraryTest(TestCaseBase):
         self.delete(root_path / 'aaaa3.csv')
 
 
-    def test_get_flow(self):
+    async def test_get_flow(self):
         """
         フローを取得する
         """
@@ -852,7 +842,7 @@ class LibraryTest(TestCaseBase):
         # 作成したファイルを削除する
         self.delete(root_path / 'frame_for_flow.csv')
 
-    def test_update_flow(self):
+    async def test_update_flow(self):
         """
         フローを変更する
         """
@@ -918,7 +908,7 @@ class LibraryTest(TestCaseBase):
         # 作成したファイルを削除する
         self.delete(root_path / 'frame_for_flow2.csv')
 
-    def test_move_flow(self):
+    async def test_move_flow(self):
         """
         フローを移動する
         """
@@ -971,7 +961,7 @@ class LibraryTest(TestCaseBase):
         folder_dst.delete()
         folder.delete()
 
-    def test_move_flow2(self):
+    async def test_move_flow2(self):
         """
         フローを移動できない場合を検証する
         """
@@ -1016,7 +1006,7 @@ class LibraryTest(TestCaseBase):
         flow_dst.delete()
 
 
-    def test_save_flow(self):
+    async def test_save_flow(self):
         """
         フローを追加する
         """
@@ -1052,14 +1042,14 @@ class LibraryTest(TestCaseBase):
         # 作成したフレームを削除する
         flow.delete()
 
-    def test_get_no_folder(self):
+    async def test_get_no_folder(self):
         """
         存在しないDatumを取得しようとすると例外を送出する
         """
         with self.assertRaises(Exception) as e:
             self.factory.data.find_by_uuid('00000000-0000-0000-0000-000000000000')
 
-    def test_delete_folder_has_child(self):
+    async def test_delete_folder_has_child(self):
         """
         フレームを内包するフォルダを削除しようとすると例外を送出する
         """
@@ -1080,7 +1070,7 @@ class LibraryTest(TestCaseBase):
         # 作成したフォルダを削除する
         folder.delete()
 
-    def test_update_to_illigal_folder_name(self):
+    async def test_update_to_illigal_folder_name(self):
         """
         '/'や'\0'を含むディレクトリパスは、それぞれ'／'と''に変換される
         """
@@ -1096,21 +1086,21 @@ class LibraryTest(TestCaseBase):
         # 作成したフォルダを削除する
         folder.delete()
 
-    def test_delete_folder_refer_to_file_other_frame_refering(self):
+    async def test_delete_folder_refer_to_file_other_frame_refering(self):
         """
         二つのフォルダが一つのディレクトリに対応している場合に、
         何れか一つのフォルダを削除しても、ディレクトリは削除されない
         """
         pass
 
-    def test_update_folder_refer_to_file_other_frame_refering(self):
+    async def test_update_folder_refer_to_file_other_frame_refering(self):
         """
         二つのフォルダが一つのディレクトリに対応している場合に、
         何れか一つのフォルダのラベル名を変更しても、不整合は発生しない
         """
         pass
 
-    def test_delete_frame_refer_to_file_other_frame_refering(self):
+    async def test_delete_frame_refer_to_file_other_frame_refering(self):
         """
         二つのフレームが一つのCSVファイルに対応している場合に、
         何れか一つのフレームを削除しても、CSVファイルは削除されない
@@ -1133,7 +1123,7 @@ class LibraryTest(TestCaseBase):
         # フレーム1,2に対応するCSVファイルが存在しないことを検証する
         self.assertFalse((root_path / 'foo.csv').is_file())
 
-    def test_update_frame_refer_to_file_other_frame_refering(self):
+    async def test_update_frame_refer_to_file_other_frame_refering(self):
         """
         二つのフレームが一つのCSVファイルに対応している場合に、
         何れか一つのフレームのラベル名を変更しても、不整合は発生しない
@@ -1159,7 +1149,7 @@ class LibraryTest(TestCaseBase):
         # フレーム2を削除する
         frame2.delete()
 
-    def test_frame_file_collision(self):
+    async def test_frame_file_collision(self):
         """
         3つのフレームでCSVファイル名が重複した場合は、異なるCSVファイル名が使われる
         """

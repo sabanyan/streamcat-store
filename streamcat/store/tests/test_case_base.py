@@ -1,14 +1,25 @@
 import unittest
 import pprint
-from streamcat.store.factory import Factory, UnAuthzFactory
+import logging
+from typing import Callable
+from streamcat.store.factory import Factory, UnAuthzFactory, init_admin_users
 
 class TestCaseBase(unittest.IsolatedAsyncioTestCase):
     @classmethod
-    def setUpClass(cls):
+    async def asyncSetUpClass(cls):
+        # asyncioから以下のようなWarningが多量に出力されるため表示から除外する
+        # Executing ... took 0.208 seconds
+        def filter(record):
+            return record.msg != 'Executing %s took %.3f seconds'
+        logging.getLogger('asyncio').addFilter(filter)
+
+        # システム管理者とユーザ管理者を作成する
+        await init_admin_users()
+
         # ユーザ管理者を取得する
-        with UnAuthzFactory() as factory:
-            sys_admin_user = factory.find_user_by_email('Admin@streamcat.io')
-            usr_admin_user = factory.find_user_by_email('admin@streamcat.io')
+        async with UnAuthzFactory() as factory:
+            sys_admin_user = await factory.find_user_by_email('Admin@streamcat.io')
+            usr_admin_user = await factory.find_user_by_email('admin@streamcat.io')
 
         with Factory(usr_admin_user) as factory:
             # テストユーザ1を作成する
@@ -54,6 +65,11 @@ class TestCaseBase(unittest.IsolatedAsyncioTestCase):
         with Factory(usr_admin_user) as factory:
             cls.root = factory.data.load_root()
             cls.data_dst = cls._create_data_dst(cls.root)
+
+    @classmethod
+    def setUpClass(cls):
+        # テスト環境を構築する
+        cls._call_async_func(cls.asyncSetUpClass)
 
     @classmethod
     def tearDownClass(cls):
@@ -147,6 +163,10 @@ class TestCaseBase(unittest.IsolatedAsyncioTestCase):
         project.init_members([member0, member1, member2, member3], last_modified_at=project.modified_at)
 
         return data_dst_flow.reload()
+
+    def _call_async_func(func:Callable, **kwargs):
+        import asyncio
+        return asyncio.run(func(**kwargs))
 
     def setUp(self) -> None:
         super().setUp()        

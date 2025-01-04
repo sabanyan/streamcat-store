@@ -325,7 +325,7 @@ class DelTest(TestCaseBase):
             ]
         }
 
-    def test_throw_away_datum(self):
+    async def test_throw_away_datum(self):
         """
         フローから参照されているDatumは削除できないこと
         """
@@ -432,7 +432,7 @@ class DelTest(TestCaseBase):
         # 参照元のフローを削除する
         flow.delete()
 
-    def test_throw_away_project(self):
+    async def test_throw_away_project(self):
         """
         参照元フローと参照先Datumをフォルダ丸ごと一緒に削除できること
         """

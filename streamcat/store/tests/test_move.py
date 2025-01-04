@@ -17,7 +17,7 @@ class MoveTest(TestCaseBase):
     }
     remote_folder_conn = RemoteFolderConn(conn_json)
 
-    def test_move_child_data_has_escape_chars(self):
+    async def test_move_child_data_has_escape_chars(self):
         """
         ファイル名にエスケープ文字が含まれるFrameを含むフォルダを移動できること
         """
@@ -33,11 +33,11 @@ class MoveTest(TestCaseBase):
         project2.save()
 
         # プロジェクト1の下にフォルダ1を作成する
-        folder1 = project1.create_folder('^FO\LDER-%-_-/')
+        folder1 = project1.create_folder(r'^FO\LDER-%-_-/')
         folder1.save()
 
         # フォルダ1の下にFrameを作成する
-        frame1 = folder1.create_frame('^FR\AME-%-_-/', io.BytesIO(b'okeihan'))
+        frame1 = folder1.create_frame(r'^FR\AME-%-_-/', io.BytesIO(b'okeihan'))
         frame1.save()
         frame1.reload()
 
@@ -58,8 +58,8 @@ class MoveTest(TestCaseBase):
 
         # フォルダ1の移動に成功すること
         # (labelに含まれる'/'はpathに反映される時に'／'に変換される)
-        self.assertEqual(folder1.path, root.path / '天満橋' / '^FO\LDER-%-_-／')
-        self.assertEqual(frame1.path, folder1.path / '^FR\AME-%-_-／')
+        self.assertEqual(folder1.path, root.path / '天満橋' / r'^FO\LDER-%-_-／')
+        self.assertEqual(frame1.path, folder1.path / r'^FR\AME-%-_-／')
 
         # フォルダ2を移動する
         folder2.move(project2.uuid)
@@ -80,7 +80,7 @@ class MoveTest(TestCaseBase):
         project2.delete()
         project1.delete()
 
-    def test_move_remote_folder(self):
+    async def test_move_remote_folder(self):
         """
         マウント状態のリモートフォルダを移動できないこと
         """
@@ -153,7 +153,7 @@ class MoveTest(TestCaseBase):
         project2.delete()
         project1.delete()
 
-    def test_trash_remote_folder_in_folder(self):
+    async def test_trash_remote_folder_in_folder(self):
         """
         マウント状態のリモートフォルダを含むフォルダをゴミ箱に捨てるとマウントが解除されること
         """
@@ -222,7 +222,7 @@ class MoveTest(TestCaseBase):
         folder.delete()
         project.delete()
 
-    def test_move_duplicated_frames(self):
+    async def test_move_duplicated_frames(self):
         """
         複製したFrameのうち片方を移動すると、対応する実ファイルも移動されること
         """
@@ -286,7 +286,7 @@ class MoveTest(TestCaseBase):
         project2.delete()
         project1.delete()
 
-    def test_move_duplicated_remote_folder(self):
+    async def test_move_duplicated_remote_folder(self):
         """
         複製したリモートフォルダのうち片方を移動しても、リモートフォルダに対応するファイルは移動されないこと
         """
@@ -336,7 +336,7 @@ class MoveTest(TestCaseBase):
         project2.delete()
         project1.delete()
 
-    def test_move_folder_contains_frames(self):
+    async def test_move_folder_contains_frames(self):
         """
         Frameを含むフォルダを移動すると、対応する実ファイルも移動されること
         """
@@ -394,7 +394,7 @@ class MoveTest(TestCaseBase):
         project2.delete()
         project1.delete()
 
-    def test_move_folder_contains_any_type_data(self):
+    async def test_move_folder_contains_any_type_data(self):
         """
         Document,Folderを含むフォルダを移動すると、対応する実ファイルも移動されること
         """
@@ -449,7 +449,7 @@ class MoveTest(TestCaseBase):
         project2.delete()
         project1.delete()
 
-    def test_move_folder_contains_remote_folder(self):
+    async def test_move_folder_contains_remote_folder(self):
         """
         リモートフォルダを含むフォルダは移動できないこと
         """
@@ -507,7 +507,7 @@ class MoveTest(TestCaseBase):
         project2.delete()
         project1.delete()
 
-    def test_move_to_self_inner_folder(self):
+    async def test_move_to_self_inner_folder(self):
         """
         フォルダを自身の内部フォルダに移動できないこと
         """
@@ -575,7 +575,7 @@ class MoveTest(TestCaseBase):
         # プロジェクトを削除する
         project.delete()
 
-    def test_move_then_delete_frame(self):
+    async def test_move_then_delete_frame(self):
         """
         Frameをフォルダごと移動した後にFrameを削除できること
         """
@@ -622,7 +622,7 @@ class MoveTest(TestCaseBase):
         project_b.delete()
         project_a.delete()
 
-    def test_move_then_delete_folder(self):
+    async def test_move_then_delete_folder(self):
         """
         フォルダをプロジェクトごと移動した後にフォルダを削除できること
         """
@@ -669,7 +669,7 @@ class MoveTest(TestCaseBase):
         project_b.delete()
         project_a.delete()
 
-    def test_move_then_delete_remote_folder(self):
+    async def test_move_then_delete_remote_folder(self):
         """
         リモートフォルダをプロジェクトごと移動した後にリモートフォルダを削除できること
         """
