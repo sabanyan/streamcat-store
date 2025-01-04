@@ -8,8 +8,8 @@ class VCmdTestCase(TestCaseBase):
     Vコマンドの実行テスト
     """
 
-    def setUp(self):
-        super().setUp()
+    async def asyncSetUp(self) -> None:
+        await super().asyncSetUp()
 
         # テスト用データを作成する
         test_data  = b'customer,date,amount,add1,add2,add3' + b'\n'

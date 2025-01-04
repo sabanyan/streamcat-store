@@ -21,7 +21,7 @@ class TestCaseBase(unittest.IsolatedAsyncioTestCase):
             sys_admin_user = await factory.find_user_by_email('Admin@streamcat.io')
             usr_admin_user = await factory.find_user_by_email('admin@streamcat.io')
 
-        with Factory(usr_admin_user) as factory:
+        async with Factory(usr_admin_user) as factory:
             # テストユーザ1を作成する
             test_user = factory.user.create('test@streamcat.io', 'Test', '123abc(*)A')
             test_user.save()
@@ -30,7 +30,7 @@ class TestCaseBase(unittest.IsolatedAsyncioTestCase):
             test_user2.save()
 
         # システム管理者を登録状態にする
-        with Factory(sys_admin_user) as factory:
+        async with Factory(sys_admin_user) as factory:
             # FactoryでUserオブジェクトを再取得する
             sys_admin_user = factory.user.find_by_id(sys_admin_user.id)
             # 仮登録状態から登録状態にする
@@ -38,19 +38,19 @@ class TestCaseBase(unittest.IsolatedAsyncioTestCase):
             sys_admin_user = factory.user.find_by_id(sys_admin_user.id)
 
         # ユーザ管理者を登録状態にする
-        with Factory(usr_admin_user) as factory:
+        async with Factory(usr_admin_user) as factory:
             usr_admin_user = factory.user.find_by_id(usr_admin_user.id)
             usr_admin_user.update_password('adminpass1')
             usr_admin_user = factory.user.find_by_id(usr_admin_user.id)
 
         # テストユーザ1を登録状態にする
-        with Factory(test_user) as factory:
+        async with Factory(test_user) as factory:
             test_user = factory.user.find_by_id(test_user.id)
             test_user.update_password('testpass00')
             test_user = factory.user.find_by_id(test_user.id)
 
         # テストユーザ2を登録状態にする
-        with Factory(test_user2) as factory:
+        async with Factory(test_user2) as factory:
             test_user2 = factory.user.find_by_id(test_user2.id)
             test_user2.update_password('testpass20')
             test_user2 = factory.user.find_by_id(test_user2.id)
@@ -62,17 +62,12 @@ class TestCaseBase(unittest.IsolatedAsyncioTestCase):
         cls.USER3 = test_user2
 
         # ライブラリデータデストを作成する
-        with Factory(usr_admin_user) as factory:
+        async with Factory(usr_admin_user) as factory:
             cls.root = factory.data.load_root()
             cls.data_dst = cls._create_data_dst(cls.root)
 
     @classmethod
-    def setUpClass(cls):
-        # テスト環境を構築する
-        cls._call_async_func(cls.asyncSetUpClass)
-
-    @classmethod
-    def tearDownClass(cls):
+    async def asynTearDownClass(cls):
         # USERオブジェクトに対する操作によってトランザクションが設定されるため
         # ここでそれらのトランザクションを終了する
         cls.USER0._session.close()
@@ -81,7 +76,7 @@ class TestCaseBase(unittest.IsolatedAsyncioTestCase):
         cls.USER3._session.close()
 
         # ライブラリフォルダを削除する
-        with Factory(cls.USER1) as factory:
+        async with Factory(cls.USER1) as factory:
             import shutil
             library_path = factory.data.load_root().path
             shutil.rmtree(library_path.as_posix())
@@ -91,6 +86,15 @@ class TestCaseBase(unittest.IsolatedAsyncioTestCase):
         from streamcat.core import engine, SCHEMA_NAME
         with engine.begin() as conn:
             conn.execute(DDL(f'DROP SCHEMA IF EXISTS {SCHEMA_NAME} CASCADE'))
+
+    @classmethod
+    def setUpClass(cls):
+        # テスト環境を構築する
+        cls._call_async_func(cls.asyncSetUpClass)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls._call_async_func(cls.asynTearDownClass)
 
     @classmethod
     def _create_data_dst(cls, root):
@@ -168,16 +172,14 @@ class TestCaseBase(unittest.IsolatedAsyncioTestCase):
         import asyncio
         return asyncio.run(func(**kwargs))
 
-    def setUp(self) -> None:
-        super().setUp()        
+    async def asyncSetUp(self) -> None:
         # テスト実行ごとにトランザクションを設定する
         self.factory0 = Factory(self.USER0)
         self.factory = Factory(self.USER1)
         self.factory2 = Factory(self.USER2)
         self.factory3 = Factory(self.USER3)
 
-    def tearDown(self) -> None:
-        super().tearDown()
+    async def asyncTearDown(self) -> None:
         # FactoryをCloseする
         self.factory0.end()
         self.factory.end()

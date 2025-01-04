@@ -23,13 +23,13 @@ async def init_admin_users():
         sys_admin_user = await unauthz_factory.load_sys_admin_user()
         usr_admin_user = await unauthz_factory.load_usr_admin_user(activate_if_inactive=True)
 
-    with Factory(sys_admin_user) as factory:
+    async with Factory(sys_admin_user) as factory:
         sys_admin_role = factory.role.load_sys_admin_role()
         if sys_admin_user.is_init:
             # システム管理者を新規作成した場合は、システム管理者ロールの一般メンバに加える
             sys_admin_role.join_member(Role.Member(sys_admin_user, owner=False))
 
-    with Factory(usr_admin_user) as factory:
+    async with Factory(usr_admin_user) as factory:
         # ユーザ管理者ロールを作成する
         # (ロールを新規作成した場合は作成者がロールの所有者になる)
         factory.role.load_usr_admin_role()

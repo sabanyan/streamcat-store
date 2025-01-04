@@ -130,10 +130,10 @@ class Factory():
         # 生成したセッションからUserオブジェクトを取得し、セッションに再設定する
         self._session.user = self._user.find_by_id(user.id)
 
-    def __enter__(self):
+    async def __aenter__(self):
         return self
 
-    def __exit__(self, ex_type, ex_value, trace):
+    async def __aexit__(self, ex_type, ex_value, trace):
         self.close()
 
     def end(self):

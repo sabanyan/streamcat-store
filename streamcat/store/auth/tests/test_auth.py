@@ -10,8 +10,8 @@ from ...tests.test_case_base import TestCaseBase
 
 class AuthTest(TestCaseBase):
 
-    def setUp(self):
-        super().setUp()
+    async def asyncSetUp(self) -> None:
+        await super().asyncSetUp()
         # フローJSON
         # mnewnumber -> d(cache=on) -> mcut -> d1(out=on)
         self.flow_json = {

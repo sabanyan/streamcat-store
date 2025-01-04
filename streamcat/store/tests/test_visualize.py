@@ -24,9 +24,6 @@ class ExecuteViualizeTestCase(unittest.TestCase):
     CACHE_DIR = 'streamcat/store/frames/csv/フロー実行キャッシュ/'
     TESTDATA_DIR = 'store/frames'
 
-    def setUp(self):
-        pass
-
     # @unittest.skip
     def test_execute_table(self):
         """
