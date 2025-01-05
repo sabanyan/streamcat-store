@@ -8,8 +8,8 @@ class Session():
     インタフェースとしてこのクラスを定義する
     """
 
-    def __init__(self, session_factory, user):
-        self._session = session_factory()
+    def __init__(self, session, user):
+        self._session = session
         self._user = user
         self._rollback = False
 

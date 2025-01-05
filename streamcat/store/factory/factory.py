@@ -13,12 +13,23 @@ class UnAuthzFactory():
         from streamcat.store.auth.authz_session import Session
         from . import engine
 
-        # セッションをつくる
+        # セッションを生成する
+        # ・session.commit()によるExpireでquery_expression()で設定されているreadableがNoneになる
+        # ・これを回避するためexpire_on_commit=Falseとする、autoflush=Falseも必要!
+        # ・session.rollback()によるExprireを回避する方法はない
         # ・future=True : SQLAlchemy2.0スタイルのトランザクションおよびエンジンの動作を使用する
         session_maker = sessionmaker(engine, expire_on_commit=False, autoflush=False, future=True)
 
         # セッションを保持する
-        self._session = Session(session_maker, user=None)
+        self._session = Session(session_maker(), user=None)
+
+    def create_authz_factory(self, user:User):
+        """
+        Factoryを生成する
+        """
+        authz_factory = Factory(self._session._session, user)
+        authz_factory.init()
+        return authz_factory
 
     async def find_user_by_email(self, email):
         return UserFactory(self._session).find_by_email(email)
@@ -105,21 +116,16 @@ class Factory():
     """
     SQLAlchemyのSessionを保持する(とりあえずこの目的ね)
     """
-    def __init__(self, user:User=None):
-        from sqlalchemy.orm import sessionmaker
+    def __init__(self, session, user:User=None):
         from streamcat.store.auth.authz_session import AuthzSession
-        from . import engine
-
-        # セッションを生成する
-        # ・session.commit()によるExpireでquery_expression()で設定されているreadableがNoneになる
-        # ・これを回避するためexpire_on_commit=Falseとする、autoflush=Falseも必要!
-        # ・session.rollback()によるExprireを回避する方法はない
-        # ・future=True : SQLAlchemy2.0スタイルのトランザクションおよびエンジンの動作を使用する
-        session_maker = sessionmaker(bind=engine, expire_on_commit=False, autoflush=False, future=True)
-
         # セッションを保持する
-        self._session = AuthzSession(session_maker, user)
+        self._session = AuthzSession(session, user)
 
+    def init(self):
+        """
+        Factoryを初期化する
+        (__init__()はasyncを指定できないため、init()を用意する)
+        """
         self._data = DatumFactory(self._session)
         self._store = StoreFactory(self._session)
         self._auth = AuthFactory(self._session)
@@ -128,20 +134,14 @@ class Factory():
         self._user = UserFactory(self._session)
 
         # 生成したセッションからUserオブジェクトを取得し、セッションに再設定する
-        self._session.user = self._user.find_by_id(user.id)
-
-    async def __aenter__(self):
-        return self
-
-    async def __aexit__(self, ex_type, ex_value, trace):
-        self.close()
+        self._session.user = self._user.find_by_id(self.myself.id)       
 
     def end(self):
         self._session.end()
 
-    def close(self):
-        self._session.end()
-        self._session.close()
+    # def close(self):
+    #     self._session.end()
+    #     self._session.close()
 
     def get_active_connections(self):
         """
