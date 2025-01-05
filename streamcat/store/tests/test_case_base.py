@@ -21,7 +21,7 @@ class TestCaseBase(unittest.IsolatedAsyncioTestCase):
             sys_admin_user = await ufactory.find_user_by_email('Admin@streamcat.io')
             usr_admin_user = await ufactory.find_user_by_email('admin@streamcat.io')
 
-            usr_factory = ufactory.create_authz_factory(usr_admin_user)
+            usr_factory = await ufactory.create_authz_factory(usr_admin_user)
             # テストユーザ1を作成する
             test_user = usr_factory.user.create('test@streamcat.io', 'Test', '123abc(*)A')
             test_user.save()
@@ -30,7 +30,7 @@ class TestCaseBase(unittest.IsolatedAsyncioTestCase):
             test_user2.save()
 
             # システム管理者を登録状態にする
-            sys_factory = ufactory.create_authz_factory(sys_admin_user)
+            sys_factory = await ufactory.create_authz_factory(sys_admin_user)
             # FactoryでUserオブジェクトを再取得する
             sys_admin_user = sys_factory.user.find_by_id(sys_admin_user.id)
             # 仮登録状態から登録状態にする
@@ -43,13 +43,13 @@ class TestCaseBase(unittest.IsolatedAsyncioTestCase):
             usr_admin_user = usr_factory.user.find_by_id(usr_admin_user.id)
 
             # テストユーザ1を登録状態にする
-            test1_factory = ufactory.create_authz_factory(test_user)
+            test1_factory = await ufactory.create_authz_factory(test_user)
             test_user = test1_factory.user.find_by_id(test_user.id)
             test_user.update_password('testpass00')
             test_user = test1_factory.user.find_by_id(test_user.id)
 
             # テストユーザ2を登録状態にする
-            test2_factory = ufactory.create_authz_factory(test_user2)
+            test2_factory = await ufactory.create_authz_factory(test_user2)
             test_user2 = test2_factory.user.find_by_id(test_user2.id)
             test_user2.update_password('testpass20')
             test_user2 = test2_factory.user.find_by_id(test_user2.id)
@@ -76,7 +76,7 @@ class TestCaseBase(unittest.IsolatedAsyncioTestCase):
         # ライブラリフォルダを削除する
         async with UnAuthzFactory() as ufactory:
             import shutil
-            factory = ufactory.create_authz_factory(cls.USER1)
+            factory = await ufactory.create_authz_factory(cls.USER1)
             library_path = factory.data.load_root().path
             shutil.rmtree(library_path.as_posix())
 
@@ -173,10 +173,10 @@ class TestCaseBase(unittest.IsolatedAsyncioTestCase):
 
     async def asyncSetUp(self) -> None:
         # テスト実行ごとにトランザクションを設定する
-        self.factory0 = UnAuthzFactory().create_authz_factory(self.USER0)
-        self.factory = UnAuthzFactory().create_authz_factory(self.USER1)
-        self.factory2 = UnAuthzFactory().create_authz_factory(self.USER2)
-        self.factory3 = UnAuthzFactory().create_authz_factory(self.USER3)
+        self.factory0 = await UnAuthzFactory().create_authz_factory(self.USER0)
+        self.factory = await UnAuthzFactory().create_authz_factory(self.USER1)
+        self.factory2 = await UnAuthzFactory().create_authz_factory(self.USER2)
+        self.factory3 = await UnAuthzFactory().create_authz_factory(self.USER3)
 
     async def asyncTearDown(self) -> None:
         # FactoryをCloseする

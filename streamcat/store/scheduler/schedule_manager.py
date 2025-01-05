@@ -59,7 +59,7 @@ class ScheduleManager():
             from streamcat.store.factory import UnAuthzFactory
             # Scheduleの作成者の権限でrunnableを実行する
             async with UnAuthzFactory() as ufactory:
-                factory = ufactory.create_authz_factory(user=schedule.creator)
+                factory = await ufactory.create_authz_factory(user=schedule.creator)
                 runnable = factory.data.find_by_uuid(schedule.runnable_uuid)
                 if runnable.type == SavableDatum.FLOW_TYPE:
                     # TODO: streamcat-storeとstreamcat-engineの循環参照になってしまう

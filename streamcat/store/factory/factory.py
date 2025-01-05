@@ -23,12 +23,12 @@ class UnAuthzFactory():
         # セッションを保持する
         self._session = Session(session_maker(), user=None)
 
-    def create_authz_factory(self, user:User):
+    async def create_authz_factory(self, user:User):
         """
         Factoryを生成する
         """
         authz_factory = Factory(self._session._session, user)
-        authz_factory.init()
+        await authz_factory.init()
         return authz_factory
 
     async def find_user_by_email(self, email):
@@ -121,7 +121,7 @@ class Factory():
         # セッションを保持する
         self._session = AuthzSession(session, user)
 
-    def init(self):
+    async def init(self):
         """
         Factoryを初期化する
         (__init__()はasyncを指定できないため、init()を用意する)
