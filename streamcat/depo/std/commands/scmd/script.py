@@ -1551,12 +1551,20 @@ class RestoreCommand(SCommand):
 
         # 復元処理をスレッドセーフで実行する
         with self._thread_lock:
-            self._restore_all(factory, stream)
+            self._call_async_func(self._restore_all, factory, stream)
 
         # Noneは返せないのでとりあえずTrueを返す
         return {'o': True}
 
-    def _restore_all(self, factory, stream):
+    def _call_async_func(self, func, *args):
+        """
+        非同期関数を実行する
+        """
+        import asyncio
+        # NOTE: Engineは別スレッドで実行されるため、CommandをFastAPIのイベントループで実行する必要はない
+        return asyncio.run(func(*args))
+
+    async def _restore_all(self, factory, stream):
         """
         StreamCatを復元する
         """
@@ -1572,7 +1580,7 @@ class RestoreCommand(SCommand):
             raise Exception(f'マウントが解除できませんでした ({e})')
 
         # PostgreSQLへのActive状態の接続があれば例外を送出する
-        active_connections = [result for result in factory.get_active_connections()]
+        active_connections = [result for result in await factory.get_active_connections()]
         if len(active_connections) > 0:
             application_name = active_connections[0]['application_name']
             client_addr = active_connections[0]['client_addr']

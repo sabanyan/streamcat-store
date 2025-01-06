@@ -143,7 +143,7 @@ class Factory():
         self._session.end()
         self._session.close()
 
-    def get_active_connections(self):
+    async def get_active_connections(self):
         """
         PostgreSQLへのActive状態の接続の有無を確認する
         """
