@@ -274,7 +274,7 @@ class AuthTest(TestCaseBase):
     # SQLAlchemy Session
     # 
 
-    def test_after_create_data(self):
+    async def test_after_create_data(self):
         """
         新規作成したDatumはDBに保存するまで権限フリーであること
         """
@@ -335,7 +335,7 @@ class AuthTest(TestCaseBase):
         # フレームを削除する
         frame.delete()
 
-    def test_failure_after_update_data(self):
+    async def test_failure_after_update_data(self):
         """
         原因不明
           save() -> update() -> find_by_id()/find_by_uuid()の順に実行すると
@@ -398,7 +398,7 @@ class AuthTest(TestCaseBase):
         with self.assertRaises(NotAuthorizedException):
             self.factory.data.find_by_uuid(project.uuid)
 
-    def test_success_after_update_data1(self):
+    async def test_success_after_update_data1(self):
         """
         原因不明
           save() -> find_by_id() -> update() -> find_by_id()の順に実行すると
@@ -457,7 +457,7 @@ class AuthTest(TestCaseBase):
         # プロジェクトを再読み込みする
         self.factory.data.find_by_uuid(project.uuid)
 
-    def test_success_after_update_data2(self):
+    async def test_success_after_update_data2(self):
         """
         save() -> update() -> reload()の順に実行すると
         reload()で参照権限のエラーは送出されないこと
@@ -511,7 +511,7 @@ class AuthTest(TestCaseBase):
         # プロジェクトを再読み込みする
         project.reload()
 
-    def test_set_session_datum_property(self):
+    async def test_set_session_datum_property(self):
         """
         SessionからDatumを抽出したら
         Datum._sessionプロパティにSessionが設定されていること
@@ -552,7 +552,7 @@ class AuthTest(TestCaseBase):
         # フレームを削除する
         frame.delete()
 
-    def test_set_session_role_property(self):
+    async def test_set_session_role_property(self):
         """
         SessionからRoleを抽出したら
         Role._sessionプロパティにSessionが設定されていること
@@ -589,7 +589,7 @@ class AuthTest(TestCaseBase):
         # print('>> ', role.get_joined_users())
         role.delete()
 
-    def test_session_rollback(self):
+    async def test_session_rollback(self):
         """
         SQLAlchemyのSession.rollback()によりExpireが発生しないことを
         Rollback後のDatum._permissionsがNoneにならないことで確認する
@@ -620,7 +620,7 @@ class AuthTest(TestCaseBase):
     # Users
     # 
 
-    def test_create_get_delete_user(self):
+    async def test_create_get_delete_user(self):
         """
         Userの作成・取得・削除を検証する
         """
@@ -648,7 +648,7 @@ class AuthTest(TestCaseBase):
         with self.assertRaises(Exception):
             self.factory.user.find_by_email('test-man@streamcat.io')
 
-    def test_create_user_by_user(self):
+    async def test_create_user_by_user(self):
         """
         一般ユーザは、ユーザの作成ができないこと
         """
@@ -657,7 +657,7 @@ class AuthTest(TestCaseBase):
         with self.assertRaises(NotAuthorizedException):
             new_user.save()
 
-    def test_update_user_by_user(self):
+    async def test_update_user_by_user(self):
         """
         一般ユーザは、他ユーザの変更ができないこと
         """
@@ -687,7 +687,7 @@ class AuthTest(TestCaseBase):
         self.assertEqual(new_user.password, new_user_password)
         self.assertEqual(new_user.name, 'I AM TEST')
 
-    def test_delete_user_by_user(self):
+    async def test_delete_user_by_user(self):
         """
         一般ユーザは、他ユーザの削除ができないこと
         """
@@ -707,7 +707,7 @@ class AuthTest(TestCaseBase):
         new_user = self.factory.user.find_by_email('test-man4@streamcat.io')
         self.assertIsNotNone(new_user)
 
-    def test_cannot_set_same_email(self):
+    async def test_cannot_set_same_email(self):
         """
         既に登録済みのemailと同じemailのユーザは作成できないこと
         既に登録済みのemailと同じemailに変更できないこと
@@ -734,13 +734,13 @@ class AuthTest(TestCaseBase):
         # ユーザを削除する
         new_user1.delete()
 
-    def test_validate_email(self):
+    async def test_validate_email(self):
         """
         E-Mailの妥当性が検証されること
         """
         pass
 
-    def test_validate_password(self):
+    async def test_validate_password(self):
         """
         パスワードの妥当性が検証されること
         """
@@ -786,7 +786,7 @@ class AuthTest(TestCaseBase):
         # ユーザを削除する
         new_user.delete()
 
-    def test_cannot_set_same_password(self):
+    async def test_cannot_set_same_password(self):
         """
         変更前と同じパスワードに変更できないこと
         """
@@ -819,7 +819,7 @@ class AuthTest(TestCaseBase):
         # ユーザを削除する
         new_user.delete()
 
-    def test_system_user_id(self):
+    async def test_system_user_id(self):
         """
         システム管理者とユーザ管理者に付番されるIDを検証する
         (保守性向上のためシステムが用意するユーザのIDは固定したい)
@@ -835,7 +835,7 @@ class AuthTest(TestCaseBase):
     # Roles
     # 
 
-    def test_create_get_delete_role(self):
+    async def test_create_get_delete_role(self):
         """
         Roleの作成・取得・削除を検証する
         """
@@ -861,7 +861,7 @@ class AuthTest(TestCaseBase):
         with self.assertRaises(NoResultFound):
             self.factory.role.find_by_uuid(new_role.uuid)
 
-    def test_create_get_delete_role_by_user(self):
+    async def test_create_get_delete_role_by_user(self):
         """
         一般ユーザは、自身が作成したRoleの取得・更新・削除をできること
         """
@@ -885,7 +885,7 @@ class AuthTest(TestCaseBase):
         with self.assertRaises(NoResultFound):
             self.factory2.role.find_by_uuid(new_role.uuid)
 
-    def test_join_leave_role(self):
+    async def test_join_leave_role(self):
         """
         Roleへの参加と脱退を検証する
         """
@@ -910,7 +910,7 @@ class AuthTest(TestCaseBase):
         # ユーザを脱退させる
         new_role.leave_member(self.USER2)
 
-    def test_join_role_on_no_auth(self):
+    async def test_join_role_on_no_auth(self):
         """
         Roleにユーザを追加できるのはユーザ管理者かRoleの所有者のみである
         """
@@ -925,7 +925,7 @@ class AuthTest(TestCaseBase):
         with self.assertRaises(NotAuthorizedException):
             new_role.join_member(Role.Member(self.USER2))
 
-    def test_leave_role_on_no_auth(self):
+    async def test_leave_role_on_no_auth(self):
         """
         Roleからユーザを削除できるのはユーザ管理者かRoleの所有者のみである
         """
@@ -945,7 +945,7 @@ class AuthTest(TestCaseBase):
         with self.assertRaises(NotAuthorizedException):
             new_role.leave_member(self.USER2)
 
-    def test_cannot_delete_system_role(self):
+    async def test_cannot_delete_system_role(self):
         """
         システムロールは削除できないこと
         """
@@ -965,7 +965,7 @@ class AuthTest(TestCaseBase):
         with self.assertRaises(Exception):
             edit_lock_role.delete()
 
-    def test_join_usr_admin_role_without_owner(self):
+    async def test_join_usr_admin_role_without_owner(self):
         """
         ユーザ管理者ロールの所有者は必ず指定すること
         """
@@ -978,7 +978,7 @@ class AuthTest(TestCaseBase):
         with self.assertRaises(NoRoleOwnerException):
             usr_admin_role.init_members([member1, member2])
 
-    def test_update_usr_admin_role_owner_to_false(self):
+    async def test_update_usr_admin_role_owner_to_false(self):
         """
         ユーザ管理者ロールの所属処理によってロール所有者が不在にならないこと
         """
@@ -990,7 +990,7 @@ class AuthTest(TestCaseBase):
         with self.assertRaises(NoRoleOwnerException):
             usr_admin_role.join_member(member1)
 
-    def test_cannot_delete_usr_admin_role_owner(self):
+    async def test_cannot_delete_usr_admin_role_owner(self):
         """
         ユーザがユーザ管理者ロールの唯一の所有者の場合、そのユーザを削除できないこと
         """
@@ -1003,7 +1003,7 @@ class AuthTest(TestCaseBase):
         with self.assertRaises(NoRoleOwnerException):
             user1.delete()
 
-    def test_join_sys_admin_role_without_owner(self):
+    async def test_join_sys_admin_role_without_owner(self):
         """
         システム管理者ロールの所有者は指定する必要はない
         """
@@ -1018,7 +1018,7 @@ class AuthTest(TestCaseBase):
         # メンバ設定を戻す
         sys_admin_role.init_members([Role.Member(self.USER0, owner=True)])
 
-    def test_update_sys_admin_role_owner_to_false(self):
+    async def test_update_sys_admin_role_owner_to_false(self):
         """
         システム管理者ロールの所属処理によってロール所有者が不在でも良い
         """
@@ -1029,7 +1029,7 @@ class AuthTest(TestCaseBase):
         member1 = Role.Member(self.USER0, owner=False)
         sys_admin_role.join_member(member1)
 
-    def test_system_role_id(self):
+    async def test_system_role_id(self):
         """
         everyoneと管理者ロールに付番されるIDを検証する
         (保守性向上のためシステムが用意するロールのIDは固定したい)
@@ -1053,7 +1053,7 @@ class AuthTest(TestCaseBase):
     # Auths
     # 
 
-    def test_create_get_delete_auth(self):
+    async def test_create_get_delete_auth(self):
         """
         Authの作成・取得・削除を検証する
         """
@@ -1091,7 +1091,7 @@ class AuthTest(TestCaseBase):
         with self.assertRaises(Exception):
             self.factory.auth.find_by_id(new_role.id, folder.id, Auth.WRITE_OP)
 
-    def test_create_get_delete_auth_by_user(self):
+    async def test_create_get_delete_auth_by_user(self):
         """
         一般ユーザは、自身が作成したDatumの権限を取得・更新・削除をできること
         """
@@ -1127,7 +1127,7 @@ class AuthTest(TestCaseBase):
         # プロジェクトを削除する
         project.delete()
 
-    def test_create_get_delete_auth_by_other_user(self):
+    async def test_create_get_delete_auth_by_other_user(self):
         """
         一般ユーザは、他ユーザが作成したDatumの権限を取得・更新・削除をできないこと
         """
@@ -1159,7 +1159,7 @@ class AuthTest(TestCaseBase):
         with self.assertRaises(NotAuthorizedException):
             new_auth.delete()
 
-    def test_no_authz(self):
+    async def test_no_authz(self):
         """
         権限レコードのないFrameは読み取れないことを検証する
         """
@@ -1193,7 +1193,7 @@ class AuthTest(TestCaseBase):
         with self.assertRaises(NotAuthorizedException):
             frame.delete()
 
-    def test_readless_frame(self):
+    async def test_readless_frame(self):
         """
         参照権限のないFrameは読み取れないことを検証する
         """
@@ -1229,7 +1229,7 @@ class AuthTest(TestCaseBase):
         with self.assertRaises(NotAuthorizedException):
             frame.path
 
-    def test_writeless_frame(self):
+    async def test_writeless_frame(self):
         """
         更新権限のないFrameは更新できないことを検証する
         """
@@ -1255,7 +1255,7 @@ class AuthTest(TestCaseBase):
         with self.assertRaises(NotAuthorizedException):
             frame.delete()
 
-    def test_readless_folder(self):
+    async def test_readless_folder(self):
         """
         参照権限のないFolderは読み取れないことを検証する
         """
@@ -1296,7 +1296,7 @@ class AuthTest(TestCaseBase):
         with self.assertRaises(NotAuthorizedException):
             folder.find_child_by_uuid(flow.uuid)
 
-    def test_writeless_folder(self):
+    async def test_writeless_folder(self):
         """
         更新権限のないFolderは更新できないことを検証する
         """
@@ -1322,7 +1322,7 @@ class AuthTest(TestCaseBase):
         with self.assertRaises(NotAuthorizedException):
             flow.delete()
 
-    def test_resolve_roles(self):
+    async def test_resolve_roles(self):
         """
         複数のロールで異なる権限判定の場合
         """
@@ -1397,7 +1397,7 @@ class AuthTest(TestCaseBase):
         project.delete()
 
     @unittest.skip('参照権限のないDatumは取得できない仕様に変更されたため')
-    def test_read_data_of_frame(self):
+    async def test_read_data_of_frame(self):
         """
         参照権限のないFrameでもdataプロパティは読み取れること
         """
@@ -1423,7 +1423,7 @@ class AuthTest(TestCaseBase):
         self.assertEqual(frame.newline_str, 'UNKNOWN')
 
     @unittest.skip('参照権限のないDatumは取得できない仕様に変更されたため')
-    def test_read_data_of_flow(self):
+    async def test_read_data_of_flow(self):
         """
         参照権限のないFlowのnodesキーは読み取れないこと
         """
@@ -1453,7 +1453,7 @@ class AuthTest(TestCaseBase):
         with self.assertRaises(NotAuthorizedException):
             flow.flow_data.get_nodes()
 
-    def test_read_flow_by_self_role(self):
+    async def test_read_flow_by_self_role(self):
         """
         本人グループにのみ参照可能なFlowを参照できること
         """
@@ -1479,7 +1479,7 @@ class AuthTest(TestCaseBase):
         self.assertFalse(flow.writable)
         self.assertFalse(flow.executable)
 
-    def test_read_flow_by_other_role(self):
+    async def test_read_flow_by_other_role(self):
         """
         本人グループにのみ参照可能なFlowを他ユーザは参照できないこと
         """
@@ -1503,7 +1503,7 @@ class AuthTest(TestCaseBase):
         with self.assertRaises(NotAuthorizedException):
             self.factory2.data.find_by_id(flow.id)
 
-    def test_write_flow_by_self_role(self):
+    async def test_write_flow_by_self_role(self):
         """
         本人グループにのみ更新可能なFlowを更新できること
         """
@@ -1526,7 +1526,7 @@ class AuthTest(TestCaseBase):
         # フローは更新されていること
         self.assertEqual(flow.label, '変更したフロー名')
 
-    def test_write_flow_by_self_role2(self):
+    async def test_write_flow_by_self_role2(self):
         """
         本人グループにのみ更新可能なフォルダ内にあるFlowを更新できること
         """
@@ -1554,7 +1554,7 @@ class AuthTest(TestCaseBase):
         # フローは更新されていること
         self.assertEqual(flow.label, '変更したフロー名2')        
 
-    def test_write_flow_by_other_role(self):
+    async def test_write_flow_by_other_role(self):
         """
         本人グループにのみ更新可能なFlowを他ユーザは更新できないこと
         """
@@ -1592,7 +1592,7 @@ class AuthTest(TestCaseBase):
         # フローは更新されていないこと
         self.assertEqual(flow.label, '所有者のみ更新できるフロー2')
 
-    def test_move(self):
+    async def test_move(self):
         """
         必要最小限の権限設定でFlowを移動できること
         """
@@ -1622,7 +1622,7 @@ class AuthTest(TestCaseBase):
         # フローが移動できること
         self.assertEqual(flow.parent_id, to_folder.id)
 
-    def test_move_from_writeless_folder(self):
+    async def test_move_from_writeless_folder(self):
         """
         更新権限のないFolderからFlowは移動できないこと
         """
@@ -1655,7 +1655,7 @@ class AuthTest(TestCaseBase):
         self.assertIsNone(flow.prev_parent_id)
         self.assertEqual(flow.parent_id, from_folder.id)
 
-    def test_move_to_writeless_folder(self):
+    async def test_move_to_writeless_folder(self):
         """
         更新権限のないFolderへFlowは移動できないこと
         """
@@ -1685,7 +1685,7 @@ class AuthTest(TestCaseBase):
         # フローが移動していないこと
         self.assertEqual(flow.parent_id, from_folder.id)
 
-    def test_folder_in_writeless_folder(self):
+    async def test_folder_in_writeless_folder(self):
         """
         更新権限のないFolderの直下のFolder内にあるFlowは更新できないこと
         """
@@ -1722,7 +1722,7 @@ class AuthTest(TestCaseBase):
         with self.assertRaises(NotAuthorizedException):
             flow2.save()
 
-    def test_del_folder_has_writeless_flow(self):
+    async def test_del_folder_has_writeless_flow(self):
         """
         更新権限のないFlowは親フォルダごと削除できないこと
         """
@@ -1756,7 +1756,7 @@ class AuthTest(TestCaseBase):
         self.assertEqual(flow1.parent_id, folder.id)
         self.assertEqual(folder.parent_id, root.id)
 
-    def test_exec_execless_flow(self):
+    async def test_exec_execless_flow(self):
         """
         実行権限のないFlowは実行できないこと
         """
@@ -1791,7 +1791,7 @@ class AuthTest(TestCaseBase):
         # フローJSONのnodesを取得できること
         flow.flow_data.get_nodes(use_exec_auth=True)
 
-    def test_own_frame_in_no_own_folder(self):
+    async def test_own_frame_in_no_own_folder(self):
         """
         フレームの所有権は親フォルダの所有権に影響しないこと
         (フォルダの所有権はオーバーライドしない)
@@ -1866,7 +1866,7 @@ class AuthTest(TestCaseBase):
         folder_a.delete()
         project_b.delete()
 
-    def test_override_all_permissions(self):
+    async def test_override_all_permissions(self):
         """
         参照・更新・実行の権限がフォルダ階層においてオーバライドされること
         """
@@ -1950,7 +1950,7 @@ class AuthTest(TestCaseBase):
         with self.assertRaises(NotAuthorizedException):
             flow.delete()
 
-    def test_override_read_write_permissions(self):
+    async def test_override_read_write_permissions(self):
         """
         更新・実行の権限がフォルダ階層においてオーバライドされること
         """
@@ -2038,7 +2038,7 @@ class AuthTest(TestCaseBase):
         with self.assertRaises(NotAuthorizedException):
             flow.delete()
 
-    def test_count_readless_datum(self):
+    async def test_count_readless_datum(self):
         """
         参照権限のないDatumでもcount()できること
         """
@@ -2068,7 +2068,7 @@ class AuthTest(TestCaseBase):
         flow.delete()
         folder1.delete()
 
-    def test_exists_readless_datum(self):
+    async def test_exists_readless_datum(self):
         """
         参照権限のないDatumでもexists()=Trueであること
         """
@@ -2099,7 +2099,7 @@ class AuthTest(TestCaseBase):
     # 
     # Projects
     # 
-    def test_create_get_delete_project(self):
+    async def test_create_get_delete_project(self):
         """
         Projectの作成・取得・削除を検証する
         """
@@ -2177,7 +2177,7 @@ class AuthTest(TestCaseBase):
         project.throw_away()
         self.factory.data.find_trashcan().trash_all()
 
-    def test_cannot_save_project_outside_root(self):
+    async def test_cannot_save_project_outside_root(self):
         """
         プロジェクトはルートフォルダ直下にしか保存できないこと
         """
@@ -2202,7 +2202,7 @@ class AuthTest(TestCaseBase):
             sub_project0 = folder.create_project_folder('Subプロジェクト0')
             sub_project0.save()
 
-    def test_update_project(self):
+    async def test_update_project(self):
         """
         プロジェクトのラベル名はプロジェクト管理者のみが変更できること
         """
@@ -2240,7 +2240,7 @@ class AuthTest(TestCaseBase):
         project.throw_away()
         self.factory.data.find_trashcan().trash_all()
 
-    def test_cannot_move_project(self):
+    async def test_cannot_move_project(self):
         """
         ゴミ箱へにほかされるか、ゴミ箱から元の場所に戻す場合を除いて、プロジェクトは移動できない
         """
@@ -2261,7 +2261,7 @@ class AuthTest(TestCaseBase):
         with self.assertRaises(Exception):
             project.move(folder.uuid)
 
-    def test_throw_away_project(self):
+    async def test_throw_away_project(self):
         """
         プロジェクトはゴミ箱にほかせること
         """
@@ -2306,7 +2306,7 @@ class AuthTest(TestCaseBase):
         self.assertFalse(self.factory.data.exists(flow.uuid))
         self.assertFalse(self.factory.data.exists(frame.uuid))
 
-    def test_delete_project(self):
+    async def test_delete_project(self):
         """
         プロジェクト管理者はプロジェクトを削除できる
         """
@@ -2337,7 +2337,7 @@ class AuthTest(TestCaseBase):
         # プロジェクトは削除されていること
         self.assertFalse(self.factory.data.exists(project.uuid))
 
-    def test_cannot_delete_project(self):
+    async def test_cannot_delete_project(self):
         """
         プロジェクト管理者以外はプロジェクトを削除できない
         """
@@ -2375,7 +2375,7 @@ class AuthTest(TestCaseBase):
         # プロジェクトは削除されていないこと
         self.assertTrue(self.factory.data.exists_by_id(project.id))
 
-    def test_join_project1(self):
+    async def test_join_project1(self):
         """
         プロジェクト管理者を交代する
         (元のプロジェクト管理者は削除する)
@@ -2410,7 +2410,7 @@ class AuthTest(TestCaseBase):
         with self.assertRaises(NotAuthorizedException):
             project.update_label('ぷろじぇくと1')
 
-    def test_join_project2(self):
+    async def test_join_project2(self):
         """
         プロジェクト管理者を交代する
         (元のプロジェクト管理者は閲覧者にする)
@@ -2446,7 +2446,7 @@ class AuthTest(TestCaseBase):
         with self.assertRaises(NotAuthorizedException):
             project.update_label('ぷろじぇくと1')
 
-    def test_join_project3(self):
+    async def test_join_project3(self):
         """
         プロジェクト管理者を交代する
         (ユーザ管理者はプロジェクト管理者から外すことはできないこと)
@@ -2485,7 +2485,7 @@ class AuthTest(TestCaseBase):
         # プロジェクトは削除する
         project.delete()
 
-    def test_join_project4(self):
+    async def test_join_project4(self):
         """
         プロジェクト管理者を交代する
         (ユーザ管理者はプロジェクト管理者から外すことはできないこと)
@@ -2524,7 +2524,7 @@ class AuthTest(TestCaseBase):
         # プロジェクトは削除する
         project.delete()
 
-    def test_join_project_without_owner(self):
+    async def test_join_project_without_owner(self):
         """
         プロジェクト管理者を設定しない
         """
@@ -2543,7 +2543,7 @@ class AuthTest(TestCaseBase):
         # プロジェクトは削除する
         project.delete()
 
-    def test_join_project_with_other_type(self):
+    async def test_join_project_with_other_type(self):
         """
         プロジェクトに規定のユーザタイプ以外を指定できないこと
         """
@@ -2563,7 +2563,7 @@ class AuthTest(TestCaseBase):
         # プロジェクトは削除する
         project.delete()
 
-    def test_join_project_without_member(self):
+    async def test_join_project_without_member(self):
         """
         プロジェクトメンバに誰も設定しない
         """
@@ -2580,7 +2580,7 @@ class AuthTest(TestCaseBase):
         # プロジェクトは削除する
         project.delete()
 
-    def test_sys_admin_has_permissions(self):
+    async def test_sys_admin_has_permissions(self):
         """
         システム管理者は、プロジェクトの
         参照・更新・実行・所有権限を付与されていないこと
@@ -2637,7 +2637,7 @@ class AuthTest(TestCaseBase):
         # ゴミ箱を空にする
         self.factory3.data.find_trashcan().trash_all()
 
-    def test_usr_admin_has_permissions(self):
+    async def test_usr_admin_has_permissions(self):
         """
         ユーザ管理者は、プロジェクトの
         参照・更新・実行・所有権限を付与されていること
@@ -2724,7 +2724,7 @@ class AuthTest(TestCaseBase):
         # ゴミ箱を空にする
         self.factory3.data.find_trashcan().trash_all()
 
-    def test_join_by_serial(self):
+    async def test_join_by_serial(self):
         """
         プロジェクトメンバの設定は、順次実行すればいずれも更新できる
         """
@@ -2757,7 +2757,7 @@ class AuthTest(TestCaseBase):
         # プロジェクトは削除する
         project.delete()
 
-    def test_cannot_join_by_late_user(self):
+    async def test_cannot_join_by_late_user(self):
         """
         プロジェクトメンバの設定は、先にプロジェクトを更新した方が更新できる
         """
@@ -2791,7 +2791,7 @@ class AuthTest(TestCaseBase):
         # プロジェクトは削除する
         project.delete()
 
-    def test_cannot_join_by_late_user2(self):
+    async def test_cannot_join_by_late_user2(self):
         """
         プロジェクトメンバの設定は、先にプロジェクトを更新した方が更新できる
         """
@@ -2825,7 +2825,7 @@ class AuthTest(TestCaseBase):
         # プロジェクトは削除する
         project.delete()
 
-    def test_cannot_join_by_late_user3(self):
+    async def test_cannot_join_by_late_user3(self):
         """
         プロジェクトメンバの設定は、先にプロジェクトを更新した方が更新できる
         """
@@ -2862,7 +2862,7 @@ class AuthTest(TestCaseBase):
         # プロジェクトは削除する
         project.delete()
 
-    def test_move_flow_with_cache1(self):
+    async def test_move_flow_with_cache1(self):
         """
         フローをプロジェクトを跨いで移動する場合は、
         紐づくキャッシュの権限も再設定されること
@@ -2975,7 +2975,7 @@ class AuthTest(TestCaseBase):
         # 最後にキャッシュを削除する
         cache_frame.delete()
 
-    def test_move_flow_with_cache2(self):
+    async def test_move_flow_with_cache2(self):
         """
         フローをプロジェクト内からプロジェクト外へ移動する場合は、
         紐づくキャッシュの権限も再設定されること
@@ -3083,7 +3083,7 @@ class AuthTest(TestCaseBase):
         flow.delete()
         cache_frame.delete()
 
-    def test_move_flow_with_cache3(self):
+    async def test_move_flow_with_cache3(self):
         """
         フローをフォルダごとプロジェクト内からプロジェクト外へ移動する場合でも、
         紐づくキャッシュの権限も再設定されること
@@ -3205,7 +3205,7 @@ class AuthTest(TestCaseBase):
     # Edit Lock
     #
 
-    def test_edit_lock_on_root(self):
+    async def test_edit_lock_on_root(self):
         """
         Flowの編集ロックをONにすると更新できないこと
         """
@@ -3262,7 +3262,7 @@ class AuthTest(TestCaseBase):
         frame.delete()
         flow.delete()
 
-    def test_cannot_turn_edit_lock_by_reader(self):
+    async def test_cannot_turn_edit_lock_by_reader(self):
         """
         閲覧者は編集ロックの値を変更できないこと
         """
@@ -3333,7 +3333,7 @@ class AuthTest(TestCaseBase):
         # ゴミ箱を空にする
         self.factory2.data.find_trashcan().trash_all()
 
-    def test_cannot_move_edit_locked_flow(self):
+    async def test_cannot_move_edit_locked_flow(self):
         """
         編集ロックがONのFlowは移動できないこと
         """
@@ -3395,7 +3395,7 @@ class AuthTest(TestCaseBase):
     # Other Datum
     # 
 
-    def test_cannot_move_datum_to_root(self):
+    async def test_cannot_move_datum_to_root(self):
         """
         プロジェクト以外のDatumはルートフォルダへ移動できないこと
         """
@@ -3429,7 +3429,7 @@ class AuthTest(TestCaseBase):
         # ゴミ箱を空にする
         self.factory3.data.find_trashcan().trash_all()
 
-    def test_cannnot_move_system_folder(self):
+    async def test_cannnot_move_system_folder(self):
         """
         システムフォルダは移動できないこと
         """
@@ -3465,7 +3465,7 @@ class AuthTest(TestCaseBase):
         # ゴミ箱を空にする
         trashcan.trash_all()
 
-    def test_cannot_save_datum_at_root(self):
+    async def test_cannot_save_datum_at_root(self):
         """
         ユーザ管理者以外は、ルートフォルダにプロジェクト以外のDatumを新規追加できないこと
         """
@@ -3501,7 +3501,7 @@ class AuthTest(TestCaseBase):
         # フレームを削除する
         frame.delete()
 
-    def test_everyone_has_permissions(self):
+    async def test_everyone_has_permissions(self):
         """
         everyoneは、プロジェクト以外の全てのDatumの
         参照・更新・実行・所有権限を付与されていること
@@ -3570,7 +3570,7 @@ class AuthTest(TestCaseBase):
         # ゴミ箱を空にする
         self.factory3.data.find_trashcan().trash_all()
 
-    def test_user_admin_has_permissoins(self):
+    async def test_user_admin_has_permissoins(self):
         """
         ユーザ管理者は、全てのDatumの参照・更新ができること
         """
@@ -3637,7 +3637,7 @@ class AuthTest(TestCaseBase):
         # ゴミ箱を空にする
         self.factory.data.find_trashcan().trash_all()
 
-    def test_cannot_read_trash_by_other_user(self):
+    async def test_cannot_read_trash_by_other_user(self):
         """
         プロジェクトから捨てたゴミを、
         プロジェクトメンバ以外のユーザが参照できないこと(ゴミ漁り禁止!🚫)
@@ -3687,7 +3687,7 @@ class AuthTest(TestCaseBase):
         flow.delete()
         folder.delete()
 
-    def test_cannot_write_trash_by_reader(self):
+    async def test_cannot_write_trash_by_reader(self):
         """
         プロジェクトから捨てたゴミを、
         閲覧者が更新したり元の位置に戻せないこと
@@ -3761,7 +3761,7 @@ class AuthTest(TestCaseBase):
         # プロジェクトを削除する
         project.delete()
 
-    def test_cannot_read_trashed_folder_by_other_user(self):
+    async def test_cannot_read_trashed_folder_by_other_user(self):
         """
         ゴミ箱に作成した形代フォルダは、
         プロジェクトメンバ以外のユーザが参照できないこと
@@ -3824,7 +3824,7 @@ class AuthTest(TestCaseBase):
         children = trashcan.find_children()
         self.assertEqual(len(children), 0)
 
-    def test_cannot_write_trashed_folder_by_reader(self):
+    async def test_cannot_write_trashed_folder_by_reader(self):
         """
         ゴミ箱に作成した形代フォルダは、
         閲覧者が更新したり元の位置に戻せないこと
@@ -3891,7 +3891,7 @@ class AuthTest(TestCaseBase):
         children = trashcan.find_children()
         self.assertEqual(len(children), 0)
 
-    def test_putback_trash_by_writer(self):
+    async def test_putback_trash_by_writer(self):
         """
         プロジェクトから捨てたゴミを、
         編集者が更新したり元の位置に戻せること
@@ -3949,7 +3949,7 @@ class AuthTest(TestCaseBase):
         # プロジェクトを削除する
         project.delete()
 
-    def test_cannot_read_activity_by_other_user(self):
+    async def test_cannot_read_activity_by_other_user(self):
         """
         プロジェクトメンバ以外のユーザがActivityを参照できないこと
         """
@@ -3990,7 +3990,7 @@ class AuthTest(TestCaseBase):
         trashcan = self.factory2.data.find_trashcan()
         trashcan.trash_all()
 
-    def test_cannot_read_cache_by_other_user(self):
+    async def test_cannot_read_cache_by_other_user(self):
         """
         プロジェクトメンバ以外のユーザがキャッシュを参照できないこと
         """
@@ -4043,7 +4043,7 @@ class AuthTest(TestCaseBase):
         cache_frame.delete()
         out_frame.delete()
 
-    def test_cannot_write_cache_by_reader(self):
+    async def test_cannot_write_cache_by_reader(self):
         """
         閲覧者がキャッシュを更新できないこと
         """
@@ -4115,7 +4115,7 @@ class AuthTest(TestCaseBase):
         cache_frame.delete()
         out_frame.delete()
 
-    def test_cannot_exec_cache_flow_by_reader(self):
+    async def test_cannot_exec_cache_flow_by_reader(self):
         """
         残念ながら、閲覧者はフロー実行によるキャッシュ作成ができない
         """
@@ -4155,7 +4155,7 @@ class AuthTest(TestCaseBase):
         # プロジェクトを削除する
         project.delete()
 
-    def test_duplicate_flow_with_cache(self):
+    async def test_duplicate_flow_with_cache(self):
         """
         キャッシュを持つフローを複製しても、
         キャッシュの権限はフローのプロジェクトに紐づいていること
@@ -4299,7 +4299,7 @@ class AuthTest(TestCaseBase):
         # プロジェクトを削除する
         project.delete()
 
-    def test_get_masked_flow(self):
+    async def test_get_masked_flow(self):
         """
         参照権限のないサブフローノードやデータソースノードは、
         ラベルとuuidがマスキングされること
@@ -4416,7 +4416,7 @@ class AuthTest(TestCaseBase):
         project1.delete()
         project2.delete()
 
-    def test_vis_flow_making_cache(self):
+    async def test_vis_flow_making_cache(self):
         """
         キャッシュ出力=ONのノードを持つフローをプレビューする
         プレビュー後にノードがマスキングされないこと
@@ -4552,7 +4552,7 @@ class AuthTest(TestCaseBase):
         # プロジェクトを削除する
         project1.delete()
 
-    def test_del_cache(self):
+    async def test_del_cache(self):
         """
         キャッシュを削除した後にノードがマスキングされないこと
         """
@@ -4727,7 +4727,7 @@ class AuthTest(TestCaseBase):
         trash = self.factory3.data.find_trashcan()
         trash.trash_all()
 
-    def test_move_from_root_to_project(self):
+    async def test_move_from_root_to_project(self):
         """
         ルートフォルダからプロジェクトへファイルを移動した場合、
         ファイルの権限は移動先プロジェクトの権限に従うこと
@@ -4777,7 +4777,7 @@ class AuthTest(TestCaseBase):
         folder.delete()
         project_a.delete()
 
-    def test_move_inter_projects(self):
+    async def test_move_inter_projects(self):
         """
         プロジェクト間でファイルを移動した場合、
         ファイルの権限は移動先プロジェクトの権限に従うこと
@@ -4834,7 +4834,7 @@ class AuthTest(TestCaseBase):
     # System Folders
     # 
 
-    def test_root_folder_auths(self):
+    async def test_root_folder_auths(self):
         """
         ルートフォルダの権限設定を検証する
         """
@@ -4879,7 +4879,7 @@ class AuthTest(TestCaseBase):
         self.assertEqual(root_auths[3].operation, 'own')
         self.assertEqual(root_auths[3].permission, True)
 
-    def test_cache_folder_auths(self):
+    async def test_cache_folder_auths(self):
         """
         キャッシュフォルダの権限設定を検証する
         """
@@ -4918,7 +4918,7 @@ class AuthTest(TestCaseBase):
         self.assertEqual(cache_auths[2].operation, 'own')
         self.assertEqual(cache_auths[2].permission, True)
 
-    def test_activity_folder_auths(self):
+    async def test_activity_folder_auths(self):
         """
         アクティビティフォルダの権限設定を検証する
         """
@@ -4957,7 +4957,7 @@ class AuthTest(TestCaseBase):
         self.assertEqual(activity_auths[2].operation, 'own')
         self.assertEqual(activity_auths[2].permission, True)
 
-    def test_trash_folder_auths(self):
+    async def test_trash_folder_auths(self):
         """
         ゴミ箱フォルダの権限設定を検証する
         """

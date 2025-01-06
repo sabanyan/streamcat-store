@@ -167,7 +167,7 @@ class DuplicateTest(TestCaseBase):
             self.assertEqual(duplicated_auths[i].operation, auths[i].operation)
             self.assertEqual(duplicated_auths[i].permission, auths[i].permission)
 
-    def test_duplicate_flow(self):
+    async def test_duplicate_flow(self):
         """
         フローが複製できること
         """
@@ -227,7 +227,7 @@ class DuplicateTest(TestCaseBase):
         # プロジェクトを削除する
         project.delete()
 
-    def test_duplicate_database(self):
+    async def test_duplicate_database(self):
         """
         データベースが複製できること
         """
@@ -286,7 +286,7 @@ class DuplicateTest(TestCaseBase):
         # プロジェクトを削除する
         project.delete()
 
-    def test_duplicate_remote_folder(self):
+    async def test_duplicate_remote_folder(self):
         """
         リモートフォルダが複製できること
         """
@@ -346,7 +346,7 @@ class DuplicateTest(TestCaseBase):
         # プロジェクトを削除する
         project.delete()
 
-    def test_duplicate_schedule(self):
+    async def test_duplicate_schedule(self):
         """
         スケジュールが複製できること
         """
@@ -420,7 +420,7 @@ class DuplicateTest(TestCaseBase):
         # プロジェクトを削除する
         project.delete()
 
-    def test_duplicate_frame(self):
+    async def test_duplicate_frame(self):
         """
         フレームが複製できること
         """
@@ -477,7 +477,7 @@ class DuplicateTest(TestCaseBase):
         # プロジェクトを削除する
         project.delete()
 
-    def test_duplicate_document(self):
+    async def test_duplicate_document(self):
         """
         ドキュメントが複製できること
         """
@@ -532,7 +532,7 @@ class DuplicateTest(TestCaseBase):
         # プロジェクトを削除する
         project.delete()
 
-    def test_duplicate_folder(self):
+    async def test_duplicate_folder(self):
         """
         フォルダが複製できること
         """
@@ -627,7 +627,7 @@ class DuplicateTest(TestCaseBase):
         duplicated_folder.throw_away()
         self.factory.data.find_trashcan().trash_all()
 
-    def test_duplicate_project(self):
+    async def test_duplicate_project(self):
         """
         プロジェクトが複製できること
         """

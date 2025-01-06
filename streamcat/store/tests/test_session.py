@@ -7,7 +7,7 @@ class SessionTest(TestCaseBase):
     SQLAlchemyのSessionを検証する
     """
 
-    def test_rollback(self):
+    async def test_rollback(self):
         """
         Datumの新規追加操作をRollBackできること
         """
@@ -59,7 +59,7 @@ class SessionTest(TestCaseBase):
         trashcan = self.factory.data.load_trash_folder()
         trashcan.trash_all()
 
-    def test_rollback_to_add_user(self):
+    async def test_rollback_to_add_user(self):
         """
         Userの新規追加操作をRollBackできること
         """
@@ -76,7 +76,7 @@ class SessionTest(TestCaseBase):
         with self.assertRaises(Exception):
             self.factory2.user.find_by_id(user.id)
 
-    def test_rollback_to_add_project(self):
+    async def test_rollback_to_add_project(self):
         """
         Projectの新規追加操作をRollBackできること
         """
@@ -96,7 +96,7 @@ class SessionTest(TestCaseBase):
         with self.assertRaises(Exception):
             self.factory2.data.find_by_id(project1.id)
 
-    def test_rollback_to_add_flow(self):
+    async def test_rollback_to_add_flow(self):
         """
         Flowの新規追加操作をRollBackできること
         """
@@ -125,7 +125,7 @@ class SessionTest(TestCaseBase):
         with self.assertRaises(Exception):
             self.factory2.data.find_by_id(flow1.id)
 
-    def test_rollback_to_add_scheduler(self):
+    async def test_rollback_to_add_scheduler(self):
         """
         Schedulerの新規追加操作をRollBackできること
         """

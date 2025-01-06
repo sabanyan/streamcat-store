@@ -25,7 +25,7 @@ class LockManagerTest(TestCaseBase):
         # 親クラスのtearDownClass()を実行する
         TestCaseBase.tearDownClass()
 
-    def test_simple(self):
+    async def test_simple(self):
         """
         ロックの取得と解除
         """
@@ -44,7 +44,7 @@ class LockManagerTest(TestCaseBase):
         # 解除したロックはLockManagerは管理しない
         self.assertFalse(self.lock_manager.contains(lock.uuid))
 
-    def test_conflict(self):
+    async def test_conflict(self):
         """
         複数回のロックはできない
         """
@@ -62,7 +62,7 @@ class LockManagerTest(TestCaseBase):
         # ロックを解除する
         self.lock_manager.unlock(lock.uuid)
 
-    def test_invalid_unlock(self):
+    async def test_invalid_unlock(self):
         """
         誤まったロック解除
         """
@@ -70,7 +70,7 @@ class LockManagerTest(TestCaseBase):
         with self.assertRaises(Exception):
             self.lock_manager.unlock(uuid.uuid4())
 
-    def test_lock_after_unlock(self):
+    async def test_lock_after_unlock(self):
         """
         ロック解除後はロックできる
         """
@@ -92,7 +92,7 @@ class LockManagerTest(TestCaseBase):
         self.assertEqual(lock.creator, self.USER1)
         self.assertIsNotNone(lock.created_at)
 
-    def test_unlock_target(self):
+    async def test_unlock_target(self):
         """
         ロック対象を指定してロック解除する
         """
@@ -106,7 +106,7 @@ class LockManagerTest(TestCaseBase):
         # 解除したロックはLockManagerは管理しない
         self.assertFalse(self.lock_manager.contains(lock.uuid))
 
-    def test_expire_lock1(self):
+    async def test_expire_lock1(self):
         """
         有効期間(1sec)を過ぎたロックは解除される
         """
@@ -121,7 +121,7 @@ class LockManagerTest(TestCaseBase):
         with self.assertRaises(Exception):
             self.lock_manager.unlock(lock.uuid)
 
-    def test_expire_lock2(self):
+    async def test_expire_lock2(self):
         """
         有効期間(1sec)を過ぎたロックは解除される
         """
@@ -136,7 +136,7 @@ class LockManagerTest(TestCaseBase):
         with self.assertRaises(Exception):
             self.lock_manager.unlock(lock.uuid)
 
-    def test_simulutaneous_lock(self):
+    async def test_simulutaneous_lock(self):
         """
         同時にロック取得と解除を繰り返す
         """
@@ -158,7 +158,7 @@ class LockManagerTest(TestCaseBase):
         for i in range(10):
             LockRunner(name=str(i)).start()
 
-    def test_simulutaneous_lock2(self):
+    async def test_simulutaneous_lock2(self):
         class Worker():
             # Lock Managerを作成する
             lock_manager = LockManager(60)

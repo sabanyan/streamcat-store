@@ -31,7 +31,7 @@ class DumpTest(TestCaseBase):
     }
     remote_folder_conn = RemoteFolderConn(conn_json)
 
-    def test_basic(self):
+    async def test_basic(self):
         """
         StreamCatのバックアップとリストアが実行できること
         FIXME: テストコードの実行環境でGET /dumpを呼び出すと、LOCK TABLEの発行時に
@@ -69,27 +69,27 @@ class DumpTest(TestCaseBase):
 
         print(outs)
 
-    def test_auth(self):
+    async def test_auth(self):
         """
         ユーザ管理者以外はバックアップとリストアが実行できないこと
         """
 
-    def test_invalid_file(self):
+    async def test_invalid_file(self):
         """
         不正なDumpファイルでリストアを実行できないこと
         """
 
-    def test_dump_simultaneously(self):
+    async def test_dump_simultaneously(self):
         """
         同時にバックアップを実行できること
         """
 
-    def test_restore_simultaneously(self):
+    async def test_restore_simultaneously(self):
         """
         同時にリストアを実行できること
         """
 
-    def test_dump_restore_simultaneously(self):
+    async def test_dump_restore_simultaneously(self):
         """
         同時にバックアップとリストアを実行できること
         """
