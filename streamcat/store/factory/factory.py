@@ -134,14 +134,14 @@ class Factory():
         self._user = UserFactory(self._session)
 
         # 生成したセッションからUserオブジェクトを取得し、セッションに再設定する
-        self._session.user = self._user.find_by_id(self.myself.id)       
+        self._session.user = self._user.find_by_id(self.myself.id)
 
     def end(self):
         self._session.end()
 
-    # def close(self):
-    #     self._session.end()
-    #     self._session.close()
+    def close(self):
+        self._session.end()
+        self._session.close()
 
     def get_active_connections(self):
         """
