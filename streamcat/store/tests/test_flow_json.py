@@ -6,7 +6,7 @@ from jsonschema import ValidationError
 from streamcat.store import FlowData
 from .test_case_base import TestCaseBase
 
-class FlowJsonTest(TestCaseBase):
+class FlowJsonTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
     """
     フローJSONの書式の検証機能をテストする
     """

@@ -1,10 +1,11 @@
 import io
 import pprint
+import unittest
 from streamcat.core import SCatBaseModel
 from streamcat.store import FlowData, DatabaseConn, RemoteFolderConn
 from .test_case_base import TestCaseBase
 
-class DelTest(TestCaseBase):
+class DelTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
     """
     削除制約を検証する
     """

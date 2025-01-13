@@ -1,9 +1,10 @@
 import io
+import unittest
 import pprint
-from .test_case_base import TestCaseBase
 from streamcat.store import FlowData, DatabaseConn
+from .test_case_base import TestCaseBase
 
-class DatumTest(TestCaseBase):
+class DatumTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
     """
     Datumクラスの検証をする
     """

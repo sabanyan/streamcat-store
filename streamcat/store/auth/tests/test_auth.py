@@ -8,7 +8,7 @@ from streamcat.store import ProjectFolder, FlowData, OptimisticLockException, Ed
 from streamcat.store.auth import Auth, Role, InvalidPassword, NotAuthorizedException, NoRoleOwnerException
 from ...tests.test_case_base import TestCaseBase
 
-class AuthTest(TestCaseBase):
+class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
 
     async def asyncSetUp(self) -> None:
         await super().asyncSetUp()

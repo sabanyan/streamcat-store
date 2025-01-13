@@ -1,8 +1,9 @@
 import io
+import unittest
 from streamcat.store import FlowData, DatabaseConn, RemoteFolderConn
 from .test_case_base import TestCaseBase
 
-class DuplicateTest(TestCaseBase):
+class DuplicateTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
     """
     複製処理を検証する
     """

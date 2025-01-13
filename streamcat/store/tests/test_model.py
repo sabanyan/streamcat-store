@@ -3,12 +3,11 @@ import unittest
 import uuid
 import pprint
 from datetime import datetime
-
 from streamcat.core import SavableDatum
 from streamcat.store import RemoteFolderConn
 from .test_case_base import TestCaseBase
 
-class LibraryTest(TestCaseBase):
+class LibraryTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
     # テスト用ユーザID
     # USER_ID1 = 88
     # USER_ID2 = 99

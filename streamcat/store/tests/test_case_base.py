@@ -1,10 +1,9 @@
-import unittest
 import pprint
 import logging
 from typing import Callable
-from streamcat.store.factory import Factory, UnAuthzFactory, init_admin_users
+from streamcat.store.factory import UnAuthzFactory, init_admin_users
 
-class TestCaseBase(unittest.IsolatedAsyncioTestCase):
+class TestCaseBase():
     @classmethod
     async def asyncSetUpClass(cls):
         # asyncioから以下のようなWarningが多量に出力されるため表示から除外する

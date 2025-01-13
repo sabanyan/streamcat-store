@@ -1,9 +1,9 @@
 import io
 import unittest
-from streamcat.engine import execute, FlowCommand
+from streamcat.engine import FlowCommand, execute
 from .test_case_base import TestCaseBase
 
-class VCmdTestCase(TestCaseBase):
+class VCmdTestCase(TestCaseBase, unittest.IsolatedAsyncioTestCase):
     """
     Vコマンドの実行テスト
     """

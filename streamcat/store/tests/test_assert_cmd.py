@@ -1,10 +1,11 @@
+import unittest
 import copy
-from streamcat.engine import execute, FlowCommand
 from streamcat.store import FlowData
-from .test_case_base import TestCaseBase
+from streamcat.engine import execute, FlowCommand
 from streamcat.engine.tests.test_main import convert_from_job
+from .test_case_base import TestCaseBase
 
-class AssertCmdTest(TestCaseBase):
+class AssertCmdTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
     """
     2つの入力に対して、出力が一致しているかどうかを確認する。入力にはcsv、StreamCatのエラーに対応する
     入力されたデータが行ごとに一致しているかを確認し、結果を出力する

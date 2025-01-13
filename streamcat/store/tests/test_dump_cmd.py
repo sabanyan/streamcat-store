@@ -1,13 +1,11 @@
-import unittest
-import pprint
-import time
 import io
-
-from streamcat.store import FlowData, DatabaseConn, RemoteFolderConn
-from streamcat.depo.std.commands import DumpCommand, RestoreCommand
+import pprint
+import unittest
+from streamcat.store import DatabaseConn, RemoteFolderConn
+from streamcat.depo.std.commands import DumpCommand
 from .test_case_base import TestCaseBase
 
-class DumpTest(TestCaseBase):
+class DumpTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
     """
     DumpCommandとRestoreCommandをテストする
     """

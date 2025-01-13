@@ -1,12 +1,10 @@
 import unittest
 import pprint
-import time
-
 from streamcat.store import FlowData
-from .test_case_base import TestCaseBase
 from streamcat.store.scheduler import schedule_manager
+from .test_case_base import TestCaseBase
 
-class SchdulerTest(TestCaseBase):
+class SchdulerTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
     """
     Schdulerをテストする
     """

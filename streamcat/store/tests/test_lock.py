@@ -2,28 +2,16 @@ import time
 import unittest
 import uuid
 import pprint
-
-from ..lock import LockManager, LockedDatumException
 from .test_case_base import TestCaseBase
+from ..lock import LockManager, LockedDatumException
 
-class LockManagerTest(TestCaseBase):
+class LockManagerTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
     """
     Lock Managerをテストする
     """
 
     # Lock Managerを作成する
     lock_manager = LockManager(1)
-
-
-    @classmethod
-    def setUpClass(cls):
-        # 親クラスのsetUpClass()を実行する
-        TestCaseBase.setUpClass()
-
-    @classmethod
-    def tearDownClass(cls):
-        # 親クラスのtearDownClass()を実行する
-        TestCaseBase.tearDownClass()
 
     async def test_simple(self):
         """

@@ -1,8 +1,9 @@
 import pprint
+import unittest
 from .test_case_base import TestCaseBase
 from streamcat.store import FlowData
 
-class SessionTest(TestCaseBase):
+class SessionTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
     """
     SQLAlchemyのSessionを検証する
     """

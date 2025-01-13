@@ -1,8 +1,9 @@
 import io
+import unittest
 from streamcat.store import Mountable, RemoteFolderConn
 from .test_case_base import TestCaseBase
 
-class MoveTest(TestCaseBase):
+class MoveTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
     """
     移動処理を検証する
     """
