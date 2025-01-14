@@ -27,9 +27,7 @@ class UnAuthzFactory():
         """
         Factoryを生成する
         """
-        authz_factory = Factory(self._session._session, user)
-        await authz_factory.init()
-        return authz_factory
+        return Factory(self._session._session, user)
 
     async def find_user_by_email(self, email):
         return UserFactory(self._session).find_by_email(email)
@@ -116,25 +114,21 @@ class Factory():
     """
     SQLAlchemyのSessionを保持する(とりあえずこの目的ね)
     """
-    def __init__(self, session, user:User=None):
+    def __init__(self, sqlalchemy_session, user:User=None):
         from streamcat.store.auth.authz_session import AuthzSession
-        # セッションを保持する
-        self._session = AuthzSession(session, user)
+        # Sessionを保持する
+        self._session = AuthzSession(sqlalchemy_session, user)
+        # AuthzSession.userが保持するSessionをAuthzSessionでラップする
+        # NOTE: AuthzSession.userが循環参照になっているが問題にはならないだろう
+        self._session._user._session = AuthzSession(sqlalchemy_session, self._session._user)
 
-    async def init(self):
-        """
-        Factoryを初期化する
-        (__init__()はasyncを指定できないため、init()を用意する)
-        """
+        # 各Factoryを保持する
         self._data = DatumFactory(self._session)
         self._store = StoreFactory(self._session)
         self._auth = AuthFactory(self._session)
         self._role = RoleFactory(self._session)
         self._user_role = UserRoleFactory(self._session)
         self._user = UserFactory(self._session)
-
-        # 生成したセッションからUserオブジェクトを取得し、セッションに再設定する
-        self._session.user = self._user.find_by_id(self.myself.id)
 
     def end(self):
         self._session.end()
