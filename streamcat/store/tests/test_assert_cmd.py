@@ -1,10 +1,11 @@
+import unittest
 import copy
-from streamcat.engine import execute, FlowCommand
 from streamcat.store import FlowData
-from .test_case_base import TestCaseBase
+from streamcat.engine import execute, FlowCommand
 from streamcat.engine.tests.test_main import convert_from_job
+from .test_case_base import TestCaseBase
 
-class AssertCmdTest(TestCaseBase):
+class AssertCmdTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
     """
     2つの入力に対して、出力が一致しているかどうかを確認する。入力にはcsv、StreamCatのエラーに対応する
     入力されたデータが行ごとに一致しているかを確認し、結果を出力する
@@ -756,7 +757,7 @@ class AssertCmdTest(TestCaseBase):
         return result
 
     # @unittest.skip
-    def test_simple_assert_command(self):
+    async def test_simple_assert_command(self):
         """
         内容が3行目以降違う2つの入力に対して、assert_commandを一つ配置したフローを実行、
         出力で、入力データの3行目以降不一致判定が出ることを期待する。
@@ -806,7 +807,7 @@ class AssertCmdTest(TestCaseBase):
         lasts['d1'].delete()
 
     # @unittest.skip
-    def test_same_execute(self):
+    async def test_same_execute(self):
         """
         内容が同じ2つの入力に対して、assert_commandを一つ配置したフローを実行、
         出力で、入力データが一致という判定が出ることを期待する。
@@ -853,7 +854,7 @@ class AssertCmdTest(TestCaseBase):
 
 
     # @unittest.skip
-    def test_case_sequential_assert(self):
+    async def test_case_sequential_assert(self):
         """
         assert_commandが2連続で実行されるフローを実行、出力結果をテストする
         assert_commandを2連続配置したフローを実行、
@@ -915,7 +916,7 @@ class AssertCmdTest(TestCaseBase):
         lasts['d2'].delete()
 
     # @unittest.skip
-    def test_case_two_assert(self):
+    async def test_case_two_assert(self):
         """
         内容が3行目以降違う2つの入力に対して、assert_commandを一つ配置したフローの島を2つ用意し、同時実行、
         出力で、入力データが3行目以降不一致という判定が出ることを期待する。
@@ -992,7 +993,7 @@ class AssertCmdTest(TestCaseBase):
 
 
     # @unittest.skip
-    def test_one_side_error_assert(self):
+    async def test_one_side_error_assert(self):
         """
         2つの入力のうち、片方がassert_command以前のノードでエラーが発生するフローを実行、
         出力で、入力データが全行不一致という判定が出ることを期待する。
@@ -1047,7 +1048,7 @@ class AssertCmdTest(TestCaseBase):
 
 
     # @unittest.skip
-    def test_same_both_error_assert(self):
+    async def test_same_both_error_assert(self):
         """
         内容がどちらも同じエラーを出す2つの入力に対して、assert_commandを一つ配置し実行、
         出力で、入力データが一致という判定が出ることを期待する。
@@ -1095,7 +1096,7 @@ class AssertCmdTest(TestCaseBase):
         lasts['d2'].delete()
     
     # @unittest.skip
-    def test_both_error_assert(self):
+    async def test_both_error_assert(self):
         """
         内容が違うエラーを出す2つの入力に対して、assert_commandを一つ配置し実行、
         出力で、入力データが不一致という判定が出ることを期待する。
@@ -1144,7 +1145,7 @@ class AssertCmdTest(TestCaseBase):
         lasts['d2'].delete()
 
     # @unittest.skip
-    def test_dlimit_overred_assert(self):
+    async def test_dlimit_overred_assert(self):
         """
         assert_commandの処理の途中で出力不一致行の検出上限を超えた時、検出処理を途中で辞め、
         出力でその旨を通知することと、テスト失敗の判定が出ることを期待する。

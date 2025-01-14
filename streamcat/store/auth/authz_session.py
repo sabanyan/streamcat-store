@@ -1,4 +1,4 @@
-from .authz_query import Query
+from .authz_result import Result
 from .exceptions import NotAuthorizedException
 
 class Session():
@@ -8,15 +8,24 @@ class Session():
     インタフェースとしてこのクラスを定義する
     """
 
-    def __init__(self, session_factory, user):
-        self._session = session_factory()
+    def __init__(self, session, user):
+        self._session = session
         self._user = user
         self._rollback = False
 
     @property
     def user(self):
         return self._user
-    
+
+    def print(self, stmt):
+        """
+        SQL文を出力する
+        """
+        from sqlalchemy.dialects import postgresql
+        # paramstyle='named' : %, _, / などの特殊文字を重複して出力しない
+        sql = str(stmt.compile(dialect=postgresql.dialect(paramstyle='named'), compile_kwargs={'literal_binds':True}))
+        print(sql)
+
     def end(self):
         if self._rollback:
             self._session.rollback()
@@ -48,26 +57,51 @@ class Session():
     def close(self):
         self._session.close()
 
-    def execute(self, sql):
+    def execute(self, stmt, synchronize_session='evaluate'):
+        """
+        SQLを実行する
+        """
         # テスト実行で二つのSessionを用いた時、片方のSessionで
         # search_pathが設定されないので、execute()の度に設定することにする
-        from sqlalchemy import text
+        from sqlalchemy import TextClause, text
         from streamcat.core import _is_unittest, SCHEMA_NAME
-        if _is_unittest():
+
+        # selectか否かを判定する
+        stmt_is_select = Session._is_select_stmt(stmt)
+
+        # テスト実行で二つのSessionを用いた時、片方のSessionで
+        # search_pathが設定されないので、execute()の度に設定することにする
+        if _is_unittest() and isinstance(stmt, TextClause):
             # カレントスキーマを設定する
             # (コミットされると、セッションが終了するまでその設定が持続する)
-            sql1 = text(f'SET search_path = {SCHEMA_NAME}; commit;')
+            sql1 = text(f'SET search_path = {SCHEMA_NAME};')
             self._session.execute(sql1)
 
-        return self._session.execute(sql)
+        # updateまたはdeleteを実行する場合
+        if not stmt_is_select:
+            # synchronize_session='fetch'でSQLを2回発行するらしい
+            stmt = stmt.execution_options(synchronize_session=synchronize_session)
 
-    def query(self, datum_type, *args):
-        query = self._session.query(datum_type, *args)
-        return Query(query, self)
+        # SQLを実行する
+        result = self._session.execute(stmt)
+
+        # select文の場合はResultオブジェクトに入れて返す
+        return Result(result, self) if stmt_is_select else result
+
+    @staticmethod
+    def _is_select_stmt(stmt):
+        """
+        stmtがselectの場合はTrueを返す
+        """
+        from sqlalchemy.sql.expression import Select
+        return isinstance(stmt, Select)
+
+    def scalars(self, stmt):
+        return Result(self._session.scalars(stmt), self)
 
     def get(self, datum_type, ident):
         result = self._session.get(datum_type, ident)
-        if Query._is_base_model(result):
+        if Result._is_base_model(result):
             result._session = self
         return result
 
@@ -104,23 +138,26 @@ class AuthzSession(Session):
             raise Exception('AuthzSessionに設定したuserがNoneです')
         self._user = user
 
-    def query(self, datum_type, *args, **kwargs):
+    def scalars(self, stmt, **kwargs):
         """
         参照用途でquery()を使用する場合は、AuthsテーブルとJOINする
         pathとdataプロパティは参照された時に権限を判定し、NGなら例外を送出する
         """
-        import inspect
         from sqlalchemy.orm import with_expression
         from sqlalchemy.sql.expression import null
         from streamcat.core import SavableDatum
-        from .authz_query import Query, AuthzDatumQuery
+        from .authz_result import AuthzDatumResult
 
-        def is_type(obj_type, table_name):
-            # datum_typeがDatumクラスかDatumを継承するクラスか否かを判定する
-            # TODO: もう少し確実な判定方法に変更したい
-            return inspect.isclass(obj_type) and hasattr(obj_type, '__tablename__') and obj_type.__tablename__ == table_name
+        if not Session._is_select_stmt(stmt):
+            raise TypeError('scalars()にSelect以外のstmtを指定できません')
 
-        if is_type(datum_type, 'data'):
+        # selectの列情報を取得する
+        column_descs = stmt.column_descriptions
+
+        if len(column_descs) > 1:
+            raise ValueError('scalars()には複数の列を抽出するSelectを指定できません')
+
+        if AuthzSession._contains_model_column(column_descs, SavableDatum):
             # 下記を両方満たす場合にのみpermission=Trueとする
             # ・ユーザが属する全てのロールについて、DatumのpermissionがTrue
             # ・Datumが属する全ての親フォルダについて、DatumのpermissionがTrue
@@ -130,7 +167,7 @@ class AuthzSession(Session):
 
             # ownのpermissionsの値を取得する
             select_ownership = self._make_select_ownership(SavableDatum.id)
-            
+
             # Datumの親フォルダのuuidを取得する
             select_parent_uuid = self._make_select_parent_uuid()
 
@@ -149,19 +186,41 @@ class AuthzSession(Session):
             # read=TrueのDatumのみ抽出する
             # exists_readable = self._make_exists_readable()
 
-            # Datumを抽出するQuery
-            query = self._session.query(SavableDatum).\
-                                  options(with_expression(SavableDatum._permissions, select_permissions.label('permissions'))).\
-                                  options(with_expression(SavableDatum._ownership, select_ownership.label('ownership'))).\
-                                  options(with_expression(SavableDatum._parent_uuid, select_parent_uuid.label('parent_uuid'))).\
-                                  options(with_expression(SavableDatum._folder_path, select_folder_path.label('folder_path'))).\
-                                  options(with_expression(SavableDatum._prev_folder_path, select_prev_folder_path.label('prev_folder_path')))
+            # Datumを抽出するSelect
+            select_stmt =  stmt.options(with_expression(SavableDatum._permissions, select_permissions.label('permissions'))).\
+                                options(with_expression(SavableDatum._ownership, select_ownership.label('ownership'))).\
+                                options(with_expression(SavableDatum._parent_uuid, select_parent_uuid.label('parent_uuid'))).\
+                                options(with_expression(SavableDatum._folder_path, select_folder_path.label('folder_path'))).\
+                                options(with_expression(SavableDatum._prev_folder_path, select_prev_folder_path.label('prev_folder_path')))
 
-            return AuthzDatumQuery(query, self)
-
+            return AuthzDatumResult(self._session.scalars(select_stmt), self)
         else:
-            query = self._session.query(datum_type, *args)
-            return Query(query, self)
+            return Result(self._session.scalars(stmt), self)
+
+    def execute(self, stmt, synchronize_session='evaluate'):
+        """
+        SQLを実行する
+        """
+        from streamcat.core import SavableDatum
+
+        if Session._is_select_stmt(stmt):
+            colunm_descs = stmt.column_descriptions
+            if AuthzSession._contains_model_column(colunm_descs, SavableDatum):
+                raise ValueError('SelectにDatumを含む列がある場合、scalars()を使用してください')
+        # SQLを実行する
+        return super().execute(stmt, synchronize_session)
+
+    @staticmethod
+    def _contains_model_column(descs:list[dict], model_type):
+        """
+        model_typeオブジェクトを抽出するSelectの場合はTrueを返す
+        NOTE: SavableDatumを継承するModelクラスはDataテーブルから抽出する
+        """
+        import inspect
+        select_types = [d.get('type') for d in descs]
+        # Select句にmodel_typeを継承するクラス型が指定されているか判定する
+        model_type_contains = any(inspect.isclass(t) and issubclass(t, model_type) for t in select_types)
+        return model_type_contains
 
     def _make_select_permissions(self):
         from sqlalchemy.sql.expression import select, literal_column
@@ -403,7 +462,7 @@ class AuthzSession(Session):
     def get(self, datum_type, ident):
         from streamcat.core import SavableDatum
         result = self._session.get(datum_type, ident)
-        if Query._is_base_model(result):
+        if Result._is_base_model(result):
             result._session = self
             # 参照権限のないDatumの場合はNoneを返す
             if isinstance(result, SavableDatum) and not result.readable:
@@ -603,10 +662,10 @@ class AuthzSession(Session):
         else:
             datum_id = datum.id
 
-        select_permissions = self._make_select_permissions_inner(datum_id).alias('permissions')
-        query = self._session.query(select_permissions)
+        select_permissions = self._make_select_permissions_inner(datum_id)
+        permissons = self._session.scalars(select_permissions).one()
         
-        return (query.scalar() & SavableDatum.PERMISSION_READ) > 0
+        return (permissons & SavableDatum.PERMISSION_READ) > 0
 
     def writable(self, datum, ignore_self_edit_lock=False) -> bool:
         """
@@ -620,15 +679,15 @@ class AuthzSession(Session):
         else:
             datum_id = datum.id
 
-        select_permissions = self._make_select_permissions_inner(datum_id).alias('permissions')
-        query = self._session.query(select_permissions)
+        select_permissions = self._make_select_permissions_inner(datum_id)
+        permissons = self._session.scalars(select_permissions).one()
 
         if ignore_self_edit_lock:
             # 更新権限の判定に編集ロックの値を含めいない場合
-           return (query.scalar() & SavableDatum.PERMISSION_WRITER) > 0
+           return (permissons & SavableDatum.PERMISSION_WRITER) > 0
         else:
             # 更新権限の判定に編集ロックの値も含める場合
-            return (query.scalar() & SavableDatum.PERMISSION_WRITE) > 0
+            return (permissons & SavableDatum.PERMISSION_WRITE) > 0
 
     def executable(self, datum) -> bool:
         """
@@ -642,10 +701,9 @@ class AuthzSession(Session):
         else:
             datum_id = datum.id
 
-        select_permissions = self._make_select_permissions_inner(datum_id).alias('permissions')
-        query = self._session.query(select_permissions)
-        
-        return (query.scalar() & SavableDatum.PERMISSION_EXEC) > 0
+        select_permissions = self._make_select_permissions_inner(datum_id)
+        permissons = self._session.scalars(select_permissions).one()
+        return (permissons & SavableDatum.PERMISSION_EXEC) > 0
 
     def ownership(self, datum_id) -> bool:
         """
@@ -655,58 +713,60 @@ class AuthzSession(Session):
         # from .auth import Auth
         # # ここでfind_by_id・find_by_uuidを使うとdatum.readableがFalseに何故かなってしまう
         # # query(Datum).get()を使うとdatum.readableがNoneに何故かなってしまう
-        # result = self._session.query(Datum.id, Datum.parent_id).filter(Datum.id==datum_id).one_or_none()
+        # result = self._session.query(Datum.id, Datum.parent_id).where(Datum.id==datum_id).one_or_none()
         # if result is None:
         #     raise Exception('datum is None')
         # 
         # return self._operatable(result, Auth.OWN_OP)
 
-        select_stmt = self._make_select_ownership(datum_id).alias('owner')
-        query = self._session.query(select_stmt)
-        result = query.one_or_none()
-        return result.owner == True
+        select_stmt = self._make_select_ownership(datum_id)
+        return self._session.scalars(select_stmt).one_or_none() == True
 
     def has_sys_admin(self) -> bool:
+        from sqlalchemy import select, func
         from sqlalchemy.sql.expression import literal
         from .user_role import UserRole
         from .role import Role
-        query = self._session.query(Role).\
-                            outerjoin(UserRole, UserRole.role_id==Role.id).\
-                            filter(Role.uuid == literal(Role.SYS_ADMIN_ROLE_UUID)).\
-                            filter(UserRole.user_id==self.user.id)
-        return query.count() > 0
+
+        stmt =  select(func.count(Role.id)).\
+                outerjoin(UserRole, UserRole.role_id==Role.id).\
+                where(Role.uuid == literal(Role.SYS_ADMIN_ROLE_UUID)).\
+                where(UserRole.user_id==self.user.id)
+        return self._session.scalars(stmt).one() > 0
 
     def has_usr_admin(self) -> bool:
+        from sqlalchemy import select, func
         from sqlalchemy.sql.expression import literal
         from .user_role import UserRole
         from .role import Role
-        query = self._session.query(Role).\
-                            outerjoin(UserRole, UserRole.role_id==Role.id).\
-                            filter(Role.uuid == literal(Role.USR_ADMIN_ROLE_UUID)).\
-                            filter(UserRole.user_id==self.user.id)
-        return query.count() > 0       
+
+        stmt =  select(func.count(Role.id)).\
+                outerjoin(UserRole, UserRole.role_id==Role.id).\
+                where(Role.uuid == literal(Role.USR_ADMIN_ROLE_UUID)).\
+                where(UserRole.user_id==self.user.id)
+        return self._session.scalars(stmt).one() > 0
 
     def is_role_creator(self, role_id) -> bool:
         """
         操作ユーザがRoleの作成者であればTrueを返す
         """
+        from sqlalchemy import select, func
         from .role import Role
-        query = self._session.query(Role).\
-                filter(Role.id==role_id).filter(Role._creator_id==self.user.id)
-
-        return query.count() > 0
+        stmt =  select(func.count(Role.id)).\
+                where(Role.id==role_id).where(Role._creator_id==self.user.id)
+        return self._session.scalars(stmt).one() > 0
 
     def is_role_owner(self, role_id) -> bool:
         """
         操作ユーザがRoleの所有者であればTrueを返す
         """
+        from sqlalchemy import select, func
         from .role import UserRole
-        query = self._session.query(UserRole).\
-                filter(UserRole.role_id==role_id).\
-                filter(UserRole.user_id==self.user.id).\
-                filter(UserRole.owner==True)
-
-        return query.count() > 0
+        stmt =  select(func.count(UserRole.user_id)).\
+                where(UserRole.role_id==role_id).\
+                where(UserRole.user_id==self.user.id).\
+                where(UserRole.owner==True)
+        return self._session.scalars(stmt).one() > 0
 
     def is_self_user(self, user_id) -> bool:
         """
@@ -718,8 +778,8 @@ class AuthzSession(Session):
         """
         操作ユーザがDatumの作成者であればTrueを返す
         """
+        from sqlalchemy import select, func
         from streamcat.core import SavableDatum
-        query = self._session.query(SavableDatum).\
-                filter(SavableDatum.id==datum_id).filter(SavableDatum._creator_id==self.user.id)
-
-        return query.count() > 0
+        stmt =  select(func.count(SavableDatum.id)).\
+                where(SavableDatum.id==datum_id).where(SavableDatum._creator_id==self.user.id)
+        return self._session.scalars(stmt).one() > 0

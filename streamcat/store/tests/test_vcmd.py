@@ -1,15 +1,15 @@
 import io
 import unittest
-from streamcat.engine import execute, FlowCommand
+from streamcat.engine import FlowCommand, execute
 from .test_case_base import TestCaseBase
 
-class VCmdTestCase(TestCaseBase):
+class VCmdTestCase(TestCaseBase, unittest.IsolatedAsyncioTestCase):
     """
     Vコマンドの実行テスト
     """
 
-    def setUp(self):
-        super().setUp()
+    async def asyncSetUp(self) -> None:
+        await super().asyncSetUp()
 
         # テスト用データを作成する
         test_data  = b'customer,date,amount,add1,add2,add3' + b'\n'

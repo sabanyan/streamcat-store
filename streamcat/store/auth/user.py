@@ -172,28 +172,30 @@ class User(BaseModel):
         self.state = next_state
 
     def _get_admin_role_flags(self):
-        from sqlalchemy import func, case, null
+        from sqlalchemy import select, func, case, null
         from sqlalchemy.sql.expression import literal
         from .role import Role
         from .user_role import UserRole
 
-        query = self._session.query(
-                        func.count(
-                            case((Role.uuid == literal(Role.SYS_ADMIN_ROLE_UUID),1),else_=null())
-                        ).label('sys_admin'),
-                        func.count(
-                            case((Role.uuid == literal(Role.USR_ADMIN_ROLE_UUID),1),else_=null())
-                        ).label('usr_admin')
-                    ).\
-                    select_from(Role).\
-                    outerjoin(UserRole, UserRole.role_id==Role.id).\
-                    filter(Role.uuid.in_([Role.SYS_ADMIN_ROLE_UUID,Role.USR_ADMIN_ROLE_UUID])).\
-                    filter(UserRole.user_id==self.id)
+        stmt =  select(
+                    func.count(
+                        case((Role.uuid == literal(Role.SYS_ADMIN_ROLE_UUID),1),else_=null())
+                    ).label('sys_admin'),
+                    func.count(
+                        case((Role.uuid == literal(Role.USR_ADMIN_ROLE_UUID),1),else_=null())
+                    ).label('usr_admin')
+                ).\
+                select_from(Role).\
+                outerjoin(UserRole, UserRole.role_id==Role.id).\
+                where(Role.uuid.in_([Role.SYS_ADMIN_ROLE_UUID,Role.USR_ADMIN_ROLE_UUID])).\
+                where(UserRole.user_id==self.id)
 
-        result = query.one()
+        row = self._session.execute(stmt).one()
+        sys_admin = row[0]
+        usr_admin = row[1]
 
         # 戻り値の作成
-        return {Role.SYS_ADMIN_ROLE_LABEL:result.sys_admin > 0, Role.USR_ADMIN_ROLE_LABEL:result.usr_admin > 0}
+        return {Role.SYS_ADMIN_ROLE_LABEL:sys_admin > 0, Role.USR_ADMIN_ROLE_LABEL:usr_admin > 0}
 
     def _able_to_delete_user_or_raise(self):
         # ユーザ管理者のみ、ユーザを削除できる
@@ -472,9 +474,9 @@ class User(BaseModel):
         U  = select(User.self_role_id).select_from(User).where(User.id==self.id)
 
         # ロールの抽出にはインデックスを参照させるためUNIONを用いる
-        query = self._session.query(Role).\
-                     filter(Role.id==any_(UR.union_all(U).scalar_subquery()))
-        return query.order_by(Role.name).all()
+        stmt =  select(Role).\
+                where(Role.id==any_(UR.union_all(U).scalar_subquery())).order_by(Role.name)
+        return self._session.scalars(stmt).all()
 
     def get_joined_projects(self):
         """
@@ -498,10 +500,11 @@ class User(BaseModel):
                                         )
                                     )
 
-        query = self._session.query(ProjectFolder).\
-                              filter(ProjectFolder.type==SavableDatum.PROJECT_TYPE).\
-                              filter(exists_stmt)
-        return query.order_by(ProjectFolder._label).all()
+        stmt =  select(ProjectFolder).\
+                where(ProjectFolder.type==SavableDatum.PROJECT_TYPE).\
+                where(exists_stmt).\
+                order_by(ProjectFolder._label)
+        return self._session.scalars(stmt).all()
 
     def get_allowlist(self):
         """

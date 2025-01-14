@@ -32,19 +32,22 @@ class Flow(SavableDatum):
 
     @property
     def flow_data(self):
+        from sqlalchemy import select
         def select_unreadables(uuids:list[str]) -> list[str]:
             """
             指定したuuidのうち参照権限の無いuuidを返す
             """
-            results = self._session.query(SavableDatum).filter(SavableDatum.uuid.in_(uuids)).all(ignore_authz=True)
-            return [result.uuid for result in results if not result.readable]
+            stmt = select(SavableDatum).where(SavableDatum.uuid.in_(uuids))
+            data = self._session.scalars(stmt).all(ignore_authz=True)
+            return [datum.uuid for datum in data if not datum.readable]
 
         def select_unexecutables(uuids:list[str]) -> list[str]:
             """
             指定したuuidのうち実行権限の無いuuidを返す
             """
-            results = self._session.query(SavableDatum).filter(SavableDatum.uuid.in_(uuids)).all(ignore_authz=True)
-            return [result.uuid for result in results if not result.executable]
+            stmt = select(SavableDatum).where(SavableDatum.uuid.in_(uuids))
+            data = self._session.scalars(stmt).all(ignore_authz=True)
+            return [datum.uuid for datum in data if not datum.executable]
 
         return FlowData(self._data['flow'], select_unreadables, select_unexecutables, self._readable_or_raise, self._executable_or_raise)
 
@@ -191,13 +194,13 @@ class Flow(SavableDatum):
         return self
 
     @lock_required
-    def moving(self, parent_uuid, lock_uuid=None, modifier=None):
+    def moving(self, parent_uuid, prev_parent_id, lock_uuid=None, modifier=None):
         # 編集ロックが掛かっている場合は移動できない
         if self.edit_lock:
             from streamcat.store import EditLockedException
             raise EditLockedException('編集ロックが掛かっているため移動できません')
         # 
-        super().moving(parent_uuid, lock_uuid=lock_uuid, modifier=modifier)
+        super().moving(parent_uuid, prev_parent_id, lock_uuid=lock_uuid, modifier=modifier)
 
     @Constraints.set_project_role_on_moving_flow
     def moved(self, parent_uuid, prev_parent_id, modifier=None):

@@ -6,12 +6,12 @@ from jsonschema import ValidationError
 from streamcat.store import FlowData
 from .test_case_base import TestCaseBase
 
-class FlowJsonTest(TestCaseBase):
+class FlowJsonTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
     """
     フローJSONの書式の検証機能をテストする
     """
 
-    def test_validate_all_syntax(self):
+    async def test_validate_all_syntax(self):
         """
         全ての文法要素を含んだフローJSONを検証できること
         """
@@ -255,7 +255,7 @@ class FlowJsonTest(TestCaseBase):
         # フローを削除する
         flow.delete()
 
-    def test_validate_sample(self):
+    async def test_validate_sample(self):
         """
         サンプルフローJSONを検証する
         """
@@ -1498,7 +1498,7 @@ class FlowJsonTest(TestCaseBase):
         # フローを削除する
         flow.delete()
 
-    def test_validate_note(self):
+    async def test_validate_note(self):
         """
         content属性のないNoteノードが検証できること
         """
@@ -1544,7 +1544,7 @@ class FlowJsonTest(TestCaseBase):
         # フローを削除する
         flow.delete()
 
-    def test_validate_args(self):
+    async def test_validate_args(self):
         """
         引数の名称に日本語文字列の値が設定できること
         """
@@ -1601,7 +1601,7 @@ class FlowJsonTest(TestCaseBase):
         # フローを削除する
         flow.delete()
 
-    def test_validate_size(self):
+    async def test_validate_size(self):
         """
         Size属性に小数点付きの数値が指定できること
         """
@@ -1645,7 +1645,7 @@ class FlowJsonTest(TestCaseBase):
         # フローを削除する
         flow.delete()
 
-    def test_validate_inner_flow(self):
+    async def test_validate_inner_flow(self):
         """
         type=flowのノードにFlowリテラルが記述できること
         """
@@ -1765,7 +1765,7 @@ class FlowJsonTest(TestCaseBase):
         # ゴミ箱を空にする
         self.factory.data.find_trashcan().trash_all()
 
-    def test_validate_port_id(self):
+    async def test_validate_port_id(self):
         """
         ポートid属性に日本語文字列の値が設定できること
         """
@@ -1807,7 +1807,7 @@ class FlowJsonTest(TestCaseBase):
         # フローを削除する
         flow.delete()
 
-    def test_validate_error_ports(self):
+    async def test_validate_error_ports(self):
         """
         Ports属性の配列要素は2要素固定である
         """
@@ -1839,7 +1839,7 @@ class FlowJsonTest(TestCaseBase):
         with self.assertRaises(ValidationError):
             flow.save()
 
-    def test_validate_error_uuid(self):
+    async def test_validate_error_uuid(self):
         """
         uuid属性に不正な形式の値が設定されたらエラーになること
         """
@@ -1871,7 +1871,7 @@ class FlowJsonTest(TestCaseBase):
         with self.assertRaises(ValidationError):
             flow.save()
 
-    def test_validate_error_node_id(self):
+    async def test_validate_error_node_id(self):
         """
         ノードid属性に不正な形式の値が設定されたらエラーになること
         """
@@ -1903,7 +1903,7 @@ class FlowJsonTest(TestCaseBase):
         with self.assertRaises(ValidationError):
             flow.save()
 
-    def test_validate_error_position(self):
+    async def test_validate_error_position(self):
         """
         ノードのPosition属性に不正な値が設定されたらエラーになること
         """
@@ -1939,7 +1939,7 @@ class FlowJsonTest(TestCaseBase):
         with self.assertRaises(ValidationError):
             flow.save()
 
-    def test_validate_error_inner_flow(self):
+    async def test_validate_error_inner_flow(self):
         """
         Flowリテラルが参照するUUIDが参照できない場合はエラーになること
         """

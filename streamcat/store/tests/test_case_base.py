@@ -1,62 +1,70 @@
-import unittest
 import pprint
-from streamcat.store.factory import Factory, UnAuthzFactory
+import logging
+from typing import Callable
+from streamcat.store.factory import UnAuthzFactory, init_admin_users
 
-class TestCaseBase(unittest.TestCase):
+class TestCaseBase():
     @classmethod
-    def setUpClass(cls):
-        # ユーザ管理者を取得する
-        with UnAuthzFactory() as factory:
-            sys_admin_user = factory.find_user_by_email('Admin@streamcat.io')
-            usr_admin_user = factory.find_user_by_email('admin@streamcat.io')
+    async def asyncSetUpClass(cls):
+        # asyncioから以下のようなWarningが多量に出力されるため表示から除外する
+        # Executing ... took 0.208 seconds
+        def filter(record):
+            return record.msg != 'Executing %s took %.3f seconds'
+        logging.getLogger('asyncio').addFilter(filter)
 
-        with Factory(usr_admin_user) as factory:
+        # システム管理者とユーザ管理者を作成する
+        await init_admin_users()
+
+        # ユーザ管理者を取得する
+        async with UnAuthzFactory() as ufactory:
+            sys_admin_user = await ufactory.find_user_by_email('Admin@streamcat.io')
+            usr_admin_user = await ufactory.find_user_by_email('admin@streamcat.io')
+
+            usr_factory = await ufactory.create_authz_factory(usr_admin_user)
             # テストユーザ1を作成する
-            test_user = factory.user.create('test@streamcat.io', 'Test', '123abc(*)A')
+            test_user = usr_factory.user.create('test@streamcat.io', 'Test', '123abc(*)A')
             test_user.save()
             # テストユーザ2を作成する
-            test_user2 = factory.user.create('test2@streamcat.io', 'Test2', '123abc(*)B')
+            test_user2 = usr_factory.user.create('test2@streamcat.io', 'Test2', '123abc(*)B')
             test_user2.save()
 
-        # システム管理者を登録状態にする
-        with Factory(sys_admin_user) as factory:
+            # システム管理者を登録状態にする
+            sys_factory = await ufactory.create_authz_factory(sys_admin_user)
             # FactoryでUserオブジェクトを再取得する
-            sys_admin_user = factory.user.find_by_id(sys_admin_user.id)
+            sys_admin_user = sys_factory.user.find_by_id(sys_admin_user.id)
             # 仮登録状態から登録状態にする
             sys_admin_user.update_password('adminpass1')
-            sys_admin_user = factory.user.find_by_id(sys_admin_user.id)
+            sys_admin_user = sys_factory.user.find_by_id(sys_admin_user.id)
 
-        # ユーザ管理者を登録状態にする
-        with Factory(usr_admin_user) as factory:
-            usr_admin_user = factory.user.find_by_id(usr_admin_user.id)
+            # ユーザ管理者を登録状態にする
+            usr_admin_user = usr_factory.user.find_by_id(usr_admin_user.id)
             usr_admin_user.update_password('adminpass1')
-            usr_admin_user = factory.user.find_by_id(usr_admin_user.id)
+            usr_admin_user = usr_factory.user.find_by_id(usr_admin_user.id)
 
-        # テストユーザ1を登録状態にする
-        with Factory(test_user) as factory:
-            test_user = factory.user.find_by_id(test_user.id)
+            # テストユーザ1を登録状態にする
+            test1_factory = await ufactory.create_authz_factory(test_user)
+            test_user = test1_factory.user.find_by_id(test_user.id)
             test_user.update_password('testpass00')
-            test_user = factory.user.find_by_id(test_user.id)
+            test_user = test1_factory.user.find_by_id(test_user.id)
 
-        # テストユーザ2を登録状態にする
-        with Factory(test_user2) as factory:
-            test_user2 = factory.user.find_by_id(test_user2.id)
+            # テストユーザ2を登録状態にする
+            test2_factory = await ufactory.create_authz_factory(test_user2)
+            test_user2 = test2_factory.user.find_by_id(test_user2.id)
             test_user2.update_password('testpass20')
-            test_user2 = factory.user.find_by_id(test_user2.id)
+            test_user2 = test2_factory.user.find_by_id(test_user2.id)
 
-        # クラス変数を設定する
-        cls.USER0 = sys_admin_user
-        cls.USER1 = usr_admin_user
-        cls.USER2 = test_user
-        cls.USER3 = test_user2
+            # クラス変数を設定する
+            cls.USER0 = sys_admin_user
+            cls.USER1 = usr_admin_user
+            cls.USER2 = test_user
+            cls.USER3 = test_user2
 
-        # ライブラリデータデストを作成する
-        with Factory(usr_admin_user) as factory:
-            cls.root = factory.data.load_root()
+            # ライブラリデータデストを作成する
+            cls.root = usr_factory.data.load_root()
             cls.data_dst = cls._create_data_dst(cls.root)
 
     @classmethod
-    def tearDownClass(cls):
+    async def asynTearDownClass(cls):
         # USERオブジェクトに対する操作によってトランザクションが設定されるため
         # ここでそれらのトランザクションを終了する
         cls.USER0._session.close()
@@ -65,8 +73,9 @@ class TestCaseBase(unittest.TestCase):
         cls.USER3._session.close()
 
         # ライブラリフォルダを削除する
-        with Factory(cls.USER1) as factory:
+        async with UnAuthzFactory() as ufactory:
             import shutil
+            factory = await ufactory.create_authz_factory(cls.USER1)
             library_path = factory.data.load_root().path
             shutil.rmtree(library_path.as_posix())
 
@@ -75,6 +84,15 @@ class TestCaseBase(unittest.TestCase):
         from streamcat.core import engine, SCHEMA_NAME
         with engine.begin() as conn:
             conn.execute(DDL(f'DROP SCHEMA IF EXISTS {SCHEMA_NAME} CASCADE'))
+
+    @classmethod
+    def setUpClass(cls):
+        # テスト環境を構築する
+        cls._call_async_func(cls.asyncSetUpClass)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls._call_async_func(cls.asynTearDownClass)
 
     @classmethod
     def _create_data_dst(cls, root):
@@ -148,16 +166,18 @@ class TestCaseBase(unittest.TestCase):
 
         return data_dst_flow.reload()
 
-    def setUp(self) -> None:
-        super().setUp()        
-        # テスト実行ごとにトランザクションを設定する
-        self.factory0 = Factory(self.USER0)
-        self.factory = Factory(self.USER1)
-        self.factory2 = Factory(self.USER2)
-        self.factory3 = Factory(self.USER3)
+    def _call_async_func(func:Callable, **kwargs):
+        import asyncio
+        return asyncio.run(func(**kwargs))
 
-    def tearDown(self) -> None:
-        super().tearDown()
+    async def asyncSetUp(self) -> None:
+        # テスト実行ごとにトランザクションを設定する
+        self.factory0 = await UnAuthzFactory().create_authz_factory(self.USER0)
+        self.factory = await UnAuthzFactory().create_authz_factory(self.USER1)
+        self.factory2 = await UnAuthzFactory().create_authz_factory(self.USER2)
+        self.factory3 = await UnAuthzFactory().create_authz_factory(self.USER3)
+
+    async def asyncTearDown(self) -> None:
         # FactoryをCloseする
         self.factory0.end()
         self.factory.end()

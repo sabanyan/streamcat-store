@@ -12,9 +12,12 @@ setup(
         # NOTE: psycopg2-binaryはARM64環境に対応していない
         # 'psycopg2-binary',
         'psycopg2==2.9.10',
-        'SQLAlchemy==2.0.27',
+        'SQLAlchemy==2.0.36',
         'APScheduler==3.11.0',
         'jsonschema==4.23.0',
+        # FastAPIへの移行により送出されるようになった例外(Can't pickle local object)を
+        # 回避するためにmultiprocessを使用する
+        'multiprocess==0.70.17',
         # 'alembic',
         'cryptography==44.0.0',
         'python-magic==0.4.27',

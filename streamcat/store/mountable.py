@@ -7,6 +7,10 @@ class Mountable():
     マウント可能データストア
     """
 
+    def __init__(self):
+        # moving()とmoved()の呼び出しの間でマウントポイントパスを受け渡しする
+        self._mount_point_path = None
+
     @property
     def path(self):
         # 参照権限が無ければ例外を送出する
@@ -18,7 +22,7 @@ class Mountable():
         if self.id is None:
             # 絶対パスを返す
             # DBに未保存の場合は、マウントしない
-            return SavableDatum._to_abs_path(self._path)
+            return self._path
 
         if not Mountable.is_mount(self._path):
             try:
@@ -31,7 +35,7 @@ class Mountable():
                 warnings.warn(f'Mount処理に失敗しました {e}')
 
         # 絶対パスを返す
-        return SavableDatum._to_abs_path(self._path)
+        return self._path
 
     def is_mountable(self):
         from streamcat.core import Tmp
@@ -53,7 +57,7 @@ class Mountable():
         # 引数(mount_point_path)にpathプロパティを指定する時にMount処理が発生するのを防ぐため
         # 引数(mount_point_path)が設定されない場合は、自身の_pathを使用する
         if mount_point_path is None:
-            mount_point_path = SavableDatum._to_abs_path(self._path)
+            mount_point_path = self._path
 
         if not mount_point_path.exists():
             raise Exception('mount point(%s) does not exist' % mount_point_path)
@@ -81,7 +85,7 @@ class Mountable():
         # 引数(mount_point_path)にpathプロパティを指定する時にMount処理が発生するのを防ぐため
         # 引数(mount_point_path)が設定されない場合は、自身の_pathを使用する
         if mount_point_path is None:
-            mount_point_path = SavableDatum._to_abs_path(self._path)
+            mount_point_path = self._path
 
         # マウントポイントがない場合は処理を終了する
         if not mount_point_path.exists():
@@ -131,8 +135,8 @@ class Mountable():
                       AND to_tsvector(D.data) @@ to_tsquery(cast(R.uuid AS VARCHAR)))
         """)
         try:
-            results = self._session.execute(sql)
-            return [result[0] for result in results]
+            rows = self._session.execute(sql).all()
+            return [row.uuid for row in rows]
         except Exception as e:
             self._session.rollback()
             raise e
@@ -156,38 +160,47 @@ class Mountable():
         return False
 
     @staticmethod
-    def remount(session, id):
+    def remount(session, id:int):
         """
         ルートデータストアから指定されたidのDatumまでの経路において、
         マウントされていないマウントポイントがあればマウントし直す
         """
         from pathlib import Path
-        from sqlalchemy import text
+        from sqlalchemy import select
+        from sqlalchemy.orm import aliased
         from streamcat.store.factory import DatumFactory
 
-        sql = text(f"""
-        WITH RECURSIVE R AS (
-            SELECT id, parent_id, uuid, type, path FROM data WHERE id = {id}
-            UNION ALL
-            SELECT D.id, D.parent_id, D.uuid, D.type, D.path FROM data D JOIN R ON D.id = R.parent_id
-        )
-        SELECT uuid, path, type FROM R
-        WHERE type = 'awss3' or type = 'rfolder'
-        ORDER BY id
-        """)
+        # id : 検索対象DatumからRootDatumへの経路の全てのDatumのid
+        D0 = aliased(SavableDatum, name='D0')
+        R = select(D0.id, D0.parent_id, D0.uuid, D0.type, D0._path).\
+            where(D0.id==id).\
+            cte(name='R', recursive=True)
+            # cte: Common Table Expression WITH句のこと
+
+        # WITH句にUNION ALLを用いて再帰クエリとする
+        D = aliased(SavableDatum, name='D')
+        R = R.union_all(
+                select(D.id, D.parent_id, D.uuid, D.type, D._path).\
+                join(R, D.id==R.c.parent_id)
+            )
+
+        stmt =  select(R.c.uuid, R.c._path, R.c.type).\
+                where(R.c.type.in_(['awss3', 'rfolder'])).\
+                order_by(R.c.id)
+
         try:
-            results = session.execute(sql)
+            rows = session.execute(stmt).all()
         except Exception as e:
             session.rollback()
             raise e
 
         factory = DatumFactory(session)
 
-        for result in results:
-            mount_point_path = SavableDatum._to_abs_path(Path(result[1]))
+        for row in rows:
+            mount_point_path = Path(row[1])
             if not Mountable.is_mount(mount_point_path):
-                uuid = str(result[0])
-                type = str(result[2])
+                uuid = str(row.uuid)
+                type = str(row.type)
                 if type == SavableDatum.AWSS3_TYPE:
                     awss3 = factory.find_by_uuid(uuid)
                     awss3.mount(mount_point_path)
@@ -220,3 +233,40 @@ class Mountable():
         ino = abs_path.stat().st_ino
         parent_ino = parent.stat().st_ino
         return ino == parent_ino
+
+    def moving(self, parent_uuid, prev_parent_id, lock_uuid=None, modifier=None):
+        """
+        ゴミ箱へほかされるか、ゴミ箱から元の場所に戻す場合を除いて場合を除いて
+        マウント中の場合は移動できない
+        TODO: Linuxのmountコマンドの--moveオプションを使えばマウント中の
+              ディレクトリポイントを移動できるらしいが、間に合わせの実装として移動を禁止する
+        """
+        from streamcat.store.factory import DatumFactory
+        factory = DatumFactory(self._session)
+        trash_folder = factory.load_trash_folder()
+
+        if parent_uuid==trash_folder.uuid or prev_parent_id==trash_folder.id:
+            # ゴミ箱へほかされる、またはゴミ箱から戻される場合、
+            # moved()で参照するために更新前のマウントパスを保持しておく
+            self._mount_point_path = self._path
+        elif Mountable.is_mount(self._path):
+            # マウント中のリモートフォルダは移動できない
+            raise Exception('マウント中のリモートフォルダは移動できません')
+        # 
+        super().moving(parent_uuid, prev_parent_id, lock_uuid=lock_uuid, modifier=modifier)
+
+    def moved(self, parent_uuid, prev_parent_id, modifier=None):
+        """
+        ゴミ箱へほかされた場合は、マウントを解除する
+        """
+        from streamcat.store.factory import DatumFactory
+        factory = DatumFactory(self._session)
+        trash_folder = factory.load_trash_folder()
+
+        if parent_uuid==trash_folder.uuid or prev_parent_id==trash_folder.id:
+            # ゴミ箱へほかされた、またはゴミ箱から戻された場合、マウントを解除する
+            # NOTE: DB更新後に実行されるので更新前のpathである_mount_point_pathを参照する
+            self.unmount(self._mount_point_path)
+            self._mount_point_path = None
+
+        return super().moved(parent_uuid, prev_parent_id, modifier=modifier)
