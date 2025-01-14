@@ -224,7 +224,7 @@ class DatumFactory():
 
         return datum
 
-    def find_by_uuid(self, uuid, type=None, folder_path=False) -> SavableDatum:
+    def find_by_uuid(self, uuid, type=None, folder_path=False, for_update=False) -> SavableDatum:
         """
         指定されたuuidを持つDatumを取得する
         """
@@ -235,6 +235,10 @@ class DatumFactory():
 
         if type is not None:
             stmt = stmt.where(SavableDatum.type==type)
+
+        if for_update:
+            # DBの排他ロックをかける
+            stmt = stmt.with_for_update(of=SavableDatum)
 
         # 結果が1件以外の場合はNoResultFoundが送出される
         try:
