@@ -2,7 +2,11 @@ from setuptools import setup
 
 setup(
     name='streamcat.store',
-    packages=['streamcat.store'],
+    packages=[
+        'streamcat.core',
+        'streamcat.depo',
+        'streamcat.store'
+    ],
     version='3.4',
     description='Data Store of many type',
     url='https://www.kskp.io',
