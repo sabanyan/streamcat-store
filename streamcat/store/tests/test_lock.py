@@ -134,13 +134,13 @@ class LockManagerTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
             lock_manager = LockManager(60)
 
             def run(self):
-                print(f'Begin : {self.getName()}')
+                print(f'Begin : {self.name}')
                 # ロッを取得する
-                print(f'Lock  : {self.getName()}')
+                print(f'Lock  : {self.name}')
                 target = str(uuid.uuid4())
                 lock = self.lock_manager.lock(target, 1)
                 # ロックを解除する
-                print(f'Unlock: {self.getName()}')
+                print(f'Unlock: {self.name}')
                 self.lock_manager.unlock(lock.uuid)
 
         for i in range(10):

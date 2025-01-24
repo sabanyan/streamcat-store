@@ -375,7 +375,8 @@ class FlowDumper:
         import tarfile
         # 'r|*' : 圧縮または無圧縮形式のアーカイブを読み込みモードで開く
         with tarfile.open(fileobj=stream, mode='r|*') as tar:
-            tar.extractall(tar_dir_path)
+            # filter='data' : UNIXのようなファイルシステムに固有のほとんどの機能を無視またはブロックする
+            tar.extractall(path=tar_dir_path, filter='data')
             return [member for member in tar.getmembers()]
 
     @staticmethod
