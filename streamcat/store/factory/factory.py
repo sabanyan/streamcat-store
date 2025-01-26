@@ -1,4 +1,3 @@
-from typing import Union
 from sqlalchemy import select, func
 from sqlalchemy.orm.exc import NoResultFound
 from streamcat.core import Datum, SavableDatum
@@ -309,7 +308,7 @@ class DatumFactory():
         stmt = select(func.count(SavableDatum.id)).where(SavableDatum.parent_id == None)
         return self._session.scalars(stmt).one()
 
-    def find_root(self) -> Union[Folder, None]:
+    def find_root(self) -> Folder|None:
         """
         親を持たないfolderレコードを全て取得する
         """
