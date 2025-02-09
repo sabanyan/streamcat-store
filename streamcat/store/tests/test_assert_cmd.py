@@ -1,7 +1,7 @@
 import unittest
 import copy
 from streamcat.store import FlowData
-from streamcat.engine import execute, FlowCommand
+from streamcat.engine import aexecute, FlowCommand
 from streamcat.engine.tests.test_main import convert_from_job
 from .test_case_base import TestCaseBase
 
@@ -771,7 +771,7 @@ class AssertCmdTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
 
         flow = root.create_flow(flow_json['label'], FlowData(flow_json))
         flow_link = FlowCommand(flow)
-        lasts = execute(flow_link, {}, {})
+        lasts = await aexecute(flow_link, {}, {})
         lasts = convert_from_job(lasts)
 
         # 正解データ内のuuid, タイムスタンプはダミー、テスト実行時には、毎回変動するので、出力がされているかどうかのみ確認する
@@ -821,7 +821,7 @@ class AssertCmdTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
 
         flow = root.create_flow(flow_json['label'], FlowData(flow_json))
         flow_link = FlowCommand(flow)
-        lasts = execute(flow_link, {}, {})
+        lasts = await aexecute(flow_link, {}, {})
         lasts = convert_from_job(lasts)
         # 正解データ内のuuid, タイムスタンプはダミー、テスト実行時には、毎回変動するので、出力がされているかどうかのみ確認する
         corrects = {'d1': [
@@ -869,7 +869,7 @@ class AssertCmdTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
 
         flow = root.create_flow(flow_json['label'], FlowData(flow_json))
         flow_link = FlowCommand(flow)
-        lasts = execute(flow_link, {}, {})
+        lasts = await aexecute(flow_link, {}, {})
         lasts = convert_from_job(lasts)
 
         # # 正解データ内のuuid, タイムスタンプはダミー、テスト実行時には、毎回変動するので、出力がされているかどうかのみ確認する
@@ -931,7 +931,7 @@ class AssertCmdTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
 
         flow = root.create_flow(flow_json['label'], FlowData(flow_json))
         flow_link = FlowCommand(flow)
-        lasts = execute(flow_link, {}, {})
+        lasts = await aexecute(flow_link, {}, {})
         lasts = convert_from_job(lasts)
 
         # 正解データ内のuuid, タイムスタンプはダミー、テスト実行時には、毎回変動するので、出力がされているかどうかのみ確認する
@@ -1007,7 +1007,7 @@ class AssertCmdTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
 
         flow = root.create_flow(flow_json['label'], FlowData(flow_json))
         flow_link = FlowCommand(flow)
-        lasts = execute(flow_link, {}, {})
+        lasts = await aexecute(flow_link, {}, {})
         lasts = convert_from_job(lasts)
 
         # 正解データ内のuuid, タイムスタンプはダミー、テスト実行時には、毎回変動するので、出力がされているかどうかのみ確認する
@@ -1062,7 +1062,7 @@ class AssertCmdTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
 
         flow = root.create_flow(flow_json['label'], FlowData(flow_json))
         flow_link = FlowCommand(flow)
-        lasts = execute(flow_link, {}, {})
+        lasts = await aexecute(flow_link, {}, {})
         lasts = convert_from_job(lasts)
 
         # 正解データ内のuuid, タイムスタンプはダミー、テスト実行時には、毎回変動するので、出力がされているかどうかのみ確認する
@@ -1110,7 +1110,7 @@ class AssertCmdTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
 
         flow = root.create_flow(flow_json['label'], FlowData(flow_json))
         flow_link = FlowCommand(flow)
-        lasts = execute(flow_link, {}, {})
+        lasts = await aexecute(flow_link, {}, {})
         lasts = convert_from_job(lasts)
 
         # 正解データ内のuuid, タイムスタンプはダミー、テスト実行時には、毎回変動するので、出力がされているかどうかのみ確認する
@@ -1159,7 +1159,7 @@ class AssertCmdTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
 
         flow = root.create_flow(flow_json['label'], FlowData(flow_json))
         flow_link = FlowCommand(flow)
-        lasts = execute(flow_link, {}, {})
+        lasts = await aexecute(flow_link, {}, {})
         lasts = convert_from_job(lasts)
 
         # # 正解データ内のuuid, タイムスタンプはダミー、テスト実行時には、毎回変動するので、出力がされているかどうかのみ確認する

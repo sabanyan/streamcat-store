@@ -2887,9 +2887,9 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         flow = flow.reload() 
 
         # フローを実行する
-        from streamcat.engine import execute, FlowCommand
+        from streamcat.engine import aexecute, FlowCommand
         link = FlowCommand(flow)
-        lasts = execute(command=link, args={}, inputs={})
+        lasts = await aexecute(command=link, args={}, inputs={})
         # フローの実行結果を取得する
         out_frame = AuthTest.get_frame_from_job(lasts)
 
@@ -2995,9 +2995,9 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         flow = flow.reload() 
 
         # フローを実行する
-        from streamcat.engine import execute, FlowCommand
+        from streamcat.engine import aexecute, FlowCommand
         link = FlowCommand(flow)
-        lasts = execute(command=link, args={}, inputs={})
+        lasts = await aexecute(command=link, args={}, inputs={})
         # フローの実行結果を取得する
         out_frame = AuthTest.get_frame_from_job(lasts)
 
@@ -3113,9 +3113,9 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         flow = flow.reload() 
 
         # フローを実行する
-        from streamcat.engine import execute, FlowCommand
+        from streamcat.engine import aexecute, FlowCommand
         link = FlowCommand(flow)
-        lasts = execute(command=link, args={}, inputs={})
+        lasts = await aexecute(command=link, args={}, inputs={})
         # フローの実行結果を取得する
         out_frame = AuthTest.get_frame_from_job(lasts)
 
@@ -3967,9 +3967,9 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         flow = flow.reload() 
 
         # フローを実行する
-        from streamcat.engine import execute, FlowCommand
+        from streamcat.engine import aexecute, FlowCommand
         link = FlowCommand(flow)
-        job = execute(command=link, args={}, inputs={})
+        job = await aexecute(command=link, args={}, inputs={})
         # フロー実行の終了を待ってから次のSQLを発行する必要がある
         job.join()
 
@@ -4008,9 +4008,9 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         flow = flow.reload() 
 
         # フローを実行する
-        from streamcat.engine import execute, FlowCommand
+        from streamcat.engine import aexecute, FlowCommand
         link = FlowCommand(flow)
-        lasts = execute(command=link, args={}, inputs={})
+        lasts = await aexecute(command=link, args={}, inputs={})
         # フローの実行結果を取得する
         out_frame = AuthTest.get_frame_from_job(lasts)
 
@@ -4061,9 +4061,9 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         flow = flow.reload() 
 
         # フローを実行する
-        from streamcat.engine import execute, FlowCommand
+        from streamcat.engine import aexecute, FlowCommand
         link = FlowCommand(flow)
-        lasts = execute(command=link, args={}, inputs={})
+        lasts = await aexecute(command=link, args={}, inputs={})
         # フローの実行結果を取得する
         out_frame = AuthTest.get_frame_from_job(lasts)
 
@@ -4139,11 +4139,11 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         self.factory2.end()
 
         # USER3は、フローにキャッシュのuuidを書き込めないので、フローを実行できない
-        from streamcat.engine import execute, FlowCommand
+        from streamcat.engine import aexecute, FlowCommand
         flow = self.factory3.data.find_by_uuid(flow.uuid)
         link = FlowCommand(flow)
         with self.assertRaises(CommandException) as e:
-            lasts = execute(command=link, args={}, inputs={})
+            lasts = await aexecute(command=link, args={}, inputs={})
             AuthTest.get_frame_from_job(lasts)
         # CommandExceptionはNotAuthorizedExceptionを再送出していること
         self.assertIsInstance(e.exception.innerException, NotAuthorizedException)
@@ -4183,7 +4183,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         self.factory2.end()
 
         # 編集者は、フローをプレビュー実行して、キャッシュファイルを作成する
-        from streamcat.engine import execute, FlowCommand
+        from streamcat.engine import aexecute, FlowCommand
         vis_args = { "d1" : 
                         {"args" :
                             {"visualizer" : "csvtohtmltable",
@@ -4194,7 +4194,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
                     }
         flow = self.factory3.data.find_by_uuid(flow.uuid)
         link = FlowCommand(flow)
-        job = execute(command=link, args={'vis':vis_args}, inputs={})
+        job = await aexecute(command=link, args={'vis':vis_args}, inputs={})
         # フロー実行の終了を待ってから次のSQLを発行する必要がある
         job.join()
 
@@ -4281,7 +4281,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
 
         # 編集者は、複製したフローをプレビュー実行できること
         link = FlowCommand(duplicated_flow)
-        job = execute(command=link, args={'vis':vis_args}, inputs={})
+        job = await aexecute(command=link, args={'vis':vis_args}, inputs={})
         # フロー実行の終了を待ってから次のSQLを発行する必要がある
         job.join()
 
@@ -4382,7 +4382,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         # マスキングのフラグが存在しないこと
         self.assertNotIn('masked', nodes[2])
 
-        from streamcat.engine import execute, FlowCommand
+        from streamcat.engine import aexecute, FlowCommand
         vis_args = {
           "d1": {
             "args": {
@@ -4397,14 +4397,14 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         flow2 = self.factory3.data.find_by_uuid(flow2.uuid)
         link = FlowCommand(flow2)
         with self.assertRaises(Exception):
-            job = execute(command=link, args={'vis':vis_args}, inputs={})
+            job = await aexecute(command=link, args={'vis':vis_args}, inputs={})
             # フロー実行の終了を待ってから次のSQLを発行する必要がある
             job.join()
 
         # USER2は、メインフローを実行できること
         flow2 = self.factory2.data.find_by_uuid(flow2.uuid)
         link = FlowCommand(flow2)
-        job = execute(command=link, args={'vis':vis_args}, inputs={})
+        job = await aexecute(command=link, args={'vis':vis_args}, inputs={})
         # フロー実行の終了を待ってから次のSQLを発行する必要がある
         job.join()
 
@@ -4507,7 +4507,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         flow1 = flow1.reload()
 
         # USER3は、フローをプレビュー実行して、キャッシュファイルを作成する
-        from streamcat.engine import execute, FlowCommand
+        from streamcat.engine import aexecute, FlowCommand
         vis_args = { "d1" : 
                         {"args" :
                             {"visualizer" : "csvtohtmltable",
@@ -4517,7 +4517,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
                         }
                     }
         link = FlowCommand(flow1)
-        job = execute(command=link, args={'vis':vis_args}, inputs={})
+        job = await aexecute(command=link, args={'vis':vis_args}, inputs={})
         # フロー実行の終了を待ってから次のSQLを発行する必要がある
         job.join()
 
@@ -4674,7 +4674,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         flow1 = flow1.reload()
 
         # USER3は、フローをプレビュー実行して、キャッシュファイルを作成する
-        from streamcat.engine import execute, FlowCommand
+        from streamcat.engine import aexecute, FlowCommand
         vis_args = { "d2" : 
                         {"args" :
                             {"visualizer" : "csvtohtmltable",
@@ -4684,7 +4684,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
                         }
                     }
         link = FlowCommand(flow1)
-        job = execute(command=link, args={'vis':vis_args}, inputs={})
+        job = await aexecute(command=link, args={'vis':vis_args}, inputs={})
         # フロー実行の終了を待ってから次のSQLを発行する必要がある
         job.join()
 

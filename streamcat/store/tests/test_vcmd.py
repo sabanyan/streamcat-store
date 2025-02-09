@@ -1,6 +1,6 @@
 import io
 import unittest
-from streamcat.engine import FlowCommand, execute
+from streamcat.engine import FlowCommand, aexecute
 from .test_case_base import TestCaseBase
 
 class VCmdTestCase(TestCaseBase, unittest.IsolatedAsyncioTestCase):
@@ -78,13 +78,13 @@ class VCmdTestCase(TestCaseBase, unittest.IsolatedAsyncioTestCase):
             ]
         }
 
-    def exec_flow(self, vis_args):
+    async def exec_flow(self, vis_args):
         from streamcat.store import FlowData
         root = self.factory.data.load_root()
         flow_data = FlowData(self.flow_csvtohtmltable)
         flow = root.create_flow('CSV to graph', flow_data)
         flow_link = FlowCommand(flow)
-        outs = execute(flow_link, {'vis':vis_args}, {})
+        outs = await aexecute(flow_link, {'vis':vis_args}, {})
         result = self.convert_from_job_vis(outs)['d1']
         return result
 
@@ -99,7 +99,7 @@ class VCmdTestCase(TestCaseBase, unittest.IsolatedAsyncioTestCase):
             if isinstance(datum, ApparentOuts):
                 return {out.out_point.id : out.datum.result for out in datum.outs}
 
-    def test_csvtohtmltable(self):
+    async def test_csvtohtmltable(self):
         vis_args = 	{
 			"d1" : {
                 "args" : {
@@ -110,7 +110,7 @@ class VCmdTestCase(TestCaseBase, unittest.IsolatedAsyncioTestCase):
 			}
 		}
         
-        result = self.exec_flow(vis_args)
+        result = await self.exec_flow(vis_args)
 
         expected_result = {'header': ['customer', 'date', 'amount', 'add1', 'add2', 'add3'], 
                            'reader': [['B', '20180112', '3500', '1', '2', '3'], 
@@ -120,7 +120,7 @@ class VCmdTestCase(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         self.assertDictEqual(result, expected_result)
     
     @unittest.skip('パラメタ列の推測の実装を更新してから再テスト')
-    def test_csvtolinegraph(self):
+    async def test_csvtolinegraph(self):
         vis_args = 	{
 			"d1" : {
                 "args" : {
@@ -130,12 +130,12 @@ class VCmdTestCase(TestCaseBase, unittest.IsolatedAsyncioTestCase):
                 }
 			}
 		}
-        result = self.exec_flow(vis_args)
+        result = await self.exec_flow(vis_args)
         self.assertIsInstance(result['div'], str)
         self.assertIsInstance(result['script'], str)
 
     @unittest.skip('パラメタ列の推測の実装を更新してから再テスト')
-    def test_csvtohistogram(self):
+    async def test_csvtohistogram(self):
         vis_args = 	{
 			"d1" : {
                 "args" : {
@@ -145,12 +145,12 @@ class VCmdTestCase(TestCaseBase, unittest.IsolatedAsyncioTestCase):
                 }
 			}
 		}
-        result = self.exec_flow(vis_args)
+        result = await self.exec_flow(vis_args)
         self.assertIsInstance(result['div'], str)
         self.assertIsInstance(result['script'], str)
 
     @unittest.skip('パラメタ列の推測の実装を更新してから再テスト')
-    def test_csvtoscatter(self):
+    async def test_csvtoscatter(self):
         vis_args = 	{
 			"d1" : {
                 "args" : {
@@ -160,12 +160,12 @@ class VCmdTestCase(TestCaseBase, unittest.IsolatedAsyncioTestCase):
                 }
 			}
 		}
-        result = self.exec_flow(vis_args)
+        result = await self.exec_flow(vis_args)
         self.assertIsInstance(result['div'], str)
         self.assertIsInstance(result['script'], str)
 
     @unittest.skip('パラメタ列の推測の実装を更新してから再テスト')
-    def test_csvtoboxplot(self):
+    async def test_csvtoboxplot(self):
         vis_args = 	{
 			"d1" : {
                 "args" : {
@@ -175,12 +175,12 @@ class VCmdTestCase(TestCaseBase, unittest.IsolatedAsyncioTestCase):
                 }
 			}
 		}
-        result = self.exec_flow(vis_args)
+        result = await self.exec_flow(vis_args)
         self.assertIsInstance(result['div'], str)
         self.assertIsInstance(result['script'], str)
 
     @unittest.skip('パラメタ列の推測の実装を更新してから再テスト')
-    def test_csvtorepetitiviewaveform(self):
+    async def test_csvtorepetitiviewaveform(self):
         vis_args = 	{
 			"d1" : {
                 "args" : {
@@ -190,6 +190,6 @@ class VCmdTestCase(TestCaseBase, unittest.IsolatedAsyncioTestCase):
                 }
 			}
 		}
-        result = self.exec_flow(vis_args)
+        result = await self.exec_flow(vis_args)
         self.assertIsInstance(result['div'], str)
         self.assertIsInstance(result['script'], str)
