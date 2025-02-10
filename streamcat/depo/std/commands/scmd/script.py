@@ -1518,6 +1518,8 @@ class DumpCommand(SCommand):
         Mountable._exec_command(pg_dump_command, env={'PGPASSWORD':_db_password})
         # アーカイブに追加する
         archive.add(dump_file, arcname=self.META_FILE_NAME, recursive=False)
+        # pg_dumpコマンドの出力ファイルを削除する
+        dump_file.unlink(missing_ok=True)
 
 class RestoreCommand(SCommand):
     """
