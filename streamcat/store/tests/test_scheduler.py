@@ -1,14 +1,15 @@
 import unittest
 import pprint
 from streamcat.store import FlowData
-from streamcat.store.scheduler import schedule_manager
 from .test_case_base import TestCaseBase
 
-class SchdulerTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
+# from streamcat.store.scheduler import schedule_manager
+# NOTE: ここでscheduler_managerをimportすると、RuntimeError: no running event loopが発生する
+
+class SchedulerTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
     """
     Schdulerをテストする
     """
-
     flow_json = {
         "label": "test", 
         "nodes": [
@@ -70,7 +71,6 @@ class SchdulerTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         "creator": "ユーザー管理者", 
         "createdAt": "2021-03-17 11:35:39"
     }
-
 
     async def test_date(self):
         """
@@ -527,6 +527,8 @@ class SchdulerTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         """
         ゴミ箱に捨てたスケジュールはスケジューラから解除されること
         """
+        from streamcat.store.scheduler import schedule_manager
+
         # ルートデータストアを取得する
         root = self.factory.data.load_root()
 
@@ -565,6 +567,8 @@ class SchdulerTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         """
         スケジュールを含むフォルダをゴミ箱に捨てると、スケジューラから解放されること
         """
+        from streamcat.store.scheduler import schedule_manager
+
         # ルートフォルダを取得する
         root = self.factory2.data.load_root()
 

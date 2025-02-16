@@ -1,9 +1,13 @@
 import pprint
 import logging
-from typing import Callable
+from asyncio import AbstractEventLoop
 from streamcat.store.factory import UnAuthzFactory, init_admin_users
 
 class TestCaseBase():
+    # 非同期処理を実行するためのイベントループ
+    # NOTE: このイベントループはAPSchedulerのテストでも使用する
+    event_loop:AbstractEventLoop = None
+
     @classmethod
     async def asyncSetUpClass(cls):
         # asyncioから以下のようなWarningが多量に出力されるため表示から除外する
@@ -87,12 +91,20 @@ class TestCaseBase():
 
     @classmethod
     def setUpClass(cls):
+        import asyncio
+        # イベントループを作成する
+        cls.event_loop = asyncio.new_event_loop()
+        # イベントループをカレントループに設定する
+        asyncio.set_event_loop(cls.event_loop)
         # テスト環境を構築する
-        cls._call_async_func(cls.asyncSetUpClass)
+        cls.event_loop.run_until_complete(cls.asyncSetUpClass())
 
     @classmethod
     def tearDownClass(cls):
-        cls._call_async_func(cls.asynTearDownClass)
+        # テスト環境を破棄する
+        cls.event_loop.run_until_complete(cls.asynTearDownClass())
+        # イベントループを閉じる
+        cls.event_loop.close()
 
     @classmethod
     def _create_data_dst(cls, root):
@@ -165,10 +177,6 @@ class TestCaseBase():
         project.init_members([member0, member1, member2, member3], last_modified_at=project.modified_at)
 
         return data_dst_flow.reload()
-
-    def _call_async_func(func:Callable, **kwargs):
-        import asyncio
-        return asyncio.run(func(**kwargs))
 
     async def asyncSetUp(self) -> None:
         # テスト実行ごとにトランザクションを設定する

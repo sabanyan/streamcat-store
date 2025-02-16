@@ -9,8 +9,7 @@ class ScheduleManager():
     def __init__(self):
         from datetime import timezone
         from apscheduler.jobstores.memory import MemoryJobStore
-        from apscheduler.executors.pool import ThreadPoolExecutor
-        from apscheduler.schedulers.background import BackgroundScheduler
+        from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
         jobstores = {
             # NOTE:
@@ -19,17 +18,13 @@ class ScheduleManager():
             'default': MemoryJobStore()
         }
 
-        executors = {
-            'default': ThreadPoolExecutor(20)
-        }
-
         job_defaults = {
             'coalesce': False,
             'max_instances': 3
         }
 
         # スケジューラを作成する
-        self.scheduler = BackgroundScheduler(jobstores=jobstores, executors=executors, job_defaults=job_defaults, timezone=timezone.utc)
+        self.scheduler = AsyncIOScheduler(jobstores=jobstores, job_defaults=job_defaults, timezone=timezone.utc)
 
         # スケジューラを起動する
         self.scheduler.start()
