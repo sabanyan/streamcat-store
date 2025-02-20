@@ -16,28 +16,28 @@ setup(
         # NOTE: psycopg2-binaryはARM64環境に対応していない
         # 'psycopg2-binary',
         'psycopg2==2.9.10',
-        'SQLAlchemy==2.0.37',
+        'SQLAlchemy==2.0.38',
         'APScheduler==3.11.0',
         'jsonschema==4.23.0',
         # FastAPIへの移行により送出されるようになった例外(Can't pickle local object)を
         # 回避するためにmultiprocessを使用する
         'multiprocess==0.70.17',
         # 'alembic',
-        'cryptography==44.0.0',
+        'cryptography==44.0.1',
         'python-magic==0.4.27',
         'chardet==5.2.0',
         # 'awscli',
         # 'cx_Oracle',
-        'numpy==2.2.2',
-        'scipy==1.15.1',
+        'numpy==2.2.3',
+        'scipy==1.15.2',
         'pandas==2.2.3',
         # K-Commandでのみ使用する
         'scikit-learn',
         # matplotlibとbokehはholoviewsが使用する
-        'holoviews==1.20.0',
+        'holoviews==1.20.1',
         'matplotlib==3.10.0',
-        'bokeh==3.6.2',
+        'bokeh==3.6.3',
         'param==2.2.0',
-        'panel==1.6.0'
+        'panel==1.6.1'
     ],
 )
