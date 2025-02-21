@@ -1,6 +1,6 @@
 import uuid
 import threading
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 
 class LockedDatumException(Exception):
     """
@@ -67,7 +67,7 @@ class LockManager():
                 raise LockedDatumException(f'ユーザー({lock.creator.name})がフローを編集中です')
                 
         # ロック成功 !
-        new_lock = Lock(target_uuid, creator, datetime.utcnow())
+        new_lock = Lock(target_uuid, creator, datetime.now(timezone.utc))
         self._lock_data[new_lock.uuid] = new_lock
         return new_lock
 
@@ -79,7 +79,7 @@ class LockManager():
             # ロックの有無を判定する
             if lock_uuid in self._lock_data:
                 # ロックの有効期間を延長する
-                self._lock_data[lock_uuid].modified_at = datetime.utcnow()
+                self._lock_data[lock_uuid].modified_at = datetime.now(timezone.utc)
                 return True
             else:
                 return False
@@ -92,7 +92,7 @@ class LockManager():
         for lock in list(self._lock_data.values()):
             if lock.target_uuid == target_uuid:
                 # ロックの有効期間を延長する
-                self._lock_data[lock.uuid].modified_at = datetime.utcnow()
+                self._lock_data[lock.uuid].modified_at = datetime.now(timezone.utc)
                 return True
         return False
 
@@ -123,7 +123,7 @@ class LockManager():
         """
         有効期間切れのロックを削除する
         """
-        expired_time = datetime.utcnow() - timedelta(seconds=self._valid_seconds)
+        expired_time = datetime.now(timezone.utc) - timedelta(seconds=self._valid_seconds)
         expired_locks = []
         for unlocked_lock in self._lock_data.values():
             if unlocked_lock.modified_at <= expired_time:

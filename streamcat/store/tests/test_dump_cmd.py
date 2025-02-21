@@ -1,13 +1,11 @@
-import unittest
-import pprint
-import time
 import io
-
-from streamcat.store import FlowData, DatabaseConn, RemoteFolderConn
-from streamcat.depo.std.commands import DumpCommand, RestoreCommand
+import pprint
+import unittest
+from streamcat.store import DatabaseConn, RemoteFolderConn
+from streamcat.depo.std.commands import DumpCommand
 from .test_case_base import TestCaseBase
 
-class DumpTest(TestCaseBase):
+class DumpTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
     """
     DumpCommandとRestoreCommandをテストする
     """
@@ -31,7 +29,7 @@ class DumpTest(TestCaseBase):
     }
     remote_folder_conn = RemoteFolderConn(conn_json)
 
-    def test_basic(self):
+    async def test_basic(self):
         """
         StreamCatのバックアップとリストアが実行できること
         FIXME: テストコードの実行環境でGET /dumpを呼び出すと、LOCK TABLEの発行時に
@@ -69,27 +67,27 @@ class DumpTest(TestCaseBase):
 
         print(outs)
 
-    def test_auth(self):
+    async def test_auth(self):
         """
         システム管理者以外はバックアップとリストアが実行できないこと
         """
 
-    def test_invalid_file(self):
+    async def test_invalid_file(self):
         """
         不正なDumpファイルでリストアを実行できないこと
         """
 
-    def test_dump_simultaneously(self):
+    async def test_dump_simultaneously(self):
         """
         同時にバックアップを実行できること
         """
 
-    def test_restore_simultaneously(self):
+    async def test_restore_simultaneously(self):
         """
         同時にリストアを実行できること
         """
 
-    def test_dump_restore_simultaneously(self):
+    async def test_dump_restore_simultaneously(self):
         """
         同時にバックアップとリストアを実行できること
         """

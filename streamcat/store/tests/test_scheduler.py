@@ -1,16 +1,15 @@
 import unittest
 import pprint
-import time
-
 from streamcat.store import FlowData
 from .test_case_base import TestCaseBase
-from streamcat.store.scheduler import schedule_manager
 
-class SchdulerTest(TestCaseBase):
+# from streamcat.store.scheduler import schedule_manager
+# NOTE: ここでscheduler_managerをimportすると、RuntimeError: no running event loopが発生する
+
+class SchedulerTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
     """
     Schdulerをテストする
     """
-
     flow_json = {
         "label": "test", 
         "nodes": [
@@ -73,8 +72,7 @@ class SchdulerTest(TestCaseBase):
         "createdAt": "2021-03-17 11:35:39"
     }
 
-
-    def test_date(self):
+    async def test_date(self):
         """
         スケジュールの登録と取得と解除
         """
@@ -121,7 +119,7 @@ class SchdulerTest(TestCaseBase):
         flow.delete()
         project1.delete()
 
-    def test_interval(self):
+    async def test_interval(self):
         """
         スケジュールの登録と取得と解除
         """
@@ -182,7 +180,7 @@ class SchdulerTest(TestCaseBase):
         flow.delete()
         project1.delete()
 
-    def test_cron(self):
+    async def test_cron(self):
         """
         スケジュールの登録と取得と解除
         """
@@ -246,7 +244,7 @@ class SchdulerTest(TestCaseBase):
         flow.delete()
         project1.delete()
 
-    def test_update_label(self):
+    async def test_update_label(self):
         """
         スケジュールのラベルを変更する
         """
@@ -299,7 +297,7 @@ class SchdulerTest(TestCaseBase):
         flow.delete()
         project1.delete()
 
-    def test_update_schedule(self):
+    async def test_update_schedule(self):
         """
         スケジュールを変更する
         """
@@ -369,7 +367,7 @@ class SchdulerTest(TestCaseBase):
         flow2.delete()
         project1.delete()
 
-    def test_move_schedule(self):
+    async def test_move_schedule(self):
         """
         スケジュールを移動する
         """
@@ -431,12 +429,12 @@ class SchdulerTest(TestCaseBase):
         project1.delete()
         project2.delete()
 
-    def test_exec_by_creator(self):
+    async def test_exec_by_creator(self):
         """
         スケジュールの作成者(Creator)の権限でフローが実行されること
         """
 
-    def test_invalid_runnable_uuid(self):
+    async def test_invalid_runnable_uuid(self):
         """
         存在しないフローのUUIDでスケジュールを作成できないこと
         """
@@ -463,7 +461,7 @@ class SchdulerTest(TestCaseBase):
         with self.assertRaises(Exception):
             project1.create_schedule('一度限り', flow.uuid, trigger=trigger1)
 
-    def test_unreadable_runnable_uuid(self):
+    async def test_unreadable_runnable_uuid(self):
         """
         参照権限が無いフローのUUIDでスケジュールを作成できないこと
         """
@@ -493,12 +491,12 @@ class SchdulerTest(TestCaseBase):
         with self.assertRaises(Exception):
             project2.create_schedule('スケジュール', flow.uuid, trigger=trigger1)
 
-    def test_not_move_runnable_to_unreadable_project(self):
+    async def test_not_move_runnable_to_unreadable_project(self):
         """
         フローを参照権限が無いプロジェクトへ移動できないこと
         """
 
-    def test_trashed_runnable_uuid(self):
+    async def test_trashed_runnable_uuid(self):
         """
         ゴミ箱に捨てたフローのUUIDでスケジュールを登録できないこと
         """
@@ -525,10 +523,12 @@ class SchdulerTest(TestCaseBase):
         with self.assertRaises(Exception):
             project1.create_schedule('一度限り', flow.uuid, trigger=trigger1)
 
-    def test_trashed_schedule(self):
+    async def test_trashed_schedule(self):
         """
         ゴミ箱に捨てたスケジュールはスケジューラから解除されること
         """
+        from streamcat.store.scheduler import schedule_manager
+
         # ルートデータストアを取得する
         root = self.factory.data.load_root()
 
@@ -563,10 +563,12 @@ class SchdulerTest(TestCaseBase):
         # ゴミ箱にから戻したスケジュールはスケジューラに再登録されること
         self.assertTrue(schedule_manager.contains(schedule.uuid))
 
-    def test_trash_schedule_in_folder(self):
+    async def test_trash_schedule_in_folder(self):
         """
         スケジュールを含むフォルダをゴミ箱に捨てると、スケジューラから解放されること
         """
+        from streamcat.store.scheduler import schedule_manager
+
         # ルートフォルダを取得する
         root = self.factory2.data.load_root()
 
@@ -641,7 +643,7 @@ class SchdulerTest(TestCaseBase):
         self.factory2.data.find_trashcan().trash_all()
 
 
-    def test_trash_scheduled_flow(self):
+    async def test_trash_scheduled_flow(self):
         """
         スケジュールされたフローはゴミ箱に捨てられないこと
         """
@@ -681,18 +683,18 @@ class SchdulerTest(TestCaseBase):
         # スケジュールを削除した後はフローを削除できること
         flow.delete()
 
-    def test_trash_executed_schedule(self):
+    async def test_trash_executed_schedule(self):
         """
         起動中のスケジュールをゴミ箱に捨てられないこと
         """
         pass
 
-    def test_load_schedule_on_restarting(self):
+    async def test_load_schedule_on_restarting(self):
         """
         システム再起動時にスケジュールがスケジューラに再登録されること
         """
 
-    def test_not_load_trashed_schedule_on_restarting(self):
+    async def test_not_load_trashed_schedule_on_restarting(self):
         """
         ゴミ箱に捨てたスケジュールはシステム再起動時にスケジューラに再登録されないこと
         """

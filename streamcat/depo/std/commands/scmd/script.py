@@ -891,7 +891,12 @@ class RunsCommand(SCommand):
 
     def run(self, args, inputs):
         import psutil
-        from multiprocessing import Process, Manager, Pipe
+        # NOTE:
+        # FlaskからFastAPIに移行すると例外(Can't pickle local object 'RunsCommand.run.<locals>.do_runs')が
+        # 送出されるようになった。multiprocessingをmultiprocessに置き換えることでこの事象を回避できた
+        # AttributeError: Can't pickle local object in Multiprocessing
+        # https://stackoverflow.com/questions/72766345/attributeerror-cant-pickle-local-object-in-multiprocessing
+        from multiprocess import Process, Manager, Pipe
         from streamcat.store import Matrix, ApparentOut, CommandException
 
         def do_runs(nm_list, results, exs, out):
@@ -1513,6 +1518,8 @@ class DumpCommand(SCommand):
         Mountable._exec_command(pg_dump_command, env={'PGPASSWORD':_db_password})
         # アーカイブに追加する
         archive.add(dump_file, arcname=self.META_FILE_NAME, recursive=False)
+        # pg_dumpコマンドの出力ファイルを削除する
+        dump_file.unlink(missing_ok=True)
 
 class RestoreCommand(SCommand):
     """
@@ -1548,12 +1555,20 @@ class RestoreCommand(SCommand):
 
         # 復元処理をスレッドセーフで実行する
         with self._thread_lock:
-            self._restore_all(factory, stream)
+            self._call_async_func(self._restore_all, factory, stream)
 
         # Noneは返せないのでとりあえずTrueを返す
         return {'o': True}
 
-    def _restore_all(self, factory, stream):
+    def _call_async_func(self, func, *args):
+        """
+        非同期関数を実行する
+        """
+        import asyncio
+        # NOTE: Engineは別スレッドで実行されるため、CommandをFastAPIのイベントループで実行する必要はない
+        return asyncio.run(func(*args))
+
+    async def _restore_all(self, factory, stream):
         """
         StreamCatを復元する
         """
@@ -1569,7 +1584,7 @@ class RestoreCommand(SCommand):
             raise Exception(f'マウントが解除できませんでした ({e})')
 
         # PostgreSQLへのActive状態の接続があれば例外を送出する
-        active_connections = [result for result in factory.get_active_connections()]
+        active_connections = [result for result in await factory.get_active_connections()]
         if len(active_connections) > 0:
             application_name = active_connections[0]['application_name']
             client_addr = active_connections[0]['client_addr']

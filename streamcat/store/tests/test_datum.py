@@ -1,14 +1,15 @@
 import io
+import unittest
 import pprint
-from .test_case_base import TestCaseBase
 from streamcat.store import FlowData, DatabaseConn
+from .test_case_base import TestCaseBase
 
-class DatumTest(TestCaseBase):
+class DatumTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
     """
     Datumクラスの検証をする
     """
 
-    def test_folder_path(self):
+    async def test_folder_path(self):
         """
         folder_pathプロパティはライブラリにおける階層パスを返すこと
         """
@@ -57,7 +58,7 @@ class DatumTest(TestCaseBase):
         # フォルダ1を削除する
         folder1.delete()
 
-    def test_move_writeless_datum_in_folder(self):
+    async def test_move_writeless_datum_in_folder(self):
         """
         更新権限のないDatumを含むフォルダは移動できる
         """
@@ -128,7 +129,7 @@ class DatumTest(TestCaseBase):
         # ゴミ箱を空にする
         self.factory.data.find_trashcan().trash_all()
 
-    def test_move_flow_in_folder(self):
+    async def test_move_flow_in_folder(self):
         """
         フローを含むフォルダを移動する
         """
@@ -197,7 +198,7 @@ class DatumTest(TestCaseBase):
         # ゴミ箱を空にする
         self.factory2.data.find_trashcan().trash_all()
 
-    def test_move_frame_in_folder(self):
+    async def test_move_frame_in_folder(self):
         """
         フレームを含むフォルダを移動する
         """
@@ -259,7 +260,7 @@ class DatumTest(TestCaseBase):
         # ゴミ箱を空にする
         self.factory2.data.find_trashcan().trash_all()
 
-    def test_move_schedule_in_folder(self):
+    async def test_move_schedule_in_folder(self):
         """
         スケジュールを含むフォルダを移動する
         """

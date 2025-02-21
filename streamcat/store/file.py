@@ -119,6 +119,8 @@ class File(SavableDatum):
             raise Exception(f"このファイルはフロー({using_flow_uuids[0]['reference_label']})で使用しているため削除できません")
 
         try:
+            # TODO: ObjectDeletedError回避するためSession.delete()の前に_pathを参照する
+            self._ref_path()
             # フレームレコードを削除する
             self._session.delete(self)
             # ファイルを削除する
@@ -230,13 +232,12 @@ class File(SavableDatum):
                     break
 
     def _file_path_exists(self, path:Path, except_id:int):
-        result = self._session.query(SavableDatum._path).filter(SavableDatum._path == path)\
-                                                .filter(SavableDatum.type.in_([
-                                                    SavableDatum.FRAME_TYPE,
-                                                    SavableDatum.DOCUMENT_TYPE
-                                                ]))\
-                                                .filter(SavableDatum.id != except_id).count()
-        return result > 0
+        from sqlalchemy import select, func
+        stmt =  select(func.count(SavableDatum._path))\
+                .where(SavableDatum._path == path)\
+                .where(SavableDatum.type.in_([SavableDatum.FRAME_TYPE,SavableDatum.DOCUMENT_TYPE]))\
+                .where(SavableDatum.id != except_id)
+        return self._session.scalars(stmt).one() > 0
 
     def to_json(self):
         ret = super().to_json()

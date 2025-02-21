@@ -9,8 +9,7 @@ class ScheduleManager():
     def __init__(self):
         from datetime import timezone
         from apscheduler.jobstores.memory import MemoryJobStore
-        from apscheduler.executors.pool import ThreadPoolExecutor
-        from apscheduler.schedulers.background import BackgroundScheduler
+        from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
         jobstores = {
             # NOTE:
@@ -19,17 +18,13 @@ class ScheduleManager():
             'default': MemoryJobStore()
         }
 
-        executors = {
-            'default': ThreadPoolExecutor(20)
-        }
-
         job_defaults = {
             'coalesce': False,
             'max_instances': 3
         }
 
         # スケジューラを作成する
-        self.scheduler = BackgroundScheduler(jobstores=jobstores, executors=executors, job_defaults=job_defaults, timezone=timezone.utc)
+        self.scheduler = AsyncIOScheduler(jobstores=jobstores, job_defaults=job_defaults, timezone=timezone.utc)
 
         # スケジューラを起動する
         self.scheduler.start()
@@ -55,10 +50,11 @@ class ScheduleManager():
         スケジューラにスケジュールを登録する
         """
         # スケジュール起動時に、その処理内でFactoryを作成する(トランザクションを開く)必要がある
-        def run(args:dict, inputs:dict):
-            from streamcat.store.factory import Factory
+        async def run(args:dict, inputs:dict):
+            from streamcat.store.factory import UnAuthzFactory
             # Scheduleの作成者の権限でrunnableを実行する
-            with Factory(user=schedule.creator) as factory:
+            async with UnAuthzFactory() as ufactory:
+                factory = await ufactory.create_authz_factory(user=schedule.creator)
                 runnable = factory.data.find_by_uuid(schedule.runnable_uuid)
                 if runnable.type == SavableDatum.FLOW_TYPE:
                     # TODO: streamcat-storeとstreamcat-engineの循環参照になってしまう

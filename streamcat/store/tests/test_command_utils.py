@@ -3,12 +3,6 @@ import nysol.mcmd as nm
 from streamcat.depo.std.commands.pcmd import copy_nm
 
 class CommandUtilsTestCase(unittest.TestCase):
-    def setUp(self):
-        pass
-
-    def tearDown(self):
-        pass
-
     def test_copy_nysol_module(self):
         """
         copy_nm関数のテストをする

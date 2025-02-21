@@ -1,4 +1,4 @@
-from collections import Callable
+from typing import Callable
 from streamcat.core import SCatBaseModel
 
 class DatabaseConn():

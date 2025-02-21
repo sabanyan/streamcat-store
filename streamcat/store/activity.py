@@ -24,7 +24,7 @@ class Activity(SavableDatum):
 
         # 処理の開始時刻を取得する
         from datetime import datetime, timezone
-        self._start_at = datetime.utcnow().replace(tzinfo=timezone.utc)
+        self._start_at = datetime.now(timezone.utc).replace(tzinfo=timezone.utc)
 
         # data列の値を作成する
         self._data = {'flowUuid': flow.uuid,
@@ -50,7 +50,7 @@ class Activity(SavableDatum):
         from datetime import datetime, timezone
 
         # 現在時刻を取得する
-        end_at = datetime.utcnow().replace(tzinfo=timezone.utc)
+        end_at = datetime.now(timezone.utc).replace(tzinfo=timezone.utc)
 
         for point, datum in outs.data:
             # 結果Datumのラベル名を変更する

@@ -13,7 +13,8 @@ class RemoteFolder(Mountable, SavableStore):
         """
         コンストラクタ
         """
-        super().__init__(session, parent, SavableDatum.RFOLDER_TYPE, label)
+        Mountable.__init__(self)
+        SavableStore.__init__(self, session, parent, SavableDatum.RFOLDER_TYPE, label)
 
         # data列の値を作成する
         if remoteFolderConn is None:
@@ -86,6 +87,8 @@ class RemoteFolder(Mountable, SavableStore):
             raise Exception(f"このStoreはローダ・セーバ({using_flow_uuids[0]['reference_label']})で使用しているため削除できません")
 
         try:
+            # TODO: ObjectDeletedError回避するためSession.delete()の前に_pathを参照する
+            self._ref_path()
             # フォルダレコードを削除する
             self._session.delete(self)
             # 共有フォルダをマウント解除する

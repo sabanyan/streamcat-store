@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import Column, String
+from sqlalchemy import select, delete, func, Column, String
 from sqlalchemy.dialects.postgresql import INTEGER, BOOLEAN, UUID
 from .user_role import UserRole
 from . import BaseModel
@@ -152,8 +152,8 @@ class Role(BaseModel):
         # (所有権は未実装なので、このチェックも未実装である
         #  現在はDatum.creatorが所有者となっている)
         # 
-        # count = self._session.query(Auth).filter(Auth.role_id == self.id)\
-        #                                  .filter(Auth.own == 1).count()
+        # count = self._session.query(Auth).where(Auth.role_id == self.id)\
+        #                                  .where(Auth.own == 1).count()
 
         if self.is_system_role:
             raise Exception(f'ロール({self.name})はシステムロールなので削除できません')
@@ -161,13 +161,15 @@ class Role(BaseModel):
         try:
             self_id = self.id
             # 削除ロールに対する権限情報をauthsテーブルから全て削除する
-            self._session.query(Auth).filter(Auth.role_id==self.id).delete()
+            del_auth_stmt = delete(Auth).where(Auth.role_id==self.id)
+            self._session.execute(del_auth_stmt)
             # ロールを削除する
             self._session.delete(self)
             # 削除ロールから全てのユーザを脱退させる
             # (ロールの削除はロールの所有権が必要なので、
             #  所有権フラグを持つUserRoleはロール削除の後に削除すること)
-            self._session.query(UserRole).filter(UserRole.role_id==self_id).delete()
+            del_userrole_stmt = delete(UserRole).where(UserRole.role_id==self_id)
+            self._session.execute(del_userrole_stmt)
         except Exception as e:
             self._session.rollback()
             raise e
@@ -177,33 +179,37 @@ class Role(BaseModel):
         本人ロールの場合はTrueを返す
         """
         from .user import User
-        count = self._session.query(User).filter(User.self_role_id==self.id).count()
-        return count > 0
+        stmt = select(func.count(User.id)).where(User.self_role_id==self.id)
+        return self._session.scalars(stmt).one() > 0
 
     def is_joined_user(self, user) -> bool:
         from .user import User
-        count1 = self._session.query(User).filter(User.self_role_id==self.id).filter(User.id==user.id).count()
-        count2 = self._session.query(UserRole).filter(UserRole.role_id==self.id).filter(UserRole.user_id==user.id).count()
+        stmt1 = select(func.count(User.id)).where(User.self_role_id==self.id).where(User.id==user.id)
+        stmt2 = select(func.count(UserRole.user_id)).where(UserRole.role_id==self.id).where(UserRole.user_id==user.id)
+        count1 = self._session.scalars(stmt1).one()
+        count2 = self._session.scalars(stmt2).one()
         return count1 + count2 > 0
 
     def count_joined_users(self) -> int:
         from .user import User
-        count1 = self._session.query(User).filter(User.self_role_id==self.id).count()
-        count2 = self._session.query(UserRole).filter(UserRole.role_id==self.id).count()
+        stmt1 = select(func.count(User.id)).where(User.self_role_id==self.id)
+        stmt2 = select(func.count(UserRole.user_id)).where(UserRole.role_id==self.id)
+        count1 = self._session.scalars(stmt1).one()
+        count2 = self._session.scalars(stmt2).one()
         return count1 + count2
 
     def is_owner(self, user) -> bool:
-        query = self._session.query(UserRole).\
-                              filter(UserRole.role_id==self.id).\
-                              filter(UserRole.user_id==user.id).\
-                              filter(UserRole.owner==True)
-        return query.count() > 0
+        stmt =  select(func.count(UserRole.user_id)).\
+                where(UserRole.role_id==self.id).\
+                where(UserRole.user_id==user.id).\
+                where(UserRole.owner==True)
+        return self._session.scalars(stmt).one() > 0
 
     def count_owners(self) -> int:
-        query = self._session.query(UserRole).\
-                              filter(UserRole.role_id==self.id).\
-                              filter(UserRole.owner==True)
-        return query.count()
+        stmt =  select(func.count(UserRole.user_id)).\
+                where(UserRole.role_id==self.id).\
+                where(UserRole.owner==True)
+        return self._session.scalars(stmt).one()
 
     def has_joined_user(self) -> bool:
         return self.count_joined_users() > 0
@@ -213,17 +219,18 @@ class Role(BaseModel):
         ロールに所属する全てのユーザを返す
         (ユーザID順で返す)
         """
-        from sqlalchemy import exists, and_, or_
+        from sqlalchemy import select, exists, and_, or_
         from streamcat.store.factory import UserFactory
         from .user import User
 
         exists_user_role = exists().where(and_(UserRole.role_id==self.id, UserRole.user_id==User.id))
 
-        query = self._session.query(User).\
-                              filter(or_(exists_user_role, User.self_role_id==self.id))
-        query = UserFactory(self._session)._add_except_states_criteria(query, except_states)
-                              
-        return query.order_by(User.id).all()
+        stmt =  select(User).\
+                where(or_(exists_user_role, User.self_role_id==self.id))
+        stmt =  UserFactory(self._session)._add_except_states_criteria(stmt, except_states)
+        stmt =  stmt.order_by(User.id)
+
+        return self._session.scalars(stmt).all()
 
     def get_joined_members(self, except_states=None):
         """
@@ -233,17 +240,18 @@ class Role(BaseModel):
         from streamcat.store.factory import UserFactory
         from .user import User
 
-        query = self._session.query(User, UserRole.owner).\
-                              outerjoin(UserRole, UserRole.user_id==User.id).\
-                              filter(UserRole.role_id==self.id)
-        query = UserFactory(self._session)._add_except_states_criteria(query, except_states)
+        stmt =  select(User, UserRole.owner).\
+                outerjoin(UserRole, UserRole.user_id==User.id).\
+                where(UserRole.role_id==self.id)
+        stmt =  UserFactory(self._session)._add_except_states_criteria(stmt, except_states)
+        stmt =  stmt.order_by(User.id)
 
-        results =  query.order_by(User.id).all()
+        results = self._session.execute(stmt).all()
 
         members = []
         for result in results:
             user = result[0]
-            # Queryクラスは、query(User, ...)の結果にsessionを設定しないのでここで設定する
+            # Resultクラスは、select(User, ...)の結果にsessionを設定しないのでここで設定する
             user._session = self._session
             members.append(Role.Member(user, owner=result[1]))
 

@@ -1,3 +1,4 @@
+import datetime
 import sqlalchemy.types
 from pathlib import Path
 from sqlalchemy import Column, String
@@ -36,6 +37,11 @@ class SavableDatum(Datum, BaseModel):
         # _pathに対してLike式を用いる時に必要
         def coerce_compared_value(self, op, value):
             if op in (operators.like_op, operators.notlike_op, operators.startswith_op):
+                return String()
+            elif op == operators.comma_op:
+                # TODO: updateのstartswithやregexp_replaceへの
+                # 関数引数にPathオブジェクトを渡すときのopはcomma_opになる
+                # SQLAlchemyの仕様に基づいた挙動か否かは不明
                 return String()
             else:
                 return self
@@ -120,6 +126,7 @@ class SavableDatum(Datum, BaseModel):
                                 UNKNOWN_TYPE,
                                 name='data_type'), nullable=False)
     _label       = Column('label', QueryableString, nullable=False)
+    # テーブルにはSTORE_DIRを起点とする相対パスを格納する
     _path        = Column('path', PathType, nullable=False)
     _data        = Column('data', JSONB)
     _desc        = Column('desc', QueryableString)
@@ -135,7 +142,7 @@ class SavableDatum(Datum, BaseModel):
     # 移動前のフォルダパス
     _prev_folder_path = query_expression()
 
-    # これを設定することで、session.query(Datum).all()でもサブクラスの型で結果を得ることができる
+    # これを設定することで、session.scalars().all()でもサブクラスの型で結果を得ることができる
     __mapper_args__ = {
         'polymorphic_on' : type
     }
@@ -176,7 +183,7 @@ class SavableDatum(Datum, BaseModel):
             return None
 
         # 絶対パスを返す
-        return SavableDatum._to_abs_path(self._path)
+        return self._path
 
     @property
     def path_exists(self):
@@ -265,8 +272,9 @@ class SavableDatum(Datum, BaseModel):
         """
         自分の親を取得する
         """
-        return self._session.query(SavableDatum)\
-                            .filter(SavableDatum.id==self.parent_id).one()
+        from sqlalchemy import select
+        stmt = select(SavableDatum).where(SavableDatum.id==self.parent_id)
+        return self._session.scalars(stmt).one()
 
     def find_my_project(self):
         """
@@ -303,16 +311,20 @@ class SavableDatum(Datum, BaseModel):
             raise e
         return self
 
-    def moving(self, parent_uuid, lock_uuid=None, modifier=None):
+    def moving(self, parent_uuid:str, prev_parent_id:int, lock_uuid:str=None, modifier=None):
         """
         Datumの移動前に行う処理
         (移動前の処理を完了した後に、移動が中止される場合があることに注意)
+        parent_uuid : 移動先の親フォルダのUUID
+        prev_parent_id : 移動前の親フォルダのID
         """
         pass
 
-    def moved(self, parent_uuid, prev_parent_id, modifier=None):
+    def moved(self, parent_uuid:str, prev_parent_id:int, modifier=None):
         """
         Datumの移動後に行う処理
+        parent_uuid : 移動先の親フォルダのUUID
+        prev_parent_id : 移動前の親フォルダのID
         """
         pass
 
@@ -340,30 +352,41 @@ class SavableDatum(Datum, BaseModel):
             raise Exception('移動先と移動元の指定が同じです')
 
         # 移動先が移動元フォルダの配下になる場合は例外を送出する
-        if self.type == SavableDatum.FOLDER_TYPE:
+        if self.type in (SavableDatum.PROJECT_TYPE, SavableDatum.FOLDER_TYPE):
+            # TODO: move_file()で例外が送出され、ROLLBACKされるため、事前のチェック処理の実装を保留する
             pass
 
         # 移動元フォルダのIDを控えておく
         prev_parent_id = self.parent_id
 
         # フォルダ以下の全てのDatumについて、移動の可否を判定し、移動後の処理を取得する
-        moved_funcs = self._prepare_move(self, parent_uuid, lock_uuid, modifier)
+        moved_funcs = self._prepare_move(self, parent_uuid, prev_parent_id, lock_uuid, modifier)
 
-        # Datumを移動する
-        self._move_imp(to_folder, prev_parent_id, modifier)
+        try:
+            # Datumを移動する
+            old_path = self._path
+            new_path = self._move_imp(to_folder, prev_parent_id, modifier)
 
-        # 予約された移動後の処理を実行する
-        for moved_func in moved_funcs:
-            moved_func(parent_uuid, prev_parent_id, modifier=modifier)
+            # 予約された移動後の処理を実行する
+            for moved_func in moved_funcs:
+                moved_func(parent_uuid, prev_parent_id, modifier=modifier)
+
+            # ファイルを移動する
+            if old_path is not None:
+                SavableDatum.move_file(old_path, new_path)
+        except (Exception, OSError) as e:
+            # ROLLBACK
+            self._session.rollback()
+            raise e
 
         return self
 
-    def _prepare_move(self, datum, parent_uuid, lock_uuid, modifier) -> list:
+    def _prepare_move(self, datum, parent_uuid, prev_parent_id, lock_uuid, modifier) -> list:
         from streamcat.store import Folder
 
         # 移動可否を判定する
-        # 移動対象フォルダの中のDatumの場合は、移動先のparent_uuidは変化せず、移動可否の判定だけを行う
-        datum.moving(parent_uuid, lock_uuid=lock_uuid, modifier=modifier)
+        # 移動対象フォルダの中のDatumの場合は、フォルダのparent_uuidとprev_parent_idが渡される
+        datum.moving(parent_uuid, prev_parent_id, lock_uuid=lock_uuid, modifier=modifier)
 
         # 移動後に実行する関数
         moved_funcs = []
@@ -374,7 +397,7 @@ class SavableDatum(Datum, BaseModel):
             # 全てのDatumについて、移動の可否を判定し、移動後の処理を取得する
             for child in children:
                 moved_funcs.extend(
-                    self._prepare_move(child, datum.uuid, lock_uuid, modifier)
+                    self._prepare_move(child, parent_uuid, prev_parent_id, lock_uuid, modifier)
                 )
 
         # 移動後の処理を予約する
@@ -402,9 +425,12 @@ class SavableDatum(Datum, BaseModel):
                     new_path = to_folder.path / self._path.name
                     new_path = SavableDatum.make_unique_path(new_path, except_path=old_path)
                     # ファイル名の移動によって他のDatumのpathが変更が必要であれば変更する
-                    self._update_same_path(old_path, new_path, modifier)
                     if isinstance(self, Folder):
+                        # フォルダを移動する場合は、そのフォルダ以下の全てのDatumのpath列を変更する
                         self._update_include_path(old_path, new_path, modifier)
+                    else:
+                        # 同じファイルを共有するFrameまたはDocumentが存在する場合は、そのpath列も変更する
+                        self._update_same_path(old_path, new_path, modifier)
             else:
                 # PylanceのWarning対策
                 old_path = None
@@ -421,9 +447,8 @@ class SavableDatum(Datum, BaseModel):
             self._modifier_id = (modifier or self._session.user).id
             self._session.update(self)
 
-            # ファイルを移動する
-            if self._path is not None:
-                SavableDatum.move_file(old_path, new_path)
+            # 移動先のファイルパスを返す
+            return new_path
 
         except NotAuthorizedException as e:
             # ROLLBACK
@@ -541,35 +566,71 @@ class SavableDatum(Datum, BaseModel):
         if not self.readable:
             raise NotAuthorizedException(f'{self._session.user.name}は{self.label}の参照権限がありません({self.readable})')
 
-    def _update_same_path(self, old_path, new_path, modifier):
-        # 同じファイルに対応するフォルダのpath列を、ファイル名の移動に合わせて変更する
-        results = self._session.query(SavableDatum).filter(SavableDatum._path == old_path).all(ignore_authz=True)
-        for result in results:
-            result._path = SavableDatum._to_rel_path(new_path)
-            result._modifier_id = (modifier or self._session.user).id
-            self._session.update(result, ignore_authz=True)
+    def _update_same_path(self, old_path:Path, new_path:Path, modifier):
+        """
+        同じファイルに対応するフォルダのpath列を、ファイル名の移動に合わせて変更する
+        """
+        from sqlalchemy import update
+        update_stmt=update(SavableDatum).\
+                    where(SavableDatum._path == old_path).\
+                    values(
+                        # 相対パスへの変換はPathTypeに任せる
+                        # NOTE: ここで格納した値はSessionにもそのまま反映されるため
+                        _path=new_path,
+                        _modifier_id=(modifier or self._session.user).id,
+                        # TODO: modified_atにはonupdateが設定されているのに自動で値が更新されない
+                        # SQLAlchemyの不具合?
+                        modified_at=datetime.datetime.now()
+                    )
+        # Datumの権限を無視して更新する
+        self._session.execute(update_stmt)
 
-    def _update_include_path(self, old_path, new_path, modifier=None):
+    def _update_include_path(self, old_path:Path, new_path:Path, modifier=None):
+        """
+        同じディレクトリを含むpath列を、ディレクトリの移動に合わせて変更する
+        """
         import re
-        # 同じディレクトリを含むpath列を、ディレクトリの移動に合わせて変更する
+        from sqlalchemy import update
+
+        # 相対パスの文字列に変換する
         rel_old_path = SavableDatum._to_rel_path(old_path).as_posix()
-        # ファイルパスに正規表現文字が含まれていればエスケープする
-        old_path_pattern = '^' + re.escape(rel_old_path) + '/'
-        # autoescape=True : LIKEのワイルドカード%と_をエスケープする
-        results = self._session.query(SavableDatum)\
-                      .filter(SavableDatum._path!=None)\
-                      .filter(SavableDatum._path.startswith(rel_old_path, autoescape=True))\
-                      .all(ignore_authz=True)
+        rel_new_path = SavableDatum._to_rel_path(new_path).as_posix()
 
-        for result in results:
-            rel_new_path = SavableDatum._to_rel_path(new_path).as_posix() + '/'
-            rel_result_path = SavableDatum._to_rel_path(result._path).as_posix()
-            # re.sub(正規表現, 置換する文字列, 置換対象の文字列)
-            replaced_path = re.sub(old_path_pattern, rel_new_path, rel_result_path)
+        # startswithに設定するパターン文字列を作成する
+        old_path_pattern1 = rel_old_path + '/'
 
-            result._path = Path(replaced_path)
-            result._modifier_id = (modifier or self._session.user).id
-            self._session.update(result, ignore_authz=True)
+        # regexp_replaceに設定するパターン文字列を作成する
+        # (ファイルパスに正規表現文字が含まれていればエスケープする)
+        old_path_pattern2 = '^' + re.escape(rel_old_path) + '/'
+
+        # regexp_replaceに設定する置き換え文字列
+        # (移動先のディレクトリのパス)
+        rel_new_dir_path = rel_new_path + '/'
+
+        # startswith()
+        # autoescape=True: ワイルドカードが含まれていればエスケープする
+        # escape='\\'    : エスケープ文字を'\'に指定する
+        update_stmt=update(SavableDatum).\
+                    where(SavableDatum._path!=None).\
+                    where(SavableDatum._path.startswith(old_path_pattern1, autoescape=True, escape='\\')).\
+                    values(
+                        _path = SavableDatum._path.regexp_replace(old_path_pattern2, rel_new_dir_path),
+                        _modifier_id=(modifier or self._session.user).id,
+                        # TODO: modified_atにはonupdateが設定されているのに自動で値が更新されない
+                        # SQLAlchemyの不具合?
+                        modified_at=datetime.datetime.now()
+                    )
+        # Datumの権限を無視して更新する
+        self._session.execute(update_stmt, synchronize_session='fetch')
+
+    def _ref_path(self):
+        """
+        間に合わせの_path参照
+        """
+        # TODO: Session.delete()内のflush()が呼ばれた後に
+        # _remove_file()内でDatum._pathを参照された時にObjectDeletedErrorが送出される
+        # これを回避するためSession.delete()の前に_pathを参照する
+        self._path
 
     def get_flow_uuids_using_me(self):
         """
@@ -624,7 +685,8 @@ class SavableDatum(Datum, BaseModel):
         jsonpath0 = '$.flow.nodes?(@.type != "command" && @.type != "note").**.uuid?(@!=null)'
 
         # NOTE: jsonb_path_query()をcoalesce()の引数に指定できない
-        U0 = select(D.c.uuid,
+        U0 = select(D.c.id,
+                    D.c.uuid,
                     D.c.label,
                     func.jsonb_path_query(D.c.data, jsonpath0).label('ref_uuid')).\
             select_from(D).\
@@ -633,7 +695,8 @@ class SavableDatum(Datum, BaseModel):
         # スケジュールから参照するUUID
         jsonpath1 = '$.runnable?(@!=null)'
 
-        U1 = select(D.c.uuid,
+        U1 = select(D.c.id,
+                    D.c.uuid,
                     D.c.label,
                     func.jsonb_path_query(D.c.data, jsonpath1).label('ref_uuid')).\
             select_from(D).\
@@ -648,17 +711,20 @@ class SavableDatum(Datum, BaseModel):
         exists_inner = exists().where(predicate)
 
         # メインSQL
-        select_stmt = select(U.c.uuid,U.c.label,U.c.ref_uuid).\
+        # NOTE: Flowの出力先がDBやリモートフォルダの場合は、その結果はFlowになる
+        # 一方エラーメッセージには、結果のFlowよりもその結果を出力したFlowの方を優先的に表示したいので
+        # order_by()でidを指定している
+        select_stmt = select(U.c.id,U.c.uuid,U.c.label,U.c.ref_uuid).\
                       select_from(U).\
                       where(exists_inner).\
-                      distinct()
+                      distinct().\
+                      order_by(U.c.id)
 
         # SQLを発行する
-        # FIXME: session.execute()の実行でCOMMITが発行されるようだ
-        results = self._session.execute(select_stmt)
-        return [{'reference_uuid' :result[0],
-                 'reference_label':result[1],
-                 'referenced_uuid':result[2]} for result in results]
+        rows = self._session.execute(select_stmt).all()
+        return [{'reference_uuid' :row.uuid,
+                 'reference_label':row.label,
+                 'referenced_uuid':row.ref_uuid} for row in rows]
 
     @staticmethod
     def move_file(old_path, new_path):

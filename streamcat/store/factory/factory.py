@@ -1,4 +1,4 @@
-from typing import Union
+from sqlalchemy import select, func
 from sqlalchemy.orm.exc import NoResultFound
 from streamcat.core import Datum, SavableDatum
 from streamcat.store import Folder, TrashCan
@@ -12,20 +12,29 @@ class UnAuthzFactory():
         from streamcat.store.auth.authz_session import Session
         from . import engine
 
-        # セッションをつくる
+        # セッションを生成する
+        # ・session.commit()によるExpireでquery_expression()で設定されているreadableがNoneになる
+        # ・これを回避するためexpire_on_commit=Falseとする、autoflush=Falseも必要!
+        # ・session.rollback()によるExprireを回避する方法はない
         # ・future=True : SQLAlchemy2.0スタイルのトランザクションおよびエンジンの動作を使用する
         session_maker = sessionmaker(engine, expire_on_commit=False, autoflush=False, future=True)
 
         # セッションを保持する
-        self._session = Session(session_maker, user=None)
+        self._session = Session(session_maker(), user=None)
 
-    def find_user_by_email(self, email):
+    async def create_authz_factory(self, user:User):
+        """
+        Factoryを生成する
+        """
+        return Factory(self._session._session, user)
+
+    async def find_user_by_email(self, email):
         return UserFactory(self._session).find_by_email(email)
 
-    def find_user_by_uuid(self, user_uuid):
+    async def find_user_by_uuid(self, user_uuid):
         return UserFactory(self._session).find_by_uuid(user_uuid)
 
-    def load_sys_admin_user(self, activate_if_inactive=False):
+    async def load_sys_admin_user(self, activate_if_inactive=False):
         """
         システム管理者を取得する、存在しない場合は作成する
         """
@@ -59,7 +68,7 @@ class UnAuthzFactory():
         sys_admin_user.save()
         return sys_admin_user
 
-    def load_usr_admin_user(self, activate_if_inactive=False):
+    async def load_usr_admin_user(self, activate_if_inactive=False):
         """
         ユーザ管理者を取得する、存在しない場合は作成する
         """
@@ -89,13 +98,13 @@ class UnAuthzFactory():
         usr_admin_user.save()
         return usr_admin_user
 
-    def __enter__(self):
+    async def __aenter__(self):
         return self
 
-    def __exit__(self, ex_type, ex_value, trace):
-        self.close()
+    async def __aexit__(self, ex_type, ex_value, trace):
+        await self.close()
 
-    def close(self):
+    async def close(self):
         self._session.end()
         self._session.close()
 
@@ -104,36 +113,21 @@ class Factory():
     """
     SQLAlchemyのSessionを保持する(とりあえずこの目的ね)
     """
-    def __init__(self, user:User=None):
-        from sqlalchemy.orm import sessionmaker
+    def __init__(self, sqlalchemy_session, user:User=None):
         from streamcat.store.auth.authz_session import AuthzSession
-        from . import engine
+        # Sessionを保持する
+        self._session = AuthzSession(sqlalchemy_session, user)
+        # AuthzSession.userが保持するSessionをAuthzSessionでラップする
+        # NOTE: AuthzSession.userが循環参照になっているが問題にはならないだろう
+        self._session._user._session = AuthzSession(sqlalchemy_session, self._session._user)
 
-        # セッションを生成する
-        # ・session.commit()によるExpireでquery_expression()で設定されているreadableがNoneになる
-        # ・これを回避するためexpire_on_commit=Falseとする、autoflush=Falseも必要!
-        # ・session.rollback()によるExprireを回避する方法はない
-        # ・future=True : SQLAlchemy2.0スタイルのトランザクションおよびエンジンの動作を使用する
-        session_maker = sessionmaker(bind=engine, expire_on_commit=False, autoflush=False, future=True)
-
-        # セッションを保持する
-        self._session = AuthzSession(session_maker, user)
-
+        # 各Factoryを保持する
         self._data = DatumFactory(self._session)
         self._store = StoreFactory(self._session)
         self._auth = AuthFactory(self._session)
         self._role = RoleFactory(self._session)
         self._user_role = UserRoleFactory(self._session)
         self._user = UserFactory(self._session)
-
-        # 生成したセッションからUserオブジェクトを取得し、セッションに再設定する
-        self._session.user = self._user.find_by_id(user.id)
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, ex_type, ex_value, trace):
-        self.close()
 
     def end(self):
         self._session.end()
@@ -142,7 +136,7 @@ class Factory():
         self._session.end()
         self._session.close()
 
-    def get_active_connections(self):
+    async def get_active_connections(self):
         """
         PostgreSQLへのActive状態の接続の有無を確認する
         """
@@ -167,7 +161,7 @@ class Factory():
         """)
 
         try:
-            return self._session.execute(sql)
+            return self._session.execute(sql).all()
         except Exception as e:
             self._session.rollback()
             raise e
@@ -186,6 +180,10 @@ class Factory():
             return [keyword]
         ret = csv.reader([striped_keyword], delimiter=" ", doublequote=True, quotechar='"', skipinitialspace=True)
         return next(ret)
+
+    @property
+    def myself(self) -> User:
+        return self._session.user
 
     @property
     def data(self):
@@ -225,34 +223,38 @@ class DatumFactory():
         """
         指定されたidを持つDatumを取得する
         """
-        query = self._session.query(SavableDatum).filter(SavableDatum.id==id)
+        stmt = select(SavableDatum).where(SavableDatum.id==id)
 
         if type is not None:
-            query = query.filter(SavableDatum.type==type)
+            stmt = stmt.where(SavableDatum.type==type)
 
         # 結果が1件以外の場合はNoResultFoundが送出される
         try:
-            datum = query.one()
+            datum = self._session.scalars(stmt).one()
         except NoResultFound:
             raise Exception(f'指定したDatum({id})は存在しませんでした')
 
         return datum
 
-    def find_by_uuid(self, uuid, type=None, folder_path=False) -> SavableDatum:
+    def find_by_uuid(self, uuid, type=None, folder_path=False, for_update=False) -> SavableDatum:
         """
         指定されたuuidを持つDatumを取得する
         """
         # UUID値の形式チェックをする
         Datum.valid_uuid_or_raise(uuid)
 
-        query = self._session.query(SavableDatum, folder_path=folder_path).filter(SavableDatum.uuid==uuid)
+        stmt = select(SavableDatum).where(SavableDatum.uuid==uuid)
 
         if type is not None:
-            query = query.filter(SavableDatum.type==type)
+            stmt = stmt.where(SavableDatum.type==type)
+
+        if for_update:
+            # DBの排他ロックをかける
+            stmt = stmt.with_for_update(of=SavableDatum)
 
         # 結果が1件以外の場合はNoResultFoundが送出される
         try:
-            datum = query.one()
+            datum = self._session.scalars(stmt, folder_path=folder_path).one()
         except NoResultFound:
             raise Exception(f'指定したDatum({uuid})は存在しませんでした')
 
@@ -290,39 +292,43 @@ class DatumFactory():
         全てのDatumを取得する
         """
         from sqlalchemy import desc
-        query = self._session.query(SavableDatum)
+        stmt = select(SavableDatum)
         if type is not None:
-            query = query.filter(SavableDatum.type==type)
+            stmt = stmt.where(SavableDatum.type==type)
         if except_trash:
             # ゴミ箱にほかされたDatumは除外する
             # NOTE: この条件を付与するとかなり遅くなる
-            query = query.filter(~self._make_exists_trashed(SavableDatum.uuid))
+            stmt = stmt.where(~self._make_exists_trashed(SavableDatum.uuid))
         if except_label is not None:
-            query = query.filter(SavableDatum._label!=except_label)
-        return query.order_by(SavableDatum.type, desc(SavableDatum.created_at)).all()
+            stmt = stmt.where(SavableDatum._label!=except_label)
+        stmt = stmt.order_by(SavableDatum.type, desc(SavableDatum.created_at))
+        return self._session.scalars(stmt).all()
 
     def count_root(self) -> int:
-        return self._session.query(SavableDatum).filter(SavableDatum.parent_id == None).count()
+        stmt = select(func.count(SavableDatum.id)).where(SavableDatum.parent_id == None)
+        return self._session.scalars(stmt).one()
 
-    def find_root(self) -> Union[Folder, None]:
+    def find_root(self) -> Folder|None:
         """
         親を持たないfolderレコードを全て取得する
         """
-        roots = self._session.query(SavableDatum).filter(SavableDatum.parent_id == None).all()
+        stmt = select(SavableDatum).where(SavableDatum.parent_id == None)
+        roots = self._session.scalars(stmt).all()
 
         if len(roots) == 0 :
             # ルートフォルダがない場合はNoneを返す
             return None
         elif len(roots) > 1:
             raise Exception('More than 2 roots exist!!')
-        
+
         return roots[0]
 
     def find_trashcan(self) -> TrashCan:
         """
         ゴミ箱を取得する
         """
-        trashcan = self._session.query(SavableDatum).filter(SavableDatum.type==SavableDatum.TRASH_TYPE).one_or_none()
+        stmt = select(SavableDatum).where(SavableDatum.type==SavableDatum.TRASH_TYPE)
+        trashcan = self._session.scalars(stmt).one_or_none()
         if trashcan is None:
             raise Exception('no trush can is found by designated id.')
         return trashcan
@@ -331,21 +337,20 @@ class DatumFactory():
         """
         プロジェクトを全て取得する
         """
-        query = self._session.query(SavableDatum).\
-                filter(SavableDatum.type==SavableDatum.PROJECT_TYPE)
+        stmt = select(SavableDatum).where(SavableDatum.type==SavableDatum.PROJECT_TYPE)
         if on_root:
-            query = query.filter(self._make_exists_on_root(SavableDatum.parent_id))
+            stmt = stmt.where(self._make_exists_on_root(SavableDatum.parent_id))
         if except_label is not None:
-            query = query.filter(SavableDatum._label!=except_label)
+            stmt = stmt.where(SavableDatum._label!=except_label)
         # 速度向上のため、order_byを指定しない
-        return query.all()
+        return self._session.scalars(stmt).all()
 
     def find_my_project(self, id) -> SavableDatum:
         """
         指定するidのDatumが属するプロジェクトを取得する
         """
         from sqlalchemy.orm import aliased
-        from sqlalchemy.sql.expression import select, exists, and_
+        from sqlalchemy.sql.expression import exists, and_
         from streamcat.store import ProjectFolder
 
         # cte: Common Table Expression WITH句のこと
@@ -364,8 +369,8 @@ class DatumFactory():
 
         # プロジェクトを取得する
         exists_project = exists().where(and_(R.c.id==ProjectFolder.id, R.c.type==SavableDatum.PROJECT_TYPE))
-        query = self._session.query(ProjectFolder).filter(exists_project)
-        return query.one()
+        stmt = select(ProjectFolder).where(exists_project)
+        return self._session.scalars(stmt).one()
 
     def find_all_subflows(self):
         """
@@ -379,21 +384,23 @@ class DatumFactory():
                                                Auth.role_id==Role.id,
                                                Role.uuid==literal(Role.EDIT_LOCK_ROLE_UUID)))
         # 編集ロック=ONのフローをサブフローとして抽出する
-        return self._session.query(SavableDatum).filter(SavableDatum.type==SavableDatum.FLOW_TYPE)\
-                                         .filter(exists_edit_lock)\
-                                         .order_by(SavableDatum._label, SavableDatum.id)\
-                                         .all()
+        stmt =  select(SavableDatum).\
+                where(SavableDatum.type==SavableDatum.FLOW_TYPE).\
+                where(exists_edit_lock).\
+                order_by(SavableDatum._label, SavableDatum.id)
+        return self._session.scalars(stmt).all()
 
-    def find_all_stores(self):
+    def find_all_stores(self, except_trash=False):
         """
         データストアを全て取得する
         """
-        return self._session.query(SavableDatum).filter(
-                                                SavableDatum.type.in_([SavableDatum.DATABASE_TYPE,
-                                                                SavableDatum.RFOLDER_TYPE])
-                                          )\
-                                         .order_by(SavableDatum._label, SavableDatum.id)\
-                                         .all()
+        stmt =  select(SavableDatum).\
+                where(SavableDatum.type.in_([SavableDatum.DATABASE_TYPE,SavableDatum.RFOLDER_TYPE])).\
+                order_by(SavableDatum._label, SavableDatum.id)
+        if except_trash:
+            # ゴミ箱にほかされたデータストアは除外する
+            stmt = stmt.where(~self._make_exists_trashed(SavableDatum.uuid))
+        return self._session.scalars(stmt).all()
 
     def load_root(self):
         """
@@ -529,42 +536,40 @@ class DatumFactory():
         if not Datum.is_valid_uuid(uuid):
             return False
 
-        query = self._session.query(SavableDatum).filter(SavableDatum.uuid==uuid)
-
+        stmt = select(func.count(SavableDatum.id)).where(SavableDatum.uuid==uuid)
         if type is not None:
-            query = query.filter(SavableDatum.type==type)
+            stmt = stmt.where(SavableDatum.type==type)
 
-        return query.count() > 0
+        return self._session.scalars(stmt).one() > 0
 
     def exists_by_id(self, id, type=None) -> bool:
         """
         指定されたidを持つDatumが存在する場合はTrueを返す
         """
-        query = self._session.query(SavableDatum).filter(SavableDatum.id==id)
-
+        stmt = select(func.count(SavableDatum.id)).where(SavableDatum.id==id)
         if type is not None:
-            query = query.filter(SavableDatum.type==type)
+            stmt = stmt.where(SavableDatum.type==type)
 
-        return query.count() > 0
+        return self._session.scalars(stmt).one() > 0
 
     def trashcan_exists(self) -> bool:
         """
         ゴミ箱が存在する場合はTrueを返す
         """
-        result = self._session.query(SavableDatum).filter(SavableDatum.type==SavableDatum.TRASH_TYPE).count()
-        return result > 0
+        stmt = select(func.count(SavableDatum.id)).where(SavableDatum.type==SavableDatum.TRASH_TYPE)
+        return self._session.scalars(stmt).one() > 0
 
     def trashed(self, uuid) -> bool:
         """
         ゴミ箱の中にある場合はTrueを返す
         """
-        result = self._session.query(SavableDatum).\
-                 filter(SavableDatum.uuid==uuid).\
-                 filter(self._make_exists_trashed(uuid)).count()
-        return result > 0
+        stmt =  select(func.count(SavableDatum.id)).\
+                where(SavableDatum.uuid==uuid).\
+                where(self._make_exists_trashed(uuid))
+        return self._session.scalars(stmt).one() > 0
 
     def _make_exists_on_root(self, parent_id:str):
-        from sqlalchemy import select, exists
+        from sqlalchemy import exists
         from sqlalchemy.orm import aliased
 
         # ルートフォルダ直下のDatumを全て取得するクエリ
@@ -577,7 +582,7 @@ class DatumFactory():
         return exists().where(T.c.id==parent_id)
 
     def _make_exists_trashed(self, uuid:str):
-        from sqlalchemy import select, exists
+        from sqlalchemy import exists
         from sqlalchemy.orm import aliased
 
         # ゴミ箱の中のDatumを全て取得する再帰クエリ
@@ -600,9 +605,8 @@ class DatumFactory():
         全てのマウント可能データストアのマウントを解除する
         """
         # 全てのマウント可能データストアを取得する
-        mountables = self._session.query(SavableDatum).filter(
-                                                    SavableDatum.type.in_([SavableDatum.RFOLDER_TYPE])
-                                                ).all()
+        stmt = select(SavableDatum).where(SavableDatum.type.in_([SavableDatum.RFOLDER_TYPE]))
+        mountables = self._session.scalars(stmt).all()
         # マウント解除する
         for mountable in mountables:
             mountable.unmount()
@@ -625,14 +629,14 @@ class StoreFactory():
 
     def find_all(self):
         from streamcat.store import StoreModel as Store
-        return self._session.query(Store).all()
+        return self._session.scalars(select(Store)).all()
 
     def find_by_id(self, id):
         from streamcat.store import StoreModel as Store
-        result = self._session.query(Store).filter(Store.id==id).one_or_none()
-        if result is None:
+        store = self._session.get(Store, id)
+        if store is None:
             raise Exception('No store is found by designated store id')
-        return result
+        return store
 
 
 class AuthFactory():
@@ -655,37 +659,39 @@ class AuthFactory():
 
     def find_all_by_datum_id(self, datum_id) -> list[Auth]:
         from streamcat.store.auth import Auth
-        query = self._session.query(Auth).filter(Auth.datum_id==datum_id)
-        return query.order_by(Auth.role_id, Auth.operation).all()
+        stmt = select(Auth).where(Auth.datum_id==datum_id).order_by(Auth.role_id, Auth.operation)
+        return self._session.scalars(stmt).all()
 
     def exists(self, role_id, datum_id, operation=None) -> bool:
         from streamcat.store.auth import Auth
-        query = self._session.query(Auth).filter(Auth.role_id==role_id)\
-                                         .filter(Auth.datum_id==datum_id)
-        if operation is not None:
-            query = query.filter(Auth.operation==operation)
 
-        return query.count() > 0
+        stmt =  select(func.count(Auth.datum_id)).\
+                where(Auth.role_id==role_id).\
+                where(Auth.datum_id==datum_id)
+        if operation is not None:
+            stmt = stmt.where(Auth.operation==operation)
+
+        return self._session.scalars(stmt).one() > 0
 
     def delete_all_by_datum_id(self, datum_id, except_role_uuids=None):
         """
         Authzテーブルから指定したDatumの権限情報を全て削除する
         """
-        from sqlalchemy import exists, and_
+        from sqlalchemy import delete, exists, and_
         from streamcat.store.auth import Auth, Role
 
-        query = self._session.query(Auth).filter(Auth.datum_id==datum_id)
+        stmt = delete(Auth).where(Auth.datum_id==datum_id)
         if except_role_uuids is None or len(except_role_uuids) == 0:
             synchronize_session = 'evaluate'
         else:
             not_exists_except_role = ~exists().where(and_(Role.id==Auth.role_id, Role.uuid.in_(except_role_uuids)))
-            query = query.filter(not_exists_except_role)
+            stmt = stmt.where(not_exists_except_role)
             synchronize_session = 'fetch'
 
         try:
             # 抽出条件にサブクエリなどを使ってDELETEする場合は
             # synchronize_sessionにFalseか'fetch'の指定が必要
-            query.delete(synchronize_session=synchronize_session)
+            self._session.execute(stmt, synchronize_session=synchronize_session)
         except Exception as e:
             self._session.rollback()
             raise e
@@ -700,16 +706,20 @@ class RoleFactory():
         return Role(self._session, name, delete_on_isolated)
 
     def find_by_id(self, role_id) -> Role:
-        return self._session.query(Role).filter(Role.id == role_id).one()
+        role = self._session.get(Role, role_id)
+        if role is None:
+            raise Exception('No role is found by designated role id')
+        return role
 
     def find_by_uuid(self, uuid) -> Role:
-        return self._session.query(Role).filter(Role.uuid == uuid).one()
+        stmt = select(Role).where(Role.uuid==uuid)
+        return self._session.scalars(stmt).one()
 
     def find_all(self):
         """
         全件取得する
         """
-        return self._session.query(Role).all()
+        return self._session.scalars(select(Role)).all()
 
     def find_isolated(self, delete_on_isolated=False):
         """
@@ -718,12 +728,12 @@ class RoleFactory():
         from sqlalchemy import exists
         from streamcat.store.auth import Auth
 
-        query = self._session.query(Role).\
-                filter(~exists().where(Auth.role_id==Role.id))
+        stmt =  select(Role).\
+                where(~exists().where(Auth.role_id==Role.id))
         if delete_on_isolated:
-            query = query.filter(Role._delete_on_isolated==True)
+            stmt = stmt.where(Role._delete_on_isolated==True)
 
-        return query.all()
+        return self._session.scalars(stmt).all()
 
     def load_sys_admin_role(self):
         if self.exists(Role.SYS_ADMIN_ROLE_UUID):
@@ -767,8 +777,8 @@ class RoleFactory():
         return edit_lock_role
 
     def exists(self, uuid) -> bool:
-        count = self._session.query(Role).filter(Role.uuid==uuid).count()
-        return count > 0
+        stmt = select(func.count(Role.id)).where(Role.uuid==uuid)
+        return self._session.scalars(stmt).one() > 0
 
 
 class UserRoleFactory():
@@ -776,31 +786,33 @@ class UserRoleFactory():
         self._session = session
 
     def find_by_id(self, user_id, role_id) -> UserRole:
-        return self._session.query(UserRole).\
-                       filter(UserRole.user_id==user_id).\
-                       filter(UserRole.role_id==role_id).\
-                       one()
+        user_role = self._session.get(UserRole, (user_id, role_id))
+        if user_role is None:
+            raise Exception('No user_role is found by designated user id and role id')
+        return user_role
 
     def find_all_by_user_id(self, user_id, except_role_uuids=None):
-        query = self._session.query(UserRole).filter(UserRole.user_id==user_id)
+        stmt = select(UserRole).where(UserRole.user_id==user_id)
         if except_role_uuids is not None and len(except_role_uuids) > 0:
             from sqlalchemy import exists, and_
             not_exists_role = ~exists().where(and_(Role.id==UserRole.role_id, Role.uuid.in_(except_role_uuids)))
-            query = query.filter(not_exists_role)
-        return query.all()
+            stmt = stmt.where(not_exists_role)
+        return self._session.scalars(stmt).all()
 
     def exists(self, user_id, role_id=None) -> bool:
-        query = self._session.query(UserRole).filter(UserRole.user_id==user_id)
+        stmt = select(func.count(UserRole.user_id)).where(UserRole.user_id==user_id)
         if role_id is not None:
-            query = query.filter(UserRole.role_id==role_id)
-        return query.count() > 0
+            stmt = stmt.where(UserRole.role_id==role_id)
+        return self._session.scalars(stmt).one() > 0
 
     def delete_all_by_user_id(self, user_id):
         """
         UsersRolesテーブルから指定したユーザの所属情報を全て削除する
         """
+        from sqlalchemy import delete
+        stmt = delete(UserRole).where(UserRole.user_id==user_id)
         try:
-            self._session.query(UserRole).filter(UserRole.user_id==user_id).delete()
+            self._session.execute(stmt)
         except Exception as e:
             self._session.rollback()
             raise e
@@ -809,14 +821,13 @@ class UserRoleFactory():
         """
         UsersRolesテーブルから指定したロールの所属情報を全て削除する
         """
-        query = self._session.query(UserRole).filter(UserRole.role_id==role_id)
-
+        from sqlalchemy import delete
+        stmt = delete(UserRole).where(UserRole.role_id==role_id)
         # 削除から除外するユーザが指定されている場合
         if except_user_id is not None:
-            query = query.filter(UserRole.user_id!=except_user_id)
-
+            stmt = stmt.where(UserRole.user_id!=except_user_id)
         try:
-            query.delete()
+            self._session.execute(stmt)
         except Exception as e:
             self._session.rollback()
             raise e
@@ -831,9 +842,9 @@ class UserFactory():
         return User(self._session, email, name, password, issuer=issuer, subject=subject)
 
     def find_all(self, except_states=None):
-        query = self._session.query(User).order_by(User.email)
-        query = UserFactory._add_except_states_criteria(query, except_states)
-        return query.all()
+        stmt = select(User).order_by(User.email)
+        stmt = UserFactory._add_except_states_criteria(stmt, except_states)
+        return self._session.scalars(stmt).all()
 
     def find_by_id(self, user_id, except_states=None, allow_no_result=False) -> User:
         # SQLAlchemyのidentity mapにキャッシュされていればそれを返す
@@ -855,9 +866,9 @@ class UserFactory():
         Datum.valid_uuid_or_raise(uuid)
         # 結果が1件以外の場合はNoResultFoundが送出される
         try:
-            query = self._session.query(User).filter(User.uuid==uuid)
-            query = UserFactory._add_except_states_criteria(query, except_states)
-            return query.one()
+            stmt = select(User).where(User.uuid==uuid)
+            stmt = UserFactory._add_except_states_criteria(stmt, except_states)
+            return self._session.scalars(stmt).one()
         except NoResultFound:
             raise Exception(f'指定したUser({uuid})は存在しませんでした')
 
@@ -867,9 +878,9 @@ class UserFactory():
         """
         # 結果が1件以外の場合はNoResultFoundが送出される
         try:
-            query = self._session.query(User).filter(User.email==email)
-            query = UserFactory._add_except_states_criteria(query, except_states)
-            return query.one()
+            stmt = select(User).where(User.email==email)
+            stmt = UserFactory._add_except_states_criteria(stmt, except_states)
+            return self._session.scalars(stmt).one()
         except NoResultFound:
             raise Exception(f'指定したUser({email})は存在しませんでした')
 
@@ -878,9 +889,9 @@ class UserFactory():
         指定されたissuerとsubjectのUserを取得する
         """
         try:
-            query = self._session.query(User).filter(User.issuer==issuer, User.subject==subject)
-            query = UserFactory._add_except_states_criteria(query, except_states)
-            return query.one()
+            stmt = select(User).where(User.issuer==issuer, User.subject==subject)
+            stmt = UserFactory._add_except_states_criteria(stmt, except_states)
+            return self._session.scalars(stmt).one()
         except NoResultFound:
             raise Exception(f'指定したUser({subject})は存在しませんでした')
 
@@ -889,7 +900,7 @@ class UserFactory():
         キーワードを含むユーザ名またはE-MailのUserを取得する
         """
         from sqlalchemy.sql.expression import and_, or_
-        query = self._session.query(User)
+        stmt = select(User)
 
         like_predicates = []
         for search_keyword in Factory.split_keyword(keyword):
@@ -897,25 +908,26 @@ class UserFactory():
             like_predicates.append(or_(User.name.icontains(search_keyword),
                                        User.email.icontains(search_keyword)))
 
-        query = query.filter(and_(*like_predicates))
-        query = UserFactory._add_except_states_criteria(query, except_states)
+        stmt = stmt.where(and_(*like_predicates))
+        stmt = UserFactory._add_except_states_criteria(stmt, except_states)
+        stmt = stmt.order_by(User.email)
 
-        return query.order_by(User.email).all()
+        return self._session.scalars(stmt).all()
 
     def exists(self, uuid, except_states=None) -> bool:
-        query = self._session.query(User).filter(User.uuid==uuid)
-        query = UserFactory._add_except_states_criteria(query, except_states)
-        return query.count() > 0
+        stmt = select(func.count(User.id)).where(User.uuid==uuid)
+        stmt = UserFactory._add_except_states_criteria(stmt, except_states)
+        return self._session.scalars(stmt).one() > 0
 
     def exists_by_email(self, email, except_states=None) -> bool:
-        query = self._session.query(User).filter(User.email==email)
-        query = UserFactory._add_except_states_criteria(query, except_states)
-        return query.count() > 0
+        stmt = select(func.count(User.id)).where(User.email==email)
+        stmt = UserFactory._add_except_states_criteria(stmt, except_states)
+        return self._session.scalars(stmt).one() > 0
 
     def exists_by_openid(self, issuer, subject, except_states=None) -> bool:
-        query = self._session.query(User).filter(User.issuer==issuer, User.subject==subject)
-        query = UserFactory._add_except_states_criteria(query, except_states)
-        return query.count() > 0
+        stmt = select(func.count(User.id)).where(User.issuer==issuer, User.subject==subject)
+        stmt = UserFactory._add_except_states_criteria(stmt, except_states)
+        return self._session.scalars(stmt).one() > 0
 
     def load_openid_user(self, email, name, issuer, subject):
         """
@@ -944,10 +956,10 @@ class UserFactory():
         return new_user
 
     @staticmethod
-    def _add_except_states_criteria(query, except_states):
+    def _add_except_states_criteria(stmt, except_states):
         if except_states is None:
-            return query
+            return stmt
         elif isinstance(except_states, list):
-            return query.filter(User.state.notin_(except_states))
+            return stmt.where(User.state.notin_(except_states))
         else:
             raise Exception(f'except_statesにはNoneかlist型を指定してください')
