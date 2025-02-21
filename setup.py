@@ -7,7 +7,7 @@ setup(
         'streamcat.depo',
         'streamcat.store'
     ],
-    version='3.4',
+    version='3.5',
     description='Data Store of many type',
     url='https://www.kskp.io',
     install_requires=[
