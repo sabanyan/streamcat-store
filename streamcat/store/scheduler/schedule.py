@@ -285,10 +285,12 @@ class Schedule(SavableDatum):
                 schedule_manager.delete(self.uuid)
             raise e
 
-    def update_data(self, label, runnable_uuid:str, args={}, inputs={}, trigger={}, modifier=None):
+    def update_data(self, label, runnable_uuid:str, args={}, inputs={}, trigger={}, modifier=None, last_modified_at=None):
         """
         Scheduleのdata列を更新する
         """
+        from sqlalchemy import select
+        from ..exceptions import OptimisticLockException
         from . import schedule_manager
 
         # ラベルに'\0'が含まれていれば取り除く
@@ -299,6 +301,14 @@ class Schedule(SavableDatum):
 
         # 起動日時指定の書式を検証する
         self._valid_trigger_json_or_raise(trigger)
+
+        # 
+        # 最終更新時刻を用いた楽観的排他制御
+        # 
+        stmt = select(Schedule.modified_at).where(Schedule.id==self.id)
+        modified_at = self._session.scalars(stmt).one_or_none()
+        if modified_at != last_modified_at:
+            raise OptimisticLockException(f'スケジュール({self.label})は他ユーザーが編集しているため更新できませんでした')
 
         try:
             # レコードを更新する
@@ -372,6 +382,8 @@ class Schedule(SavableDatum):
         ret['args']    = self._data.get('args', {})
         ret['inputs']  = self._data.get('inputs', {})
         ret['trigger'] = self._data.get('trigger', {})
+        # メンバ設定の楽観的排他制御に最終更新時刻を用いる
+        ret['modifiedAt'] = self.modified_at.strftime('%Y-%m-%d %H:%M:%S.%f')
         # allowlist
         ret['allowlist']['download'] = False
         return ret

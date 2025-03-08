@@ -333,7 +333,7 @@ class SchedulerTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
             'end_date'   : '3021-06-29 12:00:00',
             'day'        : 31,
         }
-        schedule.update_data('変更後のスケジュール', flow2.uuid, args2, inputs2, trigger2, self.USER1)
+        schedule.update_data('変更後のスケジュール', flow2.uuid, args2, inputs2, trigger2, self.USER1, schedule.modified_at)
 
         # 変更を確定する
         self.factory0.end()
