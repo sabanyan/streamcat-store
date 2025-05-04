@@ -2,7 +2,7 @@ import io
 import pprint
 import unittest
 from streamcat.core import SCatBaseModel
-from streamcat.store import FlowData, DatabaseConn, RemoteFolderConn
+from streamcat.store import Mountable, FlowData, DatabaseConn, RemoteFolderConn
 from .test_case_base import TestCaseBase
 
 class DelTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
@@ -29,6 +29,10 @@ class DelTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         'password' : "kskanalytics"
     }
     remote_folder_conn = RemoteFolderConn(conn_json)
+
+    def create_file(self, file_path):
+        with open(file_path, 'w') as f:
+            f.write('I am a frame data for test cases.')
 
     def create_flow_json(self, in_frame1, in_frame2, out_database, out_rfolder, sub_flow):
         """
@@ -489,3 +493,135 @@ class DelTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         # ゴミ箱を空にできること
         trashcan = self.factory.data.load_trash_folder()
         trashcan.trash_all()
+
+    async def test_trash_remote_folder_in_folder(self):
+        """
+        マウント状態のリモートフォルダを含むフォルダをゴミ箱に捨てるとマウントが解除されること
+        """
+        # ルートフォルダを取得する
+        root = self.factory3.data.load_root()
+
+        # ルートフォルダの下にプロジェクトを作成する
+        project = root.create_project_folder('私のプロジェクト')
+        project.save()
+
+        # プロジェクトの下にフォルダを作成する
+        folder = project.create_folder('私のフォルダ')
+        folder.save()
+
+        # フォルダの下にサブフォルダを作成する
+        sub_folder = folder.create_folder('私のサブフォルダ')
+        sub_folder.save()
+
+        # サブフォルダの下にリモートフォルダを作成する
+        remote_folder = sub_folder.create_remote_folder('私のリモートフォルダ', self.remote_folder_conn)
+        remote_folder.save()
+        remote_folder.reload()
+
+        # 作成を確定する
+        self.factory3.end()
+
+        # 
+        # pathを参照してリモートフォルダをマウントする
+        # 
+        self.assertEqual(remote_folder.path, root.path/'私のプロジェクト'/'私のフォルダ'/'私のサブフォルダ'/'私のリモートフォルダ')
+        self.assertTrue(Mountable.is_mount(remote_folder._path))
+
+        # 
+        # フォルダをゴミ箱にほかす
+        # 
+        folder.throw_away()
+
+        # リモートフォルダがゴミ箱にほかされていること
+        self.assertTrue(self.factory3.data.trashed(remote_folder.uuid))
+        # マウントが解除されていること
+        self.assertFalse(Mountable.is_mount(remote_folder._path))
+        self.assertEqual(remote_folder._path, root.path/'ゴミ箱'/'私のフォルダ'/'私のサブフォルダ'/'私のリモートフォルダ')
+        # マウントポイントのディレクトリが移動されていること
+        self.assertTrue(remote_folder._path.is_dir())
+        self.assertNotEqual(remote_folder.created_at, remote_folder.modified_at)
+
+        # 
+        # フォルダをゴミ箱から戻す
+        # 
+        folder.put_back()
+
+        # リモートフォルダがゴミ箱に存在しないこと
+        self.assertFalse(self.factory3.data.trashed(remote_folder.uuid))
+        # マウントは解除状態のままであること
+        self.assertFalse(Mountable.is_mount(remote_folder._path))
+        self.assertEqual(remote_folder._path, root.path/'私のプロジェクト'/'私のフォルダ'/'私のサブフォルダ'/'私のリモートフォルダ')
+        # マウントポイントのディレクトリが移動されていること
+        self.assertTrue(remote_folder._path.is_dir())
+        self.assertNotEqual(remote_folder.created_at, remote_folder.modified_at)
+
+        # リモートフォルダを削除する
+        remote_folder.delete()
+
+        # プロジェクトを削除する
+        sub_folder.delete()
+        folder.delete()
+        project.delete()
+
+    async def test_delete_folder_has_child(self):
+        """
+        フレームを内包するフォルダを削除しようとすると例外を送出する
+        """
+        # ルートデータストアを取得する
+        root = self.factory.data.load_root()
+        root_path = root.path
+
+        # ルートデータストアの直下にフォルダを作成する
+        folder = root.create_folder('フォルダA')
+        folder.save()
+
+        # フレームデータを格納するファイルを作成する
+        self.create_file(root_path / 'aaaa.csv')
+        # ルートデータストアの直下にフレームを作成する
+        frame = folder.create_frame('フレームデータ', None)
+        frame.save(file_path=root_path / 'aaaa.csv')
+
+        # フレームを内包するフォルダを削除しようとする
+        with self.assertRaises(Exception) as e:
+            folder.delete()
+
+        # 作成したフレームを削除する
+        frame.delete()
+        # 作成したフォルダを削除する
+        folder.delete()
+
+    async def test_delete_frame_refer_to_file_other_frame_refering(self):
+        """
+        二つのフレームが一つのCSVファイルに対応している場合に、
+        何れか一つのフレームを削除しても、CSVファイルは削除されない
+        """
+        # ルートデータストアを取得する
+        root = self.factory.data.load_root()
+        root_path = root.path
+
+        # フレームデータを格納するファイルを作成する
+        self.create_file(root_path / 'foo.csv')
+        # ルートデータストアの直下にフレーム1を作成する
+        frame1 = root.create_frame('フレームデータ', None)
+        frame1.save(file_path=root_path / 'foo.csv')
+
+        # ルートデータストアの直下にフレーム2を作成する
+        frame2 = root.create_frame('フレームデータ', None)
+        frame2.save(file_path=root_path / 'foo.csv')
+
+        # フレーム1を削除する
+        frame1.delete()
+        # フレーム1,2に対応するCSVファイルが存在することを検証する
+        self.assertTrue((root_path / 'foo.csv').is_file())
+
+        # フレーム2を削除する
+        frame2.delete()
+        # フレーム1,2に対応するCSVファイルが存在しないことを検証する
+        self.assertFalse((root_path / 'foo.csv').is_file())
+
+    async def test_delete_folder_refer_to_file_other_frame_refering(self):
+        """
+        二つのフォルダが一つのディレクトリに対応している場合に、
+        何れか一つのフォルダを削除しても、ディレクトリは削除されない
+        """
+        pass
