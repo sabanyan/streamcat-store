@@ -1,19 +1,18 @@
 import unittest
 import nysol.mcmd as nm
-import uuid
 import pprint
 import pandas as pd
 
-pp = pprint.PrettyPrinter(depth=6)
-
+import itertools
 from pathlib import Path
-# from streamcat.store import Library
-from streamcat.depo.std.commands import CommandLink
 from bokeh.plotting import figure
 from bokeh.palettes import Dark2_5 as palette
 from bokeh.layouts import gridplot
 from bokeh.plotting import figure
-import itertools
+from streamcat.store import Frame
+from streamcat.depo.std.commands import CommandLink
+
+pp = pprint.PrettyPrinter(depth=6)
 
 @unittest.skip('test_vcmdに移行する')
 class ExecuteViualizeTestCase(unittest.TestCase):
@@ -23,6 +22,21 @@ class ExecuteViualizeTestCase(unittest.TestCase):
     RESULT_DIR = 'streamcat/store/frames/csv/フロー実行結果/'
     CACHE_DIR = 'streamcat/store/frames/csv/フロー実行キャッシュ/'
     TESTDATA_DIR = 'store/frames'
+
+    def create_data(self, file_path_obj, data=None) -> Frame:
+        """
+        テストデータ作成用
+        frameのuuidが返る
+        """
+        root = self.factory.data.load_root()
+        if data is not None:
+            print('file_path_obj.as_posix(): ' + file_path_obj.as_posix())
+            print('file_path_obj.resolve(): ' + file_path_obj.resolve().as_posix())
+            nm.mread(i=data, o=file_path_obj.resolve().as_posix()).run()
+        frame = root.create_frame('TEST-DATA', None)
+        frame.save(file_path=file_path_obj)
+        # save()によりreadable=Noneになるため再取得する
+        return frame.reload()
 
     # @unittest.skip
     def test_execute_table(self):
@@ -40,12 +54,12 @@ class ExecuteViualizeTestCase(unittest.TestCase):
             ['B', 1, 50]
         ]
         frame_path = Path(self.TESTDATA_DIR) / 'test_data.csv'
-        frame_uuid = create_data(frame_path, data)
+        frame = self.create_data(frame_path, data)
 
         args = {}
 
         inputs = {
-            'i': frame_uuid
+            'i': frame.uuid
         }
 
         result = table_command.run(args, inputs)
@@ -61,7 +75,7 @@ class ExecuteViualizeTestCase(unittest.TestCase):
         self.assertEqual(result['o']['reader'], correct['reader'])
 
         # 後片付け
-        Library.delete_frame(frame_uuid)
+        frame.delete()
 
     # @unittest.skip
     def test_execute_table_use_limit(self):
@@ -80,14 +94,14 @@ class ExecuteViualizeTestCase(unittest.TestCase):
             ['B', 1, 50]
         ]
         frame_path = Path(self.TESTDATA_DIR) / 'test_data.csv'
-        frame_uuid = create_data(frame_path, data)
+        frame = self.create_data(frame_path, data)
 
         args = {
             'limit': 3
         }
 
         inputs = {
-            'i': frame_uuid
+            'i': frame.uuid
         }
 
         result = table_command.run(args, inputs)
@@ -102,7 +116,7 @@ class ExecuteViualizeTestCase(unittest.TestCase):
         self.assertEqual(result['o']['reader'], correct['reader'])
 
         # 後片付け
-        Library.delete_frame(frame_uuid)
+        frame.delete()
 
     # @unittest.skip
     def test_execute_table_use_offset(self):
@@ -121,14 +135,14 @@ class ExecuteViualizeTestCase(unittest.TestCase):
             ['B', 1, 50]
         ]
         frame_path = Path(self.TESTDATA_DIR) / 'test_data.csv'
-        frame_uuid = create_data(frame_path, data)
+        frame = self.create_data(frame_path, data)
 
         args = {
             'offset': 2
         }
 
         inputs = {
-            'i': frame_uuid
+            'i': frame.uuid
         }
 
         result = table_command.run(args, inputs)
@@ -143,7 +157,7 @@ class ExecuteViualizeTestCase(unittest.TestCase):
         self.assertEqual(result['o']['reader'], correct['reader'])
 
         # 後片付け
-        Library.delete_frame(frame_uuid)
+        frame.delete()
 
     # @unittest.skip
     def test_execute_table_use_offset_and_limit(self):
@@ -162,7 +176,7 @@ class ExecuteViualizeTestCase(unittest.TestCase):
             ['B', 1, 50]
         ]
         frame_path = Path(self.TESTDATA_DIR) / 'test_data.csv'
-        frame_uuid = create_data(frame_path, data)
+        frame = self.create_data(frame_path, data)
 
         args = {
             'offset': 3,
@@ -170,7 +184,7 @@ class ExecuteViualizeTestCase(unittest.TestCase):
         }
 
         inputs = {
-            'i': frame_uuid
+            'i': frame.uuid
         }
 
         result = table_command.run(args, inputs)
@@ -185,7 +199,7 @@ class ExecuteViualizeTestCase(unittest.TestCase):
         self.assertEqual(result['o']['reader'], correct['reader'])
 
         # 後片付け
-        Library.delete_frame(frame_uuid)
+        frame.delete()
 
     # @unittest.skip
     def test_execute_table_no_data(self):
@@ -197,14 +211,14 @@ class ExecuteViualizeTestCase(unittest.TestCase):
         # テストデータ作成
         data = [['']]
         frame_path = Path(self.TESTDATA_DIR) / 'test_data.csv'
-        frame_uuid = create_data(frame_path, data)
+        frame = self.create_data(frame_path, data)
 
         args = {
             'offset': 2
         }
 
         inputs = {
-            'i': frame_uuid
+            'i': frame.uuid
         }
 
         result = table_command.run(args, inputs)
@@ -219,7 +233,7 @@ class ExecuteViualizeTestCase(unittest.TestCase):
         self.assertEqual(result['o']['reader'], correct['reader'])
 
         # 後片付け
-        Library.delete_frame(frame_uuid)
+        frame.delete()
 
     # @unittest.skip
     def test_execute_linegraph(self):
@@ -242,7 +256,7 @@ class ExecuteViualizeTestCase(unittest.TestCase):
             ['0.9','3.18','OK'],
         ]
         frame_path = Path(self.TESTDATA_DIR) / 'test_data.csv'
-        frame_uuid = create_data(frame_path, data)
+        frame = self.create_data(frame_path, data)
 
         args = {
             'data_column'   : ['層別属性'],
@@ -254,7 +268,7 @@ class ExecuteViualizeTestCase(unittest.TestCase):
         }
 
         inputs = {
-            'i': frame_uuid
+            'i': frame.uuid
         }
 
         result = table_command.run(args, inputs)
@@ -263,7 +277,7 @@ class ExecuteViualizeTestCase(unittest.TestCase):
         self.assertIsNotNone(result['o']['div'])
 
         # 後片付け
-        Library.delete_frame(frame_uuid)
+        frame.delete()
 
 
     # @unittest.skip
@@ -287,7 +301,7 @@ class ExecuteViualizeTestCase(unittest.TestCase):
             ['0.9','3.18','OK'],
         ]
         frame_path = Path(self.TESTDATA_DIR) / 'test_data.csv'
-        frame_uuid = create_data(frame_path, data)
+        frame = self.create_data(frame_path, data)
 
         args = {
             'data_column'   : [],
@@ -299,7 +313,7 @@ class ExecuteViualizeTestCase(unittest.TestCase):
         }
 
         inputs = {
-            'i': frame_uuid
+            'i': frame.uuid
         }
 
         result = table_command.run(args, inputs)
@@ -308,7 +322,7 @@ class ExecuteViualizeTestCase(unittest.TestCase):
         self.assertIsNotNone(result['o']['div'])
 
         # 後片付け
-        Library.delete_frame(frame_uuid)
+        frame.delete()
 
     # @unittest.skip
     def test_execute_scatter(self):
@@ -331,7 +345,7 @@ class ExecuteViualizeTestCase(unittest.TestCase):
             ['0.9','3.18','OK'],
         ]
         frame_path = Path(self.TESTDATA_DIR) / 'test_data.csv'
-        frame_uuid = create_data(frame_path, data)
+        frame = self.create_data(frame_path, data)
 
         args = {
             'data_column'   : ['層別属性'],
@@ -343,7 +357,7 @@ class ExecuteViualizeTestCase(unittest.TestCase):
         }
 
         inputs = {
-            'i': frame_uuid
+            'i': frame.uuid
         }
 
         result = table_command.run(args, inputs)
@@ -352,7 +366,7 @@ class ExecuteViualizeTestCase(unittest.TestCase):
         self.assertIsNotNone(result['o']['div'])
 
         # 後片付け
-        Library.delete_frame(frame_uuid)
+        frame.delete()
 
     # @unittest.skip
     def test_execute_boxplot(self):
@@ -375,7 +389,7 @@ class ExecuteViualizeTestCase(unittest.TestCase):
             ['0.9','3.18','OK'],
         ]
         frame_path = Path(self.TESTDATA_DIR) / 'test_data.csv'
-        frame_uuid = create_data(frame_path, data)
+        frame = self.create_data(frame_path, data)
 
         args = {
             'data_column'   : [],
@@ -386,7 +400,7 @@ class ExecuteViualizeTestCase(unittest.TestCase):
         }
 
         inputs = {
-            'i': frame_uuid
+            'i': frame.uuid
         }
 
         result = table_command.run(args, inputs)
@@ -395,7 +409,7 @@ class ExecuteViualizeTestCase(unittest.TestCase):
         self.assertIsNotNone(result['o']['div'])
 
         # 後片付け
-        Library.delete_frame(frame_uuid)
+        frame.delete()
 
     def test_execute_timecompression(self):
         table_command = CommandLink('csvtotimecompressionform').resolve()
@@ -417,7 +431,7 @@ class ExecuteViualizeTestCase(unittest.TestCase):
         ]
 
         frame_path = Path(self.TESTDATA_DIR) / 'test_data.csv'
-        frame_uuid = create_data(frame_path, data)
+        frame = self.create_data(frame_path, data)
 
         args = {
             'data'         : ['層別属性'],
@@ -457,7 +471,6 @@ class ExecuteViualizeTestCase(unittest.TestCase):
         graph_height    = int(args.get('height'))
 
         # df
-        frame = Library.load_frame(frame_uuid)
         df = frame.get_dataframe(limit, offset)
         
          # title
@@ -545,7 +558,7 @@ class ExecuteViualizeTestCase(unittest.TestCase):
 
         result = gridplot(plots, ncols=1, plot_width=graph_width, plot_height=graph_height) 
         
-        assertIsNotNone(result)
+        self.assertIsNotNone(result)
 
     def get_colors(self, size):
         i = 0
@@ -610,18 +623,3 @@ class ExecuteViualizeTestCase(unittest.TestCase):
                 _df = _df[_df[key]==value]
             df_dict['-'.join(map(str, list(result.values())))] = _df
         return df_dict
-def create_data(file_path_obj, data=None):
-    """
-    テストデータ作成用
-    frameのuuidが返る
-    """
-    
-    root = Library.load_root()
-    if data is not None:
-        print('file_path_obj.as_posix(): ' + file_path_obj.as_posix())
-        print('file_path_obj.resolve(): ' + file_path_obj.resolve().as_posix())
-        nm.mread(i=data, o=file_path_obj.resolve().as_posix()).run()
-    frame = Library.save_frame(root.uuid, str(uuid.uuid4()), file_path_obj)
-    return frame.uuid
-
-

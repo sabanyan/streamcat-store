@@ -260,14 +260,17 @@ class LibraryTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         """
         AWS S3フォルダを取得する
         """
-        from streamcat.store.library import Library
         try:
             # ルートデータストアを取得する
             root = self.factory.data.load_root()
             # ルートデータストアの直下にAWS S3フォルダを作成する
-            folder = Library.save_awss3(root.uuid, 'S3フォルダ1', 'streamcat-test', self.USER1)
+            folder = root.create_awss3('S3フォルダ1', 'streamcat-test')
+            folder.save()
+            folder.reload()
+
             # 作成したAWS S3フォルダを取得する
-            folder = Library.load_awss3(folder.uuid)
+            self.factory.data.find_by_uuid(folder.uuid)
+
             # 取得したフォルダの値を検証する
             self.assertIsNotNone(folder.id)
             self.assertEqual(folder.parent_id, root.id)
@@ -281,24 +284,24 @@ class LibraryTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
             self.assertIsNotNone(folder.modified_at)
         finally:
             # 作成したフォルダを削除する
-            Library.delete_awss3(folder.uuid)
+            folder.delete()
 
     @unittest.skip('AWS S3のパスワードないのでエラーになる')
     async def test_update_awss3(self):
         """
         AWS S3フォルダのラベルを変更する
         """
-        from streamcat.store.library import Library
         try:
             # ルートデータストアを取得する
             root = self.factory.data.load_root()
             # ルートデータストアの直下にAWS S3フォルダを作成する
-            folder = Library.save_awss3(root.uuid, 'S3フォルダ2', 'streamcat-test', self.USER1)
+            folder = root.create_awss3('S3フォルダ2', 'streamcat-test')
+            folder.save()
+            folder.reload()
+
             # 作成したフォルダのラベルを変更する
-            updated_folder = Library.update_awss3_data(folder.uuid,
-                                                       '新しいS3フォルダ',
-                                                       'streamcat-test',
-                                                       self.USER2)
+            updated_folder = folder.update_data('新しいS3フォルダ', 'streamcat-test', self.USER2)
+
             # ラベルとディレクトリパスのみが変更されることを検証する
             self.assertEqual(updated_folder.id, folder.id)
             self.assertEqual(updated_folder.parent_id, folder.parent_id)
@@ -312,19 +315,21 @@ class LibraryTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
             self.assertIsNotNone(updated_folder.modified_at)
         finally:
             # 作成したフォルダを削除する
-            Library.delete_awss3(folder.uuid)
+            folder.delete()
 
     @unittest.skip('AWS S3のパスワードないのでエラーになる')
     async def test_save_awss3(self):
         """
         AWS S3フォルダを作成する
         """
-        from streamcat.store.library import Library
         try:
             # ルートデータストアを取得する
             root = self.factory.data.load_root()
             # ルートデータストアの直下にAWS S3フォルダを作成する
-            folder = Library.save_awss3(root.uuid, 'S3フォルダ3', 'streamcat-test', self.USER1)
+            folder = root.create_awss3('S3フォルダ3', 'streamcat-test')
+            folder.save()
+            folder.reload()
+
             # 作成したフォルダの値を検証する
             self.assertIsNotNone(folder.id)
             self.assertEqual(folder.parent_id, root.id)
@@ -340,7 +345,7 @@ class LibraryTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
             self.assertEqual(folder.created_at, folder.modified_at)
         finally:
             # 作成したフォルダを削除する
-            Library.delete_awss3(folder.uuid)
+            folder.delete()
 
 
     async def test_get_frame(self):
