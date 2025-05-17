@@ -3,7 +3,7 @@ import unittest
 from streamcat.engine import FlowCommand, aexecute
 from .test_case_base import TestCaseBase
 
-class VCmdTestCase(TestCaseBase, unittest.IsolatedAsyncioTestCase):
+class VCmdTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
     """
     Vコマンドの実行テスト
     """

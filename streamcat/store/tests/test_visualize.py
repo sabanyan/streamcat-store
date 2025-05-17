@@ -15,7 +15,7 @@ from streamcat.depo.std.commands import CommandLink
 pp = pprint.PrettyPrinter(depth=6)
 
 @unittest.skip('test_vcmdに移行する')
-class ExecuteViualizeTestCase(unittest.TestCase):
+class ExecuteViualizeTest(unittest.TestCase):
     """
     visualize用コマンドの実行テスト
     """
