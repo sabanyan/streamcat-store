@@ -98,7 +98,7 @@ class Activity(SavableDatum):
         Activityをゴミ箱にほかす
         (テスト用)
         """
-        from streamcat.store.factory import DatumFactory
+        from streamcat.store.finder import DatumFactory
         factory = DatumFactory(self._session)
         trash_folder = factory.load_trash_folder()
 

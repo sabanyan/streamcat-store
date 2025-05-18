@@ -51,7 +51,7 @@ class ScheduleManager():
         """
         # スケジュール起動時に、その処理内でFactoryを作成する(トランザクションを開く)必要がある
         async def run(args:dict, inputs:dict):
-            from streamcat.store.factory import UnAuthzFactory
+            from streamcat.store.finder import UnAuthzFactory
             # Scheduleの作成者の権限でrunnableを実行する
             async with UnAuthzFactory() as ufactory:
                 factory = await ufactory.create_authz_factory(user=schedule.creator)

@@ -28,7 +28,7 @@ class RemoteFolder(Mountable, SavableStore):
         共有フォルダを保存する
         """
         # 既にルートフォルダが存在する場合は、parent_id=NULLを許可しない
-        from streamcat.store.factory import DatumFactory
+        from streamcat.store.finder import DatumFactory
         if self.parent_id is None and DatumFactory(self._session).count_root() > 0:
             raise Exception('You can not add root remote folder. A root already exists.')
 

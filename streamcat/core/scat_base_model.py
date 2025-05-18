@@ -140,14 +140,14 @@ class SCatBaseModel(object):
 
     @property
     def creator(self):
-        from streamcat.store.factory import UserFactory
+        from streamcat.store.finder import UserFactory
         if self._creator_id is None:
             return None
         return UserFactory(self._session).find_by_id(self._creator_id, allow_no_result=True)
 
     @property
     def modifier(self):
-        from streamcat.store.factory import UserFactory
+        from streamcat.store.finder import UserFactory
         if self._modifier_id is None:
             return None
         return UserFactory(self._session).find_by_id(self._modifier_id, allow_no_result=True)

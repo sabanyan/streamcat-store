@@ -1,7 +1,7 @@
 import pprint
 import logging
 from asyncio import AbstractEventLoop
-from streamcat.store.factory import UnAuthzFactory, init_admin_users
+from streamcat.store.finder import UnAuthzFactory, init_admin_users
 
 class TestCaseBase():
     # 非同期処理を実行するためのイベントループ

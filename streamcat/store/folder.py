@@ -22,7 +22,7 @@ class Folder(SavableStore):
         Folderを保存する
         """
         # 既にルートフォルダが存在する場合は、parent_id=NULLを許可しない
-        from streamcat.store.factory import DatumFactory
+        from streamcat.store.finder import DatumFactory
         if self.parent_id is None and DatumFactory(self._session).count_root() > 0:
             raise Exception('You can not add root folder. A root already exists.')
 
@@ -84,7 +84,7 @@ class Folder(SavableStore):
         # if self.get_flow_uuids_using_me():
         #     raise Exception('別のフローで使用しているため削除できませんでした')
 
-        from streamcat.store.factory import DatumFactory
+        from streamcat.store.finder import DatumFactory
         factory = DatumFactory(self._session)
         trash_folder = factory.load_trash_folder()
 

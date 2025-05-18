@@ -280,7 +280,7 @@ class SavableDatum(Datum, BaseModel):
         """
         自分のプロジェクトを取得する
         """
-        from streamcat.store.factory import DatumFactory
+        from streamcat.store.finder import DatumFactory
         return DatumFactory(self._session).find_my_project(self.id)
 
     def reload(self):
@@ -288,7 +288,7 @@ class SavableDatum(Datum, BaseModel):
         自分を再読み込みする
         (save()後に行うとreadableを設定できる)
         """
-        from streamcat.store.factory import DatumFactory
+        from streamcat.store.finder import DatumFactory
         factory = DatumFactory(self._session)
         # Sessionにあるself._permissionsを期限切れ状態にしてDBからリロードされるようにする
         factory._session._session.expire(self, ['_permissions'])
@@ -336,7 +336,7 @@ class SavableDatum(Datum, BaseModel):
         指定されたStoreの直下に移動する
         """
         from streamcat.store import Folder
-        from streamcat.store.factory import DatumFactory
+        from streamcat.store.finder import DatumFactory
         from streamcat.store.auth import NotAuthorizedException
 
         # UUID値の形式チェックをする
@@ -406,7 +406,7 @@ class SavableDatum(Datum, BaseModel):
 
     def _move_imp(self, to_folder, prev_parent_id, modifier=None):
         from streamcat.store import Mountable, Folder
-        from streamcat.store.factory import DatumFactory
+        from streamcat.store.finder import DatumFactory
         from streamcat.store.auth import NotAuthorizedException
 
         # 移動後にラベル名が衝突したらラベル名を変更する
@@ -476,7 +476,7 @@ class SavableDatum(Datum, BaseModel):
         if len(using_flow_uuids) > 0:
             raise Exception(f"このファイルはフロー({using_flow_uuids[0]['reference_label']})で使用しているため削除できません")
 
-        from streamcat.store.factory import DatumFactory
+        from streamcat.store.finder import DatumFactory
         factory = DatumFactory(self._session)
         trash_folder = factory.load_trash_folder()
         return self.move(trash_folder.uuid)
@@ -501,7 +501,7 @@ class SavableDatum(Datum, BaseModel):
 
     def _put_back_inner(self, datum):
         from streamcat.store import Folder
-        from streamcat.store.factory import DatumFactory
+        from streamcat.store.finder import DatumFactory
 
         if isinstance(datum, Folder) and datum.prev_parent_id is None:
             # 移動対象がprev_parent_idを持たないフォルダの場合

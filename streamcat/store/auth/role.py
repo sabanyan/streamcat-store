@@ -220,7 +220,7 @@ class Role(BaseModel):
         (ユーザID順で返す)
         """
         from sqlalchemy import select, exists, and_, or_
-        from streamcat.store.factory import UserFactory
+        from streamcat.store.finder import UserFactory
         from .user import User
 
         exists_user_role = exists().where(and_(UserRole.role_id==self.id, UserRole.user_id==User.id))
@@ -237,7 +237,7 @@ class Role(BaseModel):
         ロールに所属する全てのメンバを返す
         (ユーザID順で返す)
         """
-        from streamcat.store.factory import UserFactory
+        from streamcat.store.finder import UserFactory
         from .user import User
 
         stmt =  select(User, UserRole.owner).\
@@ -282,7 +282,7 @@ class Role(BaseModel):
         if member.user.is_inactive:
             raise Exception('削除状態のユーザを所属させることはできません')
 
-        from ..factory import UserRoleFactory
+        from ..finder import UserRoleFactory
         factory = UserRoleFactory(self._session)
 
         if factory.exists(member.user.id, self.id):
@@ -305,7 +305,7 @@ class Role(BaseModel):
         if self.is_self_role():
             raise Exception('本人ロールからユーザを脱退させることはできません')
 
-        from streamcat.store.factory import UserRoleFactory
+        from streamcat.store.finder import UserRoleFactory
         factory = UserRoleFactory(self._session)
 
         if factory.exists(user.id, self.id):
@@ -327,7 +327,7 @@ class Role(BaseModel):
         if self.is_usr_admin and not self.is_owner(except_user):
             self.raise_no_role_owner_exception()
 
-        from streamcat.store.factory import UserRoleFactory
+        from streamcat.store.finder import UserRoleFactory
         UserRoleFactory(self._session).delete_all_by_role_id(self.id, except_user_id=except_user.id)
 
     def init_members(self, members):
@@ -401,7 +401,7 @@ class Role(BaseModel):
         self.init_authz(datum_id, None, None, None, None)
 
     def _init_authz_inner(self, datum_id, operation, permission):
-        from streamcat.store.factory import AuthFactory
+        from streamcat.store.finder import AuthFactory
         auth_factory = AuthFactory(self._session)
 
         if auth_factory.exists(self.id, datum_id, operation):

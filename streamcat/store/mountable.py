@@ -168,7 +168,7 @@ class Mountable():
         from pathlib import Path
         from sqlalchemy import select
         from sqlalchemy.orm import aliased
-        from streamcat.store.factory import DatumFactory
+        from streamcat.store.finder import DatumFactory
 
         # id : 検索対象DatumからRootDatumへの経路の全てのDatumのid
         D0 = aliased(SavableDatum, name='D0')
@@ -241,7 +241,7 @@ class Mountable():
         TODO: Linuxのmountコマンドの--moveオプションを使えばマウント中の
               ディレクトリポイントを移動できるらしいが、間に合わせの実装として移動を禁止する
         """
-        from streamcat.store.factory import DatumFactory
+        from streamcat.store.finder import DatumFactory
         factory = DatumFactory(self._session)
         trash_folder = factory.load_trash_folder()
 
@@ -259,7 +259,7 @@ class Mountable():
         """
         ゴミ箱へほかされた場合は、マウントを解除する
         """
-        from streamcat.store.factory import DatumFactory
+        from streamcat.store.finder import DatumFactory
         factory = DatumFactory(self._session)
         trash_folder = factory.load_trash_folder()
 

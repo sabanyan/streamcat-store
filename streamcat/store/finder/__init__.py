@@ -1,4 +1,4 @@
-from .factory import (
+from .finder import (
     Factory,
     UnAuthzFactory,
     DatumFactory,

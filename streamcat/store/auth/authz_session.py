@@ -491,7 +491,7 @@ class AuthzSession(Session):
             # 本人ロールが無ければ作成し、ユーザを本人ロールに所属させる
             self_role = self.user.load_self_role()
             # Datumを新規追加したユーザには無条件に所有権を付与する
-            from streamcat.store.factory import AuthFactory
+            from streamcat.store.finder import AuthFactory
             own_auth = AuthFactory(self).create(self_role.id, obj.id, Auth.OWN_OP, True)
             self._session.add(own_auth)
             self._session.flush([own_auth])
@@ -516,7 +516,7 @@ class AuthzSession(Session):
         elif isinstance(obj, UserRole):
             # ユーザ管理者かロールの所有者のみ、ロールにユーザを追加できる
             if not ignore_authz and not self.is_role_owner(obj.role_id) and not self.has_usr_admin():
-                from streamcat.store.factory import UserFactory, RoleFactory
+                from streamcat.store.finder import UserFactory, RoleFactory
                 role = RoleFactory(self).find_by_id(obj.role_id)
                 user = UserFactory(self).find_by_id(obj.user_id)
                 raise NotAuthorizedException(f'{self.user}はロール({role})にユーザー({user})を追加できませんでした')
@@ -578,7 +578,7 @@ class AuthzSession(Session):
 
                 # ユーザ管理者かロールの所有者のみ、ロールの所有権を変更できる
                 if not self.is_role_owner(obj.role_id) and not self.has_usr_admin():
-                    from streamcat.store.factory import UserFactory, RoleFactory
+                    from streamcat.store.finder import UserFactory, RoleFactory
                     role = RoleFactory(self).find_by_id(obj.role_id)
                     user = UserFactory(self).find_by_id(obj.user_id)
                     raise NotAuthorizedException(f'{self.user}はロール({role})についてユーザ({user})の所有権を変更できませんでした')
@@ -616,7 +616,7 @@ class AuthzSession(Session):
         if isinstance(obj, SavableDatum):
             if self.writable(obj):
                 # 削除データの権限を全て削除する
-                from streamcat.store.factory import AuthFactory
+                from streamcat.store.finder import AuthFactory
                 AuthFactory(self).delete_all_by_datum_id(obj.id)
             else:
                 raise NotAuthorizedException((f'{self.user.name}は更新権限がないため{obj.label}を削除できません'))

@@ -48,7 +48,7 @@ class ProjectFolder(Folder):
         ゴミ箱へほかされるか、ゴミ箱から元の場所に戻す場合を除いて
         プロジェクトは移動できない
         """
-        from streamcat.store.factory import DatumFactory
+        from streamcat.store.finder import DatumFactory
         factory = DatumFactory(self._session)
         trash_folder = factory.load_trash_folder()
 
@@ -75,7 +75,7 @@ class ProjectFolder(Folder):
         # ユーザ管理者は全てのDatumの参照・更新・実行、及び権限の変更ができること
         # (ProjectにRWXO権限を付与することでこれを実現する)
         # (ユーザ管理者をプロジェクト管理者から外すことはできない)
-        from streamcat.store.factory import RoleFactory
+        from streamcat.store.finder import RoleFactory
         usr_admin_role = RoleFactory(self._session).load_usr_admin_role()
         usr_admin_role.init_authz(self.id, True, True, exec=True, own=True)
 
@@ -189,7 +189,7 @@ class ProjectFolder(Folder):
         # Readersロールが無ければ作成する
         readers_role = self._find_readers_role()
         if readers_role is None:
-            from streamcat.store.factory import RoleFactory
+            from streamcat.store.finder import RoleFactory
             role_name = self.label[:8] + '_readers'
             readers_role = RoleFactory(self._session).create(role_name, delete_on_isolated=True)
             readers_role.save()
@@ -203,7 +203,7 @@ class ProjectFolder(Folder):
         # Writersロールが無ければ作成する
         writers_role = self._find_writers_role()
         if writers_role is None:
-            from streamcat.store.factory import RoleFactory
+            from streamcat.store.finder import RoleFactory
             role_name = self.label[:8] + '_writers'
             writers_role = RoleFactory(self._session).create(role_name, delete_on_isolated=True)
             writers_role.save()
@@ -217,7 +217,7 @@ class ProjectFolder(Folder):
         # Ownersロールが無ければ作成する
         owners_role = self._find_owners_role()
         if owners_role is None:
-            from streamcat.store.factory import RoleFactory
+            from streamcat.store.finder import RoleFactory
             role_name = self.label[:8] + '_owners'
             owners_role = RoleFactory(self._session).create(role_name, delete_on_isolated=True)
             owners_role.save()

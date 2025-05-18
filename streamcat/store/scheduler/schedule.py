@@ -188,7 +188,7 @@ class Schedule(SavableDatum):
 
     def _valid_runnable_or_raise(self, runnable_uuid:str):
         # 存在しないrunnable_uuidが指定された場合は例外を送出する
-        from streamcat.store.factory import DatumFactory
+        from streamcat.store.finder import DatumFactory
         if not DatumFactory(self._session).exists(runnable_uuid):
             raise Exception(f'指定されたrunnable_uuid({runnable_uuid})は存在しません')
 
@@ -270,7 +270,7 @@ class Schedule(SavableDatum):
         from . import schedule_manager
 
         # 既にルートフォルダが存在する場合は、parent_id=NULLを許可しない
-        from streamcat.store.factory import DatumFactory
+        from streamcat.store.finder import DatumFactory
         if self.parent_id is None and DatumFactory(self._session).count_root() > 0:
             raise Exception('You can not add another root schedule. A root already exists.')
 
@@ -331,7 +331,7 @@ class Schedule(SavableDatum):
         ゴミ箱から戻された場合は、スケジューラに再登録する
         """
         from . import schedule_manager
-        from streamcat.store.factory import DatumFactory
+        from streamcat.store.finder import DatumFactory
         factory = DatumFactory(self._session)
         trash_folder = factory.load_trash_folder()
 

@@ -29,7 +29,7 @@ class Constraints():
             from streamcat.store import ProjectFolder
             if not isinstance(myself, ProjectFolder):
                 # Rootを取得する
-                from streamcat.store.factory import DatumFactory
+                from streamcat.store.finder import DatumFactory
                 root = DatumFactory(myself._session).load_root()
                 if parent_uuid == root.uuid:
                     raise Exception('プロジェクト以外のDatumは、Rootへ移動できません')
@@ -131,7 +131,7 @@ class Constraints():
             #  everyoneロールに所有権を付与する)
             # (everyoneがDatumの権限を自由に設定できてしまうが、
             #  Datumの権限を設定するAPIは用意していないので、問題にはならないだろう)
-            from streamcat.store.factory import RoleFactory
+            from streamcat.store.finder import RoleFactory
             everyone_role = RoleFactory(myself._session).load_everyone_role()
             everyone_role.init_authz(myself.id, True, True, exec=folder_or_flow, own=True)
 
@@ -174,7 +174,7 @@ class Constraints():
             writers_role.init_authz(cache.id, read=None, write=True, exec=None, own=True)
 
             # ユーザ管理者は全てのDatumの参照・更新・実行、及び権限の変更ができること
-            from streamcat.store.factory import RoleFactory
+            from streamcat.store.finder import RoleFactory
             usr_admin_role = RoleFactory(myflow._session).load_usr_admin_role()
             usr_admin_role.init_authz(cache.id, True, True, own=True)
 
@@ -226,7 +226,7 @@ class Constraints():
 
             # ユーザ管理者は全てのActivityの参照、及び権限の変更ができること
             # (フロー実行完了時にActivityを更新するため write=Trueに設定する)
-            from streamcat.store.factory import RoleFactory
+            from streamcat.store.finder import RoleFactory
             usr_admin_role = RoleFactory(activity._session).load_usr_admin_role()
             usr_admin_role.init_authz(activity.id, read=True, write=True, own=True)
 
@@ -269,7 +269,7 @@ class Constraints():
 
             # ユーザ管理者は全てのActivityの参照、及び権限の変更ができること
             # (write=Trueを解除する)
-            from streamcat.store.factory import RoleFactory
+            from streamcat.store.finder import RoleFactory
             usr_admin_role = RoleFactory(activity._session).load_usr_admin_role()
             usr_admin_role.init_authz(activity.id, read=True, write=None, own=None)
 
@@ -293,7 +293,7 @@ class Constraints():
             from .savable_datum import SavableDatum
             from streamcat.store import Folder, Flow
             from streamcat.store.auth import Role
-            from streamcat.store.factory import DatumFactory, RoleFactory, AuthFactory
+            from streamcat.store.finder import DatumFactory, RoleFactory, AuthFactory
 
             if func.__name__ != 'move':
                 raise Exception('このDecoratorはmove()以外をデコレートできません')
@@ -409,7 +409,7 @@ class Constraints():
         def wrapper(*args, **kwargs):
             from sqlalchemy.orm.exc import NoResultFound
             from .savable_datum import SavableDatum
-            from streamcat.store.factory import DatumFactory, RoleFactory, AuthFactory
+            from streamcat.store.finder import DatumFactory, RoleFactory, AuthFactory
 
             if func.__name__ != 'moved':
                 raise Exception('このDecoratorはmoved()以外をデコレートできません')
@@ -530,7 +530,7 @@ class Constraints():
             readers_role.init_authz(trashed_folder.id, read=True, write=None, exec=True)
 
             # ユーザ管理者は全てのDatumの参照・更新・実行、及び権限の変更ができること
-            from streamcat.store.factory import RoleFactory
+            from streamcat.store.finder import RoleFactory
             usr_admin_role = RoleFactory(trashed_folder._session).load_usr_admin_role()
             usr_admin_role.init_authz(trashed_folder.id, True, True, exec=True, own=True)
 
@@ -562,7 +562,7 @@ class Constraints():
             myself = args[0]
 
             # どのDatumにも紐づかないRole、かつ削除していいよフラグのあるRoleを取得する
-            from streamcat.store.factory import RoleFactory
+            from streamcat.store.finder import RoleFactory
             delete_roles = RoleFactory(myself._session).find_isolated(delete_on_isolated=True)
             
             # Roleから全てのユーザを外す

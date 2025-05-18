@@ -28,7 +28,7 @@ class TrashCan(Folder):
         """
         ゴミ箱を保存する
         """
-        from streamcat.store.factory import DatumFactory
+        from streamcat.store.finder import DatumFactory
         # 既にゴミ箱フォルダが存在する場合
         factory = DatumFactory(self._session)
         if factory.trashcan_exists():
