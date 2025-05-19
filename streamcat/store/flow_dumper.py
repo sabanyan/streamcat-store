@@ -3,11 +3,11 @@ from pathlib import Path
 from streamcat.core import SavableDatum
 
 class FlowDumper:
-    def __init__(self, factory):
+    def __init__(self, finder):
         # Finder
-        self.factory = factory
+        self.finder = finder
 
-        if not self.factory._session.has_usr_admin():
+        if not self.finder._session.has_usr_admin():
             raise Exception('ユーザー管理者以外は、フローのエクスポート/インポートはできません')
 
         # ルートフォルダはフォルダと区別して記録する
@@ -23,11 +23,11 @@ class FlowDumper:
 
         self.gathering_path.mkdir()
 
-        if self.factory.data.exists(uuid, type=SavableDatum.FLOW_TYPE):
-            archive_name = self.factory.data.find_by_uuid(uuid, type=SavableDatum.FLOW_TYPE).label
+        if self.finder.data.exists(uuid, type=SavableDatum.FLOW_TYPE):
+            archive_name = self.finder.data.find_by_uuid(uuid, type=SavableDatum.FLOW_TYPE).label
             self._get_flow(self.gathering_path, gathered_uuids, uuid)
-        elif self.factory.data.exists(uuid):
-            archive_name = self.factory.data.find_by_uuid(uuid).label
+        elif self.finder.data.exists(uuid):
+            archive_name = self.finder.data.find_by_uuid(uuid).label
             self._get_folder(self.gathering_path, gathered_uuids, uuid)
         else:
             raise Exception(f'指定された({uuid})のフォルダまたはフローが存在しませんでした')
@@ -44,7 +44,7 @@ class FlowDumper:
 
     def _get_folder(self, parent_tmp_path:Path, gathered_uuids:set, folder_uuid):
         from .folder import Folder
-        folder = self.factory.data.find_by_uuid(folder_uuid)
+        folder = self.finder.data.find_by_uuid(folder_uuid)
         if not isinstance(folder, Folder):
             raise Exception(f'{folder.label}はフォルダまたはプロジェクトではありません')
         children = folder.find_children()
@@ -74,8 +74,8 @@ class FlowDumper:
 
         # argsで指定されたUUIDのtypeを判定する
         for args_uuid in args_uuids:
-            if self.factory.data.exists(args_uuid):
-                datum = self.factory.data.find_by_uuid(args_uuid)
+            if self.finder.data.exists(args_uuid):
+                datum = self.finder.data.find_by_uuid(args_uuid)
                 # type別に振り分けて、次の処理に丸投げする
                 if datum.type == SavableDatum.FRAME_TYPE:
                     frame_uuids.append(datum.uuid)
@@ -90,7 +90,7 @@ class FlowDumper:
                 warnings.warn(f'Not Exists Datum : {args_uuid}')
 
         for frame_uuid in frame_uuids:
-            frame = self.factory.data.find_by_uuid(frame_uuid, type=SavableDatum.FRAME_TYPE)
+            frame = self.finder.data.find_by_uuid(frame_uuid, type=SavableDatum.FRAME_TYPE)
             if frame is None or not frame.file_exists:
                 # フレームファイルが存在しない場合はスキップする
                 warnings.warn(f'Not Exists file path : {frame._path}')
@@ -107,17 +107,17 @@ class FlowDumper:
             uuid_type_label.append((frame.uuid, frame.type, frame.label, 'False'))
 
         for store_uuid in store_uuids:
-            if self.factory.data.exists(store_uuid, type=SavableDatum.DATABASE_TYPE) or \
-               self.factory.data.exists(store_uuid, type=SavableDatum.RFOLDER_TYPE):
+            if self.finder.data.exists(store_uuid, type=SavableDatum.DATABASE_TYPE) or \
+               self.finder.data.exists(store_uuid, type=SavableDatum.RFOLDER_TYPE):
                 # データベースまたはリモートフォルダストアの場合
-                store = self.factory.data.find_by_uuid(store_uuid)
+                store = self.finder.data.find_by_uuid(store_uuid)
                 store_path = parent_tmp_path / (store.uuid + '.json')
                 with store_path.open('w') as f:
                     f.write(json.dumps(store.conn.to_json(), indent=2, ensure_ascii=False))
                 uuid_type_label.append((store.uuid, store.type, store.label, 'False'))
-            elif self.factory.data.exists(store_uuid, type=SavableDatum.FOLDER_TYPE):
+            elif self.finder.data.exists(store_uuid, type=SavableDatum.FOLDER_TYPE):
                 # フォルダの場合
-                store = self.factory.data.find_by_uuid(store_uuid)
+                store = self.finder.data.find_by_uuid(store_uuid)
                 store_path = parent_tmp_path / (store.uuid + '.json')
                 with store_path.open('w') as f:
                     # フォルダの場合は空ファイルを作成する
@@ -131,7 +131,7 @@ class FlowDumper:
 
         for flow_uuid in flow_uuids:
             # フローの場合
-            flow = self.factory.data.find_by_uuid(flow_uuid, type=SavableDatum.FLOW_TYPE)
+            flow = self.finder.data.find_by_uuid(flow_uuid, type=SavableDatum.FLOW_TYPE)
             flow_path = parent_tmp_path / (flow.uuid + '.json')
             with flow_path.open('w') as f:
                 f.write(json.dumps(flow.flow_data.to_json(), indent=2, ensure_ascii=False))
@@ -147,7 +147,7 @@ class FlowDumper:
         return gathered_uuids
 
     def _get_flows_and_frames(self, flow_uuid:str, exclude_uuids:set):
-        flow = self.factory.data.find_by_uuid(flow_uuid, type=SavableDatum.FLOW_TYPE)
+        flow = self.finder.data.find_by_uuid(flow_uuid, type=SavableDatum.FLOW_TYPE)
 
         args_uuids = flow.flow_data.get_args_uuids()
         src_frame_uuids = flow.flow_data.get_src_frame_uuids()
@@ -308,7 +308,7 @@ class FlowDumper:
                     folder.save()
                 elif datum_type == self.ROOT_TYPE:
                     # インポート先のルートフォルダのUUIDに変換する
-                    uuid_conv_table[file.stem] = self.factory.data.load_root().uuid
+                    uuid_conv_table[file.stem] = self.finder.data.load_root().uuid
                 elif datum_type == SavableDatum.FLOW_TYPE:
                     from .flow_data import FlowData
                     with file.open('r') as f:
@@ -327,7 +327,7 @@ class FlowDumper:
 
         # Flowの参照uuidを変更する
         for new_flow_uuid, flow_edit_lock in flow_uuids.values():
-            flow = self.factory.data.find_by_uuid(new_flow_uuid, type=SavableDatum.FLOW_TYPE)
+            flow = self.finder.data.find_by_uuid(new_flow_uuid, type=SavableDatum.FLOW_TYPE)
             flow.replace_uuids(uuid_conv_table)
             flow.update_data(flow.label, flow.flow_data)
             # 編集ロックを設定する

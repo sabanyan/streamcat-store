@@ -123,8 +123,8 @@ class Session():
 
 class AuthzSession(Session):
 
-    def __init__(self, session_factory, user):
-        super().__init__(session_factory, user)
+    def __init__(self, session_finder, user):
+        super().__init__(session_finder, user)
 
     @property
     def user(self):
@@ -502,8 +502,8 @@ class AuthzSession(Session):
             self_role.init_authz(obj.id, True, True, exec=folder_or_flow, own=True)
 
             # # usr_adminロールへ追加データの権限を付与する
-            # from streamcat.store.factory import RoleFactory
-            # usr_admin_role = RoleFactory(self).load_usr_admin_role()
+            # from streamcat.store.finder import RoleFinder
+            # usr_admin_role = RoleFinder(self).load_usr_admin_role()
             # usr_admin_role.init_authz(obj.id, True, True, exec=folder_or_flow)
 
         elif isinstance(obj, User):

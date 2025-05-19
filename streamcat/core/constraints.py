@@ -432,8 +432,8 @@ class Constraints():
                 # 自分のプロジェクトがない場合はプロジェクトロールを設定しない
                 my_project = None
 
-            datumFactory = DatumFinder(myflow._session)
-            to_folder = datumFactory.find_by_uuid(to_folder_uuid)
+            datumFinder = DatumFinder(myflow._session)
+            to_folder = datumFinder.find_by_uuid(to_folder_uuid)
 
             try:
                 # 移動先のプロジェクトを取得する
@@ -464,11 +464,11 @@ class Constraints():
                 usr_admin_role = RoleFinder(myflow._session).load_usr_admin_role()
                 for cache_uuid in myflow.flow_data.get_cache_frame_uuids():
                     # キャッシュが存在しない場合、キャッシュの権限設定は変更できない
-                    if not datumFactory.exists(cache_uuid):
+                    if not datumFinder.exists(cache_uuid):
                         continue
 
                     # キャッシュの所有権がない場合も、キャッシュの権限設定は変更できない
-                    cache = datumFactory.find_by_uuid(cache_uuid)
+                    cache = datumFinder.find_by_uuid(cache_uuid)
                     if not cache.ownership:
                         continue
 

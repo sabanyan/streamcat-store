@@ -85,8 +85,8 @@ class Folder(SavableStore):
         #     raise Exception('別のフローで使用しているため削除できませんでした')
 
         from streamcat.store.finder import DatumFinder
-        factory = DatumFinder(self._session)
-        trash_folder = factory.load_trash_folder()
+        finder = DatumFinder(self._session)
+        trash_folder = finder.load_trash_folder()
 
         thrown_count, obstacle_count, trashed_folder = self._throw_away_inner(trash_folder, self)
 

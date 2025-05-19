@@ -30,8 +30,8 @@ class TrashCan(Folder):
         """
         from streamcat.store.finder import DatumFinder
         # 既にゴミ箱フォルダが存在する場合
-        factory = DatumFinder(self._session)
-        if factory.trashcan_exists():
+        finder = DatumFinder(self._session)
+        if finder.trashcan_exists():
             raise Exception('You can not add trash can. A trash can already exists.')
         # ゴミ箱フォルダを保存する
         super().save()

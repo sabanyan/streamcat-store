@@ -448,16 +448,16 @@ class User(BaseModel):
         本人ロールを取得する
         """
         from streamcat.store.finder import RoleFinder
-        role_factory = RoleFinder(self._session)
+        role_finder = RoleFinder(self._session)
 
         if self.self_role_id is None:
             # 本人ロールを作成する
-            self_role = role_factory.create(self.name)
+            self_role = role_finder.create(self.name)
             self_role.save(for_self_role=True)
             # 本人ロールを設定する
             self.update_self_role_id(self_role.id)
         else:
-            self_role = role_factory.find_by_id(self.self_role_id)
+            self_role = role_finder.find_by_id(self.self_role_id)
 
         return self_role
 

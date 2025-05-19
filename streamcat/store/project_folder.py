@@ -49,8 +49,8 @@ class ProjectFolder(Folder):
         プロジェクトは移動できない
         """
         from streamcat.store.finder import DatumFinder
-        factory = DatumFinder(self._session)
-        trash_folder = factory.load_trash_folder()
+        finder = DatumFinder(self._session)
+        trash_folder = finder.load_trash_folder()
 
         if parent_uuid==trash_folder.uuid or prev_parent_id==trash_folder.id:
             # ゴミ箱へほかされる、またはゴミ箱から戻される場合

@@ -63,7 +63,7 @@ class DumpTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         flow.save()
 
         # Dumpコマンドを実行する
-        outs = DumpCommand().run({'datum_factory': self.finder0.data}, {})
+        outs = DumpCommand().run({'datum_finder': self.finder0.data}, {})
 
         print(outs)
 

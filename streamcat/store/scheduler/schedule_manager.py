@@ -29,12 +29,12 @@ class ScheduleManager():
         # スケジューラを起動する
         self.scheduler.start()
 
-    def load_from_library(self, datumFactory):
+    def load_from_library(self, datumFinder):
         """
         ライブラリにある全てのスケジュールをスケジューラに登録する
         """
         # ゴミ箱の中を除く全てのスケジュールを取得する
-        schedules = datumFactory.find_all(type=SavableDatum.SCHEDULE_TYPE, except_trash=True)
+        schedules = datumFinder.find_all(type=SavableDatum.SCHEDULE_TYPE, except_trash=True)
         for schedule in schedules:
             if not self.contains(schedule.uuid):
                 try:
@@ -49,13 +49,13 @@ class ScheduleManager():
         """
         スケジューラにスケジュールを登録する
         """
-        # スケジュール起動時に、その処理内でFactoryを作成する(トランザクションを開く)必要がある
+        # スケジュール起動時に、その処理内でFinderを作成する(トランザクションを開く)必要がある
         async def run(args:dict, inputs:dict):
             from streamcat.store.finder import UnAuthzFinder
             # Scheduleの作成者の権限でrunnableを実行する
-            async with UnAuthzFinder() as ufactory:
-                factory = await ufactory.create_authz_finder(user=schedule.creator)
-                runnable = factory.data.find_by_uuid(schedule.runnable_uuid)
+            async with UnAuthzFinder() as ufinder:
+                finder = await ufinder.create_authz_finder(user=schedule.creator)
+                runnable = finder.data.find_by_uuid(schedule.runnable_uuid)
                 if runnable.type == SavableDatum.FLOW_TYPE:
                     # TODO: streamcat-storeとstreamcat-engineの循環参照になってしまう
                     # Flowはengineへ引っ越した方がいいのだろうか?

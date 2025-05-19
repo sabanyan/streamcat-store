@@ -289,10 +289,10 @@ class SavableDatum(Datum, BaseModel):
         (save()後に行うとreadableを設定できる)
         """
         from streamcat.store.finder import DatumFinder
-        factory = DatumFinder(self._session)
+        finder = DatumFinder(self._session)
         # Sessionにあるself._permissionsを期限切れ状態にしてDBからリロードされるようにする
-        factory._session._session.expire(self, ['_permissions'])
-        return factory.find_by_id(self.id)
+        finder._session._session.expire(self, ['_permissions'])
+        return finder.find_by_id(self.id)
 
     def update_label(self, label, modifier=None):
         """
@@ -477,8 +477,8 @@ class SavableDatum(Datum, BaseModel):
             raise Exception(f"このファイルはフロー({using_flow_uuids[0]['reference_label']})で使用しているため削除できません")
 
         from streamcat.store.finder import DatumFinder
-        factory = DatumFinder(self._session)
-        trash_folder = factory.load_trash_folder()
+        finder = DatumFinder(self._session)
+        trash_folder = finder.load_trash_folder()
         return self.move(trash_folder.uuid)
 
     def put_back(self):
@@ -519,12 +519,12 @@ class SavableDatum(Datum, BaseModel):
                 if datum.prev_parent_id is None:
                     raise Exception(f'このDatum({datum.label})は移動したことがありません')
 
-                factory = DatumFinder(self._session)
-                prev_parent_uuid = factory.find_by_id(datum.prev_parent_id).uuid
+                finder = DatumFinder(self._session)
+                prev_parent_uuid = finder.find_by_id(datum.prev_parent_id).uuid
 
-                if not factory.exists(prev_parent_uuid):
+                if not finder.exists(prev_parent_uuid):
                     raise Exception('戻り先フォルダが削除されたため移動できません')
-                elif factory.trashed(prev_parent_uuid):
+                elif finder.trashed(prev_parent_uuid):
                     raise Exception('戻り先フォルダがゴミ箱の中なので移動できません')
 
                 # 戻り先フォルダに移動する

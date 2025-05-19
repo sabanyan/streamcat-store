@@ -99,8 +99,8 @@ class Activity(SavableDatum):
         (テスト用)
         """
         from streamcat.store.finder import DatumFinder
-        factory = DatumFinder(self._session)
-        trash_folder = factory.load_trash_folder()
+        finder = DatumFinder(self._session)
+        trash_folder = finder.load_trash_folder()
 
         try:
             return self.move(trash_folder.uuid)

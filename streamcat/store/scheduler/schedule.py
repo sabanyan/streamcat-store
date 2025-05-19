@@ -332,8 +332,8 @@ class Schedule(SavableDatum):
         """
         from . import schedule_manager
         from streamcat.store.finder import DatumFinder
-        factory = DatumFinder(self._session)
-        trash_folder = factory.load_trash_folder()
+        finder = DatumFinder(self._session)
+        trash_folder = finder.load_trash_folder()
 
         if parent_uuid == trash_folder.uuid:
             # ゴミ箱へほかされた場合は、スケジューラから削除する
