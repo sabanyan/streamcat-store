@@ -48,8 +48,8 @@ class ProjectFolder(Folder):
         ゴミ箱へほかされるか、ゴミ箱から元の場所に戻す場合を除いて
         プロジェクトは移動できない
         """
-        from streamcat.store.finder import DatumFactory
-        factory = DatumFactory(self._session)
+        from streamcat.store.finder import DatumFinder
+        factory = DatumFinder(self._session)
         trash_folder = factory.load_trash_folder()
 
         if parent_uuid==trash_folder.uuid or prev_parent_id==trash_folder.id:
@@ -75,8 +75,8 @@ class ProjectFolder(Folder):
         # ユーザ管理者は全てのDatumの参照・更新・実行、及び権限の変更ができること
         # (ProjectにRWXO権限を付与することでこれを実現する)
         # (ユーザ管理者をプロジェクト管理者から外すことはできない)
-        from streamcat.store.finder import RoleFactory
-        usr_admin_role = RoleFactory(self._session).load_usr_admin_role()
+        from streamcat.store.finder import RoleFinder
+        usr_admin_role = RoleFinder(self._session).load_usr_admin_role()
         usr_admin_role.init_authz(self.id, True, True, exec=True, own=True)
 
         # プロジェクトロールを作成する
@@ -189,9 +189,9 @@ class ProjectFolder(Folder):
         # Readersロールが無ければ作成する
         readers_role = self._find_readers_role()
         if readers_role is None:
-            from streamcat.store.finder import RoleFactory
+            from streamcat.store.finder import RoleFinder
             role_name = self.label[:8] + '_readers'
-            readers_role = RoleFactory(self._session).create(role_name, delete_on_isolated=True)
+            readers_role = RoleFinder(self._session).create(role_name, delete_on_isolated=True)
             readers_role.save()
             readers_role.init_authz(self.id, read=True, write=None, exec=True)
         return readers_role
@@ -203,9 +203,9 @@ class ProjectFolder(Folder):
         # Writersロールが無ければ作成する
         writers_role = self._find_writers_role()
         if writers_role is None:
-            from streamcat.store.finder import RoleFactory
+            from streamcat.store.finder import RoleFinder
             role_name = self.label[:8] + '_writers'
-            writers_role = RoleFactory(self._session).create(role_name, delete_on_isolated=True)
+            writers_role = RoleFinder(self._session).create(role_name, delete_on_isolated=True)
             writers_role.save()
             writers_role.init_authz(self.id, read=None, write=True, exec=None)
         return writers_role
@@ -217,9 +217,9 @@ class ProjectFolder(Folder):
         # Ownersロールが無ければ作成する
         owners_role = self._find_owners_role()
         if owners_role is None:
-            from streamcat.store.finder import RoleFactory
+            from streamcat.store.finder import RoleFinder
             role_name = self.label[:8] + '_owners'
-            owners_role = RoleFactory(self._session).create(role_name, delete_on_isolated=True)
+            owners_role = RoleFinder(self._session).create(role_name, delete_on_isolated=True)
             owners_role.save()
             owners_role.init_authz(self.id, read=None, write=None, exec=None, own=True)
         return owners_role

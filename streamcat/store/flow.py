@@ -65,8 +65,8 @@ class Flow(SavableDatum):
         Flowを保存する
         """
         # 既にルートフォルダが存在する場合は、parent_id=NULLを許可しない
-        from streamcat.store.finder import DatumFactory
-        if self.parent_id is None and DatumFactory(self._session).count_root() > 0:
+        from streamcat.store.finder import DatumFinder
+        if self.parent_id is None and DatumFinder(self._session).count_root() > 0:
             raise Exception('You can not add another root flow. A root already exists.')
 
         # 
@@ -215,8 +215,8 @@ class Flow(SavableDatum):
         if len(using_flow_uuids) > 0:
             raise Exception(f"このフローは別のフロー({using_flow_uuids[0]['reference_label']})で使用しているため削除できません")
 
-        from streamcat.store.finder import DatumFactory
-        factory = DatumFactory(self._session)
+        from streamcat.store.finder import DatumFinder
+        factory = DatumFinder(self._session)
         trash_folder = factory.load_trash_folder()
 
         try:
@@ -282,9 +282,9 @@ class Flow(SavableDatum):
 
         # フロー間でキャッシュを共有すると、キャッシュ削除操作により不整合が発生する
         # そのためフローを複製する時はキャッシュも複製する
-        from streamcat.store.finder import DatumFactory
+        from streamcat.store.finder import DatumFinder
         for cache_uuid in new_flow.flow_data.get_cache_frame_uuids():
-            factory = DatumFactory(self._session)
+            factory = DatumFinder(self._session)
             if not factory.exists(cache_uuid):
                 continue
             cache = factory.find_by_uuid(cache_uuid)
@@ -300,10 +300,10 @@ class Flow(SavableDatum):
         """
         編集ロックの値を取得する
         """
-        from streamcat.store.finder import RoleFactory, AuthFactory
+        from streamcat.store.finder import RoleFinder, AuthFinder
         from streamcat.store.auth import Auth
-        role_factory = RoleFactory(self._session)
-        auth_factory = AuthFactory(self._session)
+        role_factory = RoleFinder(self._session)
+        auth_factory = AuthFinder(self._session)
         edit_lock_role = role_factory.load_edit_lock_role()
 
         if auth_factory.exists(edit_lock_role.id, self.id, Auth.WRITE_OP):
@@ -333,8 +333,8 @@ class Flow(SavableDatum):
         elif not self.writable_without_edit_lock:
             raise NotAuthorizedException(f'({self._session.user.name})は{self.label}の編集ロックの更新権限がありません')
 
-        from streamcat.store.finder import RoleFactory
-        factory = RoleFactory(self._session)
+        from streamcat.store.finder import RoleFinder
+        factory = RoleFinder(self._session)
         edit_lock_role = factory.load_edit_lock_role()
         # write=Falseでedit_lock_roleに参加する全てのユーザはこのフローの更新権限を失う
         edit_lock_value = not value and None
@@ -345,8 +345,8 @@ class Flow(SavableDatum):
         self.reload()
 
     def valid_uuids_in_flowdata_or_raise(self):
-        from streamcat.store.finder import DatumFactory
-        factory = DatumFactory(self._session)
+        from streamcat.store.finder import DatumFinder
+        factory = DatumFinder(self._session)
         # 参照するフレームがゴミ箱に存在しないことを確認する
         # (ignore_authz=True: ノードUUIDのマスキングをしない)
         for frame_uuid in self.flow_data.get_src_frame_uuids(ignore_authz=True):

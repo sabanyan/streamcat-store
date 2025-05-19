@@ -188,16 +188,16 @@ class Schedule(SavableDatum):
 
     def _valid_runnable_or_raise(self, runnable_uuid:str):
         # 存在しないrunnable_uuidが指定された場合は例外を送出する
-        from streamcat.store.finder import DatumFactory
-        if not DatumFactory(self._session).exists(runnable_uuid):
+        from streamcat.store.finder import DatumFinder
+        if not DatumFinder(self._session).exists(runnable_uuid):
             raise Exception(f'指定されたrunnable_uuid({runnable_uuid})は存在しません')
 
         # ゴミ箱にほかしたrunnable_uuidが指定された場合は例外を送出する
-        if DatumFactory(self._session).trashed(runnable_uuid):
+        if DatumFinder(self._session).trashed(runnable_uuid):
             raise Exception(f'ゴミ箱にほかされたrunnable_uuid({runnable_uuid})は指定できません')
 
         # 参照権限が無いrunnable_uuidが指定された場合は例外を送出する
-        DatumFactory(self._session).find_by_uuid(runnable_uuid)
+        DatumFinder(self._session).find_by_uuid(runnable_uuid)
 
     def _valid_trigger_json_or_raise(self, trigger:dict):
         """
@@ -270,8 +270,8 @@ class Schedule(SavableDatum):
         from . import schedule_manager
 
         # 既にルートフォルダが存在する場合は、parent_id=NULLを許可しない
-        from streamcat.store.finder import DatumFactory
-        if self.parent_id is None and DatumFactory(self._session).count_root() > 0:
+        from streamcat.store.finder import DatumFinder
+        if self.parent_id is None and DatumFinder(self._session).count_root() > 0:
             raise Exception('You can not add another root schedule. A root already exists.')
 
         try:
@@ -331,8 +331,8 @@ class Schedule(SavableDatum):
         ゴミ箱から戻された場合は、スケジューラに再登録する
         """
         from . import schedule_manager
-        from streamcat.store.finder import DatumFactory
-        factory = DatumFactory(self._session)
+        from streamcat.store.finder import DatumFinder
+        factory = DatumFinder(self._session)
         trash_folder = factory.load_trash_folder()
 
         if parent_uuid == trash_folder.uuid:

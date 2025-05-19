@@ -39,8 +39,8 @@ class File(SavableDatum):
         Fileを保存する
         """
         # 既にルートフォルダが存在する場合は、parent_id=NULLを許可しない
-        from streamcat.store.finder import DatumFactory
-        if self.parent_id is None and DatumFactory(self._session).count_root() > 0:
+        from streamcat.store.finder import DatumFinder
+        if self.parent_id is None and DatumFinder(self._session).count_root() > 0:
             raise Exception('You can not add another root file. A root already exists.')
 
         if file_path is None:

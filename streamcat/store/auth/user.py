@@ -211,16 +211,16 @@ class User(BaseModel):
         # everyoneロールに所属させる
         # (everyoneロールの作成者であるユーザ管理者のみがユーザを追加できる)
         from .role import Role
-        from ..finder import RoleFactory
-        everyone_role = RoleFactory(self._session).load_everyone_role()
+        from ..finder import RoleFinder
+        everyone_role = RoleFinder(self._session).load_everyone_role()
         everyone_role.join_member(Role.Member(self, False))
 
     def _join_edit_lock_role(self):
         # edit_lockロールに所属させる
         # (edit_lockロールの作成者であるユーザ管理者のみがユーザを追加できる)
         from .role import Role
-        from ..finder import RoleFactory
-        edit_lock_role = RoleFactory(self._session).load_edit_lock_role()
+        from ..finder import RoleFinder
+        edit_lock_role = RoleFinder(self._session).load_edit_lock_role()
         edit_lock_role.join_member(Role.Member(self, False))
 
     @property
@@ -377,9 +377,9 @@ class User(BaseModel):
         # 仮登録Userで、本人ロールと(everyoneとedit_lockを除く)自分が属するロールが存在していなければ物理削除する
         if self.is_init_or_temp and self.self_role_id is None:
             from .role import Role
-            from streamcat.store.finder import UserRoleFactory
+            from streamcat.store.finder import UserRoleFinder
             except_role_uuids = [Role.EVERYONE_ROLE_UUID, Role.EDIT_LOCK_ROLE_UUID]
-            user_roles = UserRoleFactory(self._session).find_all_by_user_id(self.id, except_role_uuids)
+            user_roles = UserRoleFinder(self._session).find_all_by_user_id(self.id, except_role_uuids)
 
             # everyoneとedit_lock以外の所属ロールが無ければ、Userを物理削除する
             if len(user_roles) == 0:
@@ -447,8 +447,8 @@ class User(BaseModel):
         """
         本人ロールを取得する
         """
-        from streamcat.store.finder import RoleFactory
-        role_factory = RoleFactory(self._session)
+        from streamcat.store.finder import RoleFinder
+        role_factory = RoleFinder(self._session)
 
         if self.self_role_id is None:
             # 本人ロールを作成する

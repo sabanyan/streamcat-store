@@ -29,8 +29,8 @@ class Constraints():
             from streamcat.store import ProjectFolder
             if not isinstance(myself, ProjectFolder):
                 # Rootを取得する
-                from streamcat.store.finder import DatumFactory
-                root = DatumFactory(myself._session).load_root()
+                from streamcat.store.finder import DatumFinder
+                root = DatumFinder(myself._session).load_root()
                 if parent_uuid == root.uuid:
                     raise Exception('プロジェクト以外のDatumは、Rootへ移動できません')
 
@@ -131,8 +131,8 @@ class Constraints():
             #  everyoneロールに所有権を付与する)
             # (everyoneがDatumの権限を自由に設定できてしまうが、
             #  Datumの権限を設定するAPIは用意していないので、問題にはならないだろう)
-            from streamcat.store.finder import RoleFactory
-            everyone_role = RoleFactory(myself._session).load_everyone_role()
+            from streamcat.store.finder import RoleFinder
+            everyone_role = RoleFinder(myself._session).load_everyone_role()
             everyone_role.init_authz(myself.id, True, True, exec=folder_or_flow, own=True)
 
             # 本人ロールから追加データの権限を削除する
@@ -174,12 +174,12 @@ class Constraints():
             writers_role.init_authz(cache.id, read=None, write=True, exec=None, own=True)
 
             # ユーザ管理者は全てのDatumの参照・更新・実行、及び権限の変更ができること
-            from streamcat.store.finder import RoleFactory
-            usr_admin_role = RoleFactory(myflow._session).load_usr_admin_role()
+            from streamcat.store.finder import RoleFinder
+            usr_admin_role = RoleFinder(myflow._session).load_usr_admin_role()
             usr_admin_role.init_authz(cache.id, True, True, own=True)
 
             # everyoneロールからキャッシュの権限を全て削除する
-            everyone_role = RoleFactory(myflow._session).load_everyone_role()
+            everyone_role = RoleFinder(myflow._session).load_everyone_role()
             everyone_role.clear_authz(cache.id)
 
             # 本人ロールからキャッシュの権限を削除する
@@ -226,8 +226,8 @@ class Constraints():
 
             # ユーザ管理者は全てのActivityの参照、及び権限の変更ができること
             # (フロー実行完了時にActivityを更新するため write=Trueに設定する)
-            from streamcat.store.finder import RoleFactory
-            usr_admin_role = RoleFactory(activity._session).load_usr_admin_role()
+            from streamcat.store.finder import RoleFinder
+            usr_admin_role = RoleFinder(activity._session).load_usr_admin_role()
             usr_admin_role.init_authz(activity.id, read=True, write=True, own=True)
 
             # 本人ロールからActiviyの権限を削除する
@@ -269,8 +269,8 @@ class Constraints():
 
             # ユーザ管理者は全てのActivityの参照、及び権限の変更ができること
             # (write=Trueを解除する)
-            from streamcat.store.finder import RoleFactory
-            usr_admin_role = RoleFactory(activity._session).load_usr_admin_role()
+            from streamcat.store.finder import RoleFinder
+            usr_admin_role = RoleFinder(activity._session).load_usr_admin_role()
             usr_admin_role.init_authz(activity.id, read=True, write=None, own=None)
 
             # Activityにプロジェクトロールを設定する
@@ -293,7 +293,7 @@ class Constraints():
             from .savable_datum import SavableDatum
             from streamcat.store import Folder, Flow
             from streamcat.store.auth import Role
-            from streamcat.store.finder import DatumFactory, RoleFactory, AuthFactory
+            from streamcat.store.finder import DatumFinder, RoleFinder, AuthFinder
 
             if func.__name__ != 'move':
                 raise Exception('このDecoratorはmove()以外をデコレートできません')
@@ -314,7 +314,7 @@ class Constraints():
                 # 自分のプロジェクトがない場合はプロジェクトロールを設定しない
                 my_project = None
 
-            to_folder = DatumFactory(myself._session).find_by_uuid(to_folder_uuid)
+            to_folder = DatumFinder(myself._session).find_by_uuid(to_folder_uuid)
 
             try:
                 # 移動先のプロジェクトを取得する
@@ -336,13 +336,13 @@ class Constraints():
 
                 # ユーザ管理者は全てのDatumの参照・更新・実行、及び権限の変更ができること
                 # (everyoneロールの更新権限を削除するとユーザ管理者は移動処理ができないので、移動処理の前に行う)
-                usr_admin_role = RoleFactory(myself._session).load_usr_admin_role()
+                usr_admin_role = RoleFinder(myself._session).load_usr_admin_role()
                 usr_admin_role.init_authz(myself.id, True, True, exec=folder_or_flow, own=True)
 
                 # everyoneロールからDatumの所有権以外を全て削除する
                 # (移動処理とeveryoneロールの削除の間隙に全ユーザから丸見えになるので、移動処理の前に行う)
                 # (移動処理の失敗時に権限設定を戻せるよう所有権はTrueのままにしておく)
-                everyone_role = RoleFactory(myself._session).load_everyone_role()
+                everyone_role = RoleFinder(myself._session).load_everyone_role()
                 everyone_role.init_authz(myself.id, None, None, exec=None, own=True)
 
                 try:
@@ -376,12 +376,12 @@ class Constraints():
                 folder_or_flow = isinstance(myself, Folder) or isinstance(myself, Flow) or None
 
                 # everyoneロールへ権限を付与する
-                everyone_role = RoleFactory(myself._session).load_everyone_role()
+                everyone_role = RoleFinder(myself._session).load_everyone_role()
                 everyone_role.init_authz(myself.id, True, True, exec=folder_or_flow, own=True)
 
                 # everyoneロールとedit_lock_role以外の全ての権限を削除する
                 except_role_uuids = [Role.EVERYONE_ROLE_UUID, Role.EDIT_LOCK_ROLE_UUID]
-                AuthFactory(myself._session).delete_all_by_datum_id(myself.id, except_role_uuids=except_role_uuids)
+                AuthFinder(myself._session).delete_all_by_datum_id(myself.id, except_role_uuids=except_role_uuids)
 
                 return result
 
@@ -409,7 +409,7 @@ class Constraints():
         def wrapper(*args, **kwargs):
             from sqlalchemy.orm.exc import NoResultFound
             from .savable_datum import SavableDatum
-            from streamcat.store.finder import DatumFactory, RoleFactory, AuthFactory
+            from streamcat.store.finder import DatumFinder, RoleFinder, AuthFinder
 
             if func.__name__ != 'moved':
                 raise Exception('このDecoratorはmoved()以外をデコレートできません')
@@ -427,12 +427,12 @@ class Constraints():
 
             try:
                 # 自分のプロジェクトを取得する
-                my_project = DatumFactory(myflow._session).find_my_project(from_folder_id)
+                my_project = DatumFinder(myflow._session).find_my_project(from_folder_id)
             except NoResultFound:
                 # 自分のプロジェクトがない場合はプロジェクトロールを設定しない
                 my_project = None
 
-            datumFactory = DatumFactory(myflow._session)
+            datumFactory = DatumFinder(myflow._session)
             to_folder = datumFactory.find_by_uuid(to_folder_uuid)
 
             try:
@@ -461,7 +461,7 @@ class Constraints():
                 # フローに紐づく全てのキャッシュの権限設定を変更する
                 readers_role = to_project._load_readers_role()
                 writers_role = to_project._load_writers_role()
-                usr_admin_role = RoleFactory(myflow._session).load_usr_admin_role()
+                usr_admin_role = RoleFinder(myflow._session).load_usr_admin_role()
                 for cache_uuid in myflow.flow_data.get_cache_frame_uuids():
                     # キャッシュが存在しない場合、キャッシュの権限設定は変更できない
                     if not datumFactory.exists(cache_uuid):
@@ -481,7 +481,7 @@ class Constraints():
 
                     # ここで新たに設定したプロジェクトロールとユーザ管理者ロール以外の全ての権限を削除する
                     except_role_uuids = [readers_role.uuid, writers_role.uuid, usr_admin_role.uuid]
-                    AuthFactory(myflow._session).delete_all_by_datum_id(cache.id, except_role_uuids=except_role_uuids)
+                    AuthFinder(myflow._session).delete_all_by_datum_id(cache.id, except_role_uuids=except_role_uuids)
 
                 return result
 
@@ -530,8 +530,8 @@ class Constraints():
             readers_role.init_authz(trashed_folder.id, read=True, write=None, exec=True)
 
             # ユーザ管理者は全てのDatumの参照・更新・実行、及び権限の変更ができること
-            from streamcat.store.finder import RoleFactory
-            usr_admin_role = RoleFactory(trashed_folder._session).load_usr_admin_role()
+            from streamcat.store.finder import RoleFinder
+            usr_admin_role = RoleFinder(trashed_folder._session).load_usr_admin_role()
             usr_admin_role.init_authz(trashed_folder.id, True, True, exec=True, own=True)
 
             # 本人ロールから形代フォルダの権限を削除する
@@ -562,8 +562,8 @@ class Constraints():
             myself = args[0]
 
             # どのDatumにも紐づかないRole、かつ削除していいよフラグのあるRoleを取得する
-            from streamcat.store.finder import RoleFactory
-            delete_roles = RoleFactory(myself._session).find_isolated(delete_on_isolated=True)
+            from streamcat.store.finder import RoleFinder
+            delete_roles = RoleFinder(myself._session).find_isolated(delete_on_isolated=True)
             
             # Roleから全てのユーザを外す
             for delete_role in delete_roles:

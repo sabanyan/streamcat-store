@@ -1,7 +1,7 @@
 import pprint
 import logging
 from asyncio import AbstractEventLoop
-from streamcat.store.finder import UnAuthzFactory, init_admin_users
+from streamcat.store.finder import UnAuthzFinder, init_admin_users
 
 class TestCaseBase():
     # 非同期処理を実行するためのイベントループ
@@ -20,7 +20,7 @@ class TestCaseBase():
         await init_admin_users()
 
         # ユーザ管理者を取得する
-        async with UnAuthzFactory() as ufactory:
+        async with UnAuthzFinder() as ufactory:
             sys_admin_user = await ufactory.find_user_by_email('Admin@streamcat.io')
             usr_admin_user = await ufactory.find_user_by_email('admin@streamcat.io')
 
@@ -77,7 +77,7 @@ class TestCaseBase():
         cls.USER3._session.close()
 
         # ライブラリフォルダを削除する
-        async with UnAuthzFactory() as ufactory:
+        async with UnAuthzFinder() as ufactory:
             import shutil
             factory = await ufactory.create_authz_factory(cls.USER1)
             library_path = factory.data.load_root().path
@@ -180,10 +180,10 @@ class TestCaseBase():
 
     async def asyncSetUp(self) -> None:
         # テスト実行ごとにトランザクションを設定する
-        self.factory0 = await UnAuthzFactory().create_authz_factory(self.USER0)
-        self.factory = await UnAuthzFactory().create_authz_factory(self.USER1)
-        self.factory2 = await UnAuthzFactory().create_authz_factory(self.USER2)
-        self.factory3 = await UnAuthzFactory().create_authz_factory(self.USER3)
+        self.factory0 = await UnAuthzFinder().create_authz_factory(self.USER0)
+        self.factory = await UnAuthzFinder().create_authz_factory(self.USER1)
+        self.factory2 = await UnAuthzFinder().create_authz_factory(self.USER2)
+        self.factory3 = await UnAuthzFinder().create_authz_factory(self.USER3)
 
     async def asyncTearDown(self) -> None:
         # FactoryをCloseする

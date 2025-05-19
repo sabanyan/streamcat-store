@@ -1,12 +1,12 @@
 from .finder import (
-    Factory,
-    UnAuthzFactory,
-    DatumFactory,
-    StoreFactory,
-    AuthFactory,
-    RoleFactory,
-    UserRoleFactory,
-    UserFactory
+    Finder,
+    UnAuthzFinder,
+    DatumFinder,
+    StoreFinder,
+    AuthFinder,
+    RoleFinder,
+    UserRoleFinder,
+    UserFinder
 )
 
 # 
@@ -16,7 +16,7 @@ from streamcat.core import BaseModel, engine
 BaseModel.metadata.create_all(bind=engine, checkfirst=True)
 
 async def init_admin_users():
-    async with UnAuthzFactory() as ufactory:
+    async with UnAuthzFinder() as ufactory:
         from streamcat.store.auth import Role
 
         # システム管理者とユーザ管理者を作成する
