@@ -4,7 +4,7 @@ from streamcat.core import SavableDatum
 
 class FlowDumper:
     def __init__(self, factory):
-        # Factory
+        # Finder
         self.factory = factory
 
         if not self.factory._session.has_usr_admin():

@@ -28,7 +28,7 @@ class MoveTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         フォルダを移動する
         """
         # ルートデータストアを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         # ルートデータストアの直下にフォルダを作成する
         folder = root.create_folder('フォルダ001')
         folder.save()
@@ -99,7 +99,7 @@ class MoveTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         フォルダを移動できない場合を検証する
         """
         # ルートデータストアを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         # ルートデータストアの直下にフォルダを作成する
         folder_src = root.create_folder('フォルダSRC_AB')
         folder_src.save()
@@ -141,7 +141,7 @@ class MoveTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         """
         try:
             # ルートデータストアを取得する
-            root = self.factory.data.load_root()
+            root = self.finder.data.load_root()
             # ルートデータストアの直下にフォルダを作成する
             from_folder = root.create_folder('フォルダAABB')
             from_folder.save()
@@ -197,7 +197,7 @@ class MoveTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         """
         try:
             # ルートデータストアを取得する
-            root = self.factory.data.load_root()
+            root = self.finder.data.load_root()
             # ルートデータストアの直下にフォルダを作成する
             to_folder = root.create_folder('フォルダaabbcc')
             to_folder.save()
@@ -240,7 +240,7 @@ class MoveTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         フローを移動する
         """
         # ルートデータストアを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         # ルートデータストアの直下にフォルダを作成する
         folder = root.create_folder('フォルダ002')
         folder.save()
@@ -297,7 +297,7 @@ class MoveTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         フローを移動できない場合を検証する
         """
         # ルートデータストアを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         # ルートデータストアの直下にフローを作成する
         flow_json = {
             'projectId': 1,
@@ -344,7 +344,7 @@ class MoveTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         フレームを移動する
         """
         # ルートデータストアを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         # ルートデータストアの直下にフォルダを作成する
         folder = root.create_folder('フォルダ003')
         folder.save()
@@ -401,7 +401,7 @@ class MoveTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         (異動先に同じファイル・ラベル名がある場合)
         """
         # ルートデータストアを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         # ルートデータストアの直下にフォルダを作成する
         folder = root.create_folder('フォルダ004')
         folder.save()
@@ -465,7 +465,7 @@ class MoveTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         フレームを移動できない場合を検証する
         """
         # ルートデータストアを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         # ルートデータストアの直下にフォルダを作成する
         folder_src = root.create_folder('フォルダSRC_AD')
         folder_src.save()
@@ -511,7 +511,7 @@ class MoveTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         ファイル名にエスケープ文字が含まれるFrameを含むフォルダを移動できること
         """
         # ルートフォルダを取得する
-        root = self.factory3.data.load_root()
+        root = self.finder3.data.load_root()
 
         # ルートフォルダの下にプロジェクト1を作成する
         project1 = root.create_project_folder('京橋')
@@ -540,7 +540,7 @@ class MoveTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         frame2.reload()
 
         # 作成を確定する
-        self.factory3.end()
+        self.finder3.end()
 
         # フォルダ1を移動する
         folder1.move(project2.uuid)
@@ -574,7 +574,7 @@ class MoveTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         マウント状態のリモートフォルダを移動できないこと
         """
         # ルートフォルダを取得する
-        root = self.factory3.data.load_root()
+        root = self.finder3.data.load_root()
 
         # ルートフォルダの下にプロジェクト1を作成する
         project1 = root.create_project_folder('あいうえお')
@@ -590,7 +590,7 @@ class MoveTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         remote_folder.reload()
 
         # 作成を確定する
-        self.factory3.end()
+        self.finder3.end()
 
         # 
         # pathを参照してリモートフォルダをマウントする
@@ -614,7 +614,7 @@ class MoveTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         self.assertEqual(remote_folder.created_at, remote_folder.modified_at)
 
         # 移動を確定する
-        self.factory3.end()
+        self.finder3.end()
 
         # 
         # マウントを解除する
@@ -647,7 +647,7 @@ class MoveTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         複製したFrameのうち片方を移動すると、対応する実ファイルも移動されること
         """
         # ルートフォルダを取得する
-        root = self.factory3.data.load_root()
+        root = self.finder3.data.load_root()
 
         # ルートフォルダの下にプロジェクト1を作成する
         project1 = root.create_project_folder('丹波橋')
@@ -671,7 +671,7 @@ class MoveTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         duplicated_frame.reload()
 
         # 作成を確定する
-        self.factory3.end()
+        self.finder3.end()
 
         # 複製したFrameと元のFrameに対応するファイルは同じであること
         # (Frameを複製しても対応するファイルは共有する)
@@ -711,7 +711,7 @@ class MoveTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         複製したリモートフォルダのうち片方を移動しても、リモートフォルダに対応するファイルは移動されないこと
         """
         # ルートフォルダを取得する
-        root = self.factory3.data.load_root()
+        root = self.finder3.data.load_root()
 
         # ルートフォルダの下にプロジェクト1を作成する
         project1 = root.create_project_folder('PRJ1')
@@ -730,7 +730,7 @@ class MoveTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         duplicated_remote_folder.reload()
 
         # 作成を確定する
-        self.factory3.end()
+        self.finder3.end()
 
         # 複製したリモートフォルダと元のリモートフォルダに対応するファイルは異なること
         # (リモートフォルダを複製すると対応する実ディレクトリを新たに作成する)
@@ -761,7 +761,7 @@ class MoveTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         Frameを含むフォルダを移動すると、対応する実ファイルも移動されること
         """
         # ルートフォルダを取得する
-        root = self.factory3.data.load_root()
+        root = self.finder3.data.load_root()
 
         # ルートフォルダの下にプロジェクト1を作成する
         project1 = root.create_project_folder('枚方市')
@@ -791,7 +791,7 @@ class MoveTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         frame3.reload()
 
         # 作成を確定する
-        self.factory3.end()
+        self.finder3.end()
 
         # フォルダを移動する
         folder.move(project2.uuid)
@@ -819,7 +819,7 @@ class MoveTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         Document,Folderを含むフォルダを移動すると、対応する実ファイルも移動されること
         """
         # ルートフォルダを取得する
-        root = self.factory3.data.load_root()
+        root = self.finder3.data.load_root()
 
         # ルートフォルダの下にプロジェクト1を作成する
         project1 = root.create_project_folder('京橋')
@@ -846,7 +846,7 @@ class MoveTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         document2.save()
 
         # 作成を確定する
-        self.factory3.end()
+        self.finder3.end()
 
         # フォルダを移動する
         folder.move(project2.uuid)
@@ -874,7 +874,7 @@ class MoveTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         リモートフォルダを含むフォルダは移動できないこと
         """
         # ルートフォルダを取得する
-        root = self.factory3.data.load_root()
+        root = self.finder3.data.load_root()
 
         # ルートフォルダの下にプロジェクト1を作成する
         project1 = root.create_project_folder('京橋')
@@ -893,7 +893,7 @@ class MoveTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         remote_folder.save()
 
         # 作成を確定する
-        self.factory3.end()
+        self.finder3.end()
 
         # 作成直後のリモートフォルダのマウントは解除状態であること
         self.assertFalse(Mountable.is_mount(remote_folder._path))
@@ -909,7 +909,7 @@ class MoveTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
             folder.move(project2.uuid)
 
         # ロールバックを確定する
-        self.factory3.end()
+        self.finder3.end()
 
         # フォルダの移動によって実ディレクトリが移動されないこと
         self.assertEqual(folder.path, root.path / '京橋' / '香里園')
@@ -932,7 +932,7 @@ class MoveTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         フォルダを自身の内部フォルダに移動できないこと
         """
         # ルートフォルダを取得する
-        root = self.factory3.data.load_root()
+        root = self.finder3.data.load_root()
 
         # ルートフォルダの下にプロジェクトを作成する
         project = root.create_project_folder('寝屋川市')
@@ -951,7 +951,7 @@ class MoveTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         sub_folder.save()
 
         # 作成を確定する
-        self.factory3.end()
+        self.finder3.end()
 
         # フォルダを自身の内部フォルダに移動できないこと
         with self.assertRaises(Exception):
@@ -959,7 +959,7 @@ class MoveTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
             folder.move(sub_folder.uuid)
 
         # ロールバックを確定する
-        self.factory3.end()
+        self.finder3.end()
 
         # ロールバック後に参照権限の値が消えるので、ここで再取得する
         root.reload()
@@ -1000,7 +1000,7 @@ class MoveTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         Frameをフォルダごと移動した後にFrameを削除できること
         """
         # ルートフォルダを取得する
-        root = self.factory2.data.load_root()
+        root = self.finder2.data.load_root()
 
         # ルートフォルダの下にプロジェクトAを作成する
         project_a = root.create_project_folder('PRJ_A')
@@ -1027,7 +1027,7 @@ class MoveTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         self.assertEqual(folder.parent_id, project_b.id)
 
         # 変更を確定する
-        self.factory2.end()
+        self.finder2.end()
 
         # 
         # フレームを削除する
@@ -1047,7 +1047,7 @@ class MoveTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         フォルダをプロジェクトごと移動した後にフォルダを削除できること
         """
         # ルートフォルダを取得する
-        root = self.factory2.data.load_root()
+        root = self.finder2.data.load_root()
 
         # ルートフォルダの下にプロジェクトAを作成する
         project_a = root.create_project_folder('PRJ_A')
@@ -1074,7 +1074,7 @@ class MoveTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         self.assertEqual(folder.parent_id, project_b.id)
 
         # 変更を確定する
-        self.factory2.end()
+        self.finder2.end()
 
         # 
         # サブフォルダを削除する
@@ -1094,7 +1094,7 @@ class MoveTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         リモートフォルダをプロジェクトごと移動した後にリモートフォルダを削除できること
         """
         # ルートフォルダを取得する
-        root = self.factory2.data.load_root()
+        root = self.finder2.data.load_root()
 
         # ルートフォルダの下にプロジェクトAを作成する
         project_a = root.create_project_folder('PRJ_A')
@@ -1121,7 +1121,7 @@ class MoveTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         self.assertEqual(folder.parent_id, project_b.id)
 
         # 変更を確定する
-        self.factory2.end()
+        self.finder2.end()
 
         # 
         # リモートフォルダを削除する

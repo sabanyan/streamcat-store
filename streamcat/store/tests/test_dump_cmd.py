@@ -36,7 +36,7 @@ class DumpTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         "LOCK TABLE can only be used in transaction blocks"の例外が送出される。原因不明
         """
         # ルートを取得する
-        root = self.factory2.data.load_root()
+        root = self.finder2.data.load_root()
 
         # プロジェクトを作成する
         project = root.create_project_folder('徳川家康')
@@ -63,7 +63,7 @@ class DumpTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         flow.save()
 
         # Dumpコマンドを実行する
-        outs = DumpCommand().run({'datum_factory': self.factory0.data}, {})
+        outs = DumpCommand().run({'datum_factory': self.finder0.data}, {})
 
         print(outs)
 

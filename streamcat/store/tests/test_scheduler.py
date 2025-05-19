@@ -77,7 +77,7 @@ class SchedulerTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         スケジュールの登録と取得と解除
         """
         # ルートデータストアを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
 
         # ルートデータストアの下にプロジェクト1を作成する
         project1 = root.create_project_folder('プロジェクト1')
@@ -96,7 +96,7 @@ class SchedulerTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         schedule.save()
 
         # 作成したスケジュールを取得する
-        schedule = self.factory.data.find_by_uuid(schedule.uuid)
+        schedule = self.finder.data.find_by_uuid(schedule.uuid)
 
         # 取得したスケジュールの値を検証する
         self.assertIsNotNone(schedule.id)
@@ -124,7 +124,7 @@ class SchedulerTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         スケジュールの登録と取得と解除
         """
         # ルートデータストアを取得する
-        root = self.factory2.data.load_root()
+        root = self.finder2.data.load_root()
 
         # ルートデータストアの下にプロジェクト1を作成する
         project1 = root.create_project_folder('プロジェクト1')
@@ -150,10 +150,10 @@ class SchedulerTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         schedule.save()
 
         # 作成を確定する
-        self.factory2.end()
+        self.finder2.end()
 
         # 作成したスケジュールを取得する
-        schedule = self.factory.data.find_by_uuid(schedule.uuid)
+        schedule = self.finder.data.find_by_uuid(schedule.uuid)
 
         # 取得したスケジュールの値を検証する
         self.assertIsNotNone(schedule.id)
@@ -174,7 +174,7 @@ class SchedulerTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         # プロジェクトを削除する
         schedule.delete()
         # 削除を確定する
-        self.factory.end()
+        self.finder.end()
 
         # フローとプロジェクトを削除する
         flow.delete()
@@ -185,7 +185,7 @@ class SchedulerTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         スケジュールの登録と取得と解除
         """
         # ルートデータストアを取得する
-        root = self.factory3.data.load_root()
+        root = self.finder3.data.load_root()
 
         # ルートデータストアの下にプロジェクト1を作成する
         project1 = root.create_project_folder('プロジェクト1')
@@ -214,10 +214,10 @@ class SchedulerTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         schedule.save()
 
         # 作成を確定する
-        self.factory3.end()
+        self.finder3.end()
 
         # 作成したスケジュールを取得する
-        schedule = self.factory.data.find_by_uuid(schedule.uuid)
+        schedule = self.finder.data.find_by_uuid(schedule.uuid)
 
         # 取得したスケジュールの値を検証する
         self.assertIsNotNone(schedule.id)
@@ -238,7 +238,7 @@ class SchedulerTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         # プロジェクトを削除する
         schedule.delete()
         # 削除を確定する
-        self.factory.end()
+        self.finder.end()
 
         # フローとプロジェクトを削除する
         flow.delete()
@@ -249,7 +249,7 @@ class SchedulerTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         スケジュールのラベルを変更する
         """
         # ルートデータストアを取得する
-        root = self.factory0.data.load_root()
+        root = self.finder0.data.load_root()
 
         # ルートデータストアの下にプロジェクト1を作成する
         project1 = root.create_project_folder('プロジェクト1')
@@ -271,10 +271,10 @@ class SchedulerTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         schedule.update_label('一度限りですよ', self.USER1)
 
         # 変更を確定する
-        self.factory0.end()
+        self.finder0.end()
 
         # 変更したスケジュールを取得する
-        updated = self.factory.data.find_by_id(schedule.id)
+        updated = self.finder.data.find_by_id(schedule.id)
 
         # ラベルのみが変更されることを検証する
         self.assertEqual(updated.id, schedule.id)
@@ -302,7 +302,7 @@ class SchedulerTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         スケジュールを変更する
         """
         # ルートデータストアを取得する
-        root = self.factory0.data.load_root()
+        root = self.finder0.data.load_root()
 
         # ルートデータストアの下にプロジェクト1を作成する
         project1 = root.create_project_folder('プロジェクト1')
@@ -336,10 +336,10 @@ class SchedulerTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         schedule.update_data('変更後のスケジュール', flow2.uuid, args2, inputs2, trigger2, self.USER1, schedule.modified_at)
 
         # 変更を確定する
-        self.factory0.end()
+        self.finder0.end()
 
         # 変更したスケジュールを取得する
-        updated = self.factory.data.find_by_id(schedule.id)
+        updated = self.finder.data.find_by_id(schedule.id)
 
         # 変更されることを検証する
         self.assertEqual(updated.id, schedule.id)
@@ -372,7 +372,7 @@ class SchedulerTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         スケジュールを移動する
         """
         # ルートデータストアを取得する
-        root = self.factory0.data.load_root()
+        root = self.finder0.data.load_root()
 
         # ルートデータストアの下にプロジェクト1を作成する
         project1 = root.create_project_folder('プロジェクト1')
@@ -439,7 +439,7 @@ class SchedulerTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         存在しないフローのUUIDでスケジュールを作成できないこと
         """
         # ルートデータストアを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
 
         # ルートデータストアの下にプロジェクト1を作成する
         project1 = root.create_project_folder('プロジェクト1')
@@ -466,7 +466,7 @@ class SchedulerTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         参照権限が無いフローのUUIDでスケジュールを作成できないこと
         """
         # ルートデータストアを取得する
-        root = self.factory2.data.load_root()
+        root = self.finder2.data.load_root()
 
         # ルートデータストアの下にプロジェクト1を作成する
         project1 = root.create_project_folder('プロジェクト1')
@@ -501,7 +501,7 @@ class SchedulerTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         ゴミ箱に捨てたフローのUUIDでスケジュールを登録できないこと
         """
         # ルートデータストアを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
 
         # ルートデータストアの下にプロジェクト1を作成する
         project1 = root.create_project_folder('プロジェクト1')
@@ -530,7 +530,7 @@ class SchedulerTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         from streamcat.store.scheduler import schedule_manager
 
         # ルートデータストアを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
 
         # ルートデータストアの下にプロジェクト1を作成する
         project1 = root.create_project_folder('プロジェクト1')
@@ -570,7 +570,7 @@ class SchedulerTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         from streamcat.store.scheduler import schedule_manager
 
         # ルートフォルダを取得する
-        root = self.factory2.data.load_root()
+        root = self.finder2.data.load_root()
 
         # ルートフォルダの下にプロジェクト1を作成する
         project1 = root.create_project_folder('プロジェクト1')
@@ -603,7 +603,7 @@ class SchedulerTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         moved_folder = folder.throw_away()
 
         # ゴミ箱を取得する
-        trashcan = self.factory2.data.load_trash_folder()
+        trashcan = self.finder2.data.load_trash_folder()
 
         # 移動後のフォルダを検証する
         # parent_id, path, modifierが変更されることを検証する
@@ -640,7 +640,7 @@ class SchedulerTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         project1.throw_away()
 
         # ゴミ箱を空にする
-        self.factory2.data.find_trashcan().trash_all()
+        self.finder2.data.find_trashcan().trash_all()
 
 
     async def test_trash_scheduled_flow(self):
@@ -648,7 +648,7 @@ class SchedulerTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         スケジュールされたフローはゴミ箱に捨てられないこと
         """
         # ルートデータストアを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
 
         # ルートデータストアの下にプロジェクト1を作成する
         project1 = root.create_project_folder('プロジェクト1')

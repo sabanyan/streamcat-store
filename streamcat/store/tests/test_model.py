@@ -36,45 +36,45 @@ class LibraryTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         # documentレコードをDBに格納する
         new_frame.save(file_path=path)
         # save()によりreadable=Noneになるため再取得する
-        return self.factory.data.find_by_uuid(new_frame.uuid)
+        return self.finder.data.find_by_uuid(new_frame.uuid)
 
     def save2_frame(self, parent, label, stream):
         new_frame = parent.create_frame(label, stream)
         # documentレコードをDBに格納する
         new_frame.save()
         # save()によりreadable=Noneになるため再取得する
-        return self.factory.data.find_by_uuid(new_frame.uuid)
+        return self.finder.data.find_by_uuid(new_frame.uuid)
 
     def save_folder(self, parent, label):
         new_folder = parent.create_folder(label)
         new_folder.save()
         # save()によりreadable=Noneになるため再取得する
-        return self.factory.data.find_by_uuid(new_folder.uuid)
+        return self.finder.data.find_by_uuid(new_folder.uuid)
 
     def save_rfolder(self, parent, label, conn):
         new_folder = parent.create_remote_folder(label, conn)
         new_folder.save()
         # save()によりreadable=Noneになるため再取得する
-        return self.factory.data.find_by_uuid(new_folder.uuid)
+        return self.finder.data.find_by_uuid(new_folder.uuid)
 
     def save_flow(self, parent, label, flow_json):
         from streamcat.store import FlowData
         new_flow = parent.create_flow(label, FlowData(flow_json))
         new_flow.save()
         # save()によりreadable=Noneになるため再取得する
-        return self.factory.data.find_by_uuid(new_flow.uuid)
+        return self.finder.data.find_by_uuid(new_flow.uuid)
 
 
     async def test_save_and_load(self):
         # ルートデータストアを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         # フレームデータを格納するファイルを作成する
         frame_file_path = root.path / str(uuid.uuid4())
         self.save(frame_file_path)
         # 指定したファイルをフレームとしてライブラリに登録する
         new_frame = self.save_frame(root, 'テストフレーム', frame_file_path)
         # 登録したフレームを取得する
-        saved_frame = self.factory.data.find_by_uuid(new_frame.uuid)
+        saved_frame = self.finder.data.find_by_uuid(new_frame.uuid)
         # 作成したフレームを削除する
         saved_frame.delete()
 
@@ -83,7 +83,7 @@ class LibraryTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         ルートフォルダを取得する
         """
         # ルートデータストアを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         # 取得したルートデータストアの値を検証する
         self.assertIsNotNone(root.id)
         self.assertIsNone(root.parent_id)
@@ -101,9 +101,9 @@ class LibraryTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         フォルダを取得する
         """
         # ルートデータストアを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         # ルートデータストアをフォルダとして取得する
-        folder = self.factory.data.find_by_uuid(root.uuid, type=SavableDatum.FOLDER_TYPE)
+        folder = self.finder.data.find_by_uuid(root.uuid, type=SavableDatum.FOLDER_TYPE)
         # 取得したフォルダの値を検証する
         self.assertIsNotNone(folder.id)
         self.assertIsNone(folder.parent_id)
@@ -121,7 +121,7 @@ class LibraryTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         フォルダのラベルを変更する
         """
         # ルートデータストアを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         # ルートデータストアの直下にフォルダを作成する
         folder = self.save_folder(root, 'フォルダ0')
         # 作成したフォルダのラベルを変更する
@@ -145,21 +145,21 @@ class LibraryTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         フォルダを自身の中に移動できないこと
         """
         # ルートデータストアを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         # ルートデータストアの直下にフォルダ1を作成する
         folder1 = self.save_folder(root, 'Apple')
         # フォルダ1の直下にフォルダ2を作成する
         folder2 = self.save_folder(folder1, 'iMac')
 
         # 作成を確定する
-        self.factory.end()
+        self.finder.end()
 
         # 移動先に、移動元のフォルダの子フォルダを指定したら例外を送出すること
         with self.assertRaises(OSError):
             folder1.move(folder2.uuid)
 
         # Rollbackを確定する
-        self.factory.end()
+        self.finder.end()
 
         # 移動が失敗した場合はDBは更新されていないこと
         self.assertEqual(folder1.created_at, folder1.modified_at)
@@ -180,7 +180,7 @@ class LibraryTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         フォルダを作成する
         """
         # ルートデータストアを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         # ルートデータストアの直下にフォルダを作成する
         folder = self.save_folder(root, 'フォルダ')
         # 作成したフォルダの値を検証する
@@ -206,7 +206,7 @@ class LibraryTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         """
         try:
             # ルートデータストアを取得する
-            root = self.factory.data.load_root()
+            root = self.finder.data.load_root()
             # ルートデータストアの直下にリモートフォルダを作成する
             conn = RemoteFolderConn(self.conn_json)
             folder = self.save_rfolder(root, 'リモートフォルダ', conn)
@@ -232,7 +232,7 @@ class LibraryTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         """
         try:
             # ルートデータストアを取得する
-            root = self.factory.data.load_root()
+            root = self.finder.data.load_root()
             # ルートデータストアの直下にリモートフォルダを作成する
             conn = RemoteFolderConn(self.conn_json)
             folder = self.save_rfolder(root, 'リモートフォルダ2', conn)
@@ -262,14 +262,14 @@ class LibraryTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         """
         try:
             # ルートデータストアを取得する
-            root = self.factory.data.load_root()
+            root = self.finder.data.load_root()
             # ルートデータストアの直下にAWS S3フォルダを作成する
             folder = root.create_awss3('S3フォルダ1', 'streamcat-test')
             folder.save()
             folder.reload()
 
             # 作成したAWS S3フォルダを取得する
-            self.factory.data.find_by_uuid(folder.uuid)
+            self.finder.data.find_by_uuid(folder.uuid)
 
             # 取得したフォルダの値を検証する
             self.assertIsNotNone(folder.id)
@@ -293,7 +293,7 @@ class LibraryTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         """
         try:
             # ルートデータストアを取得する
-            root = self.factory.data.load_root()
+            root = self.finder.data.load_root()
             # ルートデータストアの直下にAWS S3フォルダを作成する
             folder = root.create_awss3('S3フォルダ2', 'streamcat-test')
             folder.save()
@@ -324,7 +324,7 @@ class LibraryTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         """
         try:
             # ルートデータストアを取得する
-            root = self.factory.data.load_root()
+            root = self.finder.data.load_root()
             # ルートデータストアの直下にAWS S3フォルダを作成する
             folder = root.create_awss3('S3フォルダ3', 'streamcat-test')
             folder.save()
@@ -353,14 +353,14 @@ class LibraryTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         フレームを取得する
         """
         # ルートデータストアを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         root_path = root.path
         # フレームデータを格納するファイルを作成する
         self.save(root_path / 'aaaa.csv')
         # ルートデータストアの直下にフレームを作成する
         frame = self.save_frame(root, 'フレームデータ', root_path / 'aaaa.csv')
         # 作成したフレームを取得する
-        frame = self.factory.data.find_by_uuid(frame.uuid)
+        frame = self.finder.data.find_by_uuid(frame.uuid)
         # 作成したフレームの値を検証する
         self.assertIsNotNone(frame.id)
         self.assertEqual(frame.parent_id, root.id)
@@ -382,7 +382,7 @@ class LibraryTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         フレームのラベルを変更する
         """
         # ルートデータストアを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         root_path = root.path
         # フレームデータを格納するファイルを作成する
         self.save(root_path / 'aaaa1.csv')
@@ -409,7 +409,7 @@ class LibraryTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         フレームを追加する
         """
         # ルートデータストアを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         root_path = root.path
         # フレームデータを格納するファイルを作成する
         self.save(root_path / 'aaaa2.csv')
@@ -436,7 +436,7 @@ class LibraryTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         フレームを作成する
         """
         # ルートデータストアを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         root_path = root.path
         # フレームデータを格納するファイルを作成する
         self.save(root_path / 'aaaa3.csv')
@@ -468,7 +468,7 @@ class LibraryTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         フローを取得する
         """
         # ルートデータストアを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         root_path = root.path
         # フレームデータを格納するファイルを作成する
         self.save(root_path / 'frame_for_flow.csv')
@@ -497,7 +497,7 @@ class LibraryTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         # ルートデータストアの直下にフローを作成する
         flow = self.save_flow(root, 'フロー', flow_json)
         # 作成したフローを取得する
-        flow = self.factory.data.find_by_uuid(flow.uuid)
+        flow = self.finder.data.find_by_uuid(flow.uuid)
         # 作成したフローの値を検証する
         self.assertIsNotNone(flow.id)
         self.assertEqual(flow.parent_id, root.id)
@@ -522,7 +522,7 @@ class LibraryTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         フローを変更する
         """
         # ルートデータストアを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         root_path = root.path
         # フレームデータを格納するファイルを作成する
         self.save(root_path / 'frame_for_flow2.csv')
@@ -588,7 +588,7 @@ class LibraryTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         フローを追加する
         """
         # ルートデータストアを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         # フローデータを作成する
         flow_json = {
             'projectId': 1,
@@ -625,14 +625,14 @@ class LibraryTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         存在しないDatumを取得しようとすると例外を送出する
         """
         with self.assertRaises(Exception) as e:
-            self.factory.data.find_by_uuid('00000000-0000-0000-0000-000000000000')
+            self.finder.data.find_by_uuid('00000000-0000-0000-0000-000000000000')
 
     async def test_update_to_illigal_folder_name(self):
         """
         '/'や'\0'を含むディレクトリパスは、それぞれ'／'と''に変換される
         """
         # ルートデータストアを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         # ルートデータストアの直下にフォルダを作成する
         folder = self.save_folder(root, 'フォルダB')
         # 作成したフォルダのラベルを変更する
@@ -656,7 +656,7 @@ class LibraryTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         何れか一つのフレームのラベル名を変更しても、不整合は発生しない
         """
         # ルートデータストアを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         root_path = root.path
         # フレームデータを格納するファイルを作成する
         self.save(root_path / 'abc.csv')
@@ -681,7 +681,7 @@ class LibraryTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         3つのフレームでCSVファイル名が重複した場合は、異なるCSVファイル名が使われる
         """
         # ルートデータストアを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         root_path = root.path
         # フレームデータを格納するファイルを作成する
         self.save(root_path / 'bar.csv')

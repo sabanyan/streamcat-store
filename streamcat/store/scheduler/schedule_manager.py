@@ -54,7 +54,7 @@ class ScheduleManager():
             from streamcat.store.finder import UnAuthzFinder
             # Scheduleの作成者の権限でrunnableを実行する
             async with UnAuthzFinder() as ufactory:
-                factory = await ufactory.create_authz_factory(user=schedule.creator)
+                factory = await ufactory.create_authz_finder(user=schedule.creator)
                 runnable = factory.data.find_by_uuid(schedule.runnable_uuid)
                 if runnable.type == SavableDatum.FLOW_TYPE:
                     # TODO: streamcat-storeとstreamcat-engineの循環参照になってしまう

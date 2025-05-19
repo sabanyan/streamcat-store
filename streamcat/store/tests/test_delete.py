@@ -335,7 +335,7 @@ class DelTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         フローから参照されているDatumは削除できないこと
         """
         # ルートフォルダを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
 
         # ルートフォルダの下にプロジェクトを作成する
         project = root.create_project_folder('WW1')
@@ -442,7 +442,7 @@ class DelTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         参照元フローと参照先Datumをフォルダ丸ごと一緒に削除できること
         """
         # ルートフォルダを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
 
         # ルートフォルダの下にプロジェクトを作成する
         project = root.create_project_folder('シュリーフェンプラン')
@@ -491,7 +491,7 @@ class DelTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         project.throw_away()
 
         # ゴミ箱を空にできること
-        trashcan = self.factory.data.load_trash_folder()
+        trashcan = self.finder.data.load_trash_folder()
         trashcan.trash_all()
 
     async def test_trash_remote_folder_in_folder(self):
@@ -499,7 +499,7 @@ class DelTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         マウント状態のリモートフォルダを含むフォルダをゴミ箱に捨てるとマウントが解除されること
         """
         # ルートフォルダを取得する
-        root = self.factory3.data.load_root()
+        root = self.finder3.data.load_root()
 
         # ルートフォルダの下にプロジェクトを作成する
         project = root.create_project_folder('私のプロジェクト')
@@ -519,7 +519,7 @@ class DelTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         remote_folder.reload()
 
         # 作成を確定する
-        self.factory3.end()
+        self.finder3.end()
 
         # 
         # pathを参照してリモートフォルダをマウントする
@@ -533,7 +533,7 @@ class DelTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         folder.throw_away()
 
         # リモートフォルダがゴミ箱にほかされていること
-        self.assertTrue(self.factory3.data.trashed(remote_folder.uuid))
+        self.assertTrue(self.finder3.data.trashed(remote_folder.uuid))
         # マウントが解除されていること
         self.assertFalse(Mountable.is_mount(remote_folder._path))
         self.assertEqual(remote_folder._path, root.path/'ゴミ箱'/'私のフォルダ'/'私のサブフォルダ'/'私のリモートフォルダ')
@@ -547,7 +547,7 @@ class DelTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         folder.put_back()
 
         # リモートフォルダがゴミ箱に存在しないこと
-        self.assertFalse(self.factory3.data.trashed(remote_folder.uuid))
+        self.assertFalse(self.finder3.data.trashed(remote_folder.uuid))
         # マウントは解除状態のままであること
         self.assertFalse(Mountable.is_mount(remote_folder._path))
         self.assertEqual(remote_folder._path, root.path/'私のプロジェクト'/'私のフォルダ'/'私のサブフォルダ'/'私のリモートフォルダ')
@@ -568,7 +568,7 @@ class DelTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         フレームを内包するフォルダを削除しようとすると例外を送出する
         """
         # ルートデータストアを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         root_path = root.path
 
         # ルートデータストアの直下にフォルダを作成する
@@ -596,7 +596,7 @@ class DelTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         何れか一つのフレームを削除しても、CSVファイルは削除されない
         """
         # ルートデータストアを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         root_path = root.path
 
         # フレームデータを格納するファイルを作成する

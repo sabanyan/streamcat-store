@@ -14,7 +14,7 @@ class DatumTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         folder_pathプロパティはライブラリにおける階層パスを返すこと
         """
         # ルートフォルダを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
 
         # ルートフォルダの下にフォルダ1を作成する
         folder1 = root.create_folder('テストフォルダ1')
@@ -29,7 +29,7 @@ class DatumTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         self.assertEqual(folder1.folder_path, '/' + root.label)
 
         # フォルダ1をリロードする
-        folder1 = self.factory.data.find_by_uuid(folder1.uuid, folder_path=True)
+        folder1 = self.finder.data.find_by_uuid(folder1.uuid, folder_path=True)
 
         # folder_pathの値を取得できること
         self.assertEqual(folder1.folder_path, '/' + root.label)
@@ -63,7 +63,7 @@ class DatumTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         更新権限のないDatumを含むフォルダは移動できる
         """
         # ルートフォルダを取得する
-        root = self.factory2.data.load_root()
+        root = self.finder2.data.load_root()
 
         # ルートフォルダの下にプロジェクト1を作成する
         project1 = root.create_project_folder('P1')
@@ -95,7 +95,7 @@ class DatumTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         database = database.reload()
 
         # データベースの権限を全て削除する
-        self.factory.auth.delete_all_by_datum_id(database.id)
+        self.finder.auth.delete_all_by_datum_id(database.id)
 
         # フォルダをプロジェクト2の下に移動する
         moved_folder = folder.move(project2.uuid, modifier=self.USER3)
@@ -127,14 +127,14 @@ class DatumTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         project2.throw_away()
 
         # ゴミ箱を空にする
-        self.factory.data.find_trashcan().trash_all()
+        self.finder.data.find_trashcan().trash_all()
 
     async def test_move_flow_in_folder(self):
         """
         フローを含むフォルダを移動する
         """
         # ルートフォルダを取得する
-        root = self.factory2.data.load_root()
+        root = self.finder2.data.load_root()
 
         # ルートフォルダの下にプロジェクト1を作成する
         project1 = root.create_project_folder('MIHOミュージアム')
@@ -196,14 +196,14 @@ class DatumTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         project2.throw_away()
 
         # ゴミ箱を空にする
-        self.factory2.data.find_trashcan().trash_all()
+        self.finder2.data.find_trashcan().trash_all()
 
     async def test_move_frame_in_folder(self):
         """
         フレームを含むフォルダを移動する
         """
         # ルートフォルダを取得する
-        root = self.factory2.data.load_root()
+        root = self.finder2.data.load_root()
 
         # ルートフォルダの下にプロジェクト1を作成する
         project1 = root.create_project_folder('ベニテングタケ')
@@ -258,14 +258,14 @@ class DatumTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         project2.throw_away()
 
         # ゴミ箱を空にする
-        self.factory2.data.find_trashcan().trash_all()
+        self.finder2.data.find_trashcan().trash_all()
 
     async def test_move_schedule_in_folder(self):
         """
         スケジュールを含むフォルダを移動する
         """
         # ルートフォルダを取得する
-        root = self.factory2.data.load_root()
+        root = self.finder2.data.load_root()
 
         # ルートフォルダの下にプロジェクト1を作成する
         project1 = root.create_project_folder('姫路城')
@@ -326,4 +326,4 @@ class DatumTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         project2.throw_away()
 
         # ゴミ箱を空にする
-        self.factory2.data.find_trashcan().trash_all()
+        self.finder2.data.find_trashcan().trash_all()

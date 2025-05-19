@@ -22,9 +22,9 @@ class UnAuthzFinder():
         # セッションを保持する
         self._session = Session(session_maker(), user=None)
 
-    async def create_authz_factory(self, user:User):
+    async def create_authz_finder(self, user:User):
         """
-        Factoryを生成する
+        Finderを生成する
         """
         return Finder(self._session._session, user)
 
@@ -43,28 +43,28 @@ class UnAuthzFinder():
         SYS_ADMIN_USER_EMAIL = 'Admin@streamcat.io'
         SYS_ADMIN_USER_NAME = 'システム管理者'
 
-        user_factory = UserFinder(self._session)
-        role_factory = RoleFinder(self._session)
+        user_finder = UserFinder(self._session)
+        role_finder = RoleFinder(self._session)
 
         # 管理者ユーザが存在する場合は、それを返す
-        if user_factory.exists_by_email(SYS_ADMIN_USER_EMAIL, except_states=[User.INACTIVE_STATE]):
-            return user_factory.find_by_email(SYS_ADMIN_USER_EMAIL, except_states=[User.INACTIVE_STATE])
+        if user_finder.exists_by_email(SYS_ADMIN_USER_EMAIL, except_states=[User.INACTIVE_STATE]):
+            return user_finder.find_by_email(SYS_ADMIN_USER_EMAIL, except_states=[User.INACTIVE_STATE])
 
         # 管理者ロールが存在する場合は、そのロールの中でidが最も小さいユーザを取得する
-        if role_factory.exists(Role.SYS_ADMIN_ROLE_UUID):
-            sys_admin_role = role_factory.find_by_uuid(Role.SYS_ADMIN_ROLE_UUID)
+        if role_finder.exists(Role.SYS_ADMIN_ROLE_UUID):
+            sys_admin_role = role_finder.find_by_uuid(Role.SYS_ADMIN_ROLE_UUID)
             joined_users = sys_admin_role.get_joined_users(except_states=[User.INACTIVE_STATE])
             if len(joined_users) > 0:
                 return joined_users[0]
 
         # デフォルトの管理者ユーザが論理削除されている場合は、そのまま返すか、登録状態に戻して返す
-        if user_factory.exists_by_email(SYS_ADMIN_USER_EMAIL):
-            sys_admin_user = user_factory.find_by_email(SYS_ADMIN_USER_EMAIL)
+        if user_finder.exists_by_email(SYS_ADMIN_USER_EMAIL):
+            sys_admin_user = user_finder.find_by_email(SYS_ADMIN_USER_EMAIL)
             activate_if_inactive and sys_admin_user.put_back()
             return sys_admin_user
 
         # 管理者ロールが無い場合は、デフォルトの管理者ユーザを作成する
-        sys_admin_user = user_factory.create(SYS_ADMIN_USER_EMAIL, SYS_ADMIN_USER_NAME, 'adminpass0')
+        sys_admin_user = user_finder.create(SYS_ADMIN_USER_EMAIL, SYS_ADMIN_USER_NAME, 'adminpass0')
         sys_admin_user.save()
         return sys_admin_user
 
@@ -77,24 +77,24 @@ class UnAuthzFinder():
         USR_ADMIN_USER_EMAIL = 'admin@streamcat.io'
         USR_ADMIN_USER_NAME = 'ユーザー管理者'
 
-        user_factory = UserFinder(self._session)
-        role_factory = RoleFinder(self._session)
+        user_finder = UserFinder(self._session)
+        role_finder = RoleFinder(self._session)
 
-        if user_factory.exists_by_email(USR_ADMIN_USER_EMAIL, except_states=[User.INACTIVE_STATE]):
-            return user_factory.find_by_email(USR_ADMIN_USER_EMAIL, except_states=[User.INACTIVE_STATE])
+        if user_finder.exists_by_email(USR_ADMIN_USER_EMAIL, except_states=[User.INACTIVE_STATE]):
+            return user_finder.find_by_email(USR_ADMIN_USER_EMAIL, except_states=[User.INACTIVE_STATE])
 
-        if role_factory.exists(Role.USR_ADMIN_ROLE_UUID):
-            usr_admin_role = role_factory.find_by_uuid(Role.USR_ADMIN_ROLE_UUID)
+        if role_finder.exists(Role.USR_ADMIN_ROLE_UUID):
+            usr_admin_role = role_finder.find_by_uuid(Role.USR_ADMIN_ROLE_UUID)
             joined_users = usr_admin_role.get_joined_users(except_states=[User.INACTIVE_STATE])
             if len(joined_users) > 0:
                 return joined_users[0]
 
-        if user_factory.exists_by_email(USR_ADMIN_USER_EMAIL):
-            usr_admin_user = user_factory.find_by_email(USR_ADMIN_USER_EMAIL)
+        if user_finder.exists_by_email(USR_ADMIN_USER_EMAIL):
+            usr_admin_user = user_finder.find_by_email(USR_ADMIN_USER_EMAIL)
             activate_if_inactive and usr_admin_user.put_back()
             return usr_admin_user
 
-        usr_admin_user = user_factory.create(USR_ADMIN_USER_EMAIL, USR_ADMIN_USER_NAME, 'adminpass0')
+        usr_admin_user = user_finder.create(USR_ADMIN_USER_EMAIL, USR_ADMIN_USER_NAME, 'adminpass0')
         usr_admin_user.save()
         return usr_admin_user
 
@@ -121,7 +121,7 @@ class Finder():
         # NOTE: AuthzSession.userが循環参照になっているが問題にはならないだろう
         self._session._user._session = AuthzSession(sqlalchemy_session, self._session._user)
 
-        # 各Factoryを保持する
+        # 各Finderを保持する
         self._data = DatumFinder(self._session)
         self._store = StoreFinder(self._session)
         self._auth = AuthFinder(self._session)
@@ -934,11 +934,11 @@ class UserFinder():
         OpenID Connectのアクセストークンからユーザを取得する
         ユーザが存在しない場合は作成する
         """
-        user_factory = UserFinder(self._session)
+        user_finder = UserFinder(self._session)
 
         # ユーザが存在する場合は、それを返す
-        if user_factory.exists_by_openid(issuer, subject):
-            user = user_factory.find_by_openid(issuer, subject)
+        if user_finder.exists_by_openid(issuer, subject):
+            user = user_finder.find_by_openid(issuer, subject)
             # ユーザが論理削除状態の場合は例外を送出する
             if user.is_inactive:
                 raise Exception(f'指定したUser({email})は削除されました')
@@ -947,7 +947,7 @@ class UserFinder():
 
         # ユーザが存在しない場合は、新規にユーザを作成する
         # (passwordの指定がなければ自動生成する)
-        new_user = user_factory.create(email, name, password=None, issuer=issuer, subject=subject)
+        new_user = user_finder.create(email, name, password=None, issuer=issuer, subject=subject)
         new_user.save()
 
         # ランダムなパスワードを設定してユーザを登録状態にする

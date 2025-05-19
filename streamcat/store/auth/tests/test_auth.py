@@ -279,7 +279,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         新規作成したDatumはDBに保存するまで権限フリーであること
         """
         # ルートフォルダを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         # ルートフォルダの下にフォルダを作成する
         folder = root.create_folder('Folder!')
         # ルートフォルダの下にFlowを作成する
@@ -346,7 +346,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         Sessionにある_permissionsの値を参照している?
         """
         # ルートフォルダを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
 
         # 
         # フレームを新規作成する
@@ -368,7 +368,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(frame.executable)
 
         # ここでSELECTを発行すると、下のfind_by_id()は成功する
-        # self.factory.data.find_by_id(frame.id)
+        # self.finder.data.find_by_id(frame.id)
 
         # フレームを更新する
         # (SELECTを発行しない単純なUPDATE)
@@ -381,7 +381,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         # フォルダを再読み込みする
         # 参照権限がNoneのため、NotAuthorizedExceptionが送出される
         with self.assertRaises(NotAuthorizedException):
-            self.factory.data.find_by_id(frame.id)
+            self.finder.data.find_by_id(frame.id)
 
         # 
         # プロジェクトを新規作成する
@@ -396,7 +396,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
 
         # プロジェクトを再読み込みする
         with self.assertRaises(NotAuthorizedException):
-            self.factory.data.find_by_uuid(project.uuid)
+            self.finder.data.find_by_uuid(project.uuid)
 
     async def test_success_after_update_data1(self):
         """
@@ -405,7 +405,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
           2回目のfind_by_id()で参照権限のエラーは送出されない
         """
         # ルートフォルダを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
 
         # 
         # フレームを新規作成する
@@ -427,7 +427,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(frame.executable)
 
         # ここでSELECTを発行すると、下のreload()は成功する
-        self.factory.data.find_by_id(frame.id)
+        self.finder.data.find_by_id(frame.id)
 
         # フレームを更新する
         # (SELECTを発行しない単純なUPDATE)
@@ -438,7 +438,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         self.assertFalse(frame.executable)
 
         # フォルダを再読み込みする
-        self.factory.data.find_by_id(frame.id)
+        self.finder.data.find_by_id(frame.id)
 
         # 
         # プロジェクトを新規作成する
@@ -449,13 +449,13 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         project.save()
 
         # ここでSELECTを発行すると、下のreload()は成功する
-        self.factory.data.find_by_uuid(project.uuid)
+        self.finder.data.find_by_uuid(project.uuid)
 
         # プロジェクトの更新者IDと最終更新時刻を更新する
         project._update_timestamp()
 
         # プロジェクトを再読み込みする
-        self.factory.data.find_by_uuid(project.uuid)
+        self.finder.data.find_by_uuid(project.uuid)
 
     async def test_success_after_update_data2(self):
         """
@@ -463,7 +463,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         reload()で参照権限のエラーは送出されないこと
         """
         # ルートフォルダを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
 
         # 
         # フレームを新規作成する
@@ -517,37 +517,37 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         Datum._sessionプロパティにSessionが設定されていること
         """
         # ルートフォルダを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         # ルートフォルダの下にフレームを作成する
         frame = root.create_frame('Frame!', io.BytesIO(b''))
 
         # 新規作成したら_sessionプロパティが設定されること
-        self.assertIs(frame._session, self.factory._session)
+        self.assertIs(frame._session, self.finder._session)
 
         # フレームを保存する
         frame.save()
 
         # 保存後も_sessionプロパティを取得できること
-        self.assertIs(frame._session, self.factory._session)
+        self.assertIs(frame._session, self.finder._session)
 
         # find_by_id()でフレームを取得する
-        frame = self.factory.data.find_by_id(frame.id)
+        frame = self.finder.data.find_by_id(frame.id)
 
         # Sessionクラスで_sessionプロパティが設定されること
-        self.assertIs(frame._session, self.factory._session)
+        self.assertIs(frame._session, self.finder._session)
 
         # find_by_uuid()でフレームを取得する
-        frame = self.factory.data.find_by_uuid(frame.uuid)
+        frame = self.finder.data.find_by_uuid(frame.uuid)
 
         # Sessionクラスで_sessionプロパティが設定されること
-        self.assertIs(frame._session, self.factory._session)
+        self.assertIs(frame._session, self.finder._session)
 
         # find_all()で全てのDatumを取得する
-        data = self.factory.data.find_all()
+        data = self.finder.data.find_all()
 
         # Sessionクラスで_sessionプロパティが設定されること
         for datum in data:
-            self.assertIs(datum._session, self.factory._session)
+            self.assertIs(datum._session, self.finder._session)
 
         # フレームを削除する
         frame.delete()
@@ -558,32 +558,32 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         Role._sessionプロパティにSessionが設定されていること
         """
         # ロールを作成する
-        role = self.factory.role.create('Role!')
+        role = self.finder.role.create('Role!')
 
         # 新規作成したら_sessionプロパティが設定されること
-        self.assertIs(role._session, self.factory._session)
+        self.assertIs(role._session, self.finder._session)
 
         # ロールを保存する
         role.save()
 
         # 保存後も_sessionプロパティを取得できること
-        self.assertIs(role._session, self.factory._session)
+        self.assertIs(role._session, self.finder._session)
 
         # frame_by_id()でロールを取得する
-        role = self.factory.role.find_by_id(role.id)
+        role = self.finder.role.find_by_id(role.id)
 
         # Sessionクラスで_sessionプロパティが設定されること
-        self.assertIs(role._session, self.factory._session)
+        self.assertIs(role._session, self.finder._session)
 
         # frame_by_uuid()でロールを取得する
-        role = self.factory.role.find_by_uuid(role.uuid)
+        role = self.finder.role.find_by_uuid(role.uuid)
 
         # Sessionクラスで_sessionプロパティが設定されること
-        self.assertIs(role._session, self.factory._session)
+        self.assertIs(role._session, self.finder._session)
 
         # ロールを全権取得する、全てのロールに_sessionプロパティが設定される
-        for role in self.factory.role.find_all():
-            self.assertIs(role._session, self.factory._session)
+        for role in self.finder.role.find_all():
+            self.assertIs(role._session, self.finder._session)
 
         # ロールを削除する
         # print('>> ', role.get_joined_users())
@@ -595,7 +595,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         Rollback後のDatum._permissionsがNoneにならないことで確認する
         """
         # ルートフォルダを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
 
         # ルートフォルダの下にフォルダを作成する
         folder = root.create_folder('FOLDER')
@@ -608,8 +608,8 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         self.assertTrue(folder.executable)
 
         # Rollback
-        self.factory._session.rollback()
-        self.factory.end()
+        self.finder._session.rollback()
+        self.finder.end()
 
         # Datum._permissionsがNoneに変化しないこと
         self.assertTrue(folder.readable)
@@ -625,11 +625,11 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         Userの作成・取得・削除を検証する
         """
         # 新規ユーザを追加する
-        new_user = self.factory.user.create('test-man@streamcat.io', 'I AM TEST', '123abc(*)A')
+        new_user = self.finder.user.create('test-man@streamcat.io', 'I AM TEST', '123abc(*)A')
         new_user.save()
 
         # 新規ユーザを取得する
-        new_user = self.factory.user.find_by_email('test-man@streamcat.io')
+        new_user = self.finder.user.find_by_email('test-man@streamcat.io')
         # 取得したユーザの値を検証する
         self.assertIsNotNone(new_user.id)
         self.assertIsNotNone(new_user.uuid)
@@ -646,14 +646,14 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         new_user.delete()
         # 削除後のユーザは取得できない
         with self.assertRaises(Exception):
-            self.factory.user.find_by_email('test-man@streamcat.io')
+            self.finder.user.find_by_email('test-man@streamcat.io')
 
     async def test_create_user_by_user(self):
         """
         一般ユーザは、ユーザの作成ができないこと
         """
         # 新規ユーザを追加する
-        new_user = self.factory2.user.create('test-man2@streamcat.io', 'I AM TEST', '123abc(*)A')
+        new_user = self.finder2.user.create('test-man2@streamcat.io', 'I AM TEST', '123abc(*)A')
         with self.assertRaises(NotAuthorizedException):
             new_user.save()
 
@@ -662,12 +662,12 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         一般ユーザは、他ユーザの変更ができないこと
         """
         # 新規ユーザを追加する
-        new_user = self.factory.user.create('test-man3@streamcat.io', 'I AM TEST', '123abc(*)C')
+        new_user = self.finder.user.create('test-man3@streamcat.io', 'I AM TEST', '123abc(*)C')
         new_user.save()
-        self.factory.end()
+        self.finder.end()
 
         # 他ユーザで再取得する
-        new_user = self.factory2.user.find_by_uuid(new_user.uuid)
+        new_user = self.finder2.user.find_by_uuid(new_user.uuid)
         new_user_password = new_user.password
 
         # E-Mailを変更する
@@ -692,19 +692,19 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         一般ユーザは、他ユーザの削除ができないこと
         """
         # 新規ユーザを追加する
-        new_user = self.factory.user.create('test-man4@streamcat.io', 'I AM TEST', '123abc(*)D')
+        new_user = self.finder.user.create('test-man4@streamcat.io', 'I AM TEST', '123abc(*)D')
         new_user.save()
-        self.factory.end()
+        self.finder.end()
 
         # 他ユーザで再取得する
-        new_user = self.factory2.user.find_by_uuid(new_user.uuid)
+        new_user = self.finder2.user.find_by_uuid(new_user.uuid)
 
         # 新規ユーザを削除する
         with self.assertRaises(NotAuthorizedException):
             new_user.delete()
 
         # 削除後のユーザは取得できる
-        new_user = self.factory.user.find_by_email('test-man4@streamcat.io')
+        new_user = self.finder.user.find_by_email('test-man4@streamcat.io')
         self.assertIsNotNone(new_user)
 
     async def test_cannot_set_same_email(self):
@@ -713,15 +713,15 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         既に登録済みのemailと同じemailに変更できないこと
         """
         # 新規ユーザを追加する
-        new_user1 = self.factory.user.create('wow@streamcat.io', 'I AM TEST', '123abc(*)C')
+        new_user1 = self.finder.user.create('wow@streamcat.io', 'I AM TEST', '123abc(*)C')
         new_user1.save()
 
         # 変更を確定する
-        self.factory.end()
+        self.finder.end()
 
         # 他のユーザと同じメールアドレスでユーザを作成できないこと
         with self.assertRaises(Exception):
-            new_user2 = self.factory.user.create('wow@streamcat.io', 'I AM TEST 2', None)
+            new_user2 = self.finder.user.create('wow@streamcat.io', 'I AM TEST 2', None)
             new_user2.save()
 
         # 他のユーザと同じメールアドレスに変更できないこと
@@ -729,7 +729,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
             new_user2.update_email('wow@streamcat.io')
 
         # 変更を確定する
-        self.factory.end()
+        self.finder.end()
 
         # ユーザを削除する
         new_user1.delete()
@@ -745,7 +745,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         パスワードの妥当性が検証されること
         """
         # 新規ユーザを追加する
-        new_user = self.factory.user.create('suerp-mario@nintendo.com', 'ホッホ〜！', None)
+        new_user = self.finder.user.create('suerp-mario@nintendo.com', 'ホッホ〜！', None)
         new_user.save()
 
         # ユーザを登録状態にする
@@ -791,7 +791,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         変更前と同じパスワードに変更できないこと
         """
         # 新規ユーザを追加する
-        new_user = self.factory.user.create('hato@love-and-peace.com', '鳩山 由紀夫', 'hatopoppo?_%')
+        new_user = self.finder.user.create('hato@love-and-peace.com', '鳩山 由紀夫', 'hatopoppo?_%')
         new_user.save()
 
         # 変更前と同じパスワードに変更できないこと(初期状態)
@@ -824,8 +824,8 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         システム管理者とユーザ管理者に付番されるIDを検証する
         (保守性向上のためシステムが用意するユーザのIDは固定したい)
         """
-        sys_user = self.factory.user.find_by_email('Admin@streamcat.io')
-        usr_user = self.factory.user.find_by_email('admin@streamcat.io')
+        sys_user = self.finder.user.find_by_email('Admin@streamcat.io')
+        usr_user = self.finder.user.find_by_email('admin@streamcat.io')
 
         # システム管理者のIDは1、ユーザ管理者のIDは2
         self.assertEqual(sys_user.id, 1)
@@ -840,11 +840,11 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         Roleの作成・取得・削除を検証する
         """
         # 新規ロールを追加する
-        new_role = self.factory.role.create('TEST ROLE')
+        new_role = self.finder.role.create('TEST ROLE')
         new_role.save()
 
         # 新規ロールを取得する
-        new_role = self.factory.role.find_by_id(new_role.id)
+        new_role = self.finder.role.find_by_id(new_role.id)
         # 取得したロールの値を検証する
         self.assertIsNotNone(new_role.id)
         self.assertIsNotNone(new_role.uuid)
@@ -859,45 +859,45 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         new_role.delete()
         # 削除後のロールは取得できない
         with self.assertRaises(NoResultFound):
-            self.factory.role.find_by_uuid(new_role.uuid)
+            self.finder.role.find_by_uuid(new_role.uuid)
 
     async def test_create_get_delete_role_by_user(self):
         """
         一般ユーザは、自身が作成したRoleの取得・更新・削除をできること
         """
         # ロールを追加する
-        new_role = self.factory2.role.create('MY ROLE')
+        new_role = self.finder2.role.create('MY ROLE')
         new_role.save()
 
         # ロールを取得する
-        new_role = self.factory2.role.find_by_id(new_role.id)
+        new_role = self.finder2.role.find_by_id(new_role.id)
 
         # ロール名を変更する
         new_role.update_name('my role')
 
         # 変更したロール名を検証する
-        new_role = self.factory2.role.find_by_id(new_role.id)
+        new_role = self.finder2.role.find_by_id(new_role.id)
         self.assertEqual(new_role.name, 'my role')
 
         # 新規ロールを削除する
         new_role.delete()
         # 削除後のロールは取得できない
         with self.assertRaises(NoResultFound):
-            self.factory2.role.find_by_uuid(new_role.uuid)
+            self.finder2.role.find_by_uuid(new_role.uuid)
 
     async def test_join_leave_role(self):
         """
         Roleへの参加と脱退を検証する
         """
         # 新規ロールを追加する
-        new_role = self.factory.role.create('ロール')
+        new_role = self.finder.role.create('ロール')
         new_role.save()
 
         # 新規ロールにユーザを参加させる
         new_role.join_member(Role.Member(self.USER2))
 
         # UserRoleを取得する
-        user_role = self.factory.user_role.find_by_id(self.USER2.id, new_role.id)
+        user_role = self.finder.user_role.find_by_id(self.USER2.id, new_role.id)
         # 取得したUserRoleを検証する
         self.assertIsNotNone(user_role.user_id, self.USER2.id)
         self.assertIsNotNone(user_role.role_id, new_role.id)
@@ -915,13 +915,13 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         Roleにユーザを追加できるのはユーザ管理者かRoleの所有者のみである
         """
         # ロールを作成する
-        new_role = self.factory.role.create('ロール')
+        new_role = self.finder.role.create('ロール')
         new_role.save()
-        self.factory.end()
+        self.finder.end()
 
         # 管理者でもRoleの所有者でもないユーザは、
         # ユーザの追加操作はできない
-        new_role = self.factory2.role.find_by_uuid(new_role.uuid)
+        new_role = self.finder2.role.find_by_uuid(new_role.uuid)
         with self.assertRaises(NotAuthorizedException):
             new_role.join_member(Role.Member(self.USER2))
 
@@ -930,18 +930,18 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         Roleからユーザを削除できるのはユーザ管理者かRoleの所有者のみである
         """
         # ロールを作成する
-        new_role = self.factory.role.create('ロール')
+        new_role = self.finder.role.create('ロール')
         new_role.save()
 
         # ロールにユーザを追加する
         new_role.join_member(Role.Member(self.USER2))
 
         # 作成と追加を確定する
-        self.factory.end()
+        self.finder.end()
 
         # 管理者でもRoleの所有者でもないユーザは、
         # ユーザの削除操作はできない
-        new_role = self.factory2.role.find_by_uuid(new_role.uuid)
+        new_role = self.finder2.role.find_by_uuid(new_role.uuid)
         with self.assertRaises(NotAuthorizedException):
             new_role.leave_member(self.USER2)
 
@@ -950,10 +950,10 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         システムロールは削除できないこと
         """
         # システムロールを取得する
-        sys_admin_role = self.factory.role.load_sys_admin_role()
-        usr_admin_role = self.factory.role.load_usr_admin_role()
-        everyone_role = self.factory.role.load_everyone_role()
-        edit_lock_role = self.factory.role.load_edit_lock_role()
+        sys_admin_role = self.finder.role.load_sys_admin_role()
+        usr_admin_role = self.finder.role.load_usr_admin_role()
+        everyone_role = self.finder.role.load_everyone_role()
+        edit_lock_role = self.finder.role.load_edit_lock_role()
 
         # システムロールは削除できないこと
         with self.assertRaises(Exception):
@@ -970,7 +970,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         ユーザ管理者ロールの所有者は必ず指定すること
         """
         # ユーザ管理者ロールを取得する
-        usr_admin_role = self.factory.role.load_usr_admin_role()
+        usr_admin_role = self.finder.role.load_usr_admin_role()
 
         # メンバを設定する
         member1 = Role.Member(self.USER2)
@@ -983,7 +983,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         ユーザ管理者ロールの所属処理によってロール所有者が不在にならないこと
         """
         # ユーザ管理者ロールを取得する
-        usr_admin_role = self.factory.role.load_usr_admin_role()
+        usr_admin_role = self.finder.role.load_usr_admin_role()
 
         # 所有権が不在になるようなメンバの更新はできないこと
         member1 = Role.Member(self.USER1, owner=False)
@@ -995,7 +995,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         ユーザがユーザ管理者ロールの唯一の所有者の場合、そのユーザを削除できないこと
         """
         # ユーザ管理者を取得する
-        user1 = self.factory.user.find_by_id(self.USER1.id)
+        user1 = self.finder.user.find_by_id(self.USER1.id)
 
         # ユーザ管理者ロールの所有者を削除できないこと
         with self.assertRaises(NoRoleOwnerException):
@@ -1008,7 +1008,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         システム管理者ロールの所有者は指定する必要はない
         """
         # システム管理者ロールを取得する
-        sys_admin_role = self.factory.role.load_sys_admin_role()
+        sys_admin_role = self.finder.role.load_sys_admin_role()
 
         # メンバを設定する
         member1 = Role.Member(self.USER2)
@@ -1023,7 +1023,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         システム管理者ロールの所属処理によってロール所有者が不在でも良い
         """
         # システム管理者ロールを取得する
-        sys_admin_role = self.factory.role.load_sys_admin_role()
+        sys_admin_role = self.finder.role.load_sys_admin_role()
 
         # 所有権が不在になるようなメンバの更新もできること
         member1 = Role.Member(self.USER0, owner=False)
@@ -1034,10 +1034,10 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         everyoneと管理者ロールに付番されるIDを検証する
         (保守性向上のためシステムが用意するロールのIDは固定したい)
         """
-        everyone_role = self.factory.role.load_everyone_role()
-        edit_lock_role = self.factory.role.load_edit_lock_role()
-        sys_admin_role = self.factory.role.load_sys_admin_role()
-        usr_admin_role = self.factory.role.load_usr_admin_role()
+        everyone_role = self.finder.role.load_everyone_role()
+        edit_lock_role = self.finder.role.load_edit_lock_role()
+        sys_admin_role = self.finder.role.load_sys_admin_role()
+        usr_admin_role = self.finder.role.load_usr_admin_role()
 
         # TODO: 本当は以下のようにIDを採番したい
         # everyone  : 1
@@ -1058,22 +1058,22 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         Authの作成・取得・削除を検証する
         """
         # 新規ロールを追加する
-        new_role = self.factory.role.create('権限ロール')
+        new_role = self.finder.role.create('権限ロール')
         new_role.save()
 
         # ルートフォルダを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         # ルートフォルダの下にフォルダを作成する
         folder = root.create_folder('フォルダQ')
         folder.save()
-        folder = self.factory.data.find_by_id(folder.id)
+        folder = self.finder.data.find_by_id(folder.id)
 
         # 新規権限を追加する
-        new_auth = self.factory.auth.create(new_role.id, folder.id, Auth.WRITE_OP, True)
+        new_auth = self.finder.auth.create(new_role.id, folder.id, Auth.WRITE_OP, True)
         new_auth.save()
 
         # 新規権限を取得する
-        new_auth = self.factory.auth.find_by_id(new_role.id, folder.id, Auth.WRITE_OP)
+        new_auth = self.finder.auth.find_by_id(new_role.id, folder.id, Auth.WRITE_OP)
         # 取得した権限を検証する
         self.assertIsNotNone(new_auth.role_id, new_role.id)
         self.assertIsNotNone(new_auth.datum_id, folder.id)
@@ -1089,18 +1089,18 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         folder.delete()
         # 削除後の権限は取得できない
         with self.assertRaises(Exception):
-            self.factory.auth.find_by_id(new_role.id, folder.id, Auth.WRITE_OP)
+            self.finder.auth.find_by_id(new_role.id, folder.id, Auth.WRITE_OP)
 
     async def test_create_get_delete_auth_by_user(self):
         """
         一般ユーザは、自身が作成したDatumの権限を取得・更新・削除をできること
         """
         # 新規ロールを追加する
-        new_role = self.factory2.role.create('権限ロール')
+        new_role = self.finder2.role.create('権限ロール')
         new_role.save()
 
         # ルートフォルダを取得する
-        root = self.factory2.data.load_root()
+        root = self.finder2.data.load_root()
 
         # ルートフォルダの下にプロジェクトを作成する
         project = root.create_project_folder('プロジェクト！！')
@@ -1109,20 +1109,20 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         # プロジェクトの下にフォルダを作成する
         folder = project.create_folder('フォルダS')
         folder.save()
-        folder = self.factory2.data.find_by_id(folder.id)
+        folder = self.finder2.data.find_by_id(folder.id)
 
         # 新規権限を追加する
-        new_auth = self.factory2.auth.create(new_role.id, folder.id, Auth.WRITE_OP, True)
+        new_auth = self.finder2.auth.create(new_role.id, folder.id, Auth.WRITE_OP, True)
         new_auth.save()
 
         # 新規権限を取得する
-        new_auth = self.factory2.auth.find_by_id(new_role.id, folder.id, Auth.WRITE_OP)
+        new_auth = self.finder2.auth.find_by_id(new_role.id, folder.id, Auth.WRITE_OP)
 
         # 新規権限を削除する
         folder.delete()
         # 削除後の権限は取得できない
         with self.assertRaises(Exception):
-            self.factory2.auth.find_by_id(new_role.id, folder.id, Auth.WRITE_OP)
+            self.finder2.auth.find_by_id(new_role.id, folder.id, Auth.WRITE_OP)
 
         # プロジェクトを削除する
         project.delete()
@@ -1132,28 +1132,28 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         一般ユーザは、他ユーザが作成したDatumの権限を取得・更新・削除をできないこと
         """
         # 新規ロールを追加する
-        new_role = self.factory2.role.create('権限ロール')
+        new_role = self.finder2.role.create('権限ロール')
         new_role.save()
-        self.factory2.end()
+        self.finder2.end()
 
         # ルートフォルダを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         # ルートフォルダの下にフォルダを作成する
         folder = root.create_folder('フォルダT')
         folder.save()
-        self.factory.end()
+        self.finder.end()
 
         # フォルダを取得する
-        folder = self.factory.data.find_by_id(folder.id)
+        folder = self.finder.data.find_by_id(folder.id)
 
         # 新規権限を追加する
-        new_auth = self.factory3.auth.create(new_role.id, folder.id, Auth.WRITE_OP, True)
+        new_auth = self.finder3.auth.create(new_role.id, folder.id, Auth.WRITE_OP, True)
         with self.assertRaises(NotAuthorizedException):
             new_auth.save()
 
         # 新規権限を取得する
         with self.assertRaises(Exception):
-            self.factory3.auth.find_by_id(new_role.id, folder.id, Auth.WRITE_OP)
+            self.finder3.auth.find_by_id(new_role.id, folder.id, Auth.WRITE_OP)
 
         # 新規権限を削除する
         with self.assertRaises(NotAuthorizedException):
@@ -1164,13 +1164,13 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         権限レコードのないFrameは読み取れないことを検証する
         """
         # ルートフォルダを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         # ルートフォルダの下にフレームを作成する
         frame = root.create_frame('CSV', io.BytesIO(b''))
         frame.save()
 
         # フレームの参照権限を全て削除する
-        self.factory.auth.delete_all_by_datum_id(frame.id)
+        self.finder.auth.delete_all_by_datum_id(frame.id)
 
         # フレームは再取得できないこと
         with self.assertRaises(NotAuthorizedException):
@@ -1198,14 +1198,14 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         参照権限のないFrameは読み取れないことを検証する
         """
         # ルートフォルダを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         # ルートフォルダの下にフレームを作成する
         frame = root.create_frame('CSV', io.BytesIO(b''))
         frame.save()
         frame = frame.reload()
 
         # フレームの参照権限を全て削除する
-        self.factory.auth.delete_all_by_datum_id(frame.id)
+        self.finder.auth.delete_all_by_datum_id(frame.id)
 
 
 
@@ -1213,10 +1213,10 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         # 
         # 参照権限の削除後にframeオブジェクトのpermissionsをexpireした方がいい？
         #         
-        persistent_obj = self.factory._session._session.identity_map.values()
+        persistent_obj = self.finder._session._session.identity_map.values()
         for obj in persistent_obj:
             if isinstance(obj, SavableDatum):
-                self.factory._session._session.expire(obj, ['_permissions'])
+                self.finder._session._session.expire(obj, ['_permissions'])
 
 
 
@@ -1234,14 +1234,14 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         更新権限のないFrameは更新できないことを検証する
         """
         # ルートフォルダを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         # ルートフォルダの下にフレームを作成する
         frame = root.create_frame('CSV', io.BytesIO(b''))
         frame.save()
         frame = frame.reload()
 
         # フレームの更新権限を全て削除する
-        self.factory.auth.delete_all_by_datum_id(frame.id)
+        self.finder.auth.delete_all_by_datum_id(frame.id)
 
          # フレームは更新不可
         with self.assertRaises(NotAuthorizedException):
@@ -1260,7 +1260,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         参照権限のないFolderは読み取れないことを検証する
         """
         # ルートフォルダを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         # ルートフォルダの下にフォルダを作成する
         folder = root.create_folder('参照権限のないフォルダ')
         folder.save()
@@ -1271,16 +1271,16 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         flow = flow.reload()
 
         # フォルダの参照権限を全て削除する
-        self.factory.auth.delete_all_by_datum_id(folder.id)
+        self.finder.auth.delete_all_by_datum_id(folder.id)
 
 
         # 
         # 参照権限の削除後にframeオブジェクトのpermissionsをexpireした方がいい？
         #         
-        persistent_obj = self.factory._session._session.identity_map.values()
+        persistent_obj = self.finder._session._session.identity_map.values()
         for obj in persistent_obj:
             if isinstance(obj, SavableDatum):
-                self.factory._session._session.expire(obj, ['_permissions'])
+                self.finder._session._session.expire(obj, ['_permissions'])
 
 
         # フローのpermissionsはNoneであること
@@ -1301,7 +1301,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         更新権限のないFolderは更新できないことを検証する
         """
         # ルートフォルダを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         # ルートフォルダの下にフォルダを作成する
         folder = root.create_folder('更新権限のないフォルダ')
         folder.save()
@@ -1312,7 +1312,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         flow = flow.reload()
 
         # フォルダの更新権限を全て削除する
-        self.factory.auth.delete_all_by_datum_id(folder.id)
+        self.finder.auth.delete_all_by_datum_id(folder.id)
 
         # フローは更新不可
         with self.assertRaises(NotAuthorizedException):
@@ -1327,12 +1327,12 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         複数のロールで異なる権限判定の場合
         """
         # ルートフォルダを取得する
-        root = self.factory2.data.load_root()
+        root = self.finder2.data.load_root()
         # ルートフォルダの下にプロジェクトを作成する
         project = root.create_project_folder('プロジェクト💣')
         project.save()
         # everyoneにプロジェクトの参照・更新・実行権限を付与する
-        everyone_role = self.factory2.role.load_everyone_role()
+        everyone_role = self.finder2.role.load_everyone_role()
         everyone_role.init_authz(project.id, True, True, exec=True)
 
         # プロジェクトの下にフローを作成する
@@ -1340,13 +1340,13 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         flow.save()
 
         # フローの参照権限を全て削除する
-        self.factory.auth.delete_all_by_datum_id(flow.id)
+        self.finder.auth.delete_all_by_datum_id(flow.id)
 
         # ロールAを作成する
-        roleA = self.factory.role.create('roleA')
+        roleA = self.finder.role.create('roleA')
         roleA.save()
         # ロールBを作成する
-        roleB = self.factory.role.create('roleB')
+        roleB = self.finder.role.create('roleB')
         roleB.save()
 
         # ロールAにフローの更新・実行許可を付与する
@@ -1359,8 +1359,8 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         roleB.join_member(Role.Member(self.USER2))
 
         #　変更を確定する
-        self.factory.end()
-        self.factory2.end()
+        self.finder.end()
+        self.finder2.end()
 
         # フローを再取得する
         flow = flow.reload()
@@ -1386,8 +1386,8 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         roleB.delete()
 
         #　変更を確定する
-        self.factory.end()
-        self.factory2.end()
+        self.finder.end()
+        self.finder2.end()
 
         # フローを削除する
         flow.delete()
@@ -1402,13 +1402,13 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         参照権限のないFrameでもdataプロパティは読み取れること
         """
         # ルートフォルダを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         # ルートフォルダの下にフレームを作成する
         frame = root.create_frame('CSV2', io.BytesIO(b''))
         frame.save()
 
         # フレームの参照権限を全て削除する
-        self.factory.auth.delete_all_by_datum_id(frame.id)
+        self.finder.auth.delete_all_by_datum_id(frame.id)
 
         # フローを再取得する
         frame = frame.reload()
@@ -1428,7 +1428,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         参照権限のないFlowのnodesキーは読み取れないこと
         """
         # ルートフォルダを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         # ルートフォルダの下にフレームを作成する
         frame = root.create_frame('CSV2', io.BytesIO(b''))
         frame.save()
@@ -1437,7 +1437,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         flow.save()
 
         # フレームの参照権限を全て削除する
-        self.factory.auth.delete_all_by_datum_id(flow.id)
+        self.finder.auth.delete_all_by_datum_id(flow.id)
 
         # フローを再取得する
         flow = flow.reload()
@@ -1458,16 +1458,16 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         本人グループにのみ参照可能なFlowを参照できること
         """
         # ルートフォルダを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         # ルートフォルダの下にフローを作成する
         flow = root.create_flow('所有者のみ参照できるフロー', FlowData())
         flow.save()
         
         # フローの参照権限を全て削除する
-        self.factory.auth.delete_all_by_datum_id(flow.id)
+        self.finder.auth.delete_all_by_datum_id(flow.id)
 
         # USER1の本人グループに参照権限を付与する
-        user1 = self.factory.user.find_by_id(self.USER1.id)
+        user1 = self.finder.user.find_by_id(self.USER1.id)
         user1.load_self_role().init_authz(flow.id, True, False)
 
         # フローを再取得する
@@ -1484,40 +1484,40 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         本人グループにのみ参照可能なFlowを他ユーザは参照できないこと
         """
         # ルートフォルダを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         # ルートフォルダの下にフローを作成する
         flow = root.create_flow('所有者のみ参照できるフロー', FlowData())
         flow.save()
 
         # フローの参照権限を全て削除する
-        self.factory.auth.delete_all_by_datum_id(flow.id)
+        self.finder.auth.delete_all_by_datum_id(flow.id)
 
         # USER1の本人グループに参照権限を付与する
-        user1 = self.factory.user.find_by_id(self.USER1.id)
+        user1 = self.finder.user.find_by_id(self.USER1.id)
         user1.load_self_role().init_authz(flow.id, True, False)
 
         # 変更を確定する
-        self.factory.end()
+        self.finder.end()
 
         # 他ユーザはフローを取得できないこと
         with self.assertRaises(NotAuthorizedException):
-            self.factory2.data.find_by_id(flow.id)
+            self.finder2.data.find_by_id(flow.id)
 
     async def test_write_flow_by_self_role(self):
         """
         本人グループにのみ更新可能なFlowを更新できること
         """
         # ルートフォルダを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         # ルートフォルダの下にフローを作成する
         flow = root.create_flow('所有者のみ更新できるフロー', FlowData())
         flow.save()
         
         # フローの権限を全て削除する
-        self.factory.auth.delete_all_by_datum_id(flow.id)
+        self.finder.auth.delete_all_by_datum_id(flow.id)
 
         # USER1の本人グループに更新権限を付与する
-        user1 = self.factory.user.find_by_id(self.USER1.id)
+        user1 = self.finder.user.find_by_id(self.USER1.id)
         user1.load_self_role().init_authz(flow.id, False, True)
 
         # フローは更新可能
@@ -1531,7 +1531,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         本人グループにのみ更新可能なフォルダ内にあるFlowを更新できること
         """
         # ルートフォルダを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         # ルートフォルダの下にフォルダを作成する
         folder = root.create_folder('所有者のみ更新できるフォルダ')
         folder.save()
@@ -1540,11 +1540,11 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         flow.save()
 
         # フォルダとフローの権限を全て削除する
-        self.factory.auth.delete_all_by_datum_id(folder.id)
-        self.factory.auth.delete_all_by_datum_id(flow.id)
+        self.finder.auth.delete_all_by_datum_id(folder.id)
+        self.finder.auth.delete_all_by_datum_id(flow.id)
 
         # USER1の本人グループに更新権限を付与する
-        user1 = self.factory.user.find_by_id(self.USER1.id)
+        user1 = self.finder.user.find_by_id(self.USER1.id)
         user1.load_self_role().init_authz(folder.id, False, True)
         user1.load_self_role().init_authz(flow.id, False, True)
 
@@ -1559,35 +1559,35 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         本人グループにのみ更新可能なFlowを他ユーザは更新できないこと
         """
         # ルートフォルダを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         # ルートフォルダの下にフローを作成する
         flow = root.create_flow('所有者のみ更新できるフロー2', FlowData())
         flow.save()
         
         # フローの権限を全て削除する
-        self.factory.auth.delete_all_by_datum_id(flow.id)
+        self.finder.auth.delete_all_by_datum_id(flow.id)
 
         # USER1の本人グループに更新権限を付与する
-        user1 = self.factory.user.find_by_id(self.USER1.id)
+        user1 = self.finder.user.find_by_id(self.USER1.id)
         user1.load_self_role().init_authz(flow.id, None, True)
 
         # USER2の本人グループに参照権限を付与する
-        user2 = self.factory.user.find_by_id(self.USER2.id)
-        user2_auth = self.factory.auth.create(user2.load_self_role().id, flow.id, Auth.READ_OP, True)
+        user2 = self.finder.user.find_by_id(self.USER2.id)
+        user2_auth = self.finder.auth.create(user2.load_self_role().id, flow.id, Auth.READ_OP, True)
         user2_auth.save()
 
         # 変更を確定する
-        self.factory.end()
+        self.finder.end()
 
         # USER2によりフローを取得する
-        flow = self.factory2.data.find_by_id(flow.id)
+        flow = self.finder2.data.find_by_id(flow.id)
 
         # フローは更新不可能
         with self.assertRaises(NotAuthorizedException):
             flow.update_data('変更したフロー名2', FlowData())
 
         # 変更を確定する
-        self.factory2.end()
+        self.finder2.end()
 
         # フローは更新されていないこと
         self.assertEqual(flow.label, '所有者のみ更新できるフロー2')
@@ -1597,7 +1597,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         必要最小限の権限設定でFlowを移動できること
         """
         # ルートフォルダを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         # ルートフォルダの下に移動元フォルダを作成する
         from_folder = root.create_folder('移動元フォルダ')
         from_folder.save()
@@ -1609,7 +1609,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         flow.save()
 
         # 移動元フォルダを参照不可にする
-        everyone_role = self.factory.role.load_everyone_role()
+        everyone_role = self.finder.role.load_everyone_role()
         everyone_role.init_authz(from_folder.id, False, True)
         # 移動先フォルダを参照・更新可能にする
         everyone_role.init_authz(to_folder.id, True, True)
@@ -1627,7 +1627,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         更新権限のないFolderからFlowは移動できないこと
         """
         # ルートフォルダを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         # ルートフォルダの下に移動元フォルダを作成する
         from_folder = root.create_folder('移動元フォルダ')
         from_folder.save()
@@ -1639,7 +1639,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         flow.save()
         
         # 移動元フォルダを更新不可にする
-        everyone_role = self.factory.role.load_everyone_role()
+        everyone_role = self.finder.role.load_everyone_role()
         everyone_role.init_authz(from_folder.id, True, False)
         # 移動先フォルダを更新不可にする
         everyone_role.init_authz(to_folder.id, True, True)
@@ -1660,7 +1660,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         更新権限のないFolderへFlowは移動できないこと
         """
         # ルートフォルダを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         # ルートフォルダの下に移動元フォルダを作成する
         from_folder = root.create_folder('移動元フォルダ')
         from_folder.save()
@@ -1672,7 +1672,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         flow.save()
 
         # 移動先フォルダを更新不可にする
-        everyone_role = self.factory.role.load_everyone_role()
+        everyone_role = self.finder.role.load_everyone_role()
         everyone_role.init_authz(to_folder.id, True, False)
         # フローを参照・更新可能にする
         everyone_role.init_authz(flow.id, True, True)
@@ -1690,7 +1690,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         更新権限のないFolderの直下のFolder内にあるFlowは更新できないこと
         """
         # ルートフォルダを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         # ルートフォルダの下にフォルダ1を作成する
         folder1 = root.create_folder('フォルダ1')
         folder1.save()
@@ -1702,7 +1702,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         flow.save()
 
         # フォルダ1を更新不可にする
-        everyone_role = self.factory.role.load_everyone_role()
+        everyone_role = self.finder.role.load_everyone_role()
         everyone_role.init_authz(folder1.id, True, False)
         
         # フォルダ1は更新できない
@@ -1727,7 +1727,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         更新権限のないFlowは親フォルダごと削除できないこと
         """
         # ルートフォルダを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         # ルートフォルダの下にフォルダAを作成する
         folder = root.create_folder('フォルダA')
         folder.save()
@@ -1737,7 +1737,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         flow1.save()
 
         # フローを更新不可にする
-        everyone_role = self.factory.role.load_everyone_role()
+        everyone_role = self.finder.role.load_everyone_role()
         everyone_role.init_authz(flow1.id, True, False)
 
         # フォルダAをほかす
@@ -1752,7 +1752,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
             folder.delete()
 
         # flow1はほかされていないこと
-        self.assertTrue(self.factory.data.exists(flow1.uuid))
+        self.assertTrue(self.finder.data.exists(flow1.uuid))
         self.assertEqual(flow1.parent_id, folder.id)
         self.assertEqual(folder.parent_id, root.id)
 
@@ -1761,7 +1761,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         実行権限のないFlowは実行できないこと
         """
         # ルートフォルダを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         # ルートフォルダの下にフォルダAを作成する
         folder = root.create_folder('フォルダA')
         folder.save()
@@ -1770,7 +1770,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         flow.save()
 
         # フローを実行不可にする
-        everyone_role = self.factory.role.load_everyone_role()
+        everyone_role = self.finder.role.load_everyone_role()
         everyone_role.init_authz(flow.id, True, True, exec=False)
 
         # フローJSONのnodesを取得できないこと
@@ -1797,37 +1797,37 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         (フォルダの所有権はオーバーライドしない)
         """
         # ルートフォルダを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
 
         # ルートフォルダの下にフォルダを作成する (所有者はユーザ管理者)
         folder_a = root.create_folder('所有権の無いフォルダA')
         folder_a.save()
 
         # USER2にフォルダAの所有権を付与する
-        user2 = self.factory.user.find_by_uuid(self.USER2.uuid)
+        user2 = self.finder.user.find_by_uuid(self.USER2.uuid)
         user2.load_self_role().init_authz(folder_a.id, read=True, write=True, exec=True, own=True)
 
         # USER1からフォルダAの全ての権限を削除する
-        user1 = self.factory.user.find_by_uuid(self.USER1.uuid)
+        user1 = self.finder.user.find_by_uuid(self.USER1.uuid)
         user1.load_self_role().clear_authz(folder_a.id)
 
         # 変更を確定する
-        self.factory.end()
+        self.finder.end()
 
         # USER3にフォルダAの更新権限を付与する
-        user3 = self.factory2.user.find_by_uuid(self.USER3.uuid)
+        user3 = self.finder2.user.find_by_uuid(self.USER3.uuid)
         user3.load_self_role().init_authz(folder_a.id, read=True, write=True)
 
         # 変更を確定する
-        self.factory2.end()
+        self.finder2.end()
 
         # フォルダAの下にフレームAを作成する (所有者はUSER3)
-        folder_a = self.factory3.data.find_by_uuid(folder_a.uuid)
+        folder_a = self.finder3.data.find_by_uuid(folder_a.uuid)
         frame_a = folder_a.create_frame('My Frame A', io.BytesIO(b''))
         frame_a.save()
 
         # ルートフォルダの下にプロジェクトBを作成する (所有者はUSER3)
-        root = self.factory3.data.load_root()
+        root = self.finder3.data.load_root()
         project_b = root.create_project_folder('所有権の有るプロジェクトB')
         project_b.save()
 
@@ -1836,7 +1836,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         frame_b.save()
 
         # フレームAの所有者は権限を変更できること
-        user3 = self.factory3.user.find_by_uuid(self.USER3.uuid)
+        user3 = self.finder3.user.find_by_uuid(self.USER3.uuid)
         self_role = user3.load_self_role()
         self_role.init_authz(frame_a.id, read=None, write=False, own=True)
 
@@ -1859,8 +1859,8 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
 
         # NotAuthorizedExceptionの送出後のSession.rollback()により、
         # Expireが発生し、readable=Noneとなるため再読み込みする
-        folder_a = self.factory2.data.find_by_id(folder_a.id)
-        project_b = self.factory3.data.find_by_id(project_b.id)
+        folder_a = self.finder2.data.find_by_id(folder_a.id)
+        project_b = self.finder3.data.find_by_id(project_b.id)
 
         # フォルダA,Bを削除する
         folder_a.delete()
@@ -1871,7 +1871,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         参照・更新・実行の権限がフォルダ階層においてオーバライドされること
         """
         # ルートフォルダを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
 
         # ルートフォルダの下にフォルダ1を作成する
         folder1 = root.create_folder('folder 1')
@@ -1897,7 +1897,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         flow.save()
 
         # フォルダ1の参照権限を全て削除する
-        self.factory.auth.delete_all_by_datum_id(folder1.id)
+        self.finder.auth.delete_all_by_datum_id(folder1.id)
 
         # 
         # フレームは取得できないこと
@@ -1955,7 +1955,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         更新・実行の権限がフォルダ階層においてオーバライドされること
         """
         # ルートフォルダを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
 
         # ルートフォルダの下にフォルダ1を作成する
         folder1 = root.create_folder('folder 1')
@@ -1981,10 +1981,10 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         flow.save()
 
         # フォルダ1の権限を全て削除する
-        self.factory.auth.delete_all_by_datum_id(folder1.id)
+        self.finder.auth.delete_all_by_datum_id(folder1.id)
 
         # フォルダ1に参照権限のみを付与する
-        user1 = self.factory.user.find_by_uuid(self.USER1.uuid)
+        user1 = self.finder.user.find_by_uuid(self.USER1.uuid)
         user1_role = user1.load_self_role()
         user1_role.init_authz(folder1.id, True, None)
 
@@ -2043,7 +2043,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         参照権限のないDatumでもcount()できること
         """
         # ルートフォルダを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         # ルートフォルダの下にフォルダ1を作成する
         folder1 = root.create_folder('フォルダ1')
         folder1.save()
@@ -2052,7 +2052,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         flow.save()
 
         # フローを参照不可にする
-        everyone_role = self.factory.role.load_everyone_role()
+        everyone_role = self.finder.role.load_everyone_role()
         everyone_role.init_authz(flow.id, False, True)
 
         # フローは参照不可なので取得できない
@@ -2061,7 +2061,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         # ただし、参照不可であってもcount()によって件数の取得は可能としている
         from sqlalchemy import select, func
         stmt = select(func.count(SavableDatum.id)).where(SavableDatum.parent_id==folder1.id)
-        result = self.factory._session.scalars(stmt).one()
+        result = self.finder._session.scalars(stmt).one()
         self.assertEqual(result, 1)
 
         # フローとフォルダ1を削除する
@@ -2073,7 +2073,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         参照権限のないDatumでもexists()=Trueであること
         """
         # ルートフォルダを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         # ルートフォルダの下にフォルダ1を作成する
         folder1 = root.create_folder('フォルダ1')
         folder1.save()
@@ -2082,15 +2082,15 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         frame.save()
 
         # フローを参照不可にする
-        everyone_role = self.factory.role.load_everyone_role()
+        everyone_role = self.finder.role.load_everyone_role()
         everyone_role.init_authz(frame.id, False, True)
 
         # フローは参照不可なので取得できない
         self.assertEqual(len(folder1.find_children()), 0)
 
         # ただし、参照不可であってもexists()によってその存在の判定は可能としている
-        self.assertTrue(self.factory.data.exists(frame.uuid))
-        self.assertTrue(self.factory.data.exists_by_id(frame.id))
+        self.assertTrue(self.finder.data.exists(frame.uuid))
+        self.assertTrue(self.finder.data.exists_by_id(frame.id))
 
         # フレームとフォルダ1を削除する
         frame.delete()
@@ -2104,7 +2104,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         Projectの作成・取得・削除を検証する
         """
         # ルートフォルダを取得する
-        root = self.factory2.data.load_root()
+        root = self.finder2.data.load_root()
 
         # ルートフォルダの下にプロジェクトを作成する
         project = root.create_project_folder('京阪乗る人おけいはん')
@@ -2126,63 +2126,63 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         self.assertEqual(owners_role.name, '京阪乗る人おけい_owners')
 
         # users_rolesテーブルを検証する
-        everyone_role = self.factory2.role.load_everyone_role()
-        usr_admin_role = self.factory2.role.load_usr_admin_role()
-        self_role = self.factory2.role.find_by_id(self.USER1.self_role_id)
+        everyone_role = self.finder2.role.load_everyone_role()
+        usr_admin_role = self.finder2.role.load_usr_admin_role()
+        self_role = self.finder2.role.find_by_id(self.USER1.self_role_id)
 
         # ユーザ管理者に関係するusers_rolesテーブルのレコードを検証する
-        user_roles = self.factory2.user_role.find_all_by_user_id(self.USER1.id)
+        user_roles = self.finder2.user_role.find_all_by_user_id(self.USER1.id)
         self.assertGreaterEqual(len(user_roles), 2)
         # everyoneロール
-        user_role = self.factory2.user_role.find_by_id(self.USER1.id, everyone_role.id)
+        user_role = self.finder2.user_role.find_by_id(self.USER1.id, everyone_role.id)
         self.assertTrue(user_role.owner)
         # ユーザ管理者ロール
-        user_role = self.factory2.user_role.find_by_id(self.USER1.id, usr_admin_role.id)
+        user_role = self.finder2.user_role.find_by_id(self.USER1.id, usr_admin_role.id)
         self.assertTrue(user_role.owner)
         # 本人ロールがusers_rolesテーブルに関係を持つことはない
-        self.assertFalse(self.factory2.user_role.exists(self.USER1.id, self_role.id))
+        self.assertFalse(self.finder2.user_role.exists(self.USER1.id, self_role.id))
 
         # プロジェクト管理者(USER2)に関係するusers_rolesテーブルのレコードを検証する
-        user_roles = self.factory2.user_role.find_all_by_user_id(self.USER2.id)
+        user_roles = self.finder2.user_role.find_all_by_user_id(self.USER2.id)
         self.assertGreaterEqual(len(user_roles), 4)
         # everyoneロール
-        user_role = self.factory2.user_role.find_by_id(self.USER2.id, everyone_role.id)
+        user_role = self.finder2.user_role.find_by_id(self.USER2.id, everyone_role.id)
         self.assertFalse(user_role.owner)
         # プロジェクトロール1
-        user_role = self.factory2.user_role.find_by_id(self.USER2.id, readers_role.id)
+        user_role = self.finder2.user_role.find_by_id(self.USER2.id, readers_role.id)
         self.assertTrue(user_role.owner)
         # プロジェクトロール2
-        user_role = self.factory2.user_role.find_by_id(self.USER2.id, writers_role.id)
+        user_role = self.finder2.user_role.find_by_id(self.USER2.id, writers_role.id)
         self.assertTrue(user_role.owner)
         # プロジェクトロール3
-        user_role = self.factory2.user_role.find_by_id(self.USER2.id, owners_role.id)
+        user_role = self.finder2.user_role.find_by_id(self.USER2.id, owners_role.id)
         self.assertTrue(user_role.owner)
         # 本人ロールがusers_rolesテーブルに関係を持つことはない
-        self.assertFalse(self.factory2.user_role.exists(self.USER2.id, self_role.id))
+        self.assertFalse(self.finder2.user_role.exists(self.USER2.id, self_role.id))
         
         # プロジェクトに関係するauthsテーブルのレコードを検証する
-        auths = self.factory2.auth.find_all_by_datum_id(project.id)
+        auths = self.finder2.auth.find_all_by_datum_id(project.id)
         self.assertEqual(len(auths), 8)
 
-        self.assertTrue(self.factory2.auth.find_by_id(usr_admin_role.id, project.id, Auth.READ_OP))
-        self.assertTrue(self.factory2.auth.find_by_id(usr_admin_role.id, project.id, Auth.WRITE_OP))
-        self.assertTrue(self.factory2.auth.find_by_id(usr_admin_role.id, project.id, Auth.EXEC_OP))
-        self.assertTrue(self.factory2.auth.find_by_id(usr_admin_role.id, project.id, Auth.OWN_OP))
-        self.assertTrue(self.factory2.auth.find_by_id(readers_role.id, project.id, Auth.READ_OP))
-        self.assertTrue(self.factory2.auth.find_by_id(readers_role.id, project.id, Auth.EXEC_OP))
-        self.assertTrue(self.factory2.auth.find_by_id(writers_role.id, project.id, Auth.WRITE_OP))
-        self.assertTrue(self.factory2.auth.find_by_id(owners_role.id, project.id, Auth.OWN_OP))
+        self.assertTrue(self.finder2.auth.find_by_id(usr_admin_role.id, project.id, Auth.READ_OP))
+        self.assertTrue(self.finder2.auth.find_by_id(usr_admin_role.id, project.id, Auth.WRITE_OP))
+        self.assertTrue(self.finder2.auth.find_by_id(usr_admin_role.id, project.id, Auth.EXEC_OP))
+        self.assertTrue(self.finder2.auth.find_by_id(usr_admin_role.id, project.id, Auth.OWN_OP))
+        self.assertTrue(self.finder2.auth.find_by_id(readers_role.id, project.id, Auth.READ_OP))
+        self.assertTrue(self.finder2.auth.find_by_id(readers_role.id, project.id, Auth.EXEC_OP))
+        self.assertTrue(self.finder2.auth.find_by_id(writers_role.id, project.id, Auth.WRITE_OP))
+        self.assertTrue(self.finder2.auth.find_by_id(owners_role.id, project.id, Auth.OWN_OP))
 
         # プロジェクトを再度ほかして、ゴミ箱を空にする
         project.throw_away()
-        self.factory.data.find_trashcan().trash_all()
+        self.finder.data.find_trashcan().trash_all()
 
     async def test_cannot_save_project_outside_root(self):
         """
         プロジェクトはルートフォルダ直下にしか保存できないこと
         """
         # ルートフォルダを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
 
         # ルートフォルダの下にプロジェクトを作成する
         project0 = root.create_project_folder('プロジェクト0')
@@ -2207,7 +2207,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         プロジェクトのラベル名はプロジェクト管理者のみが変更できること
         """
         # ルートフォルダを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
 
         # ルートフォルダの下にプロジェクトを作成する
         project = root.create_project_folder('半休電車')
@@ -2220,32 +2220,32 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         project.init_members([member1, member2], last_modified_at=project.modified_at)
 
         # 変更を確定する
-        self.factory.end()
+        self.finder.end()
 
         # 編集者は、プロジェクトのラベルを変更できること
-        project = self.factory2.data.find_by_uuid(project.uuid)
+        project = self.finder2.data.find_by_uuid(project.uuid)
         with self.assertRaises(NotAuthorizedException):
             project.update_label('阪神電車')
         self.assertEqual(project.label, '半休電車')
 
         # 閲覧者は、プロジェクトのラベルを変更できないこと
-        project = self.factory3.data.find_by_uuid(project.uuid)
+        project = self.finder3.data.find_by_uuid(project.uuid)
         with self.assertRaises(NotAuthorizedException):
             project.update_label('近鉄電車')
         self.assertEqual(project.label, '半休電車')
 
         # プロジェクトをほかして、ゴミ箱を空にする
-        project = self.factory.data.find_by_uuid(project.uuid)
+        project = self.finder.data.find_by_uuid(project.uuid)
         self.assertEqual(project.label, '半休電車')
         project.throw_away()
-        self.factory.data.find_trashcan().trash_all()
+        self.finder.data.find_trashcan().trash_all()
 
     async def test_cannot_move_project(self):
         """
         ゴミ箱へにほかされるか、ゴミ箱から元の場所に戻す場合を除いて、プロジェクトは移動できない
         """
         # ルートフォルダを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
 
         # ルートフォルダの下にプロジェクトを作成する
         project = root.create_project_folder('移動できないぜProject')
@@ -2266,7 +2266,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         プロジェクトはゴミ箱にほかせること
         """
         # ルートフォルダを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
 
         # ルートフォルダの下にプロジェクトを作成する
         project = root.create_project_folder('ゴミプロジェクト')
@@ -2287,9 +2287,9 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         project.throw_away()
 
         # プロジェクトがゴミ箱に存在すること
-        self.assertTrue(self.factory.data.trashed(project.uuid))
-        self.assertTrue(self.factory.data.trashed(flow.uuid))
-        self.assertTrue(self.factory.data.trashed(frame.uuid))
+        self.assertTrue(self.finder.data.trashed(project.uuid))
+        self.assertTrue(self.finder.data.trashed(flow.uuid))
+        self.assertTrue(self.finder.data.trashed(frame.uuid))
 
         # プロジェクトを元の場所に戻す
         project.put_back()
@@ -2299,19 +2299,19 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
 
         # プロジェクトを再度ほかして、ゴミ箱を空にする
         project.throw_away()
-        self.factory.data.find_trashcan().trash_all()
+        self.finder.data.find_trashcan().trash_all()
 
         # プロジェクトは削除されていること
-        self.assertFalse(self.factory.data.exists(project.uuid))
-        self.assertFalse(self.factory.data.exists(flow.uuid))
-        self.assertFalse(self.factory.data.exists(frame.uuid))
+        self.assertFalse(self.finder.data.exists(project.uuid))
+        self.assertFalse(self.finder.data.exists(flow.uuid))
+        self.assertFalse(self.finder.data.exists(frame.uuid))
 
     async def test_delete_project(self):
         """
         プロジェクト管理者はプロジェクトを削除できる
         """
         # ルートフォルダを取得する
-        root = self.factory2.data.load_root()
+        root = self.finder2.data.load_root()
 
         # ルートフォルダの下にプロジェクトを作成する
         # 作成者(=プロジェクト管理者)はUSER2
@@ -2323,26 +2323,26 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         project.throw_away()
 
         # 変更を確定する
-        self.factory2.end()
+        self.finder2.end()
 
         # プロジェクトがゴミ箱に存在すること
-        self.assertTrue(self.factory.data.trashed(project.uuid))
+        self.assertTrue(self.finder.data.trashed(project.uuid))
 
         # プロジェクト管理者(USER2)がプロジェクトを削除する
         project.delete()
 
         # 変更を確定する
-        self.factory2.end()
+        self.finder2.end()
 
         # プロジェクトは削除されていること
-        self.assertFalse(self.factory.data.exists(project.uuid))
+        self.assertFalse(self.finder.data.exists(project.uuid))
 
     async def test_cannot_delete_project(self):
         """
         プロジェクト管理者以外はプロジェクトを削除できない
         """
         # ルートフォルダを取得する
-        root = self.factory2.data.load_root()
+        root = self.finder2.data.load_root()
 
         # ルートフォルダの下にプロジェクトを作成する
         # 作成者(=プロジェクト管理者)はUSER2
@@ -2351,29 +2351,29 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         project = project.reload()
 
         # 変更を確定する
-        self.factory2.end()
+        self.finder2.end()
 
         # プロジェクトメンバ以外のユーザ(USER3)は参照できないこと
         with self.assertRaises(NotAuthorizedException):
-            project = self.factory3.data.find_by_uuid(project.uuid)
+            project = self.finder3.data.find_by_uuid(project.uuid)
 
         # USER3をプロジェクトの編集者メンバとして追加する
-        project = self.factory2.data.find_by_id(project.id)
+        project = self.finder2.data.find_by_id(project.id)
         user3_member = ProjectFolder.Member(self.USER3, ProjectFolder.WRITER_MEMBER_TYPE)
         project.join_member(user3_member)
 
         # 変更を確定する
-        self.factory2.end()
+        self.finder2.end()
 
         # 編集者メンバ(USER3)がプロジェクトの削除を試みる
-        project = self.factory3.data.find_by_uuid(project.uuid)
+        project = self.finder3.data.find_by_uuid(project.uuid)
         with self.assertRaises(NotAuthorizedException):
             project.throw_away()
         with self.assertRaises(NotAuthorizedException):
             project.delete()
 
         # プロジェクトは削除されていないこと
-        self.assertTrue(self.factory.data.exists_by_id(project.id))
+        self.assertTrue(self.finder.data.exists_by_id(project.id))
 
     async def test_join_project1(self):
         """
@@ -2381,7 +2381,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         (元のプロジェクト管理者は削除する)
         """
         # ルートフォルダを取得する
-        root = self.factory2.data.load_root()
+        root = self.finder2.data.load_root()
         # ルートフォルダの下にプロジェクトを作成する
         project = root.create_project_folder('アイドルプロジェクト！')
         project.save()
@@ -2416,7 +2416,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         (元のプロジェクト管理者は閲覧者にする)
         """
         # ルートフォルダを取得する
-        root = self.factory2.data.load_root()
+        root = self.finder2.data.load_root()
         # ルートフォルダの下にプロジェクトを作成する
         project = root.create_project_folder('V作戦')
         project.save()
@@ -2453,7 +2453,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         (元のプロジェクト管理者は削除する)
         """
         # ルートフォルダを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         # ルートフォルダの下にプロジェクトを作成する
         project = root.create_project_folder('プロジェクト1')
         project.save()
@@ -2492,7 +2492,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         (元のプロジェクト管理者は閲覧者にする)
         """
         # ルートフォルダを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         # ルートフォルダの下にプロジェクトを作成する
         project = root.create_project_folder('プロジェクト2')
         project.save()
@@ -2529,7 +2529,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         プロジェクト管理者を設定しない
         """
         # ルートフォルダを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         # ルートフォルダの下にプロジェクトを作成する
         project = root.create_project_folder('プロジェクト3')
         project.save()
@@ -2548,7 +2548,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         プロジェクトに規定のユーザタイプ以外を指定できないこと
         """
         # ルートフォルダを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         # ルートフォルダの下にプロジェクトを作成する
         project = root.create_project_folder('プロジェクト4')
         project.save()
@@ -2568,7 +2568,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         プロジェクトメンバに誰も設定しない
         """
         # ルートフォルダを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         # ルートフォルダの下にプロジェクトを作成する
         project = root.create_project_folder('プロジェクト5')
         project.save()
@@ -2586,15 +2586,15 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         参照・更新・実行・所有権限を付与されていないこと
         """
         # ルートフォルダを取得する
-        root = self.factory3.data.load_root()
+        root = self.finder3.data.load_root()
         # USER3は、ルートフォルダの下にプロジェクトを作成する
         project = root.create_project_folder('きらら⭐️三大言っていない名言！')
         project.save()
         project = project.reload()
 
         # プロジェクトにシステム管理者の権限が付与されていないこと
-        sys_admin_role = self.factory3.role.load_sys_admin_role()
-        self.assertFalse(self.factory3.auth.exists(sys_admin_role.id, project.id))
+        sys_admin_role = self.finder3.role.load_sys_admin_role()
+        self.assertFalse(self.finder3.auth.exists(sys_admin_role.id, project.id))
 
         # USER3は、プロジェクトの下にフォルダを作成する
         folder = project.create_folder('うるさいですね💢')
@@ -2612,30 +2612,30 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         frame = frame.reload()
 
         # 変更を確定する
-        self.factory3.end()
+        self.finder3.end()
 
         # システム管理者は、フォルダの参照ができないこと
         with self.assertRaises(NotAuthorizedException):
-            self.factory0.data.find_by_uuid(folder.uuid)
+            self.finder0.data.find_by_uuid(folder.uuid)
 
         # システム管理者は、フローの参照ができないこと
         with self.assertRaises(NotAuthorizedException):
-            self.factory0.data.find_by_uuid(flow.uuid)
+            self.finder0.data.find_by_uuid(flow.uuid)
 
         # システム管理者は、フレームの参照ができないこと
         with self.assertRaises(NotAuthorizedException):
-            self.factory0.data.find_by_uuid(frame.uuid)
+            self.finder0.data.find_by_uuid(frame.uuid)
 
         # プロジェクト以外のDatumにシステム管理者の権限が付与されていないこと
-        self.assertFalse(self.factory0.auth.exists(sys_admin_role.id, folder.id))
-        self.assertFalse(self.factory0.auth.exists(sys_admin_role.id, flow.id))
-        self.assertFalse(self.factory0.auth.exists(sys_admin_role.id, frame.id))
+        self.assertFalse(self.finder0.auth.exists(sys_admin_role.id, folder.id))
+        self.assertFalse(self.finder0.auth.exists(sys_admin_role.id, flow.id))
+        self.assertFalse(self.finder0.auth.exists(sys_admin_role.id, frame.id))
 
         # プロジェクトをほかす
         project.throw_away()
 
         # ゴミ箱を空にする
-        self.factory3.data.find_trashcan().trash_all()
+        self.finder3.data.find_trashcan().trash_all()
 
     async def test_usr_admin_has_permissions(self):
         """
@@ -2643,25 +2643,25 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         参照・更新・実行・所有権限を付与されていること
         """
         # ルートフォルダを取得する
-        root = self.factory3.data.load_root()
+        root = self.finder3.data.load_root()
         # USER3は、ルートフォルダの下にプロジェクトを作成する
         project = root.create_project_folder('😒😞😔😟😕🙁☹️😣😖😫😩🥺😢😭😤🤲🏾👐🏼')
         project.save()
         project = project.reload()
 
         # プロジェクトにユーザ管理者の権限が付与されていること
-        usr_admin_role = self.factory3.role.load_usr_admin_role()
-        self.assertTrue(self.factory3.auth.exists(usr_admin_role.id, project.id))
+        usr_admin_role = self.finder3.role.load_usr_admin_role()
+        self.assertTrue(self.finder3.auth.exists(usr_admin_role.id, project.id))
 
         # プロジェクトにユーザ管理者の参照・更新・実行・所有権限が付与されていること
-        self.assertTrue(self.factory3.auth.exists(usr_admin_role.id, project.id))
-        read_auth = self.factory3.auth.find_by_id(usr_admin_role.id, project.id, Auth.READ_OP)
+        self.assertTrue(self.finder3.auth.exists(usr_admin_role.id, project.id))
+        read_auth = self.finder3.auth.find_by_id(usr_admin_role.id, project.id, Auth.READ_OP)
         self.assertTrue(read_auth.permission)
-        write_auth = self.factory3.auth.find_by_id(usr_admin_role.id, project.id, Auth.WRITE_OP)
+        write_auth = self.finder3.auth.find_by_id(usr_admin_role.id, project.id, Auth.WRITE_OP)
         self.assertTrue(write_auth.permission)
-        exec_auth = self.factory3.auth.find_by_id(usr_admin_role.id, project.id, Auth.EXEC_OP)
+        exec_auth = self.finder3.auth.find_by_id(usr_admin_role.id, project.id, Auth.EXEC_OP)
         self.assertTrue(exec_auth.permission)
-        own_auth = self.factory3.auth.find_by_id(usr_admin_role.id, project.id, Auth.OWN_OP)
+        own_auth = self.finder3.auth.find_by_id(usr_admin_role.id, project.id, Auth.OWN_OP)
         self.assertTrue(own_auth.permission)
 
         # USER3は、プロジェクトの下にフォルダを作成する
@@ -2680,10 +2680,10 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         frame = frame.reload()
 
         # 変更を確定する
-        self.factory3.end()
+        self.finder3.end()
 
         # ユーザ管理者は、フォルダの参照・更新ができること
-        folder = self.factory.data.find_by_uuid(folder.uuid)
+        folder = self.finder.data.find_by_uuid(folder.uuid)
         folder.update_label('德川家康')
 
         # ユーザ管理者は、フォルダの参照・更新・実行のプロパティがTrueであること
@@ -2692,7 +2692,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         self.assertTrue(folder.executable)
 
         # ユーザ管理者は、フローの参照・更新・実行ができること
-        flow = self.factory.data.find_by_uuid(flow.uuid)
+        flow = self.finder.data.find_by_uuid(flow.uuid)
         flow.update_data('武田晴信', FlowData())
         flow.flow_data.get_nodes(use_exec_auth=True)
 
@@ -2702,11 +2702,11 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         self.assertTrue(flow.executable)
 
         # ユーザ管理者は、フレームの参照・更新ができること
-        frame = self.factory.data.find_by_uuid(frame.uuid)
+        frame = self.finder.data.find_by_uuid(frame.uuid)
         frame.update_label('織田信長')
 
         # 変更を確定する
-        self.factory.end()
+        self.finder.end()
         
         # ユーザ管理者は、フレームの参照・更新のプロパティがTrueであること
         self.assertTrue(frame.readable)
@@ -2714,22 +2714,22 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         self.assertFalse(frame.executable)
 
         # プロジェクト以外のDatumにユーザ管理者の権限が付与されていないこと
-        self.assertFalse(self.factory.auth.exists(usr_admin_role.id, folder.id))
-        self.assertFalse(self.factory.auth.exists(usr_admin_role.id, flow.id))
-        self.assertFalse(self.factory.auth.exists(usr_admin_role.id, frame.id))
+        self.assertFalse(self.finder.auth.exists(usr_admin_role.id, folder.id))
+        self.assertFalse(self.finder.auth.exists(usr_admin_role.id, flow.id))
+        self.assertFalse(self.finder.auth.exists(usr_admin_role.id, frame.id))
 
         # プロジェクトをほかす
         project.throw_away()
 
         # ゴミ箱を空にする
-        self.factory3.data.find_trashcan().trash_all()
+        self.finder3.data.find_trashcan().trash_all()
 
     async def test_join_by_serial(self):
         """
         プロジェクトメンバの設定は、順次実行すればいずれも更新できる
         """
         # ルートフォルダを取得する
-        root = self.factory2.data.load_root()
+        root = self.finder2.data.load_root()
         # ルートフォルダの下にプロジェクトを作成する
         project = root.create_project_folder('ビッグカメラ')
         project.save()
@@ -2742,17 +2742,17 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         project.init_members([member1], last_modified_at=project.modified_at)
 
         # 変更を確定する
-        self.factory2.end()
+        self.finder2.end()
 
         # USER1は、プロジェクトを取得する
-        project2 = self.factory.data.find_by_uuid(project.uuid)
+        project2 = self.finder.data.find_by_uuid(project.uuid)
 
         # USER1は、メンバを設定する
         member1 = ProjectFolder.Member(self.USER2, ProjectFolder.OWNER_MEMBER_TYPE)
         project2.init_members([member1], last_modified_at=project2.modified_at)
 
         # 変更を確定する
-        self.factory.end()
+        self.finder.end()
 
         # プロジェクトは削除する
         project.delete()
@@ -2762,7 +2762,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         プロジェクトメンバの設定は、先にプロジェクトを更新した方が更新できる
         """
         # ルートフォルダを取得する
-        root = self.factory2.data.load_root()
+        root = self.finder2.data.load_root()
         # ルートフォルダの下にプロジェクトを作成する
         project = root.create_project_folder('ヨドバシカメラ')
         project.save()
@@ -2771,17 +2771,17 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         project = project.reload()
 
         # 変更を確定する
-        self.factory2.end()
+        self.finder2.end()
 
         # USER1は、プロジェクトを取得する
-        project2 = self.factory.data.find_by_uuid(project.uuid)
+        project2 = self.finder.data.find_by_uuid(project.uuid)
 
         # USER1は、メンバを設定する
         member1 = ProjectFolder.Member(self.USER2, ProjectFolder.OWNER_MEMBER_TYPE)
         project2.init_members([member1], last_modified_at=project2.modified_at)
 
         # 変更を確定する
-        self.factory.end()
+        self.finder.end()
 
         # USER2は、メンバを設定する
         with self.assertRaises(OptimisticLockException):
@@ -2796,7 +2796,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         プロジェクトメンバの設定は、先にプロジェクトを更新した方が更新できる
         """
         # ルートフォルダを取得する
-        root = self.factory2.data.load_root()
+        root = self.finder2.data.load_root()
         # ルートフォルダの下にプロジェクトを作成する
         project = root.create_project_folder('Joshin')
         project.save()
@@ -2805,17 +2805,17 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         project = project.reload()
 
         # 変更を確定する
-        self.factory2.end()
+        self.finder2.end()
 
         # USER1は、プロジェクトを取得する
-        project2 = self.factory.data.find_by_uuid(project.uuid)
+        project2 = self.finder.data.find_by_uuid(project.uuid)
 
         # USER1は、メンバを追加する
         member1 = ProjectFolder.Member(self.USER2, ProjectFolder.OWNER_MEMBER_TYPE)
         project2.join_member(member1)
 
         # 変更を確定する
-        self.factory.end()
+        self.finder.end()
 
         # USER2は、メンバを設定する
         with self.assertRaises(OptimisticLockException):
@@ -2830,7 +2830,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         プロジェクトメンバの設定は、先にプロジェクトを更新した方が更新できる
         """
         # ルートフォルダを取得する
-        root = self.factory2.data.load_root()
+        root = self.finder2.data.load_root()
         # ルートフォルダの下にプロジェクトを作成する
         project = root.create_project_folder('Ninomiya')
         project.save()
@@ -2843,16 +2843,16 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         project.join_member(member1)
 
         # 変更を確定する
-        self.factory2.end()
+        self.finder2.end()
 
         # USER1は、プロジェクトを取得する
-        project2 = self.factory.data.find_by_uuid(project.uuid)
+        project2 = self.finder.data.find_by_uuid(project.uuid)
 
         # USER1は、メンバを外す
         project2.leave_member(self.USER3)
 
         # 変更を確定する
-        self.factory.end()
+        self.finder.end()
 
         # USER2は、メンバを設定する
         with self.assertRaises(OptimisticLockException):
@@ -2868,7 +2868,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         紐づくキャッシュの権限も再設定されること
         """
         # ルートフォルダを取得する
-        root = self.factory2.data.load_root()
+        root = self.finder2.data.load_root()
 
         # ルートフォルダの下にプロジェクト1を作成する
         project1 = root.create_project_folder('UFO')
@@ -2895,19 +2895,19 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
 
         # プロジェクト管理者は、フローのキャッシュを参照できること
         cache_frame_uuid = next(iter(flow.flow_data.get_cache_frame_uuids()))
-        cache_frame = self.factory2.data.find_by_uuid(cache_frame_uuid)
+        cache_frame = self.finder2.data.find_by_uuid(cache_frame_uuid)
 
         # フローをプロジェクト2に移動する
         flow.move(project2.uuid)
 
         # 作成と変更を確定する
-        self.factory2.end()
+        self.finder2.end()
 
         # キャッシュの権限設定を検証する
-        auths = self.factory.auth.find_all_by_datum_id(cache_frame.id)
+        auths = self.finder.auth.find_all_by_datum_id(cache_frame.id)
         self.assertEqual(len(auths), 6)
         # 取得した権限を検証する
-        usr_admin_role = self.factory.role.load_usr_admin_role()
+        usr_admin_role = self.finder.role.load_usr_admin_role()
         readers_role = project2._find_readers_role()
         writers_role = project2._find_writers_role()
         # ユーザ管理者ロールの参照権限
@@ -2970,7 +2970,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         project2.throw_away()
 
         # ゴミ箱を空にする
-        self.factory2.data.find_trashcan().trash_all()
+        self.finder2.data.find_trashcan().trash_all()
 
         # 最後にキャッシュを削除する
         cache_frame.delete()
@@ -2981,7 +2981,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         紐づくキャッシュの権限も再設定されること
         """
         # ルートフォルダを取得する
-        root = self.factory2.data.load_root()
+        root = self.finder2.data.load_root()
 
         # ルートフォルダの下にプロジェクト1を作成する
         project1 = root.create_project_folder('ラ王')
@@ -3003,19 +3003,19 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
 
         # プロジェクト管理者は、フローのキャッシュを参照できること
         cache_frame_uuid = next(iter(flow.flow_data.get_cache_frame_uuids()))
-        cache_frame = self.factory2.data.find_by_uuid(cache_frame_uuid)
+        cache_frame = self.finder2.data.find_by_uuid(cache_frame_uuid)
 
         # フローをキャッシュフォルダに移動する
         flow.move(SavableDatum.CACHE_FOLDER_UUID)
 
         # 作成と変更を確定する
-        self.factory2.end()
+        self.finder2.end()
 
         # キャッシュの権限設定を検証する
-        auths = self.factory.auth.find_all_by_datum_id(cache_frame.id)
+        auths = self.finder.auth.find_all_by_datum_id(cache_frame.id)
         self.assertEqual(len(auths), 6)
         # 取得した権限を検証する
-        usr_admin_role = self.factory.role.load_usr_admin_role()
+        usr_admin_role = self.finder.role.load_usr_admin_role()
         readers_role = project1._find_readers_role()
         writers_role = project1._find_writers_role()
         # ユーザ管理者ロールの参照権限
@@ -3077,7 +3077,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         project1.throw_away()
 
         # ゴミ箱を空にする
-        self.factory2.data.find_trashcan().trash_all()
+        self.finder2.data.find_trashcan().trash_all()
 
         # 最後にフローとキャッシュを削除する
         flow.delete()
@@ -3089,7 +3089,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         紐づくキャッシュの権限も再設定されること
         """
         # ルートフォルダを取得する
-        root = self.factory2.data.load_root()
+        root = self.finder2.data.load_root()
 
         # ルートフォルダの下にプロジェクト1を作成する
         project1 = root.create_project_folder('日清ソース焼そば')
@@ -3121,19 +3121,19 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
 
         # プロジェクト管理者は、フローのキャッシュを参照できること
         cache_frame_uuid = next(iter(flow.flow_data.get_cache_frame_uuids()))
-        cache_frame = self.factory2.data.find_by_uuid(cache_frame_uuid)
+        cache_frame = self.finder2.data.find_by_uuid(cache_frame_uuid)
 
         # フローをフォルダごとプロジェクト2に移動する
         folder.move(project2.uuid)
 
         # 作成と変更を確定する
-        self.factory2.end()
+        self.finder2.end()
 
         # キャッシュの権限設定を検証する
-        auths = self.factory.auth.find_all_by_datum_id(cache_frame.id)
+        auths = self.finder.auth.find_all_by_datum_id(cache_frame.id)
         self.assertEqual(len(auths), 6)
         # 取得した権限を検証する
-        usr_admin_role = self.factory.role.load_usr_admin_role()
+        usr_admin_role = self.finder.role.load_usr_admin_role()
         readers_role = project2._find_readers_role()
         writers_role = project2._find_writers_role()
         # ユーザ管理者ロールの参照権限
@@ -3196,7 +3196,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         project2.throw_away()
 
         # ゴミ箱を空にする
-        self.factory2.data.find_trashcan().trash_all()
+        self.finder2.data.find_trashcan().trash_all()
 
         # 最後にキャッシュを削除する
         cache_frame.delete()
@@ -3210,7 +3210,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         Flowの編集ロックをONにすると更新できないこと
         """
         # ルートフォルダを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         # ルートフォルダの下にフレームを作成する
         frame = root.create_frame('だーれが', io.BytesIO(b''))
         frame.save()
@@ -3267,7 +3267,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         閲覧者は編集ロックの値を変更できないこと
         """
         # ルートフォルダを取得する
-        root = self.factory2.data.load_root()
+        root = self.finder2.data.load_root()
 
         # ルートフォルダの下にプロジェクトを作成する
         project = root.create_project_folder('花は爛漫咲き誇りー')
@@ -3299,10 +3299,10 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         self.assertTrue(flow.writable)
 
         # 作成と変更を確定する
-        self.factory2.end()
+        self.finder2.end()
 
         # 閲覧者は編集ロックの値を変更できないこと
-        flow = self.factory3.data.find_by_uuid(flow.uuid)
+        flow = self.finder3.data.find_by_uuid(flow.uuid)
         with self.assertRaises(NotAuthorizedException):
             flow.edit_lock = True
         with self.assertRaises(NotAuthorizedException):
@@ -3314,7 +3314,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         self.assertFalse(flow.writable)
 
         # 編集者は編集ロックの値を変更できること
-        flow = self.factory0.data.find_by_uuid(flow.uuid)
+        flow = self.finder0.data.find_by_uuid(flow.uuid)
         flow.edit_lock = True
         self.assertTrue(flow.edit_lock)
         self.assertTrue(flow.readable)
@@ -3331,14 +3331,14 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         project.throw_away()
 
         # ゴミ箱を空にする
-        self.factory2.data.find_trashcan().trash_all()
+        self.finder2.data.find_trashcan().trash_all()
 
     async def test_cannot_move_edit_locked_flow(self):
         """
         編集ロックがONのFlowは移動できないこと
         """
         # ルートフォルダを取得する
-        root = self.factory2.data.load_root()
+        root = self.finder2.data.load_root()
 
         # ルートフォルダの下にプロジェクト1を作成する
         project1 = root.create_project_folder('あーの顔見ーたらどうしても')
@@ -3389,7 +3389,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         project1.throw_away()
 
         # ゴミ箱を空にする
-        self.factory2.data.find_trashcan().trash_all()
+        self.finder2.data.find_trashcan().trash_all()
 
     #
     # Other Datum
@@ -3400,7 +3400,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         プロジェクト以外のDatumはルートフォルダへ移動できないこと
         """
         # ルートフォルダを取得する
-        root = self.factory3.data.load_root()
+        root = self.finder3.data.load_root()
         # ルートフォルダの下にプロジェクトを作成する
         project = root.create_project_folder('猫ハウス📦')
         project.save()
@@ -3427,14 +3427,14 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         folder.throw_away()
 
         # ゴミ箱を空にする
-        self.factory3.data.find_trashcan().trash_all()
+        self.finder3.data.find_trashcan().trash_all()
 
     async def test_cannnot_move_system_folder(self):
         """
         システムフォルダは移動できないこと
         """
         # ルートフォルダを取得する
-        root = self.factory3.data.load_root()
+        root = self.finder3.data.load_root()
         # ルートフォルダの下にプロジェクトを作成する
         project = root.create_project_folder('そうiPhoneならね')
         project.save()
@@ -3445,17 +3445,17 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
             root.move(project.uuid)
 
         # キャッシュフォルダは移動できないこと
-        cache_folder = self.factory.data.load_cache_folder()
+        cache_folder = self.finder.data.load_cache_folder()
         with self.assertRaises(Exception):
             cache_folder.move(project.uuid)
 
         # アクティビティフォルダは移動できないこと
-        activity_folder = self.factory.data.load_activity_folder()
+        activity_folder = self.finder.data.load_activity_folder()
         with self.assertRaises(Exception):
             activity_folder.move(project.uuid)
 
         # ゴミ箱は移動できないこと
-        trashcan = self.factory.data.load_trash_folder()
+        trashcan = self.finder.data.load_trash_folder()
         with self.assertRaises(Exception):
             trashcan.move(project.uuid)
 
@@ -3470,17 +3470,17 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         ユーザ管理者以外は、ルートフォルダにプロジェクト以外のDatumを新規追加できないこと
         """
         # ルートフォルダを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
 
         # ユーザ管理者は、ルートフォルダの下にフレームを作成できること
         frame = root.create_frame('ワンワン🐕', io.BytesIO(b'wanwan'))
         frame.save()
 
         # フレームが作成されていること
-        self.assertTrue(self.factory.data.exists(frame.uuid))
+        self.assertTrue(self.finder.data.exists(frame.uuid))
 
         # 一般ユーザは、ルートフォルダを取得する
-        root = self.factory3.data.load_root()
+        root = self.finder3.data.load_root()
 
         # 一般ユーザは、ルートフォルダの下にフローを作成できないこと
         flow = root.create_flow('ワオーン🐕‍🦺', FlowData())
@@ -3488,7 +3488,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
             flow.save()
 
         # フローは作成されていないこと
-        self.assertFalse(self.factory3.data.exists(flow.uuid))
+        self.assertFalse(self.finder3.data.exists(flow.uuid))
 
         # 一般ユーザは、ルートフォルダの下にフォルダを作成できないこと
         folder = root.create_folder('ワン！')
@@ -3496,7 +3496,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
             folder.save()
 
         # フォルダは作成されていないこと
-        self.assertFalse(self.factory3.data.exists(folder.uuid))
+        self.assertFalse(self.finder3.data.exists(folder.uuid))
 
         # フレームを削除する
         frame.delete()
@@ -3507,15 +3507,15 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         参照・更新・実行・所有権限を付与されていること
         """
         # ルートフォルダを取得する
-        root = self.factory3.data.load_root()
+        root = self.finder3.data.load_root()
         # ルートフォルダの下にプロジェクトを作成する
         project = root.create_project_folder('MacBook Pro')
         project.save()
         project = project.reload()
 
         # プロジェクトにeveryoneロールの権限を付与されていないこと
-        everyone_role = self.factory3.role.load_everyone_role()
-        self.assertFalse(self.factory3.auth.exists(everyone_role.id, project.id))
+        everyone_role = self.finder3.role.load_everyone_role()
+        self.assertFalse(self.finder3.auth.exists(everyone_role.id, project.id))
 
         # プロジェクトの下にフォルダを作成する
         folder = project.create_folder('Mac mini')
@@ -3523,14 +3523,14 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         folder = folder.reload()
 
         # フォルダにeveryoneロールの参照・更新・実行権限が付与されていること
-        self.assertTrue(self.factory3.auth.exists(everyone_role.id, folder.id))
-        read_auth = self.factory3.auth.find_by_id(everyone_role.id, folder.id, Auth.READ_OP)
+        self.assertTrue(self.finder3.auth.exists(everyone_role.id, folder.id))
+        read_auth = self.finder3.auth.find_by_id(everyone_role.id, folder.id, Auth.READ_OP)
         self.assertTrue(read_auth.permission)
-        write_auth = self.factory3.auth.find_by_id(everyone_role.id, folder.id, Auth.WRITE_OP)
+        write_auth = self.finder3.auth.find_by_id(everyone_role.id, folder.id, Auth.WRITE_OP)
         self.assertTrue(write_auth.permission)
-        exec_auth = self.factory3.auth.find_by_id(everyone_role.id, folder.id, Auth.EXEC_OP)
+        exec_auth = self.finder3.auth.find_by_id(everyone_role.id, folder.id, Auth.EXEC_OP)
         self.assertTrue(exec_auth.permission)
-        own_auth = self.factory3.auth.find_by_id(everyone_role.id, folder.id, Auth.OWN_OP)
+        own_auth = self.finder3.auth.find_by_id(everyone_role.id, folder.id, Auth.OWN_OP)
         self.assertTrue(own_auth.permission)
 
         # フォルダの下にフローを作成する
@@ -3539,14 +3539,14 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         flow = flow.reload()
 
         # フローにeveryoneロールの参照・更新・実行権限が付与されていること
-        self.assertTrue(self.factory3.auth.exists(everyone_role.id, flow.id))
-        read_auth = self.factory3.auth.find_by_id(everyone_role.id, flow.id, Auth.READ_OP)
+        self.assertTrue(self.finder3.auth.exists(everyone_role.id, flow.id))
+        read_auth = self.finder3.auth.find_by_id(everyone_role.id, flow.id, Auth.READ_OP)
         self.assertTrue(read_auth.permission)
-        write_auth = self.factory3.auth.find_by_id(everyone_role.id, flow.id, Auth.WRITE_OP)
+        write_auth = self.finder3.auth.find_by_id(everyone_role.id, flow.id, Auth.WRITE_OP)
         self.assertTrue(write_auth.permission)
-        exec_auth = self.factory3.auth.find_by_id(everyone_role.id, flow.id, Auth.EXEC_OP)
+        exec_auth = self.finder3.auth.find_by_id(everyone_role.id, flow.id, Auth.EXEC_OP)
         self.assertTrue(exec_auth.permission)
-        own_auth = self.factory3.auth.find_by_id(everyone_role.id, flow.id, Auth.OWN_OP)
+        own_auth = self.finder3.auth.find_by_id(everyone_role.id, flow.id, Auth.OWN_OP)
         self.assertTrue(own_auth.permission)
 
         # フォルダの下にフレームを作成する
@@ -3555,42 +3555,42 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         frame = frame.reload()
 
         # フレームにeveryoneロールの参照・更新権限が付与されていること
-        self.assertTrue(self.factory3.auth.exists(everyone_role.id, frame.id))
-        self.assertFalse(self.factory3.auth.exists(everyone_role.id, frame.id, Auth.EXEC_OP))
-        read_auth = self.factory3.auth.find_by_id(everyone_role.id, frame.id, Auth.READ_OP)
+        self.assertTrue(self.finder3.auth.exists(everyone_role.id, frame.id))
+        self.assertFalse(self.finder3.auth.exists(everyone_role.id, frame.id, Auth.EXEC_OP))
+        read_auth = self.finder3.auth.find_by_id(everyone_role.id, frame.id, Auth.READ_OP)
         self.assertTrue(read_auth.permission)
-        write_auth = self.factory3.auth.find_by_id(everyone_role.id, frame.id, Auth.WRITE_OP)
+        write_auth = self.finder3.auth.find_by_id(everyone_role.id, frame.id, Auth.WRITE_OP)
         self.assertTrue(write_auth.permission)
-        own_auth = self.factory3.auth.find_by_id(everyone_role.id, frame.id, Auth.OWN_OP)
+        own_auth = self.finder3.auth.find_by_id(everyone_role.id, frame.id, Auth.OWN_OP)
         self.assertTrue(own_auth.permission)
 
         # プロジェクトをほかす
         project.throw_away()
 
         # ゴミ箱を空にする
-        self.factory3.data.find_trashcan().trash_all()
+        self.finder3.data.find_trashcan().trash_all()
 
     async def test_user_admin_has_permissoins(self):
         """
         ユーザ管理者は、全てのDatumの参照・更新ができること
         """
         # ルートフォルダを取得する
-        root = self.factory3.data.load_root()
+        root = self.finder3.data.load_root()
         # ルートフォルダの下にプロジェクトを作成する
         project = root.create_project_folder('そうだ！そうだ！金さんをだせ！')
         project.save()
         project = project.reload()
 
         # プロジェクトにユーザ管理者ロールの権限を付与されていること
-        usr_admin_role = self.factory3.role.load_usr_admin_role()
-        self.assertTrue(self.factory3.auth.exists(usr_admin_role.id, project.id))
-        read_auth = self.factory3.auth.find_by_id(usr_admin_role.id, project.id, Auth.READ_OP)
+        usr_admin_role = self.finder3.role.load_usr_admin_role()
+        self.assertTrue(self.finder3.auth.exists(usr_admin_role.id, project.id))
+        read_auth = self.finder3.auth.find_by_id(usr_admin_role.id, project.id, Auth.READ_OP)
         self.assertTrue(read_auth.permission)
-        write_auth = self.factory3.auth.find_by_id(usr_admin_role.id, project.id, Auth.WRITE_OP)
+        write_auth = self.finder3.auth.find_by_id(usr_admin_role.id, project.id, Auth.WRITE_OP)
         self.assertTrue(write_auth.permission)
-        exec_auth = self.factory3.auth.find_by_id(usr_admin_role.id, project.id, Auth.EXEC_OP)
+        exec_auth = self.finder3.auth.find_by_id(usr_admin_role.id, project.id, Auth.EXEC_OP)
         self.assertTrue(exec_auth.permission)
-        own_auth = self.factory3.auth.find_by_id(usr_admin_role.id, project.id, Auth.OWN_OP)
+        own_auth = self.finder3.auth.find_by_id(usr_admin_role.id, project.id, Auth.OWN_OP)
         self.assertTrue(own_auth.permission)
 
         # プロジェクトの下にフォルダを作成する
@@ -3599,7 +3599,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         folder = folder.reload()
 
         # フォルダにユーザ管理者ロールの参照・更新・実行権限が付与されていないこと
-        self.assertFalse(self.factory3.auth.exists(usr_admin_role.id, folder.id))
+        self.assertFalse(self.finder3.auth.exists(usr_admin_role.id, folder.id))
 
         # フォルダの下にフローを作成する
         flow = folder.create_flow('テメエらの所業は御天道様がちゃーんと見ているぜ', FlowData())
@@ -3607,7 +3607,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         flow = flow.reload()
 
         # フローにユーザ管理者ロールの参照・更新・実行権限が付与されていないこと
-        self.assertFalse(self.factory3.auth.exists(usr_admin_role.id, flow.id))
+        self.assertFalse(self.finder3.auth.exists(usr_admin_role.id, flow.id))
 
         # フォルダの下にフレームを作成する
         frame = folder.create_frame('この桜吹雪散らせるもんなら散らしてみろおぃ！', io.BytesIO(b'babaaaan'))
@@ -3615,27 +3615,27 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         frame = frame.reload()
 
         # 変更を確定する
-        self.factory3.end()
+        self.finder3.end()
 
         # フレームにユーザ管理者ロールの参照・更新・実行権限が付与されていないこと
-        self.assertFalse(self.factory3.auth.exists(usr_admin_role.id, frame.id))
+        self.assertFalse(self.finder3.auth.exists(usr_admin_role.id, frame.id))
 
         # ユーザ管理者はフローの参照・更新ができること
-        flow = self.factory.data.find_by_uuid(flow.uuid)
+        flow = self.finder.data.find_by_uuid(flow.uuid)
         flow.update_data('越後屋久兵衛、市中引き回しの上獄門！その他の者は終生遠島とする！ひったてい！', FlowData())
 
         # ユーザ管理者はフローをほかせること
         flow.throw_away()
 
         # ユーザ管理者はプロジェクトの参照・更新ができること
-        project = self.factory.data.find_by_uuid(project.uuid)
+        project = self.finder.data.find_by_uuid(project.uuid)
         project.update_label('これにて一件落着')
 
         # ユーザ管理者はプロジェクトをほかせること
         project.throw_away()
 
         # ゴミ箱を空にする
-        self.factory.data.find_trashcan().trash_all()
+        self.finder.data.find_trashcan().trash_all()
 
     async def test_cannot_read_trash_by_other_user(self):
         """
@@ -3643,7 +3643,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         プロジェクトメンバ以外のユーザが参照できないこと(ゴミ漁り禁止!🚫)
         """
         # ルートフォルダを取得する
-        root = self.factory2.data.load_root()
+        root = self.finder2.data.load_root()
         # ルートフォルダの下にプロジェクトを作成する
         project = root.create_project_folder('ねこまんま')
         project.save()
@@ -3663,13 +3663,13 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         folder.throw_away()
 
         # 変更を確定する
-        self.factory2.end()
+        self.finder2.end()
 
         # プロジェクトメンバ以外のユーザがゴミを参照できないこと
         with self.assertRaises(NotAuthorizedException):
-            self.factory3.data.find_by_uuid(folder.uuid)
+            self.finder3.data.find_by_uuid(folder.uuid)
         with self.assertRaises(NotAuthorizedException):
-            self.factory3.data.find_by_uuid(flow.uuid)
+            self.finder3.data.find_by_uuid(flow.uuid)
         
         # プロジェクトをほかす
         project.throw_away()
@@ -3679,9 +3679,9 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
 
         # プロジェクトメンバ以外のユーザがゴミを参照できないこと
         with self.assertRaises(NotAuthorizedException):
-            self.factory3.data.find_by_uuid(folder.uuid)
+            self.finder3.data.find_by_uuid(folder.uuid)
         with self.assertRaises(NotAuthorizedException):
-            self.factory3.data.find_by_uuid(flow.uuid)
+            self.finder3.data.find_by_uuid(flow.uuid)
 
         # フォルダを物理削除する
         flow.delete()
@@ -3693,7 +3693,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         閲覧者が更新したり元の位置に戻せないこと
         """
         # ルートフォルダを取得する
-        root = self.factory2.data.load_root()
+        root = self.finder2.data.load_root()
         # ルートフォルダの下にプロジェクトを作成する
         project = root.create_project_folder('ひとーーつ、人の世の生き血をすすり')
         project.save()
@@ -3718,11 +3718,11 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         folder.throw_away()
 
         # 変更を確定する
-        self.factory2.end()
+        self.finder2.end()
 
         # 閲覧者はゴミを参照できること
-        folder = self.factory3.data.find_by_uuid(folder.uuid)
-        flow = self.factory3.data.find_by_uuid(flow.uuid)
+        folder = self.finder3.data.find_by_uuid(folder.uuid)
+        flow = self.finder3.data.find_by_uuid(flow.uuid)
 
         # 閲覧者はゴミを更新できないこと
         with self.assertRaises(NotAuthorizedException):
@@ -3744,14 +3744,14 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         # NOTE: Session.execute()でSET search_pathの設定時にCOMMITも発行していたが
         # ロールバックを行うテストコードで不具合が発生したため、COMMIT処理を削除した
         # その影響により、ここで変更を確定する必要が生じた
-        self.factory3.end()
+        self.finder3.end()
 
         # 空でないフォルダは削除できない
         with self.assertRaises(Exception):
             folder.delete()
 
         # プロジェクト管理者はゴミ箱を空にする
-        trashcan = self.factory2.data.find_trashcan()
+        trashcan = self.finder2.data.find_trashcan()
         trashcan.trash_all()
 
         # ゴミ箱は空になっていること
@@ -3767,7 +3767,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         プロジェクトメンバ以外のユーザが参照できないこと
         """
         # ルートフォルダを取得する
-        root = self.factory2.data.load_root()
+        root = self.finder2.data.load_root()
         # ルートフォルダの下にプロジェクトを作成する
         project = root.create_project_folder('人間五十年')
         project.save()
@@ -3798,17 +3798,17 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         trashed_folder = folder.throw_away()
 
         # 変更を確定する
-        self.factory2.end()
+        self.finder2.end()
 
         # プロジェクトメンバ以外のユーザは、形代フォルダを参照できないこと
         with self.assertRaises(NotAuthorizedException):
-            self.factory3.data.find_by_uuid(trashed_folder.uuid)
+            self.finder3.data.find_by_uuid(trashed_folder.uuid)
 
         # 形代フォルダをほかす前の場所に戻す
         trashed_folder.put_back()
 
         # 形代フォルダはゴミ箱に残る
-        self.assertEqual(trashed_folder.find_parent(), self.factory2.data.load_trash_folder())
+        self.assertEqual(trashed_folder.find_parent(), self.finder2.data.load_trash_folder())
 
         # 中のフォルダはほかす前の場所に戻っていること
         self.assertEqual(folder.find_parent(), project)
@@ -3817,7 +3817,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         project.throw_away()
 
         # ゴミ箱を空にする
-        trashcan = self.factory2.data.find_trashcan()
+        trashcan = self.finder2.data.find_trashcan()
         trashcan.trash_all()
 
         # ゴミ箱は空になっていること
@@ -3830,7 +3830,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         閲覧者が更新したり元の位置に戻せないこと
         """
         # ルートフォルダを取得する
-        root = self.factory2.data.load_root()
+        root = self.finder2.data.load_root()
         # ルートフォルダの下にプロジェクトを作成する
         project = root.create_project_folder('中村主水')
         project.save()
@@ -3864,10 +3864,10 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         project.join_member(ProjectFolder.Member(self.USER3, ProjectFolder.READER_MEMBER_TYPE))
 
         # 変更を確定する
-        self.factory2.end()
+        self.finder2.end()
 
         # 閲覧者は、形代フォルダを参照できること
-        trashed_folder = self.factory3.data.find_by_uuid(trashed_folder.uuid)
+        trashed_folder = self.finder3.data.find_by_uuid(trashed_folder.uuid)
 
         # 閲覧者は、形代フォルダを更新できないこと
         with self.assertRaises(NotAuthorizedException):
@@ -3878,13 +3878,13 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
             trashed_folder.put_back()
 
         # 変更のRollbackを確定する
-        self.factory3.end()
+        self.finder3.end()
 
         # プロジェクトをゴミ箱にほかす
         project.throw_away()
 
         # ゴミ箱を空にする
-        trashcan = self.factory2.data.find_trashcan()
+        trashcan = self.finder2.data.find_trashcan()
         trashcan.trash_all()
 
         # ゴミ箱は空になっていること
@@ -3897,7 +3897,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         編集者が更新したり元の位置に戻せること
         """
         # ルートフォルダを取得する
-        root = self.factory2.data.load_root()
+        root = self.finder2.data.load_root()
         # ルートフォルダの下にプロジェクトを作成する
         project = root.create_project_folder('こころぴょんぴょん待ち')
         project.save()
@@ -3922,11 +3922,11 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         folder.throw_away()
 
         # 変更を確定する
-        self.factory2.end()
+        self.finder2.end()
 
         # 編集者はゴミを参照できること
-        folder = self.factory3.data.find_by_uuid(folder.uuid)
-        flow = self.factory3.data.find_by_uuid(flow.uuid)
+        folder = self.finder3.data.find_by_uuid(folder.uuid)
+        flow = self.finder3.data.find_by_uuid(flow.uuid)
 
         # 編集者はゴミを更新できること
         folder.update_label('簡単にはお〜しえないっ')
@@ -3939,7 +3939,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         folder.throw_away()
 
         # 編集者はゴミ箱を空にできること
-        trashcan = self.factory3.data.find_trashcan()
+        trashcan = self.finder3.data.find_trashcan()
         trashcan.trash_all()
 
         # ゴミ箱は空になっていること
@@ -3954,7 +3954,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         プロジェクトメンバ以外のユーザがActivityを参照できないこと
         """
         # ルートフォルダを取得する
-        root = self.factory2.data.load_root()
+        root = self.finder2.data.load_root()
         # ルートフォルダの下にプロジェクトを作成する
         project = root.create_project_folder('お腹ぺこぺこペコリーヌ')
         project.save()
@@ -3974,20 +3974,20 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         job.join()
 
         # プロジェクト管理者は、フローのActivityを参照できること
-        activity = self.factory2.data.find_by_uuid(job.activity_uuid)
+        activity = self.finder2.data.find_by_uuid(job.activity_uuid)
 
         # 作成を確定する
-        self.factory2.end()
+        self.finder2.end()
 
         # プロジェクトメンバ以外のユーザは、フローのActivityを参照できないこと
         with self.assertRaises(NotAuthorizedException):
-            self.factory3.data.find_by_uuid(activity.uuid)
+            self.finder3.data.find_by_uuid(activity.uuid)
 
         # プロジェクトをゴミ箱にほかす
         project.throw_away()
 
         # ゴミ箱を空にする
-        trashcan = self.factory2.data.find_trashcan()
+        trashcan = self.finder2.data.find_trashcan()
         trashcan.trash_all()
 
     async def test_cannot_read_cache_by_other_user(self):
@@ -3995,7 +3995,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         プロジェクトメンバ以外のユーザがキャッシュを参照できないこと
         """
         # ルートフォルダを取得する
-        root = self.factory2.data.load_root()
+        root = self.finder2.data.load_root()
         # ルートフォルダの下にプロジェクトを作成する
         project = root.create_project_folder('🌏プロジェクト🗻')
         project.save()
@@ -4015,28 +4015,28 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         out_frame = AuthTest.get_frame_from_job(lasts)
 
         # プロジェクト管理者は、フローの実行結果を参照できること
-        out_frame = self.factory2.data.find_by_uuid(out_frame.uuid)
+        out_frame = self.finder2.data.find_by_uuid(out_frame.uuid)
         # プロジェクト管理者は、フローの実行結果を更新できること
         out_frame.update_label('実行結果☢')
         self.assertEqual(out_frame.label, '実行結果☢')
 
         # 作成と変更を確定する
-        self.factory2.end()
+        self.finder2.end()
         
         # プロジェクトメンバ以外のユーザは、フローの実行結果を参照できないこと
         with self.assertRaises(NotAuthorizedException):
-            self.factory3.data.find_by_uuid(out_frame.uuid)
+            self.finder3.data.find_by_uuid(out_frame.uuid)
 
         # プロジェクト管理者は、フローのキャッシュを参照できること
         cache_frame_uuid = next(iter(flow.flow_data.get_cache_frame_uuids()))
-        cache_frame = self.factory2.data.find_by_uuid(cache_frame_uuid)
+        cache_frame = self.finder2.data.find_by_uuid(cache_frame_uuid)
         # プロジェクト管理者は、フローのキャッシュを更新できること
         cache_frame.update_label('キャッシュ㊗')
         self.assertEqual(cache_frame.label, 'キャッシュ㊗')
 
         # プロジェクトメンバ以外のユーザは、フローのキャッシュを参照できないこと
         with self.assertRaises(NotAuthorizedException):
-            self.factory3.data.find_by_uuid(cache_frame.uuid)
+            self.finder3.data.find_by_uuid(cache_frame.uuid)
 
         # フローとキャッシュと実行結果を削除する
         flow.delete()
@@ -4048,7 +4048,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         閲覧者がキャッシュを更新できないこと
         """
         # ルートフォルダを取得する
-        root = self.factory2.data.load_root()
+        root = self.finder2.data.load_root()
         # ルートフォルダの下にプロジェクトを作成する
         project = root.create_project_folder('京都⛩️')
         project.save()
@@ -4068,7 +4068,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         out_frame = AuthTest.get_frame_from_job(lasts)
 
         # プロジェクト管理者は、フローの実行結果を参照できること
-        out_frame = self.factory2.data.find_by_uuid(out_frame.uuid)
+        out_frame = self.finder2.data.find_by_uuid(out_frame.uuid)
         # プロジェクト管理者は、フローの実行結果を更新できること
         out_frame.update_label('神戸⚓️')
         self.assertEqual(out_frame.label, '神戸⚓️')
@@ -4077,31 +4077,31 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         project.join_member(ProjectFolder.Member(self.USER3, ProjectFolder.READER_MEMBER_TYPE))
 
         # 作成を確定する
-        self.factory2.end()
+        self.finder2.end()
 
         # 閲覧者は、フローの実行結果を参照できること
-        out_frame = self.factory3.data.find_by_uuid(out_frame.uuid)
+        out_frame = self.finder3.data.find_by_uuid(out_frame.uuid)
         self.assertEqual(out_frame.label, '神戸⚓️')
 
         # プロジェクト管理者は、フローのキャッシュを参照できること
         cache_frame_uuid = next(iter(flow.flow_data.get_cache_frame_uuids()))
-        cache_frame = self.factory2.data.find_by_uuid(cache_frame_uuid)
+        cache_frame = self.finder2.data.find_by_uuid(cache_frame_uuid)
         # プロジェクト管理者は、フローのキャッシュを更新できること
         cache_frame.update_label('琵琶湖🛥')
         self.assertEqual(cache_frame.label, '琵琶湖🛥')
 
         # 作成を確定する
-        self.factory2.end()
+        self.finder2.end()
 
         # 閲覧者は、フローのキャッシュを参照できること
-        cache_frame = self.factory3.data.find_by_uuid(cache_frame.uuid)
+        cache_frame = self.finder3.data.find_by_uuid(cache_frame.uuid)
         self.assertEqual(cache_frame.label, '琵琶湖🛥')
 
         # フローを削除する
         flow.delete()
 
         # フローの削除を確定する
-        self.factory2.end()
+        self.finder2.end()
 
         # 閲覧者は、キャッシュと実行結果を削除できないこと
         with self.assertRaises(NotAuthorizedException):
@@ -4110,8 +4110,8 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
             out_frame.delete()
 
         # キャッシュと実行結果を削除する
-        out_frame = self.factory2.data.find_by_uuid(out_frame.uuid)
-        cache_frame = self.factory2.data.find_by_uuid(cache_frame_uuid)
+        out_frame = self.finder2.data.find_by_uuid(out_frame.uuid)
+        cache_frame = self.finder2.data.find_by_uuid(cache_frame_uuid)
         cache_frame.delete()
         out_frame.delete()
 
@@ -4120,7 +4120,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         残念ながら、閲覧者はフロー実行によるキャッシュ作成ができない
         """
         # ルートフォルダを取得する
-        root = self.factory2.data.load_root()
+        root = self.finder2.data.load_root()
         # ルートフォルダの下にプロジェクトを作成する
         project = root.create_project_folder('iPhone')
         project.save()
@@ -4136,11 +4136,11 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         project.join_member(ProjectFolder.Member(self.USER3, ProjectFolder.READER_MEMBER_TYPE))
 
         # 作成を確定する
-        self.factory2.end()
+        self.finder2.end()
 
         # USER3は、フローにキャッシュのuuidを書き込めないので、フローを実行できない
         from streamcat.engine import aexecute, FlowCommand
-        flow = self.factory3.data.find_by_uuid(flow.uuid)
+        flow = self.finder3.data.find_by_uuid(flow.uuid)
         link = FlowCommand(flow)
         with self.assertRaises(CommandException) as e:
             lasts = await aexecute(command=link, args={}, inputs={})
@@ -4149,7 +4149,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         self.assertIsInstance(e.exception.innerException, NotAuthorizedException)
             
         # フローを削除する
-        flow = self.factory2.data.find_by_uuid(flow.uuid)
+        flow = self.finder2.data.find_by_uuid(flow.uuid)
         flow.delete()
 
         # プロジェクトを削除する
@@ -4161,7 +4161,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         キャッシュの権限はフローのプロジェクトに紐づいていること
         """
         # ROOTを取得する
-        root = self.factory2.data.load_root()
+        root = self.finder2.data.load_root()
 
         # ルートフォルダの下にプロジェクトを作成する
         project = root.create_project_folder('枕もシーツも')
@@ -4180,7 +4180,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         flow = flow.reload()
 
         # 作成を確定する
-        self.factory2.end()
+        self.finder2.end()
 
         # 編集者は、フローをプレビュー実行して、キャッシュファイルを作成する
         from streamcat.engine import aexecute, FlowCommand
@@ -4192,7 +4192,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
                             }
                         }
                     }
-        flow = self.factory3.data.find_by_uuid(flow.uuid)
+        flow = self.finder3.data.find_by_uuid(flow.uuid)
         link = FlowCommand(flow)
         job = await aexecute(command=link, args={'vis':vis_args}, inputs={})
         # フロー実行の終了を待ってから次のSQLを発行する必要がある
@@ -4200,28 +4200,28 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
 
         # キャッシュのUUIDを取得する
         cache_frame_uuid = next(iter(flow.flow_data.get_cache_frame_uuids()))
-        cache_frame = self.factory3.data.find_by_uuid(cache_frame_uuid)
+        cache_frame = self.finder3.data.find_by_uuid(cache_frame_uuid)
 
         # 編集者は、フローを複製する
-        flow = self.factory3.data.find_by_uuid(flow.uuid)
+        flow = self.finder3.data.find_by_uuid(flow.uuid)
         duplicated_flow = flow.duplicate('君も寝具にしてやろうか?😈')
 
         # 複製したキャッシュのUUIDを取得する
         duplicated_cache_frame_uuid = next(iter(duplicated_flow.flow_data.get_cache_frame_uuids()))
-        duplicated_cache_frame = self.factory3.data.find_by_uuid(duplicated_cache_frame_uuid)
+        duplicated_cache_frame = self.finder3.data.find_by_uuid(duplicated_cache_frame_uuid)
 
         # 作成を確定する
-        self.factory3.end()
+        self.finder3.end()
 
         # キャッシュが複製されていることを検証する
         # (フローJSONに記録されたキャッシュのUUIDが異なることを検証する)
         self.assertNotEqual(duplicated_cache_frame_uuid, cache_frame_uuid)
 
         # キャッシュの権限設定を検証する
-        auths = self.factory.auth.find_all_by_datum_id(duplicated_cache_frame.id)
+        auths = self.finder.auth.find_all_by_datum_id(duplicated_cache_frame.id)
         self.assertEqual(len(auths), 6)
         # 取得した権限を検証する
-        usr_admin_role = self.factory.role.load_usr_admin_role()
+        usr_admin_role = self.finder.role.load_usr_admin_role()
         readers_role = project._find_readers_role()
         writers_role = project._find_writers_role()
         # ユーザ管理者ロールの参照権限
@@ -4287,14 +4287,14 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
 
         # プロジェクトに属さないユーザは、複製したフローを取得できないこと
         with self.assertRaises(NotAuthorizedException):
-            self.factory0.data.find_by_uuid(duplicated_flow.uuid)
+            self.finder0.data.find_by_uuid(duplicated_flow.uuid)
 
         # フローを削除する
         flow.delete()
         duplicated_flow.delete()
 
         # 削除を確定する
-        self.factory3.end()
+        self.finder3.end()
 
         # プロジェクトを削除する
         project.delete()
@@ -4305,7 +4305,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         ラベルとuuidがマスキングされること
         """
         # ルートフォルダを取得する
-        root = self.factory2.data.load_root()
+        root = self.finder2.data.load_root()
 
         # USER2は、ルートフォルダの下にプロジェクトを作成する
         project1 = root.create_project_folder('プロジェクトX')
@@ -4334,11 +4334,11 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         project2.join_member(member1)
 
         # 作成を確定する
-        self.factory2.end()
+        self.finder2.end()
 
         # USER3は、メインフローを取得できるが、共有フローの参照権限がないので
         # その共有フローノードのラベルとuuidはマスキングされていること
-        flow2 = self.factory3.data.find_by_uuid(flow2.uuid)
+        flow2 = self.finder3.data.find_by_uuid(flow2.uuid)
         masked_flow_data = flow2.flow_data.to_json()
         nodes = masked_flow_data['nodes']
 
@@ -4360,10 +4360,10 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         flow2.update_data('更新したフロー', FlowData(masked_flow_data))
 
         # 変更を確定する
-        self.factory3.end()
+        self.finder3.end()
 
         # USER2は、更新後のフローであってもマスキングされていないフローJsonを取得できること
-        flow2 = self.factory2.data.find_by_uuid(flow2.uuid)
+        flow2 = self.finder2.data.find_by_uuid(flow2.uuid)
         masked_flow_data = flow2.flow_data.to_json()
         nodes = masked_flow_data['nodes']
 
@@ -4394,7 +4394,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         }
 
         # USER3は、メインフローを実行できないこと
-        flow2 = self.factory3.data.find_by_uuid(flow2.uuid)
+        flow2 = self.finder3.data.find_by_uuid(flow2.uuid)
         link = FlowCommand(flow2)
         with self.assertRaises(Exception):
             job = await aexecute(command=link, args={'vis':vis_args}, inputs={})
@@ -4402,7 +4402,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
             job.join()
 
         # USER2は、メインフローを実行できること
-        flow2 = self.factory2.data.find_by_uuid(flow2.uuid)
+        flow2 = self.finder2.data.find_by_uuid(flow2.uuid)
         link = FlowCommand(flow2)
         job = await aexecute(command=link, args={'vis':vis_args}, inputs={})
         # フロー実行の終了を待ってから次のSQLを発行する必要がある
@@ -4494,7 +4494,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         }
 
         # ルートフォルダを取得する
-        root = self.factory3.data.load_root()
+        root = self.finder3.data.load_root()
 
         # USER3は、ルートフォルダの下にプロジェクトを作成する
         project1 = root.create_project_folder('阿闍梨餅')
@@ -4525,7 +4525,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         cache_frame_uuids = flow1.flow_data.get_cache_frame_uuids()
         self.assertEqual(len(cache_frame_uuids), 2)
         for cache_frame_uuid in cache_frame_uuids:
-            cache_frame = self.factory3.data.find_by_uuid(cache_frame_uuid)
+            cache_frame = self.finder3.data.find_by_uuid(cache_frame_uuid)
             self.assertIsNotNone(cache_frame)
             self.assertTrue(cache_frame.path_exists)
 
@@ -4661,7 +4661,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         }
 
         # ルートフォルダを取得する
-        root = self.factory3.data.load_root()
+        root = self.finder3.data.load_root()
 
         # USER3は、ルートフォルダの下にプロジェクトを作成する
         project1 = root.create_project_folder('中村軒')
@@ -4692,7 +4692,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         cache_frame_uuids = flow1.flow_data.get_cache_frame_uuids()
         self.assertEqual(len(cache_frame_uuids), 2)
         for cache_frame_uuid in cache_frame_uuids:
-            cache_frame = self.factory3.data.find_by_uuid(cache_frame_uuid)
+            cache_frame = self.finder3.data.find_by_uuid(cache_frame_uuid)
             self.assertIsNotNone(cache_frame)
             self.assertTrue(cache_frame.path_exists)
 
@@ -4724,7 +4724,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         project1.throw_away()
 
         # ゴミ箱を空にする
-        trash = self.factory3.data.find_trashcan()
+        trash = self.finder3.data.find_trashcan()
         trash.trash_all()
 
     async def test_move_from_root_to_project(self):
@@ -4733,17 +4733,17 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         ファイルの権限は移動先プロジェクトの権限に従うこと
         """
         # ルートフォルダを取得する
-        root = self.factory2.data.load_root()
+        root = self.finder2.data.load_root()
         # ルートフォルダの下にプロジェクトAを作成する
         project_a = root.create_project_folder('何奴！')
         project_a.save()
         project_a = project_a.reload()
 
         # 変更を確定する
-        self.factory2.end()
+        self.finder2.end()
 
         # ルートフォルダの下にフォルダを作成する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         folder = root.create_folder('欲に目が眩んで主君の顔も忘れたか')
         folder.save()
         folder = folder.reload()
@@ -4758,20 +4758,20 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         self.assertEqual(folder.parent_id, project_a.id)
 
         # 変更を確定する
-        self.factory.end()
+        self.finder.end()
 
         # プロジェクトAのプロジェクト管理者はフォルダを参照できること
-        folder = self.factory2.data.find_by_uuid(folder.uuid)
+        folder = self.finder2.data.find_by_uuid(folder.uuid)
 
         # フォルダ内のフレームは移動後も権限は変わらない
         # そもそもルートフォルダでフォルダやファイルは作る想定ではないので、この仕様でよしとする
         with self.assertRaises(NotAuthorizedException):
-            self.factory2.data.find_by_uuid(frame.uuid)
+            self.finder2.data.find_by_uuid(frame.uuid)
 
         # フレームを削除する
         frame.delete()
         # 削除を確定する
-        self.factory.end()
+        self.finder.end()
 
         # プロジェクトを削除する
         folder.delete()
@@ -4783,14 +4783,14 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         ファイルの権限は移動先プロジェクトの権限に従うこと
         """
         # ルートフォルダを取得する
-        root = self.factory0.data.load_root()
+        root = self.finder0.data.load_root()
         # ルートフォルダの下にプロジェクトAを作成する
         project_a = root.create_project_folder('インド人はゼロを発明した')
         project_a.save()
         project_a = project_a.reload()
 
         # ルートフォルダを取得する
-        root = self.factory2.data.load_root()
+        root = self.finder2.data.load_root()
         # ルートフォルダの下にプロジェクトBを作成する
         project_b = root.create_project_folder('だが日本人はストロングゼロを発明した')
         project_b.save()
@@ -4805,23 +4805,23 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         frame.save()
 
         # 変更を確定する
-        self.factory0.end()
-        self.factory2.end()
+        self.finder0.end()
+        self.finder2.end()
 
         # USER3は、フレームをプロジェクトAからプロジェクトBへ移動できること
-        frame = self.factory3.data.find_by_uuid(frame.uuid)
+        frame = self.finder3.data.find_by_uuid(frame.uuid)
         frame.move(project_b.uuid)
         self.assertEqual(frame.parent_id, project_b.id)
 
         # 移動を確定する
-        self.factory3.end()
+        self.finder3.end()
 
         # プロジェクトAのメンバはフレームの参照できないこと
         with self.assertRaises(NotAuthorizedException):
-            self.factory0.data.find_by_uuid(frame.uuid)
+            self.finder0.data.find_by_uuid(frame.uuid)
 
         # プロジェクトBのメンバはフレームの参照・更新ができること
-        frame = self.factory2.data.find_by_uuid(frame.uuid)
+        frame = self.finder2.data.find_by_uuid(frame.uuid)
         frame.update_label('美味しい魔法の水')
         self.assertEqual(frame.label, '美味しい魔法の水')
 
@@ -4839,14 +4839,14 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         ルートフォルダの権限設定を検証する
         """
         # ルートフォルダを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
 
         # ルートフォルダの権限を取得する
-        root_auths = self.factory.auth.find_all_by_datum_id(root.id)
+        root_auths = self.finder.auth.find_all_by_datum_id(root.id)
 
         # システムロールを取得する
-        everyone_role = self.factory.role.load_everyone_role()
-        usr_admin_role = self.factory.role.load_usr_admin_role()
+        everyone_role = self.finder.role.load_everyone_role()
+        usr_admin_role = self.finder.role.load_usr_admin_role()
 
         # ルートフォルダには、everyoneにRWX権限が設定されること
         # システムフォルダには、usr_adminにO権限が設定されること
@@ -4856,25 +4856,25 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(root_auths), 4)
 
         # everyone read
-        role = self.factory.role.find_by_id(root_auths[0].role_id)
+        role = self.finder.role.find_by_id(root_auths[0].role_id)
         self.assertEqual(role, everyone_role)
         self.assertEqual(root_auths[0].operation, 'read')
         self.assertEqual(root_auths[0].permission, True)
 
         # everyone write
-        role = self.factory.role.find_by_id(root_auths[1].role_id)
+        role = self.finder.role.find_by_id(root_auths[1].role_id)
         self.assertEqual(role, everyone_role)
         self.assertEqual(root_auths[1].operation, 'write')
         self.assertEqual(root_auths[1].permission, True)
 
         # everyone exec
-        role = self.factory.role.find_by_id(root_auths[2].role_id)
+        role = self.finder.role.find_by_id(root_auths[2].role_id)
         self.assertEqual(role, everyone_role)
         self.assertEqual(root_auths[2].operation, 'exec')
         self.assertEqual(root_auths[2].permission, True)
 
         # usr_admin own
-        role = self.factory.role.find_by_id(root_auths[3].role_id)
+        role = self.finder.role.find_by_id(root_auths[3].role_id)
         self.assertEqual(role, usr_admin_role)
         self.assertEqual(root_auths[3].operation, 'own')
         self.assertEqual(root_auths[3].permission, True)
@@ -4884,14 +4884,14 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         キャッシュフォルダの権限設定を検証する
         """
         # キャッシュフォルダを取得する
-        cache = self.factory.data.load_cache_folder()
+        cache = self.finder.data.load_cache_folder()
 
         # キャッシュフォルダの権限を取得する
-        cache_auths = self.factory.auth.find_all_by_datum_id(cache.id)
+        cache_auths = self.finder.auth.find_all_by_datum_id(cache.id)
 
         # システムロールを取得する
-        everyone_role = self.factory.role.load_everyone_role()
-        usr_admin_role = self.factory.role.load_usr_admin_role()
+        everyone_role = self.finder.role.load_everyone_role()
+        usr_admin_role = self.finder.role.load_usr_admin_role()
         
         # キャッシュフォルダには、everyoneにRW権限が設定されること
         # システムフォルダには、usr_adminにO権限が設定されること
@@ -4901,19 +4901,19 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(cache_auths), 3)
 
         # everyone read
-        role = self.factory.role.find_by_id(cache_auths[0].role_id)
+        role = self.finder.role.find_by_id(cache_auths[0].role_id)
         self.assertEqual(role, everyone_role)
         self.assertEqual(cache_auths[0].operation, 'read')
         self.assertEqual(cache_auths[0].permission, True)
 
         # everyone write
-        role = self.factory.role.find_by_id(cache_auths[1].role_id)
+        role = self.finder.role.find_by_id(cache_auths[1].role_id)
         self.assertEqual(role, everyone_role)
         self.assertEqual(cache_auths[1].operation, 'write')
         self.assertEqual(cache_auths[1].permission, True)
 
         # usr_admin own
-        role = self.factory.role.find_by_id(cache_auths[2].role_id)
+        role = self.finder.role.find_by_id(cache_auths[2].role_id)
         self.assertEqual(role, usr_admin_role)
         self.assertEqual(cache_auths[2].operation, 'own')
         self.assertEqual(cache_auths[2].permission, True)
@@ -4923,14 +4923,14 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         アクティビティフォルダの権限設定を検証する
         """
         # アクティビティフォルダを取得する
-        activity = self.factory.data.load_activity_folder()
+        activity = self.finder.data.load_activity_folder()
 
         # アクティビティフォルダの権限を取得する
-        activity_auths = self.factory.auth.find_all_by_datum_id(activity.id)
+        activity_auths = self.finder.auth.find_all_by_datum_id(activity.id)
 
         # システムロールを取得する
-        everyone_role = self.factory.role.load_everyone_role()
-        usr_admin_role = self.factory.role.load_usr_admin_role()
+        everyone_role = self.finder.role.load_everyone_role()
+        usr_admin_role = self.finder.role.load_usr_admin_role()
         
         # アクティビティフォルダには、everyoneにRW権限が設定されること
         # システムフォルダには、usr_adminにO権限が設定されること
@@ -4940,19 +4940,19 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(activity_auths), 3)
 
         # everyone read
-        role = self.factory.role.find_by_id(activity_auths[0].role_id)
+        role = self.finder.role.find_by_id(activity_auths[0].role_id)
         self.assertEqual(role, everyone_role)
         self.assertEqual(activity_auths[0].operation, 'read')
         self.assertEqual(activity_auths[0].permission, True)
 
         # everyone write
-        role = self.factory.role.find_by_id(activity_auths[1].role_id)
+        role = self.finder.role.find_by_id(activity_auths[1].role_id)
         self.assertEqual(role, everyone_role)
         self.assertEqual(activity_auths[1].operation, 'write')
         self.assertEqual(activity_auths[1].permission, True)
 
         # usr_admin own
-        role = self.factory.role.find_by_id(activity_auths[2].role_id)
+        role = self.finder.role.find_by_id(activity_auths[2].role_id)
         self.assertEqual(role, usr_admin_role)
         self.assertEqual(activity_auths[2].operation, 'own')
         self.assertEqual(activity_auths[2].permission, True)
@@ -4962,14 +4962,14 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         ゴミ箱フォルダの権限設定を検証する
         """
         # ゴミ箱フォルダを取得する
-        trash = self.factory.data.load_trash_folder()
+        trash = self.finder.data.load_trash_folder()
 
         # ゴミ箱フォルダの権限を取得する
-        trash_auths = self.factory.auth.find_all_by_datum_id(trash.id)
+        trash_auths = self.finder.auth.find_all_by_datum_id(trash.id)
 
         # システムロールを取得する
-        everyone_role = self.factory.role.load_everyone_role()
-        usr_admin_role = self.factory.role.load_usr_admin_role()
+        everyone_role = self.finder.role.load_everyone_role()
+        usr_admin_role = self.finder.role.load_usr_admin_role()
         
         # ゴミ箱フォルダには、everyoneにRW権限が設定されること
         # システムフォルダには、usr_adminにO権限が設定されること
@@ -4979,19 +4979,19 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(trash_auths), 3)
 
         # everyone read
-        role = self.factory.role.find_by_id(trash_auths[0].role_id)
+        role = self.finder.role.find_by_id(trash_auths[0].role_id)
         self.assertEqual(role, everyone_role)
         self.assertEqual(trash_auths[0].operation, 'read')
         self.assertEqual(trash_auths[0].permission, True)
 
         # everyone write
-        role = self.factory.role.find_by_id(trash_auths[1].role_id)
+        role = self.finder.role.find_by_id(trash_auths[1].role_id)
         self.assertEqual(role, everyone_role)
         self.assertEqual(trash_auths[1].operation, 'write')
         self.assertEqual(trash_auths[1].permission, True)
 
         # usr_admin own
-        role = self.factory.role.find_by_id(trash_auths[2].role_id)
+        role = self.finder.role.find_by_id(trash_auths[2].role_id)
         self.assertEqual(role, usr_admin_role)
         self.assertEqual(trash_auths[2].operation, 'own')
         self.assertEqual(trash_auths[2].permission, True)

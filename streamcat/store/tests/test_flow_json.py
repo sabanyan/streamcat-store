@@ -16,7 +16,7 @@ class FlowJsonTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         全ての文法要素を含んだフローJSONを検証できること
         """
         # ルートデータストアを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         # 参照先フレームを作成する
         frame = root.create_frame('CSV', io.BytesIO(b''))
         frame.save()
@@ -260,7 +260,7 @@ class FlowJsonTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         サンプルフローJSONを検証する
         """
         # ルートデータストアを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         # 参照先フレームを作成する
         frame1 = root.create_frame('CSV1', io.BytesIO(b''))
         frame1.save()
@@ -1503,7 +1503,7 @@ class FlowJsonTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         content属性のないNoteノードが検証できること
         """
         # ルートデータストアを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         # サンプルフローJSON
         flow_json = {
             "label": "モノの流れで紐付け",
@@ -1549,7 +1549,7 @@ class FlowJsonTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         引数の名称に日本語文字列の値が設定できること
         """
         # ルートデータストアを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         # 参照先サブフローを作成する
         sub_flow1 = root.create_flow('サブフロー1', FlowData({}))
         sub_flow1.save()
@@ -1606,7 +1606,7 @@ class FlowJsonTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         Size属性に小数点付きの数値が指定できること
         """
         # ルートデータストアを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         # フローJSONを作成する
         flow_json = {
             'projectId': 1,
@@ -1650,7 +1650,7 @@ class FlowJsonTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         type=flowのノードにFlowリテラルが記述できること
         """
         # ルートデータストアを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
 
         # プロジェクトを作成する
         project = root.create_project_folder('Mighty mouse')
@@ -1763,14 +1763,14 @@ class FlowJsonTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         # プロジェクトをほかす
         project.throw_away()
         # ゴミ箱を空にする
-        self.factory.data.find_trashcan().trash_all()
+        self.finder.data.find_trashcan().trash_all()
 
     async def test_validate_port_id(self):
         """
         ポートid属性に日本語文字列の値が設定できること
         """
         # ルートデータストアを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         # フローJSONを作成する
         flow_json = {
             'projectId': 1,
@@ -1812,7 +1812,7 @@ class FlowJsonTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         Ports属性の配列要素は2要素固定である
         """
         # ルートデータストアを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         # フローJSONを作成する
         flow_json = {
             'projectId': 1,
@@ -1844,7 +1844,7 @@ class FlowJsonTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         uuid属性に不正な形式の値が設定されたらエラーになること
         """
         # ルートデータストアを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         # フローJSONを作成する
         flow_json = {
             'projectId': 1,
@@ -1876,7 +1876,7 @@ class FlowJsonTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         ノードid属性に不正な形式の値が設定されたらエラーになること
         """
         # ルートデータストアを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         # フローJSONを作成する
         flow_json = {
             'projectId': 1,
@@ -1908,7 +1908,7 @@ class FlowJsonTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         ノードのPosition属性に不正な値が設定されたらエラーになること
         """
         # ルートデータストアを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         # フローJSONを作成する
         flow_json = {
             'projectId': None,
@@ -1944,7 +1944,7 @@ class FlowJsonTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         Flowリテラルが参照するUUIDが参照できない場合はエラーになること
         """
         # ルートデータストアを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         # フローJSONを作成する
         flow_json =  {
             "label": "Flowのリテラル表記のテスト",

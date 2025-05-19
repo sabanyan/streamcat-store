@@ -28,7 +28,7 @@ class ExecuteViualizeTest(unittest.TestCase):
         テストデータ作成用
         frameのuuidが返る
         """
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         if data is not None:
             print('file_path_obj.as_posix(): ' + file_path_obj.as_posix())
             print('file_path_obj.resolve(): ' + file_path_obj.resolve().as_posix())
