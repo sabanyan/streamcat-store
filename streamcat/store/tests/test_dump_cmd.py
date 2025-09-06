@@ -11,7 +11,7 @@ class DumpTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
     """
     conn_json = {
       'dbms'     : "postgresql",
-      'hostname' : "kskp.cr4gfi5zl5xm.ap-northeast-1.rds.amazonaws.com", 
+      'hostname' : "15.168.34.0", 
       'port'     : 5432, 
       'database' : "kskp", 
       'user_id'  : "kskp", 
@@ -21,7 +21,7 @@ class DumpTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
 
     conn_json = {
         'protocol' : 'smb',
-        'hostname' : "18.178.64.116",
+        'hostname' : "15.168.34.0",
         'domain'   : "WORKGROUP",
         'directory': "share",
         'user_id'  : "samba",

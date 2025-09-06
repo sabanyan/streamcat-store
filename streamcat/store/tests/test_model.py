@@ -14,7 +14,7 @@ class LibraryTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
 
     conn_json = {
         'protocol' : 'smb',
-        'hostname' : "18.178.64.116",
+        'hostname' : "15.168.34.0",
         'domain'   : "WORKGROUP",
         'directory': "share",
         'userId'  : "samba",
