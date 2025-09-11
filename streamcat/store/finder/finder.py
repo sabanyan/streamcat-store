@@ -266,14 +266,14 @@ class DatumFinder():
         """
         from sqlalchemy import desc
         from sqlalchemy.sql.expression import and_, or_
-        query = self._session.query(SavableDatum)
+        stmt = select(SavableDatum)
 
         if type is not None:
-            query = query.filter(SavableDatum.type==type)
+            stmt = stmt.where(SavableDatum.type==type)
         if except_trash:
             # ゴミ箱にほかされたDatumは除外する
             # NOTE: この条件を付与するとかなり遅くなる
-            query = query.filter(~self._make_exists_trashed(SavableDatum.uuid))
+            stmt = stmt.where(~self._make_exists_trashed(SavableDatum.uuid))
 
         like_predicates = []
         for search_keyword in Finder.split_keyword(keyword):
@@ -281,11 +281,11 @@ class DatumFinder():
             like_predicates.append(or_(SavableDatum._label.icontains(search_keyword),
                                        SavableDatum._desc.icontains(search_keyword)))
 
-        query = query.filter(and_(*like_predicates))
+        stmt = stmt.where(and_(*like_predicates))
 
-        return query.order_by(SavableDatum.type, desc(SavableDatum.created_at)).\
-                     offset(offset).limit(limit).\
-                     all()
+        stmt = stmt.order_by(SavableDatum.type, desc(SavableDatum.created_at)).\
+                    offset(offset).limit(limit)
+        return self._session.scalars(stmt).all()
 
     def find_all(self, type=None, except_trash=False, except_label=None) -> SavableDatum:
         """
