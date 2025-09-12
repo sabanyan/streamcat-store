@@ -82,3 +82,9 @@ class AuthzDatumResult(Result):
                 rets.append(row)
             return rets
         return rows
+
+    def slice(self, offset:int=None, limit:int=None, ignore_authz=False):
+        # limit, offsetで指定された範囲の結果を返す
+        start = offset or 0
+        end = start + limit if limit is not None else None
+        return self.all(ignore_authz=ignore_authz)[start:end]

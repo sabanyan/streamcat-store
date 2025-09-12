@@ -184,6 +184,7 @@ class AuthzSession(Session):
                 select_prev_folder_path = null()
 
             # read=TrueのDatumのみ抽出する
+            # NOTE: この抽出条件を加えると極端に遅くなる
             # exists_readable = self._make_exists_readable()
 
             # Datumを抽出するSelect

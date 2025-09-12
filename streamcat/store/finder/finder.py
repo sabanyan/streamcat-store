@@ -283,9 +283,9 @@ class DatumFinder():
 
         stmt = stmt.where(and_(*like_predicates))
 
-        stmt = stmt.order_by(SavableDatum.type, desc(SavableDatum.created_at)).\
-                    offset(offset).limit(limit)
-        return self._session.scalars(stmt).all()
+        stmt = stmt.order_by(SavableDatum.type, desc(SavableDatum.created_at))
+        # 参照権限のないDatumを除いた抽出結果を範囲指定する
+        return self._session.scalars(stmt).slice(offset, limit)
 
     def find_all(self, type=None, except_trash=False, except_label=None) -> SavableDatum:
         """

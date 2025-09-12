@@ -311,9 +311,9 @@ class Folder(SavableStore):
 
         stmt =  select(SavableDatum).\
                 where(SavableDatum.parent_id==self.id).\
-                order_by(SavableDatum.type, desc(SavableDatum.created_at)).\
-                offset(offset).limit(limit)
-        return self._session.scalars(stmt, prev_folder_path=prev_folder_path).all()
+                order_by(SavableDatum.type, desc(SavableDatum.created_at))
+        # 参照権限のないDatumを除いた抽出結果を範囲指定する
+        return self._session.scalars(stmt, prev_folder_path=prev_folder_path).slice(offset, limit)
 
     def find_children_by_label(self, label, type=None):
         """
