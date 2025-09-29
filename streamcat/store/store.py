@@ -83,6 +83,33 @@ class BeamModule(Datum):
     def encoding(self, encoding):
         self._encoding = encoding
 
+class StreamzModule(Datum):
+    """
+    StreamzのStreamオブジェクトをラップするクラス
+    """
+    def __init__(self, stream=None):
+        super().__init__('streamz', self._get_name(stream))
+        self._content = stream
+        self._encoding = None
+
+    def _get_name(self, stream):
+        if stream is None:
+            return None
+        else:
+            return stream.__class__.__name__
+
+    @property
+    def content(self):
+        return self._content
+
+    @property
+    def encoding(self):
+        return self._encoding
+
+    @encoding.setter
+    def encoding(self, encoding):
+        self._encoding = encoding
+
 class Matrix(Datum):
     """
     行列型のデータを表す

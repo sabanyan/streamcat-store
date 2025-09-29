@@ -28,6 +28,8 @@ setup(
         'chardet==5.2.0',
         # 'awscli',
         # 'cx_Oracle',
+        # Stream prosessor Framework
+        'streamz==0.6.4',
         'numpy==2.3.3',
         'scipy==1.16.2',
         'pandas==2.3.2',

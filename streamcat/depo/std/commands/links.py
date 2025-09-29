@@ -6,6 +6,7 @@ from .mcmd.script import *
 from .kcmd.script import *
 from .pcmd.script import *
 from .scmd.script import *
+from .scmd.streamz_script import *
 from .vcmd.script import *
 
 class CommandLink:
@@ -156,7 +157,11 @@ class CommandLink:
         'remotefolder_saver'  : RemoteFolderSaverCommand(),
         'activity' : ActivityCommand(),
         'assert' : AssertCommand(),
-        'runs' : RunsCommand()
+        'runs' : RunsCommand(),
+        # Streamzコマンド
+        'streamz_loader' : StreamzLoaderCommand(),
+        'streamz_tolist' : SteramzToListCommand(),
+        'streamz_run'    : StreamzRunCommand()
     }
 
     def __init__(self, command_id:str):
