@@ -56,6 +56,36 @@ class NysolModule(Datum):
     def __ilshift__(self, other):
         raise Exception(f'NysolModule({str(self._content)})に"<<="演算子は使えません')
 
+class MysolModule(Datum):
+    """
+    MYSOLコマンドをラップするクラス
+    """
+    def __init__(self, mysol_cmd=None):
+        super().__init__('mysol', self._get_name(mysol_cmd))
+        self._content = mysol_cmd
+        self._encoding = None
+
+    def _get_name(self, nysol_cmd):
+        if nysol_cmd is None:
+            return None
+        else:
+            return nysol_cmd.__class__.__name__
+
+    @property
+    def content(self):
+        return self._content
+
+    @property
+    def encoding(self):
+        return self._encoding
+
+    @encoding.setter
+    def encoding(self, encoding):
+        self._encoding = encoding
+
+    def __ilshift__(self, other):
+        raise Exception(f'MysolModule({str(self._content)})に">>"演算子は使えません')
+
 class BeamModule(Datum):
     """
     Apache Beam PTransformをラップするクラス

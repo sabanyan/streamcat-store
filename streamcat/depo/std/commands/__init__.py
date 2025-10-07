@@ -1,5 +1,6 @@
 # コマンドのimport
 from .mcmd.script import *
+from .ncmd.script import *
 from .kcmd.script import *
 from .pcmd.script import *
 from .scmd.script import *

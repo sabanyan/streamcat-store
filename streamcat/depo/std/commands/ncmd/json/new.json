@@ -1,0 +1,42 @@
+{
+    "id": "new",
+    "params": [
+        {
+            "name": "len",
+            "type": "number",
+            "label": "生成フレームの数",
+            "optional": true,
+            "default": 10,
+            "description": "正の整数で設定する"
+        }
+    ],
+    "ports": [
+        [],
+        [
+            {
+                "label": "o",
+                "type": "mysol"
+            }
+        ]
+    ],
+    "version": "0.0.0",
+    "label": "new",
+    "classification": "data_source",
+    "description": "指定する数の空フレームを作成する",
+    "url": "",
+    "groups": [
+        {
+            "name": "abstract",
+            "label": "連番データの新規生成",
+            "description": "指定する数の空フレームを作成する",
+            "params": []
+        },
+        {
+            "name": "cmd_main",
+            "label": "連番データ生成の設定 (必須)",
+            "params": [
+                "len"
+            ]
+        }
+    ]
+}

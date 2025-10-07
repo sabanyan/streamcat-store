@@ -1,0 +1,47 @@
+{
+    "id": "select",
+    "params": [
+        {
+            "name": "cols",
+            "type": "string",
+            "label": "射影する列",
+            "optional": true,
+            "default": "",
+            "description": "*"
+        }
+    ],
+    "ports": [
+        [
+            {
+                "label": "i",
+                "type": "mysol"
+            }
+        ],
+        [
+            {
+                "label": "o",
+                "type": "mysol"
+            }
+        ]
+    ],
+    "version": "0.0.0",
+    "label": "select",
+    "classification": "col_edit",
+    "description": "指定する列を射影する",
+    "url": "",
+    "groups": [
+        {
+            "name": "abstract",
+            "label": "指定する列で射影",
+            "description": "指定する列を射影する",
+            "params": []
+        },
+        {
+            "name": "cmd_main",
+            "label": "抽出条件式",
+            "params": [
+                "cols"
+            ]
+        }
+    ]
+}

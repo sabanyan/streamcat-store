@@ -3,6 +3,7 @@ from pathlib import Path
 from streamcat.core import Command
 
 from .mcmd.script import *
+from .ncmd.script import *
 from .kcmd.script import *
 from .pcmd.script import *
 from .scmd.script import *
@@ -108,6 +109,13 @@ class CommandLink:
         "mvuniq": MvuniqCommand(),
         "mwindow": MwindowCommand(),
         "mxml2csv": Mxml2csvCommand(),
+        # MYSOLコマンド
+        'new' : NewCommand(),
+        'load': LoadCommand(),
+        'select' : SelectCommand(),
+        'filter' : FilterCommand(),
+        'outl': OutlCommand(),
+        'mysol_runs': MysolRunsCommand(),
         # 独自コマンド
         'check_duplicate_rows': CheckDuplicateRowsCommand(),
         'column_grouping_name': ColumnGroupingNameCommand(),

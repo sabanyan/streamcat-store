@@ -1,0 +1,47 @@
+{
+    "id": "filter",
+    "params": [
+        {
+            "name": "if",
+            "type": "string",
+            "label": "抽出条件式",
+            "optional": true,
+            "default": "",
+            "description": "例：a > 10 and b < 20"
+        }
+    ],
+    "ports": [
+        [
+            {
+                "label": "i",
+                "type": "mysol"
+            }
+        ],
+        [
+            {
+                "label": "o",
+                "type": "mysol"
+            }
+        ]
+    ],
+    "version": "0.0.0",
+    "label": "filter",
+    "classification": "row_edit",
+    "description": "条件式を満たす行を抽出する",
+    "url": "",
+    "groups": [
+        {
+            "name": "abstract",
+            "label": "条件式を満たす行の抽出",
+            "description": "条件式を満たす行を抽出する",
+            "params": []
+        },
+        {
+            "name": "cmd_main",
+            "label": "抽出条件式",
+            "params": [
+                "if"
+            ]
+        }
+    ]
+}

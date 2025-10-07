@@ -38,6 +38,8 @@ setup(
         'matplotlib==3.10.6',
         'bokeh==3.8.0',
         'param==2.2.1',
-        'panel==1.8.0'
+        'panel==1.8.0',
+        # MYSOLを依存ライブラリに追加
+        # 'mysol @ git+https://<TOKEN>@github.com/sabanyan/mysol.git@develop',
     ],
 )
