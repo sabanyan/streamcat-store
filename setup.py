@@ -26,6 +26,7 @@ setup(
         'cryptography==45.0.7',
         'python-magic==0.4.27',
         'chardet==5.2.0',
+        'asteval==1.0.8',
         # 'awscli',
         # 'cx_Oracle',
         'numpy==2.3.3',

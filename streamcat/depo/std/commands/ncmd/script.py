@@ -1,9 +1,10 @@
 # MYSOLコマンド
 
 from typing import Callable
+from asteval import Interpreter
 from mysol import core, csv
 from streamcat.core import Command, Port
-from streamcat.store import MysolModule
+from streamcat.store import MysolModule, CommandException
 from ..scmd.script import LoaderCommand
 
 class NCommand(Command):
@@ -17,14 +18,33 @@ class NCommand(Command):
         self.o_ports = [Port('o', 'mysol')]
 
     def run(self, args:dict, inputs:dict) -> dict:
-        cmd = self.mysol_cmd(**args)
+        cmd = self.mysol_cmd(**self.eval_args(args))
         return {'o': MysolModule(cmd)}
+
+    def eval_args(self, args:dict) -> dict:
+        """
+        iifとcolsに指定された式を安全に評価する
+        """
+        aeval = Interpreter()
+
+        evaled_args = args.copy()
+        for key, arg in evaled_args.items():
+            # 'if'や'cols'の引数は、文字列として渡されるため、評価して関数オブジェクトに変換する
+            if key in ['iif', 'cols']:
+                evaled_args[key] = aeval('lambda i: ' + arg)
+
+        # エラーが発生した場合は表示する
+        if len(aeval.error) > 0:
+            for err in aeval.error:
+                raise CommandException(f'引数の評価中にエラーが発生しました: {err.get_error()}')
+
+        return evaled_args
 
     @property
     def mysol_cmd(self) -> Callable:
         pass
 
-class NCommandI(Command):
+class NCommandI(NCommand):
     """
     MYSOLコマンド
     (1入力1出力)
@@ -36,7 +56,7 @@ class NCommandI(Command):
 
     def run(self, args:dict, inputs:dict) -> dict:
         input_cmd = inputs['i'].content
-        cmd = input_cmd >> self.mysol_cmd(**args)
+        cmd = input_cmd >> self.mysol_cmd(**self.eval_args(args))
         return {'o': MysolModule(cmd)}
 
 class NewCommand(NCommand):
