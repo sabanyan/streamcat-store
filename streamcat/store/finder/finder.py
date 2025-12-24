@@ -576,7 +576,8 @@ class DatumFinder():
         D0 = aliased(SavableDatum, name='D0')
         T = select(D0.id).\
             select_from(D0).\
-            where(D0.parent_id == None)
+            where(D0.parent_id == None).\
+            subquery()
 
         # 指定されたUUIDのDatumがルートフォルダ直下に存在する場合は抽出する
         return exists().where(T.c.id==parent_id)
