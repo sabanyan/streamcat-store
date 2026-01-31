@@ -111,9 +111,12 @@ class CommandLink:
         "mxml2csv": Mxml2csvCommand(),
         # MYSOLコマンド
         'new' : NewCommand(),
+        'tee' : TeeCommand(),
         'load': LoadCommand(),
         'select' : SelectCommand(),
         'filter' : FilterCommand(),
+        'columns' : ColumnsCommand(),
+        'transpose' : TransposeCommand(),
         'outl': OutlCommand(),
         'mysol_runs': MysolRunsCommand(),
         # 独自コマンド

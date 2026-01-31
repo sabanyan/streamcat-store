@@ -85,6 +85,17 @@ class LoadCommand(LoaderCommand):
         # StreamzModuleを返す
         return {'o': MysolModule(cmd)}
 
+class TeeCommand(NCommand):
+    def __init__(self):
+        super().__init__()
+        self.i_ports = [Port('i', ['mysol','matrix'])]
+        self.o_ports = [Port('o', 'mysol'), Port('u', 'mysol')]
+
+    def run(self, args:dict, inputs:dict) -> dict:
+        input_cmd = inputs['i'].content
+        cmd = input_cmd >> core.tee()
+        return {'o': MysolModule(cmd), 'u': MysolModule(cmd.u)}
+
 class SelectCommand(NCommandI):
     @property
     def mysol_cmd(self) -> Callable:
@@ -99,6 +110,16 @@ class FilterCommand(NCommandI):
         if 'if' in args:
             args['iif'] = args.pop('if')
         return super().run(args, inputs)
+
+class ColumnsCommand(NCommandI):
+    @property
+    def mysol_cmd(self) -> Callable:
+        return csv.columns
+
+class TransposeCommand(NCommandI):
+    @property
+    def mysol_cmd(self) -> Callable:
+        return csv.transpose
 
 class OutlCommand(NCommandI):
     def run(self, args:dict, inputs:dict) -> dict:
@@ -160,9 +181,9 @@ class MysolRunsCommand(NCommandI):
         # 入力ポートと出力ポートは同じキーで対応付ける
         i = 0
         rets = {}
-        for i_port_name, nysol_module in inputs.items():
+        for i_port_name, mysol_module in inputs.items():
             # プレビューの場合はframe=Noneである
-            frame = nysol_module.context.get('frame')
+            frame = mysol_module.context.get('frame')
             if len(exs_list) == 0:
                 matrix = Matrix(out_list)
                 rets[i_port_name] = ApparentOut(None, frame or matrix)

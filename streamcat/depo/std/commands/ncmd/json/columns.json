@@ -1,0 +1,31 @@
+{
+    "id": "columns",
+    "params": [],
+    "ports": [
+        [
+            {
+                "label": "i",
+                "type": "mysol"
+            }
+        ],
+        [
+            {
+                "label": "o",
+                "type": "mysol"
+            }
+        ]
+    ],
+    "version": "0.0.0",
+    "label": "columns",
+    "classification": "row_edit",
+    "description": "列名を出力する",
+    "url": "",
+    "groups": [
+        {
+            "name": "abstract",
+            "label": "列名の出力",
+            "description": "列名を出力する",
+            "params": []
+        }
+    ]
+}
