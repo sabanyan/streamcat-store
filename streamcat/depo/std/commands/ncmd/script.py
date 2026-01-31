@@ -25,7 +25,10 @@ class NCommand(Command):
         """
         iifとcolsに指定された式を安全に評価する
         """
-        aeval = Interpreter()
+        # minimal=True：不必要なPython文法を無効化する
+        # with_lambda=True：lambda式を有効化する
+        # user_symbols={'v': core.v}：mysolのクラスvを使用可能にする
+        aeval = Interpreter(minimal=True, with_lambda=True, user_symbols={'v': csv.v})
 
         evaled_args = args.copy()
         for key, arg in evaled_args.items():
