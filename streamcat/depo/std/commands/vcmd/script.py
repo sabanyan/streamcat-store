@@ -67,12 +67,24 @@ class HoloviewsBaseCommand(VCommand):
 
         # 入力値としてListDatumを取得する
         list_datum = inputs['i'].datum
-        # ヘッダ行を取得する
-        column_names = inputs['m'].datum[0][0:]
 
-        # 先頭行はnm.mcrossが出力した項目名行なので除外する
-        # 最終行はnm.mnumberで付加した連番なので除外する
-        matrix = list_datum[1:-1] if len(list_datum) > 1 else [[]]
+        # ヘッダ行を取得する
+        if 'm' in inputs:
+            # ToTListCommandが接続されている場合はmポートから取得する
+            column_names = inputs['m'].datum[0][0:]
+        else:
+            # mポートが接続されていない場合はデータの先頭行から項目名を取得する
+            # (MYSOLの前処理ではmポートに項目名を出力しない)
+            column_names = [col[0] for col in list_datum[:]]
+
+        # データ行を取得する
+        matrix = list_datum[:]
+
+        # 最終列の項目名を取得する
+        last_col_name = matrix[-1][0]
+        # ヘッダ行に最終列の項目名が存在しない場合、最終行はnm.mnumberで付加した連番なので除外する
+        if last_col_name not in column_names and len(matrix) > 0:
+            matrix.pop()
 
         # データを用意する
         # NOTE: hv.Dataset.sort()を実行するにはnp.array型でなければならない

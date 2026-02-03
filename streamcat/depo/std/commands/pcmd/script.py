@@ -1623,7 +1623,8 @@ class ToTListCommand(Command):
 
         # hv.Dataset()は{列名 : [値,...]}の形式で入力を受付けるため行列を入れ替える
         cmd <<= nm.mcross(a='fld', f='*', s=f'{seq_col_name}%n', q=True)
-        cmd <<= nm.writelist(nfn=True)
+        # ヘッダ行を出力しない
+        cmd <<= nm.writelist(nfno=True)
 
         return {'o': NysolModule(cmd), 'u': NysolModule(cmd_u)}
 

@@ -147,12 +147,13 @@ class MysolRunsCommand(NCommandI):
     def run(self, args, inputs):
         from streamcat.store import Matrix, ApparentOut, CommandException
 
-        def do_run(module:MysolModule):
+        def do_run(modules:list[MysolModule]):
+            # modules.contntにあるCommandを＆演算子で連結する
+            cmds = modules[0].content
+            for module in modules[1:]:
+                cmds = cmds & module.content
             # run()を実行するとMYSOLが実行される
-            cmd:core.Cmd = module.content
-            cmd.run()
-            # 実行結果を返す
-            return module.context['list']
+            cmds.run()
 
         # 
         # CommandExceptionが1つでも入力された場合は処理を中断する
@@ -175,7 +176,7 @@ class MysolRunsCommand(NCommandI):
 
         # MYSOLを実行する
         exs_list = []
-        out_list = do_run(inputs['0'])
+        do_run(list(inputs.values()))
 
         # resultsの要素はnm_listへのappend順に対応している?ため
         # 入力ポートと出力ポートは同じキーで対応付ける
@@ -184,6 +185,7 @@ class MysolRunsCommand(NCommandI):
         for i_port_name, mysol_module in inputs.items():
             # プレビューの場合はframe=Noneである
             frame = mysol_module.context.get('frame')
+            out_list = mysol_module.context.get('list')
             if len(exs_list) == 0:
                 matrix = Matrix(out_list)
                 rets[i_port_name] = ApparentOut(None, frame or matrix)
