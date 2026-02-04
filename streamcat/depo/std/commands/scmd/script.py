@@ -760,7 +760,7 @@ class RemoteFolderLoaderCommand(SCommand):
         path_str = path.as_posix()
 
         cmd = nm.m2tee({'i':path_str})
-        # mreadで存在しないファイルパスを指定するとDockerごと落ちる ->　
+        # mreadで存在しないファイルパスを指定するとDockerごと落ちる ->
         # return nm.mread({'i':path})
         return {'o': NysolModule(cmd)}
 

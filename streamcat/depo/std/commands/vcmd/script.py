@@ -549,7 +549,7 @@ class CsvToRepetitivieWaveCommand(HoloviewsBaseCommand):
         # 起点の初期化
         xs_event = None
         if event_column is not None:
-            queryStr = "{0}=='{1}'".format(event_column, "0")
+            queryStr = "{0}=='{1}'".format(event_column, '0')
             result_df = df.query(queryStr)
             result_df[x_axis_column] = result_df[x_axis_column].astype(float)
             xs_event = result_df[x_axis_column].unique().tolist()

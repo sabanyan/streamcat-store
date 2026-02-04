@@ -1358,7 +1358,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         roleA.join_member(Role.Member(self.USER2))
         roleB.join_member(Role.Member(self.USER2))
 
-        #　変更を確定する
+        # 変更を確定する
         self.finder.end()
         self.finder2.end()
 
@@ -1385,7 +1385,7 @@ class AuthTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         # ロールBを削除する
         roleB.delete()
 
-        #　変更を確定する
+        # 変更を確定する
         self.finder.end()
         self.finder2.end()
 

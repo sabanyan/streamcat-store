@@ -1426,7 +1426,7 @@ class MissingValueInterpolateCommand(PCommand):
                 ・元データの値は更新せず、新規の列追加のみとする
                 ・pandas DataFrame は、コピーせずに元データを変更する  (メモリの節約。適宜 inplace=True 指定）
                 ・無効値処理は、都度、計算対象項目の 数値データだけを抽出し、欠損値に置換し、補間処理を行う
-                　欠損値の判定、置換は、pandas の機能を使用する   pd.isnull()
+                  欠損値の判定、置換は、pandas の機能を使用する   pd.isnull()
                 ・スプライン補間は、数値 が前提だが、pandas既定の欠損値と、指定した文字列 を無効と判断する
             """
             is_header = True

@@ -867,7 +867,7 @@ class MvSimCommand(PCommand):
 
     # def generateCommandErrorMessage(self, *args):
     #     # とりあえず、エラー処理機能は特徴量の計算のコマンドの実装を参照する
-    #     # TODO：　親コマンドレベルに機能の実装を移動する
+    #     # TODO： 親コマンドレベルに機能の実装を移動する
     #     errhandler = GroupBy2Command()
     #     errhandler.commandname = self.commandname
     #     errhandler.errormessages = self.errormessages
