@@ -43,6 +43,13 @@ class NCommand(Command):
 
         return evaled_args
 
+    def append_cmd(self, mysol_module:MysolModule, args:dict) -> Callable:
+        """
+        mysolコマンドを連結する
+        """
+        input_cmd = mysol_module.content
+        return input_cmd >> self.mysol_cmd(**self.eval_args(args))
+
     @property
     def mysol_cmd(self) -> Callable:
         pass
@@ -58,9 +65,22 @@ class NCommandI(NCommand):
         self.o_ports = [Port('o', 'mysol')]
 
     def run(self, args:dict, inputs:dict) -> dict:
-        input_cmd = inputs['i'].content
-        cmd = input_cmd >> self.mysol_cmd(**self.eval_args(args))
+        cmd = self.append_cmd(inputs['i'], args)
         return {'o': MysolModule(cmd)}
+    
+class NCommandIe(NCommand):
+    """
+    MYSOLコマンド
+    (1入力1出力1エラー出力)
+    """
+    def __init__(self):
+        super().__init__()
+        self.i_ports = [Port('i', ['mysol','matrix'])]
+        self.o_ports = [Port('o', 'mysol'), Port('e', 'mysol')]
+
+    def run(self, args:dict, inputs:dict) -> dict:
+        cmd = self.append_cmd(inputs['i'], args)
+        return {'o': MysolModule(cmd), 'e': MysolModule(cmd.e)}
 
 class NewCommand(NCommand):
     @property
@@ -90,10 +110,11 @@ class TeeCommand(NCommand):
         super().__init__()
         self.i_ports = [Port('i', ['mysol','matrix'])]
         self.o_ports = [Port('o', 'mysol'), Port('u', 'mysol')]
-
+    @property
+    def mysol_cmd(self) -> Callable:
+        return core.tee
     def run(self, args:dict, inputs:dict) -> dict:
-        input_cmd = inputs['i'].content
-        cmd = input_cmd >> core.tee()
+        cmd = self.append_cmd(inputs['i'], {})
         return {'o': MysolModule(cmd), 'u': MysolModule(cmd.u)}
 
 class SelectCommand(NCommandI):
@@ -101,7 +122,7 @@ class SelectCommand(NCommandI):
     def mysol_cmd(self) -> Callable:
         return csv.select
 
-class FilterCommand(NCommandI):
+class FilterCommand(NCommandIe):
     @property
     def mysol_cmd(self) -> Callable:
         return csv.filter
@@ -122,20 +143,18 @@ class TransposeCommand(NCommandI):
         return csv.transpose
 
 class OutlCommand(NCommandI):
-    def run(self, args:dict, inputs:dict) -> dict:
-        input_cmd = inputs['i'].content
-        outl_cmd = self.mysol_cmd()
-        cmd = input_cmd >> outl_cmd
-        # Outlの結果をStreamzModuleに格納する
-        mysol_module = MysolModule(cmd)
-        mysol_module.context['list'] = outl_cmd.to_list
-        return {'o': mysol_module}
-
     @property
     def mysol_cmd(self) -> Callable:
         return core.outl
+    def run(self, args:dict, inputs:dict) -> dict:
+        input_cmd = inputs['i'].content
+        outl_cmd = self.mysol_cmd()
+        # Outlの結果をStreamzModuleに格納する
+        mysol_module = MysolModule(input_cmd >> outl_cmd)
+        mysol_module.context['list'] = outl_cmd.to_list
+        return {'o': mysol_module}
 
-class MysolRunsCommand(NCommandI):
+class MysolRunsCommand(NCommand):
     """
     MYSOLを実行する
     """

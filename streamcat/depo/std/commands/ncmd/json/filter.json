@@ -21,6 +21,10 @@
             {
                 "label": "o",
                 "type": "mysol"
+            },
+            {
+                "label": "e",
+                "type": "mysol"
             }
         ]
     ],
