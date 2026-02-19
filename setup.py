@@ -7,7 +7,7 @@ setup(
         'streamcat.depo',
         'streamcat.store'
     ],
-    version='3.5',
+    version='3.6',
     description='Data Store of many type',
     url='https://www.kskp.io',
     install_requires=[
@@ -30,7 +30,7 @@ setup(
         # 'cx_Oracle',
         'numpy==2.4.2',
         'scipy==1.17.0',
-        'pandas==2.3.3',
+        'pandas==3.0.1',
         # K-Commandでのみ使用する
         'scikit-learn',
         # matplotlibとbokehはholoviewsが使用する
