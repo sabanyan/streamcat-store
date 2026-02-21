@@ -30,7 +30,7 @@ setup(
         # 'cx_Oracle',
         'numpy==2.4.2',
         'scipy==1.17.0',
-        'pandas==3.0.1',
+        'pandas==2.3.3',
         # K-Commandでのみ使用する
         'scikit-learn',
         # matplotlibとbokehはholoviewsが使用する
