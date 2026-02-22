@@ -1,7 +1,7 @@
 import pprint
 import logging
 from asyncio import AbstractEventLoop
-from streamcat.store.factory import UnAuthzFactory, init_admin_users
+from streamcat.store.finder import UnAuthzFinder, init_admin_users
 
 class TestCaseBase():
     # 非同期処理を実行するためのイベントループ
@@ -20,42 +20,42 @@ class TestCaseBase():
         await init_admin_users()
 
         # ユーザ管理者を取得する
-        async with UnAuthzFactory() as ufactory:
-            sys_admin_user = await ufactory.find_user_by_email('Admin@streamcat.io')
-            usr_admin_user = await ufactory.find_user_by_email('admin@streamcat.io')
+        async with UnAuthzFinder() as ufinder:
+            sys_admin_user = await ufinder.find_user_by_email('Admin@streamcat.io')
+            usr_admin_user = await ufinder.find_user_by_email('admin@streamcat.io')
 
-            usr_factory = await ufactory.create_authz_factory(usr_admin_user)
+            usr_finder = await ufinder.create_authz_finder(usr_admin_user)
             # テストユーザ1を作成する
-            test_user = usr_factory.user.create('test@streamcat.io', 'Test', '123abc(*)A')
+            test_user = usr_finder.user.create('test@streamcat.io', 'Test', '123abc(*)A')
             test_user.save()
             # テストユーザ2を作成する
-            test_user2 = usr_factory.user.create('test2@streamcat.io', 'Test2', '123abc(*)B')
+            test_user2 = usr_finder.user.create('test2@streamcat.io', 'Test2', '123abc(*)B')
             test_user2.save()
 
             # システム管理者を登録状態にする
-            sys_factory = await ufactory.create_authz_factory(sys_admin_user)
-            # FactoryでUserオブジェクトを再取得する
-            sys_admin_user = sys_factory.user.find_by_id(sys_admin_user.id)
+            sys_finder = await ufinder.create_authz_finder(sys_admin_user)
+            # FinderでUserオブジェクトを再取得する
+            sys_admin_user = sys_finder.user.find_by_id(sys_admin_user.id)
             # 仮登録状態から登録状態にする
             sys_admin_user.update_password('adminpass1')
-            sys_admin_user = sys_factory.user.find_by_id(sys_admin_user.id)
+            sys_admin_user = sys_finder.user.find_by_id(sys_admin_user.id)
 
             # ユーザ管理者を登録状態にする
-            usr_admin_user = usr_factory.user.find_by_id(usr_admin_user.id)
+            usr_admin_user = usr_finder.user.find_by_id(usr_admin_user.id)
             usr_admin_user.update_password('adminpass1')
-            usr_admin_user = usr_factory.user.find_by_id(usr_admin_user.id)
+            usr_admin_user = usr_finder.user.find_by_id(usr_admin_user.id)
 
             # テストユーザ1を登録状態にする
-            test1_factory = await ufactory.create_authz_factory(test_user)
-            test_user = test1_factory.user.find_by_id(test_user.id)
+            test1_finder = await ufinder.create_authz_finder(test_user)
+            test_user = test1_finder.user.find_by_id(test_user.id)
             test_user.update_password('testpass00')
-            test_user = test1_factory.user.find_by_id(test_user.id)
+            test_user = test1_finder.user.find_by_id(test_user.id)
 
             # テストユーザ2を登録状態にする
-            test2_factory = await ufactory.create_authz_factory(test_user2)
-            test_user2 = test2_factory.user.find_by_id(test_user2.id)
+            test2_finder = await ufinder.create_authz_finder(test_user2)
+            test_user2 = test2_finder.user.find_by_id(test_user2.id)
             test_user2.update_password('testpass20')
-            test_user2 = test2_factory.user.find_by_id(test_user2.id)
+            test_user2 = test2_finder.user.find_by_id(test_user2.id)
 
             # クラス変数を設定する
             cls.USER0 = sys_admin_user
@@ -64,7 +64,7 @@ class TestCaseBase():
             cls.USER3 = test_user2
 
             # ライブラリデータデストを作成する
-            cls.root = usr_factory.data.load_root()
+            cls.root = usr_finder.data.load_root()
             cls.data_dst = cls._create_data_dst(cls.root)
 
     @classmethod
@@ -77,10 +77,10 @@ class TestCaseBase():
         cls.USER3._session.close()
 
         # ライブラリフォルダを削除する
-        async with UnAuthzFactory() as ufactory:
+        async with UnAuthzFinder() as ufinder:
             import shutil
-            factory = await ufactory.create_authz_factory(cls.USER1)
-            library_path = factory.data.load_root().path
+            finder = await ufinder.create_authz_finder(cls.USER1)
+            library_path = finder.data.load_root().path
             shutil.rmtree(library_path.as_posix())
 
         # スキーマを破棄する
@@ -180,17 +180,17 @@ class TestCaseBase():
 
     async def asyncSetUp(self) -> None:
         # テスト実行ごとにトランザクションを設定する
-        self.factory0 = await UnAuthzFactory().create_authz_factory(self.USER0)
-        self.factory = await UnAuthzFactory().create_authz_factory(self.USER1)
-        self.factory2 = await UnAuthzFactory().create_authz_factory(self.USER2)
-        self.factory3 = await UnAuthzFactory().create_authz_factory(self.USER3)
+        self.finder0 = await UnAuthzFinder().create_authz_finder(self.USER0)
+        self.finder = await UnAuthzFinder().create_authz_finder(self.USER1)
+        self.finder2 = await UnAuthzFinder().create_authz_finder(self.USER2)
+        self.finder3 = await UnAuthzFinder().create_authz_finder(self.USER3)
 
     async def asyncTearDown(self) -> None:
-        # FactoryをCloseする
-        self.factory0.end()
-        self.factory.end()
-        self.factory2.end()
-        self.factory3.end()
+        # FinderをCloseする
+        self.finder0.end()
+        self.finder.end()
+        self.finder2.end()
+        self.finder3.end()
 
     def create_data_dst_node(self, src_node_id:str) -> dict:
         """

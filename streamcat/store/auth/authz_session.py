@@ -123,8 +123,8 @@ class Session():
 
 class AuthzSession(Session):
 
-    def __init__(self, session_factory, user):
-        super().__init__(session_factory, user)
+    def __init__(self, session_finder, user):
+        super().__init__(session_finder, user)
 
     @property
     def user(self):
@@ -184,6 +184,7 @@ class AuthzSession(Session):
                 select_prev_folder_path = null()
 
             # read=TrueのDatumのみ抽出する
+            # NOTE: この抽出条件を加えると極端に遅くなる
             # exists_readable = self._make_exists_readable()
 
             # Datumを抽出するSelect
@@ -491,8 +492,8 @@ class AuthzSession(Session):
             # 本人ロールが無ければ作成し、ユーザを本人ロールに所属させる
             self_role = self.user.load_self_role()
             # Datumを新規追加したユーザには無条件に所有権を付与する
-            from streamcat.store.factory import AuthFactory
-            own_auth = AuthFactory(self).create(self_role.id, obj.id, Auth.OWN_OP, True)
+            from streamcat.store.finder import AuthFinder
+            own_auth = AuthFinder(self).create(self_role.id, obj.id, Auth.OWN_OP, True)
             self._session.add(own_auth)
             self._session.flush([own_auth])
 
@@ -502,8 +503,8 @@ class AuthzSession(Session):
             self_role.init_authz(obj.id, True, True, exec=folder_or_flow, own=True)
 
             # # usr_adminロールへ追加データの権限を付与する
-            # from streamcat.store.factory import RoleFactory
-            # usr_admin_role = RoleFactory(self).load_usr_admin_role()
+            # from streamcat.store.finder import RoleFinder
+            # usr_admin_role = RoleFinder(self).load_usr_admin_role()
             # usr_admin_role.init_authz(obj.id, True, True, exec=folder_or_flow)
 
         elif isinstance(obj, User):
@@ -516,9 +517,9 @@ class AuthzSession(Session):
         elif isinstance(obj, UserRole):
             # ユーザ管理者かロールの所有者のみ、ロールにユーザを追加できる
             if not ignore_authz and not self.is_role_owner(obj.role_id) and not self.has_usr_admin():
-                from streamcat.store.factory import UserFactory, RoleFactory
-                role = RoleFactory(self).find_by_id(obj.role_id)
-                user = UserFactory(self).find_by_id(obj.user_id)
+                from streamcat.store.finder import UserFinder, RoleFinder
+                role = RoleFinder(self).find_by_id(obj.role_id)
+                user = UserFinder(self).find_by_id(obj.user_id)
                 raise NotAuthorizedException(f'{self.user}はロール({role})にユーザー({user})を追加できませんでした')
             self._session.add(obj)
             self.flush(obj)
@@ -578,9 +579,9 @@ class AuthzSession(Session):
 
                 # ユーザ管理者かロールの所有者のみ、ロールの所有権を変更できる
                 if not self.is_role_owner(obj.role_id) and not self.has_usr_admin():
-                    from streamcat.store.factory import UserFactory, RoleFactory
-                    role = RoleFactory(self).find_by_id(obj.role_id)
-                    user = UserFactory(self).find_by_id(obj.user_id)
+                    from streamcat.store.finder import UserFinder, RoleFinder
+                    role = RoleFinder(self).find_by_id(obj.role_id)
+                    user = UserFinder(self).find_by_id(obj.user_id)
                     raise NotAuthorizedException(f'{self.user}はロール({role})についてユーザ({user})の所有権を変更できませんでした')
 
             elif isinstance(obj, Role):
@@ -616,8 +617,8 @@ class AuthzSession(Session):
         if isinstance(obj, SavableDatum):
             if self.writable(obj):
                 # 削除データの権限を全て削除する
-                from streamcat.store.factory import AuthFactory
-                AuthFactory(self).delete_all_by_datum_id(obj.id)
+                from streamcat.store.finder import AuthFinder
+                AuthFinder(self).delete_all_by_datum_id(obj.id)
             else:
                 raise NotAuthorizedException((f'{self.user.name}は更新権限がないため{obj.label}を削除できません'))
 

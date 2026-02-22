@@ -11,7 +11,7 @@ class DumpTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
     """
     conn_json = {
       'dbms'     : "postgresql",
-      'hostname' : "kskp.cr4gfi5zl5xm.ap-northeast-1.rds.amazonaws.com", 
+      'hostname' : "15.168.34.0", 
       'port'     : 5432, 
       'database' : "kskp", 
       'user_id'  : "kskp", 
@@ -21,7 +21,7 @@ class DumpTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
 
     conn_json = {
         'protocol' : 'smb',
-        'hostname' : "18.178.64.116",
+        'hostname' : "15.168.34.0",
         'domain'   : "WORKGROUP",
         'directory': "share",
         'user_id'  : "samba",
@@ -36,7 +36,7 @@ class DumpTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         "LOCK TABLE can only be used in transaction blocks"の例外が送出される。原因不明
         """
         # ルートを取得する
-        root = self.factory2.data.load_root()
+        root = self.finder2.data.load_root()
 
         # プロジェクトを作成する
         project = root.create_project_folder('徳川家康')
@@ -63,7 +63,7 @@ class DumpTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         flow.save()
 
         # Dumpコマンドを実行する
-        outs = DumpCommand().run({'datum_factory': self.factory0.data}, {})
+        outs = DumpCommand().run({'datum_finder': self.finder0.data}, {})
 
         print(outs)
 

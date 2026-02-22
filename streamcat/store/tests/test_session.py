@@ -13,7 +13,7 @@ class SessionTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         Datumの新規追加操作をRollBackできること
         """
         # ルートフォルダを取得する
-        root = self.factory2.data.load_root()
+        root = self.finder2.data.load_root()
 
         # ルートフォルダの下にプロジェクト1を作成する
         project1 = root.create_project_folder('Session-Test')
@@ -24,7 +24,7 @@ class SessionTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         flow1.save()
 
         # 作成を確定する
-        self.factory2.end()
+        self.finder2.end()
 
         # スケジュールを作成する
         trigger1 = {
@@ -35,8 +35,8 @@ class SessionTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         schedule1.save()
 
         # プロジェクト1、フローとスケジュールの作成をRollbackする
-        self.factory2._session._session.rollback()
-        self.factory2.end()
+        self.finder2._session._session.rollback()
+        self.finder2.end()
 
         # Rollbackによって各権限情報はNoneになる
         self.assertIsNone(project1.readable)
@@ -57,7 +57,7 @@ class SessionTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         project1.throw_away()
 
         # ゴミ箱を空にする
-        trashcan = self.factory.data.load_trash_folder()
+        trashcan = self.finder.data.load_trash_folder()
         trashcan.trash_all()
 
     async def test_rollback_to_add_user(self):
@@ -65,44 +65,44 @@ class SessionTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         Userの新規追加操作をRollBackできること
         """
         # Userを作成する
-        user = self.factory.user.create('aaa@bbb', 'USR', 'ababababababababab')
+        user = self.finder.user.create('aaa@bbb', 'USR', 'ababababababababab')
         user.save()
 
         # Userの作成をRollbackする
-        self.factory._session.rollback()
-        self.factory.end()
+        self.finder._session.rollback()
+        self.finder.end()
 
         # UserはDBに作成されていないこと
-        self.assertFalse(self.factory2.user.exists(user.uuid))
+        self.assertFalse(self.finder2.user.exists(user.uuid))
         with self.assertRaises(Exception):
-            self.factory2.user.find_by_id(user.id)
+            self.finder2.user.find_by_id(user.id)
 
     async def test_rollback_to_add_project(self):
         """
         Projectの新規追加操作をRollBackできること
         """
         # ルートフォルダを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
 
         # ルートフォルダの下にプロジェクト1を作成する
         project1 = root.create_project_folder('P1')
         project1.save()
 
         # プロジェクト1の作成をRollbackする
-        self.factory._session.rollback()
-        self.factory.end()
+        self.finder._session.rollback()
+        self.finder.end()
 
         # プロジェクト1はDBに作成されていないこと
-        self.assertFalse(self.factory2.data.exists(project1.uuid))
+        self.assertFalse(self.finder2.data.exists(project1.uuid))
         with self.assertRaises(Exception):
-            self.factory2.data.find_by_id(project1.id)
+            self.finder2.data.find_by_id(project1.id)
 
     async def test_rollback_to_add_flow(self):
         """
         Flowの新規追加操作をRollBackできること
         """
         # ルートフォルダを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
 
         # ルートフォルダの下にプロジェクト1を作成する
         project1 = root.create_project_folder('P1')
@@ -113,25 +113,25 @@ class SessionTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         flow1.save()
 
         # プロジェクト1とフローの作成をRollbackする
-        self.factory._session.rollback()
-        self.factory.end()
+        self.finder._session.rollback()
+        self.finder.end()
 
         # プロジェクト1はDBに作成されていないこと
-        self.assertFalse(self.factory2.data.exists(project1.uuid))
+        self.assertFalse(self.finder2.data.exists(project1.uuid))
         with self.assertRaises(Exception):
-            self.factory2.data.find_by_id(project1.id)
+            self.finder2.data.find_by_id(project1.id)
 
         # フローはDBに作成されていないこと
-        self.assertFalse(self.factory2.data.exists(flow1.uuid))
+        self.assertFalse(self.finder2.data.exists(flow1.uuid))
         with self.assertRaises(Exception):
-            self.factory2.data.find_by_id(flow1.id)
+            self.finder2.data.find_by_id(flow1.id)
 
     async def test_rollback_to_add_scheduler(self):
         """
         Schedulerの新規追加操作をRollBackできること
         """
         # ルートフォルダを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
 
         # ルートフォルダの下にプロジェクト1を作成する
         project1 = root.create_project_folder('P1')
@@ -149,20 +149,20 @@ class SessionTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         schedule1 = project1.create_schedule('schedule1', flow1.uuid, trigger=trigger1)
 
         # プロジェクト1、フローとスケジュールの作成をRollbackする
-        self.factory._session.rollback()
-        self.factory.end()
+        self.finder._session.rollback()
+        self.finder.end()
 
         # プロジェクト1はDBに作成されていないこと
-        self.assertFalse(self.factory2.data.exists(project1.uuid))
+        self.assertFalse(self.finder2.data.exists(project1.uuid))
         with self.assertRaises(Exception):
-            self.factory2.data.find_by_id(project1.id)
+            self.finder2.data.find_by_id(project1.id)
 
         # フローはDBに作成されていないこと
-        self.assertFalse(self.factory2.data.exists(flow1.uuid))
+        self.assertFalse(self.finder2.data.exists(flow1.uuid))
         with self.assertRaises(Exception):
-            self.factory2.data.find_by_id(flow1.id)
+            self.finder2.data.find_by_id(flow1.id)
 
         # スケジュールはDBに作成されていないこと
-        self.assertFalse(self.factory2.data.exists(schedule1.uuid))
+        self.assertFalse(self.finder2.data.exists(schedule1.uuid))
         with self.assertRaises(Exception):
-            self.factory2.data.find_by_id(schedule1.id)
+            self.finder2.data.find_by_id(schedule1.id)

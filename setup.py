@@ -7,7 +7,7 @@ setup(
         'streamcat.depo',
         'streamcat.store'
     ],
-    version='3.5',
+    version='3.6',
     description='Data Store of many type',
     url='https://www.kskp.io',
     install_requires=[
@@ -15,29 +15,29 @@ setup(
         # エラーメッセージを出力してインストールできない、代わりにpsycopg2-binaryをインストールする
         # NOTE: psycopg2-binaryはARM64環境に対応していない
         # 'psycopg2-binary',
-        'psycopg2==2.9.10',
-        'SQLAlchemy==2.0.38',
-        'APScheduler==3.11.0',
-        'jsonschema==4.23.0',
+        'psycopg2==2.9.11',
+        'SQLAlchemy==2.0.46',
+        'APScheduler==3.11.2',
+        'jsonschema==4.26.0',
         # FastAPIへの移行により送出されるようになった例外(Can't pickle local object)を
         # 回避するためにmultiprocessを使用する
-        'multiprocess==0.70.17',
+        'multiprocess==0.70.19',
         # 'alembic',
-        'cryptography==44.0.1',
+        'cryptography==46.0.5',
         'python-magic==0.4.27',
         'chardet==5.2.0',
         # 'awscli',
         # 'cx_Oracle',
-        'numpy==2.2.3',
-        'scipy==1.15.2',
-        'pandas==2.2.3',
+        'numpy==2.4.2',
+        'scipy==1.17.0',
+        'pandas==2.3.3',
         # K-Commandでのみ使用する
         'scikit-learn',
         # matplotlibとbokehはholoviewsが使用する
-        'holoviews==1.20.1',
-        'matplotlib==3.10.0',
-        'bokeh==3.6.3',
-        'param==2.2.0',
-        'panel==1.6.1'
+        'holoviews==1.22.1',
+        'matplotlib==3.10.8',
+        'bokeh==3.8.2',
+        'param==2.3.2',
+        'panel==1.8.7'
     ],
 )

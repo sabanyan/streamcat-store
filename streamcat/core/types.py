@@ -14,8 +14,8 @@ class QueryableString(sqlalchemy.types.TypeDecorator):
 
         # LIKE検索語のエスケープ変換テーブル
         ESCAPE_TABLE = str.maketrans({
-                            '%' : '\%',
-                            '_' : '\_',
+                            '%' : '\\%',
+                            '_' : '\\_',
                             '\\': '\\\\'
                         })
 

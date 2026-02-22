@@ -743,7 +743,7 @@ class AssertCmdTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         """
         import csv
         result = []
-        frame = self.factory.data.find_by_uuid(uuid)
+        frame = self.finder.data.find_by_uuid(uuid)
         try:
           with open(frame.path, 'r') as f:
               rows = csv.reader(f)
@@ -764,7 +764,7 @@ class AssertCmdTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         エラー判定はfalse        
         """
         # ルートフォルダを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
 
         flow_json = copy.deepcopy(self.simple_assert_json)
         flow_json['nodes'].append(self.create_data_dst_node('d1'))
@@ -783,7 +783,7 @@ class AssertCmdTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         ]}
         # テスト
         # DBにframeデータが生成されているか
-        self.assertIsNotNone(self.factory.data.exists(lasts['d1'].uuid))
+        self.assertIsNotNone(self.finder.data.exists(lasts['d1'].uuid))
         # 実ファイルが指定ディレクトリに存在するか
         results = self.get_frame_by_uuid(lasts['d1'].uuid)
 
@@ -814,7 +814,7 @@ class AssertCmdTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         エラー判定はfalse     
         """
         # ルートフォルダを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
 
         flow_json = copy.deepcopy(self.flow_json_same)
         flow_json['nodes'].append(self.create_data_dst_node('d1'))
@@ -829,7 +829,7 @@ class AssertCmdTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         ]}
         # テスト
         # DBにframeデータが生成されているか
-        self.assertIsNotNone(self.factory.data.exists(lasts['d1'].uuid))
+        self.assertIsNotNone(self.finder.data.exists(lasts['d1'].uuid))
         # 実ファイルが指定ディレクトリに存在するか
         results = self.get_frame_by_uuid(lasts['d1'].uuid)
 
@@ -862,7 +862,7 @@ class AssertCmdTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         エラー判定はfalse     
         """
         # ルートフォルダを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
 
         flow_json = copy.deepcopy(self.sequential_assert_json)
         flow_json['nodes'].append(self.create_data_dst_node('d2'))
@@ -883,7 +883,7 @@ class AssertCmdTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         ]}
         # テスト
         # DBにframeデータが生成されているか
-        self.assertIsNotNone(self.factory.data.exists(lasts['d2'].uuid))
+        self.assertIsNotNone(self.finder.data.exists(lasts['d2'].uuid))
         # 実ファイルが指定ディレクトリに存在するか
         results = self.get_frame_by_uuid(lasts['d2'].uuid)
 
@@ -923,7 +923,7 @@ class AssertCmdTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         エラー判定はfalse
         """
         # ルートフォルダを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
 
         flow_json = copy.deepcopy(self.double_assert_json)
         flow_json['nodes'].append(self.create_data_dst_node('d1'))
@@ -950,8 +950,8 @@ class AssertCmdTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         ]}
         # テスト
         # DBにframeデータが生成されているか
-        self.assertIsNotNone(self.factory.data.exists(lasts['d1'].uuid))
-        self.assertIsNotNone(self.factory.data.exists(lasts['d2'].uuid))
+        self.assertIsNotNone(self.finder.data.exists(lasts['d1'].uuid))
+        self.assertIsNotNone(self.finder.data.exists(lasts['d2'].uuid))
         # 実ファイルが指定ディレクトリに存在するか
         results = self.get_frame_by_uuid(lasts['d1'].uuid)
         results2 = self.get_frame_by_uuid(lasts['d2'].uuid)
@@ -1000,7 +1000,7 @@ class AssertCmdTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         エラー判定はtrue
         """
         # ルートフォルダを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
 
         flow_json = copy.deepcopy(self.one_side_error_json)
         flow_json['nodes'].append(self.create_data_dst_node('d2'))
@@ -1021,7 +1021,7 @@ class AssertCmdTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         ]}
         # テスト
         # DBにframeデータが生成されているか
-        self.assertIsNotNone(self.factory.data.exists(lasts['d2'].uuid))
+        self.assertIsNotNone(self.finder.data.exists(lasts['d2'].uuid))
         # 実ファイルが指定ディレクトリに存在するか
         results = self.get_frame_by_uuid(lasts['d2'].uuid)
 
@@ -1055,7 +1055,7 @@ class AssertCmdTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         エラー判定はtrue
         """
         # ルートフォルダを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
 
         flow_json = copy.deepcopy(self.both_same_error_json)
         flow_json['nodes'].append(self.create_data_dst_node('d2'))
@@ -1072,7 +1072,7 @@ class AssertCmdTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         ]}
         # テスト
         # DBにframeデータが生成されているか
-        self.assertIsNotNone(self.factory.data.exists(lasts['d2'].uuid))
+        self.assertIsNotNone(self.finder.data.exists(lasts['d2'].uuid))
         # 実ファイルが指定ディレクトリに存在するか
         results = self.get_frame_by_uuid(lasts['d2'].uuid)
 
@@ -1103,7 +1103,7 @@ class AssertCmdTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         エラー判定はtrue
         """
         # ルートフォルダを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
 
         flow_json = copy.deepcopy(self.both_error_json)
         flow_json['nodes'].append(self.create_data_dst_node('d2'))
@@ -1119,7 +1119,7 @@ class AssertCmdTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         ]}
         # テスト
         # DBにframeデータが生成されているか
-        self.assertIsNotNone(self.factory.data.exists(lasts['d2'].uuid))
+        self.assertIsNotNone(self.finder.data.exists(lasts['d2'].uuid))
         # 実ファイルが指定ディレクトリに存在するか
         results = self.get_frame_by_uuid(lasts['d2'].uuid)
 
@@ -1152,7 +1152,7 @@ class AssertCmdTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         エラー判定はfalse     
         """
         # ルートフォルダを取得する
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
 
         flow_json = copy.deepcopy(self.dlimit_overred_json)
         flow_json['nodes'].append(self.create_data_dst_node('d2'))
@@ -1178,7 +1178,7 @@ class AssertCmdTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         ]}
         # テスト
         # DBにframeデータが生成されているか
-        self.assertIsNotNone(self.factory.data.exists(lasts['d2'].uuid))
+        self.assertIsNotNone(self.finder.data.exists(lasts['d2'].uuid))
         # 実ファイルが指定ディレクトリに存在するか
         results = self.get_frame_by_uuid(lasts['d2'].uuid)
 

@@ -86,7 +86,7 @@ if _is_unittest():
     database_uri_candidates=[
         f'postgresql://streamcat:{_db_password}@localhost:{db_port}/streamcat?application_name=StreamCat-Test',
         f'postgresql://streamcat:{_db_password}@db/streamcat?application_name=StreamCat-Test',
-        f'postgresql://kskp:{"J2-pH|%B"}@kskp.cr4gfi5zl5xm.ap-northeast-1.rds.amazonaws.com/kskp?application_name=StreamCat-Test'
+        f'postgresql://kskp:{"J2-pH|%B"}@15.168.34.0/kskp?application_name=StreamCat-Test'
     ]
     # DBに接続する
     engine = _get_db_engine(database_uri_candidates)

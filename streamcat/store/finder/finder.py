@@ -5,7 +5,7 @@ from streamcat.store import Folder, TrashCan
 from streamcat.store.auth import User, Role, UserRole
 
 
-class UnAuthzFactory():
+class UnAuthzFinder():
 
     def __init__(self):
         from sqlalchemy.orm import sessionmaker
@@ -22,17 +22,17 @@ class UnAuthzFactory():
         # セッションを保持する
         self._session = Session(session_maker(), user=None)
 
-    async def create_authz_factory(self, user:User):
+    async def create_authz_finder(self, user:User):
         """
-        Factoryを生成する
+        Finderを生成する
         """
-        return Factory(self._session._session, user)
+        return Finder(self._session._session, user)
 
     async def find_user_by_email(self, email):
-        return UserFactory(self._session).find_by_email(email)
+        return UserFinder(self._session).find_by_email(email)
 
     async def find_user_by_uuid(self, user_uuid):
-        return UserFactory(self._session).find_by_uuid(user_uuid)
+        return UserFinder(self._session).find_by_uuid(user_uuid)
 
     async def load_sys_admin_user(self, activate_if_inactive=False):
         """
@@ -43,28 +43,28 @@ class UnAuthzFactory():
         SYS_ADMIN_USER_EMAIL = 'Admin@streamcat.io'
         SYS_ADMIN_USER_NAME = 'システム管理者'
 
-        user_factory = UserFactory(self._session)
-        role_factory = RoleFactory(self._session)
+        user_finder = UserFinder(self._session)
+        role_finder = RoleFinder(self._session)
 
         # 管理者ユーザが存在する場合は、それを返す
-        if user_factory.exists_by_email(SYS_ADMIN_USER_EMAIL, except_states=[User.INACTIVE_STATE]):
-            return user_factory.find_by_email(SYS_ADMIN_USER_EMAIL, except_states=[User.INACTIVE_STATE])
+        if user_finder.exists_by_email(SYS_ADMIN_USER_EMAIL, except_states=[User.INACTIVE_STATE]):
+            return user_finder.find_by_email(SYS_ADMIN_USER_EMAIL, except_states=[User.INACTIVE_STATE])
 
         # 管理者ロールが存在する場合は、そのロールの中でidが最も小さいユーザを取得する
-        if role_factory.exists(Role.SYS_ADMIN_ROLE_UUID):
-            sys_admin_role = role_factory.find_by_uuid(Role.SYS_ADMIN_ROLE_UUID)
+        if role_finder.exists(Role.SYS_ADMIN_ROLE_UUID):
+            sys_admin_role = role_finder.find_by_uuid(Role.SYS_ADMIN_ROLE_UUID)
             joined_users = sys_admin_role.get_joined_users(except_states=[User.INACTIVE_STATE])
             if len(joined_users) > 0:
                 return joined_users[0]
 
         # デフォルトの管理者ユーザが論理削除されている場合は、そのまま返すか、登録状態に戻して返す
-        if user_factory.exists_by_email(SYS_ADMIN_USER_EMAIL):
-            sys_admin_user = user_factory.find_by_email(SYS_ADMIN_USER_EMAIL)
+        if user_finder.exists_by_email(SYS_ADMIN_USER_EMAIL):
+            sys_admin_user = user_finder.find_by_email(SYS_ADMIN_USER_EMAIL)
             activate_if_inactive and sys_admin_user.put_back()
             return sys_admin_user
 
         # 管理者ロールが無い場合は、デフォルトの管理者ユーザを作成する
-        sys_admin_user = user_factory.create(SYS_ADMIN_USER_EMAIL, SYS_ADMIN_USER_NAME, 'adminpass0')
+        sys_admin_user = user_finder.create(SYS_ADMIN_USER_EMAIL, SYS_ADMIN_USER_NAME, 'adminpass0')
         sys_admin_user.save()
         return sys_admin_user
 
@@ -77,24 +77,24 @@ class UnAuthzFactory():
         USR_ADMIN_USER_EMAIL = 'admin@streamcat.io'
         USR_ADMIN_USER_NAME = 'ユーザー管理者'
 
-        user_factory = UserFactory(self._session)
-        role_factory = RoleFactory(self._session)
+        user_finder = UserFinder(self._session)
+        role_finder = RoleFinder(self._session)
 
-        if user_factory.exists_by_email(USR_ADMIN_USER_EMAIL, except_states=[User.INACTIVE_STATE]):
-            return user_factory.find_by_email(USR_ADMIN_USER_EMAIL, except_states=[User.INACTIVE_STATE])
+        if user_finder.exists_by_email(USR_ADMIN_USER_EMAIL, except_states=[User.INACTIVE_STATE]):
+            return user_finder.find_by_email(USR_ADMIN_USER_EMAIL, except_states=[User.INACTIVE_STATE])
 
-        if role_factory.exists(Role.USR_ADMIN_ROLE_UUID):
-            usr_admin_role = role_factory.find_by_uuid(Role.USR_ADMIN_ROLE_UUID)
+        if role_finder.exists(Role.USR_ADMIN_ROLE_UUID):
+            usr_admin_role = role_finder.find_by_uuid(Role.USR_ADMIN_ROLE_UUID)
             joined_users = usr_admin_role.get_joined_users(except_states=[User.INACTIVE_STATE])
             if len(joined_users) > 0:
                 return joined_users[0]
 
-        if user_factory.exists_by_email(USR_ADMIN_USER_EMAIL):
-            usr_admin_user = user_factory.find_by_email(USR_ADMIN_USER_EMAIL)
+        if user_finder.exists_by_email(USR_ADMIN_USER_EMAIL):
+            usr_admin_user = user_finder.find_by_email(USR_ADMIN_USER_EMAIL)
             activate_if_inactive and usr_admin_user.put_back()
             return usr_admin_user
 
-        usr_admin_user = user_factory.create(USR_ADMIN_USER_EMAIL, USR_ADMIN_USER_NAME, 'adminpass0')
+        usr_admin_user = user_finder.create(USR_ADMIN_USER_EMAIL, USR_ADMIN_USER_NAME, 'adminpass0')
         usr_admin_user.save()
         return usr_admin_user
 
@@ -109,7 +109,7 @@ class UnAuthzFactory():
         self._session.close()
 
 
-class Factory():
+class Finder():
     """
     SQLAlchemyのSessionを保持する(とりあえずこの目的ね)
     """
@@ -121,13 +121,13 @@ class Factory():
         # NOTE: AuthzSession.userが循環参照になっているが問題にはならないだろう
         self._session._user._session = AuthzSession(sqlalchemy_session, self._session._user)
 
-        # 各Factoryを保持する
-        self._data = DatumFactory(self._session)
-        self._store = StoreFactory(self._session)
-        self._auth = AuthFactory(self._session)
-        self._role = RoleFactory(self._session)
-        self._user_role = UserRoleFactory(self._session)
-        self._user = UserFactory(self._session)
+        # 各Finderを保持する
+        self._data = DatumFinder(self._session)
+        self._store = StoreFinder(self._session)
+        self._auth = AuthFinder(self._session)
+        self._role = RoleFinder(self._session)
+        self._user_role = UserRoleFinder(self._session)
+        self._user = UserFinder(self._session)
 
     def end(self):
         self._session.end()
@@ -210,7 +210,7 @@ class Factory():
         return self._user
 
 
-class DatumFactory():
+class DatumFinder():
 
     def __init__(self, session):
         self._session = session
@@ -266,26 +266,26 @@ class DatumFactory():
         """
         from sqlalchemy import desc
         from sqlalchemy.sql.expression import and_, or_
-        query = self._session.query(SavableDatum)
+        stmt = select(SavableDatum)
 
         if type is not None:
-            query = query.filter(SavableDatum.type==type)
+            stmt = stmt.where(SavableDatum.type==type)
         if except_trash:
             # ゴミ箱にほかされたDatumは除外する
             # NOTE: この条件を付与するとかなり遅くなる
-            query = query.filter(~self._make_exists_trashed(SavableDatum.uuid))
+            stmt = stmt.where(~self._make_exists_trashed(SavableDatum.uuid))
 
         like_predicates = []
-        for search_keyword in Factory.split_keyword(keyword):
+        for search_keyword in Finder.split_keyword(keyword):
             # 検索語の大文字小文字の区別はしない
             like_predicates.append(or_(SavableDatum._label.icontains(search_keyword),
                                        SavableDatum._desc.icontains(search_keyword)))
 
-        query = query.filter(and_(*like_predicates))
+        stmt = stmt.where(and_(*like_predicates))
 
-        return query.order_by(SavableDatum.type, desc(SavableDatum.created_at)).\
-                     offset(offset).limit(limit).\
-                     all()
+        stmt = stmt.order_by(SavableDatum.type, desc(SavableDatum.created_at))
+        # 参照権限のないDatumを除いた抽出結果を範囲指定する
+        return self._session.scalars(stmt).slice(offset, limit)
 
     def find_all(self, type=None, except_trash=False, except_label=None) -> SavableDatum:
         """
@@ -513,13 +513,13 @@ class DatumFactory():
 
     def _permit_to_usradmin(self, datum_id, read=None, write=None, exec=None, own=None):
         # usr_adminロールを取得する
-        usr_admin_role = RoleFactory(self._session).load_usr_admin_role()
+        usr_admin_role = RoleFinder(self._session).load_usr_admin_role()
         # usr_adminロールへDatumの権限を付与する
         usr_admin_role.init_authz(datum_id, read=read, write=write, exec=exec, own=own)
 
     def _permit_to_everyone(self, datum_id, read=None, write=None, exec=None):
         # everyoneロールを取得する
-        everyone_role = RoleFactory(self._session).load_everyone_role()
+        everyone_role = RoleFinder(self._session).load_everyone_role()
         # everyoneロールへDatumの権限を付与する
         everyone_role.init_authz(datum_id, read=read, write=write, exec=exec)
 
@@ -576,7 +576,8 @@ class DatumFactory():
         D0 = aliased(SavableDatum, name='D0')
         T = select(D0.id).\
             select_from(D0).\
-            where(D0.parent_id == None)
+            where(D0.parent_id == None).\
+            subquery()
 
         # 指定されたUUIDのDatumがルートフォルダ直下に存在する場合は抽出する
         return exists().where(T.c.id==parent_id)
@@ -611,7 +612,7 @@ class DatumFactory():
         for mountable in mountables:
             mountable.unmount()
 
-class StoreFactory():
+class StoreFinder():
 
     def __init__(self, session):
         self._session = session
@@ -639,7 +640,7 @@ class StoreFactory():
         return store
 
 
-class AuthFactory():
+class AuthFinder():
     from streamcat.store.auth import Auth
 
     def __init__(self, session):
@@ -697,7 +698,7 @@ class AuthFactory():
             raise e
 
 
-class RoleFactory():
+class RoleFinder():
     def __init__(self, session):
         self._session = session
 
@@ -781,7 +782,7 @@ class RoleFactory():
         return self._session.scalars(stmt).one() > 0
 
 
-class UserRoleFactory():
+class UserRoleFinder():
     def __init__(self, session):
         self._session = session
 
@@ -833,7 +834,7 @@ class UserRoleFactory():
             raise e
 
 
-class UserFactory():
+class UserFinder():
     def __init__(self, session):
         self._session = session
 
@@ -843,7 +844,7 @@ class UserFactory():
 
     def find_all(self, except_states=None):
         stmt = select(User).order_by(User.email)
-        stmt = UserFactory._add_except_states_criteria(stmt, except_states)
+        stmt = UserFinder._add_except_states_criteria(stmt, except_states)
         return self._session.scalars(stmt).all()
 
     def find_by_id(self, user_id, except_states=None, allow_no_result=False) -> User:
@@ -867,7 +868,7 @@ class UserFactory():
         # 結果が1件以外の場合はNoResultFoundが送出される
         try:
             stmt = select(User).where(User.uuid==uuid)
-            stmt = UserFactory._add_except_states_criteria(stmt, except_states)
+            stmt = UserFinder._add_except_states_criteria(stmt, except_states)
             return self._session.scalars(stmt).one()
         except NoResultFound:
             raise Exception(f'指定したUser({uuid})は存在しませんでした')
@@ -879,7 +880,7 @@ class UserFactory():
         # 結果が1件以外の場合はNoResultFoundが送出される
         try:
             stmt = select(User).where(User.email==email)
-            stmt = UserFactory._add_except_states_criteria(stmt, except_states)
+            stmt = UserFinder._add_except_states_criteria(stmt, except_states)
             return self._session.scalars(stmt).one()
         except NoResultFound:
             raise Exception(f'指定したUser({email})は存在しませんでした')
@@ -890,7 +891,7 @@ class UserFactory():
         """
         try:
             stmt = select(User).where(User.issuer==issuer, User.subject==subject)
-            stmt = UserFactory._add_except_states_criteria(stmt, except_states)
+            stmt = UserFinder._add_except_states_criteria(stmt, except_states)
             return self._session.scalars(stmt).one()
         except NoResultFound:
             raise Exception(f'指定したUser({subject})は存在しませんでした')
@@ -903,30 +904,30 @@ class UserFactory():
         stmt = select(User)
 
         like_predicates = []
-        for search_keyword in Factory.split_keyword(keyword):
+        for search_keyword in Finder.split_keyword(keyword):
             # 検索語の大文字小文字の区別はしない
             like_predicates.append(or_(User.name.icontains(search_keyword),
                                        User.email.icontains(search_keyword)))
 
         stmt = stmt.where(and_(*like_predicates))
-        stmt = UserFactory._add_except_states_criteria(stmt, except_states)
+        stmt = UserFinder._add_except_states_criteria(stmt, except_states)
         stmt = stmt.order_by(User.email)
 
         return self._session.scalars(stmt).all()
 
     def exists(self, uuid, except_states=None) -> bool:
         stmt = select(func.count(User.id)).where(User.uuid==uuid)
-        stmt = UserFactory._add_except_states_criteria(stmt, except_states)
+        stmt = UserFinder._add_except_states_criteria(stmt, except_states)
         return self._session.scalars(stmt).one() > 0
 
     def exists_by_email(self, email, except_states=None) -> bool:
         stmt = select(func.count(User.id)).where(User.email==email)
-        stmt = UserFactory._add_except_states_criteria(stmt, except_states)
+        stmt = UserFinder._add_except_states_criteria(stmt, except_states)
         return self._session.scalars(stmt).one() > 0
 
     def exists_by_openid(self, issuer, subject, except_states=None) -> bool:
         stmt = select(func.count(User.id)).where(User.issuer==issuer, User.subject==subject)
-        stmt = UserFactory._add_except_states_criteria(stmt, except_states)
+        stmt = UserFinder._add_except_states_criteria(stmt, except_states)
         return self._session.scalars(stmt).one() > 0
 
     def load_openid_user(self, email, name, issuer, subject):
@@ -934,11 +935,11 @@ class UserFactory():
         OpenID Connectのアクセストークンからユーザを取得する
         ユーザが存在しない場合は作成する
         """
-        user_factory = UserFactory(self._session)
+        user_finder = UserFinder(self._session)
 
         # ユーザが存在する場合は、それを返す
-        if user_factory.exists_by_openid(issuer, subject):
-            user = user_factory.find_by_openid(issuer, subject)
+        if user_finder.exists_by_openid(issuer, subject):
+            user = user_finder.find_by_openid(issuer, subject)
             # ユーザが論理削除状態の場合は例外を送出する
             if user.is_inactive:
                 raise Exception(f'指定したUser({email})は削除されました')
@@ -947,7 +948,7 @@ class UserFactory():
 
         # ユーザが存在しない場合は、新規にユーザを作成する
         # (passwordの指定がなければ自動生成する)
-        new_user = user_factory.create(email, name, password=None, issuer=issuer, subject=subject)
+        new_user = user_finder.create(email, name, password=None, issuer=issuer, subject=subject)
         new_user.save()
 
         # ランダムなパスワードを設定してユーザを登録状態にする

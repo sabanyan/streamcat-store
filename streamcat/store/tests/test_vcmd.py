@@ -3,7 +3,7 @@ import unittest
 from streamcat.engine import FlowCommand, aexecute
 from .test_case_base import TestCaseBase
 
-class VCmdTestCase(TestCaseBase, unittest.IsolatedAsyncioTestCase):
+class VCmdTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
     """
     Vコマンドの実行テスト
     """
@@ -19,10 +19,10 @@ class VCmdTestCase(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         test_data += b'A,20180105,2000,4,5,6' + b'\n'
         test_data += b'B,20180107,4000,0,0,0' + b'\n'
 
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         frame = root.create_frame("customer data", io.BytesIO(test_data))
         frame.save()
-        self.factory.end()
+        self.finder.end()
 
         # テスト用フローの定義
         self.flow_csvtohtmltable = {
@@ -80,7 +80,7 @@ class VCmdTestCase(TestCaseBase, unittest.IsolatedAsyncioTestCase):
 
     async def exec_flow(self, vis_args):
         from streamcat.store import FlowData
-        root = self.factory.data.load_root()
+        root = self.finder.data.load_root()
         flow_data = FlowData(self.flow_csvtohtmltable)
         flow = root.create_flow('CSV to graph', flow_data)
         flow_link = FlowCommand(flow)

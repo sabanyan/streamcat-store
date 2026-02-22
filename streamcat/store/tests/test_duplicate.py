@@ -158,8 +158,8 @@ class DuplicateTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         """
         権限設定の一致を検証する
         """
-        auths = self.factory.auth.find_all_by_datum_id(datum_id)
-        duplicated_auths = self.factory.auth.find_all_by_datum_id(duplicated_datum_id)
+        auths = self.finder.auth.find_all_by_datum_id(datum_id)
+        duplicated_auths = self.finder.auth.find_all_by_datum_id(duplicated_datum_id)
         # 権限設定の数は等しいこと
         self.assertEqual(len(auths), len(duplicated_auths))
         # everyone read,write,exec,own ...
@@ -173,7 +173,7 @@ class DuplicateTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         フローが複製できること
         """
         # ルートフォルダを取得する
-        root = self.factory3.data.load_root()
+        root = self.finder3.data.load_root()
 
         # ルートフォルダの下にプロジェクトを作成する
         project = root.create_project_folder('河原町')
@@ -189,7 +189,7 @@ class DuplicateTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         duplicated_flow = flow.duplicate('桂')
 
         # 作成を確定する
-        self.factory3.end()
+        self.finder3.end()
 
         # 複製したフローを検証する
         self.assertIsNotNone(duplicated_flow.id)
@@ -233,7 +233,7 @@ class DuplicateTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         データベースが複製できること
         """
         # ルートフォルダを取得する
-        root = self.factory3.data.load_root()
+        root = self.finder3.data.load_root()
 
         # ルートフォルダの下にプロジェクトを作成する
         project = root.create_project_folder('長岡天神')
@@ -257,7 +257,7 @@ class DuplicateTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         duplicated_db.reload()
 
         # 作成を確定する
-        self.factory3.end()
+        self.finder3.end()
 
         # 複製したデータベースを検証する
         self.assertIsNotNone(duplicated_db.id)
@@ -292,7 +292,7 @@ class DuplicateTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         リモートフォルダが複製できること
         """
         # ルートフォルダを取得する
-        root = self.factory3.data.load_root()
+        root = self.finder3.data.load_root()
 
         # ルートフォルダの下にプロジェクトを作成する
         project = root.create_project_folder('高槻市')
@@ -301,7 +301,7 @@ class DuplicateTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         # プロジェクトの下にリモートフォルダを作成する
         conn_json = {
             'protocol' : 'smb',
-            'hostname' : "18.178.64.116",
+            'hostname' : "15.168.34.0",
             'domain'   : "WORKGROUP",
             'directory': "share",
             'userId'  : "samba",
@@ -316,7 +316,7 @@ class DuplicateTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         duplicated_folder.reload()
 
         # 作成を確定する
-        self.factory3.end()
+        self.finder3.end()
 
         # 複製したリモートフォルダを検証する
         self.assertIsNotNone(duplicated_folder.id)
@@ -352,7 +352,7 @@ class DuplicateTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         スケジュールが複製できること
         """
         # ルートフォルダを取得する
-        root = self.factory3.data.load_root()
+        root = self.finder3.data.load_root()
 
         # ルートフォルダの下にプロジェクトを作成する
         project = root.create_project_folder('茨木市')
@@ -387,7 +387,7 @@ class DuplicateTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         duplicated_schedule.reload()
 
         # 作成を確定する
-        self.factory3.end()
+        self.finder3.end()
 
         # 複製したスケジュールを検証する
         self.assertIsNotNone(duplicated_schedule.id)
@@ -426,7 +426,7 @@ class DuplicateTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         フレームが複製できること
         """
         # ルートフォルダを取得する
-        root = self.factory3.data.load_root()
+        root = self.finder3.data.load_root()
 
         # ルートフォルダの下にプロジェクトを作成する
         project = root.create_project_folder('淡路')
@@ -442,7 +442,7 @@ class DuplicateTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         duplicated_frame1.reload()
 
         # 作成を確定する
-        self.factory3.end()
+        self.finder3.end()
 
         # 複製したフレームを検証する
         self.assertIsNotNone(duplicated_frame1.id)
@@ -501,7 +501,7 @@ class DuplicateTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         ドキュメントが複製できること
         """
         # ルートフォルダを取得する
-        root = self.factory3.data.load_root()
+        root = self.finder3.data.load_root()
 
         # ルートフォルダの下にプロジェクトを作成する
         project = root.create_project_folder('梅田')
@@ -517,7 +517,7 @@ class DuplicateTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         duplicated_document.reload()
 
         # 作成を確定する
-        self.factory3.end()
+        self.finder3.end()
 
         # 複製したドキュメントを検証する
         self.assertIsNotNone(duplicated_document.id)
@@ -556,7 +556,7 @@ class DuplicateTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         フォルダが複製できること
         """
         # ルートフォルダを取得する
-        root = self.factory3.data.load_root()
+        root = self.finder3.data.load_root()
 
         # ルートフォルダの下にプロジェクトを作成する
         project = root.create_project_folder('出町柳')
@@ -582,7 +582,7 @@ class DuplicateTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         duplicated_folder.reload()
 
         # 作成を確定する
-        self.factory3.end()
+        self.finder3.end()
 
         # 複製したフォルダを検証する
         self.assertIsNotNone(duplicated_folder.id)
@@ -637,21 +637,21 @@ class DuplicateTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
 
         # フォルダを削除する
         # (先に複製元フォルダを削除しても例外が送出されないこと)
-        folder = self.factory.data.find_by_uuid(folder.uuid)
+        folder = self.finder.data.find_by_uuid(folder.uuid)
         folder.throw_away()
-        self.factory.data.find_trashcan().trash_all()
+        self.finder.data.find_trashcan().trash_all()
 
         # 複製したフォルダを削除する
-        duplicated_folder = self.factory.data.find_by_uuid(duplicated_folder.uuid)
+        duplicated_folder = self.finder.data.find_by_uuid(duplicated_folder.uuid)
         duplicated_folder.throw_away()
-        self.factory.data.find_trashcan().trash_all()
+        self.finder.data.find_trashcan().trash_all()
 
     async def test_duplicate_project(self):
         """
         プロジェクトが複製できること
         """
         # ルートフォルダを取得する
-        root = self.factory3.data.load_root()
+        root = self.finder3.data.load_root()
 
         # ルートフォルダの下にプロジェクトを作成する
         project = root.create_project_folder('枚方')
@@ -679,7 +679,7 @@ class DuplicateTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
         duplicated_project.reload()
 
         # 作成を確定する
-        self.factory3.end()
+        self.finder3.end()
 
         # 複製したプロジェクトを検証する
         self.assertIsNotNone(duplicated_project.id)
@@ -729,11 +729,11 @@ class DuplicateTest(TestCaseBase, unittest.IsolatedAsyncioTestCase):
 
         # プロジェクトを削除する
         # (先に複製元プロジェクトを削除しても例外が送出されないこと)
-        project = self.factory.data.find_by_uuid(project.uuid)
+        project = self.finder.data.find_by_uuid(project.uuid)
         project.throw_away()
-        self.factory.data.find_trashcan().trash_all()
+        self.finder.data.find_trashcan().trash_all()
 
         # 複製したプロジェクトを削除する
-        duplicated_project = self.factory.data.find_by_uuid(duplicated_project.uuid)
+        duplicated_project = self.finder.data.find_by_uuid(duplicated_project.uuid)
         duplicated_project.throw_away()
-        self.factory.data.find_trashcan().trash_all()
+        self.finder.data.find_trashcan().trash_all()

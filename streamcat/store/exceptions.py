@@ -121,7 +121,7 @@ class EmptyFieldException(CommandException):
 class FieldForbiddenCharacterException(CommandException):
     """
     exception class for Forbidden Character (Field) Error
-    Forbidden Characters for field setting are % & \ :
+    Forbidden Characters for field setting are % & \\ :
     
     inputs:
     bad_field          field setting with forbidden character

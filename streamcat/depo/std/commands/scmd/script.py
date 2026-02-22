@@ -34,14 +34,14 @@ class LoaderCommand(SCommand):
         return {'o': nysol_module}
 
     def _get_frame(self, args):
-        datum_factory = args['datum_factory']
+        datum_finder = args['datum_finder']
 
         # 指定したuuidのframeを取得する
         frame_uuid = args['uuid']
         if frame_uuid is None or frame_uuid=='':
             raise Exception('入力ファイルを指定してください')
         # frame = folder.find_child_by_uuid(frame_uuid)
-        frame = datum_factory.find_by_uuid(frame_uuid, type=SavableDatum.FRAME_TYPE)
+        frame = datum_finder.find_by_uuid(frame_uuid, type=SavableDatum.FRAME_TYPE)
         path = frame.path
 
         if frame.encoding is None:
@@ -1434,9 +1434,9 @@ class DumpCommand(SCommand):
         from pathlib import Path
         from streamcat.store.auth import NotAuthorizedException
         # Sessionを取得する
-        if 'datum_factory' not in args:
-            raise Exception('引数(datum_factory)にDatumFactoryを指定してください')
-        session = args['datum_factory']._session
+        if 'datum_finder' not in args:
+            raise Exception('引数(datum_finder)にdatumFinderを指定してください')
+        session = args['datum_finder']._session
 
         if not session.has_sys_admin():
             raise NotAuthorizedException('システム管理者以外は、StreamCatのバックアップデータを取得できません')
@@ -1540,12 +1540,12 @@ class RestoreCommand(SCommand):
 
     def run(self, args, inputs):
         from streamcat.store.auth import NotAuthorizedException
-        # Factoryを取得する
-        if 'factory' not in args:
-            raise Exception('引数(factory)にFactoryを指定してください')
-        factory = args['factory']
+        # Finderを取得する
+        if 'finder' not in args:
+            raise Exception('引数(finder)にFinderを指定してください')
+        finder = args['finder']
 
-        if not factory._session.has_sys_admin():
+        if not finder._session.has_sys_admin():
             raise NotAuthorizedException('システム管理者以外は、StreamCatを復元できません')
 
         # ファイルストリームを取得する
@@ -1555,7 +1555,7 @@ class RestoreCommand(SCommand):
 
         # 復元処理をスレッドセーフで実行する
         with self._thread_lock:
-            self._call_async_func(self._restore_all, factory, stream)
+            self._call_async_func(self._restore_all, finder, stream)
 
         # Noneは返せないのでとりあえずTrueを返す
         return {'o': True}
@@ -1568,7 +1568,7 @@ class RestoreCommand(SCommand):
         # NOTE: Engineは別スレッドで実行されるため、CommandをFastAPIのイベントループで実行する必要はない
         return asyncio.run(func(*args))
 
-    async def _restore_all(self, factory, stream):
+    async def _restore_all(self, finder, stream):
         """
         StreamCatを復元する
         """
@@ -1577,14 +1577,14 @@ class RestoreCommand(SCommand):
 
         try:
             # マウントポイントは移動・削除できないので、ここで全てのマウントを解除する
-            factory.data.unmount_all()
+            finder.data.unmount_all()
             # psqlコマンドでリストアする前に全てのDBコネクションを閉じる必要がある
-            factory.close()
+            finder.close()
         except Exception as e:
             raise Exception(f'マウントが解除できませんでした ({e})')
 
         # PostgreSQLへのActive状態の接続があれば例外を送出する
-        active_connections = [result for result in await factory.get_active_connections()]
+        active_connections = [result for result in await finder.get_active_connections()]
         if len(active_connections) > 0:
             application_name = active_connections[0]['application_name']
             client_addr = active_connections[0]['client_addr']

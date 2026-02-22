@@ -220,14 +220,14 @@ class Role(BaseModel):
         (ユーザID順で返す)
         """
         from sqlalchemy import select, exists, and_, or_
-        from streamcat.store.factory import UserFactory
+        from streamcat.store.finder import UserFinder
         from .user import User
 
         exists_user_role = exists().where(and_(UserRole.role_id==self.id, UserRole.user_id==User.id))
 
         stmt =  select(User).\
                 where(or_(exists_user_role, User.self_role_id==self.id))
-        stmt =  UserFactory(self._session)._add_except_states_criteria(stmt, except_states)
+        stmt =  UserFinder(self._session)._add_except_states_criteria(stmt, except_states)
         stmt =  stmt.order_by(User.id)
 
         return self._session.scalars(stmt).all()
@@ -237,13 +237,13 @@ class Role(BaseModel):
         ロールに所属する全てのメンバを返す
         (ユーザID順で返す)
         """
-        from streamcat.store.factory import UserFactory
+        from streamcat.store.finder import UserFinder
         from .user import User
 
         stmt =  select(User, UserRole.owner).\
                 outerjoin(UserRole, UserRole.user_id==User.id).\
                 where(UserRole.role_id==self.id)
-        stmt =  UserFactory(self._session)._add_except_states_criteria(stmt, except_states)
+        stmt =  UserFinder(self._session)._add_except_states_criteria(stmt, except_states)
         stmt =  stmt.order_by(User.id)
 
         results = self._session.execute(stmt).all()
@@ -282,16 +282,16 @@ class Role(BaseModel):
         if member.user.is_inactive:
             raise Exception('削除状態のユーザを所属させることはできません')
 
-        from ..factory import UserRoleFactory
-        factory = UserRoleFactory(self._session)
+        from ..finder import UserRoleFinder
+        finder = UserRoleFinder(self._session)
 
-        if factory.exists(member.user.id, self.id):
+        if finder.exists(member.user.id, self.id):
             # ユーザ管理ロールが、この所属によって、ロールに所有者が居なくなる場合はエラーとする
             if self.is_usr_admin and member.owner == False and self.is_last_owner(member.user):
                 self.raise_no_role_owner_exception()
 
             # 既にメンバの場合は所有権フラグを更新する
-            user_role = factory.find_by_id(member.user.id, self.id)
+            user_role = finder.find_by_id(member.user.id, self.id)
             user_role.update_owner(member.owner)
         else:
             # ロールにメンバを追加する
@@ -305,15 +305,15 @@ class Role(BaseModel):
         if self.is_self_role():
             raise Exception('本人ロールからユーザを脱退させることはできません')
 
-        from streamcat.store.factory import UserRoleFactory
-        factory = UserRoleFactory(self._session)
+        from streamcat.store.finder import UserRoleFinder
+        finder = UserRoleFinder(self._session)
 
-        if factory.exists(user.id, self.id):
+        if finder.exists(user.id, self.id):
             # ユーザ管理ロールが、この脱退によって、ロールに所有者が居なくなる場合はエラーとする
             if self.is_usr_admin and self.is_last_owner(user):
                 self.raise_no_role_owner_exception()
             # ロールからメンバを削除する
-            user_role = factory.find_by_id(user.id, self.id)
+            user_role = finder.find_by_id(user.id, self.id)
             user_role.delete()
 
     def leave_others(self, except_user):
@@ -327,8 +327,8 @@ class Role(BaseModel):
         if self.is_usr_admin and not self.is_owner(except_user):
             self.raise_no_role_owner_exception()
 
-        from streamcat.store.factory import UserRoleFactory
-        UserRoleFactory(self._session).delete_all_by_role_id(self.id, except_user_id=except_user.id)
+        from streamcat.store.finder import UserRoleFinder
+        UserRoleFinder(self._session).delete_all_by_role_id(self.id, except_user_id=except_user.id)
 
     def init_members(self, members):
         """
@@ -401,11 +401,11 @@ class Role(BaseModel):
         self.init_authz(datum_id, None, None, None, None)
 
     def _init_authz_inner(self, datum_id, operation, permission):
-        from streamcat.store.factory import AuthFactory
-        auth_factory = AuthFactory(self._session)
+        from streamcat.store.finder import AuthFinder
+        auth_finder = AuthFinder(self._session)
 
-        if auth_factory.exists(self.id, datum_id, operation):
-            auth = auth_factory.find_by_id(self.id, datum_id, operation)
+        if auth_finder.exists(self.id, datum_id, operation):
+            auth = auth_finder.find_by_id(self.id, datum_id, operation)
             if permission is None:
                 # permission=Noneが指定された場合はAuthレコードを削除する
                 auth.delete()
@@ -415,7 +415,7 @@ class Role(BaseModel):
             # permission=Noneが指定された場合は何もしない
             pass
         else:
-            auth = auth_factory.create(self.id, datum_id, operation, permission=permission)
+            auth = auth_finder.create(self.id, datum_id, operation, permission=permission)
             auth.save()
 
     def to_json(self):

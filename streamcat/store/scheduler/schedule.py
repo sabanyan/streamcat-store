@@ -188,16 +188,16 @@ class Schedule(SavableDatum):
 
     def _valid_runnable_or_raise(self, runnable_uuid:str):
         # 存在しないrunnable_uuidが指定された場合は例外を送出する
-        from streamcat.store.factory import DatumFactory
-        if not DatumFactory(self._session).exists(runnable_uuid):
+        from streamcat.store.finder import DatumFinder
+        if not DatumFinder(self._session).exists(runnable_uuid):
             raise Exception(f'指定されたrunnable_uuid({runnable_uuid})は存在しません')
 
         # ゴミ箱にほかしたrunnable_uuidが指定された場合は例外を送出する
-        if DatumFactory(self._session).trashed(runnable_uuid):
+        if DatumFinder(self._session).trashed(runnable_uuid):
             raise Exception(f'ゴミ箱にほかされたrunnable_uuid({runnable_uuid})は指定できません')
 
         # 参照権限が無いrunnable_uuidが指定された場合は例外を送出する
-        DatumFactory(self._session).find_by_uuid(runnable_uuid)
+        DatumFinder(self._session).find_by_uuid(runnable_uuid)
 
     def _valid_trigger_json_or_raise(self, trigger:dict):
         """
@@ -270,8 +270,8 @@ class Schedule(SavableDatum):
         from . import schedule_manager
 
         # 既にルートフォルダが存在する場合は、parent_id=NULLを許可しない
-        from streamcat.store.factory import DatumFactory
-        if self.parent_id is None and DatumFactory(self._session).count_root() > 0:
+        from streamcat.store.finder import DatumFinder
+        if self.parent_id is None and DatumFinder(self._session).count_root() > 0:
             raise Exception('You can not add another root schedule. A root already exists.')
 
         try:
@@ -285,10 +285,12 @@ class Schedule(SavableDatum):
                 schedule_manager.delete(self.uuid)
             raise e
 
-    def update_data(self, label, runnable_uuid:str, args={}, inputs={}, trigger={}, modifier=None):
+    def update_data(self, label, runnable_uuid:str, args={}, inputs={}, trigger={}, modifier=None, last_modified_at=None):
         """
         Scheduleのdata列を更新する
         """
+        from sqlalchemy import select
+        from ..exceptions import OptimisticLockException
         from . import schedule_manager
 
         # ラベルに'\0'が含まれていれば取り除く
@@ -299,6 +301,14 @@ class Schedule(SavableDatum):
 
         # 起動日時指定の書式を検証する
         self._valid_trigger_json_or_raise(trigger)
+
+        # 
+        # 最終更新時刻を用いた楽観的排他制御
+        # 
+        stmt = select(Schedule.modified_at).where(Schedule.id==self.id)
+        modified_at = self._session.scalars(stmt).one_or_none()
+        if modified_at != last_modified_at:
+            raise OptimisticLockException(f'スケジュール({self.label})は他ユーザーが編集しているため更新できませんでした')
 
         try:
             # レコードを更新する
@@ -321,9 +331,9 @@ class Schedule(SavableDatum):
         ゴミ箱から戻された場合は、スケジューラに再登録する
         """
         from . import schedule_manager
-        from streamcat.store.factory import DatumFactory
-        factory = DatumFactory(self._session)
-        trash_folder = factory.load_trash_folder()
+        from streamcat.store.finder import DatumFinder
+        finder = DatumFinder(self._session)
+        trash_folder = finder.load_trash_folder()
 
         if parent_uuid == trash_folder.uuid:
             # ゴミ箱へほかされた場合は、スケジューラから削除する
@@ -372,6 +382,8 @@ class Schedule(SavableDatum):
         ret['args']    = self._data.get('args', {})
         ret['inputs']  = self._data.get('inputs', {})
         ret['trigger'] = self._data.get('trigger', {})
+        # メンバ設定の楽観的排他制御に最終更新時刻を用いる
+        ret['modifiedAt'] = self.modified_at.strftime('%Y-%m-%d %H:%M:%S.%f')
         # allowlist
         ret['allowlist']['download'] = False
         return ret

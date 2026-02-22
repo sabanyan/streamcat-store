@@ -168,7 +168,7 @@ class Mountable():
         from pathlib import Path
         from sqlalchemy import select
         from sqlalchemy.orm import aliased
-        from streamcat.store.factory import DatumFactory
+        from streamcat.store.finder import DatumFinder
 
         # id : 検索対象DatumからRootDatumへの経路の全てのDatumのid
         D0 = aliased(SavableDatum, name='D0')
@@ -194,7 +194,7 @@ class Mountable():
             session.rollback()
             raise e
 
-        factory = DatumFactory(session)
+        finder = DatumFinder(session)
 
         for row in rows:
             mount_point_path = Path(row[1])
@@ -202,10 +202,10 @@ class Mountable():
                 uuid = str(row.uuid)
                 type = str(row.type)
                 if type == SavableDatum.AWSS3_TYPE:
-                    awss3 = factory.find_by_uuid(uuid)
+                    awss3 = finder.find_by_uuid(uuid)
                     awss3.mount(mount_point_path)
                 elif type == SavableDatum.RFOLDER_TYPE:
-                    folder = factory.find_by_uuid(uuid)
+                    folder = finder.find_by_uuid(uuid)
                     folder.mount(mount_point_path)
                 else:
                     raise Exception('undefined type found!')
@@ -241,9 +241,9 @@ class Mountable():
         TODO: Linuxのmountコマンドの--moveオプションを使えばマウント中の
               ディレクトリポイントを移動できるらしいが、間に合わせの実装として移動を禁止する
         """
-        from streamcat.store.factory import DatumFactory
-        factory = DatumFactory(self._session)
-        trash_folder = factory.load_trash_folder()
+        from streamcat.store.finder import DatumFinder
+        finder = DatumFinder(self._session)
+        trash_folder = finder.load_trash_folder()
 
         if parent_uuid==trash_folder.uuid or prev_parent_id==trash_folder.id:
             # ゴミ箱へほかされる、またはゴミ箱から戻される場合、
@@ -259,9 +259,9 @@ class Mountable():
         """
         ゴミ箱へほかされた場合は、マウントを解除する
         """
-        from streamcat.store.factory import DatumFactory
-        factory = DatumFactory(self._session)
-        trash_folder = factory.load_trash_folder()
+        from streamcat.store.finder import DatumFinder
+        finder = DatumFinder(self._session)
+        trash_folder = finder.load_trash_folder()
 
         if parent_uuid==trash_folder.uuid or prev_parent_id==trash_folder.id:
             # ゴミ箱へほかされた、またはゴミ箱から戻された場合、マウントを解除する
